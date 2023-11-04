@@ -109,7 +109,6 @@ public class JmouseableApplication implements CommandLineRunner {
     private void showIndicatorWindow() {
         // Define a new window class
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
-        wClass.hInstance = Kernel32.INSTANCE.GetModuleHandle(""); // not useful??
         wClass.hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(0x000000FF);
         wClass.lpszClassName = "JMouseableOverlayClassName";
         wClass.lpfnWndProc = (WinUser.WindowProc) User32.INSTANCE::DefWindowProc;
