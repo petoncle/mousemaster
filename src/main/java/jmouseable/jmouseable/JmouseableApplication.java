@@ -56,7 +56,6 @@ public class JmouseableApplication implements CommandLineRunner {
                 case WinUser.WM_SYSKEYUP:
                 case WinUser.WM_SYSKEYDOWN:
                     logger.info("In callback, key state: " + wParam + ", " + info.vkCode);
-                    // If you want to stop the event from continuing you would do so here
                     break;
             }
         }
@@ -107,21 +106,16 @@ public class JmouseableApplication implements CommandLineRunner {
     }
 
     private void showIndicatorWindow() {
-        // Define a new window class
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
         wClass.hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(0x000000FF);
         wClass.lpszClassName = "JMouseableOverlayClassName";
         wClass.lpfnWndProc = (WinUser.WindowProc) User32.INSTANCE::DefWindowProc;
-        // Register the window class
         User32.INSTANCE.RegisterClassEx(wClass);
         indicatorWindowHwnd = User32.INSTANCE.CreateWindowEx(
                 User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
                 ExtendedUser32.WS_EX_NOACTIVATE, wClass.lpszClassName,
                 "JMouseableOverlayWindowName", WinUser.WS_POPUP, 100, 100, 16, 16, null,
-                // Parent window
-                null, // Menu
-                wClass.hInstance, null  // Additional application data
-        );
+                null, wClass.hInstance, null);
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_SHOWNORMAL);
     }
 
@@ -136,12 +130,12 @@ public class JmouseableApplication implements CommandLineRunner {
 
                 int sizeOfBitmap = bmp.size();
                 if (iconInfo.hbmColor != null) {
-                    // Get the color bitmap information
+                    // Get the color bitmap information.
                     GDI32.INSTANCE.GetObject(iconInfo.hbmColor, sizeOfBitmap,
                             bmp.getPointer());
                 }
                 else {
-                    // Get the mask bitmap information if there is no color bitmap
+                    // Get the mask bitmap information if there is no color bitmap.
                     GDI32.INSTANCE.GetObject(iconInfo.hbmMask, sizeOfBitmap,
                             bmp.getPointer());
                 }
@@ -150,12 +144,10 @@ public class JmouseableApplication implements CommandLineRunner {
                 cursorWidth = bmp.bmWidth.intValue();
                 cursorHeight = bmp.bmHeight.intValue();
 
-                // If there is no color bitmap, height is for both the mask and the inverted mask
+                // If there is no color bitmap, height is for both the mask and the inverted mask.
                 if (iconInfo.hbmColor == null) {
-                    cursorHeight /=
-                            2; // Divide height by 2 to get the actual cursor height
+                    cursorHeight /= 2;
                 }
-                // Cleanup resources
                 if (iconInfo.hbmColor != null)
                     GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
                 if (iconInfo.hbmMask != null)
