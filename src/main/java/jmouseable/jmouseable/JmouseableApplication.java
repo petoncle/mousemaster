@@ -1,10 +1,7 @@
 package jmouseable.jmouseable;
 
 import com.sun.jna.Pointer;
-import com.sun.jna.platform.win32.Kernel32;
-import com.sun.jna.platform.win32.User32;
-import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinUser;
+import com.sun.jna.platform.win32.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -25,6 +22,7 @@ public class JmouseableApplication implements CommandLineRunner {
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
     private WinDef.HWND indicatorWindowHwnd;
+    private int cursorWidth, cursorHeight;
 
     @Override
     public void run(String... args) throws Exception {
@@ -39,6 +37,8 @@ public class JmouseableApplication implements CommandLineRunner {
             User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
         }));
         logger.info("Keyboard and mouse hooks installed");
+        findCursorSize();
+        logger.info("Cursor size: " + cursorWidth + " " + cursorHeight);
         showIndicatorWindow();
         WinUser.MSG msg = new WinUser.MSG();
         while (User32.INSTANCE.GetMessage(msg, null, 0, 0) != 0) {
@@ -88,22 +88,22 @@ public class JmouseableApplication implements CommandLineRunner {
 
     private static final int indicatorEdgeThreshold = 100; // in pixels
 
-    private static int bestIndicatorX(int mouseX, int indicatorSize, int monitorLeft,
-                                      int monitorRight) {
+    private int bestIndicatorX(int mouseX, int indicatorSize, int monitorLeft,
+                               int monitorRight) {
         boolean isNearLeftEdge = mouseX <= (monitorLeft + indicatorEdgeThreshold);
         boolean isNearRightEdge = mouseX >= (monitorRight - indicatorEdgeThreshold);
         if (isNearRightEdge)
             return mouseX - indicatorSize;
-        return mouseX + indicatorSize;
+        return mouseX + cursorWidth / 2;
     }
 
-    private static int bestIndicatorY(int mouseY, int indicatorSize, int monitorTop,
-                                      int monitorBottom) {
+    private int bestIndicatorY(int mouseY, int indicatorSize, int monitorTop,
+                               int monitorBottom) {
         boolean isNearBottomEdge = mouseY >= (monitorBottom - indicatorEdgeThreshold);
         boolean isNearTopEdge = mouseY <= (monitorTop + indicatorEdgeThreshold);
         if (isNearBottomEdge)
             return mouseY - indicatorSize;
-        return mouseY + indicatorSize;
+        return mouseY + cursorHeight / 2;
     }
 
     private void showIndicatorWindow() {
@@ -124,6 +124,45 @@ public class JmouseableApplication implements CommandLineRunner {
                 wClass.hInstance, null  // Additional application data
         );
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_SHOWNORMAL);
+    }
+
+    private void findCursorSize() {
+        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
+
+        if (ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo)) {
+            WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+            if (User32.INSTANCE.GetIconInfo(new WinDef.HICON(cursorInfo.hCursor),
+                    iconInfo)) {
+                WinGDI.BITMAP bmp = new WinGDI.BITMAP();
+
+                int sizeOfBitmap = bmp.size();
+                if (iconInfo.hbmColor != null) {
+                    // Get the color bitmap information
+                    GDI32.INSTANCE.GetObject(iconInfo.hbmColor, sizeOfBitmap,
+                            bmp.getPointer());
+                }
+                else {
+                    // Get the mask bitmap information if there is no color bitmap
+                    GDI32.INSTANCE.GetObject(iconInfo.hbmMask, sizeOfBitmap,
+                            bmp.getPointer());
+                }
+                bmp.read();
+
+                cursorWidth = bmp.bmWidth.intValue();
+                cursorHeight = bmp.bmHeight.intValue();
+
+                // If there is no color bitmap, height is for both the mask and the inverted mask
+                if (iconInfo.hbmColor == null) {
+                    cursorHeight /=
+                            2; // Divide height by 2 to get the actual cursor height
+                }
+                // Cleanup resources
+                if (iconInfo.hbmColor != null)
+                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
+                if (iconInfo.hbmMask != null)
+                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
+            }
+        }
     }
 
 }
