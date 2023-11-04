@@ -68,7 +68,7 @@ public class JmouseableApplication implements CommandLineRunner {
                                              WinUser.MSLLHOOKSTRUCT info) {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
-            System.out.println(
+            logger.info(
                     "Mouse position: (" + mousePosition.x + "," + mousePosition.y + ")");
             int size = 16;
             WinUser.HMONITOR hMonitor = User32.INSTANCE.MonitorFromPoint(
