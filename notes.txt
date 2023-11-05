@@ -1,0 +1,24 @@
+_shift,^shift = press shift, release shift?
++ begin when key down, end when key up?
+ + <mode>.<action> = <key combo>
+ + default-mode.change-to-mouse-mode=_ctrl,^ctrl,_ctrl,^ctrl
+ + mouse-mode.change-to-temp-mouse-mode=_ctrl,^ctrl
+ + temp-mouse-mode.change-to-default-mode=_ctrl,^ctrl
+ + mouse-mode.press-left=_shift
+ + mouse-mode.release-left=^shift
+ + mouse.acceleration, wheel.acceleration
++ temp-mouse-mode.timeout-to-default-mode=1s # automatically changes mode if no key combo was detected during 1s and no action is currently running (e.g. move-up)
++ temp-mouse-mode.oneshot-then-change-to-default-mode=true # once an action has run (e.g. mouve-up), mode changes automatically
++ Can assign multiple combo to same action
+ + mouse-mode.press-left=_lshift
+ + mouse-mode.press-left=_rshift
++ any key involved in a combo should be eaten (e.g. / + Up, / should not write / in IDE)
+ + In _ctrl,_/ the / should be eaten only if ctrl was pressed (i.e. combo is being prepared)
+ + Ctrl+A,B == _ctrl _a ^ctrl ^a _b and _ctrl _a ^a ^ctrl _b
+ + Could do complex combo like hold ctrl, then a, then a again: _ctrl _a ^a _a ^a
+ + combo timeout = time after which we stop waiting for a combo to be completed (150ms?)
++ Combo.isPrefixOf(completeCombo)
++ teleport key should use current display size percentage
++ Speed should not change when overlapping press-left/press-right. Speed set to 0 when all released.
+ + On overlaps (press-left/press-right), last action wins (need a stack push/pop)
++ vimium-like hint (warpd), keynav-like grid?
