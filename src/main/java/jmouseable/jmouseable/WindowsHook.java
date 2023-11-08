@@ -12,16 +12,21 @@ public class WindowsHook {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsHook.class);
 
-    private static WinUser.HHOOK keyboardHook;
-    private static WinUser.HHOOK mouseHook;
+    private final MouseMover mouseMover;
+    private WinUser.HHOOK keyboardHook;
+    private WinUser.HHOOK mouseHook;
 
-    public static void installHooks() {
+    public WindowsHook(MouseMover mouseMover) {
+        this.mouseMover = mouseMover;
+    }
+
+    public void installHooks() {
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
-                (WinUser.LowLevelKeyboardProc) WindowsHook::keyboardHookCallback, hMod,
+                (WinUser.LowLevelKeyboardProc) this::keyboardHookCallback, hMod,
                 0);
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
-                (WinUser.LowLevelMouseProc) WindowsHook::mouseHookCallback, hMod, 0);
+                (WinUser.LowLevelMouseProc) this::mouseHookCallback, hMod, 0);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
             User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
@@ -36,7 +41,7 @@ public class WindowsHook {
         }
     }
 
-    private static WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,
+    private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,
                                                        WinUser.KBDLLHOOKSTRUCT info) {
         if (nCode >= 0) {
             switch (wParam.intValue()) {
@@ -52,21 +57,12 @@ public class WindowsHook {
                 new WinDef.LPARAM(Pointer.nativeValue(info.getPointer())));
     }
 
-    private static WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
+    private WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
                                                     WinUser.MSLLHOOKSTRUCT info) {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
-            WinUser.HMONITOR hMonitor = User32.INSTANCE.MonitorFromPoint(
-                    new WinDef.POINT.ByValue(mousePosition.getPointer()),
-                    WinUser.MONITOR_DEFAULTTONEAREST);
-            WinUser.MONITORINFO monitorInfo = new WinUser.MONITORINFO();
-            User32.INSTANCE.GetMonitorInfo(hMonitor, monitorInfo);
-            int monitorLeft = monitorInfo.rcMonitor.left;
-            int monitorRight = monitorInfo.rcMonitor.right;
-            int monitorTop = monitorInfo.rcMonitor.top;
-            int monitorBottom = monitorInfo.rcMonitor.bottom;
-            WindowsIndicator.mouseEvent(mousePosition.x, mousePosition.y, monitorLeft,
-                    monitorRight, monitorTop, monitorBottom);
+            WindowsIndicator.mouseMoved(mousePosition);
+            mouseMover.mouseMoved(mousePosition.x, mousePosition.y);
         }
         return User32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam,
                 new WinDef.LPARAM(Pointer.nativeValue(info.getPointer())));

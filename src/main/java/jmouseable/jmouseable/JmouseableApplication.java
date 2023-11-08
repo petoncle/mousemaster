@@ -13,7 +13,7 @@ public class JmouseableApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        WindowsHook.installHooks();
+        new WindowsHook(new MouseMover(10, 100)).installHooks();
     }
 
 }
