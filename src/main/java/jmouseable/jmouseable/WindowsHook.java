@@ -23,26 +23,42 @@ public class WindowsHook {
     public void installHooks() {
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
-                (WinUser.LowLevelKeyboardProc) this::keyboardHookCallback, hMod,
-                0);
+                (WinUser.LowLevelKeyboardProc) this::keyboardHookCallback, hMod, 0);
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
                 (WinUser.LowLevelMouseProc) this::mouseHookCallback, hMod, 0);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
-            User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
-            logger.info("Keyboard and mouse hooks uninstalled");
+            boolean keyboardHookUnhooked =
+                    User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
+            boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
+            logger.info(
+                    "Keyboard and mouse hooks uninstalled " + keyboardHookUnhooked + " " +
+                    mouseHookUnhooked);
         }));
         logger.info("Keyboard and mouse hooks installed");
         WindowsIndicator.showIndicatorWindow();
+        int timerId = 1;
+        // Timer every ~10ms (it is inaccurate and is usually called every 15-20ms).
+        ExtendedUser32.INSTANCE.SetTimer(null, timerId, 10, this::update);
         WinUser.MSG msg = new WinUser.MSG();
         while (User32.INSTANCE.GetMessage(msg, null, 0, 0) != 0) {
             User32.INSTANCE.TranslateMessage(msg);
             User32.INSTANCE.DispatchMessage(msg);
         }
+        ExtendedUser32.INSTANCE.KillTimer(null, timerId);
+    }
+
+    private long previousNanoTime = System.nanoTime();
+
+    private void update(Pointer hWnd, int uMsg, Pointer nIDEvent, int dwTime) {
+        long currentNanoTime = System.nanoTime();
+        long deltaNanos = currentNanoTime - previousNanoTime;
+        previousNanoTime = currentNanoTime;
+        double delta = deltaNanos / 1e9d;
+        mouseMover.update(delta);
     }
 
     private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,
-                                                       WinUser.KBDLLHOOKSTRUCT info) {
+                                                WinUser.KBDLLHOOKSTRUCT info) {
         if (nCode >= 0) {
             switch (wParam.intValue()) {
                 case WinUser.WM_KEYUP:
@@ -58,7 +74,7 @@ public class WindowsHook {
     }
 
     private WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
-                                                    WinUser.MSLLHOOKSTRUCT info) {
+                                             WinUser.MSLLHOOKSTRUCT info) {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
             WindowsIndicator.mouseMoved(mousePosition);

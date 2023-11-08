@@ -13,7 +13,7 @@ public class MouseMover {
         this.acceleration = acceleration;
     }
 
-    private void update(double delta) {
+    public void update(double delta) {
         if (xVelocity != 0)
             xVelocity = Math.min(maxVelocity, xVelocity + acceleration * delta);
         if (yVelocity != 0)
