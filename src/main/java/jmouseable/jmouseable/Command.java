@@ -2,23 +2,22 @@ package jmouseable.jmouseable;
 
 public sealed interface Command {
 
-    record ChangeMode(Mode newMode) implements Command {
-    }
+    record ChangeMode(Mode newMode) implements Command {}
 
-    record MoveUp() implements Command {
+    record StartMoveUp() implements Command {}
 
-    }
+    record StartMoveDown() implements Command {}
 
-    record MoveDown() implements Command {
+    record StartMoveLeft() implements Command {}
 
-    }
+    record StartMoveRight() implements Command {}
 
-    record MoveLeft() implements Command {
+    record StopMoveUp() implements Command {}
 
-    }
+    record StopMoveDown() implements Command {}
 
-    record MoveRight() implements Command {
+    record StopMoveLeft() implements Command {}
 
-    }
+    record StopMoveRight() implements Command {}
 
 }

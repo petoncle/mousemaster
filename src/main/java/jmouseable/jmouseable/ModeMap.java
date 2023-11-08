@@ -9,4 +9,8 @@ public class ModeMap {
     public ModeMap(Map<Mode, ComboMap> comboMapByMode) {
         this.comboMapByMode = comboMapByMode;
     }
+
+    public ComboMap get(Mode mode) {
+        return comboMapByMode.get(mode);
+    }
 }

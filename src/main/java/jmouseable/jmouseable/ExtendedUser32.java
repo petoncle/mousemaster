@@ -15,6 +15,8 @@ public interface ExtendedUser32 extends User32 {
     int WS_EX_NOACTIVATE = 0x08000000;
     int WS_EX_TOOLWINDOW = 0x00000080;
 
+    int MOUSEEVENTF_MOVE = 0x0001;
+
     boolean GetCursorInfo(CURSORINFO pci);
 
     boolean GetIconInfo(HICON hIcon, WinGDI.ICONINFO piconinfo);
