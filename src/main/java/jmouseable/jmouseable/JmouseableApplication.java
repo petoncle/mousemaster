@@ -55,7 +55,7 @@ public class JmouseableApplication implements CommandLineRunner {
                 case WinUser.WM_KEYDOWN:
                 case WinUser.WM_SYSKEYUP:
                 case WinUser.WM_SYSKEYDOWN:
-                    logger.info("In callback, key state: " + wParam + ", " + info.vkCode);
+                    logger.info("Key action: " + wParam + ", " + info.vkCode);
                     break;
             }
         }
