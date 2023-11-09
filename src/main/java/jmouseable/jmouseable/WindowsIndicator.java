@@ -100,7 +100,6 @@ public class WindowsIndicator {
     }
 
     public static void mouseMoved(WinDef.POINT mousePosition) {
-        logger.info("Mouse position: " + mousePosition.x + "," + mousePosition.y);
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
         User32.INSTANCE.MoveWindow(indicatorWindowHwnd,
                 bestIndicatorX(mousePosition.x, monitorInfo.rcMonitor.left,

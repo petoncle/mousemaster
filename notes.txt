@@ -19,7 +19,9 @@ _shift,^shift = press shift, release shift?
 + Can assign one combo to multiple actions
  + default-mode.to.mouse-mode=_leftarrow,^leftarrow,_leftarrow
  + default-mode.start-move-left=_leftarrow,^leftarrow,_leftarrow
-+ any key involved in a combo should be eaten (e.g. / + Up, / should not write / in IDE)
++ Non-last keys involved in a combo should not be eaten
+ + Reason is Up, Up: if only press single up, the Up,Up combo should not eat the first Up
+ + The last key event of the combo should be eaten
  + In _ctrl,_/ the / should be eaten only if ctrl was pressed (i.e. combo is being prepared)
  + Ctrl+A,B == _ctrl _a ^ctrl ^a _b and _ctrl _a ^a ^ctrl _b
  + Could do complex combo like hold ctrl, then a, then a again: _ctrl _a ^a _a ^a

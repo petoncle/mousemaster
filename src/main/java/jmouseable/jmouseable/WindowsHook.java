@@ -76,11 +76,12 @@ public class WindowsHook {
             switch (wParam.intValue()) {
                 case WinUser.WM_KEYUP:
                 case WinUser.WM_KEYDOWN:
-                case WinUser.WM_SYSKEYUP:
-                case WinUser.WM_SYSKEYDOWN:
                     KeyState state = wParam.intValue() == WinUser.WM_KEYUP ||
                                      wParam.intValue() == WinUser.WM_SYSKEYUP ?
                             KeyState.RELEASED : KeyState.PRESSED;
+                    logger.debug("Received key event: vk = " +
+                                WindowsVirtualKey.values.get(info.vkCode) + ", scanCode = " +
+                                info.scanCode + ", flags = 0x" + Integer.toHexString(info.flags));
                     KeyAction action = new KeyAction(
                             WindowsVirtualKey.keyFromWindowsEvent(
                                     WindowsVirtualKey.values.get(info.vkCode),
