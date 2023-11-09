@@ -18,8 +18,7 @@ public class WindowsHook {
     private static final Instant systemStartTime;
 
     static {
-        RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
-        long uptimeMillis = runtimeBean.getUptime();
+        long uptimeMillis = ExtendedKernel32.INSTANCE.GetTickCount64();
         Instant now = Instant.now();
         systemStartTime = now.minusMillis(uptimeMillis);
     }
@@ -86,8 +85,9 @@ public class WindowsHook {
                             WindowsVirtualKey.keyFromWindowsEvent(
                                     WindowsVirtualKey.values.get(info.vkCode),
                                     info.scanCode, info.flags), state);
-                    if (comboWatcher.keyEvent(new KeyEvent(systemStartTime.plusMillis(info.time),
-                            action)))
+                    if (comboWatcher.keyEvent(
+                            new KeyEvent(systemStartTime.plusMillis(info.time),
+                                    action)))
                         return new WinDef.LRESULT(1);
                     break;
             }
