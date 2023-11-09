@@ -8,16 +8,30 @@ import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.time.Instant;
+
 public class WindowsHook {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsHook.class);
+    private static final Instant systemStartTime;
+
+    static {
+        RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
+        long uptimeMillis = runtimeBean.getUptime();
+        Instant now = Instant.now();
+        systemStartTime = now.minusMillis(uptimeMillis);
+    }
 
     private final MouseMover mouseMover;
+    private final ComboWatcher comboWatcher;
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
 
-    public WindowsHook(MouseMover mouseMover) {
+    public WindowsHook(MouseMover mouseMover, ComboWatcher comboWatcher) {
         this.mouseMover = mouseMover;
+        this.comboWatcher = comboWatcher;
     }
 
     public void installHooks() {
@@ -65,7 +79,16 @@ public class WindowsHook {
                 case WinUser.WM_KEYDOWN:
                 case WinUser.WM_SYSKEYUP:
                 case WinUser.WM_SYSKEYDOWN:
-                    logger.info("Key action: " + wParam + ", " + info.vkCode);
+                    KeyState state = wParam.intValue() == WinUser.WM_KEYUP ||
+                                     wParam.intValue() == WinUser.WM_SYSKEYUP ?
+                            KeyState.RELEASED : KeyState.PRESSED;
+                    KeyAction action = new KeyAction(
+                            WindowsVirtualKey.keyFromWindowsEvent(
+                                    WindowsVirtualKey.values.get(info.vkCode),
+                                    info.scanCode, info.flags), state);
+                    if (comboWatcher.keyEvent(new KeyEvent(systemStartTime.plusMillis(info.time),
+                            action)))
+                        return new WinDef.LRESULT(1);
                     break;
             }
         }

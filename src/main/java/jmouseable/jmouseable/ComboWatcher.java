@@ -1,6 +1,11 @@
 package jmouseable.jmouseable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ComboWatcher {
+
+    private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
     private final ModeMap modeMap;
     private ComboMap currentComboMap;
@@ -12,8 +17,12 @@ public class ComboWatcher {
         this.comboPreparation = ComboPreparation.empty();
     }
 
-    public void keyEvent(KeyEvent keyEvent) {
-
+    /**
+     * @return true if the event should be eaten.
+     */
+    public boolean keyEvent(KeyEvent keyEvent) {
+        logger.info("Key event: " + keyEvent);
+        return false;
     }
 
 }
