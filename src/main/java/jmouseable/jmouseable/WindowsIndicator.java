@@ -14,6 +14,7 @@ public class WindowsIndicator {
     private static WinDef.HWND indicatorWindowHwnd;
 
     private static int bestIndicatorX(int mouseX, int monitorLeft, int monitorRight) {
+        mouseX = Math.min(monitorRight, Math.max(monitorLeft, mouseX));
         boolean isNearLeftEdge = mouseX <= (monitorLeft + indicatorEdgeThreshold);
         boolean isNearRightEdge = mouseX >= (monitorRight - indicatorEdgeThreshold);
         if (isNearRightEdge)
@@ -22,6 +23,7 @@ public class WindowsIndicator {
     }
 
     private static int bestIndicatorY(int mouseY, int monitorTop, int monitorBottom) {
+        mouseY = Math.min(monitorBottom, Math.max(monitorTop, mouseY));
         boolean isNearBottomEdge = mouseY >= (monitorBottom - indicatorEdgeThreshold);
         boolean isNearTopEdge = mouseY <= (monitorTop + indicatorEdgeThreshold);
         if (isNearBottomEdge)

@@ -21,7 +21,6 @@ public class ComboWatcher {
      * @return true if the event should be eaten.
      */
     public boolean keyEvent(KeyEvent keyEvent) {
-        logger.info("Key event: " + keyEvent);
         return false;
     }
 

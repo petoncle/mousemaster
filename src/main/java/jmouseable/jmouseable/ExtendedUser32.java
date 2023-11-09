@@ -1,7 +1,6 @@
 package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
@@ -41,14 +40,6 @@ public interface ExtendedUser32 extends User32 {
         public static class ByReference extends CURSORINFO
                 implements Structure.ByReference {
         }
-    }
-
-    Pointer SetTimer(Pointer hWnd, int nIDEvent, int uElapse, TimerProc lpTimerFunc);
-
-    boolean KillTimer(Pointer hWnd, int uIDEvent);
-
-    interface TimerProc extends StdCallCallback {
-        void callback(Pointer hWnd, int uMsg, Pointer nIDEvent, int dwTime);
     }
 
 }

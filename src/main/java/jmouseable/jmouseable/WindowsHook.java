@@ -8,8 +8,6 @@ import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.time.Instant;
 
 public class WindowsHook {
@@ -33,7 +31,7 @@ public class WindowsHook {
         this.comboWatcher = comboWatcher;
     }
 
-    public void installHooks() {
+    public void installHooks() throws InterruptedException {
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
                 (WinUser.LowLevelKeyboardProc) this::keyboardHookCallback, hMod, 0);
@@ -49,24 +47,24 @@ public class WindowsHook {
         }));
         logger.info("Keyboard and mouse hooks installed");
         WindowsIndicator.showIndicatorWindow();
-        int timerId = 1;
-        // Timer every ~10ms (it is inaccurate and is usually called every 15-20ms).
-        ExtendedUser32.INSTANCE.SetTimer(null, timerId, 10, this::update);
         WinUser.MSG msg = new WinUser.MSG();
-        while (User32.INSTANCE.GetMessage(msg, null, 0, 0) != 0) {
-            User32.INSTANCE.TranslateMessage(msg);
-            User32.INSTANCE.DispatchMessage(msg);
+        long previousNanoTime = System.nanoTime();
+        while (true) {
+            while (User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1)) {
+                User32.INSTANCE.TranslateMessage(msg);
+                User32.INSTANCE.DispatchMessage(msg);
+            }
+            long currentNanoTime = System.nanoTime();
+            long deltaNanos = currentNanoTime - previousNanoTime;
+            previousNanoTime = currentNanoTime;
+            double delta = deltaNanos / 1e9d;
+            update(delta);
+            Thread.sleep(10L);
         }
-        ExtendedUser32.INSTANCE.KillTimer(null, timerId);
     }
 
-    private long previousNanoTime = System.nanoTime();
 
-    private void update(Pointer hWnd, int uMsg, Pointer nIDEvent, int dwTime) {
-        long currentNanoTime = System.nanoTime();
-        long deltaNanos = currentNanoTime - previousNanoTime;
-        previousNanoTime = currentNanoTime;
-        double delta = deltaNanos / 1e9d;
+    private void update(double delta) {
         mouseMover.update(delta);
     }
 
@@ -76,21 +74,32 @@ public class WindowsHook {
             switch (wParam.intValue()) {
                 case WinUser.WM_KEYUP:
                 case WinUser.WM_KEYDOWN:
+                case WinUser.WM_SYSKEYUP:
+                case WinUser.WM_SYSKEYDOWN:
+                    String wParamString = switch (wParam.intValue()) {
+                        case WinUser.WM_KEYUP -> "WM_KEYUP";
+                        case WinUser.WM_KEYDOWN -> "WM_KEYDOWN";
+                        case WinUser.WM_SYSKEYUP -> "WM_SYSKEYUP";
+                        case WinUser.WM_SYSKEYDOWN -> "WM_SYSKEYDOWN";
+                        default -> throw new IllegalStateException();
+                    };
                     KeyState state = wParam.intValue() == WinUser.WM_KEYUP ||
                                      wParam.intValue() == WinUser.WM_SYSKEYUP ?
                             KeyState.RELEASED : KeyState.PRESSED;
-                    logger.debug("Received key event: vk = " +
-                                WindowsVirtualKey.values.get(info.vkCode) + ", scanCode = " +
-                                info.scanCode + ", flags = 0x" + Integer.toHexString(info.flags));
                     KeyAction action = new KeyAction(
                             WindowsVirtualKey.keyFromWindowsEvent(
                                     WindowsVirtualKey.values.get(info.vkCode),
                                     info.scanCode, info.flags), state);
-                    if (comboWatcher.keyEvent(
-                            new KeyEvent(systemStartTime.plusMillis(info.time),
-                                    action)))
+                    KeyEvent keyEvent =
+                            new KeyEvent(systemStartTime.plusMillis(info.time), action);
+                    logger.debug("Received key event: " + keyEvent + ", vk = " +
+                                 WindowsVirtualKey.values.get(info.vkCode) + ", scanCode = " +
+                                 info.scanCode + ", flags = 0x" + Integer.toHexString(info.flags) + ", wParam = " + wParamString);
+                    if (comboWatcher.keyEvent(keyEvent))
                         return new WinDef.LRESULT(1);
                     break;
+                default:
+                    logger.debug("Received unexpected key event wParam: " + wParam.intValue());
             }
         }
         return User32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam,
