@@ -2,10 +2,7 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.Structure;
-import com.sun.jna.platform.win32.User32;
-import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinGDI;
-import com.sun.jna.platform.win32.WinNT;
+import com.sun.jna.platform.win32.*;
 
 import java.util.List;
 
@@ -41,5 +38,8 @@ public interface ExtendedUser32 extends User32 {
                 implements Structure.ByReference {
         }
     }
+
+    LRESULT CallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, WinUser.KBDLLHOOKSTRUCT lParam);
+    LRESULT CallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, WinUser.MSLLHOOKSTRUCT lParam);
 
 }

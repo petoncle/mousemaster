@@ -102,8 +102,7 @@ public class WindowsHook {
                     logger.debug("Received unexpected key event wParam: " + wParam.intValue());
             }
         }
-        return User32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam,
-                new WinDef.LPARAM(Pointer.nativeValue(info.getPointer())));
+        return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
     }
 
     private WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
@@ -113,8 +112,7 @@ public class WindowsHook {
             WindowsIndicator.mouseMoved(mousePosition);
             mouseMover.mouseMoved(mousePosition.x, mousePosition.y);
         }
-        return User32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam,
-                new WinDef.LPARAM(Pointer.nativeValue(info.getPointer())));
+        return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }
 
 
