@@ -83,20 +83,29 @@ public class WindowsHook {
                         case WinUser.WM_SYSKEYDOWN -> "WM_SYSKEYDOWN";
                         default -> throw new IllegalStateException();
                     };
-                    KeyState state = wParam.intValue() == WinUser.WM_KEYUP ||
-                                     wParam.intValue() == WinUser.WM_SYSKEYUP ?
-                            KeyState.RELEASED : KeyState.PRESSED;
-                    KeyAction action = new KeyAction(
-                            WindowsVirtualKey.keyFromWindowsEvent(
-                                    WindowsVirtualKey.values.get(info.vkCode),
-                                    info.scanCode, info.flags), state);
-                    KeyEvent keyEvent =
-                            new KeyEvent(systemStartTime.plusMillis(info.time), action);
-                    logger.debug("Received key event: " + keyEvent + ", vk = " +
-                                 WindowsVirtualKey.values.get(info.vkCode) + ", scanCode = " +
-                                 info.scanCode + ", flags = 0x" + Integer.toHexString(info.flags) + ", wParam = " + wParamString);
-                    if (comboWatcher.keyEvent(keyEvent))
-                        return new WinDef.LRESULT(1);
+                    if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
+                        (info.flags & 0b10000) == 0b10000) {
+                        // 0b10000 means alt is pressed. This avoids getting two consecutive duplicate alt press,release events.
+                    }
+                    else {
+                        KeyState state = wParam.intValue() == WinUser.WM_KEYUP ||
+                                         wParam.intValue() == WinUser.WM_SYSKEYUP ?
+                                KeyState.RELEASED : KeyState.PRESSED;
+                        KeyAction action = new KeyAction(
+                                WindowsVirtualKey.keyFromWindowsEvent(
+                                        WindowsVirtualKey.values.get(info.vkCode),
+                                        info.scanCode, info.flags), state);
+                        KeyEvent keyEvent =
+                                new KeyEvent(systemStartTime.plusMillis(info.time),
+                                        action);
+                        logger.debug("Received key event: " + keyEvent + ", vk = " +
+                                     WindowsVirtualKey.values.get(info.vkCode) +
+                                     ", scanCode = " + info.scanCode + ", flags = 0x" +
+                                     Integer.toHexString(info.flags) + ", wParam = " +
+                                     wParamString);
+                        if (comboWatcher.keyEvent(keyEvent))
+                            return new WinDef.LRESULT(1);
+                    }
                     break;
                 default:
                     logger.debug("Received unexpected key event wParam: " + wParam.intValue());

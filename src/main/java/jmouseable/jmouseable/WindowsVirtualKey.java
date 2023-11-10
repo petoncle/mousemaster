@@ -312,7 +312,7 @@ public enum WindowsVirtualKey {
     VK_NONE(0xFF),
     ;
 
-    private final int virtualKeyCode;
+    public final int virtualKeyCode;
 
     WindowsVirtualKey(int virtualKeyCode) {
         this.virtualKeyCode = virtualKeyCode;
