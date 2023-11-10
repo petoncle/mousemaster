@@ -1,6 +1,11 @@
  package jmouseable.jmouseable;
 
-public enum Key {
+ import java.util.Arrays;
+ import java.util.Map;
+ import java.util.function.Function;
+ import java.util.stream.Collectors;
+
+ public enum Key {
 
     tab,
     enter,
@@ -96,5 +101,17 @@ public enum Key {
     pound,
     quote,
     backtick
+    ;
+
+     public static final Map<String, Key> keyByName = //
+             Arrays.stream(values())
+                   .collect(Collectors.toMap(Key::keyName, Function.identity()));
+
+    public String keyName() {
+        String name = name();
+        if (name.startsWith("_"))
+            return name.substring(1);
+        return name;
+    }
 
 }

@@ -8,12 +8,12 @@ public class ComboWatcher {
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
     private final ModeMap modeMap;
-    private ComboMap currentComboMap;
+    private Mode currentMode;
     private ComboPreparation comboPreparation;
 
     public ComboWatcher(ModeMap modeMap) {
         this.modeMap = modeMap;
-        this.currentComboMap = modeMap.get(Mode.defaultMode());
+        this.currentMode = modeMap.get(Mode.DEFAULT_MODE_NAME);
         this.comboPreparation = ComboPreparation.empty();
     }
 

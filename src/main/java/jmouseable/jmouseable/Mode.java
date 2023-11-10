@@ -1,11 +1,7 @@
 package jmouseable.jmouseable;
 
-public record Mode(String name) {
+public record Mode(String name, ComboMap comboMap, Mouse mouse, Wheel wheel) {
 
-    private static final Mode defaultMode = new Mode("default-mode");
-
-    public static Mode defaultMode() {
-        return defaultMode;
-    }
+    public static final String DEFAULT_MODE_NAME = "default-mode";
 
 }
