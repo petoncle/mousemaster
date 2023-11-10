@@ -29,10 +29,11 @@ _shift,^shift = press shift, release shift?
  + A combo has to be non-interrupted (no unknown key presses), with at most 150ms between keys
   + Large timeout to allow Ctrl, wait, Z. Or special __ctrl to indicate no timeout. Or no timeout at all?
 + Should a keyevent unrelated to a combo break the combo preparation? Yes.
- + Don't want to scroll accidentally while moving mouse quickly and hitting arrow,...,arrow
+ + Released event cannot be eaten if Pressed event was not eaten, otherwise apps will bug
+  -- Need user to specify which event should not be eaten (eaten by default)
  + Should a reached combo reset the preparation (no combo accumulation)? No
   -- Imagine Ctrl+up/down moves the mouse. We want to be able to hold Ctrl, (wait long) then up/down
-   + This should be done with a mode (enabled with Ctrl)
+   - This should be done with a mode (enabled with Ctrl)
   + _arrow,^arrow,_arrow should enable mouse mode and move up
   + _arrow,^arrow,_arrow,^arrow,(some time)_arrow should enable mouse mode then move up
   + _arrow,^arrow,_arrow,^arrow,_arrow should enable mouse mode then scroll up

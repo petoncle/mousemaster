@@ -3,25 +3,35 @@ package jmouseable.jmouseable;
 import java.util.ArrayList;
 import java.util.List;
 
-public record Combo(List<KeyAction> actions) {
+public record Combo(List<ComboMove> moves) {
 
     public static Combo of(String string) {
-        String[] actionNames = string.split("\\s+");
-        if (actionNames.length == 0)
+        String[] moveNames = string.split("\\s+");
+        if (moveNames.length == 0)
             throw new IllegalArgumentException("Empty combo: " + string);
-        List<KeyAction> actions = new ArrayList<>();
-        for (String actionName : actionNames) {
+        List<ComboMove> moves = new ArrayList<>();
+        for (String moveName : moveNames) {
+            String actionName;
+            boolean eventMustBeEaten;
+            if (moveName.startsWith(";")) {
+                actionName = moveName.substring(1);
+                eventMustBeEaten = false;
+            }
+            else {
+                actionName = moveName;
+                eventMustBeEaten = true;
+            }
             if (!actionName.startsWith("_") && !actionName.startsWith("^"))
-                throw new IllegalArgumentException("Invalid action: " + actionName);
+                throw new IllegalArgumentException("Invalid move: " + actionName);
             KeyState state =
                     actionName.startsWith("_") ? KeyState.PRESSED : KeyState.RELEASED;
             String keyName = actionName.substring(1);
             Key key = Key.keyByName.get(keyName);
             if (key == null)
                 throw new IllegalArgumentException("Invalid key: " + keyName);
-            actions.add(new KeyAction(key, state));
+            moves.add(new ComboMove(new KeyAction(key, state), eventMustBeEaten));
         }
-        return new Combo(List.copyOf(actions));
+        return new Combo(List.copyOf(moves));
     }
 
 }

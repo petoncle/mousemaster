@@ -38,48 +38,46 @@ public class ModeMapParser {
                 String propertyValue = (String) source.getProperty(propertyKey);
                 Objects.requireNonNull(propertyValue);
                 String group2 = matcher.group(2);
-                if (group2.equals("mouse")) {
-                    if (matcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid mouse configuration: " + propertyKey);
-                    double acceleration = matcher.group(4).equals("acceleration") ?
-                            Double.parseDouble(propertyValue) :
-                            mode.mouse().acceleration();
-                    double maxVelocity = matcher.group(4).equals("max-velocity") ?
-                            Double.parseDouble(propertyValue) :
-                            mode.mouse().maxVelocity();
-                    modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
-                            new Mouse(acceleration, maxVelocity), mode.wheel()));
-                }
-                else if (group2.equals("wheel")) {
-                    if (matcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid wheel configuration: " + propertyKey);
-                    double acceleration = matcher.group(4).equals("acceleration") ?
-                            Double.parseDouble(propertyValue) :
-                            mode.mouse().acceleration();
-                    double maxVelocity = matcher.group(4).equals("max-velocity") ?
-                            Double.parseDouble(propertyValue) :
-                            mode.mouse().maxVelocity();
-                    modeByName.put(modeName,
-                            new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                    new Wheel(acceleration, maxVelocity)));
-                }
-                else if (group2.equals("to")) {
-                    if (matcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid to configuration: " + propertyKey);
-                    String newModeName = matcher.group(4);
-                    modeNameReferences.add(newModeName);
-                    Map<Combo, List<Command>> commandsByCombo =
-                            mode.comboMap().commandsByCombo();
-                    commandsByCombo.computeIfAbsent(Combo.of(propertyValue),
-                            combo -> new ArrayList<>()).add(new ChangeMode(newModeName));
-                }
-                else if (matcher.group(3) != null)
-                    throw new IllegalArgumentException(
-                            "Invalid configuration: " + propertyKey);
                 switch (group2) {
+                    case "mouse" -> {
+                        if (matcher.group(4) == null)
+                            throw new IllegalArgumentException(
+                                    "Invalid mouse configuration: " + propertyKey);
+                        double acceleration = matcher.group(4).equals("acceleration") ?
+                                Double.parseDouble(propertyValue) :
+                                mode.mouse().acceleration();
+                        double maxVelocity = matcher.group(4).equals("max-velocity") ?
+                                Double.parseDouble(propertyValue) :
+                                mode.mouse().maxVelocity();
+                        modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
+                                new Mouse(acceleration, maxVelocity), mode.wheel()));
+                    }
+                    case "wheel" -> {
+                        if (matcher.group(4) == null)
+                            throw new IllegalArgumentException(
+                                    "Invalid wheel configuration: " + propertyKey);
+                        double acceleration = matcher.group(4).equals("acceleration") ?
+                                Double.parseDouble(propertyValue) :
+                                mode.mouse().acceleration();
+                        double maxVelocity = matcher.group(4).equals("max-velocity") ?
+                                Double.parseDouble(propertyValue) :
+                                mode.mouse().maxVelocity();
+                        modeByName.put(modeName,
+                                new Mode(modeName, mode.comboMap(), mode.mouse(),
+                                        new Wheel(acceleration, maxVelocity)));
+                    }
+                    case "to" -> {
+                        if (matcher.group(4) == null)
+                            throw new IllegalArgumentException(
+                                    "Invalid to configuration: " + propertyKey);
+                        String newModeName = matcher.group(4);
+                        modeNameReferences.add(newModeName);
+                        Map<Combo, List<Command>> commandsByCombo =
+                                mode.comboMap().commandsByCombo();
+                        commandsByCombo.computeIfAbsent(Combo.of(propertyValue),
+                                               combo -> new ArrayList<>())
+                                       .add(new ChangeMode(newModeName));
+                    }
                     // @formatter:off
                     case "start-move-up" -> addCommand(mode, new StartMoveUp(), propertyValue);
                     case "start-move-down" -> addCommand(mode, new StartMoveDown(), propertyValue);
@@ -99,6 +97,8 @@ public class ModeMapParser {
                     case "release-middle" -> addCommand(mode, new ReleaseMiddle(), propertyValue);
                     case "release-right" -> addCommand(mode, new ReleaseRight(), propertyValue);
                     // @formatter:on
+                    default -> throw new IllegalArgumentException(
+                            "Invalid configuration: " + propertyKey);
                 }
 
             }
