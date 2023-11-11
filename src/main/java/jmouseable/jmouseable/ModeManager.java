@@ -44,6 +44,10 @@ public class ModeManager {
         if (newMode.timeout() != null)
             resetCurrentModeRemainingDuration();
         mouseMover.changeMouse(newMode.mouse());
+        if (newMode.indicator().enabled())
+            WindowsIndicator.show();
+        else
+            WindowsIndicator.hide();
     }
 
     private void resetCurrentModeRemainingDuration() {

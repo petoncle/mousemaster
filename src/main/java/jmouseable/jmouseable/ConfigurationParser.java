@@ -59,7 +59,7 @@ public class ConfigurationParser {
                                 mode.mouse().maxVelocity();
                         modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
                                 new Mouse(acceleration, maxVelocity), mode.wheel(),
-                                mode.timeout()));
+                                mode.timeout(), mode.indicator()));
                     }
                     case "wheel" -> {
                         if (matcher.group(4) == null)
@@ -74,7 +74,7 @@ public class ConfigurationParser {
                         modeByName.put(modeName,
                                 new Mode(modeName, mode.comboMap(), mode.mouse(),
                                         new Wheel(acceleration, maxVelocity),
-                                        mode.timeout()));
+                                        mode.timeout(), mode.indicator()));
                     }
                     case "to" -> {
                         if (matcher.group(4) == null)
@@ -104,7 +104,21 @@ public class ConfigurationParser {
                             modeNameReferences.add(modeTimeout.nextModeName());
                         modeByName.put(modeName,
                                 new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                        mode.wheel(), modeTimeout));
+                                        mode.wheel(), modeTimeout, mode.indicator()));
+                    }
+                    case "indicator" -> {
+                        if (matcher.group(4) == null)
+                            throw new IllegalArgumentException(
+                                    "Invalid to configuration: " + propertyKey);
+                        Indicator indicator = switch (matcher.group(4)) {
+                            case "enabled" ->
+                                    new Indicator(Boolean.parseBoolean(propertyValue));
+                            default -> throw new IllegalArgumentException(
+                                    "Invalid indicator configuration: " + propertyKey);
+                        };
+                        modeByName.put(modeName,
+                                new Mode(modeName, mode.comboMap(), mode.mouse(),
+                                        mode.wheel(), mode.timeout(), indicator));
                     }
                     // @formatter:off
                     case "start-move-up" -> addCommand(commandsByCombo, propertyValue, new StartMoveUp());
@@ -157,7 +171,7 @@ public class ConfigurationParser {
 
     private static Mode newMode(String modeName) {
         return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(50, 1000),
-                new Wheel(100, 100), null);
+                new Wheel(100, 100), null, new Indicator(false));
     }
 
     private static void addCommand(Map<Combo, List<Command>> commandsByCombo,

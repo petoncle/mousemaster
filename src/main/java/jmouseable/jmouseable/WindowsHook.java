@@ -58,7 +58,7 @@ public class WindowsHook {
                     mouseHookUnhooked);
         }));
         logger.info("Keyboard and mouse hooks installed");
-        WindowsIndicator.showIndicatorWindow();
+        WindowsIndicator.createIndicatorWindow();
         WinUser.MSG msg = new WinUser.MSG();
         long previousNanoTime = System.nanoTime();
         while (true) {

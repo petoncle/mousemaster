@@ -12,6 +12,7 @@ public class WindowsIndicator {
 
     private static int cursorWidth, cursorHeight;
     private static WinDef.HWND indicatorWindowHwnd;
+    private static boolean mustShowOnceCreated;
 
     private static int bestIndicatorX(int mouseX, int monitorLeft, int monitorRight) {
         mouseX = Math.min(monitorRight, Math.max(monitorLeft, mouseX));
@@ -31,7 +32,7 @@ public class WindowsIndicator {
         return mouseY + cursorHeight / 2;
     }
 
-    public static void showIndicatorWindow() {
+    public static void createIndicatorWindow() {
         WinDef.POINT mousePosition = findCursorPositionAndSize();
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
         logger.info("Cursor size: " + cursorWidth + " " + cursorHeight);
@@ -49,7 +50,20 @@ public class WindowsIndicator {
                 bestIndicatorY(mousePosition.y, monitorInfo.rcMonitor.top,
                         monitorInfo.rcMonitor.bottom), 16, 16, null, null,
                 wClass.hInstance, null);
+        if (mustShowOnceCreated)
+            show();
+    }
+
+    public static void show() {
+        if (indicatorWindowHwnd == null) {
+            mustShowOnceCreated = true;
+            return;
+        }
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_SHOWNORMAL);
+    }
+
+    public static void hide() {
+        User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_HIDE);
     }
 
     private static WinDef.POINT findCursorPositionAndSize() {
