@@ -98,12 +98,9 @@ public class WindowsHook {
                         KeyEvent keyEvent =
                                 new KeyEvent(systemStartTime.plusMillis(info.time),
                                         action);
-                        logger.debug("Received key event: " + keyEvent + ", vk = " +
-                                     WindowsVirtualKey.values.get(info.vkCode) +
-                                     ", scanCode = " + info.scanCode + ", flags = 0x" +
-                                     Integer.toHexString(info.flags) + ", wParam = " +
-                                     wParamString);
-                        if (comboWatcher.keyEvent(keyEvent))
+                        boolean mustEatEvent =
+                                keyEvent(keyEvent, info, wParamString);
+                        if (mustEatEvent)
                             return new WinDef.LRESULT(1);
                     }
                     break;
@@ -112,6 +109,41 @@ public class WindowsHook {
             }
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
+    }
+
+    private final Map<Key, KeyEventProcessing> currentlyPressedKeys = new HashMap<>();
+
+    private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info, String wParamString) {
+        Key key = keyEvent.action().key();
+        if (keyEvent.action().state().pressed()) {
+            KeyEventProcessing keyEventProcessing = currentlyPressedKeys.get(key);
+            if (keyEventProcessing == null) {
+                logKeyEvent(keyEvent, info, wParamString);
+                keyEventProcessing = comboWatcher.keyEvent(keyEvent);
+                currentlyPressedKeys.put(key, keyEventProcessing);
+            }
+            return keyEventProcessing.mustBeEaten();
+        }
+        else {
+            KeyEventProcessing keyEventProcessing = currentlyPressedKeys.remove(key);
+            if (keyEventProcessing != null) {
+                logKeyEvent(keyEvent, info, wParamString);
+                if (keyEventProcessing.partOfCombo())
+                    return comboWatcher.keyEvent(keyEvent).mustBeEaten();
+                else
+                    return false;
+            }
+            else
+                return false;
+        }
+    }
+
+    private static void logKeyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
+                                  String wParamString) {
+        logger.debug("Received key event: " + keyEvent + ", vk = " +
+                     WindowsVirtualKey.values.get(info.vkCode) +
+                     ", scanCode = " + info.scanCode + ", flags = 0x" +
+                     Integer.toHexString(info.flags) + ", wParam = " + wParamString);
     }
 
     private WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
