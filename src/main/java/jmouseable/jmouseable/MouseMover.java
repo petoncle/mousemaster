@@ -16,8 +16,12 @@ public class MouseMover {
         this.mouse = mouse;
     }
 
+    public boolean moving() {
+        return velocity != 0;
+    }
+
     public void update(double delta) {
-        if (velocity == 0)
+        if (!moving())
             return;
         velocity = Math.min(mouse.maxVelocity(), velocity + Math.pow(mouse.acceleration(), 2) * delta);
         double deltaDistanceX, deltaDistanceY;

@@ -24,6 +24,7 @@ public class WindowsHook {
 
     private final MouseMover mouseMover;
     private final ComboWatcher comboWatcher;
+    private final Ticker ticker;
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
     /**
@@ -34,9 +35,10 @@ public class WindowsHook {
     private WinUser.LowLevelMouseProc mouseHookCallback;
     private WinUser.LowLevelKeyboardProc keyboardHookCallback;
 
-    public WindowsHook(MouseMover mouseMover, ComboWatcher comboWatcher) {
+    public WindowsHook(MouseMover mouseMover, ComboWatcher comboWatcher, Ticker ticker) {
         this.mouseMover = mouseMover;
         this.comboWatcher = comboWatcher;
+        this.ticker = ticker;
     }
 
     public void installHooks() throws InterruptedException {
@@ -68,14 +70,9 @@ public class WindowsHook {
             long deltaNanos = currentNanoTime - previousNanoTime;
             previousNanoTime = currentNanoTime;
             double delta = deltaNanos / 1e9d;
-            update(delta);
+            ticker.update(delta);
             Thread.sleep(10L);
         }
-    }
-
-
-    private void update(double delta) {
-        mouseMover.update(delta);
     }
 
     private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,

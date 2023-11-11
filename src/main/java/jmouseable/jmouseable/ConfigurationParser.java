@@ -14,15 +14,15 @@ import java.util.regex.Pattern;
 import static jmouseable.jmouseable.Command.*;
 
 @Component
-public class ModeMapParser {
+public class ConfigurationParser {
 
     private final Environment environment;
 
-    public ModeMapParser(Environment environment) {
+    public ConfigurationParser(Environment environment) {
         this.environment = environment;
     }
 
-    public ModeMap parse() {
+    public Configuration parse() {
         Duration defaultComboBreakingTimeout = defaultComboBreakingTimeout();
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
         Map<String, Mode> modeByName = new HashMap<>();
@@ -34,8 +34,7 @@ public class ModeMapParser {
                 String propertyValue = (String) source.getProperty(propertyKey);
                 Objects.requireNonNull(propertyValue);
                 if (propertyKey.equals("default-combo-breaking-timeout")) {
-                    defaultComboBreakingTimeout =
-                            Duration.ofMillis(Integer.parseUnsignedInt(propertyValue));
+                    defaultComboBreakingTimeout = parseDuration(propertyValue);
                     continue;
                 }
                 Matcher matcher = modeKeyPattern.matcher(propertyKey);
@@ -59,7 +58,8 @@ public class ModeMapParser {
                                 Double.parseDouble(propertyValue) :
                                 mode.mouse().maxVelocity();
                         modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
-                                new Mouse(acceleration, maxVelocity), mode.wheel()));
+                                new Mouse(acceleration, maxVelocity), mode.wheel(),
+                                mode.timeout()));
                     }
                     case "wheel" -> {
                         if (matcher.group(4) == null)
@@ -73,7 +73,8 @@ public class ModeMapParser {
                                 mode.mouse().maxVelocity();
                         modeByName.put(modeName,
                                 new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                        new Wheel(acceleration, maxVelocity)));
+                                        new Wheel(acceleration, maxVelocity),
+                                        mode.timeout()));
                     }
                     case "to" -> {
                         if (matcher.group(4) == null)
@@ -83,6 +84,27 @@ public class ModeMapParser {
                         modeNameReferences.add(newModeName);
                         addCommand(commandsByCombo, propertyValue,
                                 new ChangeMode(newModeName));
+                    }
+                    case "timeout" -> {
+                        if (matcher.group(4) == null)
+                            throw new IllegalArgumentException(
+                                    "Invalid to configuration: " + propertyKey);
+                        ModeTimeout modeTimeout = switch (matcher.group(4)) {
+                            case "duration-millis" ->
+                                    new ModeTimeout(parseDuration(propertyValue),
+                                            mode.timeout() == null ? null :
+                                                    mode.timeout().nextModeName());
+                            case "next-mode" -> new ModeTimeout(
+                                    mode.timeout() == null ? null :
+                                            mode.timeout().duration(), propertyValue);
+                            default -> throw new IllegalArgumentException(
+                                    "Invalid timeout configuration: " + propertyKey);
+                        };
+                        if (modeTimeout.nextModeName() != null)
+                            modeNameReferences.add(modeTimeout.nextModeName());
+                        modeByName.put(modeName,
+                                new Mode(modeName, mode.comboMap(), mode.mouse(),
+                                        mode.wheel(), modeTimeout));
                     }
                     // @formatter:off
                     case "start-move-up" -> addCommand(commandsByCombo, propertyValue, new StartMoveUp());
@@ -113,8 +135,20 @@ public class ModeMapParser {
         for (String modeNameReference : modeNameReferences)
             if (!modeByName.containsKey(modeNameReference))
                 throw new IllegalStateException(
-                        "Definition of mode " + modeNameReference + " is missing ");
-        return new ModeMap(Set.copyOf(modeByName.values()), defaultComboBreakingTimeout);
+                        "Definition of mode " + modeNameReference + " is missing");
+        for (Mode mode : modeByName.values()) {
+            if (mode.timeout() != null && (mode.timeout().duration() == null ||
+                                           mode.timeout().nextModeName() == null))
+                throw new IllegalStateException(
+                        "Definition of mode timeout for " + mode.name() +
+                        " is incomplete");
+        }
+        return new Configuration(defaultComboBreakingTimeout,
+                new ModeMap(Set.copyOf(modeByName.values())));
+    }
+
+    private static Duration parseDuration(String propertyValue) {
+        return Duration.ofMillis(Integer.parseUnsignedInt(propertyValue));
     }
 
     private Duration defaultComboBreakingTimeout() {
@@ -123,16 +157,15 @@ public class ModeMapParser {
 
     private static Mode newMode(String modeName) {
         return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(50, 1000),
-                new Wheel(100, 100));
+                new Wheel(100, 100), null);
     }
 
     private static void addCommand(Map<Combo, List<Command>> commandsByCombo,
                                    String multiComboString, Command command) {
         List<Combo> combos = Combo.multiCombo(multiComboString);
         for (Combo combo : combos)
-            commandsByCombo
-                .computeIfAbsent(combo, combo1 -> new ArrayList<>())
-                .add(command);
+            commandsByCombo.computeIfAbsent(combo, combo1 -> new ArrayList<>())
+                           .add(command);
     }
 
 }
