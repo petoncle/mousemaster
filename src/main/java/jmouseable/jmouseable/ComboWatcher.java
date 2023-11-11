@@ -13,12 +13,14 @@ public class ComboWatcher {
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
     private final ModeMap modeMap;
+    private final MouseMover mouseMover;
     private Mode currentMode;
     private ComboPreparation comboPreparation;
 
-    public ComboWatcher(ModeMap modeMap) {
+    public ComboWatcher(ModeMap modeMap, MouseMover mouseMover) {
         this.modeMap = modeMap;
         this.currentMode = modeMap.get(Mode.DEFAULT_MODE_NAME);
+        this.mouseMover = mouseMover;
         this.comboPreparation = ComboPreparation.empty();
     }
 
@@ -64,11 +66,11 @@ public class ComboWatcher {
             case ReleaseMiddle releaseMiddle -> {}
             case ReleaseRight releaseRight -> {}
             case StartMoveDown startMoveDown -> {}
-            case StartMoveLeft startMoveLeft -> {}
+            case StartMoveLeft startMoveLeft -> mouseMover.startMoveLeft();
             case StartMoveRight startMoveRight -> {}
             case StartMoveUp startMoveUp -> {}
             case StopMoveDown stopMoveDown -> {}
-            case StopMoveLeft stopMoveLeft -> {}
+            case StopMoveLeft stopMoveLeft -> mouseMover.stopMoveLeft();
             case StopMoveRight stopMoveRight -> {}
             case StopMoveUp stopMoveUp -> {}
         }

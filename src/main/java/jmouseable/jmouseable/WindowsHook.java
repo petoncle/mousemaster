@@ -26,6 +26,13 @@ public class WindowsHook {
     private final ComboWatcher comboWatcher;
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
+    /**
+     * Keep a reference of the Windows callback.
+     * Without these references, they seem to be garbage collected and are not called
+     * anymore after about 30 minutes.
+     */
+    private WinUser.LowLevelMouseProc mouseHookCallback;
+    private WinUser.LowLevelKeyboardProc keyboardHookCallback;
 
     public WindowsHook(MouseMover mouseMover, ComboWatcher comboWatcher) {
         this.mouseMover = mouseMover;
@@ -34,10 +41,12 @@ public class WindowsHook {
 
     public void installHooks() throws InterruptedException {
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
+        keyboardHookCallback = WindowsHook.this::keyboardHookCallback;
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
-                (WinUser.LowLevelKeyboardProc) this::keyboardHookCallback, hMod, 0);
+                keyboardHookCallback, hMod, 0);
+        mouseHookCallback = WindowsHook.this::mouseHookCallback;
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
-                (WinUser.LowLevelMouseProc) this::mouseHookCallback, hMod, 0);
+                mouseHookCallback, hMod, 0);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             boolean keyboardHookUnhooked =
                     User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
