@@ -7,6 +7,7 @@ public class MouseMover {
     private double velocity;
     private boolean xMoving, yMoving;
     private boolean xForward, yForward; // forward means right or down
+    private boolean leftPressing, middlePressing, rightPressing;
 
     public MouseMover(Mouse mouse) {
         this.mouse = mouse;
@@ -20,10 +21,15 @@ public class MouseMover {
         return velocity != 0;
     }
 
+    public boolean pressing() {
+        return leftPressing || middlePressing || rightPressing;
+    }
+
     public void update(double delta) {
         if (!moving())
             return;
-        velocity = Math.min(mouse.maxVelocity(), velocity + Math.pow(mouse.acceleration(), 2) * delta);
+        velocity = Math.min(mouse.maxVelocity(),
+                velocity + Math.pow(mouse.acceleration(), 2) * delta);
         double deltaDistanceX, deltaDistanceY;
         if (xMoving && yMoving) {
             deltaDistanceX = velocity * delta / Math.sqrt(2);
@@ -99,6 +105,36 @@ public class MouseMover {
             if (!yMoving)
                 velocity = 0;
         }
+    }
+
+    public void pressLeft() {
+        leftPressing = true;
+        WindowsMouse.pressLeft();
+    }
+
+    public void pressMiddle() {
+        middlePressing = true;
+        WindowsMouse.pressMiddle();
+    }
+
+    public void pressRight() {
+        rightPressing = true;
+        WindowsMouse.pressRight();
+    }
+
+    public void releaseLeft() {
+        leftPressing = false;
+        WindowsMouse.releaseLeft();
+    }
+
+    public void releaseMiddle() {
+        middlePressing = false;
+        WindowsMouse.releaseMiddle();
+    }
+
+    public void releaseRight() {
+        rightPressing = false;
+        WindowsMouse.releaseRight();
     }
 
 }

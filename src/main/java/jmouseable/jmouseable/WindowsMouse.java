@@ -11,19 +11,54 @@ public class WindowsMouse {
                               double deltaY) {
         if (((long) deltaX) == 0 && ((long) deltaY) == 0)
             return;
+        sendInput(new WinDef.LONG((long) deltaX * (xForward ? 1 : -1)),
+                new WinDef.LONG((long) deltaY * (yForward ? 1 : -1)),
+                ExtendedUser32.MOUSEEVENTF_MOVE);
+    }
+
+    public static void pressLeft() {
+        sendInput(new WinDef.LONG(0), new WinDef.LONG(0),
+                ExtendedUser32.MOUSEEVENTF_LEFTDOWN);
+    }
+
+    public static void pressMiddle() {
+        sendInput(new WinDef.LONG(0), new WinDef.LONG(0),
+                ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN);
+    }
+
+    public static void pressRight() {
+        sendInput(new WinDef.LONG(0), new WinDef.LONG(0),
+                ExtendedUser32.MOUSEEVENTF_RIGHTDOWN);
+    }
+
+    public static void releaseLeft() {
+        sendInput(new WinDef.LONG(0), new WinDef.LONG(0),
+                ExtendedUser32.MOUSEEVENTF_LEFTUP);
+    }
+
+    public static void releaseMiddle() {
+        sendInput(new WinDef.LONG(0), new WinDef.LONG(0),
+                ExtendedUser32.MOUSEEVENTF_MIDDLEUP);
+    }
+
+    public static void releaseRight() {
+        sendInput(new WinDef.LONG(0), new WinDef.LONG(0),
+                ExtendedUser32.MOUSEEVENTF_RIGHTUP);
+    }
+
+    private static void sendInput(WinDef.LONG dx, WinDef.LONG dy, int eventFlag) {
         WinUser.INPUT input = new WinUser.INPUT();
         input.type = new WinDef.DWORD(WinUser.INPUT.INPUT_MOUSE);
         WinUser.MOUSEINPUT mouseInput = new WinUser.MOUSEINPUT();
         input.input.mi = mouseInput;
         input.input.setType(WinUser.MOUSEINPUT.class);
-        mouseInput.dx = new WinDef.LONG((long) deltaX * (xForward ? 1 : -1));
-        mouseInput.dy = new WinDef.LONG((long) deltaY * (yForward ? 1 : -1));
+        mouseInput.dx = dx;
+        mouseInput.dy = dy;
         mouseInput.mouseData = new WinDef.DWORD(0);
-        mouseInput.dwFlags = new WinDef.DWORD(ExtendedUser32.MOUSEEVENTF_MOVE);
+        mouseInput.dwFlags = new WinDef.DWORD(eventFlag);
         mouseInput.time = new WinDef.DWORD(0);
         mouseInput.dwExtraInfo = new BaseTSD.ULONG_PTR(0L);
-        User32.INSTANCE.SendInput(new WinDef.DWORD(1), new WinUser.INPUT[]{input},
-                input.size());
+        User32.INSTANCE.SendInput(new WinDef.DWORD(1), new WinUser.INPUT[]{input}, input.size());
     }
 
 }

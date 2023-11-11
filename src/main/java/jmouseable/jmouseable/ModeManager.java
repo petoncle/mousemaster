@@ -23,7 +23,7 @@ public class ModeManager {
 
     public void update(double delta) {
         if (currentMode.timeout() != null) {
-            if (mouseMover.moving()) {
+            if (mouseMover.moving() || mouseMover.pressing()) {
                 resetCurrentModeRemainingDuration();
             }
             else {

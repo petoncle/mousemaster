@@ -25,13 +25,13 @@ public class CommandRunner {
             case Command.StopMoveLeft stopMoveLeft -> mouseMover.stopMoveLeft();
             case Command.StopMoveRight stopMoveRight -> mouseMover.stopMoveRight();
 
-            case Command.PressLeft pressLeft -> {}
-            case Command.PressMiddle pressMiddle -> {}
-            case Command.PressRight pressRight -> {}
+            case Command.PressLeft pressLeft -> mouseMover.pressLeft();
+            case Command.PressMiddle pressMiddle -> mouseMover.pressMiddle();
+            case Command.PressRight pressRight -> mouseMover.pressRight();
 
-            case Command.ReleaseLeft releaseLeft -> {}
-            case Command.ReleaseMiddle releaseMiddle -> {}
-            case Command.ReleaseRight releaseRight -> {}
+            case Command.ReleaseLeft releaseLeft -> mouseMover.releaseLeft();
+            case Command.ReleaseMiddle releaseMiddle -> mouseMover.releaseMiddle();
+            case Command.ReleaseRight releaseRight -> mouseMover.releaseRight();
             // @formatter:on
         }
     }

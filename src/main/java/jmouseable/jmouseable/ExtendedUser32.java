@@ -13,6 +13,12 @@ public interface ExtendedUser32 extends User32 {
     int WS_EX_TOOLWINDOW = 0x00000080;
 
     int MOUSEEVENTF_MOVE = 0x0001;
+    int MOUSEEVENTF_LEFTDOWN = 0x0002;
+    int MOUSEEVENTF_LEFTUP = 0x0004;
+    int MOUSEEVENTF_RIGHTDOWN = 0x0008;
+    int MOUSEEVENTF_RIGHTUP = 0x0010;
+    int MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+    int MOUSEEVENTF_MIDDLEUP = 0x0040;
 
     boolean GetCursorInfo(CURSORINFO pci);
 
