@@ -23,7 +23,7 @@ public class ModeManager {
 
     public void update(double delta) {
         if (currentMode.timeout() != null) {
-            if (mouseMover.moving() || mouseMover.pressing()) {
+            if (mouseMover.moving() || mouseMover.pressing() || mouseMover.wheeling()) {
                 resetCurrentModeRemainingDuration();
             }
             else {
@@ -44,6 +44,7 @@ public class ModeManager {
         if (newMode.timeout() != null)
             resetCurrentModeRemainingDuration();
         mouseMover.changeMouse(newMode.mouse());
+        mouseMover.changeWheel(newMode.wheel());
         if (newMode.indicator().enabled())
             WindowsIndicator.show();
         else

@@ -67,10 +67,10 @@ public class ConfigurationParser {
                                     "Invalid wheel configuration: " + propertyKey);
                         double acceleration = matcher.group(4).equals("acceleration") ?
                                 Double.parseDouble(propertyValue) :
-                                mode.mouse().acceleration();
+                                mode.wheel().acceleration();
                         double maxVelocity = matcher.group(4).equals("max-velocity") ?
                                 Double.parseDouble(propertyValue) :
-                                mode.mouse().maxVelocity();
+                                mode.wheel().maxVelocity();
                         modeByName.put(modeName,
                                 new Mode(modeName, mode.comboMap(), mode.mouse(),
                                         new Wheel(acceleration, maxVelocity),
@@ -138,11 +138,20 @@ public class ConfigurationParser {
                     case "release-left" -> addCommand(commandsByCombo, propertyValue, new ReleaseLeft());
                     case "release-middle" -> addCommand(commandsByCombo, propertyValue, new ReleaseMiddle());
                     case "release-right" -> addCommand(commandsByCombo, propertyValue, new ReleaseRight());
+
+                    case "start-wheel-up" -> addCommand(commandsByCombo, propertyValue, new StartWheelUp());
+                    case "start-wheel-down" -> addCommand(commandsByCombo, propertyValue, new StartWheelDown());
+                    case "start-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StartWheelLeft());
+                    case "start-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StartWheelRight());
+
+                    case "stop-wheel-up" -> addCommand(commandsByCombo, propertyValue, new StopWheelUp());
+                    case "stop-wheel-down" -> addCommand(commandsByCombo, propertyValue, new StopWheelDown());
+                    case "stop-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StopWheelLeft());
+                    case "stop-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StopWheelRight());
                     // @formatter:on
                     default -> throw new IllegalArgumentException(
                             "Invalid configuration: " + propertyKey);
                 }
-
             }
         }
         // Verify mode name references are valid.
@@ -170,7 +179,9 @@ public class ConfigurationParser {
     }
 
     private static Mode newMode(String modeName) {
-        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(50, 1000),
+        // Keep order of commands, so that start-wheel-up after start-move-up means former will cancel latter.
+        // Should we reset the combo preparation once it is complete, instead of relying on command order?
+        return new Mode(modeName, new ComboMap(new LinkedHashMap<>()), new Mouse(50, 1000),
                 new Wheel(100, 100), null, new Indicator(false));
     }
 

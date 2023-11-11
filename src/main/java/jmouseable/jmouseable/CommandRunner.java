@@ -1,5 +1,7 @@
 package jmouseable.jmouseable;
 
+import static jmouseable.jmouseable.Command.*;
+
 public class CommandRunner {
 
     private final ModeManager modeManager;
@@ -13,25 +15,35 @@ public class CommandRunner {
     public void run(Command command) {
         switch (command) {
             // @formatter:off
-            case Command.ChangeMode changeMode -> modeManager.changeMode(changeMode.newModeName());
+            case ChangeMode changeMode -> modeManager.changeMode(changeMode.newModeName());
 
-            case Command.StartMoveUp startMoveUp -> mouseMover.startMoveUp();
-            case Command.StartMoveDown startMoveDown -> mouseMover.startMoveDown();
-            case Command.StartMoveLeft startMoveLeft -> mouseMover.startMoveLeft();
-            case Command.StartMoveRight startMoveRight -> mouseMover.startMoveRight();
+            case StartMoveUp startMoveUp -> mouseMover.startMoveUp();
+            case StartMoveDown startMoveDown -> mouseMover.startMoveDown();
+            case StartMoveLeft startMoveLeft -> mouseMover.startMoveLeft();
+            case StartMoveRight startMoveRight -> mouseMover.startMoveRight();
 
-            case Command.StopMoveUp stopMoveUp -> mouseMover.stopMoveUp();
-            case Command.StopMoveDown stopMoveDown -> mouseMover.stopMoveDown();
-            case Command.StopMoveLeft stopMoveLeft -> mouseMover.stopMoveLeft();
-            case Command.StopMoveRight stopMoveRight -> mouseMover.stopMoveRight();
+            case StopMoveUp stopMoveUp -> mouseMover.stopMoveUp();
+            case StopMoveDown stopMoveDown -> mouseMover.stopMoveDown();
+            case StopMoveLeft stopMoveLeft -> mouseMover.stopMoveLeft();
+            case StopMoveRight stopMoveRight -> mouseMover.stopMoveRight();
 
-            case Command.PressLeft pressLeft -> mouseMover.pressLeft();
-            case Command.PressMiddle pressMiddle -> mouseMover.pressMiddle();
-            case Command.PressRight pressRight -> mouseMover.pressRight();
+            case PressLeft pressLeft -> mouseMover.pressLeft();
+            case PressMiddle pressMiddle -> mouseMover.pressMiddle();
+            case PressRight pressRight -> mouseMover.pressRight();
 
-            case Command.ReleaseLeft releaseLeft -> mouseMover.releaseLeft();
-            case Command.ReleaseMiddle releaseMiddle -> mouseMover.releaseMiddle();
-            case Command.ReleaseRight releaseRight -> mouseMover.releaseRight();
+            case ReleaseLeft releaseLeft -> mouseMover.releaseLeft();
+            case ReleaseMiddle releaseMiddle -> mouseMover.releaseMiddle();
+            case ReleaseRight releaseRight -> mouseMover.releaseRight();
+
+            case StartWheelUp startWheelUp -> mouseMover.startWheelUp();
+            case StartWheelDown startWheelDown -> mouseMover.startWheelDown();
+            case StartWheelLeft startWheelLeft -> mouseMover.startWheelLeft();
+            case StartWheelRight startWheelRight -> mouseMover.startWheelRight();
+
+            case StopWheelUp stopWheelUp -> mouseMover.stopWheelUp();
+            case StopWheelDown stopWheelDown -> mouseMover.stopWheelDown();
+            case StopWheelLeft stopWheelLeft -> mouseMover.stopWheelLeft();
+            case StopWheelRight stopWheelRight -> mouseMover.stopWheelRight();
             // @formatter:on
         }
     }

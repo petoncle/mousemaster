@@ -21,8 +21,8 @@ public class JmouseableApplication implements CommandLineRunner {
     public void run(String... args) throws InterruptedException {
         Configuration configuration = configurationParser.parse();
         String defaultModeName = Mode.NORMAL_MODE_NAME;
-        MouseMover mouseMover =
-                new MouseMover(configuration.modeMap().get(defaultModeName).mouse());
+        Mode currentMode = configuration.modeMap().get(defaultModeName);
+        MouseMover mouseMover = new MouseMover(currentMode.mouse(), currentMode.wheel());
         ModeManager modeManager = new ModeManager(configuration.modeMap(), mouseMover);
         modeManager.changeMode(defaultModeName);
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseMover);

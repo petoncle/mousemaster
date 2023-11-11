@@ -22,4 +22,14 @@ public sealed interface Command {
     record ReleaseMiddle() implements Command {}
     record ReleaseRight() implements Command {}
 
+    record StartWheelUp() implements Command {}
+    record StartWheelDown() implements Command {}
+    record StartWheelLeft() implements Command {}
+    record StartWheelRight() implements Command {}
+
+    record StopWheelUp() implements Command {}
+    record StopWheelDown() implements Command {}
+    record StopWheelLeft() implements Command {}
+    record StopWheelRight() implements Command {}
+
 }
