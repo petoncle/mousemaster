@@ -2,6 +2,10 @@ package jmouseable.jmouseable;
 
 public enum KeyState {
 
-    RELEASED, PRESSED
+    RELEASED, PRESSED;
+
+    public boolean pressed() {
+        return this == PRESSED;
+    }
 
 }

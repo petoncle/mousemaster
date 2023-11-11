@@ -22,36 +22,35 @@ public class ComboWatcher {
         this.comboPreparation = ComboPreparation.empty();
     }
 
-    /**
-     * @return true if the event should be eaten.
-     */
-    public boolean keyEvent(KeyEvent event) {
+    public KeyEventProcessing keyEvent(KeyEvent event) {
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
         if (previousEvent != null &&
             previousEvent.time().isBefore(event.time().minusMillis(150))) {
-            logger.debug("Timeout: resetting combo preparation");
             comboPreparation = ComboPreparation.empty();
         }
         comboPreparation.events().add(event);
-        logger.debug("comboPreparationActions = " +
-                    comboPreparation.events().stream().map(KeyEvent::action).toList());
-        boolean eat = false;
+        boolean mustBeEaten = false;
+        boolean partOfCombo = false;
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
             Combo combo = entry.getKey();
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo);
-            if (matchingMoveCount != 0)
-                eat |= combo.moves().get(matchingMoveCount - 1).eventMustBeEaten();
-            if (matchingMoveCount != combo.moves().size())
+            if (matchingMoveCount != 0) {
+                mustBeEaten |= combo.moves().get(matchingMoveCount - 1).eventMustBeEaten();
+                partOfCombo = true;
+            }
+            boolean preparationComplete = matchingMoveCount == combo.moves().size();
+            if (!preparationComplete)
                 continue;
-            logger.debug("Preparation matches combo " + combo);
             List<Command> commands = entry.getValue();
             commands.forEach(this::run);
         }
-        logger.debug("Eating: " + eat);
-        return eat;
+        logger.debug("comboPreparationActions = " +
+                     comboPreparation.events().stream().map(KeyEvent::action).toList() +
+                     ", partOfCombo = " + partOfCombo + ", mustBeEaten = " + mustBeEaten);
+        return new KeyEventProcessing(partOfCombo, mustBeEaten);
     }
 
     private void run(Command command) {

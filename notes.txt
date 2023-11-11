@@ -35,6 +35,7 @@ _shift,^shift = press shift, release shift?
   -- Imagine Ctrl+up/down moves the mouse. We want to be able to hold Ctrl, (wait long) then up/down
    - This should be done with a mode (enabled with Ctrl)
   + _arrow,^arrow,_arrow should enable mouse mode and move up
+   + Done by defining move-up in both default-mode and mouse-mode
   + _arrow,^arrow,_arrow,^arrow,(some time)_arrow should enable mouse mode then move up
   + _arrow,^arrow,_arrow,^arrow,_arrow should enable mouse mode then scroll up
 + Combo(List<KeyAction>), KeyAction(Key, KeyState=PRESSED,RELEASED)
