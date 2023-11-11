@@ -112,8 +112,8 @@ public class ModeMapParser {
     }
 
     private static Mode newMode(String modeName) {
-        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(10, 100),
-                new Wheel(10, 100));
+        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(600, 1000),
+                new Wheel(100, 100));
     }
 
     private static void addCommand(Mode mode, Command command, String comboString) {

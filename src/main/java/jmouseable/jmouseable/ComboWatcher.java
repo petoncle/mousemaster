@@ -3,6 +3,7 @@ package jmouseable.jmouseable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -19,9 +20,9 @@ public class ComboWatcher {
 
     public ComboWatcher(ModeMap modeMap, MouseMover mouseMover) {
         this.modeMap = modeMap;
-        this.currentMode = modeMap.get(Mode.DEFAULT_MODE_NAME);
         this.mouseMover = mouseMover;
         this.comboPreparation = ComboPreparation.empty();
+        changeMode(modeMap.get(Mode.DEFAULT_MODE_NAME));
     }
 
     public KeyEventProcessing keyEvent(KeyEvent event) {
@@ -34,6 +35,7 @@ public class ComboWatcher {
         comboPreparation.events().add(event);
         boolean mustBeEaten = false;
         boolean partOfCombo = false;
+        List<Command> commandsToRun = new ArrayList<>();
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
@@ -46,34 +48,40 @@ public class ComboWatcher {
             boolean preparationComplete = matchingMoveCount == combo.moves().size();
             if (!preparationComplete)
                 continue;
-            List<Command> commands = entry.getValue();
-            commands.forEach(this::run);
+            commandsToRun.addAll(entry.getValue());
         }
         logger.debug("comboPreparationActions = " +
                      comboPreparation.events().stream().map(KeyEvent::action).toList() +
-                     ", partOfCombo = " + partOfCombo + ", mustBeEaten = " + mustBeEaten);
+                     ", partOfCombo = " + partOfCombo + ", mustBeEaten = " + mustBeEaten +
+                     ", commandsToRun = " + commandsToRun);
+        commandsToRun.forEach(this::run);
         return new KeyEventProcessing(partOfCombo, mustBeEaten);
     }
 
     private void run(Command command) {
-        logger.debug(command.getClass().getSimpleName());
         switch (command) {
-            case ChangeMode changeMode -> currentMode = modeMap.get(changeMode.newModeName());
+            case ChangeMode changeMode -> changeMode(
+                    modeMap.get(changeMode.newModeName()));
+            case StartMoveUp startMoveUp -> mouseMover.startMoveUp();
+            case StartMoveDown startMoveDown -> mouseMover.startMoveDown();
+            case StartMoveLeft startMoveLeft -> mouseMover.startMoveLeft();
+            case StartMoveRight startMoveRight -> mouseMover.startMoveRight();
+            case StopMoveUp stopMoveUp -> mouseMover.stopMoveUp();
+            case StopMoveDown stopMoveDown -> mouseMover.stopMoveDown();
+            case StopMoveLeft stopMoveLeft -> mouseMover.stopMoveLeft();
+            case StopMoveRight stopMoveRight -> mouseMover.stopMoveRight();
             case PressLeft pressLeft -> {}
             case PressMiddle pressMiddle -> {}
             case PressRight pressRight -> {}
             case ReleaseLeft releaseLeft -> {}
             case ReleaseMiddle releaseMiddle -> {}
             case ReleaseRight releaseRight -> {}
-            case StartMoveDown startMoveDown -> {}
-            case StartMoveLeft startMoveLeft -> mouseMover.startMoveLeft();
-            case StartMoveRight startMoveRight -> {}
-            case StartMoveUp startMoveUp -> {}
-            case StopMoveDown stopMoveDown -> {}
-            case StopMoveLeft stopMoveLeft -> mouseMover.stopMoveLeft();
-            case StopMoveRight stopMoveRight -> {}
-            case StopMoveUp stopMoveUp -> {}
         }
+    }
+
+    private void changeMode(Mode newMode) {
+        currentMode = newMode;
+        mouseMover.changeMouse(newMode.mouse());
     }
 
 }

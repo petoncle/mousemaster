@@ -4,7 +4,8 @@ public class MouseMover {
 
     private Mouse mouse;
     private double x, y;
-    private double xVelocity, yVelocity;
+    private double velocity;
+    private boolean xMoving, yMoving;
     private boolean xForward, yForward; // forward means right or down
 
     public MouseMover(Mouse mouse) {
@@ -16,11 +17,23 @@ public class MouseMover {
     }
 
     public void update(double delta) {
-        if (xVelocity != 0)
-            xVelocity = Math.min(mouse.maxVelocity(), xVelocity + mouse.acceleration() * delta);
-        if (yVelocity != 0)
-            yVelocity = Math.min(mouse.maxVelocity(), yVelocity + mouse.acceleration() * delta);
-        WindowsMouse.moveBy(xForward, xVelocity * delta, yForward, yVelocity * delta);
+        if (velocity == 0)
+            return;
+        velocity = Math.min(mouse.maxVelocity(), velocity + Math.pow(mouse.acceleration(), 2) * delta);
+        double deltaDistanceX, deltaDistanceY;
+        if (xMoving && yMoving) {
+            deltaDistanceX = velocity * delta / Math.sqrt(2);
+            deltaDistanceY = velocity * delta / Math.sqrt(2);
+        }
+        else if (xMoving) {
+            deltaDistanceX = velocity * delta;
+            deltaDistanceY = 0;
+        }
+        else {
+            deltaDistanceX = 0;
+            deltaDistanceY = velocity * delta;
+        }
+        WindowsMouse.moveBy(xForward, deltaDistanceX, yForward, deltaDistanceY);
     }
 
     public void mouseMoved(double x, double y) {
@@ -29,43 +42,59 @@ public class MouseMover {
     }
 
     public void startMoveUp() {
+        yMoving = true;
         yForward = false;
-        yVelocity = Math.max(yVelocity, mouse.acceleration());
+        velocity = Math.max(velocity, mouse.acceleration());
     }
 
     public void startMoveDown() {
+        yMoving = true;
         yForward = true;
-        yVelocity = Math.max(yVelocity, mouse.acceleration());
+        velocity = Math.max(velocity, mouse.acceleration());
     }
 
     public void startMoveLeft() {
+        xMoving = true;
         xForward = false;
-        xVelocity = Math.max(xVelocity, mouse.acceleration());
+        velocity = Math.max(velocity, mouse.acceleration());
     }
 
     public void startMoveRight() {
+        xMoving = true;
         xForward = true;
-        xVelocity = Math.max(xVelocity, mouse.acceleration());
+        velocity = Math.max(velocity, mouse.acceleration());
     }
 
     public void stopMoveUp() {
-        if (!yForward)
-            yVelocity = 0;
+        if (!yForward) {
+            yMoving = false;
+            if (!xMoving)
+                velocity = 0;
+        }
     }
 
     public void stopMoveDown() {
-        if (yForward)
-            yVelocity = 0;
+        if (yForward) {
+            yMoving = false;
+            if (!xMoving)
+                velocity = 0;
+        }
     }
 
     public void stopMoveLeft() {
-        if (!xForward)
-            xVelocity = 0;
+        if (!xForward) {
+            xMoving = false;
+            if (!yMoving)
+                velocity = 0;
+        }
     }
 
     public void stopMoveRight() {
-        if (xForward)
-            xVelocity = 0;
+        if (xForward) {
+            xMoving = false;
+            if (!yMoving)
+                velocity = 0;
+        }
     }
 
 }

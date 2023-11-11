@@ -108,9 +108,9 @@ public class WindowsHook {
                         KeyEvent keyEvent =
                                 new KeyEvent(systemStartTime.plusMillis(info.time),
                                         action);
-                        boolean mustEatEvent =
+                        boolean eventMustBeEaten =
                                 keyEvent(keyEvent, info, wParamString);
-                        if (mustEatEvent)
+                        if (eventMustBeEaten)
                             return new WinDef.LRESULT(1);
                     }
                     break;

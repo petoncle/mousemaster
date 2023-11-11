@@ -14,6 +14,8 @@ public class WindowsMouse {
         WinUser.INPUT input = new WinUser.INPUT();
         input.type = new WinDef.DWORD(WinUser.INPUT.INPUT_MOUSE);
         WinUser.MOUSEINPUT mouseInput = new WinUser.MOUSEINPUT();
+        input.input.mi = mouseInput;
+        input.input.setType(WinUser.MOUSEINPUT.class);
         mouseInput.dx = new WinDef.LONG((long) deltaX * (xForward ? 1 : -1));
         mouseInput.dy = new WinDef.LONG((long) deltaY * (yForward ? 1 : -1));
         mouseInput.mouseData = new WinDef.DWORD(0);
@@ -21,7 +23,7 @@ public class WindowsMouse {
         mouseInput.time = new WinDef.DWORD(0);
         mouseInput.dwExtraInfo = new BaseTSD.ULONG_PTR(0L);
         User32.INSTANCE.SendInput(new WinDef.DWORD(1), new WinUser.INPUT[]{input},
-                mouseInput.size());
+                input.size());
     }
 
 }
