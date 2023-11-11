@@ -21,7 +21,7 @@ public class JmouseableApplication implements CommandLineRunner {
     public void run(String... args) throws InterruptedException {
         ModeMap modeMap = modeMapParser.parse();
         MouseMover mouseMover =
-                new MouseMover(modeMap.get(Mode.DEFAULT_MODE_NAME).mouse());
+                new MouseMover(modeMap.get(Mode.NORMAL_MODE_NAME).mouse());
         new WindowsHook(mouseMover,
                 new ComboWatcher(modeMap, mouseMover)).installHooks();
     }

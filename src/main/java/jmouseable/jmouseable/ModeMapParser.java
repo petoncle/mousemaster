@@ -6,6 +6,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,14 +23,22 @@ public class ModeMapParser {
     }
 
     public ModeMap parse() {
-        Pattern keyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
+        Duration defaultComboBreakingTimeout = defaultComboBreakingTimeout();
+        Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
         Map<String, Mode> modeByName = new HashMap<>();
         Set<String> modeNameReferences = new HashSet<>();
         for (PropertySource<?> propertySource : ((ConfigurableEnvironment) environment).getPropertySources()) {
             if (!(propertySource instanceof EnumerablePropertySource<?> source))
                 continue;
             for (String propertyKey : source.getPropertyNames()) {
-                Matcher matcher = keyPattern.matcher(propertyKey);
+                String propertyValue = (String) source.getProperty(propertyKey);
+                Objects.requireNonNull(propertyValue);
+                if (propertyKey.equals("default-combo-breaking-timeout")) {
+                    defaultComboBreakingTimeout =
+                            Duration.ofMillis(Integer.parseUnsignedInt(propertyValue));
+                    continue;
+                }
+                Matcher matcher = modeKeyPattern.matcher(propertyKey);
                 if (!matcher.matches())
                     continue;
                 String modeName = matcher.group(1);
@@ -37,8 +46,6 @@ public class ModeMapParser {
                         modeByName.computeIfAbsent(modeName, name -> newMode(modeName));
                 Map<Combo, List<Command>> commandsByCombo =
                         mode.comboMap().commandsByCombo();
-                String propertyValue = (String) source.getProperty(propertyKey);
-                Objects.requireNonNull(propertyValue);
                 String group2 = matcher.group(2);
                 switch (group2) {
                     case "mouse" -> {
@@ -107,7 +114,11 @@ public class ModeMapParser {
             if (!modeByName.containsKey(modeNameReference))
                 throw new IllegalStateException(
                         "Definition of mode " + modeNameReference + " is missing ");
-        return new ModeMap(Set.copyOf(modeByName.values()));
+        return new ModeMap(Set.copyOf(modeByName.values()), defaultComboBreakingTimeout);
+    }
+
+    private Duration defaultComboBreakingTimeout() {
+        return Duration.ofMillis(150);
     }
 
     private static Mode newMode(String modeName) {

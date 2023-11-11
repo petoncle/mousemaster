@@ -1,9 +1,9 @@
 _shift,^shift = press shift, release shift?
 + begin when key down, end when key up?
  + <mode>.<action> = <key combo>
- + default-mode.to.mouse-mode=_ctrl,^ctrl,_ctrl,^ctrl
+ + normal-mode.to.mouse-mode=_ctrl,^ctrl,_ctrl,^ctrl
  + mouse-mode.to.temp-mouse-mode=_ctrl,^ctrl
- + temp-mouse-mode.to.default-mode=_ctrl,^ctrl
+ + temp-mouse-mode.to.normal-mode=_ctrl,^ctrl
  + mouse-mode.press-left=_shift
  + mouse-mode.release-left=^shift
  + mouse-mode.start-move-left=_leftarrow
@@ -11,14 +11,14 @@ _shift,^shift = press shift, release shift?
  + mouse-mode.mouse-acceleration, wheel.acceleration
  + mouse-mode.indicator.color=red
 + temp-mouse-mode.timeout.duration=1s # automatically changes mode if no key combo was detected during 1s and no action is currently running (e.g. move-up)
-+ temp-mouse-mode.timeout.next-mode=default-mode
-+ temp-mouse-mode.oneshot.next-mode=default-mode # once an action has run (e.g. move-up), mode changes automatically
++ temp-mouse-mode.timeout.next-mode=normal-mode
++ temp-mouse-mode.oneshot.next-mode=normal-mode # once an action has run (e.g. move-up), mode changes automatically
 + Can assign multiple combo to same action
  + mouse-mode.press-left=_lshift
  + mouse-mode.press-left=_rshift
 + Can assign one combo to multiple actions
- + default-mode.to.mouse-mode=_leftarrow,^leftarrow,_leftarrow
- + default-mode.start-move-left=_leftarrow,^leftarrow,_leftarrow
+ + normal-mode.to.mouse-mode=_leftarrow,^leftarrow,_leftarrow
+ + normal-mode.start-move-left=_leftarrow,^leftarrow,_leftarrow
 + Non-last keys involved in a combo should not be eaten
  + Reason is Up, Up: if only press single up, the Up,Up combo should not eat the first Up
  + The last key event of the combo should be eaten
@@ -30,12 +30,12 @@ _shift,^shift = press shift, release shift?
   + Large timeout to allow Ctrl, wait, Z. Or special __ctrl to indicate no timeout. Or no timeout at all?
 + Should a keyevent unrelated to a combo break the combo preparation? Yes.
  + Released event cannot be eaten if Pressed event was not eaten, otherwise apps will bug
-  -- Need user to specify which event should not be eaten (eaten by default)
+  -- Need user to specify which event should not be eaten (eaten by normal)
  + Should a reached combo reset the preparation (no combo accumulation)? No. Maybe
   -- Imagine Ctrl+up/down moves the mouse. We want to be able to hold Ctrl, (wait long) then up/down
    - This should be done with a mode (enabled with Ctrl)
   + _arrow,^arrow,_arrow should enable mouse mode and move up
-   + Done by defining move-up in both default-mode and mouse-mode
+   + Done by defining move-up in both normal-mode and mouse-mode
   + _arrow,^arrow,_arrow,^arrow,(some time)_arrow should enable mouse mode then move up
   + _arrow,^arrow,_arrow,^arrow,_arrow should enable mouse mode then scroll up
 + Combo(List<KeyAction>), KeyAction(Key, KeyState=PRESSED,RELEASED)

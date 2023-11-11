@@ -1,5 +1,6 @@
 package jmouseable.jmouseable;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,25 +13,35 @@ public record Combo(List<ComboMove> moves) {
             throw new IllegalArgumentException("Empty combo: " + string);
         List<ComboMove> moves = new ArrayList<>();
         for (String moveName : moveNames) {
-            String actionName;
+            String actionAndTimeout;
             boolean eventMustBeEaten;
-            if (moveName.startsWith(";")) {
-                actionName = moveName.substring(1);
+            if (moveName.startsWith("?")) {
+                actionAndTimeout = moveName.substring(1);
                 eventMustBeEaten = false;
             }
             else {
-                actionName = moveName;
+                actionAndTimeout = moveName;
                 eventMustBeEaten = true;
             }
-            if (!actionName.startsWith("_") && !actionName.startsWith("^"))
-                throw new IllegalArgumentException("Invalid move: " + actionName);
+            String action;
+            Duration breakingTimeout;
+            try {
+                breakingTimeout = Duration.ofMillis(
+                        Integer.parseUnsignedInt(actionAndTimeout.replaceFirst("\\D+", "")));
+                action = actionAndTimeout.replaceFirst("\\d+", "");
+            } catch (NumberFormatException e) {
+                breakingTimeout = null;
+                action = actionAndTimeout;
+            }
+            if (!action.startsWith("_") && !action.startsWith("^"))
+                throw new IllegalArgumentException("Invalid move: " + action);
             KeyState state =
-                    actionName.startsWith("_") ? KeyState.PRESSED : KeyState.RELEASED;
-            String keyName = actionName.substring(1);
+                    action.startsWith("_") ? KeyState.PRESSED : KeyState.RELEASED;
+            String keyName = action.substring(1);
             Key key = Key.keyByName.get(keyName);
             if (key == null)
                 throw new IllegalArgumentException("Invalid key: " + keyName);
-            moves.add(new ComboMove(new KeyAction(key, state), eventMustBeEaten));
+            moves.add(new ComboMove(new KeyAction(key, state), breakingTimeout, eventMustBeEaten));
         }
         return new Combo(List.copyOf(moves));
     }

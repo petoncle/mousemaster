@@ -3,6 +3,7 @@ package jmouseable.jmouseable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,20 +18,24 @@ public class ComboWatcher {
     private final MouseMover mouseMover;
     private Mode currentMode;
     private ComboPreparation comboPreparation;
+    private Duration currentComboBreakingTimeout;
 
     public ComboWatcher(ModeMap modeMap, MouseMover mouseMover) {
         this.modeMap = modeMap;
         this.mouseMover = mouseMover;
         this.comboPreparation = ComboPreparation.empty();
-        changeMode(modeMap.get(Mode.DEFAULT_MODE_NAME));
+        this.currentComboBreakingTimeout = modeMap.defaultComboBreakingTimeout();
+        changeMode(modeMap.get(Mode.NORMAL_MODE_NAME));
     }
 
     public KeyEventProcessing keyEvent(KeyEvent event) {
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
-        if (previousEvent != null &&
-            previousEvent.time().isBefore(event.time().minusMillis(150))) {
+        if (previousEvent != null && previousEvent.time()
+                                                  .isBefore(event.time()
+                                                                 .minus(currentComboBreakingTimeout))) {
             comboPreparation = ComboPreparation.empty();
+            currentComboBreakingTimeout = modeMap.defaultComboBreakingTimeout();
         }
         comboPreparation.events().add(event);
         boolean mustBeEaten = false;
@@ -42,16 +47,19 @@ public class ComboWatcher {
                 Combo combo = entry.getKey();
                 int matchingMoveCount = comboPreparation.matchingMoveCount(combo);
                 if (matchingMoveCount != 0) {
-                    mustBeEaten |=
-                            combo.moves().get(matchingMoveCount - 1).eventMustBeEaten();
+                    ComboMove move = combo.moves().get(matchingMoveCount - 1);
+                    mustBeEaten |= move.eventMustBeEaten();
                     partOfCombo = true;
+                    currentComboBreakingTimeout =
+                            move.breakingTimeout() != null ? move.breakingTimeout() :
+                                    modeMap.defaultComboBreakingTimeout();
                 }
                 boolean preparationComplete = matchingMoveCount == combo.moves().size();
                 if (!preparationComplete)
                     continue;
             commandsToRun.addAll(entry.getValue());
             }
-        logger.debug("comboPreparationActions = " +
+        logger.debug("currentMode = " + currentMode.name() + ", comboPreparationActions = " +
                      comboPreparation.events().stream().map(KeyEvent::action).toList() +
                      ", partOfCombo = " + partOfCombo + ", mustBeEaten = " + mustBeEaten +
                      ", commandsToRun = " + commandsToRun);

@@ -1,4 +1,6 @@
 package jmouseable.jmouseable;
 
-public record ComboMove(KeyAction action, boolean eventMustBeEaten) {
+import java.time.Duration;
+
+public record ComboMove(KeyAction action, Duration breakingTimeout, boolean eventMustBeEaten) {
 }
