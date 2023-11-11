@@ -1,6 +1,7 @@
 package jmouseable.jmouseable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public record Combo(List<ComboMove> moves) {
@@ -34,4 +35,9 @@ public record Combo(List<ComboMove> moves) {
         return new Combo(List.copyOf(moves));
     }
 
+    public static List<Combo> multiCombo(String multiComboString) {
+        return Arrays.stream(multiComboString.split("\\s*\\|\\s*"))
+                     .map(Combo::of)
+                     .toList();
+    }
 }

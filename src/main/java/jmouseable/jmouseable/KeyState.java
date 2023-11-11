@@ -8,4 +8,8 @@ public enum KeyState {
         return this == PRESSED;
     }
 
+    public boolean released() {
+        return !pressed();
+    }
+
 }

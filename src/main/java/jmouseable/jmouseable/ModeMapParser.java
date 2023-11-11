@@ -35,6 +35,8 @@ public class ModeMapParser {
                 String modeName = matcher.group(1);
                 Mode mode =
                         modeByName.computeIfAbsent(modeName, name -> newMode(modeName));
+                Map<Combo, List<Command>> commandsByCombo =
+                        mode.comboMap().commandsByCombo();
                 String propertyValue = (String) source.getProperty(propertyKey);
                 Objects.requireNonNull(propertyValue);
                 String group2 = matcher.group(2);
@@ -72,30 +74,27 @@ public class ModeMapParser {
                                     "Invalid to configuration: " + propertyKey);
                         String newModeName = matcher.group(4);
                         modeNameReferences.add(newModeName);
-                        Map<Combo, List<Command>> commandsByCombo =
-                                mode.comboMap().commandsByCombo();
-                        commandsByCombo.computeIfAbsent(Combo.of(propertyValue),
-                                               combo -> new ArrayList<>())
-                                       .add(new ChangeMode(newModeName));
+                        addCommand(commandsByCombo, propertyValue,
+                                new ChangeMode(newModeName));
                     }
                     // @formatter:off
-                    case "start-move-up" -> addCommand(mode, new StartMoveUp(), propertyValue);
-                    case "start-move-down" -> addCommand(mode, new StartMoveDown(), propertyValue);
-                    case "start-move-left" -> addCommand(mode, new StartMoveLeft(), propertyValue);
-                    case "start-move-right" -> addCommand(mode, new StartMoveRight(), propertyValue);
+                    case "start-move-up" -> addCommand(commandsByCombo, propertyValue, new StartMoveUp());
+                    case "start-move-down" -> addCommand(commandsByCombo, propertyValue, new StartMoveDown());
+                    case "start-move-left" -> addCommand(commandsByCombo, propertyValue, new StartMoveLeft());
+                    case "start-move-right" -> addCommand(commandsByCombo, propertyValue, new StartMoveRight());
 
-                    case "stop-move-up" -> addCommand(mode, new StopMoveUp(), propertyValue);
-                    case "stop-move-down" -> addCommand(mode, new StopMoveDown(), propertyValue);
-                    case "stop-move-left" -> addCommand(mode, new StopMoveLeft(), propertyValue);
-                    case "stop-move-right" -> addCommand(mode, new StopMoveRight(), propertyValue);
+                    case "stop-move-up" -> addCommand(commandsByCombo, propertyValue, new StopMoveUp());
+                    case "stop-move-down" -> addCommand(commandsByCombo, propertyValue, new StopMoveDown());
+                    case "stop-move-left" -> addCommand(commandsByCombo, propertyValue, new StopMoveLeft());
+                    case "stop-move-right" -> addCommand(commandsByCombo, propertyValue, new StopMoveRight());
 
-                    case "press-left" -> addCommand(mode, new PressLeft(), propertyValue);
-                    case "press-middle" -> addCommand(mode, new PressMiddle(), propertyValue);
-                    case "press-right" -> addCommand(mode, new PressRight(), propertyValue);
+                    case "press-left" -> addCommand(commandsByCombo, propertyValue, new PressLeft());
+                    case "press-middle" -> addCommand(commandsByCombo, propertyValue, new PressMiddle());
+                    case "press-right" -> addCommand(commandsByCombo, propertyValue, new PressRight());
 
-                    case "release-left" -> addCommand(mode, new ReleaseLeft(), propertyValue);
-                    case "release-middle" -> addCommand(mode, new ReleaseMiddle(), propertyValue);
-                    case "release-right" -> addCommand(mode, new ReleaseRight(), propertyValue);
+                    case "release-left" -> addCommand(commandsByCombo, propertyValue, new ReleaseLeft());
+                    case "release-middle" -> addCommand(commandsByCombo, propertyValue, new ReleaseMiddle());
+                    case "release-right" -> addCommand(commandsByCombo, propertyValue, new ReleaseRight());
                     // @formatter:on
                     default -> throw new IllegalArgumentException(
                             "Invalid configuration: " + propertyKey);
@@ -112,15 +111,17 @@ public class ModeMapParser {
     }
 
     private static Mode newMode(String modeName) {
-        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(600, 1000),
+        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(50, 1000),
                 new Wheel(100, 100));
     }
 
-    private static void addCommand(Mode mode, Command command, String comboString) {
-        mode.comboMap()
-            .commandsByCombo()
-            .computeIfAbsent(Combo.of(comboString), combo -> new ArrayList<>())
-            .add(command);
+    private static void addCommand(Map<Combo, List<Command>> commandsByCombo,
+                                   String multiComboString, Command command) {
+        List<Combo> combos = Combo.multiCombo(multiComboString);
+        for (Combo combo : combos)
+            commandsByCombo
+                .computeIfAbsent(combo, combo1 -> new ArrayList<>())
+                .add(command);
     }
 
 }

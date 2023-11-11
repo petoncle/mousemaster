@@ -31,7 +31,7 @@ _shift,^shift = press shift, release shift?
 + Should a keyevent unrelated to a combo break the combo preparation? Yes.
  + Released event cannot be eaten if Pressed event was not eaten, otherwise apps will bug
   -- Need user to specify which event should not be eaten (eaten by default)
- + Should a reached combo reset the preparation (no combo accumulation)? No
+ + Should a reached combo reset the preparation (no combo accumulation)? No. Maybe
   -- Imagine Ctrl+up/down moves the mouse. We want to be able to hold Ctrl, (wait long) then up/down
    - This should be done with a mode (enabled with Ctrl)
   + _arrow,^arrow,_arrow should enable mouse mode and move up
