@@ -1,11 +1,6 @@
 package jmouseable.jmouseable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class MouseMover {
-
-    private static final Logger logger = LoggerFactory.getLogger(MouseMover.class);
 
     private Mouse mouse;
     private Wheel wheel;
@@ -80,52 +75,24 @@ public class MouseMover {
     }
 
     public void startMoveUp() {
-        stopWheelVertically();
         yMoving = true;
         yMoveForward = false;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
-    private void stopWheelHorizontally() {
-        xWheeling = false;
-        if (!yWheeling)
-            wheelVelocity = 0;
-    }
-
-    private void stopWheelVertically() {
-        yWheeling = false;
-        if (!xWheeling)
-            wheelVelocity = 0;
-    }
-
-    private void stopMoveHorizontally() {
-        xMoving = false;
-        if (!yMoving)
-            moveVelocity = 0;
-    }
-
-    private void stopMoveVertically() {
-        yMoving = false;
-        if (!xMoving)
-            moveVelocity = 0;
-    }
-
     public void startMoveDown() {
-        stopWheelVertically();
         yMoving = true;
         yMoveForward = true;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveLeft() {
-        stopWheelHorizontally();
         xMoving = true;
         xMoveForward = false;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveRight() {
-        stopWheelHorizontally();
         xMoving = true;
         xMoveForward = true;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
@@ -194,28 +161,24 @@ public class MouseMover {
     }
 
     public void startWheelUp() {
-        stopMoveVertically();
         yWheeling = true;
         yWheelForward = false;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelDown() {
-        stopMoveVertically();
         yWheeling = true;
         yWheelForward = true;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelLeft() {
-        stopMoveHorizontally();
         xWheeling = true;
         xWheelForward = false;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelRight() {
-        stopMoveHorizontally();
         xWheeling = true;
         xWheelForward = true;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
