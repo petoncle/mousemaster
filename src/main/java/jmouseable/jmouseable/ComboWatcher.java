@@ -15,7 +15,7 @@ public class ComboWatcher {
     private final ModeManager modeManager;
     private final CommandRunner commandRunner;
     private ComboPreparation comboPreparation;
-    private Duration previousComboMoveMaxDuration;
+    private ComboMoveDuration previousComboMoveDuration;
 
     public ComboWatcher(ModeManager modeManager, CommandRunner commandRunner) {
         this.modeManager = modeManager;
@@ -27,14 +27,14 @@ public class ComboWatcher {
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
         if (previousEvent != null &&
-            previousEvent.time().plus(previousComboMoveMaxDuration).isBefore(event.time()))
+            !previousComboMoveDuration.isRespected(previousEvent.time(), event.time()))
             comboPreparation = ComboPreparation.empty();
         comboPreparation.events().add(event);
         boolean mustBeEaten = false;
         boolean partOfCombo = false;
         List<Command> commandsToRun = new ArrayList<>();
         Mode currentMode = modeManager.currentMode();
-        Duration newComboMaxDuration = null;
+        ComboMoveDuration newComboDuration = null;
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
@@ -44,17 +44,28 @@ public class ComboWatcher {
                 ComboMove currentMove = combo.moves().get(matchingMoveCount - 1);
                 mustBeEaten |= currentMove.eventMustBeEaten();
                 partOfCombo = true;
-                if (newComboMaxDuration == null ||
-                    newComboMaxDuration.compareTo(currentMove.duration().max()) < 0)
-                    newComboMaxDuration = currentMove.duration().max();
+                if (newComboDuration == null) {
+                    newComboDuration = currentMove.duration();
+                }
+                else {
+                    if (newComboDuration.min().compareTo(currentMove.duration().min()) >
+                        0)
+                        newComboDuration =
+                                new ComboMoveDuration(currentMove.duration().min(),
+                                        newComboDuration.max());
+                    if (newComboDuration.max().compareTo(currentMove.duration().max()) <
+                        0)
+                        newComboDuration = new ComboMoveDuration(newComboDuration.min(),
+                                currentMove.duration().max());
+                }
             }
             boolean preparationComplete = matchingMoveCount == combo.moves().size();
             if (!preparationComplete)
                 continue;
             commandsToRun.addAll(entry.getValue());
         }
-        if (newComboMaxDuration != null)
-            previousComboMoveMaxDuration = newComboMaxDuration;
+        if (newComboDuration != null)
+            previousComboMoveDuration = newComboDuration;
         logger.debug(
                 "currentMode = " + currentMode.name() + ", comboPreparationActions = " +
                 comboPreparation.events().stream().map(KeyEvent::action).toList() +
