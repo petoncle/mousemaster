@@ -26,8 +26,7 @@ public class JmouseableApplication implements CommandLineRunner {
         ModeManager modeManager = new ModeManager(configuration.modeMap(), mouseMover);
         modeManager.changeMode(defaultModeName);
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseMover);
-        ComboWatcher comboWatcher = new ComboWatcher(modeManager, commandRunner,
-                configuration.defaultComboBreakingTimeout());
+        ComboWatcher comboWatcher = new ComboWatcher(modeManager, commandRunner);
         Ticker ticker = new Ticker(modeManager, mouseMover);
         new WindowsHook(mouseMover, comboWatcher, ticker).installHooks();
     }

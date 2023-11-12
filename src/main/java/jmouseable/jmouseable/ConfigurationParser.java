@@ -23,7 +23,7 @@ public class ConfigurationParser {
     }
 
     public Configuration parse() {
-        Duration defaultComboBreakingTimeout = defaultComboBreakingTimeout();
+        ComboMoveDuration defaultComboMoveDuration = defaultComboMoveDuration();
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
         Map<String, Mode> modeByName = new HashMap<>();
         Set<String> modeNameReferences = new HashSet<>();
@@ -33,8 +33,8 @@ public class ConfigurationParser {
             for (String propertyKey : source.getPropertyNames()) {
                 String propertyValue = (String) source.getProperty(propertyKey);
                 Objects.requireNonNull(propertyValue);
-                if (propertyKey.equals("default-combo-breaking-timeout")) {
-                    defaultComboBreakingTimeout = parseDuration(propertyValue);
+                if (propertyKey.equals("default-combo-move-duration")) {
+                    defaultComboMoveDuration = parseComboMoveDuration(propertyValue);
                     continue;
                 }
                 Matcher matcher = modeKeyPattern.matcher(propertyKey);
@@ -83,7 +83,7 @@ public class ConfigurationParser {
                         String newModeName = matcher.group(4);
                         modeNameReferences.add(newModeName);
                         addCommand(commandsByCombo, propertyValue,
-                                new ChangeMode(newModeName));
+                                new ChangeMode(newModeName), defaultComboMoveDuration);
                     }
                     case "timeout" -> {
                         if (matcher.group(4) == null)
@@ -121,33 +121,33 @@ public class ConfigurationParser {
                                         mode.wheel(), mode.timeout(), indicator));
                     }
                     // @formatter:off
-                    case "start-move-up" -> addCommand(commandsByCombo, propertyValue, new StartMoveUp());
-                    case "start-move-down" -> addCommand(commandsByCombo, propertyValue, new StartMoveDown());
-                    case "start-move-left" -> addCommand(commandsByCombo, propertyValue, new StartMoveLeft());
-                    case "start-move-right" -> addCommand(commandsByCombo, propertyValue, new StartMoveRight());
+                    case "start-move-up" -> addCommand(commandsByCombo, propertyValue, new StartMoveUp(), defaultComboMoveDuration);
+                    case "start-move-down" -> addCommand(commandsByCombo, propertyValue, new StartMoveDown(), defaultComboMoveDuration);
+                    case "start-move-left" -> addCommand(commandsByCombo, propertyValue, new StartMoveLeft(), defaultComboMoveDuration);
+                    case "start-move-right" -> addCommand(commandsByCombo, propertyValue, new StartMoveRight(), defaultComboMoveDuration);
 
-                    case "stop-move-up" -> addCommand(commandsByCombo, propertyValue, new StopMoveUp());
-                    case "stop-move-down" -> addCommand(commandsByCombo, propertyValue, new StopMoveDown());
-                    case "stop-move-left" -> addCommand(commandsByCombo, propertyValue, new StopMoveLeft());
-                    case "stop-move-right" -> addCommand(commandsByCombo, propertyValue, new StopMoveRight());
+                    case "stop-move-up" -> addCommand(commandsByCombo, propertyValue, new StopMoveUp(), defaultComboMoveDuration);
+                    case "stop-move-down" -> addCommand(commandsByCombo, propertyValue, new StopMoveDown(), defaultComboMoveDuration);
+                    case "stop-move-left" -> addCommand(commandsByCombo, propertyValue, new StopMoveLeft(), defaultComboMoveDuration);
+                    case "stop-move-right" -> addCommand(commandsByCombo, propertyValue, new StopMoveRight(), defaultComboMoveDuration);
 
-                    case "press-left" -> addCommand(commandsByCombo, propertyValue, new PressLeft());
-                    case "press-middle" -> addCommand(commandsByCombo, propertyValue, new PressMiddle());
-                    case "press-right" -> addCommand(commandsByCombo, propertyValue, new PressRight());
+                    case "press-left" -> addCommand(commandsByCombo, propertyValue, new PressLeft(), defaultComboMoveDuration);
+                    case "press-middle" -> addCommand(commandsByCombo, propertyValue, new PressMiddle(), defaultComboMoveDuration);
+                    case "press-right" -> addCommand(commandsByCombo, propertyValue, new PressRight(), defaultComboMoveDuration);
 
-                    case "release-left" -> addCommand(commandsByCombo, propertyValue, new ReleaseLeft());
-                    case "release-middle" -> addCommand(commandsByCombo, propertyValue, new ReleaseMiddle());
-                    case "release-right" -> addCommand(commandsByCombo, propertyValue, new ReleaseRight());
+                    case "release-left" -> addCommand(commandsByCombo, propertyValue, new ReleaseLeft(), defaultComboMoveDuration);
+                    case "release-middle" -> addCommand(commandsByCombo, propertyValue, new ReleaseMiddle(), defaultComboMoveDuration);
+                    case "release-right" -> addCommand(commandsByCombo, propertyValue, new ReleaseRight(), defaultComboMoveDuration);
 
-                    case "start-wheel-up" -> addCommand(commandsByCombo, propertyValue, new StartWheelUp());
-                    case "start-wheel-down" -> addCommand(commandsByCombo, propertyValue, new StartWheelDown());
-                    case "start-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StartWheelLeft());
-                    case "start-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StartWheelRight());
+                    case "start-wheel-up" -> addCommand(commandsByCombo, propertyValue, new StartWheelUp(), defaultComboMoveDuration);
+                    case "start-wheel-down" -> addCommand(commandsByCombo, propertyValue, new StartWheelDown(), defaultComboMoveDuration);
+                    case "start-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StartWheelLeft(), defaultComboMoveDuration);
+                    case "start-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StartWheelRight(), defaultComboMoveDuration);
 
-                    case "stop-wheel-up" -> addCommand(commandsByCombo, propertyValue, new StopWheelUp());
-                    case "stop-wheel-down" -> addCommand(commandsByCombo, propertyValue, new StopWheelDown());
-                    case "stop-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StopWheelLeft());
-                    case "stop-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StopWheelRight());
+                    case "stop-wheel-up" -> addCommand(commandsByCombo, propertyValue, new StopWheelUp(), defaultComboMoveDuration);
+                    case "stop-wheel-down" -> addCommand(commandsByCombo, propertyValue, new StopWheelDown(), defaultComboMoveDuration);
+                    case "stop-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StopWheelLeft(), defaultComboMoveDuration);
+                    case "stop-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StopWheelRight(), defaultComboMoveDuration);
                     // @formatter:on
                     default -> throw new IllegalArgumentException(
                             "Invalid configuration: " + propertyKey);
@@ -166,28 +166,36 @@ public class ConfigurationParser {
                         "Definition of mode timeout for " + mode.name() +
                         " is incomplete");
         }
-        return new Configuration(defaultComboBreakingTimeout,
-                new ModeMap(Set.copyOf(modeByName.values())));
+        return new Configuration(new ModeMap(Set.copyOf(modeByName.values())));
     }
 
-    private static Duration parseDuration(String propertyValue) {
-        return Duration.ofMillis(Integer.parseUnsignedInt(propertyValue));
+    private ComboMoveDuration parseComboMoveDuration(String string) {
+        String[] split = string.split("-");
+        return new ComboMoveDuration(
+                Duration.ofMillis(Integer.parseUnsignedInt(split[0])),
+                Duration.ofMillis(Integer.parseUnsignedInt(split[1])));
     }
 
-    private Duration defaultComboBreakingTimeout() {
-        return Duration.ofMillis(150);
+    private static Duration parseDuration(String string) {
+        return Duration.ofMillis(Integer.parseUnsignedInt(string));
+    }
+
+    private ComboMoveDuration defaultComboMoveDuration() {
+        return new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
     }
 
     private static Mode newMode(String modeName) {
         // Keep order of commands, so that start-wheel-up after start-move-up means former will cancel latter.
         // Should we reset the combo preparation once it is complete, instead of relying on command order?
-        return new Mode(modeName, new ComboMap(new LinkedHashMap<>()), new Mouse(50, 1000),
-                new Wheel(100, 100), null, new Indicator(false));
+        // TODO revert
+        return new Mode(modeName, new ComboMap(new LinkedHashMap<>()),
+                new Mouse(50, 1000), new Wheel(100, 100), null, new Indicator(false));
     }
 
     private static void addCommand(Map<Combo, List<Command>> commandsByCombo,
-                                   String multiComboString, Command command) {
-        List<Combo> combos = Combo.multiCombo(multiComboString);
+                                   String multiComboString, Command command,
+                                   ComboMoveDuration defaultComboMoveDuration) {
+        List<Combo> combos = Combo.multiCombo(multiComboString, defaultComboMoveDuration);
         for (Combo combo : combos)
             commandsByCombo.computeIfAbsent(combo, combo1 -> new ArrayList<>())
                            .add(command);
