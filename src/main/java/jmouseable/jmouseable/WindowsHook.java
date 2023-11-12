@@ -125,8 +125,13 @@ public class WindowsHook {
         if (keyEvent.action().state().pressed()) {
             KeyEventProcessing keyEventProcessing = currentlyPressedKeys.get(key);
             if (keyEventProcessing == null) {
-                logKeyEvent(keyEvent, info, wParamString);
-                keyEventProcessing = comboWatcher.keyEvent(keyEvent);
+                if (currentlyPressedKeys.values().stream().allMatch(KeyEventProcessing::partOfCombo)) {
+                    logKeyEvent(keyEvent, info, wParamString);
+                    keyEventProcessing = comboWatcher.keyEvent(keyEvent);
+                }
+                else {
+                    keyEventProcessing = new KeyEventProcessing(false, false);
+                }
                 currentlyPressedKeys.put(key, keyEventProcessing);
             }
             return keyEventProcessing.mustBeEaten();
