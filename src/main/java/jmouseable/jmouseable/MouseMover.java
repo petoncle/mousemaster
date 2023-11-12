@@ -80,40 +80,52 @@ public class MouseMover {
     }
 
     public void startMoveUp() {
-        stopWheel();
+        stopWheelVertically();
         yMoving = true;
         yMoveForward = false;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
-    private void stopWheel() { // TODO Remove, and reset combo prep instead
-        wheelVelocity = 0;
+    private void stopWheelHorizontally() {
         xWheeling = false;
-        yWheeling = false;
+        if (!yWheeling)
+            wheelVelocity = 0;
     }
 
-    private void stopMove() {
-        moveVelocity = 0;
+    private void stopWheelVertically() {
+        yWheeling = false;
+        if (!xWheeling)
+            wheelVelocity = 0;
+    }
+
+    private void stopMoveHorizontally() {
         xMoving = false;
+        if (!yMoving)
+            moveVelocity = 0;
+    }
+
+    private void stopMoveVertically() {
         yMoving = false;
+        if (!xMoving)
+            moveVelocity = 0;
     }
 
     public void startMoveDown() {
-        stopWheel();
+        stopWheelVertically();
         yMoving = true;
         yMoveForward = true;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveLeft() {
-        stopWheel();
+        stopWheelHorizontally();
         xMoving = true;
         xMoveForward = false;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveRight() {
-        stopWheel();
+        stopWheelHorizontally();
         xMoving = true;
         xMoveForward = true;
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
@@ -182,28 +194,28 @@ public class MouseMover {
     }
 
     public void startWheelUp() {
-        stopMove();
+        stopMoveVertically();
         yWheeling = true;
         yWheelForward = false;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelDown() {
-        stopMove();
+        stopMoveVertically();
         yWheeling = true;
         yWheelForward = true;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelLeft() {
-        stopMove();
+        stopMoveHorizontally();
         xWheeling = true;
         xWheelForward = false;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelRight() {
-        stopMove();
+        stopMoveHorizontally();
         xWheeling = true;
         xWheelForward = true;
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
