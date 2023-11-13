@@ -16,6 +16,7 @@ public class ComboWatcher {
     private final CommandRunner commandRunner;
     private ComboPreparation comboPreparation;
     private ComboMoveDuration previousComboMoveDuration;
+    private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
 
     public ComboWatcher(ModeManager modeManager, CommandRunner commandRunner) {
         this.modeManager = modeManager;
@@ -23,7 +24,21 @@ public class ComboWatcher {
         this.comboPreparation = ComboPreparation.empty();
     }
 
+    public void update(double delta) {
+        List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
+        for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
+            comboWaitingForLastMoveToComplete.remainingWait -= delta;
+            if (comboWaitingForLastMoveToComplete.remainingWait < 0)
+                completeCombos.add(comboWaitingForLastMoveToComplete);
+        }
+        for (ComboWaitingForLastMoveToComplete completeCombo : completeCombos)
+            completeCombo.commands.forEach(commandRunner::run);
+        combosWaitingForLastMoveToComplete.removeAll(completeCombos);
+    }
+
     public KeyEventProcessing keyEvent(KeyEvent event) {
+        if (!combosWaitingForLastMoveToComplete.isEmpty())
+            combosWaitingForLastMoveToComplete.clear();
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
         if (previousEvent != null &&
@@ -62,7 +77,14 @@ public class ComboWatcher {
             boolean preparationComplete = matchingMoveCount == combo.moves().size();
             if (!preparationComplete)
                 continue;
-            commandsToRun.addAll(entry.getValue());
+            List<Command> commands = entry.getValue();
+            ComboMove comboLastMove = combo.moves().getLast();
+            if (!comboLastMove.duration().min().equals(Duration.ZERO)) {
+                combosWaitingForLastMoveToComplete.add(new ComboWaitingForLastMoveToComplete(combo, commands, comboLastMove.duration().min().toNanos() / 1e9d));
+            }
+            else {
+                commandsToRun.addAll(commands);
+            }
         }
         if (newComboDuration != null)
             previousComboMoveDuration = newComboDuration;
@@ -76,5 +98,23 @@ public class ComboWatcher {
         commandsToRun.forEach(commandRunner::run);
         return new KeyEventProcessing(partOfCombo, mustBeEaten);
     }
+
+    public void interrupt() {
+        comboPreparation = ComboPreparation.empty();
+        combosWaitingForLastMoveToComplete.clear();
+    }
+
+    private static final class ComboWaitingForLastMoveToComplete {
+        private final Combo combo;
+        private final List<Command> commands;
+        private double remainingWait;
+
+        private ComboWaitingForLastMoveToComplete(Combo combo, List<Command> commands, double remainingWait) {
+            this.combo = combo;
+            this.commands = commands;
+            this.remainingWait = remainingWait;
+        }
+
+     }
 
 }
