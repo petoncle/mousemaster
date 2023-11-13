@@ -146,18 +146,21 @@ public class MouseMover {
     }
 
     public void releaseLeft() {
+        if (leftPressing)
+            WindowsMouse.releaseLeft();
         leftPressing = false;
-        WindowsMouse.releaseLeft();
     }
 
     public void releaseMiddle() {
+        if (middlePressing)
+            WindowsMouse.releaseMiddle();
         middlePressing = false;
-        WindowsMouse.releaseMiddle();
     }
 
     public void releaseRight() {
+        if (rightPressing)
+            WindowsMouse.releaseRight();
         rightPressing = false;
-        WindowsMouse.releaseRight();
     }
 
     public void startWheelUp() {
