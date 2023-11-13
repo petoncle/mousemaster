@@ -1,9 +1,6 @@
 package jmouseable.jmouseable;
 
-import com.sun.jna.platform.win32.Kernel32;
-import com.sun.jna.platform.win32.User32;
-import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinUser;
+import com.sun.jna.platform.win32.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +31,7 @@ public class WindowsHook {
      */
     private WinUser.LowLevelMouseProc mouseHookCallback;
     private WinUser.LowLevelKeyboardProc keyboardHookCallback;
+    private WinNT.HANDLE singleInstanceMutex;
 
     public WindowsHook(MouseMover mouseMover, ComboWatcher comboWatcher, Ticker ticker) {
         this.mouseMover = mouseMover;
@@ -42,6 +40,8 @@ public class WindowsHook {
     }
 
     public void installHooks() throws InterruptedException {
+        if (!acquireSingleInstanceMutex())
+            throw new IllegalStateException("Another instance is already running");
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
         keyboardHookCallback = WindowsHook.this::keyboardHookCallback;
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
@@ -56,6 +56,8 @@ public class WindowsHook {
             logger.info(
                     "Keyboard and mouse hooks uninstalled " + keyboardHookUnhooked + " " +
                     mouseHookUnhooked);
+            releaseSingleInstanceMutex();
+            logger.info("Single instance mutex released");
         }));
         logger.info("Keyboard and mouse hooks installed");
         WindowsIndicator.createIndicatorWindow();
@@ -73,6 +75,17 @@ public class WindowsHook {
             ticker.update(delta);
             Thread.sleep(10L);
         }
+    }
+
+    private boolean acquireSingleInstanceMutex() {
+        singleInstanceMutex = Kernel32.INSTANCE.CreateMutex(null, true,
+                "e133df8f8434f57e65f4276f6fc761ab356687b3");
+        int lastError = Kernel32.INSTANCE.GetLastError();
+        return lastError != 183; // ERROR_ALREADY_EXISTS
+    }
+
+    private void releaseSingleInstanceMutex() {
+        Kernel32.INSTANCE.ReleaseMutex(singleInstanceMutex);
     }
 
     private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,
