@@ -91,7 +91,7 @@ public class ComboWatcher {
         logger.debug(
                 "currentMode = " + currentMode.name() + ", comboPreparationActions = " +
                 comboPreparation.events().stream().map(KeyEvent::action).toList() +
-                ", partOfCombo = " + partOfCombo + ", mustBeEaten = " + mustBeEaten +
+                ", partOfCombo = " + partOfCombo + ", partOfComboAndMustBeEaten = " + mustBeEaten +
                 ", commandsToRun = " + commandsToRun);
         if (!partOfCombo)
             comboPreparation = ComboPreparation.empty();

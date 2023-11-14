@@ -138,7 +138,14 @@ public class WindowsHook {
         if (keyEvent.action().state().pressed()) {
             KeyEventProcessing keyEventProcessing = currentlyPressedKeys.get(key);
             if (keyEventProcessing == null) {
-                if (currentlyPressedKeys.values().stream().allMatch(KeyEventProcessing::partOfCombo)) {
+                if (currentlyPressedKeys.values()
+                                        .stream()
+                                        .allMatch(
+                                                KeyEventProcessing::partOfComboAndMustBeEaten)) {
+                    // ;_rightctrl ^rightctrl: the press event is not eaten, the
+                    // release event will be proposed for combo.
+                    // If another key is pressed after the press event then the combo
+                    // is interrupted (other apps can use it).
                     logKeyEvent(keyEvent, info, wParamString);
                     keyEventProcessing = comboWatcher.keyEvent(keyEvent);
                 }
@@ -148,14 +155,14 @@ public class WindowsHook {
                 }
                 currentlyPressedKeys.put(key, keyEventProcessing);
             }
-            return keyEventProcessing.mustBeEaten();
+            return keyEventProcessing.partOfComboAndMustBeEaten();
         }
         else {
             KeyEventProcessing keyEventProcessing = currentlyPressedKeys.remove(key);
             if (keyEventProcessing != null) {
                 logKeyEvent(keyEvent, info, wParamString);
                 if (keyEventProcessing.partOfCombo())
-                    return comboWatcher.keyEvent(keyEvent).mustBeEaten();
+                    return comboWatcher.keyEvent(keyEvent).partOfComboAndMustBeEaten();
                 else
                     return false;
             }
