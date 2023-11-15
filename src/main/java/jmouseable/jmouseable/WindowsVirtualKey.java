@@ -569,7 +569,7 @@ public enum WindowsVirtualKey {
             case VK_LAUNCH_APP2 -> null;
             case VK_RESERVED_B8 -> null;
             case VK_RESERVED_B9 -> null;
-            case VK_OEM_1 -> null;
+            case VK_OEM_1 -> Key.semicolumn;
             case VK_OEM_PLUS -> Key.equal;
             case VK_OEM_COMMA -> Key.comma;
             case VK_OEM_MINUS -> Key.minus;

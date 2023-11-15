@@ -90,6 +90,7 @@
     f10,
     f11,
     f12,
+    semicolumn,
     equal,
     minus,
     comma,
