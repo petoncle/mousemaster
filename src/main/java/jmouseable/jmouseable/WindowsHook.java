@@ -148,7 +148,6 @@ public class WindowsHook {
                     keyEventProcessing = comboWatcher.keyEvent(keyEvent);
                 }
                 else {
-                    comboWatcher.interrupt();
                     keyEventProcessing = new KeyEventProcessing(false, false);
                 }
                 currentlyPressedKeys.put(key, keyEventProcessing);

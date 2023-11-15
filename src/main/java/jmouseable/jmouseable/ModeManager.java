@@ -9,12 +9,17 @@ public class ModeManager {
 
     private final ModeMap modeMap;
     private final MouseMover mouseMover;
+    private ComboWatcher comboWatcher;
     private Mode currentMode;
     private double currentModeRemainingDuration;
 
     public ModeManager(ModeMap modeMap, MouseMover mouseMover) {
         this.modeMap = modeMap;
         this.mouseMover = mouseMover;
+    }
+
+    public void setComboWatcher(ComboWatcher comboWatcher) {
+        this.comboWatcher = comboWatcher;
     }
 
     public Mode currentMode() {
@@ -32,6 +37,7 @@ public class ModeManager {
                     logger.debug("Current " + currentMode.name() +
                                  " has timed out, changing to " +
                                  currentMode.timeout().nextModeName());
+                    comboWatcher.currentModeTimedOut();
                     changeMode(currentMode.timeout().nextModeName());
                 }
             }

@@ -4,9 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ComboWatcher {
 
@@ -17,6 +16,13 @@ public class ComboWatcher {
     private ComboPreparation comboPreparation;
     private ComboMoveDuration previousComboMoveDuration;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
+
+    /**
+     * Do not start a new combo preparation if there are on going non-eaten pressed keys.
+     * A non-eaten pressed key should prevent other combos: the combo containing the non-eaten pressed key must
+     * be completed, or be interrupted ({@link #currentModeTimedOut()}, or the non-eaten pressed key must be released.
+     */
+    private Map<Key, Set<Combo>> focusedCombos = new HashMap<>();
 
     public ComboWatcher(ModeManager modeManager, CommandRunner commandRunner) {
         this.modeManager = modeManager;
@@ -50,14 +56,23 @@ public class ComboWatcher {
         List<Command> commandsToRun = new ArrayList<>();
         Mode currentMode = modeManager.currentMode();
         ComboMoveDuration newComboDuration = null;
+        Set<Combo> allFocusedCombos = focusedCombos.values()
+                                                   .stream()
+                                                   .flatMap(Collection::stream)
+                                                   .collect(Collectors.toSet());
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
             Combo combo = entry.getKey();
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo);
             if (matchingMoveCount != 0) {
+                if (!allFocusedCombos.isEmpty() && !allFocusedCombos.contains(combo))
+                    continue;
                 ComboMove currentMove = combo.moves().get(matchingMoveCount - 1);
                 mustBeEaten |= currentMove.eventMustBeEaten();
+                if (!currentMove.eventMustBeEaten() && currentMove.action().state().pressed())
+                    focusedCombos.computeIfAbsent(currentMove.action().key(),
+                            key -> new HashSet<>()).add(combo);
                 partOfCombo = true;
                 if (newComboDuration == null) {
                     newComboDuration = currentMove.duration();
@@ -77,6 +92,7 @@ public class ComboWatcher {
             boolean preparationComplete = matchingMoveCount == combo.moves().size();
             if (!preparationComplete)
                 continue;
+            focusedCombos.values().forEach(combos -> combos.remove(combo));
             List<Command> commands = entry.getValue();
             ComboMove comboLastMove = combo.moves().getLast();
             if (!comboLastMove.duration().min().equals(Duration.ZERO)) {
@@ -92,16 +108,25 @@ public class ComboWatcher {
                 "currentMode = " + currentMode.name() + ", comboPreparationActions = " +
                 comboPreparation.events().stream().map(KeyEvent::action).toList() +
                 ", partOfCombo = " + partOfCombo + ", partOfComboAndMustBeEaten = " + mustBeEaten +
-                ", commandsToRun = " + commandsToRun);
-        if (!partOfCombo)
+                ", commandsToRun = " + commandsToRun +
+                ", focusedCombos = " + focusedCombos);
+        if (!partOfCombo) {
             comboPreparation = ComboPreparation.empty();
+            if (event.action().state().released())
+                focusedCombos.remove(event.action().key());
+        }
         commandsToRun.forEach(commandRunner::run);
         return new KeyEventProcessing(partOfCombo, mustBeEaten);
     }
 
-    public void interrupt() {
+    public void currentModeTimedOut() {
+        logger.debug(
+                "Interrupting combos as current mode timed out, comboPreparation = " +
+                comboPreparation + " combosWaitingForLastMoveToComplete = " +
+                combosWaitingForLastMoveToComplete + " focusedCombos = " + focusedCombos);
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
+        focusedCombos.clear();
     }
 
     private static final class ComboWaitingForLastMoveToComplete {
