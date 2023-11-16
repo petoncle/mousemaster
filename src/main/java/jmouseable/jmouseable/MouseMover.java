@@ -1,17 +1,21 @@
 package jmouseable.jmouseable;
 
+import java.util.Iterator;
+import java.util.Stack;
+
 public class MouseMover {
 
     private Mouse mouse;
     private Wheel wheel;
     private double x, y;
     private double moveVelocity;
-    private boolean xMoving, yMoving;
-    private boolean xMoveForward, yMoveForward; // Forward means right or down.
+    // Forward means right or down.
+    private final Stack<Boolean> xMoveForwardStack = new Stack<>();
+    private final Stack<Boolean> yMoveForwardStack = new Stack<>();
     private boolean leftPressing, middlePressing, rightPressing;
     private double wheelVelocity;
-    private boolean xWheeling, yWheeling;
-    private boolean xWheelForward, yWheelForward;
+    private final Stack<Boolean> xWheelForwardStack = new Stack<>();
+    private final Stack<Boolean> yWheelForwardStack = new Stack<>();
 
     public MouseMover(Mouse mouse, Wheel wheel) {
         this.mouse = mouse;
@@ -43,11 +47,11 @@ public class MouseMover {
             moveVelocity = Math.min(mouse.maxVelocity(),
                     moveVelocity + Math.pow(mouse.acceleration(), 2) * delta);
             double deltaDistanceX, deltaDistanceY;
-            if (xMoving && yMoving) {
+            if (!xMoveForwardStack.isEmpty() && !yMoveForwardStack.isEmpty()) {
                 deltaDistanceX = moveVelocity * delta / Math.sqrt(2);
                 deltaDistanceY = moveVelocity * delta / Math.sqrt(2);
             }
-            else if (xMoving) {
+            else if (!xMoveForwardStack.isEmpty()) {
                 deltaDistanceX = moveVelocity * delta;
                 deltaDistanceY = 0;
             }
@@ -55,17 +59,19 @@ public class MouseMover {
                 deltaDistanceX = 0;
                 deltaDistanceY = moveVelocity * delta;
             }
-            WindowsMouse.moveBy(xMoveForward, deltaDistanceX, yMoveForward,
+            WindowsMouse.moveBy(!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek(),
+                    deltaDistanceX,
+                    !yMoveForwardStack.isEmpty() && yMoveForwardStack.peek(),
                     deltaDistanceY);
         }
         if (wheeling()) {
             wheelVelocity = Math.min(wheel.maxVelocity(),
                     wheelVelocity + wheel.acceleration() * delta);
             double deltaDistance = wheelVelocity * delta;
-            if (xWheeling)
-                WindowsMouse.wheelHorizontallyBy(xWheelForward, deltaDistance);
-            if (yWheeling)
-                WindowsMouse.wheelVerticallyBy(yWheelForward, deltaDistance);
+            if (!xWheelForwardStack.isEmpty())
+                WindowsMouse.wheelHorizontallyBy(xWheelForwardStack.peek(), deltaDistance);
+            if (!yWheelForwardStack.isEmpty())
+                WindowsMouse.wheelVerticallyBy(yWheelForwardStack.peek(), deltaDistance);
         }
     }
 
@@ -75,59 +81,57 @@ public class MouseMover {
     }
 
     public void startMoveUp() {
-        yMoving = true;
-        yMoveForward = false;
+        yMoveForwardStack.push(false);
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveDown() {
-        yMoving = true;
-        yMoveForward = true;
+        yMoveForwardStack.push(true);
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveLeft() {
-        xMoving = true;
-        xMoveForward = false;
+        xMoveForwardStack.push(false);
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveRight() {
-        xMoving = true;
-        xMoveForward = true;
+        xMoveForwardStack.push(true);
         moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void stopMoveUp() {
-        if (!yMoveForward) {
-            yMoving = false;
-            if (!xMoving)
-                moveVelocity = 0;
+        removeFirst(yMoveForwardStack, false);
+        if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
+            moveVelocity = 0;
+    }
+
+    private static void removeFirst(Stack<Boolean> moveForward, boolean forward) {
+        Iterator<Boolean> iterator = moveForward.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next() == forward) {
+                iterator.remove();
+                break;
+            }
         }
     }
 
     public void stopMoveDown() {
-        if (yMoveForward) {
-            yMoving = false;
-            if (!xMoving)
-                moveVelocity = 0;
-        }
+        removeFirst(yMoveForwardStack, true);
+        if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
+            moveVelocity = 0;
     }
 
     public void stopMoveLeft() {
-        if (!xMoveForward) {
-            xMoving = false;
-            if (!yMoving)
-                moveVelocity = 0;
-        }
+        removeFirst(xMoveForwardStack, false);
+        if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
+            moveVelocity = 0;
     }
 
     public void stopMoveRight() {
-        if (xMoveForward) {
-            xMoving = false;
-            if (!yMoving)
-                moveVelocity = 0;
-        }
+        removeFirst(xMoveForwardStack, true);
+        if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
+            moveVelocity = 0;
     }
 
     public void pressLeft() {
@@ -164,59 +168,47 @@ public class MouseMover {
     }
 
     public void startWheelUp() {
-        yWheeling = true;
-        yWheelForward = false;
+        yWheelForwardStack.push(false);
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelDown() {
-        yWheeling = true;
-        yWheelForward = true;
+        yWheelForwardStack.push(true);
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelLeft() {
-        xWheeling = true;
-        xWheelForward = false;
+        xWheelForwardStack.push(false);
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelRight() {
-        xWheeling = true;
-        xWheelForward = true;
+        xWheelForwardStack.push(true);
         wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void stopWheelUp() {
-        if (!yWheelForward) {
-            yWheeling = false;
-            if (!xWheeling)
-                wheelVelocity = 0;
-        }
+        removeFirst(yWheelForwardStack, false);
+        if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
+            wheelVelocity = 0;
     }
 
     public void stopWheelDown() {
-        if (yWheelForward) {
-            yWheeling = false;
-            if (!xWheeling)
-                wheelVelocity = 0;
-        }
+        removeFirst(yWheelForwardStack, true);
+        if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
+            wheelVelocity = 0;
     }
 
     public void stopWheelLeft() {
-        if (!xWheelForward) {
-            xWheeling = false;
-            if (!yWheeling)
-                wheelVelocity = 0;
-        }
+        removeFirst(xWheelForwardStack, false);
+        if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
+            wheelVelocity = 0;
     }
 
     public void stopWheelRight() {
-        if (xWheelForward) {
-            xWheeling = false;
-            if (!yWheeling)
-                wheelVelocity = 0;
-        }
+        removeFirst(xWheelForwardStack, true);
+        if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
+            wheelVelocity = 0;
     }
 
 }
