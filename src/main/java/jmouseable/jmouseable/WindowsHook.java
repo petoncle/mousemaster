@@ -155,11 +155,16 @@ public class WindowsHook {
             return keyEventProcessing.partOfComboAndMustBeEaten();
         }
         else {
-            KeyEventProcessing keyEventProcessing = currentlyPressedKeys.remove(key);
-            if (keyEventProcessing != null) {
+            KeyEventProcessing pressedKeyEventProcessing = currentlyPressedKeys.remove(key);
+            if (pressedKeyEventProcessing != null) {
                 logKeyEvent(keyEvent, info, wParamString);
-                if (keyEventProcessing.partOfCombo())
-                    return comboWatcher.keyEvent(keyEvent).partOfComboAndMustBeEaten();
+                if (pressedKeyEventProcessing.partOfCombo()) {
+                    KeyEventProcessing releasedKeyEventProcessing =
+                            comboWatcher.keyEvent(keyEvent);
+                    // Only a released event corresponding to pressed event that was eaten must be eaten.
+                    // TODO No need for non-eatable release move ;^
+                    return pressedKeyEventProcessing.partOfComboAndMustBeEaten();
+                }
                 else
                     return false;
             }
