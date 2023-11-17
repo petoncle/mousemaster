@@ -1,25 +1,13 @@
 package jmouseable.jmouseable;
 
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.io.IOException;
+import java.nio.file.Paths;
 
-@SpringBootApplication
-public class JmouseableApplication implements CommandLineRunner {
+public class JmouseableApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(JmouseableApplication.class, args);
-    }
-
-    private final ConfigurationParser configurationParser;
-
-    public JmouseableApplication(ConfigurationParser configurationParser) {
-        this.configurationParser = configurationParser;
-    }
-
-    @Override
-    public void run(String... args) throws InterruptedException {
-        Configuration configuration = configurationParser.parse();
+    public static void main(String[] args) throws InterruptedException, IOException {
+        Configuration configuration =
+                ConfigurationParser.parse(Paths.get("jmouseable.properties"));
         String defaultModeName = Mode.NORMAL_MODE_NAME;
         Mode currentMode = configuration.modeMap().get(defaultModeName);
         MouseManager mouseManager = new MouseManager(currentMode.mouse(), currentMode.wheel());

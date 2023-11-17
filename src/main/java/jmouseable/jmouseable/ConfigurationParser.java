@@ -1,11 +1,8 @@
 package jmouseable.jmouseable;
 
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.EnumerablePropertySource;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.PropertySource;
-import org.springframework.stereotype.Component;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -13,159 +10,153 @@ import java.util.regex.Pattern;
 
 import static jmouseable.jmouseable.Command.*;
 
-@Component
 public class ConfigurationParser {
 
-    private final Environment environment;
-
-    public ConfigurationParser(Environment environment) {
-        this.environment = environment;
-    }
-
-    public Configuration parse() {
+    public static Configuration parse(Path path) throws IOException {
+        List<String> lines = Files.readAllLines(path);
         ComboMoveDuration defaultComboMoveDuration = defaultComboMoveDuration();
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
         Map<String, Mode> modeByName = new HashMap<>();
         Set<String> modeNameReferences = new HashSet<>();
-        for (PropertySource<?> propertySource : ((ConfigurableEnvironment) environment).getPropertySources()) {
-            if (!(propertySource instanceof EnumerablePropertySource<?> source))
+        for (String line : lines) {
+            if (line.startsWith("#"))
                 continue;
-            for (String propertyKey : source.getPropertyNames()) {
-                String propertyValue = (String) source.getProperty(propertyKey);
-                Objects.requireNonNull(propertyValue);
-                if (propertyKey.equals("default-combo-move-duration")) {
-                    defaultComboMoveDuration = parseComboMoveDuration(propertyValue);
-                    continue;
+            if (!line.matches("[^=]+=[^=]+")) {
+                throw new IllegalArgumentException("Invalid property key=value: " + line);
+            }
+            String propertyKey = line.split("=")[0];
+            String propertyValue = line.split("=")[1];
+            if (propertyKey.equals("default-combo-move-duration")) {
+                defaultComboMoveDuration = parseComboMoveDuration(propertyValue);
+                continue;
+            }
+            Matcher matcher = modeKeyPattern.matcher(propertyKey);
+            if (!matcher.matches())
+                continue;
+            String modeName = matcher.group(1);
+            Mode mode = modeByName.computeIfAbsent(modeName, name -> newMode(modeName));
+            Map<Combo, List<Command>> commandsByCombo = mode.comboMap().commandsByCombo();
+            String group2 = matcher.group(2);
+            switch (group2) {
+                case "mouse" -> {
+                    if (matcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid mouse configuration: " + propertyKey);
+                    double acceleration = matcher.group(4).equals("acceleration") ?
+                            Double.parseDouble(propertyValue) :
+                            mode.mouse().acceleration();
+                    double maxVelocity = matcher.group(4).equals("max-velocity") ?
+                            Double.parseDouble(propertyValue) :
+                            mode.mouse().maxVelocity();
+                    modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
+                            new Mouse(acceleration, maxVelocity), mode.wheel(),
+                            mode.timeout(), mode.indicator()));
                 }
-                Matcher matcher = modeKeyPattern.matcher(propertyKey);
-                if (!matcher.matches())
-                    continue;
-                String modeName = matcher.group(1);
-                Mode mode =
-                        modeByName.computeIfAbsent(modeName, name -> newMode(modeName));
-                Map<Combo, List<Command>> commandsByCombo =
-                        mode.comboMap().commandsByCombo();
-                String group2 = matcher.group(2);
-                switch (group2) {
-                    case "mouse" -> {
-                        if (matcher.group(4) == null)
-                            throw new IllegalArgumentException(
-                                    "Invalid mouse configuration: " + propertyKey);
-                        double acceleration = matcher.group(4).equals("acceleration") ?
-                                Double.parseDouble(propertyValue) :
-                                mode.mouse().acceleration();
-                        double maxVelocity = matcher.group(4).equals("max-velocity") ?
-                                Double.parseDouble(propertyValue) :
-                                mode.mouse().maxVelocity();
-                        modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
-                                new Mouse(acceleration, maxVelocity), mode.wheel(),
-                                mode.timeout(), mode.indicator()));
-                    }
-                    case "wheel" -> {
-                        if (matcher.group(4) == null)
-                            throw new IllegalArgumentException(
-                                    "Invalid wheel configuration: " + propertyKey);
-                        double acceleration = matcher.group(4).equals("acceleration") ?
-                                Double.parseDouble(propertyValue) :
-                                mode.wheel().acceleration();
-                        double maxVelocity = matcher.group(4).equals("max-velocity") ?
-                                Double.parseDouble(propertyValue) :
-                                mode.wheel().maxVelocity();
-                        modeByName.put(modeName,
-                                new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                        new Wheel(acceleration, maxVelocity),
-                                        mode.timeout(), mode.indicator()));
-                    }
-                    case "to" -> {
-                        if (matcher.group(4) == null)
-                            throw new IllegalArgumentException(
-                                    "Invalid to configuration: " + propertyKey);
-                        String newModeName = matcher.group(4);
-                        modeNameReferences.add(newModeName);
-                        addCommand(commandsByCombo, propertyValue,
-                                new ChangeMode(newModeName), defaultComboMoveDuration);
-                    }
-                    case "timeout" -> {
-                        if (matcher.group(4) == null)
-                            throw new IllegalArgumentException(
-                                    "Invalid timeout configuration: " + propertyKey);
-                        ModeTimeout modeTimeout = switch (matcher.group(4)) {
-                            case "duration-millis" ->
-                                    new ModeTimeout(parseDuration(propertyValue),
-                                            mode.timeout() == null ? null :
-                                                    mode.timeout().nextModeName());
-                            case "next-mode" -> new ModeTimeout(
-                                    mode.timeout() == null ? null :
-                                            mode.timeout().duration(), propertyValue);
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid timeout configuration: " + propertyKey);
-                        };
-                        if (modeTimeout.nextModeName() != null)
-                            modeNameReferences.add(modeTimeout.nextModeName());
-                        modeByName.put(modeName,
-                                new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                        mode.wheel(), modeTimeout, mode.indicator()));
-                    }
-                    case "indicator" -> {
-                        if (matcher.group(4) == null)
-                            throw new IllegalArgumentException(
-                                    "Invalid indicator configuration: " + propertyKey);
-                        Indicator indicator = switch (matcher.group(4)) {
-                            case "enabled" ->
-                                    new Indicator(Boolean.parseBoolean(propertyValue),
-                                            mode.indicator().idleHexColor(),
-                                            mode.indicator().moveHexColor(),
-                                            mode.indicator().wheelHexColor(),
-                                            mode.indicator().mousePressHexColor(),
-                                            mode.indicator().nonComboKeyPressHexColor());
-                            case "idle-color" -> {
-                                checkColorFormat(propertyValue);
-                                yield new Indicator(mode.indicator().enabled(),
-                                        propertyValue, mode.indicator().moveHexColor(),
-                                        mode.indicator().wheelHexColor(),
-                                        mode.indicator().mousePressHexColor(),
-                                        mode.indicator().nonComboKeyPressHexColor());
-                            }
-                            case "move-color" -> {
-                                checkColorFormat(propertyValue);
-                                yield new Indicator(mode.indicator().enabled(),
-                                        mode.indicator().idleHexColor(), propertyValue,
-                                        mode.indicator().wheelHexColor(),
-                                        mode.indicator().mousePressHexColor(),
-                                        mode.indicator().nonComboKeyPressHexColor());
-                            }
-                            case "wheel-color" -> {
-                                checkColorFormat(propertyValue);
-                                yield new Indicator(mode.indicator().enabled(),
-                                        mode.indicator().idleHexColor(),
-                                        mode.indicator().moveHexColor(), propertyValue,
-                                        mode.indicator().mousePressHexColor(),
-                                        mode.indicator().nonComboKeyPressHexColor());
-                            }
-                            case "mouse-press-color" -> {
-                                checkColorFormat(propertyValue);
-                                yield new Indicator(mode.indicator().enabled(),
-                                        mode.indicator().idleHexColor(),
-                                        mode.indicator().moveHexColor(),
-                                        mode.indicator().wheelHexColor(), propertyValue,
-                                        mode.indicator().nonComboKeyPressHexColor());
-                            }
-                            case "non-combo-key-press-color" -> {
-                                checkColorFormat(propertyValue);
-                                yield new Indicator(mode.indicator().enabled(),
+                case "wheel" -> {
+                    if (matcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid wheel configuration: " + propertyKey);
+                    double acceleration = matcher.group(4).equals("acceleration") ?
+                            Double.parseDouble(propertyValue) :
+                            mode.wheel().acceleration();
+                    double maxVelocity = matcher.group(4).equals("max-velocity") ?
+                            Double.parseDouble(propertyValue) :
+                            mode.wheel().maxVelocity();
+                    modeByName.put(modeName,
+                            new Mode(modeName, mode.comboMap(), mode.mouse(),
+                                    new Wheel(acceleration, maxVelocity), mode.timeout(),
+                                    mode.indicator()));
+                }
+                case "to" -> {
+                    if (matcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid to configuration: " + propertyKey);
+                    String newModeName = matcher.group(4);
+                    modeNameReferences.add(newModeName);
+                    addCommand(commandsByCombo, propertyValue,
+                            new ChangeMode(newModeName), defaultComboMoveDuration);
+                }
+                case "timeout" -> {
+                    if (matcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid timeout configuration: " + propertyKey);
+                    ModeTimeout modeTimeout = switch (matcher.group(4)) {
+                        case "duration-millis" ->
+                                new ModeTimeout(parseDuration(propertyValue),
+                                        mode.timeout() == null ? null :
+                                                mode.timeout().nextModeName());
+                        case "next-mode" -> new ModeTimeout(
+                                mode.timeout() == null ? null : mode.timeout().duration(),
+                                propertyValue);
+                        default -> throw new IllegalArgumentException(
+                                "Invalid timeout configuration: " + propertyKey);
+                    };
+                    if (modeTimeout.nextModeName() != null)
+                        modeNameReferences.add(modeTimeout.nextModeName());
+                    modeByName.put(modeName,
+                            new Mode(modeName, mode.comboMap(), mode.mouse(),
+                                    mode.wheel(), modeTimeout, mode.indicator()));
+                }
+                case "indicator" -> {
+                    if (matcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid indicator configuration: " + propertyKey);
+                    Indicator indicator = switch (matcher.group(4)) {
+                        case "enabled" ->
+                                new Indicator(Boolean.parseBoolean(propertyValue),
                                         mode.indicator().idleHexColor(),
                                         mode.indicator().moveHexColor(),
                                         mode.indicator().wheelHexColor(),
-                                        mode.indicator().mousePressHexColor(), propertyValue);
-                            }
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid indicator configuration: " + propertyKey);
-                        };
-                        modeByName.put(modeName,
-                                new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                        mode.wheel(), mode.timeout(), indicator));
-                    }
-                    // @formatter:off
+                                        mode.indicator().mousePressHexColor(),
+                                        mode.indicator().nonComboKeyPressHexColor());
+                        case "idle-color" -> {
+                            checkColorFormat(propertyValue);
+                            yield new Indicator(mode.indicator().enabled(), propertyValue,
+                                    mode.indicator().moveHexColor(),
+                                    mode.indicator().wheelHexColor(),
+                                    mode.indicator().mousePressHexColor(),
+                                    mode.indicator().nonComboKeyPressHexColor());
+                        }
+                        case "move-color" -> {
+                            checkColorFormat(propertyValue);
+                            yield new Indicator(mode.indicator().enabled(),
+                                    mode.indicator().idleHexColor(), propertyValue,
+                                    mode.indicator().wheelHexColor(),
+                                    mode.indicator().mousePressHexColor(),
+                                    mode.indicator().nonComboKeyPressHexColor());
+                        }
+                        case "wheel-color" -> {
+                            checkColorFormat(propertyValue);
+                            yield new Indicator(mode.indicator().enabled(),
+                                    mode.indicator().idleHexColor(),
+                                    mode.indicator().moveHexColor(), propertyValue,
+                                    mode.indicator().mousePressHexColor(),
+                                    mode.indicator().nonComboKeyPressHexColor());
+                        }
+                        case "mouse-press-color" -> {
+                            checkColorFormat(propertyValue);
+                            yield new Indicator(mode.indicator().enabled(),
+                                    mode.indicator().idleHexColor(),
+                                    mode.indicator().moveHexColor(),
+                                    mode.indicator().wheelHexColor(), propertyValue,
+                                    mode.indicator().nonComboKeyPressHexColor());
+                        }
+                        case "non-combo-key-press-color" -> {
+                            checkColorFormat(propertyValue);
+                            yield new Indicator(mode.indicator().enabled(),
+                                    mode.indicator().idleHexColor(),
+                                    mode.indicator().moveHexColor(),
+                                    mode.indicator().wheelHexColor(),
+                                    mode.indicator().mousePressHexColor(), propertyValue);
+                        }
+                        default -> throw new IllegalArgumentException(
+                                "Invalid indicator configuration: " + propertyKey);
+                    };
+                    modeByName.put(modeName,
+                            new Mode(modeName, mode.comboMap(), mode.mouse(),
+                                    mode.wheel(), mode.timeout(), indicator));
+                }
+                // @formatter:off
                     case "start-move-up" -> addCommand(commandsByCombo, propertyValue, new StartMoveUp(), defaultComboMoveDuration);
                     case "start-move-down" -> addCommand(commandsByCombo, propertyValue, new StartMoveDown(), defaultComboMoveDuration);
                     case "start-move-left" -> addCommand(commandsByCombo, propertyValue, new StartMoveLeft(), defaultComboMoveDuration);
@@ -194,9 +185,8 @@ public class ConfigurationParser {
                     case "stop-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StopWheelLeft(), defaultComboMoveDuration);
                     case "stop-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StopWheelRight(), defaultComboMoveDuration);
                     // @formatter:on
-                    default -> throw new IllegalArgumentException(
-                            "Invalid configuration: " + propertyKey);
-                }
+                default -> throw new IllegalArgumentException(
+                        "Invalid configuration: " + propertyKey);
             }
         }
         // Verify mode name references are valid.
@@ -215,13 +205,11 @@ public class ConfigurationParser {
     }
 
     private static void checkColorFormat(String propertyValue) {
-        if (!propertyValue.matches(
-                "^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$"))
-            throw new IllegalArgumentException(
-                    "Invalid hex color: " + propertyValue);
+        if (!propertyValue.matches("^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$"))
+            throw new IllegalArgumentException("Invalid hex color: " + propertyValue);
     }
 
-    private ComboMoveDuration parseComboMoveDuration(String string) {
+    private static ComboMoveDuration parseComboMoveDuration(String string) {
         String[] split = string.split("-");
         return new ComboMoveDuration(
                 Duration.ofMillis(Integer.parseUnsignedInt(split[0])),
@@ -232,13 +220,13 @@ public class ConfigurationParser {
         return Duration.ofMillis(Integer.parseUnsignedInt(string));
     }
 
-    private ComboMoveDuration defaultComboMoveDuration() {
+    private static ComboMoveDuration defaultComboMoveDuration() {
         return new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
     }
 
     private static Mode newMode(String modeName) {
-        return new Mode(modeName, new ComboMap(new HashMap<>()),
-                new Mouse(50, 1000), new Wheel(100, 100), null,
+        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(40, 1000),
+                new Wheel(750, 1500), null,
                 new Indicator(false, null, null, null, null, null));
     }
 

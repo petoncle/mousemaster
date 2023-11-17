@@ -1,0 +1,16 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <logger name="jmouseable" level="DEBUG"/>
+    <logger name="jmouseable.WindowsHook" level="INFO"/>
+    <logger name="jmouseable.ComboWatcher" level="DEBUG"/>
+
+</configuration>
