@@ -37,7 +37,7 @@ public class ModeManager {
                     logger.debug("Current " + currentMode.name() +
                                  " has timed out, changing to " +
                                  currentMode.timeout().nextModeName());
-                    comboWatcher.currentModeTimedOut();
+                    comboWatcher.interrupt();
                     changeMode(currentMode.timeout().nextModeName());
                 }
             }

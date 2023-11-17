@@ -72,8 +72,11 @@ public class WindowsHook {
             long deltaNanos = currentNanoTime - previousNanoTime;
             previousNanoTime = currentNanoTime;
             double delta = deltaNanos / 1e9d;
-            if (delta > 10)
-                logger.info("Skipping tick that took " + delta + "s");
+            if (delta > 10) {
+                logger.info("Tick took " + delta + "s, skipping update, clearing currentlyPressedKeys, and interrupting combos");
+                currentlyPressedKeys.clear();
+                comboWatcher.interrupt();
+            }
             else
                 ticker.update(delta);
             Thread.sleep(10L);

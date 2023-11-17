@@ -20,7 +20,7 @@ public class ComboWatcher {
     /**
      * Do not start a new combo preparation if there are on going non-eaten pressed keys.
      * A non-eaten pressed key should prevent other combos: the combo containing the non-eaten pressed key must
-     * be completed, or be interrupted ({@link #currentModeTimedOut()}, or the non-eaten pressed key must be released.
+     * be completed, or be interrupted ({@link #interrupt()}, or the non-eaten pressed key must be released.
      */
     private Map<Key, Set<Combo>> focusedCombos = new HashMap<>();
 
@@ -119,11 +119,11 @@ public class ComboWatcher {
         return new KeyEventProcessing(partOfCombo, mustBeEaten);
     }
 
-    public void currentModeTimedOut() {
-        logger.debug(
-                "Interrupting combos as current mode timed out, comboPreparation = " +
-                comboPreparation + " combosWaitingForLastMoveToComplete = " +
-                combosWaitingForLastMoveToComplete + " focusedCombos = " + focusedCombos);
+    public void interrupt() {
+        logger.debug("Interrupting combos, comboPreparation = " + comboPreparation +
+                     " combosWaitingForLastMoveToComplete = " +
+                     combosWaitingForLastMoveToComplete + " focusedCombos = " +
+                     focusedCombos);
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
         focusedCombos.clear();
