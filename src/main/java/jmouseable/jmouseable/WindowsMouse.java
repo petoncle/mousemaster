@@ -10,36 +10,44 @@ import java.util.concurrent.Executors;
 
 public class WindowsMouse {
 
+    private static final Executor mouseExecutor = Executors.newSingleThreadExecutor();
+
     public static void moveBy(boolean xForward, double deltaX, boolean yForward,
                               double deltaY) {
         if (((long) deltaX) == 0 && ((long) deltaY) == 0)
             return;
-        sendInput((long) deltaX * (xForward ? 1 : -1),
-                (long) deltaY * (yForward ? 1 : -1), 0, ExtendedUser32.MOUSEEVENTF_MOVE);
+        mouseExecutor.execute(() -> sendInput((long) deltaX * (xForward ? 1 : -1),
+                (long) deltaY * (yForward ? 1 : -1), 0, ExtendedUser32.MOUSEEVENTF_MOVE));
     }
 
     public static void pressLeft() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN);
+        mouseExecutor.execute(
+                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN));
     }
 
     public static void pressMiddle() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN);
+        mouseExecutor.execute(
+                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN));
     }
 
     public static void pressRight() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTDOWN);
+        mouseExecutor.execute(
+                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTDOWN));
     }
 
     public static void releaseLeft() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTUP);
+        mouseExecutor.execute(
+                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTUP));
     }
 
     public static void releaseMiddle() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEUP);
+        mouseExecutor.execute(
+                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEUP));
     }
 
     public static void releaseRight() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTUP);
+        mouseExecutor.execute(
+                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTUP));
     }
 
     /**
