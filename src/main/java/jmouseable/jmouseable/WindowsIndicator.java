@@ -37,7 +37,7 @@ public class WindowsIndicator {
     public static void createIndicatorWindow() {
         WinDef.POINT mousePosition = findCursorPositionAndSize();
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
-        logger.info("Cursor size: " + cursorWidth + " " + cursorHeight);
+        logger.debug("Cursor size: " + cursorWidth + " " + cursorHeight);
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
         wClass.hbrBackground = null;
         wClass.lpszClassName = "JMouseableOverlayClassName";
@@ -51,8 +51,8 @@ public class WindowsIndicator {
                 bestIndicatorX(mousePosition.x, monitorInfo.rcMonitor.left,
                         monitorInfo.rcMonitor.right),
                 bestIndicatorY(mousePosition.y, monitorInfo.rcMonitor.top,
-                        monitorInfo.rcMonitor.bottom), 16, 16, null, null,
-                wClass.hInstance, null);
+                        monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize, null,
+                null, wClass.hInstance, null);
         if (mustShowOnceCreated)
             show(currentHexColor);
     }
@@ -165,6 +165,6 @@ public class WindowsIndicator {
                         monitorInfo.rcMonitor.right),
                 bestIndicatorY(mousePosition.y, monitorInfo.rcMonitor.top,
                         monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize,
-                true);
+                false);
     }
 }
