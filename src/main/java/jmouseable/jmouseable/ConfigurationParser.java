@@ -237,10 +237,7 @@ public class ConfigurationParser {
     }
 
     private static Mode newMode(String modeName) {
-        // Keep order of commands, so that start-wheel-up after start-move-up means former will cancel latter.
-        // Should we reset the combo preparation once it is complete, instead of relying on command order?
-        // TODO revert
-        return new Mode(modeName, new ComboMap(new LinkedHashMap<>()),
+        return new Mode(modeName, new ComboMap(new HashMap<>()),
                 new Mouse(50, 1000), new Wheel(100, 100), null,
                 new Indicator(false, null, null, null, null, null));
     }
