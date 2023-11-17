@@ -37,8 +37,10 @@ public class ComboWatcher {
             if (comboWaitingForLastMoveToComplete.remainingWait < 0)
                 completeCombos.add(comboWaitingForLastMoveToComplete);
         }
-        for (ComboWaitingForLastMoveToComplete completeCombo : completeCombos)
-            completeCombo.commands.forEach(commandRunner::run);
+        List<Command> commandsToRun = longestComboCommandsLast(completeCombos.stream()
+                                                                             .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
+                                                                             .toList());
+        commandsToRun.forEach(commandRunner::run);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
     }
 
@@ -53,7 +55,7 @@ public class ComboWatcher {
         comboPreparation.events().add(event);
         boolean mustBeEaten = false;
         boolean partOfCombo = false;
-        List<Command> commandsToRun = new ArrayList<>();
+        List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
         Mode currentMode = modeManager.currentMode();
         ComboMoveDuration newComboDuration = null;
         Set<Combo> allFocusedCombos = focusedCombos.values()
@@ -93,30 +95,55 @@ public class ComboWatcher {
             if (!preparationComplete)
                 continue;
             focusedCombos.values().forEach(combos -> combos.remove(combo));
-            List<Command> commands = entry.getValue();
+            ComboAndCommands comboAndCommands =
+                    new ComboAndCommands(combo, entry.getValue());
             ComboMove comboLastMove = combo.moves().getLast();
             if (!comboLastMove.duration().min().equals(Duration.ZERO)) {
-                combosWaitingForLastMoveToComplete.add(new ComboWaitingForLastMoveToComplete(combo, commands, comboLastMove.duration().min().toNanos() / 1e9d));
+                combosWaitingForLastMoveToComplete.add(
+                        new ComboWaitingForLastMoveToComplete(comboAndCommands,
+                                comboLastMove.duration().min().toNanos() / 1e9d));
             }
             else {
-                commandsToRun.addAll(commands);
+                comboAndCommandsToRun.add(comboAndCommands);
             }
         }
         if (newComboDuration != null)
             previousComboMoveDuration = newComboDuration;
+        List<Command> commandsToRun = longestComboCommandsLast(comboAndCommandsToRun);
         logger.debug(
                 "currentMode = " + currentMode.name() + ", comboPreparationActions = " +
                 comboPreparation.events().stream().map(KeyEvent::action).toList() +
                 ", partOfCombo = " + partOfCombo + ", partOfComboAndMustBeEaten = " + mustBeEaten +
                 ", commandsToRun = " + commandsToRun +
                 ", focusedCombos = " + focusedCombos);
+        commandsToRun.forEach(commandRunner::run);
         if (!partOfCombo) {
             comboPreparation = ComboPreparation.empty();
             if (event.action().state().released())
                 focusedCombos.remove(event.action().key());
         }
-        commandsToRun.forEach(commandRunner::run);
         return new KeyEventProcessing(partOfCombo, mustBeEaten);
+    }
+
+    /**
+     * Assuming the following configuration:
+     * - _up: start move up
+     * - ^up|_up ^up _up: stop move up
+     * - _up ^up _up: start wheel up
+     * When up is pressed, the move starts. Then, when up is released then pressed,
+     * the wheel starts.
+     * The 3 combos are completed, but we ultimately want the move to stop,
+     * i.e. the stop move command (_up ^up _up) should be run after the
+     * start move command (_up).
+     */
+    private List<Command> longestComboCommandsLast(List<ComboAndCommands> commandsToRun) {
+        return commandsToRun.stream()
+                     .sorted(Comparator.comparing(ComboAndCommands::combo,
+                             Comparator.comparing(Combo::moves,
+                                     Comparator.comparingInt(List::size))))
+                     .map(ComboAndCommands::commands)
+                     .flatMap(Collection::stream)
+                .toList();
     }
 
     public void interrupt() {
@@ -130,16 +157,22 @@ public class ComboWatcher {
     }
 
     private static final class ComboWaitingForLastMoveToComplete {
-        private final Combo combo;
-        private final List<Command> commands;
+        private final ComboAndCommands comboAndCommands;
         private double remainingWait;
 
-        private ComboWaitingForLastMoveToComplete(Combo combo, List<Command> commands, double remainingWait) {
-            this.combo = combo;
-            this.commands = commands;
+        private ComboWaitingForLastMoveToComplete(ComboAndCommands comboAndCommands,
+                                                  double remainingWait) {
+            this.comboAndCommands = comboAndCommands;
             this.remainingWait = remainingWait;
         }
 
-     }
+        public ComboAndCommands comboAndCommands() {
+            return comboAndCommands;
+        }
+
+    }
+
+    private record ComboAndCommands(Combo combo, List<Command> commands) {
+    }
 
 }
