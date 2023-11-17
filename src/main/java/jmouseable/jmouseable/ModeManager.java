@@ -69,6 +69,8 @@ public class ModeManager {
 
     private String indicatorHexColor() {
         Indicator indicator = currentMode.indicator();
+        if (mouseMover.pressing() && indicator.pressHexColor() != null)
+            return indicator.pressHexColor();
         if (mouseMover.wheeling() && indicator.wheelHexColor() != null)
             return indicator.wheelHexColor();
         if (mouseMover.moving() && indicator.moveHexColor() != null)
