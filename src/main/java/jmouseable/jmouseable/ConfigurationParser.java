@@ -113,14 +113,26 @@ public class ConfigurationParser {
                         Indicator indicator = switch (matcher.group(4)) {
                             case "enabled" ->
                                     new Indicator(Boolean.parseBoolean(propertyValue),
-                                            mode.indicator().hexColor());
-                            case "color" -> {
-                                if (!propertyValue.matches(
-                                        "^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$"))
-                                    throw new IllegalArgumentException(
-                                            "Invalid hex color: " + propertyValue);
+                                            mode.indicator().idleHexColor(),
+                                            mode.indicator().moveHexColor(),
+                                            mode.indicator().wheelHexColor());
+                            case "idle-color" -> {
+                                checkColorFormat(propertyValue);
                                 yield new Indicator(mode.indicator().enabled(),
-                                    propertyValue);
+                                        propertyValue, mode.indicator().moveHexColor(),
+                                        mode.indicator().wheelHexColor());
+                            }
+                            case "move-color" -> {
+                                checkColorFormat(propertyValue);
+                                yield new Indicator(mode.indicator().enabled(),
+                                        mode.indicator().idleHexColor(), propertyValue,
+                                        mode.indicator().wheelHexColor());
+                            }
+                            case "wheel-color" -> {
+                                checkColorFormat(propertyValue);
+                                yield new Indicator(mode.indicator().enabled(),
+                                        mode.indicator().idleHexColor(),
+                                        mode.indicator().wheelHexColor(), propertyValue);
                             }
                             default -> throw new IllegalArgumentException(
                                     "Invalid indicator configuration: " + propertyKey);
@@ -178,6 +190,13 @@ public class ConfigurationParser {
         return new Configuration(new ModeMap(Set.copyOf(modeByName.values())));
     }
 
+    private static void checkColorFormat(String propertyValue) {
+        if (!propertyValue.matches(
+                "^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$"))
+            throw new IllegalArgumentException(
+                    "Invalid hex color: " + propertyValue);
+    }
+
     private ComboMoveDuration parseComboMoveDuration(String string) {
         String[] split = string.split("-");
         return new ComboMoveDuration(
@@ -199,7 +218,7 @@ public class ConfigurationParser {
         // TODO revert
         return new Mode(modeName, new ComboMap(new LinkedHashMap<>()),
                 new Mouse(50, 1000), new Wheel(100, 100), null,
-                new Indicator(false, null));
+                new Indicator(false, null, null, null));
     }
 
     private static void addCommand(Map<Combo, List<Command>> commandsByCombo,

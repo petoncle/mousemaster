@@ -11,6 +11,7 @@ public class ModeManager {
     private final MouseMover mouseMover;
     private ComboWatcher comboWatcher;
     private Mode currentMode;
+    private String currentIndicatorHexColor;
     private double currentModeRemainingDuration;
 
     public ModeManager(ModeMap modeMap, MouseMover mouseMover) {
@@ -42,6 +43,13 @@ public class ModeManager {
                 }
             }
         }
+        if (currentMode.indicator().enabled()) {
+            String indicatorHexColor = indicatorHexColor();
+            if (!currentIndicatorHexColor.equals(indicatorHexColor)) {
+                currentIndicatorHexColor = indicatorHexColor;
+                WindowsIndicator.show(currentIndicatorHexColor);
+            }
+        }
     }
 
     public void changeMode(String newModeName) {
@@ -51,10 +59,21 @@ public class ModeManager {
             resetCurrentModeRemainingDuration();
         mouseMover.changeMouse(newMode.mouse());
         mouseMover.changeWheel(newMode.wheel());
-        if (newMode.indicator().enabled())
-            WindowsIndicator.show(newMode.indicator().hexColor());
+        if (newMode.indicator().enabled()) {
+            currentIndicatorHexColor = indicatorHexColor();
+            WindowsIndicator.show(currentIndicatorHexColor);
+        }
         else
             WindowsIndicator.hide();
+    }
+
+    private String indicatorHexColor() {
+        Indicator indicator = currentMode.indicator();
+        if (mouseMover.wheeling() && indicator.wheelHexColor() != null)
+            return indicator.wheelHexColor();
+        if (mouseMover.moving() && indicator.moveHexColor() != null)
+            return indicator.moveHexColor();
+        return indicator.idleHexColor();
     }
 
     private void resetCurrentModeRemainingDuration() {
