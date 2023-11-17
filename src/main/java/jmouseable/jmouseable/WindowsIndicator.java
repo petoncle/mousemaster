@@ -86,19 +86,15 @@ public class WindowsIndicator {
         return (blue << 16) | (green << 8) | red;
     }
 
-    public static void changeColor(String newHexColor) {
-        currentHexColor = newHexColor;
-        // Force window to repaint to reflect new color
-        User32.INSTANCE.InvalidateRect(indicatorWindowHwnd, null, true);
-        User32.INSTANCE.UpdateWindow(indicatorWindowHwnd);
-    }
-
     public static void show(String hexColor) {
         currentHexColor = hexColor;
         if (indicatorWindowHwnd == null) {
             mustShowOnceCreated = true;
             return;
         }
+        // Force window to repaint to reflect new color
+        User32.INSTANCE.InvalidateRect(indicatorWindowHwnd, null, true);
+        User32.INSTANCE.UpdateWindow(indicatorWindowHwnd);
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_SHOWNORMAL);
     }
 
