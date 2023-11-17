@@ -13,6 +13,7 @@ public class WindowsIndicator {
     private static int cursorWidth, cursorHeight;
     private static WinDef.HWND indicatorWindowHwnd;
     private static boolean mustShowOnceCreated;
+    private static boolean showing;
     private static String currentHexColor;
 
     private static int bestIndicatorX(int mouseX, int monitorLeft, int monitorRight) {
@@ -87,11 +88,14 @@ public class WindowsIndicator {
     }
 
     public static void show(String hexColor) {
+        if (showing && currentHexColor != null && currentHexColor.equals(hexColor))
+            return;
         currentHexColor = hexColor;
         if (indicatorWindowHwnd == null) {
             mustShowOnceCreated = true;
             return;
         }
+        showing = true;
         // Force window to repaint to reflect new color
         User32.INSTANCE.InvalidateRect(indicatorWindowHwnd, null, true);
         User32.INSTANCE.UpdateWindow(indicatorWindowHwnd);
@@ -99,6 +103,9 @@ public class WindowsIndicator {
     }
 
     public static void hide() {
+        if (!showing)
+            return;
+        showing = false;
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_HIDE);
     }
 

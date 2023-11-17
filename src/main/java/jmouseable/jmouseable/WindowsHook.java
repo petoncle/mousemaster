@@ -5,8 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 
 public class WindowsHook {
 
@@ -19,8 +17,8 @@ public class WindowsHook {
         systemStartTime = now.minusMillis(uptimeMillis);
     }
 
-    private final MouseMover mouseMover;
-    private final ComboWatcher comboWatcher;
+    private final MouseManager mouseManager;
+    private final KeyboardManager keyboardManager;
     private final Ticker ticker;
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -33,9 +31,9 @@ public class WindowsHook {
     private WinUser.LowLevelKeyboardProc keyboardHookCallback;
     private WinNT.HANDLE singleInstanceMutex;
 
-    public WindowsHook(MouseMover mouseMover, ComboWatcher comboWatcher, Ticker ticker) {
-        this.mouseMover = mouseMover;
-        this.comboWatcher = comboWatcher;
+    public WindowsHook(MouseManager mouseManager, KeyboardManager keyboardManager, Ticker ticker) {
+        this.mouseManager = mouseManager;
+        this.keyboardManager = keyboardManager;
         this.ticker = ticker;
     }
 
@@ -72,13 +70,7 @@ public class WindowsHook {
             long deltaNanos = currentNanoTime - previousNanoTime;
             previousNanoTime = currentNanoTime;
             double delta = deltaNanos / 1e9d;
-            if (delta > 10) {
-                logger.info("Tick took " + delta + "s, skipping update, clearing currentlyPressedKeys, and interrupting combos");
-                currentlyPressedKeys.clear();
-                comboWatcher.interrupt();
-            }
-            else
-                ticker.update(delta);
+            ticker.update(delta);
             Thread.sleep(10L);
         }
     }
@@ -137,51 +129,26 @@ public class WindowsHook {
         return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
     }
 
-    private final Map<Key, KeyEventProcessing> currentlyPressedKeys = new HashMap<>();
-
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info, String wParamString) {
-        Key key = keyEvent.action().key();
         if (keyEvent.action().state().pressed()) {
-            KeyEventProcessing keyEventProcessing = currentlyPressedKeys.get(key);
-            if (keyEventProcessing == null) {
-                if (currentlyPressedKeys.values()
-                                        .stream()
-                                        .allMatch(KeyEventProcessing::partOfCombo)) {
-                    logKeyEvent(keyEvent, info, wParamString);
-                    keyEventProcessing = comboWatcher.keyEvent(keyEvent);
-                }
-                else {
-                    keyEventProcessing = new KeyEventProcessing(false, false);
-                }
-                currentlyPressedKeys.put(key, keyEventProcessing);
+            if (!keyboardManager.currentlyPressed(keyEvent.action().key()) &&
+                keyboardManager.allCurrentlyPressedArePartOfCombo()) {
+                logKeyEvent(keyEvent, info, wParamString);
             }
-            return keyEventProcessing.partOfComboAndMustBeEaten();
         }
         else {
-            KeyEventProcessing pressedKeyEventProcessing = currentlyPressedKeys.remove(key);
-            if (pressedKeyEventProcessing != null) {
+            if (keyboardManager.currentlyPressed(keyEvent.action().key()))
                 logKeyEvent(keyEvent, info, wParamString);
-                if (pressedKeyEventProcessing.partOfCombo()) {
-                    KeyEventProcessing releasedKeyEventProcessing =
-                            comboWatcher.keyEvent(keyEvent);
-                    // Only a released event corresponding to pressed event that was eaten must be eaten.
-                    // TODO No need for non-eatable release move ;^
-                    return pressedKeyEventProcessing.partOfComboAndMustBeEaten();
-                }
-                else
-                    return false;
-            }
-            else
-                return false;
         }
+        return keyboardManager.keyEvent(keyEvent);
     }
 
     private static void logKeyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
-                                  String wParamString) {
+                                    String wParamString) {
         logger.debug("Received key event: " + keyEvent + ", vk = " +
-                     WindowsVirtualKey.values.get(info.vkCode) +
-                     ", scanCode = " + info.scanCode + ", flags = 0x" +
-                     Integer.toHexString(info.flags) + ", wParam = " + wParamString);
+                     WindowsVirtualKey.values.get(info.vkCode) + ", scanCode = " +
+                     info.scanCode + ", flags = 0x" + Integer.toHexString(info.flags) +
+                     ", wParam = " + wParamString);
     }
 
     private WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
@@ -189,7 +156,7 @@ public class WindowsHook {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
             WindowsIndicator.mouseMoved(mousePosition);
-            mouseMover.mouseMoved(mousePosition.x, mousePosition.y);
+            mouseManager.mouseMoved(mousePosition.x, mousePosition.y);
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }

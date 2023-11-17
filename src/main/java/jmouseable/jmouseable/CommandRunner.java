@@ -5,11 +5,11 @@ import static jmouseable.jmouseable.Command.*;
 public class CommandRunner {
 
     private final ModeManager modeManager;
-    private final MouseMover mouseMover;
+    private final MouseManager mouseManager;
 
-    public CommandRunner(ModeManager modeManager, MouseMover mouseMover) {
+    public CommandRunner(ModeManager modeManager, MouseManager mouseManager) {
         this.modeManager = modeManager;
-        this.mouseMover = mouseMover;
+        this.mouseManager = mouseManager;
     }
 
     public void run(Command command) {
@@ -17,33 +17,33 @@ public class CommandRunner {
             // @formatter:off
             case ChangeMode changeMode -> modeManager.changeMode(changeMode.newModeName());
 
-            case StartMoveUp startMoveUp -> mouseMover.startMoveUp();
-            case StartMoveDown startMoveDown -> mouseMover.startMoveDown();
-            case StartMoveLeft startMoveLeft -> mouseMover.startMoveLeft();
-            case StartMoveRight startMoveRight -> mouseMover.startMoveRight();
+            case StartMoveUp startMoveUp -> mouseManager.startMoveUp();
+            case StartMoveDown startMoveDown -> mouseManager.startMoveDown();
+            case StartMoveLeft startMoveLeft -> mouseManager.startMoveLeft();
+            case StartMoveRight startMoveRight -> mouseManager.startMoveRight();
 
-            case StopMoveUp stopMoveUp -> mouseMover.stopMoveUp();
-            case StopMoveDown stopMoveDown -> mouseMover.stopMoveDown();
-            case StopMoveLeft stopMoveLeft -> mouseMover.stopMoveLeft();
-            case StopMoveRight stopMoveRight -> mouseMover.stopMoveRight();
+            case StopMoveUp stopMoveUp -> mouseManager.stopMoveUp();
+            case StopMoveDown stopMoveDown -> mouseManager.stopMoveDown();
+            case StopMoveLeft stopMoveLeft -> mouseManager.stopMoveLeft();
+            case StopMoveRight stopMoveRight -> mouseManager.stopMoveRight();
 
-            case PressLeft pressLeft -> mouseMover.pressLeft();
-            case PressMiddle pressMiddle -> mouseMover.pressMiddle();
-            case PressRight pressRight -> mouseMover.pressRight();
+            case PressLeft pressLeft -> mouseManager.pressLeft();
+            case PressMiddle pressMiddle -> mouseManager.pressMiddle();
+            case PressRight pressRight -> mouseManager.pressRight();
 
-            case ReleaseLeft releaseLeft -> mouseMover.releaseLeft();
-            case ReleaseMiddle releaseMiddle -> mouseMover.releaseMiddle();
-            case ReleaseRight releaseRight -> mouseMover.releaseRight();
+            case ReleaseLeft releaseLeft -> mouseManager.releaseLeft();
+            case ReleaseMiddle releaseMiddle -> mouseManager.releaseMiddle();
+            case ReleaseRight releaseRight -> mouseManager.releaseRight();
 
-            case StartWheelUp startWheelUp -> mouseMover.startWheelUp();
-            case StartWheelDown startWheelDown -> mouseMover.startWheelDown();
-            case StartWheelLeft startWheelLeft -> mouseMover.startWheelLeft();
-            case StartWheelRight startWheelRight -> mouseMover.startWheelRight();
+            case StartWheelUp startWheelUp -> mouseManager.startWheelUp();
+            case StartWheelDown startWheelDown -> mouseManager.startWheelDown();
+            case StartWheelLeft startWheelLeft -> mouseManager.startWheelLeft();
+            case StartWheelRight startWheelRight -> mouseManager.startWheelRight();
 
-            case StopWheelUp stopWheelUp -> mouseMover.stopWheelUp();
-            case StopWheelDown stopWheelDown -> mouseMover.stopWheelDown();
-            case StopWheelLeft stopWheelLeft -> mouseMover.stopWheelLeft();
-            case StopWheelRight stopWheelRight -> mouseMover.stopWheelRight();
+            case StopWheelUp stopWheelUp -> mouseManager.stopWheelUp();
+            case StopWheelDown stopWheelDown -> mouseManager.stopWheelDown();
+            case StopWheelLeft stopWheelLeft -> mouseManager.stopWheelLeft();
+            case StopWheelRight stopWheelRight -> mouseManager.stopWheelRight();
             // @formatter:on
         }
     }

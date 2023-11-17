@@ -3,7 +3,7 @@ package jmouseable.jmouseable;
 import java.util.Iterator;
 import java.util.Stack;
 
-public class MouseMover {
+public class MouseManager {
 
     private Mouse mouse;
     private Wheel wheel;
@@ -17,7 +17,7 @@ public class MouseMover {
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
 
-    public MouseMover(Mouse mouse, Wheel wheel) {
+    public MouseManager(Mouse mouse, Wheel wheel) {
         this.mouse = mouse;
         this.wheel = wheel;
     }

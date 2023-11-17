@@ -8,15 +8,14 @@ public class ModeManager {
     private static final Logger logger = LoggerFactory.getLogger(ModeManager.class);
 
     private final ModeMap modeMap;
-    private final MouseMover mouseMover;
+    private final MouseManager mouseManager;
     private ComboWatcher comboWatcher;
     private Mode currentMode;
-    private String currentIndicatorHexColor;
     private double currentModeRemainingDuration;
 
-    public ModeManager(ModeMap modeMap, MouseMover mouseMover) {
+    public ModeManager(ModeMap modeMap, MouseManager mouseManager) {
         this.modeMap = modeMap;
-        this.mouseMover = mouseMover;
+        this.mouseManager = mouseManager;
     }
 
     public void setComboWatcher(ComboWatcher comboWatcher) {
@@ -29,7 +28,7 @@ public class ModeManager {
 
     public void update(double delta) {
         if (currentMode.timeout() != null) {
-            if (mouseMover.moving() || mouseMover.pressing() || mouseMover.wheeling()) {
+            if (mouseManager.moving() || mouseManager.pressing() || mouseManager.wheeling()) {
                 resetCurrentModeRemainingDuration();
             }
             else {
@@ -43,13 +42,6 @@ public class ModeManager {
                 }
             }
         }
-        if (currentMode.indicator().enabled()) {
-            String indicatorHexColor = indicatorHexColor();
-            if (!currentIndicatorHexColor.equals(indicatorHexColor)) {
-                currentIndicatorHexColor = indicatorHexColor;
-                WindowsIndicator.show(currentIndicatorHexColor);
-            }
-        }
     }
 
     public void changeMode(String newModeName) {
@@ -57,25 +49,8 @@ public class ModeManager {
         currentMode = newMode;
         if (newMode.timeout() != null)
             resetCurrentModeRemainingDuration();
-        mouseMover.changeMouse(newMode.mouse());
-        mouseMover.changeWheel(newMode.wheel());
-        if (newMode.indicator().enabled()) {
-            currentIndicatorHexColor = indicatorHexColor();
-            WindowsIndicator.show(currentIndicatorHexColor);
-        }
-        else
-            WindowsIndicator.hide();
-    }
-
-    private String indicatorHexColor() {
-        Indicator indicator = currentMode.indicator();
-        if (mouseMover.pressing() && indicator.pressHexColor() != null)
-            return indicator.pressHexColor();
-        if (mouseMover.wheeling() && indicator.wheelHexColor() != null)
-            return indicator.wheelHexColor();
-        if (mouseMover.moving() && indicator.moveHexColor() != null)
-            return indicator.moveHexColor();
-        return indicator.idleHexColor();
+        mouseManager.changeMouse(newMode.mouse());
+        mouseManager.changeWheel(newMode.wheel());
     }
 
     private void resetCurrentModeRemainingDuration() {

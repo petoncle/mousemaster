@@ -3,19 +3,23 @@ package jmouseable.jmouseable;
 public class Ticker {
 
     private final ModeManager modeManager;
-    private final MouseMover mouseMover;
-    private final ComboWatcher comboWatcher;
+    private final MouseManager mouseManager;
+    private final KeyboardManager keyboardManager;
+    private final IndicatorManager indicatorManager;
 
-    public Ticker(ModeManager modeManager, MouseMover mouseMover, ComboWatcher comboWatcher) {
+    public Ticker(ModeManager modeManager, MouseManager mouseManager,
+                  KeyboardManager keyboardManager, IndicatorManager indicatorManager) {
         this.modeManager = modeManager;
-        this.mouseMover = mouseMover;
-        this.comboWatcher = comboWatcher;
+        this.mouseManager = mouseManager;
+        this.keyboardManager = keyboardManager;
+        this.indicatorManager = indicatorManager;
     }
 
     public void update(double delta) {
         modeManager.update(delta);
-        mouseMover.update(delta);
-        comboWatcher.update(delta);
+        mouseManager.update(delta);
+        keyboardManager.update(delta);
+        indicatorManager.update(delta);
     }
 
 }

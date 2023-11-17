@@ -116,34 +116,47 @@ public class ConfigurationParser {
                                             mode.indicator().idleHexColor(),
                                             mode.indicator().moveHexColor(),
                                             mode.indicator().wheelHexColor(),
-                                            mode.indicator().pressHexColor());
+                                            mode.indicator().mousePressHexColor(),
+                                            mode.indicator().nonComboKeyPressHexColor());
                             case "idle-color" -> {
                                 checkColorFormat(propertyValue);
                                 yield new Indicator(mode.indicator().enabled(),
                                         propertyValue, mode.indicator().moveHexColor(),
                                         mode.indicator().wheelHexColor(),
-                                        mode.indicator().pressHexColor());
+                                        mode.indicator().mousePressHexColor(),
+                                        mode.indicator().nonComboKeyPressHexColor());
                             }
                             case "move-color" -> {
                                 checkColorFormat(propertyValue);
                                 yield new Indicator(mode.indicator().enabled(),
                                         mode.indicator().idleHexColor(), propertyValue,
                                         mode.indicator().wheelHexColor(),
-                                        mode.indicator().pressHexColor());
+                                        mode.indicator().mousePressHexColor(),
+                                        mode.indicator().nonComboKeyPressHexColor());
                             }
                             case "wheel-color" -> {
                                 checkColorFormat(propertyValue);
                                 yield new Indicator(mode.indicator().enabled(),
                                         mode.indicator().idleHexColor(),
                                         mode.indicator().moveHexColor(), propertyValue,
-                                        mode.indicator().pressHexColor());
+                                        mode.indicator().mousePressHexColor(),
+                                        mode.indicator().nonComboKeyPressHexColor());
                             }
-                            case "press-color" -> {
+                            case "mouse-press-color" -> {
                                 checkColorFormat(propertyValue);
                                 yield new Indicator(mode.indicator().enabled(),
                                         mode.indicator().idleHexColor(),
-                                        mode.indicator().moveHexColor(), mode.indicator().wheelHexColor(),
-                                        propertyValue);
+                                        mode.indicator().moveHexColor(),
+                                        mode.indicator().wheelHexColor(), propertyValue,
+                                        mode.indicator().nonComboKeyPressHexColor());
+                            }
+                            case "non-combo-key-press-color" -> {
+                                checkColorFormat(propertyValue);
+                                yield new Indicator(mode.indicator().enabled(),
+                                        mode.indicator().idleHexColor(),
+                                        mode.indicator().moveHexColor(),
+                                        mode.indicator().wheelHexColor(),
+                                        mode.indicator().mousePressHexColor(), propertyValue);
                             }
                             default -> throw new IllegalArgumentException(
                                     "Invalid indicator configuration: " + propertyKey);
@@ -229,7 +242,7 @@ public class ConfigurationParser {
         // TODO revert
         return new Mode(modeName, new ComboMap(new LinkedHashMap<>()),
                 new Mouse(50, 1000), new Wheel(100, 100), null,
-                new Indicator(false, null, null, null, null));
+                new Indicator(false, null, null, null, null, null));
     }
 
     private static void addCommand(Map<Combo, List<Command>> commandsByCombo,
