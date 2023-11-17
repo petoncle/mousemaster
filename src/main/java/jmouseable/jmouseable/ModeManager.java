@@ -52,7 +52,7 @@ public class ModeManager {
         mouseMover.changeMouse(newMode.mouse());
         mouseMover.changeWheel(newMode.wheel());
         if (newMode.indicator().enabled())
-            WindowsIndicator.show();
+            WindowsIndicator.show(newMode.indicator().hexColor());
         else
             WindowsIndicator.hide();
     }

@@ -88,7 +88,7 @@ public class ConfigurationParser {
                     case "timeout" -> {
                         if (matcher.group(4) == null)
                             throw new IllegalArgumentException(
-                                    "Invalid to configuration: " + propertyKey);
+                                    "Invalid timeout configuration: " + propertyKey);
                         ModeTimeout modeTimeout = switch (matcher.group(4)) {
                             case "duration-millis" ->
                                     new ModeTimeout(parseDuration(propertyValue),
@@ -109,10 +109,19 @@ public class ConfigurationParser {
                     case "indicator" -> {
                         if (matcher.group(4) == null)
                             throw new IllegalArgumentException(
-                                    "Invalid to configuration: " + propertyKey);
+                                    "Invalid indicator configuration: " + propertyKey);
                         Indicator indicator = switch (matcher.group(4)) {
                             case "enabled" ->
-                                    new Indicator(Boolean.parseBoolean(propertyValue));
+                                    new Indicator(Boolean.parseBoolean(propertyValue),
+                                            mode.indicator().hexColor());
+                            case "color" -> {
+                                if (!propertyValue.matches(
+                                        "^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$"))
+                                    throw new IllegalArgumentException(
+                                            "Invalid hex color: " + propertyValue);
+                                yield new Indicator(mode.indicator().enabled(),
+                                    propertyValue);
+                            }
                             default -> throw new IllegalArgumentException(
                                     "Invalid indicator configuration: " + propertyKey);
                         };
@@ -189,7 +198,8 @@ public class ConfigurationParser {
         // Should we reset the combo preparation once it is complete, instead of relying on command order?
         // TODO revert
         return new Mode(modeName, new ComboMap(new LinkedHashMap<>()),
-                new Mouse(50, 1000), new Wheel(100, 100), null, new Indicator(false));
+                new Mouse(50, 1000), new Wheel(100, 100), null,
+                new Indicator(false, null));
     }
 
     private static void addCommand(Map<Combo, List<Command>> commandsByCombo,

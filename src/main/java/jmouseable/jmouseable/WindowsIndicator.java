@@ -13,7 +13,7 @@ public class WindowsIndicator {
     private static int cursorWidth, cursorHeight;
     private static WinDef.HWND indicatorWindowHwnd;
     private static boolean mustShowOnceCreated;
-    private static int currentColor = 0x000000FF;
+    private static String currentHexColor;
 
     private static int bestIndicatorX(int mouseX, int monitorLeft, int monitorRight) {
         mouseX = Math.min(monitorRight, Math.max(monitorLeft, mouseX));
@@ -53,7 +53,7 @@ public class WindowsIndicator {
                         monitorInfo.rcMonitor.bottom), 16, 16, null, null,
                 wClass.hInstance, null);
         if (mustShowOnceCreated)
-            show();
+            show(currentHexColor);
     }
 
     private static WinDef.LRESULT indicatorWindowCallback(WinDef.HWND hwnd, int uMsg,
@@ -63,7 +63,8 @@ public class WindowsIndicator {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.RECT rect = new WinDef.RECT();
-                WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(currentColor);
+                WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(
+                        hexColorStringToInt(currentHexColor));
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 User32.INSTANCE.GetClientRect(hwnd, rect);
                 ExtendedUser32.INSTANCE.FillRect(hdc, rect, hbrBackground);
@@ -74,14 +75,26 @@ public class WindowsIndicator {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    public static void changeColor(int newColor) {
-        currentColor = newColor;
+    private static int hexColorStringToInt(String hexColor) {
+        if (hexColor.startsWith("#"))
+            hexColor = hexColor.substring(1);
+        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
+        // In COLORREF, the order is 0x00BBGGRR, so we need to reorder the components.
+        int red = (colorInt >> 16) & 0xFF;
+        int green = (colorInt >> 8) & 0xFF;
+        int blue = colorInt & 0xFF;
+        return (blue << 16) | (green << 8) | red;
+    }
+
+    public static void changeColor(String newHexColor) {
+        currentHexColor = newHexColor;
         // Force window to repaint to reflect new color
         User32.INSTANCE.InvalidateRect(indicatorWindowHwnd, null, true);
         User32.INSTANCE.UpdateWindow(indicatorWindowHwnd);
     }
 
-    public static void show() {
+    public static void show(String hexColor) {
+        currentHexColor = hexColor;
         if (indicatorWindowHwnd == null) {
             mustShowOnceCreated = true;
             return;

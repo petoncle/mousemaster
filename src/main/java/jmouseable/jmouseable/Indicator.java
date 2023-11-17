@@ -1,4 +1,4 @@
 package jmouseable.jmouseable;
 
-public record Indicator(boolean enabled) {
+public record Indicator(boolean enabled, String hexColor) {
 }
