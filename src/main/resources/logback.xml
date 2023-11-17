@@ -10,7 +10,7 @@
     </root>
 
     <logger name="jmouseable" level="DEBUG"/>
-    <logger name="jmouseable.WindowsHook" level="INFO"/>
-    <logger name="jmouseable.ComboWatcher" level="DEBUG"/>
+    <logger name="jmouseable.jmouseable.WindowsHook" level="INFO"/>
+    <logger name="jmouseable.jmouseable.ComboWatcher" level="DEBUG"/>
 
 </configuration>
