@@ -50,4 +50,22 @@ public interface ExtendedUser32 extends User32 {
     LRESULT CallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, WinUser.KBDLLHOOKSTRUCT lParam);
     LRESULT CallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, WinUser.MSLLHOOKSTRUCT lParam);
 
+    class PAINTSTRUCT extends Structure {
+        public WinDef.HDC hdc;
+        public WinDef.BOOL fErase;
+        public WinDef.RECT rcPaint;
+        public WinDef.BOOL fRestore;
+        public WinDef.BOOL fIncUpdate;
+        public byte[] rgbReserved = new byte[32];
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("hdc", "fErase", "rcPaint", "fRestore", "fIncUpdate", "rgbReserved");
+        }
+    }
+
+    HDC BeginPaint(HWND hWnd, PAINTSTRUCT lpPaint);
+    boolean EndPaint(HWND hWnd, PAINTSTRUCT lpPaint);
+    int FillRect(WinDef.HDC hDC, WinDef.RECT lprc, WinDef.HBRUSH hbr);
+
 }

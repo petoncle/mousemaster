@@ -13,6 +13,7 @@ public class WindowsIndicator {
     private static int cursorWidth, cursorHeight;
     private static WinDef.HWND indicatorWindowHwnd;
     private static boolean mustShowOnceCreated;
+    private static int currentColor = 0x000000FF;
 
     private static int bestIndicatorX(int mouseX, int monitorLeft, int monitorRight) {
         mouseX = Math.min(monitorRight, Math.max(monitorLeft, mouseX));
@@ -37,9 +38,10 @@ public class WindowsIndicator {
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
         logger.info("Cursor size: " + cursorWidth + " " + cursorHeight);
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
-        wClass.hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(0x000000FF);
+        wClass.hbrBackground = null;
         wClass.lpszClassName = "JMouseableOverlayClassName";
-        wClass.lpfnWndProc = (WinUser.WindowProc) User32.INSTANCE::DefWindowProc;
+        wClass.lpfnWndProc =
+                (WinUser.WindowProc) WindowsIndicator::indicatorWindowCallback;
         User32.INSTANCE.RegisterClassEx(wClass);
         indicatorWindowHwnd = User32.INSTANCE.CreateWindowEx(
                 User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
@@ -52,6 +54,31 @@ public class WindowsIndicator {
                 wClass.hInstance, null);
         if (mustShowOnceCreated)
             show();
+    }
+
+    private static WinDef.LRESULT indicatorWindowCallback(WinDef.HWND hwnd, int uMsg,
+                                                          WinDef.WPARAM wParam,
+                                                          WinDef.LPARAM lParam) {
+        switch (uMsg) {
+            case WinUser.WM_PAINT:
+                ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
+                WinDef.RECT rect = new WinDef.RECT();
+                WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(currentColor);
+                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
+                User32.INSTANCE.GetClientRect(hwnd, rect);
+                ExtendedUser32.INSTANCE.FillRect(hdc, rect, hbrBackground);
+                ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
+                GDI32.INSTANCE.DeleteObject(hbrBackground);
+                break;
+        }
+        return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
+
+    public static void changeColor(int newColor) {
+        currentColor = newColor;
+        // Force window to repaint to reflect new color
+        User32.INSTANCE.InvalidateRect(indicatorWindowHwnd, null, true);
+        User32.INSTANCE.UpdateWindow(indicatorWindowHwnd);
     }
 
     public static void show() {
