@@ -1,5 +1,8 @@
 package jmouseable.jmouseable;
 
+import jmouseable.jmouseable.ComboMove.PressComboMove;
+import jmouseable.jmouseable.ComboMove.ReleaseComboMove;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,11 +19,11 @@ public record Combo(List<ComboMove> moves) {
             throw new IllegalArgumentException("Empty combo: " + string);
         List<ComboMove> moves = new ArrayList<>();
         for (String moveName : moveNames) {
-            Matcher matcher =
-                    Pattern.compile(";?([_^])([a-z]+)((\\d+)-(\\d+))?").matcher(moveName);
+            Matcher matcher = Pattern.compile("([_^\\-])([a-z]+)((\\d+)-(\\d+))?")
+                                     .matcher(moveName);
             if (!matcher.matches())
                 throw new IllegalArgumentException("Invalid move: " + moveName);
-            boolean eventMustBeEaten = !moveName.startsWith(";");
+            boolean press = !moveName.startsWith("^");
             ComboMoveDuration moveDuration;
             if (matcher.group(3) == null)
                 moveDuration = defaultMoveDuration;
@@ -28,14 +31,18 @@ public record Combo(List<ComboMove> moves) {
                 moveDuration = new ComboMoveDuration(
                         Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(4))),
                         Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(5))));
-            KeyState state =
-                    matcher.group(1).equals("_") ? KeyState.PRESSED : KeyState.RELEASED;
             String keyName = matcher.group(2);
             Key key = Key.keyByName.get(keyName);
             if (key == null)
                 throw new IllegalArgumentException("Invalid key: " + keyName);
-            moves.add(new ComboMove(new KeyAction(key, state), moveDuration,
-                    eventMustBeEaten));
+            ComboMove move;
+            if (press) {
+                boolean eventMustBeEaten = moveName.startsWith("_");
+                move = new PressComboMove(key, eventMustBeEaten, moveDuration);
+            }
+            else
+                move = new ReleaseComboMove(key, moveDuration);
+            moves.add(move);
         }
         return new Combo(List.copyOf(moves));
     }

@@ -11,7 +11,7 @@ public class KeyboardManager {
     private static final Logger logger = LoggerFactory.getLogger(KeyboardManager.class);
 
     private final ComboWatcher comboWatcher;
-    private final Map<Key, KeyEventProcessing> currentlyPressedKeys = new HashMap<>();
+    private final Map<Key, PressKeyEventProcessing> currentlyPressedKeys = new HashMap<>();
     private boolean pressingNonComboKey;
 
     public KeyboardManager(ComboWatcher comboWatcher) {
@@ -30,31 +30,29 @@ public class KeyboardManager {
     }
 
     public boolean keyEvent(KeyEvent keyEvent) {
-        Key key = keyEvent.action().key();
-        if (keyEvent.action().state().pressed()) {
-            KeyEventProcessing keyEventProcessing = currentlyPressedKeys.get(key);
-            if (keyEventProcessing == null) {
+        Key key = keyEvent.key();
+        if (keyEvent.isPress()) {
+            PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
+            if (processing == null) {
                 if (allCurrentlyPressedArePartOfCombo()) {
-                    keyEventProcessing = comboWatcher.keyEvent(keyEvent);
-                    pressingNonComboKey = !keyEventProcessing.partOfCombo();
+                    processing = comboWatcher.keyEvent(keyEvent);
+                    pressingNonComboKey = !processing.partOfCombo();
                 }
                 else {
-                    keyEventProcessing = new KeyEventProcessing(false, false);
+                    processing = PressKeyEventProcessing.NOT_PART_OF_COMBO;
                     pressingNonComboKey = true;
                 }
-                currentlyPressedKeys.put(key, keyEventProcessing);
+                currentlyPressedKeys.put(key, processing);
             }
-            return keyEventProcessing.partOfComboAndMustBeEaten();
+            return processing.mustBeEaten();
         }
         else {
-            KeyEventProcessing pressedKeyEventProcessing = currentlyPressedKeys.remove(key);
-            if (pressedKeyEventProcessing != null) {
-                if (pressedKeyEventProcessing.partOfCombo()) {
-                    KeyEventProcessing releasedKeyEventProcessing =
-                            comboWatcher.keyEvent(keyEvent);
+            PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
+            if (processing != null) {
+                if (processing.partOfCombo()) {
+                    comboWatcher.keyEvent(keyEvent); // Returns null.
                     // Only a released event corresponding to pressed event that was eaten must be eaten.
-                    // TODO No need for non-eatable release move ;^
-                    return pressedKeyEventProcessing.partOfComboAndMustBeEaten();
+                    return processing.mustBeEaten();
                 }
                 else {
                     pressingNonComboKey = !allCurrentlyPressedArePartOfCombo();
@@ -73,7 +71,7 @@ public class KeyboardManager {
     public boolean allCurrentlyPressedArePartOfCombo() {
         return currentlyPressedKeys.values()
                                    .stream()
-                                   .allMatch(KeyEventProcessing::partOfCombo);
+                                   .allMatch(PressKeyEventProcessing::partOfCombo);
     }
 
     public boolean pressingNonHandledKey() {

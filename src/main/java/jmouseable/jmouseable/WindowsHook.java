@@ -1,6 +1,8 @@
 package jmouseable.jmouseable;
 
 import com.sun.jna.platform.win32.*;
+import jmouseable.jmouseable.KeyEvent.PressKeyEvent;
+import jmouseable.jmouseable.KeyEvent.ReleaseKeyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,16 +108,14 @@ public class WindowsHook {
                         // 0b10000 means alt is pressed. This avoids getting two consecutive duplicate alt press,release events.
                     }
                     else {
-                        KeyState state = wParam.intValue() == WinUser.WM_KEYUP ||
-                                         wParam.intValue() == WinUser.WM_SYSKEYUP ?
-                                KeyState.RELEASED : KeyState.PRESSED;
-                        KeyAction action = new KeyAction(
-                                WindowsVirtualKey.keyFromWindowsEvent(
-                                        WindowsVirtualKey.values.get(info.vkCode),
-                                        info.scanCode, info.flags), state);
-                        KeyEvent keyEvent =
-                                new KeyEvent(systemStartTime.plusMillis(info.time),
-                                        action);
+                        boolean release = wParam.intValue() == WinUser.WM_KEYUP ||
+                                          wParam.intValue() == WinUser.WM_SYSKEYUP;
+                        Key key = WindowsVirtualKey.keyFromWindowsEvent(
+                                WindowsVirtualKey.values.get(info.vkCode), info.scanCode,
+                                info.flags);
+                        Instant time = systemStartTime.plusMillis(info.time);
+                        KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
+                                new PressKeyEvent(time, key);
                         boolean eventMustBeEaten =
                                 keyEvent(keyEvent, info, wParamString);
                         if (eventMustBeEaten)
@@ -130,14 +130,14 @@ public class WindowsHook {
     }
 
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info, String wParamString) {
-        if (keyEvent.action().state().pressed()) {
-            if (!keyboardManager.currentlyPressed(keyEvent.action().key()) &&
+        if (keyEvent.isPress()) {
+            if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
                 keyboardManager.allCurrentlyPressedArePartOfCombo()) {
                 logKeyEvent(keyEvent, info, wParamString);
             }
         }
         else {
-            if (keyboardManager.currentlyPressed(keyEvent.action().key()))
+            if (keyboardManager.currentlyPressed(keyEvent.key()))
                 logKeyEvent(keyEvent, info, wParamString);
         }
         return keyboardManager.keyEvent(keyEvent);

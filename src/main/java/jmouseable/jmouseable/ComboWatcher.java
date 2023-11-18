@@ -1,5 +1,6 @@
 package jmouseable.jmouseable;
 
+import jmouseable.jmouseable.ComboMove.PressComboMove;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,7 @@ public class ComboWatcher {
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
     }
 
-    public KeyEventProcessing keyEvent(KeyEvent event) {
+    public PressKeyEventProcessing keyEvent(KeyEvent event) {
         if (!combosWaitingForLastMoveToComplete.isEmpty())
             combosWaitingForLastMoveToComplete.clear();
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
@@ -71,9 +72,12 @@ public class ComboWatcher {
                 if (!allFocusedCombos.isEmpty() && !allFocusedCombos.contains(combo))
                     continue;
                 ComboMove currentMove = combo.moves().get(matchingMoveCount - 1);
-                mustBeEaten |= currentMove.eventMustBeEaten();
-                if (!currentMove.eventMustBeEaten() && currentMove.action().state().pressed())
-                    focusedCombos.computeIfAbsent(currentMove.action().key(),
+                boolean currentMoveMustBeEaten =
+                        currentMove instanceof PressComboMove pressComboMove &&
+                        pressComboMove.eventMustBeEaten();
+                mustBeEaten |= currentMoveMustBeEaten;
+                if (!currentMoveMustBeEaten && currentMove.isPress())
+                    focusedCombos.computeIfAbsent(currentMove.key(),
                             key -> new HashSet<>()).add(combo);
                 partOfCombo = true;
                 if (newComboDuration == null) {
@@ -110,19 +114,18 @@ public class ComboWatcher {
         if (newComboDuration != null)
             previousComboMoveDuration = newComboDuration;
         List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
-        logger.debug(
-                "currentMode = " + currentMode.name() + ", comboPreparationActions = " +
-                comboPreparation.events().stream().map(KeyEvent::action).toList() +
-                ", partOfCombo = " + partOfCombo + ", partOfComboAndMustBeEaten = " + mustBeEaten +
-                ", commandsToRun = " + commandsToRun +
-                ", focusedCombos = " + focusedCombos);
+        logger.debug("currentMode = " + currentMode.name() + ", comboPreparation = " +
+                     comboPreparation + ", partOfCombo = " + partOfCombo +
+                     ", mustBeEaten = " + mustBeEaten +
+                     ", commandsToRun = " + commandsToRun + ", focusedCombos = " +
+                     focusedCombos);
         commandsToRun.forEach(commandRunner::run);
         if (!partOfCombo) {
             comboPreparation = ComboPreparation.empty();
-            if (event.action().state().released())
-                focusedCombos.remove(event.action().key());
+            if (event.isRelease())
+                focusedCombos.remove(event.key());
         }
-        focusedCombos.remove(event.action().key());
+        focusedCombos.remove(event.key());
         // Remove focused combos that are not in the new mode (if mode was changed),
         // as they will not be completed anymore.
         for (Set<Combo> focusedCombosForKey : focusedCombos.values()) {
@@ -131,7 +134,8 @@ public class ComboWatcher {
                                                               .commandsByCombo()
                                                               .containsKey(combo));
         }
-        return new KeyEventProcessing(partOfCombo, mustBeEaten);
+        return event.isRelease() ? null :
+                PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
     }
 
     /**

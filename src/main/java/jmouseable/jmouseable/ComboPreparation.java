@@ -24,7 +24,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                         preparationEvents.size() - subComboMoveCount + subComboMoveIndex;
                 KeyEvent preparationEvent = preparationEvents.get(preparationEventIndex);
                 ComboMove comboMove = subComboMoves.get(subComboMoveIndex);
-                if (!preparationEvent.action().equals(comboMove.action()))
+                if (!preparationEvent.key().equals(comboMove.key()) ||
+                    preparationEvent.isPress() != comboMove.isPress())
                     continue sub_combos_loop;
                 if (subComboMoveIndex == 0)
                     continue;
