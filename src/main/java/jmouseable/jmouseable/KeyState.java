@@ -12,4 +12,8 @@ public enum KeyState {
         return !pressed();
     }
 
+    @Override
+    public String toString() {
+        return pressed() ? "_" : "^";
+    }
 }

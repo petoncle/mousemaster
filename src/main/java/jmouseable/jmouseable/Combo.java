@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public record Combo(List<ComboMove> moves) {
 
@@ -44,5 +45,10 @@ public record Combo(List<ComboMove> moves) {
         return Arrays.stream(multiComboString.split("\\s*\\|\\s*"))
                      .map(string -> of(string, defaultMoveDuration))
                      .toList();
+    }
+
+    @Override
+    public String toString() {
+        return moves.stream().map(Object::toString).collect(Collectors.joining(" "));
     }
 }

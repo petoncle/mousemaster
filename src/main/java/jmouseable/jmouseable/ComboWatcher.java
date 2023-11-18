@@ -37,9 +37,9 @@ public class ComboWatcher {
             if (comboWaitingForLastMoveToComplete.remainingWait < 0)
                 completeCombos.add(comboWaitingForLastMoveToComplete);
         }
-        List<Command> commandsToRun = longestComboCommandsLast(completeCombos.stream()
-                                                                             .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
-                                                                             .toList());
+        List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
+                                                                                           .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
+                                                                                           .toList());
         commandsToRun.forEach(commandRunner::run);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
     }
@@ -109,7 +109,7 @@ public class ComboWatcher {
         }
         if (newComboDuration != null)
             previousComboMoveDuration = newComboDuration;
-        List<Command> commandsToRun = longestComboCommandsLast(comboAndCommandsToRun);
+        List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
         logger.debug(
                 "currentMode = " + currentMode.name() + ", comboPreparationActions = " +
                 comboPreparation.events().stream().map(KeyEvent::action).toList() +
@@ -122,6 +122,7 @@ public class ComboWatcher {
             if (event.action().state().released())
                 focusedCombos.remove(event.action().key());
         }
+        focusedCombos.remove(event.action().key());
         // Remove focused combos that are not in the new mode (if mode was changed),
         // as they will not be completed anymore.
         for (Set<Combo> focusedCombosForKey : focusedCombos.values()) {
@@ -143,15 +144,18 @@ public class ComboWatcher {
      * The 3 combos are completed, but we ultimately want the move to stop,
      * i.e. the stop move command (_up ^up _up) should be run after the
      * start move command (_up).
+     * Also deduplicate commands: if start-move-up is _up|;_rightctrl _up: holding rightctrl
+     * then up should not trigger two commands.
      */
-    private List<Command> longestComboCommandsLast(List<ComboAndCommands> commandsToRun) {
+    private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
         return commandsToRun.stream()
-                     .sorted(Comparator.comparing(ComboAndCommands::combo,
-                             Comparator.comparing(Combo::moves,
-                                     Comparator.comparingInt(List::size))))
-                     .map(ComboAndCommands::commands)
-                     .flatMap(Collection::stream)
-                .toList();
+                            .sorted(Comparator.comparing(ComboAndCommands::combo,
+                                    Comparator.comparing(Combo::moves,
+                                            Comparator.comparingInt(List::size))))
+                            .map(ComboAndCommands::commands)
+                            .flatMap(Collection::stream)
+                            .distinct()
+                            .toList();
     }
 
     public void interrupt() {
