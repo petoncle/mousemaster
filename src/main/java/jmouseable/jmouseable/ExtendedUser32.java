@@ -68,4 +68,6 @@ public interface ExtendedUser32 extends User32 {
     boolean EndPaint(HWND hWnd, PAINTSTRUCT lpPaint);
     int FillRect(WinDef.HDC hDC, WinDef.RECT lprc, WinDef.HBRUSH hbr);
 
+    boolean SetProcessDpiAwarenessContext(HANDLE dpiContext);
+
 }

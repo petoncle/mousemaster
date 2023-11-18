@@ -1,5 +1,6 @@
 package jmouseable.jmouseable;
 
+import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import jmouseable.jmouseable.KeyEvent.PressKeyEvent;
 import jmouseable.jmouseable.KeyEvent.ReleaseKeyEvent;
@@ -40,6 +41,20 @@ public class WindowsHook {
     }
 
     public void installHooks() throws InterruptedException {
+        // When running as a graalvm native image, we need to set the DPI awareness
+        // (otherwise mouse coordinates are wrong on scaled displays).
+        // It is recommended to do it with a manifest file instead but I am unsure
+        // how to include it in the native image.
+        // When running as a java app (non-native image), the DPI awareness already
+        // seemed to be set, and SetProcessDpiAwarenessContext() returns error code 5.
+        boolean setProcessDpiAwarenessContextResult =
+                ExtendedUser32.INSTANCE.SetProcessDpiAwarenessContext(
+                        new WinNT.HANDLE(Pointer.createConstant(-4L)));
+        int dpiAwarenessErrorCode = Kernel32.INSTANCE.GetLastError();
+        logger.info("SetProcessDpiAwarenessContext returned " +
+                    setProcessDpiAwarenessContextResult +
+                    (setProcessDpiAwarenessContextResult ? "" :
+                            ", error code = " + dpiAwarenessErrorCode));
         if (!acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);

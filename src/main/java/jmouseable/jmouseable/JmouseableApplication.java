@@ -27,10 +27,10 @@ public class JmouseableApplication {
         Ticker ticker = new Ticker(modeManager, mouseManager, keyboardManager,
                 indicatorManager);
         if (args.length == 1 && args[0].equals("-graalvm-agent-run")) {
-            logger.info("-graalvm-agent-run flag found, exiting in 20s");
+            logger.info("-graalvm-agent-run flag found, exiting in 5s");
             new Thread(() -> {
                 try {
-                    Thread.sleep(20000);
+                    Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
