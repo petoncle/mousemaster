@@ -113,13 +113,14 @@ public class WindowsHook {
                         Key key = WindowsVirtualKey.keyFromWindowsEvent(
                                 WindowsVirtualKey.values.get(info.vkCode), info.scanCode,
                                 info.flags);
-                        Instant time = systemStartTime.plusMillis(info.time);
-                        KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
-                                new PressKeyEvent(time, key);
-                        boolean eventMustBeEaten =
-                                keyEvent(keyEvent, info, wParamString);
-                        if (eventMustBeEaten)
-                            return new WinDef.LRESULT(1);
+                        if (key != null) {
+                            Instant time = systemStartTime.plusMillis(info.time);
+                            KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
+                                    new PressKeyEvent(time, key);
+                            boolean eventMustBeEaten = keyEvent(keyEvent, info, wParamString);
+                            if (eventMustBeEaten)
+                                return new WinDef.LRESULT(1);
+                        }
                     }
                     break;
                 default:
