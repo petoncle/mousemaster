@@ -178,6 +178,11 @@ public class ComboWatcher {
             return comboAndCommands;
         }
 
+        @Override
+        public String toString() {
+            return "ComboWaitingForLastMoveToComplete[" + "comboAndCommands=" +
+                   comboAndCommands + ", remainingWait=" + remainingWait + ']';
+        }
     }
 
     private record ComboAndCommands(Combo combo, List<Command> commands) {

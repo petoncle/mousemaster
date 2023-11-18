@@ -24,6 +24,9 @@ public class KeyboardManager {
             currentlyPressedKeys.clear();
             comboWatcher.interrupt();
         }
+        else {
+            comboWatcher.update(delta);
+        }
     }
 
     public boolean keyEvent(KeyEvent keyEvent) {
