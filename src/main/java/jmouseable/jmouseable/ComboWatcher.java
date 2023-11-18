@@ -122,6 +122,14 @@ public class ComboWatcher {
             if (event.action().state().released())
                 focusedCombos.remove(event.action().key());
         }
+        // Remove focused combos that are not in the new mode (if mode was changed),
+        // as they will not be completed anymore.
+        for (Set<Combo> focusedCombosForKey : focusedCombos.values()) {
+            for (Combo combo : focusedCombosForKey) {
+                if (!modeManager.currentMode().comboMap().commandsByCombo().containsKey(combo))
+                    focusedCombosForKey.remove(combo);
+            }
+        }
         return new KeyEventProcessing(partOfCombo, mustBeEaten);
     }
 
