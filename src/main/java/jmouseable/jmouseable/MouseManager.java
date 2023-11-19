@@ -8,12 +8,12 @@ public class MouseManager {
     private Mouse mouse;
     private Wheel wheel;
     private double x, y;
-    private double moveVelocity;
+    private double moveDuration;
     // Forward means right or down.
     private final Stack<Boolean> xMoveForwardStack = new Stack<>();
     private final Stack<Boolean> yMoveForwardStack = new Stack<>();
     private boolean leftPressing, middlePressing, rightPressing;
-    private double wheelVelocity;
+    private double wheelDuration;
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
 
@@ -31,7 +31,7 @@ public class MouseManager {
     }
 
     public boolean moving() {
-        return moveVelocity != 0;
+        return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty();
     }
 
     public boolean pressing() {
@@ -39,13 +39,16 @@ public class MouseManager {
     }
 
     public boolean wheeling() {
-        return wheelVelocity != 0;
+        return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty();
     }
 
     public void update(double delta) {
         if (moving()) {
-            moveVelocity = Math.min(mouse.maxVelocity(),
-                    moveVelocity + Math.pow(mouse.acceleration(), 2) * delta);
+            moveDuration += delta;
+            double moveVelocity = Math.min(mouse.maxVelocity(), mouse.initialVelocity() +
+                                                                mouse.acceleration() *
+                                                                Math.pow(moveDuration,
+                                                                        1));
             double deltaDistanceX, deltaDistanceY;
             if (!xMoveForwardStack.isEmpty() && !yMoveForwardStack.isEmpty()) {
                 deltaDistanceX = moveVelocity * delta / Math.sqrt(2);
@@ -65,8 +68,9 @@ public class MouseManager {
                     deltaDistanceY);
         }
         if (wheeling()) {
-            wheelVelocity = Math.min(wheel.maxVelocity(),
-                    wheelVelocity + wheel.acceleration() * delta);
+            wheelDuration += delta;
+            double wheelVelocity = Math.min(wheel.maxVelocity(),
+                    wheel.initialVelocity() + wheel.acceleration() * wheelDuration);
             double deltaDistance = wheelVelocity * delta;
             if (!xWheelForwardStack.isEmpty())
                 WindowsMouse.wheelHorizontallyBy(xWheelForwardStack.peek(), deltaDistance);
@@ -82,28 +86,24 @@ public class MouseManager {
 
     public void startMoveUp() {
         yMoveForwardStack.push(false);
-        moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveDown() {
         yMoveForwardStack.push(true);
-        moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveLeft() {
         xMoveForwardStack.push(false);
-        moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void startMoveRight() {
         xMoveForwardStack.push(true);
-        moveVelocity = Math.max(moveVelocity, mouse.acceleration());
     }
 
     public void stopMoveUp() {
         removeFirst(yMoveForwardStack, false);
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveVelocity = 0;
+            moveDuration = 0;
     }
 
     private static void removeFirst(Stack<Boolean> moveForward, boolean forward) {
@@ -119,19 +119,19 @@ public class MouseManager {
     public void stopMoveDown() {
         removeFirst(yMoveForwardStack, true);
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveVelocity = 0;
+            moveDuration = 0;
     }
 
     public void stopMoveLeft() {
         removeFirst(xMoveForwardStack, false);
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveVelocity = 0;
+            moveDuration = 0;
     }
 
     public void stopMoveRight() {
         removeFirst(xMoveForwardStack, true);
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveVelocity = 0;
+            moveDuration = 0;
     }
 
     public void pressLeft() {
@@ -169,46 +169,42 @@ public class MouseManager {
 
     public void startWheelUp() {
         yWheelForwardStack.push(false);
-        wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelDown() {
         yWheelForwardStack.push(true);
-        wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelLeft() {
         xWheelForwardStack.push(false);
-        wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void startWheelRight() {
         xWheelForwardStack.push(true);
-        wheelVelocity = Math.max(wheelVelocity, wheel.acceleration());
     }
 
     public void stopWheelUp() {
         removeFirst(yWheelForwardStack, false);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelVelocity = 0;
+            wheelDuration = 0;
     }
 
     public void stopWheelDown() {
         removeFirst(yWheelForwardStack, true);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelVelocity = 0;
+            wheelDuration = 0;
     }
 
     public void stopWheelLeft() {
         removeFirst(xWheelForwardStack, false);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelVelocity = 0;
+            wheelDuration = 0;
     }
 
     public void stopWheelRight() {
         removeFirst(xWheelForwardStack, true);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelVelocity = 0;
+            wheelDuration = 0;
     }
 
 }

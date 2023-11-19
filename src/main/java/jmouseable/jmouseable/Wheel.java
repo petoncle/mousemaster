@@ -1,4 +1,4 @@
 package jmouseable.jmouseable;
 
-public record Wheel(double acceleration, double maxVelocity) {
+public record Wheel(double initialVelocity, double maxVelocity, double acceleration) {
 }

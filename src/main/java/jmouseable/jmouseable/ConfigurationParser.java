@@ -42,15 +42,18 @@ public class ConfigurationParser {
                     if (matcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid mouse configuration: " + propertyKey);
-                    double acceleration = matcher.group(4).equals("acceleration") ?
+                    double initialVelocity = matcher.group(4).equals("initial-velocity") ?
                             Double.parseDouble(propertyValue) :
-                            mode.mouse().acceleration();
+                            mode.mouse().initialVelocity();
                     double maxVelocity = matcher.group(4).equals("max-velocity") ?
                             Double.parseDouble(propertyValue) :
                             mode.mouse().maxVelocity();
+                    double acceleration = matcher.group(4).equals("acceleration") ?
+                            Double.parseDouble(propertyValue) :
+                            mode.mouse().acceleration();
                     modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
-                            new Mouse(acceleration, maxVelocity), mode.wheel(),
-                            mode.timeout(), mode.indicator()));
+                            new Mouse(initialVelocity, maxVelocity, acceleration),
+                            mode.wheel(), mode.timeout(), mode.indicator()));
                 }
                 case "wheel" -> {
                     if (matcher.group(4) == null)
@@ -59,13 +62,16 @@ public class ConfigurationParser {
                     double acceleration = matcher.group(4).equals("acceleration") ?
                             Double.parseDouble(propertyValue) :
                             mode.wheel().acceleration();
+                    double initialVelocity = matcher.group(4).equals("initial-velocity") ?
+                            Double.parseDouble(propertyValue) :
+                            mode.wheel().initialVelocity();
                     double maxVelocity = matcher.group(4).equals("max-velocity") ?
                             Double.parseDouble(propertyValue) :
                             mode.wheel().maxVelocity();
                     modeByName.put(modeName,
                             new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                    new Wheel(acceleration, maxVelocity), mode.timeout(),
-                                    mode.indicator()));
+                                    new Wheel(initialVelocity, maxVelocity, acceleration),
+                                    mode.timeout(), mode.indicator()));
                 }
                 case "to" -> {
                     if (matcher.group(4) == null)
@@ -225,8 +231,8 @@ public class ConfigurationParser {
     }
 
     private static Mode newMode(String modeName) {
-        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(40, 1000),
-                new Wheel(750, 1500), null,
+        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(200, 1000, 1500),
+                new Wheel(500, 1000, 500), null,
                 new Indicator(false, null, null, null, null, null));
     }
 
