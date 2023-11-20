@@ -19,11 +19,11 @@ public record Combo(List<ComboMove> moves) {
             throw new IllegalArgumentException("Empty combo: " + string);
         List<ComboMove> moves = new ArrayList<>();
         for (String moveName : moveNames) {
-            Matcher matcher = Pattern.compile("([_^\\-])([a-z]+)((\\d+)-(\\d+))?")
+            Matcher matcher = Pattern.compile("([+\\-#])([a-z]+)((\\d+)-(\\d+))?")
                                      .matcher(moveName);
             if (!matcher.matches())
                 throw new IllegalArgumentException("Invalid move: " + moveName);
-            boolean press = !moveName.startsWith("^");
+            boolean press = !moveName.startsWith("-");
             ComboMoveDuration moveDuration;
             if (matcher.group(3) == null)
                 moveDuration = defaultMoveDuration;
@@ -37,7 +37,7 @@ public record Combo(List<ComboMove> moves) {
                 throw new IllegalArgumentException("Invalid key: " + keyName);
             ComboMove move;
             if (press) {
-                boolean eventMustBeEaten = moveName.startsWith("_");
+                boolean eventMustBeEaten = moveName.startsWith("+");
                 move = new PressComboMove(key, eventMustBeEaten, moveDuration);
             }
             else

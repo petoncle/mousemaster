@@ -20,7 +20,7 @@ public sealed interface KeyEvent {
         @Override
         public String toString() {
             // Does not include time.
-            return "_" + key.keyName();
+            return "+" + key.keyName();
         }
     }
 
@@ -28,7 +28,7 @@ public sealed interface KeyEvent {
         @Override
         public String toString() {
             // Does not include time.
-            return "^" + key.keyName();
+            return "-" + key.keyName();
         }
     }
 

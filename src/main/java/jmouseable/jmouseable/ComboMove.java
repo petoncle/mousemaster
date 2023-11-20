@@ -17,7 +17,7 @@ public sealed interface ComboMove {
             implements ComboMove {
         @Override
         public String toString() {
-            return (eventMustBeEaten ? "_" : "-") + key.keyName();
+            return (eventMustBeEaten ? "+" : "#") + key.keyName();
         }
 
     }
@@ -25,7 +25,7 @@ public sealed interface ComboMove {
     record ReleaseComboMove(Key key, ComboMoveDuration duration) implements ComboMove {
         @Override
         public String toString() {
-            return "^" + key.keyName();
+            return "-" + key.keyName();
         }
 
     }

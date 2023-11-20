@@ -140,15 +140,15 @@ public class ComboWatcher {
 
     /**
      * Assuming the following configuration:
-     * - _up: start move up
-     * - ^up|_up ^up _up: stop move up
-     * - _up ^up _up: start wheel up
+     * - +up: start move up
+     * - -up|+up -up +up: stop move up
+     * - +up -up +up: start wheel up
      * When up is pressed, the move starts. Then, when up is released then pressed,
      * the wheel starts.
      * The 3 combos are completed, but we ultimately want the move to stop,
-     * i.e. the stop move command (_up ^up _up) should be run after the
-     * start move command (_up).
-     * Also deduplicate commands: if start-move-up is _up|;_rightctrl _up: holding rightctrl
+     * i.e. the stop move command (+up -up +up) should be run after the
+     * start move command (+up).
+     * Also deduplicate commands: if start-move-up is +up|#rightctrl +up: holding rightctrl
      * then up should not trigger two commands.
      */
     private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
