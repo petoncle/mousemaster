@@ -9,9 +9,9 @@ public record ComboPreparation(List<KeyEvent> events) {
         return new ComboPreparation(new ArrayList<>());
     }
 
-    public int matchingMoveCount(Combo combo) {
+    public int matchingMoveCount(ComboSequence sequence) {
         List<KeyEvent> preparationEvents = events;
-        List<ComboMove> comboMoves = combo.moves();
+        List<ComboMove> comboMoves = sequence.moves();
         sub_combos_loop:
         for (int subComboMoveCount = comboMoves.size(); subComboMoveCount >= 1;
              subComboMoveCount--) {

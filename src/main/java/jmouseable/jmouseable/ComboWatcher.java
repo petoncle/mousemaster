@@ -24,6 +24,7 @@ public class ComboWatcher {
      * be completed, or be interrupted ({@link #interrupt()}, or the non-eaten pressed key must be released.
      */
     private Map<Key, Set<Combo>> focusedCombos = new HashMap<>();
+    private Set<Key> currentlyPressedComboKeys = new HashSet<>();
 
     public ComboWatcher(ModeManager modeManager, CommandRunner commandRunner) {
         this.modeManager = modeManager;
@@ -67,11 +68,26 @@ public class ComboWatcher {
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
             Combo combo = entry.getKey();
-            int matchingMoveCount = comboPreparation.matchingMoveCount(combo);
-            if (matchingMoveCount != 0) {
+            ComboAndCommands comboAndCommands =
+                    new ComboAndCommands(combo, entry.getValue());
+            int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
+            if (matchingMoveCount == 0) {
+                if (combo.sequence().moves().isEmpty() &&
+                    !combo.mustNotBePressedKeySets().isEmpty()) {
+                    if (mustNotBePressedKeySetsAreNotPressed(combo)) {
+                        comboAndCommandsToRun.add(comboAndCommands);
+                    }
+                }
+            }
+            else {
                 if (!allFocusedCombos.isEmpty() && !allFocusedCombos.contains(combo))
                     continue;
-                ComboMove currentMove = combo.moves().get(matchingMoveCount - 1);
+                if (!combo.mustNotBePressedKeySets().isEmpty()) {
+                    if (!mustNotBePressedKeySetsAreNotPressed(combo))
+                        continue;
+                }
+                ComboMove currentMove =
+                        combo.sequence().moves().get(matchingMoveCount - 1);
                 boolean currentMoveMustBeEaten =
                         currentMove instanceof PressComboMove pressComboMove &&
                         pressComboMove.eventMustBeEaten();
@@ -95,13 +111,12 @@ public class ComboWatcher {
                                 currentMove.duration().max());
                 }
             }
-            boolean preparationComplete = matchingMoveCount == combo.moves().size();
+            boolean preparationComplete =
+                    matchingMoveCount == combo.sequence().moves().size();
             if (!preparationComplete)
                 continue;
             focusedCombos.values().forEach(combos -> combos.remove(combo));
-            ComboAndCommands comboAndCommands =
-                    new ComboAndCommands(combo, entry.getValue());
-            ComboMove comboLastMove = combo.moves().getLast();
+            ComboMove comboLastMove = combo.sequence().moves().getLast();
             if (!comboLastMove.duration().min().equals(Duration.ZERO)) {
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(comboAndCommands,
@@ -125,6 +140,15 @@ public class ComboWatcher {
             if (event.isRelease())
                 focusedCombos.remove(event.key());
         }
+        else {
+            if (event.isPress())
+                currentlyPressedComboKeys.add(event.key());
+        }
+        if (event.isRelease()) {
+            // The corresponding press event was part of a combo otherwise this method would
+            // not have been called.
+            currentlyPressedComboKeys.remove(event.key());
+        }
         focusedCombos.remove(event.key());
         // Remove focused combos that are not in the new mode (if mode was changed),
         // as they will not be completed anymore.
@@ -136,6 +160,17 @@ public class ComboWatcher {
         }
         return event.isRelease() ? null :
                 PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
+    }
+
+    /**
+     * Returns true if the constraint is satisfied.
+     */
+    private boolean mustNotBePressedKeySetsAreNotPressed(Combo combo) {
+        for (Set<Key> mustNotBePressedKeySet : combo.mustNotBePressedKeySets()) {
+            if (currentlyPressedComboKeys.containsAll(mustNotBePressedKeySet))
+                return false;
+        }
+        return true;
     }
 
     /**
@@ -154,8 +189,10 @@ public class ComboWatcher {
     private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
         return commandsToRun.stream()
                             .sorted(Comparator.comparing(ComboAndCommands::combo,
-                                    Comparator.comparing(Combo::moves,
-                                            Comparator.comparingInt(List::size))))
+                                    Comparator.comparing(Combo::sequence,
+                                            Comparator.comparingInt(
+                                                    sequence -> sequence.moves()
+                                                                        .size()))))
                             .map(ComboAndCommands::commands)
                             .flatMap(Collection::stream)
                             .distinct()
@@ -170,6 +207,7 @@ public class ComboWatcher {
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
         focusedCombos.clear();
+        currentlyPressedComboKeys.clear();
     }
 
     private static final class ComboWaitingForLastMoveToComplete {

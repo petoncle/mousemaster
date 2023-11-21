@@ -1,61 +1,76 @@
 package jmouseable.jmouseable;
 
-import jmouseable.jmouseable.ComboMove.PressComboMove;
-import jmouseable.jmouseable.ComboMove.ReleaseComboMove;
-
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public record Combo(List<ComboMove> moves) {
+public record Combo(Set<Set<Key>> mustNotBePressedKeySets, ComboSequence sequence) {
 
     public static Combo of(String string, ComboMoveDuration defaultMoveDuration) {
-        String[] moveNames = string.split("\\s+");
-        if (moveNames.length == 0)
-            throw new IllegalArgumentException("Empty combo: " + string);
-        List<ComboMove> moves = new ArrayList<>();
-        for (String moveName : moveNames) {
-            Matcher matcher = Pattern.compile("([+\\-#])([a-z]+)((\\d+)-(\\d+))?")
-                                     .matcher(moveName);
-            if (!matcher.matches())
-                throw new IllegalArgumentException("Invalid move: " + moveName);
-            boolean press = !moveName.startsWith("-");
-            ComboMoveDuration moveDuration;
-            if (matcher.group(3) == null)
-                moveDuration = defaultMoveDuration;
-            else
-                moveDuration = new ComboMoveDuration(
-                        Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(4))),
-                        Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(5))));
-            String keyName = matcher.group(2);
-            Key key = Key.keyByName.get(keyName);
-            if (key == null)
-                throw new IllegalArgumentException("Invalid key: " + keyName);
-            ComboMove move;
-            if (press) {
-                boolean eventMustBeEaten = moveName.startsWith("+");
-                move = new PressComboMove(key, eventMustBeEaten, moveDuration);
-            }
-            else
-                move = new ReleaseComboMove(key, moveDuration);
-            moves.add(move);
+        Matcher mustNotBePressedKeySetsMatcher =
+                Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
+        Set<Set<Key>> mustNotBePressedKeySets;
+        String sequenceString;
+        if (mustNotBePressedKeySetsMatcher.find()) {
+            String mustNotBePressedKeySetsString = mustNotBePressedKeySetsMatcher.group(1);
+            mustNotBePressedKeySets =
+                    parseKeySets(mustNotBePressedKeySetsString);
+            sequenceString = string.substring(mustNotBePressedKeySetsMatcher.end());
         }
-        return new Combo(List.copyOf(moves));
+        else {
+            mustNotBePressedKeySets = Set.of();
+            sequenceString = string;
+        }
+        ComboSequence sequence = ComboSequence.parseSequence(sequenceString, defaultMoveDuration);
+        if (mustNotBePressedKeySets.isEmpty() && sequence.moves().isEmpty())
+            throw new IllegalArgumentException("Empty combo: " + string);
+        return new Combo(mustNotBePressedKeySets, sequence);
+    }
+
+    private static Set<Set<Key>> parseKeySets(String keySetsString) {
+        String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
+        return Arrays.stream(keySetStrings)
+                     .map(Combo::parseKeySet)
+                     .collect(Collectors.toSet());
+    }
+
+    private static Set<Key> parseKeySet(String keySetString) {
+        String[] keyStrings = keySetString.split("\\s+");
+        return Arrays.stream(keyStrings)
+                     .map(ComboSequence::parseKey)
+                     .collect(Collectors.toSet());
     }
 
     public static List<Combo> multiCombo(String multiComboString,
                                          ComboMoveDuration defaultMoveDuration) {
-        return Arrays.stream(multiComboString.split("\\s*\\|\\s*"))
-                     .map(string -> of(string, defaultMoveDuration))
-                     .toList();
+        // One combo is: ^{key|...} move ...
+        // Two combos: ^{key|...} move ... | ^{key|...} move ...
+        Matcher matcher = Pattern.compile("(\\^\\{[^}]+\\})?[^\\^{}|]+").matcher(multiComboString);
+        List<Combo> combos = new ArrayList<>();
+        while (matcher.find())
+            combos.add(of(matcher.group(0), defaultMoveDuration));
+        if (combos.isEmpty())
+            throw new IllegalArgumentException(
+                    "Invalid multi-combo: " + multiComboString);
+        return List.copyOf(combos);
     }
 
     @Override
     public String toString() {
-        return moves.stream().map(Object::toString).collect(Collectors.joining(" "));
+        return (mustNotBePressedKeySets.isEmpty() ? "" : "^{" + mustNotBePressedKeySets.stream()
+                                                                                       .map(keySet -> keySet.stream()
+                                                                                                .map(Key::keyName)
+                                                                                                .collect(
+                                                                                                        Collectors.joining(
+                                                                                                                " ")))
+                                                                                       .collect(
+                                                                                   Collectors.joining(
+                                                                                           "|")) +
+                                                         "} ") + sequence;
     }
+
 }
