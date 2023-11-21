@@ -8,6 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class WindowsHook {
 
@@ -23,6 +28,7 @@ public class WindowsHook {
     private final MouseManager mouseManager;
     private final KeyboardManager keyboardManager;
     private final Ticker ticker;
+    private final Map<Key, AtomicReference<Double>> currentlyPressedKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
     /**
@@ -87,8 +93,42 @@ public class WindowsHook {
             long deltaNanos = currentNanoTime - previousNanoTime;
             previousNanoTime = currentNanoTime;
             double delta = deltaNanos / 1e9d;
+            sanityCheckCurrentlyPressedKeys(delta);
             ticker.update(delta);
             Thread.sleep(10L);
+        }
+    }
+
+    /**
+     * On the Windows lock screen, hit space then enter the pin. Space press is recorded by the app but the
+     * corresponding release is never received. That is why we need to double-check if the key is still pressed
+     * with GetAsyncKeyState.
+     * Sometimes, it is the Win key (from Win + L) for which we do not receive the release event.
+     */
+    private void sanityCheckCurrentlyPressedKeys(double delta) {
+        for (AtomicReference<Double> pressDuration : currentlyPressedKeys.values())
+            pressDuration.set(pressDuration.get() + delta);
+        Set<Key> keysThatDoNotSeemToBePressedAnymore = new HashSet<>();
+        for (Map.Entry<Key, AtomicReference<Double>> entry : currentlyPressedKeys.entrySet()) {
+            Key key = entry.getKey();
+            AtomicReference<Double> pressDuration = entry.getValue();
+            if (pressDuration.get() < 10)
+                continue;
+            short getAsyncKeyStateResult = User32.INSTANCE.GetAsyncKeyState(
+                    WindowsVirtualKey.windowsVirtualKeyFromKey(key).virtualKeyCode);
+            boolean pressed = (getAsyncKeyStateResult & 0x8000) != 0;
+            if (!pressed)
+                keysThatDoNotSeemToBePressedAnymore.add(key);
+            else
+                // The key was legitimately pressed for 10s.
+                pressDuration.set(0d);
+        }
+        if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
+            logger.info(
+                    "Resetting KeyManager since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
+                    keysThatDoNotSeemToBePressedAnymore);
+            currentlyPressedKeys.clear();
+            keyboardManager.reset();
         }
     }
 
@@ -147,12 +187,15 @@ public class WindowsHook {
 
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info, String wParamString) {
         if (keyEvent.isPress()) {
+            if (!currentlyPressedKeys.containsKey(keyEvent.key()))
+                currentlyPressedKeys.put(keyEvent.key(), new AtomicReference<>(0d));
             if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
                 keyboardManager.allCurrentlyPressedArePartOfCombo()) {
                 logKeyEvent(keyEvent, info, wParamString);
             }
         }
         else {
+            currentlyPressedKeys.remove(keyEvent.key());
             if (keyboardManager.currentlyPressed(keyEvent.key()))
                 logKeyEvent(keyEvent, info, wParamString);
         }

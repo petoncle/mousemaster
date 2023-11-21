@@ -21,12 +21,16 @@ public class KeyboardManager {
     public void update(double delta) {
         if (delta > 10) {
             logger.info("Tick took " + delta + "s, skipping update, clearing currentlyPressedKeys, and interrupting combos");
-            currentlyPressedKeys.clear();
-            comboWatcher.interrupt();
+            reset();
         }
         else {
             comboWatcher.update(delta);
         }
+    }
+
+    public void reset() {
+        currentlyPressedKeys.clear();
+        comboWatcher.interrupt();
     }
 
     public boolean keyEvent(KeyEvent keyEvent) {
