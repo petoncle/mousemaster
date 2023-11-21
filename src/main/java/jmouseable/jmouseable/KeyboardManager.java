@@ -55,7 +55,7 @@ public class KeyboardManager {
             if (processing != null) {
                 if (processing.partOfCombo()) {
                     comboWatcher.keyEvent(keyEvent); // Returns null.
-                    // Only a released event corresponding to pressed event that was eaten must be eaten.
+                    // Only a released event corresponding to a pressed event that was eaten should be eaten.
                     return processing.mustBeEaten();
                 }
                 else {

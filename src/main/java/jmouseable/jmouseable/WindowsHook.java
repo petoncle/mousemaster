@@ -28,7 +28,7 @@ public class WindowsHook {
     private final MouseManager mouseManager;
     private final KeyboardManager keyboardManager;
     private final Ticker ticker;
-    private final Map<Key, AtomicReference<Double>> currentlyPressedKeys = new HashMap<>();
+    private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
     /**
@@ -104,12 +104,17 @@ public class WindowsHook {
      * corresponding release is never received. That is why we need to double-check if the key is still pressed
      * with GetAsyncKeyState.
      * Sometimes, it is the Win key (from Win + L) for which we do not receive the release event.
+     * getAsyncKeyStateResult is not working the way I expected: it returns not pressed for keys pressed
+     * after other keys: press left button, then move mouse: the key for press left shows as not pressed
+     * according to getAsyncKeyStateResult. That is why we consider not eaten keys only.
+     * The getAsyncKeyStateResult call could probably be taken out (it is useless) and replaced with
+     * a simple 10s expiration time.
      */
     private void sanityCheckCurrentlyPressedKeys(double delta) {
-        for (AtomicReference<Double> pressDuration : currentlyPressedKeys.values())
+        for (AtomicReference<Double> pressDuration : currentlyPressedNotEatenKeys.values())
             pressDuration.set(pressDuration.get() + delta);
         Set<Key> keysThatDoNotSeemToBePressedAnymore = new HashSet<>();
-        for (Map.Entry<Key, AtomicReference<Double>> entry : currentlyPressedKeys.entrySet()) {
+        for (Map.Entry<Key, AtomicReference<Double>> entry : currentlyPressedNotEatenKeys.entrySet()) {
             Key key = entry.getKey();
             AtomicReference<Double> pressDuration = entry.getValue();
             if (pressDuration.get() < 10)
@@ -127,7 +132,7 @@ public class WindowsHook {
             logger.info(
                     "Resetting KeyManager and MouseManager since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     keysThatDoNotSeemToBePressedAnymore);
-            currentlyPressedKeys.clear();
+            currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
             mouseManager.reset();
         }
@@ -188,19 +193,22 @@ public class WindowsHook {
 
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info, String wParamString) {
         if (keyEvent.isPress()) {
-            if (!currentlyPressedKeys.containsKey(keyEvent.key()))
-                currentlyPressedKeys.put(keyEvent.key(), new AtomicReference<>(0d));
             if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
                 keyboardManager.allCurrentlyPressedArePartOfCombo()) {
                 logKeyEvent(keyEvent, info, wParamString);
             }
         }
         else {
-            currentlyPressedKeys.remove(keyEvent.key());
+            currentlyPressedNotEatenKeys.remove(keyEvent.key());
             if (keyboardManager.currentlyPressed(keyEvent.key()))
                 logKeyEvent(keyEvent, info, wParamString);
         }
-        return keyboardManager.keyEvent(keyEvent);
+        boolean mustBeEaten = keyboardManager.keyEvent(keyEvent);
+        if (keyEvent.isPress() && !mustBeEaten) {
+            currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
+                    key -> new AtomicReference<>(0d)).set(0d);
+        }
+        return mustBeEaten;
     }
 
     private static void logKeyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
