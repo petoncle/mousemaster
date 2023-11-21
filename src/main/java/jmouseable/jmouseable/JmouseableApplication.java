@@ -15,7 +15,9 @@ public class JmouseableApplication {
                 ConfigurationParser.parse(Paths.get("jmouseable.properties"));
         String defaultModeName = Mode.NORMAL_MODE_NAME;
         Mode currentMode = configuration.modeMap().get(defaultModeName);
-        MouseManager mouseManager = new MouseManager(currentMode.mouse(), currentMode.wheel());
+        MouseManager mouseManager =
+                new MouseManager(currentMode.mouse(), currentMode.wheel(),
+                        currentMode.attach());
         ModeManager modeManager = new ModeManager(configuration.modeMap(), mouseManager);
         modeManager.changeMode(defaultModeName);
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseManager);

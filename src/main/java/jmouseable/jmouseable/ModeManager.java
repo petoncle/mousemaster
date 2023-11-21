@@ -51,6 +51,7 @@ public class ModeManager {
             resetCurrentModeRemainingDuration();
         mouseManager.changeMouse(newMode.mouse());
         mouseManager.changeWheel(newMode.wheel());
+        mouseManager.changeAttach(newMode.attach());
     }
 
     private void resetCurrentModeRemainingDuration() {

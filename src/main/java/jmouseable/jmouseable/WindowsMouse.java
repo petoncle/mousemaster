@@ -85,37 +85,45 @@ public class WindowsMouse {
         User32.INSTANCE.SendInput(nInputs, pInputs, size);
     }
 
-    public static void attachUp() {
-        WinDef.POINT mousePosition = mousePosition();
-        mousePosition.y = 0;
-        setMousePosition(mousePosition);
+    public static void attachUp(Attach attach) {
+        attach(false, false, attach);
     }
 
-    public static void attachDown() {
-        WinDef.POINT mousePosition = mousePosition();
-        int screenHeight = User32.INSTANCE.GetSystemMetrics(1);
-        mousePosition.y = screenHeight;
-        setMousePosition(mousePosition);
+    public static void attachDown(Attach attach) {
+        attach(false, true, attach);
     }
 
-    public static void attachLeft() {
-        WinDef.POINT mousePosition = mousePosition();
-        mousePosition.x = 0;
-        setMousePosition(mousePosition);
+    public static void attachLeft(Attach attach) {
+        attach(true, false, attach);
     }
 
-    public static void attachRight() {
+    public static void attachRight(Attach attach) {
+        attach(true, true, attach);
+    }
+
+    private static void attach(boolean horizontal, boolean forward, Attach attach) {
         WinDef.POINT mousePosition = mousePosition();
-        int screenWidth = User32.INSTANCE.GetSystemMetrics(0);
-        mousePosition.x = screenWidth;
+        WinUser.MONITORINFO monitorInfo =
+                WindowsIndicator.findCurrentMonitorPosition(mousePosition);
+        int rowWidth = (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) /
+                       attach.gridRowCount();
+        int columnHeight = (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) /
+                           attach.gridColumnCount();
+        double mouseRow = (double) mousePosition.x / rowWidth;
+        double mouseColumn = (double) mousePosition.y / columnHeight;
+        if (horizontal)
+            mousePosition.x = (int) ((forward ? Math.floor(mouseRow) + 1 :
+                    Math.ceil(mouseRow) - 1) * rowWidth);
+        else
+            mousePosition.y = (int) ((forward ? Math.floor(mouseColumn) + 1 :
+                    Math.ceil(mouseColumn) - 1) * columnHeight);
         setMousePosition(mousePosition);
     }
 
     private static WinDef.POINT mousePosition() {
         ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
         ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo);
-        WinDef.POINT mousePosition = cursorInfo.ptScreenPos;
-        return mousePosition;
+        return cursorInfo.ptScreenPos;
     }
 
     private static boolean setMousePosition(WinDef.POINT mousePosition) {

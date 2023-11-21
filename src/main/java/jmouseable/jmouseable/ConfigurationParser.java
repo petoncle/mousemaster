@@ -53,7 +53,8 @@ public class ConfigurationParser {
                             mode.mouse().acceleration();
                     modeByName.put(modeName, new Mode(modeName, mode.comboMap(),
                             new Mouse(initialVelocity, maxVelocity, acceleration),
-                            mode.wheel(), mode.timeout(), mode.indicator()));
+                            mode.wheel(), mode.attach(), mode.timeout(),
+                            mode.indicator()));
                 }
                 case "wheel" -> {
                     if (matcher.group(4) == null)
@@ -71,7 +72,21 @@ public class ConfigurationParser {
                     modeByName.put(modeName,
                             new Mode(modeName, mode.comboMap(), mode.mouse(),
                                     new Wheel(initialVelocity, maxVelocity, acceleration),
-                                    mode.timeout(), mode.indicator()));
+                                    mode.attach(), mode.timeout(), mode.indicator()));
+                }
+                case "attach" -> {
+                    if (matcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid attach configuration: " + propertyKey);
+                    int gridRowCount = matcher.group(4).equals("grid-row-count") ?
+                            Integer.parseUnsignedInt(propertyValue) :
+                            mode.attach().gridRowCount();
+                    int gridColumnCount = matcher.group(4).equals("grid-row-count") ?
+                            Integer.parseUnsignedInt(propertyValue) :
+                            mode.attach().gridColumnCount();
+                    modeByName.put(modeName,
+                            new Mode(modeName, mode.comboMap(), mode.mouse(), mode.wheel(),
+                                    new Attach(gridRowCount, gridColumnCount), mode.timeout(), mode.indicator()));
                 }
                 case "to" -> {
                     if (matcher.group(4) == null)
@@ -101,7 +116,8 @@ public class ConfigurationParser {
                         modeNameReferences.add(modeTimeout.nextModeName());
                     modeByName.put(modeName,
                             new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                    mode.wheel(), modeTimeout, mode.indicator()));
+                                    mode.wheel(), mode.attach(), modeTimeout,
+                                    mode.indicator()));
                 }
                 case "indicator" -> {
                     if (matcher.group(4) == null)
@@ -160,7 +176,8 @@ public class ConfigurationParser {
                     };
                     modeByName.put(modeName,
                             new Mode(modeName, mode.comboMap(), mode.mouse(),
-                                    mode.wheel(), mode.timeout(), indicator));
+                                    mode.wheel(), mode.attach(), mode.timeout(),
+                                    indicator));
                 }
                 // @formatter:off
                     case "start-move-up" -> addCommand(commandsByCombo, propertyValue, new StartMoveUp(), defaultComboMoveDuration);
@@ -236,9 +253,9 @@ public class ConfigurationParser {
     }
 
     private static Mode newMode(String modeName) {
-        return new Mode(modeName, new ComboMap(new HashMap<>()), new Mouse(200, 1000, 1500),
-                new Wheel(500, 1000, 500), null,
-                new Indicator(false, null, null, null, null, null));
+        return new Mode(modeName, new ComboMap(new HashMap<>()),
+                new Mouse(200, 1000, 1500), new Wheel(500, 1000, 500), new Attach(1, 1),
+                null, new Indicator(false, null, null, null, null, null));
     }
 
     private static void addCommand(Map<Combo, List<Command>> commandsByCombo,

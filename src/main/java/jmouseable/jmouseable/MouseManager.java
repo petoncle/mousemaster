@@ -7,6 +7,7 @@ public class MouseManager {
 
     private Mouse mouse;
     private Wheel wheel;
+    private Attach attach;
     private double x, y;
     private double moveDuration;
     // Forward means right or down.
@@ -17,9 +18,10 @@ public class MouseManager {
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
 
-    public MouseManager(Mouse mouse, Wheel wheel) {
+    public MouseManager(Mouse mouse, Wheel wheel, Attach attach) {
         this.mouse = mouse;
         this.wheel = wheel;
+        this.attach = attach;
     }
 
     public void changeMouse(Mouse mouse) {
@@ -28,6 +30,10 @@ public class MouseManager {
 
     public void changeWheel(Wheel wheel) {
         this.wheel = wheel;
+    }
+
+    public void changeAttach(Attach attach) {
+        this.attach = attach;
     }
 
     public boolean moving() {
@@ -208,19 +214,19 @@ public class MouseManager {
     }
 
     public void attachUp() {
-        WindowsMouse.attachUp();
+        WindowsMouse.attachUp(attach);
     }
 
     public void attachDown() {
-        WindowsMouse.attachDown();
+        WindowsMouse.attachDown(attach);
     }
 
     public void attachLeft() {
-        WindowsMouse.attachLeft();
+        WindowsMouse.attachLeft(attach);
     }
 
     public void attachRight() {
-        WindowsMouse.attachRight();
+        WindowsMouse.attachRight(attach);
     }
 
 }

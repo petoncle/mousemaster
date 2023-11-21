@@ -148,7 +148,7 @@ public class WindowsIndicator {
         throw new IllegalStateException();
     }
 
-    private static WinUser.MONITORINFO findCurrentMonitorPosition(
+    public static WinUser.MONITORINFO findCurrentMonitorPosition(
             WinDef.POINT mousePosition) {
         WinUser.HMONITOR hMonitor = User32.INSTANCE.MonitorFromPoint(
                 new WinDef.POINT.ByValue(mousePosition.getPointer()),
