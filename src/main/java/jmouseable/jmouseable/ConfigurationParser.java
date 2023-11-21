@@ -26,7 +26,7 @@ public class ConfigurationParser {
             }
             String propertyKey = line.split("=")[0];
             String propertyValue = line.split("=")[1];
-            if (propertyKey.equals("default-combo-move-duration")) {
+            if (propertyKey.equals("default-combo-move-duration-millis")) {
                 defaultComboMoveDuration = parseComboMoveDuration(propertyValue);
                 continue;
             }

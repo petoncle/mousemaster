@@ -49,6 +49,8 @@ _shift,^shift = press shift, release shift?
   this combo (+rightctrl) starts
 + teleport key should use current display size percentage
 + getkeystate to reset pressed keys after 10s
+ + On windows lock screen, I hit space then enter the pin. Space press is recorded by the app but the
+   corresponding release is never received, never removed from currentlyPressedKeys. This blocks the app.
 + toggle logging?
 + vimium-like hint (warpd), keynav-like grid?
 + position history
