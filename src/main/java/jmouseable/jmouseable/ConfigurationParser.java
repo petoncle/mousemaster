@@ -190,6 +190,11 @@ public class ConfigurationParser {
                     case "stop-wheel-down" -> addCommand(commandsByCombo, propertyValue, new StopWheelDown(), defaultComboMoveDuration);
                     case "stop-wheel-left" -> addCommand(commandsByCombo, propertyValue, new StopWheelLeft(), defaultComboMoveDuration);
                     case "stop-wheel-right" -> addCommand(commandsByCombo, propertyValue, new StopWheelRight(), defaultComboMoveDuration);
+
+                    case "attach-up" -> addCommand(commandsByCombo, propertyValue, new AttachUp(), defaultComboMoveDuration);
+                    case "attach-down" -> addCommand(commandsByCombo, propertyValue, new AttachDown(), defaultComboMoveDuration);
+                    case "attach-left" -> addCommand(commandsByCombo, propertyValue, new AttachLeft(), defaultComboMoveDuration);
+                    case "attach-right" -> addCommand(commandsByCombo, propertyValue, new AttachRight(), defaultComboMoveDuration);
                     // @formatter:on
                 default -> throw new IllegalArgumentException(
                         "Invalid configuration: " + propertyKey);

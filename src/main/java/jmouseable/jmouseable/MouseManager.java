@@ -207,4 +207,20 @@ public class MouseManager {
             wheelDuration = 0;
     }
 
+    public void attachUp() {
+        WindowsMouse.attachUp();
+    }
+
+    public void attachDown() {
+        WindowsMouse.attachDown();
+    }
+
+    public void attachLeft() {
+        WindowsMouse.attachLeft();
+    }
+
+    public void attachRight() {
+        WindowsMouse.attachRight();
+    }
+
 }

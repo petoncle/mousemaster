@@ -85,4 +85,42 @@ public class WindowsMouse {
         User32.INSTANCE.SendInput(nInputs, pInputs, size);
     }
 
+    public static void attachUp() {
+        WinDef.POINT mousePosition = mousePosition();
+        mousePosition.y = 0;
+        setMousePosition(mousePosition);
+    }
+
+    public static void attachDown() {
+        WinDef.POINT mousePosition = mousePosition();
+        int screenHeight = User32.INSTANCE.GetSystemMetrics(1);
+        mousePosition.y = screenHeight;
+        setMousePosition(mousePosition);
+    }
+
+    public static void attachLeft() {
+        WinDef.POINT mousePosition = mousePosition();
+        mousePosition.x = 0;
+        setMousePosition(mousePosition);
+    }
+
+    public static void attachRight() {
+        WinDef.POINT mousePosition = mousePosition();
+        int screenWidth = User32.INSTANCE.GetSystemMetrics(0);
+        mousePosition.x = screenWidth;
+        setMousePosition(mousePosition);
+    }
+
+    private static WinDef.POINT mousePosition() {
+        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
+        ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo);
+        WinDef.POINT mousePosition = cursorInfo.ptScreenPos;
+        return mousePosition;
+    }
+
+    private static boolean setMousePosition(WinDef.POINT mousePosition) {
+        WindowsIndicator.mouseMoved(mousePosition);
+        return User32.INSTANCE.SetCursorPos(mousePosition.x, mousePosition.y);
+    }
+
 }

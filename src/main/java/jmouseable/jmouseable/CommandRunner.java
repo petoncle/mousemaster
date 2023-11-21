@@ -44,6 +44,11 @@ public class CommandRunner {
             case StopWheelDown stopWheelDown -> mouseManager.stopWheelDown();
             case StopWheelLeft stopWheelLeft -> mouseManager.stopWheelLeft();
             case StopWheelRight stopWheelRight -> mouseManager.stopWheelRight();
+
+            case AttachUp attachUp -> mouseManager.attachUp();
+            case AttachDown attachDown -> mouseManager.attachDown();
+            case AttachLeft attachLeft -> mouseManager.attachLeft();
+            case AttachRight attachRight -> mouseManager.attachRight();
             // @formatter:on
         }
     }
