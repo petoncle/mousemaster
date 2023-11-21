@@ -22,7 +22,7 @@ public class IndicatorManager {
 
     private String indicatorHexColor() {
         Indicator indicator = modeManager.currentMode().indicator();
-        if (keyboardManager.pressingNonHandledKey())
+        if (keyboardManager.pressingNonHandledKey() && indicator.nonComboKeyPressHexColor() != null)
             return indicator.nonComboKeyPressHexColor();
         if (mouseManager.pressing() && indicator.mousePressHexColor() != null)
             return indicator.mousePressHexColor();
