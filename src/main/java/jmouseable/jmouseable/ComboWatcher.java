@@ -73,8 +73,8 @@ public class ComboWatcher {
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
             if (matchingMoveCount == 0) {
                 if (combo.sequence().moves().isEmpty() &&
-                    !combo.mustNotBePressedKeySets().isEmpty()) {
-                    if (mustNotBePressedKeySetsAreNotPressed(combo)) {
+                    !combo.precondition().isEmpty()) {
+                    if (combo.precondition().satisfied(currentlyPressedComboKeys)) {
                         comboAndCommandsToRun.add(comboAndCommands);
                     }
                 }
@@ -82,8 +82,8 @@ public class ComboWatcher {
             else {
                 if (!allFocusedCombos.isEmpty() && !allFocusedCombos.contains(combo))
                     continue;
-                if (!combo.mustNotBePressedKeySets().isEmpty()) {
-                    if (!mustNotBePressedKeySetsAreNotPressed(combo))
+                if (!combo.precondition().isEmpty()) {
+                    if (!combo.precondition().satisfied(currentlyPressedComboKeys))
                         continue;
                 }
                 ComboMove currentMove =
@@ -160,17 +160,6 @@ public class ComboWatcher {
         }
         return event.isRelease() ? null :
                 PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
-    }
-
-    /**
-     * Returns true if the constraint is satisfied.
-     */
-    private boolean mustNotBePressedKeySetsAreNotPressed(Combo combo) {
-        for (Set<Key> mustNotBePressedKeySet : combo.mustNotBePressedKeySets()) {
-            if (currentlyPressedComboKeys.containsAll(mustNotBePressedKeySet))
-                return false;
-        }
-        return true;
     }
 
     /**
