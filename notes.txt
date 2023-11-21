@@ -1,51 +1,55 @@
 _shift,^shift = press shift, release shift?
-+ begin when key down, end when key up?
- + <mode>.<action> = <key combo>
- + normal-mode.to.mouse-mode=_ctrl,^ctrl,_ctrl,^ctrl
- + mouse-mode.to.temp-mouse-mode=_ctrl,^ctrl
- + temp-mouse-mode.to.normal-mode=_ctrl,^ctrl
- + mouse-mode.press-left=_shift
- + mouse-mode.release-left=^shift
- + mouse-mode.start-move-left=_leftarrow
- + mouse-mode.stop-move-left=^leftarrow
- + mouse-mode.mouse-acceleration, wheel.acceleration
- + mouse-mode.indicator.color=red
-+ temp-mouse-mode.timeout.duration=1s # automatically changes mode if no key combo was detected during 1s and no action is currently running (e.g. move-up)
-+ temp-mouse-mode.timeout.next-mode=normal-mode
-+ temp-mouse-mode.oneshot.next-mode=normal-mode # once an action has run (e.g. move-up), mode changes automatically
-+ Can assign multiple combo to same action
- + mouse-mode.press-left=_lshift
- + mouse-mode.press-left=_rshift
-+ Can assign one combo to multiple actions
- + normal-mode.to.mouse-mode=_leftarrow,^leftarrow,_leftarrow
- + normal-mode.start-move-left=_leftarrow,^leftarrow,_leftarrow
-+ Non-last keys involved in a combo should not be eaten
- + Reason is Up, Up: if only press single up, the Up,Up combo should not eat the first Up
- + The last key event of the combo should be eaten
- + In _ctrl,_/ the / should be eaten only if ctrl was pressed (i.e. combo is being prepared)
- + Ctrl+A,B == _ctrl _a ^ctrl ^a _b and _ctrl _a ^a ^ctrl _b
- + Could do complex combo like hold ctrl, then a, then a again: _ctrl _a ^a _a ^a
- + combo timeout = time after which we stop waiting for a combo to be completed (150ms,?)
- + A combo has to be non-interrupted (no unknown key presses), with at most 150ms between keys
-  + Large timeout to allow Ctrl, wait, Z. Or special __ctrl to indicate no timeout. Or no timeout at all?
-+ Should a keyevent unrelated to a combo break the combo preparation? Yes.
- + Released event cannot be eaten if Pressed event was not eaten, otherwise apps will bug
+- begin when key down, end when key up?
+ - <mode>.<action> = <key combo>
+ - normal-mode.to.mouse-mode=_ctrl,^ctrl,_ctrl,^ctrl
+ - mouse-mode.to.temp-mouse-mode=_ctrl,^ctrl
+ - temp-mouse-mode.to.normal-mode=_ctrl,^ctrl
+ - mouse-mode.press-left=_shift
+ - mouse-mode.release-left=^shift
+ - mouse-mode.start-move-left=_leftarrow
+ - mouse-mode.stop-move-left=^leftarrow
+ - mouse-mode.mouse-acceleration, wheel.acceleration
+ - mouse-mode.indicator.color=red
+- temp-mouse-mode.timeout.duration=1s # automatically changes mode if no key combo was detected during 1s and no action is currently running (e.g. move-up)
+- temp-mouse-mode.timeout.next-mode=normal-mode
+- temp-mouse-mode.oneshot.next-mode=normal-mode # once an action has run (e.g. move-up), mode changes automatically
+- Can assign multiple combo to same action
+ - mouse-mode.press-left=_lshift
+ - mouse-mode.press-left=_rshift
+- Can assign one combo to multiple actions
+ - normal-mode.to.mouse-mode=_leftarrow,^leftarrow,_leftarrow
+ - normal-mode.start-move-left=_leftarrow,^leftarrow,_leftarrow
+- Non-last keys involved in a combo should not be eaten
+ - Reason is Up, Up: if only press single up, the Up,Up combo should not eat the first Up
+ - The last key event of the combo should be eaten
+ - In _ctrl,_/ the / should be eaten only if ctrl was pressed (i.e. combo is being prepared)
+ - Ctrl-A,B == _ctrl _a ^ctrl ^a _b and _ctrl _a ^a ^ctrl _b
+ - Could do complex combo like hold ctrl, then a, then a again: _ctrl _a ^a _a ^a
+ - combo timeout = time after which we stop waiting for a combo to be completed (150ms,?)
+ - A combo has to be non-interrupted (no unknown key presses), with at most 150ms between keys
+  - Large timeout to allow Ctrl, wait, Z. Or special __ctrl to indicate no timeout. Or no timeout at all?
+- Should a keyevent unrelated to a combo break the combo preparation? Yes.
+ - Released event cannot be eaten if Pressed event was not eaten, otherwise apps will bug
   -- Need user to specify which event should not be eaten (eaten by normal)
- + Should a reached combo reset the preparation (no combo accumulation)? No. Maybe
+ - Should a reached combo reset the preparation (no combo accumulation)? No. Maybe. No.
   -- Imagine Ctrl+up/down moves the mouse. We want to be able to hold Ctrl, (wait long) then up/down
    - This should be done with a mode (enabled with Ctrl)
-  + _arrow,^arrow,_arrow should enable mouse mode and move up
-   + Done by defining move-up in both normal-mode and mouse-mode
-  + _arrow,^arrow,_arrow,^arrow,(some time)_arrow should enable mouse mode then move up
-  + _arrow,^arrow,_arrow,^arrow,_arrow should enable mouse mode then scroll up
-+ Combo(List<KeyAction>), KeyAction(Key, KeyState=PRESSED,RELEASED)
- + KeyEvent(time, action)
- + Preparation(List<KeyEvent> events)
-  + Reset when last key event is not a prefix of any combo
- + Preparation.isPrefixOf(Combo)
+  - _arrow,^arrow,_arrow should enable mouse mode and move up
+   - Done by defining move-up in both normal-mode and mouse-mode
+  - _arrow,^arrow,_arrow,^arrow,(some time)_arrow should enable mouse mode then move up
+  - _arrow,^arrow,_arrow,^arrow,_arrow should enable mouse mode then scroll up
+- Combo(List<KeyAction>), KeyAction(Key, KeyState=PRESSED,RELEASED)
+ - KeyEvent(time, action)
+ - Preparation(List<KeyEvent> events)
+  - Reset when last key event is not a prefix of any combo
+ - Preparation.isPrefixOf(Combo)
+- Speed should not change when overlapping press-left/press-right. Speed set to 0 when all released.
+ - On overlaps (press-left/press-right), last action wins (need a stack push/pop)
+- ^{shift up|shift down} +rightctrl mean shift and up, and shift down should not be pressed when
+  this combo (+rightctrl) starts
 + teleport key should use current display size percentage
-+ Speed should not change when overlapping press-left/press-right. Speed set to 0 when all released.
- + On overlaps (press-left/press-right), last action wins (need a stack push/pop)
++ getkeystate to reset pressed keys after 10s
++ toggle logging?
 + vimium-like hint (warpd), keynav-like grid?
 + position history
 + Move mouse to center of focused app?
