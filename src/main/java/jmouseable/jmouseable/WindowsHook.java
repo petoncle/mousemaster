@@ -125,10 +125,11 @@ public class WindowsHook {
         }
         if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
             logger.info(
-                    "Resetting KeyManager since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
+                    "Resetting KeyManager and MouseManager since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     keysThatDoNotSeemToBePressedAnymore);
             currentlyPressedKeys.clear();
             keyboardManager.reset();
+            mouseManager.reset();
         }
     }
 

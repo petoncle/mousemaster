@@ -24,6 +24,16 @@ public class MouseManager {
         this.attach = attach;
     }
 
+    public void reset() {
+        moveDuration = 0;
+        xMoveForwardStack.clear();
+        yMoveForwardStack.clear();
+        leftPressing = middlePressing = rightPressing = false;
+        wheelDuration = 0;
+        xWheelForwardStack.clear();
+        yWheelForwardStack.clear();
+    }
+
     public void changeMouse(Mouse mouse) {
         this.mouse = mouse;
     }
