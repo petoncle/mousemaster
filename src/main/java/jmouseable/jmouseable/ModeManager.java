@@ -54,6 +54,11 @@ public class ModeManager {
         mouseManager.changeAttach(newMode.attach());
     }
 
+    public void attached() {
+        if (currentMode.timeout() != null)
+            resetCurrentModeRemainingDuration();
+    }
+
     private void resetCurrentModeRemainingDuration() {
         currentModeRemainingDuration = currentMode.timeout().duration().toNanos() / 1e9d;
     }
