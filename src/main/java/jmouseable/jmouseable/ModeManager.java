@@ -27,7 +27,7 @@ public class ModeManager {
     }
 
     public void update(double delta) {
-        if (currentMode.timeout() != null) {
+        if (currentMode.timeout().duration() != null) {
             if (mouseManager.moving() || mouseManager.pressing() || mouseManager.wheeling()) {
                 resetCurrentModeRemainingDuration();
             }
@@ -47,7 +47,7 @@ public class ModeManager {
     public void changeMode(String newModeName) {
         Mode newMode = modeMap.get(newModeName);
         currentMode = newMode;
-        if (newMode.timeout() != null)
+        if (newMode.timeout().duration() != null)
             resetCurrentModeRemainingDuration();
         mouseManager.changeMouse(newMode.mouse());
         mouseManager.changeWheel(newMode.wheel());
@@ -55,7 +55,7 @@ public class ModeManager {
     }
 
     public void attached() {
-        if (currentMode.timeout() != null)
+        if (currentMode.timeout().duration() != null)
             resetCurrentModeRemainingDuration();
     }
 
