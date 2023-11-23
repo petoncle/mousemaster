@@ -79,7 +79,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     @Override
     public String toString() {
-        return (precondition.isEmpty() ? "" : precondition) + " " + sequence;
+        return (precondition.isEmpty() ? "" : precondition + " ") + sequence;
     }
 
 }

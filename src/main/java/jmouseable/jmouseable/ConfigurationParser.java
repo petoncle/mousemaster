@@ -110,7 +110,7 @@ public class ConfigurationParser {
                     String newModeName = matcher.group(4);
                     modeNameReferences.add(newModeName);
                     addCommand(mode.comboMap(), propertyValue,
-                            new ChangeMode(newModeName), defaultComboMoveDuration);
+                            new SwitchMode(newModeName), defaultComboMoveDuration);
                 }
                 case "extend" -> {
                     String parentModeName = propertyValue;

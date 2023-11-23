@@ -15,7 +15,7 @@ public class CommandRunner {
     public void run(Command command) {
         switch (command) {
             // @formatter:off
-            case ChangeMode changeMode -> modeManager.changeMode(changeMode.newModeName());
+            case SwitchMode switchMode -> modeManager.switchMode(switchMode.modeName());
 
             case StartMoveUp startMoveUp -> mouseManager.startMoveUp();
             case StartMoveDown startMoveDown -> mouseManager.startMoveDown();

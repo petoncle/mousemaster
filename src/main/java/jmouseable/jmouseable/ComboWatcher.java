@@ -190,8 +190,8 @@ public class ComboWatcher {
 
     public void interrupt() {
         logger.debug("Interrupting combos, comboPreparation = " + comboPreparation +
-                     " combosWaitingForLastMoveToComplete = " +
-                     combosWaitingForLastMoveToComplete + " focusedCombos = " +
+                     ", combosWaitingForLastMoveToComplete = " +
+                     combosWaitingForLastMoveToComplete + ", focusedCombos = " +
                      focusedCombos);
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();

@@ -19,7 +19,7 @@ public class JmouseableApplication {
                 new MouseManager(currentMode.mouse(), currentMode.wheel(),
                         currentMode.attach());
         ModeManager modeManager = new ModeManager(configuration.modeMap(), mouseManager);
-        modeManager.changeMode(defaultModeName);
+        modeManager.switchMode(defaultModeName);
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseManager);
         ComboWatcher comboWatcher = new ComboWatcher(modeManager, commandRunner);
         modeManager.setComboWatcher(comboWatcher);

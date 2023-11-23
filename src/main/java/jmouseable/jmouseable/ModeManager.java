@@ -35,16 +35,16 @@ public class ModeManager {
                 currentModeRemainingDuration -= delta;
                 if (currentModeRemainingDuration <= 0) {
                     logger.debug("Current " + currentMode.name() +
-                                 " has timed out, changing to " +
+                                 " has timed out, switch to " +
                                  currentMode.timeout().nextModeName());
                     comboWatcher.interrupt();
-                    changeMode(currentMode.timeout().nextModeName());
+                    switchMode(currentMode.timeout().nextModeName());
                 }
             }
         }
     }
 
-    public void changeMode(String newModeName) {
+    public void switchMode(String newModeName) {
         Mode newMode = modeMap.get(newModeName);
         currentMode = newMode;
         if (newMode.timeout().duration() != null)

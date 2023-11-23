@@ -2,7 +2,7 @@ package jmouseable.jmouseable;
 
 public sealed interface Command {
 
-    record ChangeMode(String newModeName) implements Command {}
+    record SwitchMode(String modeName) implements Command {}
 
     record StartMoveUp() implements Command {}
     record StartMoveDown() implements Command {}

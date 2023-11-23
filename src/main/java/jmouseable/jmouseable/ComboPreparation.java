@@ -41,4 +41,9 @@ public record ComboPreparation(List<KeyEvent> events) {
         }
         return 0;
     }
+
+    @Override
+    public String toString() {
+        return events.toString();
+    }
 }
