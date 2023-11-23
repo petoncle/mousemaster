@@ -35,7 +35,7 @@ public class ModeManager {
                 currentModeRemainingDuration -= delta;
                 if (currentModeRemainingDuration <= 0) {
                     logger.debug("Current " + currentMode.name() +
-                                 " has timed out, switch to " +
+                                 " has timed out, switching to " +
                                  currentMode.timeout().nextModeName());
                     comboWatcher.interrupt();
                     switchMode(currentMode.timeout().nextModeName());
