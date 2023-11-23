@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,6 +28,8 @@ public class ConfigurationParser {
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Set<String> modeNameReferences = new HashSet<>();
+        Map<String, Set<String>> childrenModeNamesByParentMode = new HashMap<>();
+        Set<String> nonRootModeNames = new HashSet<>();
         for (String line : lines) {
             if (line.startsWith("#"))
                 continue;
@@ -109,6 +112,17 @@ public class ConfigurationParser {
                     addCommand(mode.comboMap(), propertyValue,
                             new ChangeMode(newModeName), defaultComboMoveDuration);
                 }
+                case "extend" -> {
+                    String parentModeName = propertyValue;
+                    if (parentModeName.equals(modeName))
+                        throw new IllegalArgumentException(
+                                "Invalid extend parent mode " + parentModeName +
+                                " for mode " + modeName);
+                    childrenModeNamesByParentMode.computeIfAbsent(parentModeName,
+                            parentModeName_ -> new HashSet<>()).add(modeName);
+                    nonRootModeNames.add(modeName);
+                    modeNameReferences.add(parentModeName);
+                }
                 case "timeout" -> {
                     if (matcher.group(4) == null)
                         throw new IllegalArgumentException(
@@ -117,8 +131,13 @@ public class ConfigurationParser {
                         case "duration-millis" ->
                                 mode.timeout().duration(parseDuration(propertyValue));
                         case "next-mode" -> {
-                            mode.timeout().nextModeName(propertyValue);
-                            modeNameReferences.add(propertyValue);
+                            String nextModeName = propertyValue;
+                            if (nextModeName.equals(modeName))
+                                throw new IllegalArgumentException(
+                                        "Invalid timeout next mode " + nextModeName +
+                                        " for mode " + modeName);
+                            mode.timeout().nextModeName(nextModeName);
+                            modeNameReferences.add(nextModeName);
                         }
                         default -> throw new IllegalArgumentException(
                                 "Invalid timeout configuration: " + propertyKey);
@@ -205,13 +224,49 @@ public class ConfigurationParser {
                         "Definition of mode timeout for " + mode.name() +
                         " is incomplete");
         }
-        for (ModeBuilder mode : modeByName.values())
-            extendMode(defaultMode, mode);
+        Set<String> rootModeNames = modeByName.keySet()
+                                              .stream()
+                                              .filter(Predicate.not(
+                                                      nonRootModeNames::contains))
+                                              .collect(Collectors.toSet());
+        Set<ModeNode> rootModeNodes = new HashSet<>();
+        Set<String> alreadyBuiltModeNodeNames = new HashSet<>();
+        for (String rootModeName : rootModeNames)
+            rootModeNodes.add(
+                    recursivelyBuildModeNode(rootModeName, childrenModeNamesByParentMode,
+                    alreadyBuiltModeNodeNames));
+        for (ModeNode rootModeNode : rootModeNodes)
+            recursivelyExtendMode(defaultMode, rootModeNode, modeByName);
         Set<Mode> modes = modeByName.values()
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
         return new Configuration(new ModeMap(modes));
+    }
+
+    private static void recursivelyExtendMode(Mode parentMode, ModeNode modeNode,
+                                              Map<String, ModeBuilder> modeByName) {
+        ModeBuilder mode = modeByName.get(modeNode.modeName);
+        extendMode(parentMode, mode);
+        for (ModeNode subModeNode : modeNode.subModes)
+            recursivelyExtendMode(mode.build(), subModeNode, modeByName);
+    }
+
+    private static ModeNode recursivelyBuildModeNode(String modeName,
+                                                     Map<String, Set<String>> childrenModeNamesByParentMode,
+                                                     Set<String> alreadyBuiltModeNodeNames) {
+        if (!alreadyBuiltModeNodeNames.add(modeName))
+            throw new IllegalStateException(
+                    "Found extend dependency cycle involving mode " + modeName);
+        Set<ModeNode> subModes = new HashSet<>();
+        Set<String> childrenModeNames = childrenModeNamesByParentMode.get(modeName);
+        if (childrenModeNames != null) {
+            for (String childModeName : childrenModeNames)
+                subModes.add(
+                        recursivelyBuildModeNode(childModeName, childrenModeNamesByParentMode,
+                        alreadyBuiltModeNodeNames));
+        }
+        return new ModeNode(modeName, subModes);
     }
 
     /**
@@ -282,6 +337,12 @@ public class ConfigurationParser {
         List<Combo> combos = Combo.multiCombo(multiComboString, defaultComboMoveDuration);
         for (Combo combo : combos)
             comboMap.add(combo, command);
+    }
+
+    /**
+     * Dependency tree.
+     */
+    private record ModeNode(String modeName, Set<ModeNode> subModes) {
     }
 
 }
