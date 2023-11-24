@@ -14,9 +14,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class WindowsHook {
+public class WindowsManager implements OsManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(WindowsHook.class);
+    private static final Logger logger = LoggerFactory.getLogger(WindowsManager.class);
     private static final Instant systemStartTime;
 
     static {
@@ -25,7 +25,8 @@ public class WindowsHook {
         systemStartTime = now.minusMillis(uptimeMillis);
     }
 
-    private final Jmouseable jmouseable;
+    private MouseManager mouseManager;
+    private KeyboardManager keyboardManager;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -37,18 +38,41 @@ public class WindowsHook {
     private WinUser.LowLevelMouseProc mouseHookCallback;
     private WinUser.LowLevelKeyboardProc keyboardHookCallback;
     private WinNT.HANDLE singleInstanceMutex;
+    private final WinUser.MSG msg = new WinUser.MSG();
 
-    public WindowsHook(Jmouseable jmouseable) {
-        this.jmouseable = jmouseable;
+    public WindowsManager() {
+        if (!acquireSingleInstanceMutex())
+            throw new IllegalStateException("Another instance is already running");
+        setDpiAwareness();
+        installHooks();
+        WindowsIndicator.createIndicatorWindow();
     }
 
-    public void installHooks() throws InterruptedException {
-        // When running as a graalvm native image, we need to set the DPI awareness
-        // (otherwise mouse coordinates are wrong on scaled displays).
-        // It is recommended to do it with a manifest file instead but I am unsure
-        // how to include it in the native image.
-        // When running as a java app (non-native image), the DPI awareness already
-        // seemed to be set, and SetProcessDpiAwarenessContext() returns error code 5.
+    @Override
+    public void update(double delta) {
+        while (User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1)) {
+            User32.INSTANCE.TranslateMessage(msg);
+            User32.INSTANCE.DispatchMessage(msg);
+        }
+        sanityCheckCurrentlyPressedKeys(delta);
+    }
+
+    @Override
+    public void setMouseManagerAndKeyboardManager(MouseManager mouseManager,
+                                                  KeyboardManager keyboardManager) {
+        this.mouseManager = mouseManager;
+        this.keyboardManager = keyboardManager;
+    }
+
+    /**
+     * When running as a graalvm native image, we need to set the DPI awareness
+     * (otherwise mouse coordinates are wrong on scaled displays).
+     * It is recommended to do it with a manifest file instead but I am unsure
+     * how to include it in the native image.
+     * When running as a java app (non-native image), the DPI awareness already
+     * seemed to be set, and SetProcessDpiAwarenessContext() returns error code 5.
+     */
+    private void setDpiAwareness() {
         boolean setProcessDpiAwarenessContextResult =
                 ExtendedUser32.INSTANCE.SetProcessDpiAwarenessContext(
                         new WinNT.HANDLE(Pointer.createConstant(-4L)));
@@ -57,13 +81,14 @@ public class WindowsHook {
                     setProcessDpiAwarenessContextResult +
                     (setProcessDpiAwarenessContextResult ? "" :
                             ", error code = " + dpiAwarenessErrorCode));
-        if (!acquireSingleInstanceMutex())
-            throw new IllegalStateException("Another instance is already running");
+    }
+
+    private void installHooks() {
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
-        keyboardHookCallback = WindowsHook.this::keyboardHookCallback;
+        keyboardHookCallback = WindowsManager.this::keyboardHookCallback;
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
                 keyboardHookCallback, hMod, 0);
-        mouseHookCallback = WindowsHook.this::mouseHookCallback;
+        mouseHookCallback = WindowsManager.this::mouseHookCallback;
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
                 mouseHookCallback, hMod, 0);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -77,23 +102,6 @@ public class WindowsHook {
             logger.info("Single instance mutex released");
         }));
         logger.info("Keyboard and mouse hooks installed");
-        WindowsIndicator.createIndicatorWindow();
-        WinUser.MSG msg = new WinUser.MSG();
-        long previousNanoTime = System.nanoTime();
-        while (true) {
-            jmouseable.updateConfiguration();
-            while (User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1)) {
-                User32.INSTANCE.TranslateMessage(msg);
-                User32.INSTANCE.DispatchMessage(msg);
-            }
-            long currentNanoTime = System.nanoTime();
-            long deltaNanos = currentNanoTime - previousNanoTime;
-            previousNanoTime = currentNanoTime;
-            double delta = deltaNanos / 1e9d;
-            sanityCheckCurrentlyPressedKeys(delta);
-            jmouseable.ticker().update(delta);
-            Thread.sleep(10L);
-        }
     }
 
     /**
@@ -130,8 +138,8 @@ public class WindowsHook {
                     "Resetting KeyManager and MouseManager since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     keysThatDoNotSeemToBePressedAnymore);
             currentlyPressedNotEatenKeys.clear();
-            jmouseable.keyboardManager().reset();
-            jmouseable.mouseManager().reset();
+            keyboardManager.reset();
+            mouseManager.reset();
         }
     }
 
@@ -191,19 +199,17 @@ public class WindowsHook {
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
                              String wParamString) {
         if (keyEvent.isPress()) {
-            if (!jmouseable.keyboardManager()
-                           .currentlyPressed(keyEvent.key()) &&
-                jmouseable.keyboardManager()
-                          .allCurrentlyPressedArePartOfCombo()) {
+            if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
+                keyboardManager.allCurrentlyPressedArePartOfCombo()) {
                 logKeyEvent(keyEvent, info, wParamString);
             }
         }
         else {
             currentlyPressedNotEatenKeys.remove(keyEvent.key());
-            if (jmouseable.keyboardManager().currentlyPressed(keyEvent.key()))
+            if (keyboardManager.currentlyPressed(keyEvent.key()))
                 logKeyEvent(keyEvent, info, wParamString);
         }
-        boolean mustBeEaten = jmouseable.keyboardManager().keyEvent(keyEvent);
+        boolean mustBeEaten = keyboardManager.keyEvent(keyEvent);
         if (keyEvent.isPress() && !mustBeEaten) {
             currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
                     key -> new AtomicReference<>(0d)).set(0d);
@@ -224,7 +230,7 @@ public class WindowsHook {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
             WindowsIndicator.mouseMoved(mousePosition);
-            jmouseable.mouseManager().mouseMoved(mousePosition.x, mousePosition.y);
+            mouseManager.mouseMoved(mousePosition.x, mousePosition.y);
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }

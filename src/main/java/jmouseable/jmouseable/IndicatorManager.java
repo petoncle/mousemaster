@@ -18,6 +18,7 @@ public class IndicatorManager {
             WindowsIndicator.show(indicatorHexColor());
         else
             WindowsIndicator.hide();
+        WindowsIndicator.mousePosition(mouseManager.mouseX(), mouseManager.mouseY());
     }
 
     private String indicatorHexColor() {

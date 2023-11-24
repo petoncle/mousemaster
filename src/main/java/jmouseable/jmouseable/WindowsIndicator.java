@@ -12,6 +12,7 @@ public class WindowsIndicator {
     private static boolean mustShowOnceCreated;
     private static boolean showing;
     private static String currentHexColor;
+    private static WinDef.POINT mousePosition;
 
     private static int bestIndicatorX(int mouseX, int monitorLeft, int monitorRight) {
         mouseX = Math.min(monitorRight, Math.max(monitorLeft, mouseX));
@@ -154,7 +155,13 @@ public class WindowsIndicator {
         return monitorInfo;
     }
 
-    public static void mouseMoved(WinDef.POINT mousePosition) {
+    static void mouseMoved(WinDef.POINT mousePosition) {
+        WindowsIndicator.mousePosition = mousePosition;
+    }
+
+    public static void mousePosition(double x, double y) {
+        if (mousePosition == null)
+            return;
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
         User32.INSTANCE.MoveWindow(indicatorWindowHwnd,
                 bestIndicatorX(mousePosition.x, monitorInfo.rcMonitor.left,
@@ -162,5 +169,6 @@ public class WindowsIndicator {
                 bestIndicatorY(mousePosition.y, monitorInfo.rcMonitor.top,
                         monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize,
                 false);
+        mousePosition = null;
     }
 }

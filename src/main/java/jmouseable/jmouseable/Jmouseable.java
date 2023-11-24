@@ -10,14 +10,17 @@ public class Jmouseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Jmouseable.class);
 
+    private final OsManager osManager;
     private final Path configurationPath;
     private Configuration configuration;
     private WatchService watchService;
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
-    private Ticker ticker;
+    private ModeManager modeManager;
+    private IndicatorManager indicatorManager;
 
-    public Jmouseable(Path configurationPath) throws IOException {
+    public Jmouseable(OsManager osManager, Path configurationPath) throws IOException {
+        this.osManager = osManager;
         this.configurationPath = configurationPath;
         loadConfiguration();
         watchService = FileSystems.getDefault().newWatchService();
@@ -26,7 +29,24 @@ public class Jmouseable {
                          .register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
     }
 
-    public void updateConfiguration() {
+    public void run() throws InterruptedException {
+        long previousNanoTime = System.nanoTime();
+        while (true) {
+            long currentNanoTime = System.nanoTime();
+            long deltaNanos = currentNanoTime - previousNanoTime;
+            previousNanoTime = currentNanoTime;
+            double delta = deltaNanos / 1e9d;
+            updateConfiguration();
+            osManager.update(delta);
+            modeManager.update(delta);
+            mouseManager.update(delta);
+            keyboardManager.update(delta);
+            indicatorManager.update(delta);
+            Thread.sleep(10L);
+        }
+    }
+
+    private void updateConfiguration() {
         WatchKey key = watchService.poll();
         if (key == null)
             return;
@@ -59,28 +79,17 @@ public class Jmouseable {
         Mode currentMode = configuration.modeMap().get(defaultModeName);
         mouseManager = new MouseManager(currentMode.mouse(), currentMode.wheel(),
                 currentMode.attach());
-        ModeManager modeManager = new ModeManager(configuration.modeMap(), mouseManager);
+        modeManager = new ModeManager(configuration.modeMap(), mouseManager);
         modeManager.switchMode(defaultModeName);
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseManager);
         ComboWatcher comboWatcher = new ComboWatcher(modeManager, commandRunner);
         modeManager.setComboWatcher(comboWatcher);
         keyboardManager = new KeyboardManager(comboWatcher);
-        IndicatorManager indicatorManager =
+        indicatorManager =
                 new IndicatorManager(modeManager, mouseManager, keyboardManager);
-        ticker = new Ticker(modeManager, mouseManager, keyboardManager, indicatorManager);
+        osManager.setMouseManagerAndKeyboardManager(mouseManager, keyboardManager);
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
                     configurationPath);
     }
 
-    public MouseManager mouseManager() {
-        return mouseManager;
-    }
-
-    public KeyboardManager keyboardManager() {
-        return keyboardManager;
-    }
-
-    public Ticker ticker() {
-        return ticker;
-    }
 }
