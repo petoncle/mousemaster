@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public enum WindowsVirtualKey {
 
@@ -451,6 +453,40 @@ public enum WindowsVirtualKey {
             WindowsVirtualKey windowsVirtualKey = values.get(virtualKeyCode);
             keyboardLayoutDependentKeyByVirtualKey.put(windowsVirtualKey, key);
             keyboardLayoutDependentVirtualKeyByKey.put(key, windowsVirtualKey);
+        }
+        Set<WindowsVirtualKey> otherWindowsVirtualKeys = values.stream()
+                                                               .filter(Objects::nonNull)
+                                                               .filter(Predicate.not(
+                                                                       keyboardLayoutDependentKeyByVirtualKey.keySet()::contains))
+                                                               .collect(
+                                                                       Collectors.toSet());
+        byte[] keyboardState = new byte[256];
+        char[] unicodeBuffer = new char[2];
+        for (WindowsVirtualKey otherWindowsVirtualKey : otherWindowsVirtualKeys) {
+            int unicodeCharacterCount =
+                    User32.INSTANCE.ToUnicodeEx(otherWindowsVirtualKey.virtualKeyCode,
+                            0, keyboardState, unicodeBuffer, unicodeBuffer.length,
+                            0, keyboardLayoutHandle);
+            String characterString;
+            if (unicodeCharacterCount == 0) {
+                // The specified virtual key has no translation for the current state of the keyboard.
+                continue;
+            }
+            else if (unicodeCharacterCount < 0) {
+                // Dead key. "If possible the function has written a spacing version of the dead-key character to the buffer".
+                // To reproduce: on azerty keyboard, press the ^ key just once.
+                characterString = new String(unicodeBuffer, 0, 1);
+            }
+            else {
+                // In azerty, press ^ then p. The buffer will contain "^p".
+                // We take the last character of the buffer.
+                characterString = new String(unicodeBuffer, unicodeCharacterCount - 1, 1);
+            }
+            if (characterString.length() != 1)
+                throw new IllegalStateException(characterString);
+            Key key = Key.ofCharacter(characterString);
+            keyboardLayoutDependentKeyByVirtualKey.put(otherWindowsVirtualKey, key);
+            keyboardLayoutDependentVirtualKeyByKey.put(key, otherWindowsVirtualKey);
         }
         logger.info("Mapped keys to Windows virtual keys in " + keyboardLayout + ": " +
                     keyboardLayoutDependentVirtualKeyByKey);
