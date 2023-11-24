@@ -57,7 +57,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     private static Set<Key> parseKeySet(String keySetString) {
         String[] keyStrings = keySetString.split("\\s+");
         return Arrays.stream(keyStrings)
-                     .map(ComboSequence::parseKey)
+                     .map(Key::ofName)
                      .collect(Collectors.toSet());
     }
 

@@ -1,5 +1,6 @@
 package jmouseable.jmouseable;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -12,6 +13,10 @@ public class ModeMap {
     public ModeMap(Set<Mode> modes) {
         this.modeByName =
                 modes.stream().collect(Collectors.toMap(Mode::name, Function.identity()));
+    }
+
+    public Collection<Mode> modes() {
+        return modeByName.values();
     }
 
     public Mode get(String modeName) {

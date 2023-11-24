@@ -13,7 +13,7 @@ public record ComboSequence(List<ComboMove> moves) {
         String[] moveStrings = movesString.split("\\s+");
         List<ComboMove> moves = new ArrayList<>();
         for (String moveString : moveStrings) {
-            Matcher matcher = Pattern.compile("([+\\-#])([a-z]+)((\\d+)-(\\d+))?")
+            Matcher matcher = Pattern.compile("([+\\-#])(.+?)(-(\\d+)-(\\d+))?")
                                      .matcher(moveString);
             if (!matcher.matches())
                 throw new IllegalArgumentException("Invalid move: " + moveString);
@@ -26,7 +26,7 @@ public record ComboSequence(List<ComboMove> moves) {
                         Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(4))),
                         Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(5))));
             String keyName = matcher.group(2);
-            Key key = parseKey(keyName);
+            Key key = Key.ofName(keyName);
             ComboMove move;
             if (press) {
                 boolean eventMustBeEaten = moveString.startsWith("+");
@@ -37,13 +37,6 @@ public record ComboSequence(List<ComboMove> moves) {
             moves.add(move);
         }
         return new ComboSequence(List.copyOf(moves));
-    }
-
-    public static Key parseKey(String keyName) {
-        Key key = Key.keyByName.get(keyName);
-        if (key == null)
-            throw new IllegalArgumentException("Invalid key: " + keyName);
-        return key;
     }
 
     @Override

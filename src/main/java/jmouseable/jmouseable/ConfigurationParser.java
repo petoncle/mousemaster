@@ -25,6 +25,7 @@ public class ConfigurationParser {
     public static Configuration parse(Path path) throws IOException {
         List<String> lines = Files.readAllLines(path);
         ComboMoveDuration defaultComboMoveDuration = defaultComboMoveDuration();
+        KeyboardLayout keyboardLayout = null;
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Set<String> modeNameReferences = new HashSet<>();
@@ -40,6 +41,15 @@ public class ConfigurationParser {
             String propertyValue = line.split("=")[1];
             if (propertyKey.equals("default-combo-move-duration-millis")) {
                 defaultComboMoveDuration = parseComboMoveDuration(propertyValue);
+                continue;
+            }
+            else if (propertyKey.equals("keyboard-layout")) {
+                keyboardLayout = KeyboardLayout.keyboardLayoutByName.get(propertyValue);
+                if (keyboardLayout == null)
+                    throw new IllegalArgumentException(
+                            "Invalid keyboard layout: " + propertyValue +
+                            ", available keyboard layouts: " +
+                            KeyboardLayout.keyboardLayoutByName.keySet());
                 continue;
             }
             Matcher matcher = modeKeyPattern.matcher(propertyKey);
@@ -241,7 +251,7 @@ public class ConfigurationParser {
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
-        return new Configuration(new ModeMap(modes));
+        return new Configuration(keyboardLayout, new ModeMap(modes));
     }
 
     private static void recursivelyExtendMode(Mode parentMode, ModeNode modeNode,

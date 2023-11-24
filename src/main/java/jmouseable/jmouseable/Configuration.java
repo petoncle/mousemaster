@@ -1,5 +1,5 @@
 package jmouseable.jmouseable;
 
-public record Configuration(ModeMap modeMap) {
+public record Configuration(KeyboardLayout keyboardLayout, ModeMap modeMap) {
 
 }

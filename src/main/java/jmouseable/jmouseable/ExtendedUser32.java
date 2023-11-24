@@ -70,4 +70,6 @@ public interface ExtendedUser32 extends User32 {
 
     boolean SetProcessDpiAwarenessContext(HANDLE dpiContext);
 
+    HKL LoadKeyboardLayoutA(String pwszKLID, int Flags);
+
 }

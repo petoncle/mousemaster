@@ -75,6 +75,8 @@ public class Jmouseable {
     private void loadConfiguration() throws IOException {
         boolean reload = configuration != null;
         configuration = ConfigurationParser.parse(configurationPath);
+        logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
+                    configurationPath);
         mouseManager = new MouseManager();
         modeManager = new ModeManager(configuration.modeMap(), mouseManager);
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseManager);
@@ -82,9 +84,8 @@ public class Jmouseable {
         keyboardManager = new KeyboardManager(comboWatcher);
         indicatorManager =
                 new IndicatorManager(modeManager, mouseManager, keyboardManager);
-        osManager.setMouseManagerAndKeyboardManager(mouseManager, keyboardManager);
-        logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
-                    configurationPath);
+        osManager.reset(mouseManager, keyboardManager, configuration.keyboardLayout(),
+                configuration.modeMap());
     }
 
 }

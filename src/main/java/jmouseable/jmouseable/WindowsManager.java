@@ -8,10 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WindowsManager implements OsManager {
@@ -58,10 +55,32 @@ public class WindowsManager implements OsManager {
     }
 
     @Override
-    public void setMouseManagerAndKeyboardManager(MouseManager mouseManager,
-                                                  KeyboardManager keyboardManager) {
+    public void reset(MouseManager mouseManager,
+                      KeyboardManager keyboardManager, KeyboardLayout keyboardLayout,
+                      ModeMap modeMap) {
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
+        Set<Key> allComboKeys = new HashSet<>();
+        for (Mode mode : modeMap.modes()) {
+            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+                combo.precondition()
+                     .mustBePressedKeySets()
+                     .stream()
+                     .flatMap(Collection::stream)
+                     .forEach(allComboKeys::add);
+                combo.precondition()
+                     .mustNotBePressedKeySets()
+                     .stream()
+                     .flatMap(Collection::stream)
+                     .forEach(allComboKeys::add);
+                combo.sequence()
+                     .moves()
+                     .stream()
+                     .map(ComboMove::key)
+                     .forEach(allComboKeys::add);
+            }
+        }
+        WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboKeys, keyboardLayout);
     }
 
     /**

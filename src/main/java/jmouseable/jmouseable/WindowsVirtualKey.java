@@ -1,9 +1,11 @@
 package jmouseable.jmouseable;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinDef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public enum WindowsVirtualKey {
 
@@ -319,6 +321,71 @@ public enum WindowsVirtualKey {
     }
 
     public static final List<WindowsVirtualKey> values;
+    public static final Map<Key, WindowsVirtualKey> keyboardLayoutIndependentVirtualKeyByKey =
+            Map.ofEntries(
+                // @formatter:off
+                Map.entry(Key.backspace, VK_BACK),
+                Map.entry(Key.tab, VK_TAB),
+                Map.entry(Key.enter, VK_RETURN),
+                Map.entry(Key.pause, VK_PAUSE),
+                Map.entry(Key.capslock, VK_CAPITAL),
+                Map.entry(Key.esc, VK_ESCAPE),
+                Map.entry(Key.space, VK_SPACE),
+                Map.entry(Key.pageup, VK_PGUP),
+                Map.entry(Key.pagedown, VK_PGDN),
+                Map.entry(Key.end, VK_END),
+                Map.entry(Key.home, VK_HOME),
+                Map.entry(Key.left, VK_LEFT),
+                Map.entry(Key.up, VK_UP),
+                Map.entry(Key.right, VK_RIGHT),
+                Map.entry(Key.down, VK_DOWN),
+                Map.entry(Key.printscreen, VK_PRTSCN),
+                Map.entry(Key.insert, VK_INSERT),
+                Map.entry(Key.del, VK_DELETE),
+                Map.entry(Key.win, VK_LWIN),
+                Map.entry(Key.numpad0, VK_NUMPAD0),
+                Map.entry(Key.numpad1, VK_NUMPAD1),
+                Map.entry(Key.numpad2, VK_NUMPAD2),
+                Map.entry(Key.numpad3, VK_NUMPAD3),
+                Map.entry(Key.numpad4, VK_NUMPAD4),
+                Map.entry(Key.numpad5, VK_NUMPAD5),
+                Map.entry(Key.numpad6, VK_NUMPAD6),
+                Map.entry(Key.numpad7, VK_NUMPAD7),
+                Map.entry(Key.numpad8, VK_NUMPAD8),
+                Map.entry(Key.numpad9, VK_NUMPAD9),
+                Map.entry(Key.numpadmultiply, VK_MULTIPLY),
+                Map.entry(Key.numpadadd, VK_ADD),
+                Map.entry(Key.numpadsubtract, VK_SUBTRACT),
+                Map.entry(Key.numpaddecimal, VK_DECIMAL),
+                Map.entry(Key.numpaddivide, VK_DIVIDE),
+                Map.entry(Key.f1, VK_F1),
+                Map.entry(Key.f2, VK_F2),
+                Map.entry(Key.f3, VK_F3),
+                Map.entry(Key.f4, VK_F4),
+                Map.entry(Key.f5, VK_F5),
+                Map.entry(Key.f6, VK_F6),
+                Map.entry(Key.f7, VK_F7),
+                Map.entry(Key.f8, VK_F8),
+                Map.entry(Key.f9, VK_F9),
+                Map.entry(Key.f10, VK_F10),
+                Map.entry(Key.f11, VK_F11),
+                Map.entry(Key.f12, VK_F12),
+                Map.entry(Key.leftshift, VK_LSHIFT),
+                Map.entry(Key.rightshift, VK_RSHIFT),
+                Map.entry(Key.leftctrl, VK_LCONTROL),
+                Map.entry(Key.rightctrl, VK_RCONTROL),
+                Map.entry(Key.leftalt, VK_LMENU),
+                Map.entry(Key.rightalt, VK_RMENU)
+                // @formatter:on
+            );
+
+    public static final Map<WindowsVirtualKey, Key>
+            keyboardLayoutIndependentKeyByVirtualKey = new HashMap<>();
+
+    public static final Map<Key, WindowsVirtualKey> keyboardLayoutDependentVirtualKeyByKey = new HashMap<>();
+    public static final Map<WindowsVirtualKey, Key> keyboardLayoutDependentKeyByVirtualKey = new HashMap<>();
+
+    private static final Logger logger = LoggerFactory.getLogger(WindowsVirtualKey.class);
 
     static {
         WindowsVirtualKey[] valueArrayWithDuplicateCodes = values();
@@ -329,417 +396,104 @@ public enum WindowsVirtualKey {
         for (Map.Entry<Integer, WindowsVirtualKey> entry : valueMap.entrySet())
             valueArrayWithoutDuplicateCodes[entry.getKey()] = entry.getValue();
         values = Arrays.stream(valueArrayWithoutDuplicateCodes).toList();
+        if (!keyboardLayoutIndependentVirtualKeyByKey.keySet()
+                                                     .equals(Key.keyboardLayoutIndependentKeys))
+            throw new IllegalStateException(
+                    "Some keyboardLayoutIndependentKeys are not defined in " +
+                    WindowsVirtualKey.class.getSimpleName());
+        for (Map.Entry<Key, WindowsVirtualKey> entry : keyboardLayoutIndependentVirtualKeyByKey.entrySet())
+            keyboardLayoutIndependentKeyByVirtualKey.put(entry.getValue(),
+                    entry.getKey());
     }
 
-    /**
-     * There are keyboard layout specific mappings here (e.g. VK_OEM_PLUS -> Key.equal, VK_OEM_7 -> Key.pound).
-     */
+    public static void mapKeysToVirtualKeysUsingLayout(Set<Key> keys, KeyboardLayout configurationKeyboardLayout) {
+        WinDef.HKL keyboardLayoutHandle;
+        KeyboardLayout keyboardLayout;
+        KeyboardLayout activeKeyboardLayout = findActiveKeyboardLayoutName();
+        if (configurationKeyboardLayout == null) {
+            keyboardLayoutHandle = User32.INSTANCE.GetKeyboardLayout(0);
+            // Active keyboard layout is the system-wide layout that was active when the app started.
+            // It does not change after that, even if the system-wide layout changes.
+            logger.info("Using active keyboard layout " + activeKeyboardLayout);
+            keyboardLayout = activeKeyboardLayout;
+        }
+        else {
+            keyboardLayoutHandle =
+                    ExtendedUser32.INSTANCE.LoadKeyboardLayoutA(configurationKeyboardLayout.identifier(),
+                            0);
+            if (keyboardLayoutHandle == null)
+                throw new IllegalStateException(
+                        "Unable to load keyboard layout " + configurationKeyboardLayout);
+            if (activeKeyboardLayout.equals(configurationKeyboardLayout))
+                logger.info("Using configuration keyboard layout " +
+                            configurationKeyboardLayout +
+                            " which is the active keyboard layout");
+            else
+                logger.info("Using configuration keyboard layout " +
+                            configurationKeyboardLayout +
+                            " which is different from the active keyboard layout " +
+                            activeKeyboardLayout);
+            keyboardLayout = configurationKeyboardLayout;
+        }
+        for (Key key : keys) {
+            if (key.character() == null)
+                continue;
+            short vkScanResult =
+                    User32.INSTANCE.VkKeyScanExW(key.character().charAt(0),
+                            keyboardLayoutHandle);
+            if (vkScanResult == -1) {
+                throw new IllegalStateException(
+                        "Unable to find the Windows virtual key corresponding to " + key +
+                        " in " + keyboardLayout);
+            }
+            int virtualKeyCode = vkScanResult & 0xFF;
+            int shiftState = (vkScanResult >> 8) & 0xFF;
+            WindowsVirtualKey windowsVirtualKey = values.get(virtualKeyCode);
+            keyboardLayoutDependentKeyByVirtualKey.put(windowsVirtualKey, key);
+            keyboardLayoutDependentVirtualKeyByKey.put(key, windowsVirtualKey);
+        }
+        logger.info("Mapped keys to Windows virtual keys in " + keyboardLayout + ": " +
+                    keyboardLayoutDependentVirtualKeyByKey);
+    }
+
+    private static KeyboardLayout findActiveKeyboardLayoutName() {
+        char[] nameBuffer = new char[User32.KL_NAMELENGTH];
+        User32.INSTANCE.GetKeyboardLayoutName(nameBuffer);
+        int nameLength = nameBuffer.length;
+        for (int i = 0; i < nameBuffer.length; i++) {
+            if (nameBuffer[i] == 0) {
+                nameLength = i;
+                break;
+            }
+        }
+        return KeyboardLayout.keyboardLayoutByIdentifier.get(
+                new String(nameBuffer, 0, nameLength));
+    }
+
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode, int flags) {
-        return switch (windowsVirtualKey) {
-            case VK_LBUTTON -> null;
-            case VK_MOUSE1 -> null;
-            case VK_MB1 -> null;
-            case VK_RBUTTON -> null;
-            case VK_MOUSE2 -> null;
-            case VK_MB2 -> null;
-            case VK_CANCEL -> null;
-            case VK_MBUTTON -> null;
-            case VK_MOUSE3 -> null;
-            case VK_MB3 -> null;
-            case VK_XBUTTON1 -> null;
-            case VK_MOUSE4 -> null;
-            case VK_MB4 -> null;
-            case VK_XBUTTON2 -> null;
-            case VK_MOUSE5 -> null;
-            case VK_MB5 -> null;
-            case VK_RESERVED_07 -> null;
-            case VK_BACK -> Key.backspace;
-            case VK_BACKSPACE -> Key.backspace;
-            case VK_TAB -> Key.tab;
-            case VK_RESERVED_0A -> null;
-            case VK_RESERVED_0B -> null;
-            case VK_CLEAR -> null;
-            case VK_RETURN -> Key.enter;
-            case VK_ENTER -> Key.enter;
-            case VK_RESERVED_0E -> null;
-            case VK_RESERVED_0F -> null;
+        Key key = switch (windowsVirtualKey) {
             case VK_SHIFT -> (flags & 0x01000000) == 0 ? Key.leftshift : Key.rightshift;
             case VK_CONTROL -> (flags & 0x01000000) == 0 ? Key.leftctrl : Key.rightctrl;
             case VK_CTRL -> (flags & 0x01000000) == 0 ? Key.leftctrl : Key.rightctrl;
             case VK_MENU -> (flags & 0x01000000) == 0 ? Key.leftalt : Key.rightalt;
             case VK_ALT -> (flags & 0x01000000) == 0 ? Key.leftalt : Key.rightalt;
-            case VK_PAUSE -> Key.pause;
-            case VK_CAPITAL -> Key.capslock;
-            case VK_CAPSLK -> Key.capslock;
-            case VK_CAPSLOCK -> Key.capslock;
-            case VK_CAPS -> Key.capslock;
-            case VK_HANGEUL -> null;
-            case VK_HANGUL -> null;
-            case VK_KANA -> null;
-            case VK_IME_ON -> null;
-            case VK_JUNJA -> null;
-            case VK_FINAL -> null;
-            case VK_HANJA -> null;
-            case VK_KANJI -> null;
-            case VK_IME_OFF -> null;
-            case VK_ESCAPE -> Key.esc;
-            case VK_ESC -> Key.esc;
-            case VK_CONVERT -> null;
-            case VK_NONCONVERT -> null;
-            case VK_ACCEPT -> null;
-            case VK_MODECHANGE -> null;
-            case VK_SPACE -> Key.space;
-            case VK_PRIOR -> null;
-            case VK_PGUP -> Key.pageup;
-            case VK_PAGEUP -> Key.pageup;
-            case VK_NEXT -> null;
-            case VK_PGDN -> Key.pagedown;
-            case VK_PAGEDOWN -> Key.pagedown;
-            case VK_END -> Key.end;
-            case VK_HOME -> Key.home;
-            case VK_LEFT -> Key.left;
-            case VK_UP -> Key.up;
-            case VK_RIGHT -> Key.right;
-            case VK_DOWN -> Key.down;
-            case VK_SELECT -> null;
-            case VK_PRINT -> null;
-            case VK_EXECUTE -> null;
-            case VK_SNAPSHOT -> null;
-            case VK_PRTSCN -> Key.printscreen;
-            case VK_PRINTSCREEN -> Key.printscreen;
-            case VK_INSERT -> Key.insert;
-            case VK_INS -> Key.insert;
-            case VK_DELETE -> Key.del;
-            case VK_DEL -> Key.del;
-            case VK_HELP -> null;
-            case VK_0 -> Key.zero;
-            case VK_1 -> Key.one;
-            case VK_2 -> Key.two;
-            case VK_3 -> Key.three;
-            case VK_4 -> Key.four;
-            case VK_5 -> Key.five;
-            case VK_6 -> Key.six;
-            case VK_7 -> Key.seven;
-            case VK_8 -> Key.eight;
-            case VK_9 -> Key.nine;
-            case VK_RESERVED_3A -> null;
-            case VK_RESERVED_3B -> null;
-            case VK_RESERVED_3C -> null;
-            case VK_RESERVED_3D -> null;
-            case VK_RESERVED_3E -> null;
-            case VK_RESERVED_3F -> null;
-            case VK_RESERVED_40 -> null;
-            case VK_A -> Key.a;
-            case VK_B -> Key.b;
-            case VK_C -> Key.c;
-            case VK_D -> Key.d;
-            case VK_E -> Key.e;
-            case VK_F -> Key.f;
-            case VK_G -> Key.g;
-            case VK_H -> Key.h;
-            case VK_I -> Key.i;
-            case VK_J -> Key.j;
-            case VK_K -> Key.k;
-            case VK_L -> Key.l;
-            case VK_M -> Key.m;
-            case VK_N -> Key.n;
-            case VK_O -> Key.o;
-            case VK_P -> Key.p;
-            case VK_Q -> Key.q;
-            case VK_R -> Key.r;
-            case VK_S -> Key.s;
-            case VK_T -> Key.t;
-            case VK_U -> Key.u;
-            case VK_V -> Key.v;
-            case VK_W -> Key.w;
-            case VK_X -> Key.x;
-            case VK_Y -> Key.y;
-            case VK_Z -> Key.z;
-            case VK_LWIN -> Key.win;
-            case VK_RWIN -> Key.win;
-            case VK_APPS -> null;
-            case VK_CONTEXT -> null;
-            case VK_CONTEXTMENU -> null;
-            case VK_RESERVED_5E -> null;
-            case VK_SLEEP -> null;
-            case VK_NUMPAD0 -> Key.numpad0;
-            case VK_NUM0 -> Key.numpad0;
-            case VK_NUMPAD1 -> Key.numpad1;
-            case VK_NUM1 -> Key.numpad1;
-            case VK_NUMPAD2 -> Key.numpad2;
-            case VK_NUM2 -> Key.numpad2;
-            case VK_NUMPAD3 -> Key.numpad3;
-            case VK_NUM3 -> Key.numpad3;
-            case VK_NUMPAD4 -> Key.numpad4;
-            case VK_NUM4 -> Key.numpad4;
-            case VK_NUMPAD5 -> Key.numpad5;
-            case VK_NUM5 -> Key.numpad5;
-            case VK_NUMPAD6 -> Key.numpad6;
-            case VK_NUM6 -> Key.numpad6;
-            case VK_NUMPAD7 -> Key.numpad7;
-            case VK_NUM7 -> Key.numpad7;
-            case VK_NUMPAD8 -> Key.numpad8;
-            case VK_NUM8 -> Key.numpad8;
-            case VK_NUMPAD9 -> Key.numpad9;
-            case VK_NUM9 -> Key.numpad9;
-            case VK_MULTIPLY -> null;
-            case VK_ADD -> null;
-            case VK_SEPARATOR -> null;
-            case VK_SUBTRACT -> null;
-            case VK_DECIMAL -> null;
-            case VK_DIVIDE -> null;
-            case VK_F1 -> Key.f1;
-            case VK_F2 -> Key.f2;
-            case VK_F3 -> Key.f3;
-            case VK_F4 -> Key.f4;
-            case VK_F5 -> Key.f5;
-            case VK_F6 -> Key.f6;
-            case VK_F7 -> Key.f7;
-            case VK_F8 -> Key.f8;
-            case VK_F9 -> Key.f9;
-            case VK_F10 -> Key.f10;
-            case VK_F11 -> Key.f11;
-            case VK_F12 -> Key.f12;
-            case VK_F13 -> null;
-            case VK_F14 -> null;
-            case VK_F15 -> null;
-            case VK_F16 -> null;
-            case VK_F17 -> null;
-            case VK_F18 -> null;
-            case VK_F19 -> null;
-            case VK_F20 -> null;
-            case VK_F21 -> null;
-            case VK_F22 -> null;
-            case VK_F23 -> null;
-            case VK_F24 -> null;
-            case VK_NAVIGATION_VIEW -> null;
-            case VK_NAVIGATION_MENU -> null;
-            case VK_NAVIGATION_UP -> null;
-            case VK_NAVIGATION_DOWN -> null;
-            case VK_NAVIGATION_LEFT -> null;
-            case VK_NAVIGATION_RIGHT -> null;
-            case VK_NAVIGATION_ACCEPT -> null;
-            case VK_NAVIGATION_CANCEL -> null;
-            case VK_NUMLOCK -> null;
-            case VK_NUMLK -> null;
-            case VK_SCROLL -> null;
-            case VK_SCRLK -> null;
-            case VK_OEM_FJ_JISHO -> null;
-            case VK_OEM_NEC_EQUAL -> null;
-            case VK_OEM_FJ_MASSHOU -> null;
-            case VK_OEM_FJ_TOUROKU -> null;
-            case VK_OEM_FJ_LOYA -> null;
-            case VK_OEM_FJ_ROYA -> null;
-            case VK_RESERVED_97 -> null;
-            case VK_RESERVED_98 -> null;
-            case VK_RESERVED_99 -> null;
-            case VK_RESERVED_9A -> null;
-            case VK_RESERVED_9B -> null;
-            case VK_RESERVED_9C -> null;
-            case VK_RESERVED_9D -> null;
-            case VK_RESERVED_9E -> null;
-            case VK_RESERVED_9F -> null;
-            case VK_LSHIFT -> Key.leftshift;
-            case VK_RSHIFT -> Key.rightshift;
-            case VK_LCONTROL -> Key.leftctrl;
-            case VK_LCTRL -> Key.leftctrl;
-            case VK_RCONTROL -> Key.rightctrl;
-            case VK_RCTRL -> Key.rightctrl;
-            case VK_LMENU -> Key.leftalt;
-            case VK_LALT -> Key.leftalt;
-            case VK_RMENU -> Key.rightalt;
-            case VK_RALT -> Key.rightalt;
-            case VK_BROWSER_BACK -> null;
-            case VK_BROWSER_FORWARD -> null;
-            case VK_BROWSER_REFRESH -> null;
-            case VK_BROWSER_STOP -> null;
-            case VK_BROWSER_SEARCH -> null;
-            case VK_BROWSER_FAVORITES -> null;
-            case VK_BROWSER_HOME -> null;
-            case VK_VOLUME_MUTE -> null;
-            case VK_VOLUME_DOWN -> null;
-            case VK_VOLUME_UP -> null;
-            case VK_MEDIA_NEXT_TRACK -> null;
-            case VK_MEDIA_PREV_TRACK -> null;
-            case VK_MEDIA_STOP -> null;
-            case VK_MEDIA_PLAY_PAUSE -> null;
-            case VK_LAUNCH_MAIL -> null;
-            case VK_LAUNCH_MEDIA_SELECT -> null;
-            case VK_LAUNCH_APP1 -> null;
-            case VK_LAUNCH_APP2 -> null;
-            case VK_RESERVED_B8 -> null;
-            case VK_RESERVED_B9 -> null;
-            case VK_OEM_1 -> Key.semicolumn;
-            case VK_OEM_PLUS -> Key.equal;
-            case VK_OEM_COMMA -> Key.comma;
-            case VK_OEM_MINUS -> Key.minus;
-            case VK_OEM_PERIOD -> Key.period;
-            case VK_OEM_2 -> Key.forwardslash;
-            case VK_OEM_3 -> Key.quote;
-            case VK_RESERVED_C1 -> null;
-            case VK_RESERVED_C2 -> null;
-            case VK_GAMEPAD_A -> null;
-            case VK_GAMEPAD_B -> null;
-            case VK_GAMEPAD_X -> null;
-            case VK_GAMEPAD_Y -> null;
-            case VK_GAMEPAD_RIGHT_SHOULDER -> null;
-            case VK_GAMEPAD_LEFT_SHOULDER -> null;
-            case VK_GAMEPAD_LEFT_TRIGGER -> null;
-            case VK_GAMEPAD_RIGHT_TRIGGER -> null;
-            case VK_GAMEPAD_DPAD_UP -> null;
-            case VK_GAMEPAD_DPAD_DOWN -> null;
-            case VK_GAMEPAD_DPAD_LEFT -> null;
-            case VK_GAMEPAD_DPAD_RIGHT -> null;
-            case VK_GAMEPAD_MENU -> null;
-            case VK_GAMEPAD_VIEW -> null;
-            case VK_GAMEPAD_LEFT_THUMBSTICK_BUTTON -> null;
-            case VK_GAMEPAD_RIGHT_THUMBSTICK_BUTTON -> null;
-            case VK_GAMEPAD_LEFT_THUMBSTICK_UP -> null;
-            case VK_GAMEPAD_LEFT_THUMBSTICK_DOWN -> null;
-            case VK_GAMEPAD_LEFT_THUMBSTICK_RIGHT -> null;
-            case VK_GAMEPAD_LEFT_THUMBSTICK_LEFT -> null;
-            case VK_GAMEPAD_RIGHT_THUMBSTICK_UP -> null;
-            case VK_GAMEPAD_RIGHT_THUMBSTICK_DOWN -> null;
-            case VK_GAMEPAD_RIGHT_THUMBSTICK_RIGHT -> null;
-            case VK_GAMEPAD_RIGHT_THUMBSTICK_LEFT -> null;
-            case VK_OEM_4 -> Key.openingbracket;
-            case VK_OEM_5 -> Key.backslash;
-            case VK_OEM_6 -> Key.closingbracket;
-            case VK_OEM_7 -> Key.pound;
-            case VK_OEM_8 -> Key.backtick;
-            case VK_RESERVED_E0 -> null;
-            case VK_OEM_AX -> null;
-            case VK_OEM_102 -> null;
-            case VK_ICO_HELP -> null;
-            case VK_ICO_00 -> null;
-            case VK_PROCESSKEY -> null;
-            case VK_ICO_CLEAR -> null;
-            case VK_PACKET -> null;
-            case VK_RESERVED_E8 -> null;
-            case VK_OEM_RESET -> null;
-            case VK_OEM_JUMP -> null;
-            case VK_OEM_PA1 -> null;
-            case VK_OEM_PA2 -> null;
-            case VK_OEM_PA3 -> null;
-            case VK_OEM_WSCTRL -> null;
-            case VK_OEM_CUSEL -> null;
-            case VK_OEM_ATTN -> null;
-            case VK_OEM_FINISH -> null;
-            case VK_OEM_COPY -> null;
-            case VK_OEM_AUTO -> null;
-            case VK_OEM_ENLW -> null;
-            case VK_OEM_BACKTAB -> null;
-            case VK_ATTN -> null;
-            case VK_CRSEL -> null;
-            case VK_EXSEL -> null;
-            case VK_EREOF -> null;
-            case VK_PLAY -> null;
-            case VK_ZOOM -> null;
-            case VK_NONAME -> null;
-            case VK_PA1 -> null;
-            case VK_OEM_CLEAR -> null;
-            case VK_NONE -> null;
+            default -> null;
         };
+        if (key != null)
+            return key;
+        key = keyboardLayoutIndependentKeyByVirtualKey.get(windowsVirtualKey);
+        if (key != null)
+            return key;
+        key = keyboardLayoutDependentKeyByVirtualKey.get(windowsVirtualKey);
+        return key;
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key) {
-        return switch (key) {
-            case Key.backspace -> VK_BACK;
-            case Key.tab -> VK_TAB;
-            case Key.enter -> VK_RETURN;
-            case Key.pause -> VK_PAUSE;
-            case Key.capslock -> VK_CAPITAL;
-            case Key.esc -> VK_ESCAPE;
-            case Key.space -> VK_SPACE;
-            case Key.pageup -> VK_PGUP;
-            case Key.pagedown -> VK_PGDN;
-            case Key.end -> VK_END;
-            case Key.home -> VK_HOME;
-            case Key.left -> VK_LEFT;
-            case Key.up -> VK_UP;
-            case Key.right -> VK_RIGHT;
-            case Key.down -> VK_DOWN;
-            case Key.printscreen -> VK_PRTSCN;
-            case Key.insert -> VK_INSERT;
-            case Key.del -> VK_DELETE;
-            case Key.zero -> VK_0;
-            case Key.one -> VK_1;
-            case Key.two -> VK_2;
-            case Key.three -> VK_3;
-            case Key.four -> VK_4;
-            case Key.five -> VK_5;
-            case Key.six -> VK_6;
-            case Key.seven -> VK_7;
-            case Key.eight -> VK_8;
-            case Key.nine -> VK_9;
-            case Key.a -> VK_A;
-            case Key.b -> VK_B;
-            case Key.c -> VK_C;
-            case Key.d -> VK_D;
-            case Key.e -> VK_E;
-            case Key.f -> VK_F;
-            case Key.g -> VK_G;
-            case Key.h -> VK_H;
-            case Key.i -> VK_I;
-            case Key.j -> VK_J;
-            case Key.k -> VK_K;
-            case Key.l -> VK_L;
-            case Key.m -> VK_M;
-            case Key.n -> VK_N;
-            case Key.o -> VK_O;
-            case Key.p -> VK_P;
-            case Key.q -> VK_Q;
-            case Key.r -> VK_R;
-            case Key.s -> VK_S;
-            case Key.t -> VK_T;
-            case Key.u -> VK_U;
-            case Key.v -> VK_V;
-            case Key.w -> VK_W;
-            case Key.x -> VK_X;
-            case Key.y -> VK_Y;
-            case Key.z -> VK_Z;
-            case Key.win -> VK_LWIN;
-            case Key.numpad0 -> VK_NUMPAD0;
-            case Key.numpad1 -> VK_NUMPAD1;
-            case Key.numpad2 -> VK_NUMPAD2;
-            case Key.numpad3 -> VK_NUMPAD3;
-            case Key.numpad4 -> VK_NUMPAD4;
-            case Key.numpad5 -> VK_NUMPAD5;
-            case Key.numpad6 -> VK_NUMPAD6;
-            case Key.numpad7 -> VK_NUMPAD7;
-            case Key.numpad8 -> VK_NUMPAD8;
-            case Key.numpad9 -> VK_NUMPAD9;
-            case Key.f1 -> VK_F1;
-            case Key.f2 -> VK_F2;
-            case Key.f3 -> VK_F3;
-            case Key.f4 -> VK_F4;
-            case Key.f5 -> VK_F5;
-            case Key.f6 -> VK_F6;
-            case Key.f7 -> VK_F7;
-            case Key.f8 -> VK_F8;
-            case Key.f9 -> VK_F9;
-            case Key.f10 -> VK_F10;
-            case Key.f11 -> VK_F11;
-            case Key.f12 -> VK_F12;
-            case Key.leftshift -> VK_LSHIFT;
-            case Key.rightshift -> VK_RSHIFT;
-            case Key.leftctrl -> VK_LCONTROL;
-            case Key.rightctrl -> VK_RCONTROL;
-            case Key.leftalt -> VK_LMENU;
-            case Key.rightalt -> VK_RMENU;
-            case Key.semicolumn -> VK_OEM_1;
-            case Key.equal -> VK_OEM_PLUS;
-            case Key.comma -> VK_OEM_COMMA;
-            case Key.minus -> VK_OEM_MINUS;
-            case Key.period -> VK_OEM_PERIOD;
-            case Key.forwardslash -> VK_OEM_2;
-            case Key.quote -> VK_OEM_3;
-            case Key.openingbracket -> VK_OEM_4;
-            case Key.backslash -> VK_OEM_5;
-            case Key.closingbracket -> VK_OEM_6;
-            case Key.pound -> VK_OEM_7;
-            case Key.backtick -> VK_OEM_8;
-        };
+        WindowsVirtualKey windowsVirtualKey =
+                keyboardLayoutIndependentVirtualKeyByKey.get(key);
+        if (windowsVirtualKey != null)
+            return windowsVirtualKey;
+        return keyboardLayoutDependentVirtualKeyByKey.get(key);
     }
 
 }

@@ -31,7 +31,7 @@ public record ComboPrecondition(Set<Set<Key>> mustNotBePressedKeySets,
     private static String keySetsToString(Set<Set<Key>> keySets) {
         return keySets.stream()
                       .map(keySet -> keySet.stream()
-                                           .map(Key::keyName)
+                                           .map(Key::name)
                                            .collect(Collectors.joining(" ")))
                       .collect(Collectors.joining("|"));
     }

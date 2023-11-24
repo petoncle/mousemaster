@@ -4,7 +4,8 @@ public interface OsManager {
 
     void update(double delta);
 
-    void setMouseManagerAndKeyboardManager(MouseManager mouseManager,
-                                           KeyboardManager keyboardManager);
+    void reset(MouseManager mouseManager,
+               KeyboardManager keyboardManager, KeyboardLayout keyboardLayout,
+               ModeMap modeMap);
 
 }
