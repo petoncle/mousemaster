@@ -29,6 +29,7 @@ public record Key(String staticName, String character) {
     public static final Key printscreen = new Key("printscreen", null);
     public static final Key insert = new Key("insert", null);
     public static final Key del = new Key("del", null);
+    public static final Key break_ = new Key("break", null);
     public static final Key backspace = new Key("backspace", null);
     public static final Key win = new Key("win", null);
     public static final Key numpad0 = new Key("numpad0", null);
@@ -68,6 +69,7 @@ public record Key(String staticName, String character) {
 
     public static final Set<Key> keyboardLayoutIndependentKeys = Set.of(
             // @formatter:off
+            break_,
             tab,
             enter,
             leftshift,

@@ -326,6 +326,7 @@ public enum WindowsVirtualKey {
     public static final Map<Key, WindowsVirtualKey> keyboardLayoutIndependentVirtualKeyByKey =
             Map.ofEntries(
                 // @formatter:off
+                Map.entry(Key.break_, VK_CANCEL),
                 Map.entry(Key.backspace, VK_BACK),
                 Map.entry(Key.tab, VK_TAB),
                 Map.entry(Key.enter, VK_RETURN),
@@ -380,6 +381,12 @@ public enum WindowsVirtualKey {
                 Map.entry(Key.rightalt, VK_RMENU)
                 // @formatter:on
             );
+
+    private static final Set<WindowsVirtualKey> notRealKeysVirtualKeys = Set.of(
+            // @formatter:off
+            VK_PACKET
+            // @formatter:on
+    );
 
     public static final Map<WindowsVirtualKey, Key>
             keyboardLayoutIndependentKeyByVirtualKey = new HashMap<>();
@@ -458,6 +465,10 @@ public enum WindowsVirtualKey {
                                                                .filter(Objects::nonNull)
                                                                .filter(Predicate.not(
                                                                        keyboardLayoutDependentKeyByVirtualKey.keySet()::contains))
+                                                               .filter(Predicate.not(
+                                                                       keyboardLayoutIndependentKeyByVirtualKey.keySet()::contains))
+                                                               .filter(Predicate.not(
+                                                                       notRealKeysVirtualKeys::contains))
                                                                .collect(
                                                                        Collectors.toSet());
         byte[] keyboardState = new byte[256];
