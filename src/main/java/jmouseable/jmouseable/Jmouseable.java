@@ -75,15 +75,10 @@ public class Jmouseable {
     private void loadConfiguration() throws IOException {
         boolean reload = configuration != null;
         configuration = ConfigurationParser.parse(configurationPath);
-        String defaultModeName = Mode.NORMAL_MODE_NAME;
-        Mode currentMode = configuration.modeMap().get(defaultModeName);
-        mouseManager = new MouseManager(currentMode.mouse(), currentMode.wheel(),
-                currentMode.attach());
+        mouseManager = new MouseManager();
         modeManager = new ModeManager(configuration.modeMap(), mouseManager);
-        modeManager.switchMode(defaultModeName);
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseManager);
         ComboWatcher comboWatcher = new ComboWatcher(modeManager, commandRunner);
-        modeManager.setComboWatcher(comboWatcher);
         keyboardManager = new KeyboardManager(comboWatcher);
         indicatorManager =
                 new IndicatorManager(modeManager, mouseManager, keyboardManager);

@@ -9,21 +9,27 @@ public class ModeManager {
 
     private final ModeMap modeMap;
     private final MouseManager mouseManager;
-    private ComboWatcher comboWatcher;
+    private boolean currentModeTimedOut;
     private Mode currentMode;
     private double currentModeRemainingDuration;
 
     public ModeManager(ModeMap modeMap, MouseManager mouseManager) {
         this.modeMap = modeMap;
         this.mouseManager = mouseManager;
-    }
-
-    public void setComboWatcher(ComboWatcher comboWatcher) {
-        this.comboWatcher = comboWatcher;
+        String defaultModeName = Mode.NORMAL_MODE_NAME;
+        switchMode(defaultModeName);
     }
 
     public Mode currentMode() {
         return currentMode;
+    }
+
+    public boolean poolCurrentModeTimedOut() {
+        try {
+            return currentModeTimedOut;
+        } finally {
+            currentModeTimedOut = false;
+        }
     }
 
     public void update(double delta) {
@@ -37,7 +43,7 @@ public class ModeManager {
                     logger.debug("Current " + currentMode.name() +
                                  " has timed out, switching to " +
                                  currentMode.timeout().nextModeName());
-                    comboWatcher.interrupt();
+                    currentModeTimedOut = true;
                     switchMode(currentMode.timeout().nextModeName());
                 }
             }
@@ -49,9 +55,9 @@ public class ModeManager {
         currentMode = newMode;
         if (newMode.timeout().duration() != null)
             resetCurrentModeRemainingDuration();
-        mouseManager.changeMouse(newMode.mouse());
-        mouseManager.changeWheel(newMode.wheel());
-        mouseManager.changeAttach(newMode.attach());
+        mouseManager.setMouse(newMode.mouse());
+        mouseManager.setWheel(newMode.wheel());
+        mouseManager.setAttach(newMode.attach());
     }
 
     public void attached() {

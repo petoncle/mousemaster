@@ -18,12 +18,6 @@ public class MouseManager {
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
 
-    public MouseManager(Mouse mouse, Wheel wheel, Attach attach) {
-        this.mouse = mouse;
-        this.wheel = wheel;
-        this.attach = attach;
-    }
-
     public void reset() {
         moveDuration = 0;
         xMoveForwardStack.clear();
@@ -34,15 +28,15 @@ public class MouseManager {
         yWheelForwardStack.clear();
     }
 
-    public void changeMouse(Mouse mouse) {
+    public void setMouse(Mouse mouse) {
         this.mouse = mouse;
     }
 
-    public void changeWheel(Wheel wheel) {
+    public void setWheel(Wheel wheel) {
         this.wheel = wheel;
     }
 
-    public void changeAttach(Attach attach) {
+    public void setAttach(Attach attach) {
         this.attach = attach;
     }
 
