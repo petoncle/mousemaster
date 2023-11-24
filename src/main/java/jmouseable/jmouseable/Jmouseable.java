@@ -10,18 +10,18 @@ public class Jmouseable {
 
     private static final Logger logger = LoggerFactory.getLogger(Jmouseable.class);
 
-    private final OsManager osManager;
     private final Path configurationPath;
+    private final OsManager osManager;
+    private final WatchService watchService;
     private Configuration configuration;
-    private WatchService watchService;
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
     private ModeManager modeManager;
     private IndicatorManager indicatorManager;
 
-    public Jmouseable(OsManager osManager, Path configurationPath) throws IOException {
-        this.osManager = osManager;
+    public Jmouseable(Path configurationPath, OsManager osManager) throws IOException {
         this.configurationPath = configurationPath;
+        this.osManager = osManager;
         loadConfiguration();
         watchService = FileSystems.getDefault().newWatchService();
         configurationPath.toAbsolutePath()
