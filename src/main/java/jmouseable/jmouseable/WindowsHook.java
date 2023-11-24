@@ -213,7 +213,7 @@ public class WindowsHook {
 
     private static void logKeyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
                                     String wParamString) {
-        logger.debug("Received key event: " + keyEvent + ", vk = " +
+        logger.trace("Received key event: " + keyEvent + ", vk = " +
                      WindowsVirtualKey.values.get(info.vkCode) + ", scanCode = " +
                      info.scanCode + ", flags = 0x" + Integer.toHexString(info.flags) +
                      ", wParam = " + wParamString);

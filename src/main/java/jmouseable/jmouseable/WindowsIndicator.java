@@ -1,12 +1,9 @@
 package jmouseable.jmouseable;
 
 import com.sun.jna.platform.win32.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class WindowsIndicator {
 
-    private static final Logger logger = LoggerFactory.getLogger(WindowsIndicator.class);
     private static final int indicatorEdgeThreshold = 100; // in pixels
     private static final int indicatorSize = 16;
 
@@ -37,7 +34,6 @@ public class WindowsIndicator {
     public static void createIndicatorWindow() {
         WinDef.POINT mousePosition = findCursorPositionAndSize();
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
-        logger.debug("Cursor size: " + cursorWidth + " " + cursorHeight);
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
         wClass.hbrBackground = null;
         wClass.lpszClassName = "JMouseableOverlayClassName";

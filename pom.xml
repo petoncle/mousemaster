@@ -119,7 +119,7 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${mainClass}</argument>
-                                <argument>-graalvm-agent-run</argument>
+                                <argument>--graalvm-agent-run</argument>
                             </arguments>
                         </configuration>
                     </execution>

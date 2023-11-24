@@ -2,6 +2,8 @@ package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
 import jmouseable.jmouseable.Mode.ModeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,12 +19,15 @@ import static jmouseable.jmouseable.Command.*;
 
 public class ConfigurationParser {
 
+    private static final Logger logger = LoggerFactory.getLogger(ConfigurationParser.class);
+
     private static final Mode defaultMode =
             new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
                     new Wheel(1000, 1000, 500), new Attach(1, 1), null,
                     new Indicator(false, null, null, null, null, null));
 
     public static Configuration parse(Path path) throws IOException {
+        logger.info("Loading configuration file: " + path);
         List<String> lines = Files.readAllLines(path);
         ComboMoveDuration defaultComboMoveDuration = defaultComboMoveDuration();
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
@@ -241,7 +246,9 @@ public class ConfigurationParser {
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
-        return new Configuration(new ModeMap(modes));
+        Configuration configuration = new Configuration(new ModeMap(modes));
+        logger.info("Loaded configuration file: " + path);
+        return configuration;
     }
 
     private static void recursivelyExtendMode(Mode parentMode, ModeNode modeNode,
