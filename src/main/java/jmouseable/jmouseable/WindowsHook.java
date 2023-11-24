@@ -25,9 +25,7 @@ public class WindowsHook {
         systemStartTime = now.minusMillis(uptimeMillis);
     }
 
-    private final MouseManager mouseManager;
-    private final KeyboardManager keyboardManager;
-    private final Ticker ticker;
+    private final Jmouseable jmouseable;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -40,10 +38,8 @@ public class WindowsHook {
     private WinUser.LowLevelKeyboardProc keyboardHookCallback;
     private WinNT.HANDLE singleInstanceMutex;
 
-    public WindowsHook(MouseManager mouseManager, KeyboardManager keyboardManager, Ticker ticker) {
-        this.mouseManager = mouseManager;
-        this.keyboardManager = keyboardManager;
-        this.ticker = ticker;
+    public WindowsHook(Jmouseable jmouseable) {
+        this.jmouseable = jmouseable;
     }
 
     public void installHooks() throws InterruptedException {
@@ -85,6 +81,7 @@ public class WindowsHook {
         WinUser.MSG msg = new WinUser.MSG();
         long previousNanoTime = System.nanoTime();
         while (true) {
+            jmouseable.updateConfiguration();
             while (User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1)) {
                 User32.INSTANCE.TranslateMessage(msg);
                 User32.INSTANCE.DispatchMessage(msg);
@@ -94,7 +91,7 @@ public class WindowsHook {
             previousNanoTime = currentNanoTime;
             double delta = deltaNanos / 1e9d;
             sanityCheckCurrentlyPressedKeys(delta);
-            ticker.update(delta);
+            jmouseable.ticker().update(delta);
             Thread.sleep(10L);
         }
     }
@@ -133,8 +130,8 @@ public class WindowsHook {
                     "Resetting KeyManager and MouseManager since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     keysThatDoNotSeemToBePressedAnymore);
             currentlyPressedNotEatenKeys.clear();
-            keyboardManager.reset();
-            mouseManager.reset();
+            jmouseable.keyboardManager().reset();
+            jmouseable.mouseManager().reset();
         }
     }
 
@@ -191,19 +188,22 @@ public class WindowsHook {
         return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
     }
 
-    private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info, String wParamString) {
+    private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
+                             String wParamString) {
         if (keyEvent.isPress()) {
-            if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
-                keyboardManager.allCurrentlyPressedArePartOfCombo()) {
+            if (!jmouseable.keyboardManager()
+                           .currentlyPressed(keyEvent.key()) &&
+                jmouseable.keyboardManager()
+                          .allCurrentlyPressedArePartOfCombo()) {
                 logKeyEvent(keyEvent, info, wParamString);
             }
         }
         else {
             currentlyPressedNotEatenKeys.remove(keyEvent.key());
-            if (keyboardManager.currentlyPressed(keyEvent.key()))
+            if (jmouseable.keyboardManager().currentlyPressed(keyEvent.key()))
                 logKeyEvent(keyEvent, info, wParamString);
         }
-        boolean mustBeEaten = keyboardManager.keyEvent(keyEvent);
+        boolean mustBeEaten = jmouseable.keyboardManager().keyEvent(keyEvent);
         if (keyEvent.isPress() && !mustBeEaten) {
             currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
                     key -> new AtomicReference<>(0d)).set(0d);
@@ -224,7 +224,7 @@ public class WindowsHook {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
             WindowsIndicator.mouseMoved(mousePosition);
-            mouseManager.mouseMoved(mousePosition.x, mousePosition.y);
+            jmouseable.mouseManager().mouseMoved(mousePosition.x, mousePosition.y);
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }
