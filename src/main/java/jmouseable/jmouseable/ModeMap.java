@@ -18,4 +18,8 @@ public class ModeMap {
         return modeByName.get(modeName);
     }
 
+    @Override
+    public String toString() {
+        return modeByName.toString();
+    }
 }
