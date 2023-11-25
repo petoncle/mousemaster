@@ -139,7 +139,7 @@ public class MouseManager {
 
     public void stopMoveUp() {
         removeFirst(yMoveForwardStack, false);
-        if (!Objects.equals(yMoveForwardStack.peek(), false))
+        if (yMoveForwardStack.isEmpty() || yMoveForwardStack.peek() != false)
             deltaDistanceY = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
@@ -157,7 +157,7 @@ public class MouseManager {
 
     public void stopMoveDown() {
         removeFirst(yMoveForwardStack, true);
-        if (!Objects.equals(yMoveForwardStack.peek(), true))
+        if (yMoveForwardStack.isEmpty() || yMoveForwardStack.peek() != true)
             deltaDistanceY = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
@@ -165,7 +165,7 @@ public class MouseManager {
 
     public void stopMoveLeft() {
         removeFirst(xMoveForwardStack, false);
-        if (!Objects.equals(xMoveForwardStack.peek(), false))
+        if (xMoveForwardStack.isEmpty() || xMoveForwardStack.peek() != false)
             deltaDistanceX = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
@@ -173,7 +173,7 @@ public class MouseManager {
 
     public void stopMoveRight() {
         removeFirst(xMoveForwardStack, true);
-        if (!Objects.equals(xMoveForwardStack.peek(), true))
+        if (xMoveForwardStack.isEmpty() || xMoveForwardStack.peek() != true)
             deltaDistanceX = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
