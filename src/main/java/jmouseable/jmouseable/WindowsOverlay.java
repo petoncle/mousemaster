@@ -106,6 +106,7 @@ public class WindowsOverlay {
                 wClass.hInstance, null);
         User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 0,
                 WinUser.LWA_COLORKEY);
+        User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOWNORMAL);
         return hwnd;
     }
 
@@ -119,11 +120,14 @@ public class WindowsOverlay {
         switch (uMsg) {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-                WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(
-                        hexColorStringToInt(currentIndicatorHexColor));
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                ExtendedUser32.INSTANCE.FillRect(hdc, ps.rcPaint, hbrBackground);
-                GDI32.INSTANCE.DeleteObject(hbrBackground);
+                clearWindow(hdc, ps);
+                if (showingIndicator) {
+                    WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(
+                            hexColorStringToInt(currentIndicatorHexColor));
+                    ExtendedUser32.INSTANCE.FillRect(hdc, ps.rcPaint, hbrBackground);
+                    GDI32.INSTANCE.DeleteObject(hbrBackground);
+                }
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
         }
@@ -139,7 +143,8 @@ public class WindowsOverlay {
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 // If not cleared, the previous drawings will be painted.
                 clearWindow(hdc, ps);
-                paintGrid(hdc, ps);
+                if (showingAttachGrid)
+                    paintGrid(hdc, ps);
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
         }
@@ -231,18 +236,14 @@ public class WindowsOverlay {
         if (indicatorWindowHwnd == null)
             createIndicatorWindow();
         showingIndicator = true;
-        // Force window to repaint to reflect new color
-        User32.INSTANCE.InvalidateRect(indicatorWindowHwnd, null, true);
-        User32.INSTANCE.UpdateWindow(indicatorWindowHwnd);
-        boolean showWindowResult =
-                User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_SHOWNORMAL);
+        requestWindowRepaint(indicatorWindowHwnd);
     }
 
     public static void hideIndicator() {
         if (!showingIndicator)
             return;
         showingIndicator = false;
-        User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_HIDE);
+        requestWindowRepaint(indicatorWindowHwnd);
     }
 
     public static void setAttach(Attach attach) {
@@ -269,12 +270,8 @@ public class WindowsOverlay {
         if (attachGridWindows == null)
             createAttachGridWindows();
         showingAttachGrid = true;
-        for (AttachGridWindow attachGridWindow : attachGridWindows) {
-            User32.INSTANCE.InvalidateRect(attachGridWindow.hwnd, null, true);
-            User32.INSTANCE.UpdateWindow(attachGridWindow.hwnd);
-            boolean attachGridWindowShowWindowResult = User32.INSTANCE.ShowWindow(attachGridWindow.hwnd,
-                    WinUser.SW_SHOWNORMAL);
-        }
+        for (AttachGridWindow attachGridWindow : attachGridWindows)
+            requestWindowRepaint(attachGridWindow.hwnd);
     }
 
     public static void hideAttachGrid() {
@@ -282,7 +279,12 @@ public class WindowsOverlay {
             return;
         showingAttachGrid = false;
         for (AttachGridWindow attachGridWindow : attachGridWindows)
-            User32.INSTANCE.ShowWindow(attachGridWindow.hwnd, WinUser.SW_HIDE);
+            requestWindowRepaint(attachGridWindow.hwnd);
+    }
+
+    private static void requestWindowRepaint(WinDef.HWND hwnd) {
+        User32.INSTANCE.InvalidateRect(hwnd, null, true);
+        User32.INSTANCE.UpdateWindow(hwnd);
     }
 
     public static WinUser.MONITORINFO findCurrentMonitorPosition(
