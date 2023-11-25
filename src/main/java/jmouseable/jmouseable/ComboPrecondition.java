@@ -15,11 +15,13 @@ public record ComboPrecondition(Set<Set<Key>> mustNotBePressedKeySets,
             if (currentlyPressedComboKeys.containsAll(mustNotBePressedKeySet))
                 return false;
         }
+        if (mustBePressedKeySets.isEmpty())
+            return true;
         for (Set<Key> mustBePressedKeySet : mustBePressedKeySets) {
-            if (!currentlyPressedComboKeys.containsAll(mustBePressedKeySet))
-                return false;
+            if (currentlyPressedComboKeys.containsAll(mustBePressedKeySet))
+                return true;
         }
-        return true;
+        return false;
     }
 
     @Override
