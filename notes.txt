@@ -63,4 +63,4 @@ _shift,^shift = press shift, release shift?
  - Add timeout.enabled
 - Rename OsManager to Platform
 + Check LLKHF_INJECTED?
-+ Min/max values for grid row/column count
+- Min/max values for grid row/column count

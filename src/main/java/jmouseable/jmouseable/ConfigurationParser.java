@@ -104,13 +104,15 @@ public class ConfigurationParser {
                                 "Invalid attach configuration: " + propertyKey);
                     switch (matcher.group(4)) {
                         case "grid-row-count" -> mode.attach()
-                                                     .gridRowCount(
-                                                             Integer.parseUnsignedInt(
-                                                                     propertyValue));
+                                                     .gridRowCount(parseUnsignedInteger(
+                                                             "attach grid-row-count",
+                                                             propertyValue, 1, 10));
                         case "grid-column-count" -> mode.attach()
                                                         .gridColumnCount(
-                                                                Integer.parseUnsignedInt(
-                                                                        propertyValue));
+                                                                parseUnsignedInteger(
+                                                                        "attach grid-column-count",
+                                                                        propertyValue, 1,
+                                                                        10));
                         case "show-grid" -> mode.attach()
                                                 .showGrid(Boolean.parseBoolean(
                                                         propertyValue));
@@ -368,6 +370,19 @@ public class ConfigurationParser {
         if (!propertyValue.matches("^#?([a-fA-F0-9]{6})$"))
             throw new IllegalArgumentException("Invalid hex color: " + propertyValue);
         return propertyValue;
+    }
+
+    private static int parseUnsignedInteger(String configurationName, String string, int min, int max) {
+        int integer = Integer.parseUnsignedInt(string);
+        if (integer < min)
+            throw new IllegalArgumentException(
+                    "Invalid " + configurationName + " configuration: " + integer +
+                    " is not greater than or equal to " + min);
+        if (integer > max)
+            throw new IllegalArgumentException(
+                    "Invalid " + configurationName + " configuration: " + integer +
+                    " is not less than or equal to " + max);
+        return integer;
     }
 
     private static ComboMoveDuration parseComboMoveDuration(String string) {
