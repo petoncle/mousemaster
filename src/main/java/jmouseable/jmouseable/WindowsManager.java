@@ -110,7 +110,13 @@ public class WindowsManager implements OsManager {
         mouseHookCallback = WindowsManager.this::mouseHookCallback;
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
                 mouseHookCallback, hMod, 0);
+        addJvmShutdownHook();
+        logger.info("Keyboard and mouse hooks installed");
+    }
+
+    private void addJvmShutdownHook() {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            WindowsMouse.showCursor(); // Just in case we are shutting down while cursor is hidden.
             boolean keyboardHookUnhooked =
                     User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
             boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
@@ -120,7 +126,6 @@ public class WindowsManager implements OsManager {
             releaseSingleInstanceMutex();
             logger.info("Single instance mutex released");
         }));
-        logger.info("Keyboard and mouse hooks installed");
     }
 
     /**

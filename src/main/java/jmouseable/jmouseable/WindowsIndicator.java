@@ -1,20 +1,24 @@
 package jmouseable.jmouseable;
 
-import com.sun.jna.platform.win32.*;
+import com.sun.jna.platform.win32.GDI32;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinUser;
+import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
 public class WindowsIndicator {
 
     private static final int indicatorEdgeThreshold = 100; // in pixels
     private static final int indicatorSize = 16;
 
-    private static int cursorWidth, cursorHeight;
     private static WinDef.HWND indicatorWindowHwnd;
     private static boolean mustShowOnceCreated;
     private static boolean showing;
     private static String currentHexColor;
     private static WinDef.POINT mousePosition;
 
-    private static int bestIndicatorX(int mouseX, int monitorLeft, int monitorRight) {
+    private static int bestIndicatorX(int mouseX, int cursorWidth, int monitorLeft,
+                                      int monitorRight) {
         mouseX = Math.min(monitorRight, Math.max(monitorLeft, mouseX));
         boolean isNearLeftEdge = mouseX <= (monitorLeft + indicatorEdgeThreshold);
         boolean isNearRightEdge = mouseX >= (monitorRight - indicatorEdgeThreshold);
@@ -23,7 +27,8 @@ public class WindowsIndicator {
         return mouseX + cursorWidth / 2;
     }
 
-    private static int bestIndicatorY(int mouseY, int monitorTop, int monitorBottom) {
+    private static int bestIndicatorY(int mouseY, int cursorHeight, int monitorTop,
+                                      int monitorBottom) {
         mouseY = Math.min(monitorBottom, Math.max(monitorTop, mouseY));
         boolean isNearBottomEdge = mouseY >= (monitorBottom - indicatorEdgeThreshold);
         boolean isNearTopEdge = mouseY <= (monitorTop + indicatorEdgeThreshold);
@@ -33,8 +38,8 @@ public class WindowsIndicator {
     }
 
     public static void createIndicatorWindow() {
-        WinDef.POINT mousePosition = findCursorPositionAndSize();
-        WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
+        CursorPositionAndSize cursorPositionAndSize = WindowsMouse.cursorPositionAndSize();
+        WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(cursorPositionAndSize.position());
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
         wClass.hbrBackground = null;
         wClass.lpszClassName = "JMouseableOverlayClassName";
@@ -45,11 +50,11 @@ public class WindowsIndicator {
                 User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
                 ExtendedUser32.WS_EX_NOACTIVATE, wClass.lpszClassName,
                 "JMouseableOverlayWindowName", WinUser.WS_POPUP,
-                bestIndicatorX(mousePosition.x, monitorInfo.rcMonitor.left,
-                        monitorInfo.rcMonitor.right),
-                bestIndicatorY(mousePosition.y, monitorInfo.rcMonitor.top,
-                        monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize, null,
-                null, wClass.hInstance, null);
+                bestIndicatorX(cursorPositionAndSize.position().x, cursorPositionAndSize.width(),
+                        monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
+                bestIndicatorY(cursorPositionAndSize.position().y, cursorPositionAndSize.height(),
+                        monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
+                indicatorSize, indicatorSize, null, null, wClass.hInstance, null);
         if (mustShowOnceCreated)
             show(currentHexColor);
     }
@@ -88,6 +93,10 @@ public class WindowsIndicator {
         if (showing && currentHexColor != null && currentHexColor.equals(hexColor))
             return;
         currentHexColor = hexColor;
+        if (hexColor == null) {
+            hide();
+            return;
+        }
         if (indicatorWindowHwnd == null) {
             mustShowOnceCreated = true;
             return;
@@ -104,45 +113,6 @@ public class WindowsIndicator {
             return;
         showing = false;
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_HIDE);
-    }
-
-    private static WinDef.POINT findCursorPositionAndSize() {
-        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
-        if (ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo)) {
-            WinDef.POINT mousePosition = cursorInfo.ptScreenPos;
-            WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
-            if (User32.INSTANCE.GetIconInfo(new WinDef.HICON(cursorInfo.hCursor),
-                    iconInfo)) {
-                WinGDI.BITMAP bmp = new WinGDI.BITMAP();
-
-                int sizeOfBitmap = bmp.size();
-                if (iconInfo.hbmColor != null) {
-                    // Get the color bitmap information.
-                    GDI32.INSTANCE.GetObject(iconInfo.hbmColor, sizeOfBitmap,
-                            bmp.getPointer());
-                }
-                else {
-                    // Get the mask bitmap information if there is no color bitmap.
-                    GDI32.INSTANCE.GetObject(iconInfo.hbmMask, sizeOfBitmap,
-                            bmp.getPointer());
-                }
-                bmp.read();
-
-                cursorWidth = bmp.bmWidth.intValue();
-                cursorHeight = bmp.bmHeight.intValue();
-
-                // If there is no color bitmap, height is for both the mask and the inverted mask.
-                if (iconInfo.hbmColor == null) {
-                    cursorHeight /= 2;
-                }
-                if (iconInfo.hbmColor != null)
-                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
-                if (iconInfo.hbmMask != null)
-                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
-            }
-            return mousePosition;
-        }
-        throw new IllegalStateException();
     }
 
     public static WinUser.MONITORINFO findCurrentMonitorPosition(
@@ -163,12 +133,14 @@ public class WindowsIndicator {
         if (mousePosition == null)
             return;
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
+        CursorPositionAndSize cursorPositionAndSize =
+                WindowsMouse.cursorPositionAndSize();
         User32.INSTANCE.MoveWindow(indicatorWindowHwnd,
-                bestIndicatorX(mousePosition.x, monitorInfo.rcMonitor.left,
-                        monitorInfo.rcMonitor.right),
-                bestIndicatorY(mousePosition.y, monitorInfo.rcMonitor.top,
-                        monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize,
-                false);
+                bestIndicatorX(mousePosition.x, cursorPositionAndSize.width(),
+                        monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
+                bestIndicatorY(mousePosition.y, cursorPositionAndSize.height(),
+                        monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
+                indicatorSize, indicatorSize, false);
         mousePosition = null;
     }
 }

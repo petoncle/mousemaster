@@ -57,8 +57,8 @@ _shift,^shift = press shift, release shift?
 + vimium-like hint (warpd), keynav-like grid?
 + position history
 + Move mouse to center of focused app?
-+ Hide cursor after 5s
- + uncluttered-mouse-mode.hide-cursor.enabled+idle-duration
- + timeout.duration -> idle-duration
- + Add timeout.enabled
+- Hide cursor after 5s
+ - uncluttered-mouse-mode.hide-cursor.enabled+idle-duration
+ - timeout.duration -> idle-duration
+ - Add timeout.enabled
 + Check LLKHF_INJECTED?

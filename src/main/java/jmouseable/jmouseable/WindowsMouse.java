@@ -1,12 +1,12 @@
 package jmouseable.jmouseable;
 
-import com.sun.jna.platform.win32.BaseTSD;
-import com.sun.jna.platform.win32.User32;
-import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinUser;
+import com.sun.jna.platform.win32.*;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.stream.LongStream;
 
 public class WindowsMouse {
 
@@ -131,4 +131,95 @@ public class WindowsMouse {
         return User32.INSTANCE.SetCursorPos(mousePosition.x, mousePosition.y);
     }
 
+    private static boolean cursorHidden = false;
+
+    public static void showCursor() {
+        if (!cursorHidden)
+            return;
+        cursorHidden = false;
+        ExtendedUser32.INSTANCE.SystemParametersInfoA(
+                new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
+                new WinDef.UINT(0));
+    }
+
+    public static void hideCursor() {
+        // User32 ShowCursor(false) always returns -1 and does not hide the cursor.
+        if (cursorHidden)
+            return;
+        cursorHidden = true;
+        int cursorWidth = cursorPositionAndSize().width();
+        int cursorHeight = cursorPositionAndSize().height();
+        byte[] andMask = new byte[cursorWidth * cursorHeight];
+        byte[] xorMask = new byte[cursorWidth * cursorHeight];
+        Arrays.fill(andMask, (byte) 0xFF);
+        WinDef.HCURSOR transparentCursor =
+                ExtendedUser32.INSTANCE.CreateCursor(null, 0, 0, cursorWidth,
+                        cursorHeight, andMask, xorMask);
+        if (transparentCursor == null)
+            throw new IllegalStateException("Unable to create transparent cursor");
+        List<WinDef.UINT> cursorIds =
+                LongStream.of(32512, 32513, 32514, 32515, 32516, 32640, 32641, 32642, 32643,
+                              32644, 32645, 32646, 32648, 32649, 32650, 32651)
+                          .mapToObj(WinDef.UINT::new)
+                          .toList();
+        for (WinDef.UINT cursorId : cursorIds) {
+            WinNT.HANDLE imageHandle =
+                    ExtendedUser32.INSTANCE.CopyImage(transparentCursor,
+                            new WinDef.UINT(ExtendedUser32.IMAGE_CURSOR), 0, 0,
+                            new WinDef.UINT(0));
+            ExtendedUser32.INSTANCE.SetSystemCursor(imageHandle, cursorId);
+        }
+    }
+
+    private static CursorPositionAndSize cursorPositionAndSize;
+
+    static CursorPositionAndSize cursorPositionAndSize() {
+        if (cursorPositionAndSize != null)
+            return cursorPositionAndSize;
+        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
+        int cursorWidth, cursorHeight;
+        if (ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo)) {
+            WinDef.POINT mousePosition = cursorInfo.ptScreenPos;
+            WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+            if (User32.INSTANCE.GetIconInfo(new WinDef.HICON(cursorInfo.hCursor),
+                    iconInfo)) {
+                WinGDI.BITMAP bmp = new WinGDI.BITMAP();
+
+                int sizeOfBitmap = bmp.size();
+                if (iconInfo.hbmColor != null) {
+                    // Get the color bitmap information.
+                    GDI32.INSTANCE.GetObject(iconInfo.hbmColor, sizeOfBitmap,
+                            bmp.getPointer());
+                }
+                else {
+                    // Get the mask bitmap information if there is no color bitmap.
+                    GDI32.INSTANCE.GetObject(iconInfo.hbmMask, sizeOfBitmap,
+                            bmp.getPointer());
+                }
+                bmp.read();
+
+                cursorWidth = bmp.bmWidth.intValue();
+                cursorHeight = bmp.bmHeight.intValue();
+
+                // If there is no color bitmap, height is for both the mask and the inverted mask.
+                if (iconInfo.hbmColor == null) {
+                    cursorHeight /= 2;
+                }
+                if (iconInfo.hbmColor != null)
+                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
+                if (iconInfo.hbmMask != null)
+                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
+                CursorPositionAndSize cursorPositionAndSize =
+                        new CursorPositionAndSize(mousePosition, cursorWidth,
+                                cursorHeight);
+                WindowsMouse.cursorPositionAndSize = cursorPositionAndSize;
+                return cursorPositionAndSize;
+            }
+        }
+        throw new IllegalStateException();
+    }
+
+    public record CursorPositionAndSize(WinDef.POINT position, int width, int height) {
+
+    }
 }

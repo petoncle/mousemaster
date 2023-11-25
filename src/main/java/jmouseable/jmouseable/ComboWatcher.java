@@ -33,7 +33,7 @@ public class ComboWatcher {
     }
 
     public void update(double delta) {
-        if (modeManager.poolCurrentModeTimedOut())
+        if (modeManager.pollCurrentModeTimedOut())
             interrupt();
         List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {

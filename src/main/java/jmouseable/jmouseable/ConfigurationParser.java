@@ -21,7 +21,8 @@ public class ConfigurationParser {
             new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
                     new Wheel(1000, 1000, 500), new Attach(1, 1),
                     new ModeTimeout(false, null, null),
-                    new Indicator(false, null, null, null, null, null));
+                    new Indicator(false, null, null, null, null, null),
+                    new HideCursor(false, null));
 
     public static Configuration parse(Path path) throws IOException {
         List<String> lines = Files.readAllLines(path);
@@ -189,6 +190,21 @@ public class ConfigurationParser {
                                 "Invalid indicator configuration: " + propertyKey);
                     }
                 }
+                case "hide-cursor" -> {
+                    if (matcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid hide cursor configuration: " + propertyKey);
+                    switch (matcher.group(4)) {
+                        case "enabled" -> mode.hideCursor()
+                                              .enabled(Boolean.parseBoolean(
+                                                      propertyValue));
+                        case "idle-duration-millis" -> mode.hideCursor()
+                                                           .idleDuration(parseDuration(
+                                                                   propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid hide cursor configuration: " + propertyKey);
+                    }
+                }
                 // @formatter:off
                 case "start-move-up" -> addCommand(mode.comboMap(), propertyValue, new StartMoveUp(), defaultComboMoveDuration);
                 case "start-move-down" -> addCommand(mode.comboMap(), propertyValue, new StartMoveDown(), defaultComboMoveDuration);
@@ -251,6 +267,10 @@ public class ConfigurationParser {
                 throw new IllegalStateException(
                         "Definition of mode timeout for " + mode.name() +
                         " is incomplete");
+            if (mode.hideCursor().enabled() && mode.hideCursor().idleDuration() == null)
+                throw new IllegalStateException(
+                        "Definition of hide cursor for " + mode.name() +
+                        " is incomplete");
         }
         Set<Mode> modes = modeByName.values()
                                     .stream()
@@ -285,7 +305,8 @@ public class ConfigurationParser {
     }
 
     /**
-     * Copy combo map, mouse, wheel, attach, timeout, and indicator configuration from the parent mode.
+     * Copy everything except timeout configuration from the parent mode.
+     * Inheriting parent mode timeout could be confusing.
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()
@@ -312,12 +333,6 @@ public class ConfigurationParser {
             childMode.attach().gridRowCount(parentMode.attach().gridRowCount());
         if (childMode.attach().gridColumnCount() == null)
             childMode.attach().gridColumnCount(parentMode.attach().gridColumnCount());
-        if (childMode.timeout().enabled() == null)
-            childMode.timeout().enabled(parentMode.timeout().enabled());
-        if (childMode.timeout().idleDuration() == null)
-            childMode.timeout().idleDuration(parentMode.timeout().idleDuration());
-        if (childMode.timeout().nextModeName() == null)
-            childMode.timeout().nextModeName(parentMode.timeout().nextModeName());
         if (childMode.indicator().enabled() == null)
             childMode.indicator().enabled(parentMode.indicator().enabled());
         if (childMode.indicator().idleHexColor() == null)
@@ -330,6 +345,10 @@ public class ConfigurationParser {
             childMode.indicator().mousePressHexColor(parentMode.indicator().mousePressHexColor());
         if (childMode.indicator().nonComboKeyPressHexColor() == null)
             childMode.indicator().nonComboKeyPressHexColor(parentMode.indicator().nonComboKeyPressHexColor());
+        if (childMode.hideCursor().enabled() == null)
+            childMode.hideCursor().enabled(parentMode.hideCursor().enabled());
+        if (childMode.hideCursor().idleDuration() == null)
+            childMode.hideCursor().idleDuration(parentMode.hideCursor().idleDuration());
     }
 
     private static void checkColorFormat(String propertyValue) {

@@ -1,6 +1,7 @@
 package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.*;
 
@@ -71,5 +72,17 @@ public interface ExtendedUser32 extends User32 {
     boolean SetProcessDpiAwarenessContext(HANDLE dpiContext);
 
     HKL LoadKeyboardLayoutA(String pwszKLID, int Flags);
+
+    HCURSOR CreateCursor(HINSTANCE hInst, int xHotSpot, int yHotSpot, int nWidth,
+                         int nHeight, byte[] pvANDPlane, byte[] pvXORPlane);
+    HANDLE CopyImage(HANDLE hImage, UINT uType, int cxDesired, int cyDesired, UINT fuFlags);
+
+    int IMAGE_CURSOR = 2;
+
+    boolean SetSystemCursor(HANDLE hcur, UINT id);
+
+    boolean SystemParametersInfoA(UINT uiAction, UINT uiParam, Pointer pvParam, UINT fWinIni);
+
+    int SPI_SETCURSORS = 0x0057;
 
 }

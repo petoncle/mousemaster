@@ -241,4 +241,11 @@ public class MouseManager {
         WindowsMouse.attachRight(attach);
     }
 
+    public void showCursor() {
+        WindowsMouse.showCursor();
+    }
+
+    public void hideCursor() {
+        WindowsMouse.hideCursor();
+    }
 }

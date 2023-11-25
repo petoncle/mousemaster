@@ -5,7 +5,7 @@ import java.time.Duration;
 public record ModeTimeout(boolean enabled, Duration idleDuration, String nextModeName) {
 
     public static class ModeTimeoutBuilder {
-        private Boolean enabled;
+        private boolean enabled;
         private Duration idleDuration;
         private String nextModeName;
 
@@ -24,7 +24,7 @@ public record ModeTimeout(boolean enabled, Duration idleDuration, String nextMod
             return this;
         }
 
-        public Boolean enabled() {
+        public boolean enabled() {
             return enabled;
         }
 
