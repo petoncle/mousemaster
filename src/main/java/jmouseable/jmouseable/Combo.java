@@ -39,7 +39,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             mustBePressedKeySets = Set.of();
             sequenceString = mustBePressedAndSequenceString;
         }
-        ComboSequence sequence = ComboSequence.parseSequence(sequenceString, defaultMoveDuration);
+        ComboSequence sequence = sequenceString.isEmpty() ? new ComboSequence(List.of()) :
+                ComboSequence.parseSequence(sequenceString, defaultMoveDuration);
         ComboPrecondition precondition =
                 new ComboPrecondition(mustNotBePressedKeySets, mustBePressedKeySets);
         if (precondition.isEmpty() && sequence.moves().isEmpty())
@@ -65,9 +66,12 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                          ComboMoveDuration defaultMoveDuration) {
         // One combo is: ^{key|...} _{key|...} move ...
         // Two combos: ^{key|...} _{key|...} move ... | ^{key|...} _{key|...} move ...
-        Matcher matcher =
-                Pattern.compile("(\\^\\{[^}]+\\})?" + "(_\\{[^}]+\\})?" + "[^\\^{}|]+")
-                       .matcher(multiComboString);
+        String nonEmptySequencePattern = "(\\^\\{[^}]+\\})?" + "(_\\{[^}]+\\})?" + "[^\\^{}|]+";
+        String nonEmptyMustNotBePressedPattern = "\\^\\{[^}]+\\}" + "(_\\{[^}]+\\})?" + "([^\\^{}|]+)?";
+        String nonEmptyMustBePressedPattern = "(\\^\\{[^}]+\\})?" + "_\\{[^}]+\\}" + "([^\\^{}|]+)?";
+        Matcher matcher = Pattern.compile(
+                "(" + nonEmptySequencePattern + ")|(" + nonEmptyMustNotBePressedPattern +
+                ")|(" + nonEmptyMustBePressedPattern + ")").matcher(multiComboString);
         List<Combo> combos = new ArrayList<>();
         while (matcher.find())
             combos.add(of(matcher.group(0), defaultMoveDuration));

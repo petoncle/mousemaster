@@ -56,6 +56,11 @@ public class ComboWatcher {
         if (previousEvent != null &&
             !previousComboMoveDuration.isRespected(previousEvent.time(), event.time()))
             comboPreparation = ComboPreparation.empty();
+        if (event.isRelease()) {
+            // The corresponding press event was part of a combo otherwise this method would
+            // not have been called.
+            currentlyPressedComboKeys.remove(event.key());
+        }
         comboPreparation.events().add(event);
         boolean mustBeEaten = false;
         boolean partOfCombo = false;
@@ -70,14 +75,12 @@ public class ComboWatcher {
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
             Combo combo = entry.getKey();
-            ComboAndCommands comboAndCommands =
-                    new ComboAndCommands(combo, entry.getValue());
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
             if (matchingMoveCount == 0) {
                 if (combo.sequence().moves().isEmpty() &&
                     !combo.precondition().isEmpty()) {
-                    if (combo.precondition().satisfied(currentlyPressedComboKeys)) {
-                        comboAndCommandsToRun.add(comboAndCommands);
+                    if (!combo.precondition().satisfied(currentlyPressedComboKeys)) {
+                        continue;
                     }
                 }
             }
@@ -118,8 +121,11 @@ public class ComboWatcher {
             if (!preparationComplete)
                 continue;
             focusedCombos.values().forEach(combos -> combos.remove(combo));
-            ComboMove comboLastMove = combo.sequence().moves().getLast();
-            if (!comboLastMove.duration().min().equals(Duration.ZERO)) {
+            ComboAndCommands comboAndCommands =
+                    new ComboAndCommands(combo, entry.getValue());
+            ComboMove comboLastMove = combo.sequence().moves().isEmpty() ? null :
+                    combo.sequence().moves().getLast();
+            if (comboLastMove != null && !comboLastMove.duration().min().equals(Duration.ZERO)) {
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(comboAndCommands,
                                 comboLastMove.duration().min().toNanos() / 1e9d));
@@ -145,11 +151,6 @@ public class ComboWatcher {
         else {
             if (event.isPress())
                 currentlyPressedComboKeys.add(event.key());
-        }
-        if (event.isRelease()) {
-            // The corresponding press event was part of a combo otherwise this method would
-            // not have been called.
-            currentlyPressedComboKeys.remove(event.key());
         }
         focusedCombos.remove(event.key());
         // Remove focused combos that are not in the new mode (if mode was changed),

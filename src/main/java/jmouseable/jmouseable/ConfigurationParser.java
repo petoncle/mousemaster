@@ -19,7 +19,7 @@ public class ConfigurationParser {
 
     private static final Mode defaultMode =
             new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
-                    new Wheel(1000, 1000, 500), new Attach(1, 1),
+                    new Wheel(1000, 1000, 500), new Attach(1, 1, false, null, 1),
                     new ModeTimeout(false, null, null),
                     new Indicator(false, null, null, null, null, null),
                     new HideCursor(false, null));
@@ -111,6 +111,16 @@ public class ConfigurationParser {
                                                         .gridColumnCount(
                                                                 Integer.parseUnsignedInt(
                                                                         propertyValue));
+                        case "show-grid" -> mode.attach()
+                                                .showGrid(Boolean.parseBoolean(
+                                                        propertyValue));
+                        case "grid-line-color" -> mode.attach()
+                                                      .gridLineHexColor(checkColorFormat(
+                                                              propertyValue));
+                        case "grid-line-thickness" -> mode.attach()
+                                                        .gridLineThickness(
+                                                                Integer.parseUnsignedInt(
+                                                                        propertyValue));
                         default -> throw new IllegalArgumentException(
                                 "Invalid attach configuration: " + propertyKey);
                     }
@@ -166,26 +176,23 @@ public class ConfigurationParser {
                         case "enabled" -> mode.indicator()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
-                        case "idle-color" -> {
-                            checkColorFormat(propertyValue);
-                            mode.indicator().idleHexColor(propertyValue);
-                        }
-                        case "move-color" -> {
-                            checkColorFormat(propertyValue);
-                            mode.indicator().moveHexColor(propertyValue);
-                        }
-                        case "wheel-color" -> {
-                            checkColorFormat(propertyValue);
-                            mode.indicator().wheelHexColor(propertyValue);
-                        }
-                        case "mouse-press-color" -> {
-                            checkColorFormat(propertyValue);
-                            mode.indicator().mousePressHexColor(propertyValue);
-                        }
-                        case "non-combo-key-press-color" -> {
-                            checkColorFormat(propertyValue);
-                            mode.indicator().nonComboKeyPressHexColor(propertyValue);
-                        }
+                        case "idle-color" -> mode.indicator()
+                                                 .idleHexColor(
+                                                         checkColorFormat(propertyValue));
+                        case "move-color" -> mode.indicator()
+                                                 .moveHexColor(
+                                                         checkColorFormat(propertyValue));
+                        case "wheel-color" -> mode.indicator()
+                                                  .wheelHexColor(checkColorFormat(
+                                                          propertyValue));
+                        case "mouse-press-color" -> mode.indicator()
+                                                        .mousePressHexColor(
+                                                                checkColorFormat(
+                                                                        propertyValue));
+                        case "non-combo-key-press-color" -> mode.indicator()
+                                                                .nonComboKeyPressHexColor(
+                                                                        checkColorFormat(
+                                                                                propertyValue));
                         default -> throw new IllegalArgumentException(
                                 "Invalid indicator configuration: " + propertyKey);
                     }
@@ -333,6 +340,12 @@ public class ConfigurationParser {
             childMode.attach().gridRowCount(parentMode.attach().gridRowCount());
         if (childMode.attach().gridColumnCount() == null)
             childMode.attach().gridColumnCount(parentMode.attach().gridColumnCount());
+        if (childMode.attach().showGrid() == null)
+            childMode.attach().showGrid(parentMode.attach().showGrid());
+        if (childMode.attach().gridLineHexColor() == null)
+            childMode.attach().gridLineHexColor(parentMode.attach().gridLineHexColor());
+        if (childMode.attach().gridLineThickness() == null)
+            childMode.attach().gridLineThickness(parentMode.attach().gridLineThickness());
         if (childMode.indicator().enabled() == null)
             childMode.indicator().enabled(parentMode.indicator().enabled());
         if (childMode.indicator().idleHexColor() == null)
@@ -351,9 +364,10 @@ public class ConfigurationParser {
             childMode.hideCursor().idleDuration(parentMode.hideCursor().idleDuration());
     }
 
-    private static void checkColorFormat(String propertyValue) {
+    private static String checkColorFormat(String propertyValue) {
         if (!propertyValue.matches("^#?([a-fA-F0-9]{6})$"))
             throw new IllegalArgumentException("Invalid hex color: " + propertyValue);
+        return propertyValue;
     }
 
     private static ComboMoveDuration parseComboMoveDuration(String string) {

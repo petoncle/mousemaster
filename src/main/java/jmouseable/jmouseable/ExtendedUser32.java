@@ -12,6 +12,8 @@ public interface ExtendedUser32 extends User32 {
 
     int WS_EX_NOACTIVATE = 0x08000000;
     int WS_EX_TOOLWINDOW = 0x00000080;
+    int WS_EX_LAYERED = 0x00080000;
+    int WS_EX_TRANSPARENT = 0x00000020;
 
     int MOUSEEVENTF_MOVE = 0x0001;
     int MOUSEEVENTF_LEFTDOWN = 0x0002;

@@ -9,4 +9,10 @@ public interface ExtendedGDI32 extends GDI32 {
 
     WinDef.HBRUSH CreateSolidBrush(int color);
 
+    boolean PolyPolyline(WinDef.HDC hdc, WinDef.POINT[] ppt, int[] pc, int cPoly);
+
+    WinDef.HPEN CreatePen(int fnPenStyle, int nWidth, int crColor);
+
+    int PS_SOLID = 0;
+
 }

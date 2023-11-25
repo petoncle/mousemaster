@@ -62,3 +62,4 @@ _shift,^shift = press shift, release shift?
  - timeout.duration -> idle-duration
  - Add timeout.enabled
 + Check LLKHF_INJECTED?
++ Rename OsManager to Platform

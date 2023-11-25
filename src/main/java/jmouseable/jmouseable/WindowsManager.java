@@ -42,7 +42,6 @@ public class WindowsManager implements OsManager {
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
         installHooks();
-        WindowsOverlay.createIndicatorWindow();
     }
 
     @Override

@@ -1,13 +1,13 @@
 package jmouseable.jmouseable;
 
-public class IndicatorManager {
+public class OverlayManager {
 
     private final ModeManager modeManager;
     private final MouseManager mouseManager;
     private final KeyboardManager keyboardManager;
 
-    public IndicatorManager(ModeManager modeManager, MouseManager mouseManager,
-                            KeyboardManager keyboardManager) {
+    public OverlayManager(ModeManager modeManager, MouseManager mouseManager,
+                          KeyboardManager keyboardManager) {
         this.modeManager = modeManager;
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
@@ -18,6 +18,10 @@ public class IndicatorManager {
             WindowsOverlay.setIndicatorColor(indicatorHexColor());
         else
             WindowsOverlay.hideIndicator();
+        if (modeManager.currentMode().attach().showGrid())
+            WindowsOverlay.setAttach(modeManager.currentMode().attach());
+        else
+            WindowsOverlay.hideAttachGrid();
         WindowsOverlay.setMousePosition(mouseManager.mouseX(), mouseManager.mouseY());
     }
 

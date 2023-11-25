@@ -17,7 +17,7 @@ public class Jmouseable {
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
     private ModeManager modeManager;
-    private IndicatorManager indicatorManager;
+    private OverlayManager overlayManager;
 
     public Jmouseable(Path configurationPath, OsManager osManager) throws IOException {
         this.configurationPath = configurationPath;
@@ -41,7 +41,7 @@ public class Jmouseable {
             modeManager.update(delta);
             mouseManager.update(delta);
             keyboardManager.update(delta);
-            indicatorManager.update(delta);
+            overlayManager.update(delta);
             Thread.sleep(10L);
         }
     }
@@ -82,8 +82,8 @@ public class Jmouseable {
         CommandRunner commandRunner = new CommandRunner(modeManager, mouseManager);
         ComboWatcher comboWatcher = new ComboWatcher(modeManager, commandRunner);
         keyboardManager = new KeyboardManager(comboWatcher);
-        indicatorManager =
-                new IndicatorManager(modeManager, mouseManager, keyboardManager);
+        overlayManager =
+                new OverlayManager(modeManager, mouseManager, keyboardManager);
         osManager.reset(mouseManager, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap());
     }
