@@ -138,8 +138,8 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid timeout configuration: " + propertyKey);
                     switch (matcher.group(4)) {
-                        case "duration-millis" ->
-                                mode.timeout().duration(parseDuration(propertyValue));
+                        case "idle-duration-millis" ->
+                                mode.timeout().idleDuration(parseDuration(propertyValue));
                         case "next-mode" -> {
                             String nextModeName = propertyValue;
                             if (nextModeName.equals(modeName))
@@ -229,7 +229,7 @@ public class ConfigurationParser {
                 throw new IllegalStateException(
                         "Definition of mode " + modeNameReference + " is missing");
         for (ModeBuilder mode : modeByName.values()) {
-            if (mode.timeout().duration() == null ^ mode.timeout().nextModeName() == null)
+            if (mode.timeout().idleDuration() == null ^ mode.timeout().nextModeName() == null)
                 throw new IllegalStateException(
                         "Definition of mode timeout for " + mode.name() +
                         " is incomplete");

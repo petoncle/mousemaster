@@ -2,14 +2,14 @@ package jmouseable.jmouseable;
 
 import java.time.Duration;
 
-public record ModeTimeout(Duration duration, String nextModeName) {
+public record ModeTimeout(Duration idleDuration, String nextModeName) {
 
     public static class ModeTimeoutBuilder {
-        private Duration duration;
+        private Duration idleDuration;
         private String nextModeName;
 
-        public ModeTimeoutBuilder duration(Duration duration) {
-            this.duration = duration;
+        public ModeTimeoutBuilder idleDuration(Duration idleDuration) {
+            this.idleDuration = idleDuration;
             return this;
         }
 
@@ -18,8 +18,8 @@ public record ModeTimeout(Duration duration, String nextModeName) {
             return this;
         }
 
-        public Duration duration() {
-            return duration;
+        public Duration idleDuration() {
+            return idleDuration;
         }
 
         public String nextModeName() {
@@ -27,7 +27,7 @@ public record ModeTimeout(Duration duration, String nextModeName) {
         }
 
         public ModeTimeout build() {
-            return new ModeTimeout(duration, nextModeName);
+            return new ModeTimeout(idleDuration, nextModeName);
         }
     }
 

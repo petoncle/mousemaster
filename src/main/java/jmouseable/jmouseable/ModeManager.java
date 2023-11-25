@@ -33,7 +33,7 @@ public class ModeManager {
     }
 
     public void update(double delta) {
-        if (currentMode.timeout().duration() != null) {
+        if (currentMode.timeout().idleDuration() != null) {
             if (mouseManager.moving() || mouseManager.pressing() || mouseManager.wheeling()) {
                 resetCurrentModeRemainingDuration();
             }
@@ -53,7 +53,7 @@ public class ModeManager {
     public void switchMode(String newModeName) {
         Mode newMode = modeMap.get(newModeName);
         currentMode = newMode;
-        if (newMode.timeout().duration() != null)
+        if (newMode.timeout().idleDuration() != null)
             resetCurrentModeRemainingDuration();
         mouseManager.setMouse(newMode.mouse());
         mouseManager.setWheel(newMode.wheel());
@@ -61,12 +61,12 @@ public class ModeManager {
     }
 
     public void attached() {
-        if (currentMode.timeout().duration() != null)
+        if (currentMode.timeout().idleDuration() != null)
             resetCurrentModeRemainingDuration();
     }
 
     private void resetCurrentModeRemainingDuration() {
-        currentModeRemainingDuration = currentMode.timeout().duration().toNanos() / 1e9d;
+        currentModeRemainingDuration = currentMode.timeout().idleDuration().toNanos() / 1e9d;
     }
 
 }

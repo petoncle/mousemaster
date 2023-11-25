@@ -499,8 +499,8 @@ public enum WindowsVirtualKey {
             keyboardLayoutDependentKeyByVirtualKey.put(otherWindowsVirtualKey, key);
             keyboardLayoutDependentVirtualKeyByKey.put(key, otherWindowsVirtualKey);
         }
-        logger.info("Mapped keys to Windows virtual keys in " + keyboardLayout + ": " +
-                    keyboardLayoutDependentVirtualKeyByKey);
+        logger.debug("Mapped keys to Windows virtual keys in " + keyboardLayout + ": " +
+                     keyboardLayoutDependentVirtualKeyByKey);
     }
 
     private static KeyboardLayout findActiveKeyboardLayoutName() {
