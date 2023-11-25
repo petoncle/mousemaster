@@ -1,6 +1,7 @@
 package jmouseable.jmouseable;
 
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Stack;
 
 public class MouseManager {
@@ -10,6 +11,7 @@ public class MouseManager {
     private Attach attach;
     private double mouseX, mouseY;
     private double moveDuration;
+    private double deltaDistanceX, deltaDistanceY;
     // Forward means right or down.
     private final Stack<Boolean> xMoveForwardStack = new Stack<>();
     private final Stack<Boolean> yMoveForwardStack = new Stack<>();
@@ -21,6 +23,7 @@ public class MouseManager {
 
     public void reset() {
         moveDuration = 0;
+        deltaDistanceX = deltaDistanceY = 0;
         xMoveForwardStack.clear();
         yMoveForwardStack.clear();
         leftPressing = middlePressing = rightPressing = false;
@@ -77,23 +80,29 @@ public class MouseManager {
                                                                 mouse.acceleration() *
                                                                 Math.pow(moveDuration,
                                                                         1));
-            double deltaDistanceX, deltaDistanceY;
+            boolean deltaBigEnough;
             if (!xMoveForwardStack.isEmpty() && !yMoveForwardStack.isEmpty()) {
-                deltaDistanceX = moveVelocity * delta / Math.sqrt(2);
-                deltaDistanceY = moveVelocity * delta / Math.sqrt(2);
+                deltaDistanceX += moveVelocity * delta / Math.sqrt(2);
+                deltaDistanceY += moveVelocity * delta / Math.sqrt(2);
+                deltaBigEnough = deltaDistanceX >= 1 && deltaDistanceY >= 1;
             }
             else if (!xMoveForwardStack.isEmpty()) {
-                deltaDistanceX = moveVelocity * delta;
+                deltaDistanceX += moveVelocity * delta;
                 deltaDistanceY = 0;
+                deltaBigEnough = deltaDistanceX >= 1;
             }
             else {
                 deltaDistanceX = 0;
-                deltaDistanceY = moveVelocity * delta;
+                deltaDistanceY += moveVelocity * delta;
+                deltaBigEnough = deltaDistanceY >= 1;
             }
-            WindowsMouse.moveBy(!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek(),
-                    deltaDistanceX,
-                    !yMoveForwardStack.isEmpty() && yMoveForwardStack.peek(),
-                    deltaDistanceY);
+            if (deltaBigEnough) {
+                WindowsMouse.moveBy(!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek(),
+                        deltaDistanceX,
+                        !yMoveForwardStack.isEmpty() && yMoveForwardStack.peek(),
+                        deltaDistanceY);
+                deltaDistanceX = deltaDistanceY = 0;
+            }
         }
         if (wheeling()) {
             wheelDuration += delta;
@@ -130,6 +139,8 @@ public class MouseManager {
 
     public void stopMoveUp() {
         removeFirst(yMoveForwardStack, false);
+        if (!Objects.equals(yMoveForwardStack.peek(), false))
+            deltaDistanceY = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
     }
@@ -146,18 +157,24 @@ public class MouseManager {
 
     public void stopMoveDown() {
         removeFirst(yMoveForwardStack, true);
+        if (!Objects.equals(yMoveForwardStack.peek(), true))
+            deltaDistanceY = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
     }
 
     public void stopMoveLeft() {
         removeFirst(xMoveForwardStack, false);
+        if (!Objects.equals(xMoveForwardStack.peek(), false))
+            deltaDistanceX = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
     }
 
     public void stopMoveRight() {
         removeFirst(xMoveForwardStack, true);
+        if (!Objects.equals(xMoveForwardStack.peek(), true))
+            deltaDistanceX = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
             moveDuration = 0;
     }
