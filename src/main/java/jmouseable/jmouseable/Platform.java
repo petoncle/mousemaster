@@ -1,6 +1,6 @@
 package jmouseable.jmouseable;
 
-public interface OsManager {
+public interface Platform {
 
     void update(double delta);
 

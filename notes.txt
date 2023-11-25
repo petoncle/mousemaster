@@ -61,6 +61,6 @@ _shift,^shift = press shift, release shift?
  - uncluttered-mouse-mode.hide-cursor.enabled+idle-duration
  - timeout.duration -> idle-duration
  - Add timeout.enabled
+- Rename OsManager to Platform
 + Check LLKHF_INJECTED?
-+ Rename OsManager to Platform
 + Min/max values for grid row/column count

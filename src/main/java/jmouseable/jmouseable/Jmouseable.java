@@ -11,7 +11,7 @@ public class Jmouseable {
     private static final Logger logger = LoggerFactory.getLogger(Jmouseable.class);
 
     private final Path configurationPath;
-    private final OsManager osManager;
+    private final Platform platform;
     private final WatchService watchService;
     private Configuration configuration;
     private MouseManager mouseManager;
@@ -19,9 +19,9 @@ public class Jmouseable {
     private ModeManager modeManager;
     private OverlayManager overlayManager;
 
-    public Jmouseable(Path configurationPath, OsManager osManager) throws IOException {
+    public Jmouseable(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
-        this.osManager = osManager;
+        this.platform = platform;
         loadConfiguration();
         watchService = FileSystems.getDefault().newWatchService();
         configurationPath.toAbsolutePath()
@@ -37,7 +37,7 @@ public class Jmouseable {
             previousNanoTime = currentNanoTime;
             double delta = deltaNanos / 1e9d;
             updateConfiguration();
-            osManager.update(delta);
+            platform.update(delta);
             modeManager.update(delta);
             mouseManager.update(delta);
             keyboardManager.update(delta);
@@ -84,7 +84,7 @@ public class Jmouseable {
         keyboardManager = new KeyboardManager(comboWatcher);
         overlayManager =
                 new OverlayManager(modeManager, mouseManager, keyboardManager);
-        osManager.reset(mouseManager, keyboardManager, configuration.keyboardLayout(),
+        platform.reset(mouseManager, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap());
     }
 

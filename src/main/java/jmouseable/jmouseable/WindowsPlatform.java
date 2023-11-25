@@ -11,9 +11,9 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class WindowsManager implements OsManager {
+public class WindowsPlatform implements Platform {
 
-    private static final Logger logger = LoggerFactory.getLogger(WindowsManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
     private static final Instant systemStartTime;
 
     static {
@@ -37,7 +37,7 @@ public class WindowsManager implements OsManager {
     private WinNT.HANDLE singleInstanceMutex;
     private final WinUser.MSG msg = new WinUser.MSG();
 
-    public WindowsManager() {
+    public WindowsPlatform() {
         if (!acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
@@ -103,10 +103,10 @@ public class WindowsManager implements OsManager {
 
     private void installHooks() {
         WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
-        keyboardHookCallback = WindowsManager.this::keyboardHookCallback;
+        keyboardHookCallback = WindowsPlatform.this::keyboardHookCallback;
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
                 keyboardHookCallback, hMod, 0);
-        mouseHookCallback = WindowsManager.this::mouseHookCallback;
+        mouseHookCallback = WindowsPlatform.this::mouseHookCallback;
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
                 mouseHookCallback, hMod, 0);
         addJvmShutdownHook();

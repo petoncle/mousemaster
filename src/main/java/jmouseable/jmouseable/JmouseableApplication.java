@@ -39,7 +39,7 @@ public class JmouseableApplication {
                 System.exit(0);
             }).start();
         }
-        new Jmouseable(configurationPath, new WindowsManager()).run();
+        new Jmouseable(configurationPath, new WindowsPlatform()).run();
     }
 
     private static void setLogLevel(String level) {
