@@ -25,6 +25,8 @@ public interface ExtendedUser32 extends User32 {
     int MOUSEEVENTF_WHEEL = 0x0800;
     int MOUSEEVENTF_HWHEEL = 0x01000;
 
+    int LLKHF_INJECTED = 0x00000010;
+
     boolean GetCursorInfo(CURSORINFO pci);
 
     boolean GetIconInfo(HICON hIcon, WinGDI.ICONINFO piconinfo);

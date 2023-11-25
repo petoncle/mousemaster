@@ -192,7 +192,11 @@ public class WindowsPlatform implements Platform {
                         case WinUser.WM_SYSKEYDOWN -> "WM_SYSKEYDOWN";
                         default -> throw new IllegalStateException();
                     };
-                    if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
+                    if ((info.flags & ExtendedUser32.LLKHF_INJECTED) ==
+                        ExtendedUser32.LLKHF_INJECTED) {
+                        // SendInput from another app.
+                    }
+                    else if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
                         (info.flags & 0b10000) == 0b10000) {
                         // 0b10000 means alt is pressed. This avoids getting two consecutive duplicate alt press,release events.
                     }

@@ -62,5 +62,5 @@ _shift,^shift = press shift, release shift?
  - timeout.duration -> idle-duration
  - Add timeout.enabled
 - Rename OsManager to Platform
-+ Check LLKHF_INJECTED?
+- Check LLKHF_INJECTED?
 - Min/max values for grid row/column count
