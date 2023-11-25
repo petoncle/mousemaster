@@ -19,7 +19,8 @@ public class ConfigurationParser {
 
     private static final Mode defaultMode =
             new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
-                    new Wheel(1000, 1000, 500), new Attach(1, 1), null,
+                    new Wheel(1000, 1000, 500), new Attach(1, 1),
+                    new ModeTimeout(false, null, null),
                     new Indicator(false, null, null, null, null, null));
 
     public static Configuration parse(Path path) throws IOException {
@@ -138,6 +139,9 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid timeout configuration: " + propertyKey);
                     switch (matcher.group(4)) {
+                        case "enabled" -> mode.timeout()
+                                              .enabled(Boolean.parseBoolean(
+                                                      propertyValue));
                         case "idle-duration-millis" ->
                                 mode.timeout().idleDuration(parseDuration(propertyValue));
                         case "next-mode" -> {
@@ -228,12 +232,6 @@ public class ConfigurationParser {
             if (!modeByName.containsKey(modeNameReference))
                 throw new IllegalStateException(
                         "Definition of mode " + modeNameReference + " is missing");
-        for (ModeBuilder mode : modeByName.values()) {
-            if (mode.timeout().idleDuration() == null ^ mode.timeout().nextModeName() == null)
-                throw new IllegalStateException(
-                        "Definition of mode timeout for " + mode.name() +
-                        " is incomplete");
-        }
         Set<String> rootModeNames = modeByName.keySet()
                                               .stream()
                                               .filter(Predicate.not(
@@ -247,6 +245,13 @@ public class ConfigurationParser {
                     alreadyBuiltModeNodeNames));
         for (ModeNode rootModeNode : rootModeNodes)
             recursivelyExtendMode(defaultMode, rootModeNode, modeByName);
+        for (ModeBuilder mode : modeByName.values()) {
+            if (mode.timeout().enabled() && (mode.timeout().idleDuration() == null ||
+                                             mode.timeout().nextModeName() == null))
+                throw new IllegalStateException(
+                        "Definition of mode timeout for " + mode.name() +
+                        " is incomplete");
+        }
         Set<Mode> modes = modeByName.values()
                                     .stream()
                                     .map(ModeBuilder::build)
@@ -280,7 +285,7 @@ public class ConfigurationParser {
     }
 
     /**
-     * Copy combo map, mouse, wheel, attach, and indicator configuration from the parent mode.
+     * Copy combo map, mouse, wheel, attach, timeout, and indicator configuration from the parent mode.
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()
@@ -307,6 +312,12 @@ public class ConfigurationParser {
             childMode.attach().gridRowCount(parentMode.attach().gridRowCount());
         if (childMode.attach().gridColumnCount() == null)
             childMode.attach().gridColumnCount(parentMode.attach().gridColumnCount());
+        if (childMode.timeout().enabled() == null)
+            childMode.timeout().enabled(parentMode.timeout().enabled());
+        if (childMode.timeout().idleDuration() == null)
+            childMode.timeout().idleDuration(parentMode.timeout().idleDuration());
+        if (childMode.timeout().nextModeName() == null)
+            childMode.timeout().nextModeName(parentMode.timeout().nextModeName());
         if (childMode.indicator().enabled() == null)
             childMode.indicator().enabled(parentMode.indicator().enabled());
         if (childMode.indicator().idleHexColor() == null)
