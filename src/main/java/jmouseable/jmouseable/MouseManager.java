@@ -17,6 +17,7 @@ public class MouseManager {
     private double wheelDuration;
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
+    private boolean justAttached;
 
     public void reset() {
         moveDuration = 0;
@@ -26,6 +27,7 @@ public class MouseManager {
         wheelDuration = 0;
         xWheelForwardStack.clear();
         yWheelForwardStack.clear();
+        justAttached = false;
     }
 
     public void setMouse(Mouse mouse) {
@@ -50,6 +52,14 @@ public class MouseManager {
 
     public boolean wheeling() {
         return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty();
+    }
+
+    public boolean pollJustAttached() {
+        try {
+            return justAttached;
+        } finally {
+            justAttached = false;
+        }
     }
 
     public double mouseX() {
@@ -227,18 +237,22 @@ public class MouseManager {
 
     public void attachUp() {
         WindowsMouse.attachUp(attach);
+        justAttached = true;
     }
 
     public void attachDown() {
         WindowsMouse.attachDown(attach);
+        justAttached = true;
     }
 
     public void attachLeft() {
         WindowsMouse.attachLeft(attach);
+        justAttached = true;
     }
 
     public void attachRight() {
         WindowsMouse.attachRight(attach);
+        justAttached = true;
     }
 
     public void showCursor() {

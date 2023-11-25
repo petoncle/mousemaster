@@ -37,8 +37,9 @@ public class ModeManager {
     }
 
     public void update(double delta) {
+        boolean justAttached = mouseManager.pollJustAttached();
         boolean mouseIdling = !mouseManager.moving() && !mouseManager.pressing() &&
-                              !mouseManager.wheeling();
+                              !mouseManager.wheeling() && !justAttached;
         if (!mouseIdling) {
             resetIdleTimers();
             resetCurrentModeCursorHidden();
