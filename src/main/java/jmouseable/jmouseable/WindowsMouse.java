@@ -104,7 +104,7 @@ public class WindowsMouse {
     private static void attach(boolean horizontal, boolean forward, Attach attach) {
         WinDef.POINT mousePosition = mousePosition();
         WinUser.MONITORINFO monitorInfo =
-                WindowsIndicator.findCurrentMonitorPosition(mousePosition);
+                WindowsOverlay.findCurrentMonitorPosition(mousePosition);
         int rowWidth = (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) /
                        attach.gridRowCount();
         int columnHeight = (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) /
@@ -127,7 +127,7 @@ public class WindowsMouse {
     }
 
     private static boolean setMousePosition(WinDef.POINT mousePosition) {
-        WindowsIndicator.mouseMoved(mousePosition);
+        WindowsOverlay.mouseMoved(mousePosition);
         return User32.INSTANCE.SetCursorPos(mousePosition.x, mousePosition.y);
     }
 

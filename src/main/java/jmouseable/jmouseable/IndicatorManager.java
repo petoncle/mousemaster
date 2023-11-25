@@ -15,10 +15,10 @@ public class IndicatorManager {
 
     public void update(double delta) {
         if (modeManager.currentMode().indicator().enabled())
-            WindowsIndicator.show(indicatorHexColor());
+            WindowsOverlay.setIndicatorColor(indicatorHexColor());
         else
-            WindowsIndicator.hide();
-        WindowsIndicator.mousePosition(mouseManager.mouseX(), mouseManager.mouseY());
+            WindowsOverlay.hideIndicator();
+        WindowsOverlay.setMousePosition(mouseManager.mouseX(), mouseManager.mouseY());
     }
 
     private String indicatorHexColor() {

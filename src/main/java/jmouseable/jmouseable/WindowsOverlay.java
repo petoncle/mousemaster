@@ -6,15 +6,15 @@ import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
 import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
-public class WindowsIndicator {
+public class WindowsOverlay {
 
     private static final int indicatorEdgeThreshold = 100; // in pixels
     private static final int indicatorSize = 16;
 
     private static WinDef.HWND indicatorWindowHwnd;
-    private static boolean mustShowOnceCreated;
-    private static boolean showing;
-    private static String currentHexColor;
+    private static boolean mustShowIndicatorOnceCreated;
+    private static boolean showingIndicator;
+    private static String currentIndicatorHexColor;
     private static WinDef.POINT mousePosition;
 
     private static int bestIndicatorX(int mouseX, int cursorWidth, int monitorLeft,
@@ -40,23 +40,31 @@ public class WindowsIndicator {
     public static void createIndicatorWindow() {
         CursorPositionAndSize cursorPositionAndSize = WindowsMouse.cursorPositionAndSize();
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(cursorPositionAndSize.position());
+        indicatorWindowHwnd = createWindow("Indicator",
+                bestIndicatorX(cursorPositionAndSize.position().x,
+                        cursorPositionAndSize.width(), monitorInfo.rcMonitor.left,
+                        monitorInfo.rcMonitor.right),
+                bestIndicatorY(cursorPositionAndSize.position().y,
+                        cursorPositionAndSize.height(), monitorInfo.rcMonitor.top,
+                        monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize,
+                WindowsOverlay::indicatorWindowCallback);
+        if (mustShowIndicatorOnceCreated)
+            setIndicatorColor(currentIndicatorHexColor);
+    }
+
+    private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
+                                            int windowWidth, int windowHeight,
+                                            WinUser.WindowProc windowCallback) {
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
         wClass.hbrBackground = null;
-        wClass.lpszClassName = "JMouseableOverlayClassName";
-        wClass.lpfnWndProc =
-                (WinUser.WindowProc) WindowsIndicator::indicatorWindowCallback;
+        wClass.lpszClassName = "JMouseable" + windowName + "ClassName";
+        wClass.lpfnWndProc = windowCallback;
         User32.INSTANCE.RegisterClassEx(wClass);
-        indicatorWindowHwnd = User32.INSTANCE.CreateWindowEx(
+        return User32.INSTANCE.CreateWindowEx(
                 User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
                 ExtendedUser32.WS_EX_NOACTIVATE, wClass.lpszClassName,
-                "JMouseableOverlayWindowName", WinUser.WS_POPUP,
-                bestIndicatorX(cursorPositionAndSize.position().x, cursorPositionAndSize.width(),
-                        monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
-                bestIndicatorY(cursorPositionAndSize.position().y, cursorPositionAndSize.height(),
-                        monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
-                indicatorSize, indicatorSize, null, null, wClass.hInstance, null);
-        if (mustShowOnceCreated)
-            show(currentHexColor);
+                "JMouseable" + windowName + "WindowName", WinUser.WS_POPUP, windowX,
+                windowY, windowWidth, windowHeight, null, null, wClass.hInstance, null);
     }
 
     private static WinDef.LRESULT indicatorWindowCallback(WinDef.HWND hwnd, int uMsg,
@@ -67,7 +75,7 @@ public class WindowsIndicator {
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.RECT rect = new WinDef.RECT();
                 WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(
-                        hexColorStringToInt(currentHexColor));
+                        hexColorStringToInt(currentIndicatorHexColor));
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 User32.INSTANCE.GetClientRect(hwnd, rect);
                 ExtendedUser32.INSTANCE.FillRect(hdc, rect, hbrBackground);
@@ -89,29 +97,30 @@ public class WindowsIndicator {
         return (blue << 16) | (green << 8) | red;
     }
 
-    public static void show(String hexColor) {
-        if (showing && currentHexColor != null && currentHexColor.equals(hexColor))
+    public static void setIndicatorColor(String hexColor) {
+        if (showingIndicator && currentIndicatorHexColor != null &&
+            currentIndicatorHexColor.equals(hexColor))
             return;
-        currentHexColor = hexColor;
+        currentIndicatorHexColor = hexColor;
         if (hexColor == null) {
-            hide();
+            hideIndicator();
             return;
         }
         if (indicatorWindowHwnd == null) {
-            mustShowOnceCreated = true;
+            mustShowIndicatorOnceCreated = true;
             return;
         }
-        showing = true;
+        showingIndicator = true;
         // Force window to repaint to reflect new color
         User32.INSTANCE.InvalidateRect(indicatorWindowHwnd, null, true);
         User32.INSTANCE.UpdateWindow(indicatorWindowHwnd);
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_SHOWNORMAL);
     }
 
-    public static void hide() {
-        if (!showing)
+    public static void hideIndicator() {
+        if (!showingIndicator)
             return;
-        showing = false;
+        showingIndicator = false;
         User32.INSTANCE.ShowWindow(indicatorWindowHwnd, WinUser.SW_HIDE);
     }
 
@@ -125,11 +134,14 @@ public class WindowsIndicator {
         return monitorInfo;
     }
 
+    /**
+     * Caches the mouse position as an optimization to not have to recreate the POINT object.
+     */
     static void mouseMoved(WinDef.POINT mousePosition) {
-        WindowsIndicator.mousePosition = mousePosition;
+        WindowsOverlay.mousePosition = mousePosition;
     }
 
-    public static void mousePosition(double x, double y) {
+    public static void setMousePosition(double x, double y) {
         if (mousePosition == null)
             return;
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);

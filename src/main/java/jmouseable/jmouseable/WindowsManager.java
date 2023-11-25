@@ -42,7 +42,7 @@ public class WindowsManager implements OsManager {
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
         installHooks();
-        WindowsIndicator.createIndicatorWindow();
+        WindowsOverlay.createIndicatorWindow();
     }
 
     @Override
@@ -253,7 +253,7 @@ public class WindowsManager implements OsManager {
                                              WinUser.MSLLHOOKSTRUCT info) {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
-            WindowsIndicator.mouseMoved(mousePosition);
+            WindowsOverlay.mouseMoved(mousePosition);
             mouseManager.mouseMoved(mousePosition.x, mousePosition.y);
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
