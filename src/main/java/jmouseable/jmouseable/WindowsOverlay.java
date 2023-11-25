@@ -21,6 +21,20 @@ public class WindowsOverlay {
     private static Attach currentAttach;
     private static WinDef.POINT mousePosition;
 
+    public static void setTopmost() {
+        if (indicatorWindowHwnd != null)
+            setWindowTopmost(indicatorWindowHwnd);
+        if (attachGridWindows != null) {
+            for (AttachGridWindow attachGridWindow : attachGridWindows)
+                setWindowTopmost(attachGridWindow.hwnd);
+        }
+    }
+
+    private static void setWindowTopmost(WinDef.HWND hwnd) {
+        User32.INSTANCE.SetWindowPos(hwnd, ExtendedUser32.HWND_TOPMOST, 0, 0, 0, 0,
+                WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
+    }
+
     private record AttachGridWindow(Monitor monitor, WinDef.HWND hwnd) {
 
     }

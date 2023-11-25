@@ -87,4 +87,6 @@ public interface ExtendedUser32 extends User32 {
 
     int SPI_SETCURSORS = 0x0057;
 
+    HWND HWND_TOPMOST = new HWND(new Pointer(-1));
+
 }
