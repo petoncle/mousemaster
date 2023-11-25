@@ -47,11 +47,18 @@ _shift,^shift = press shift, release shift?
  - On overlaps (press-left/press-right), last action wins (need a stack push/pop)
 - ^{shift up|shift down} +rightctrl mean shift and up, and shift down should not be pressed when
   this combo (+rightctrl) starts
-+ teleport key should use current display size percentage
-+ getkeystate to reset pressed keys after 10s
- + On windows lock screen, I hit space then enter the pin. Space press is recorded by the app but the
+- getkeystate to reset pressed keys after 10s
+ - On windows lock screen, I hit space then enter the pin. Space press is recorded by the app but the
    corresponding release is never received, never removed from currentlyPressedKeys. This blocks the app.
-+ toggle logging?
+- toggle logging?
++ teleport key should use current display size percentage: not if we go from one screen to another
+ + Name it move-left-by instead of teleport-left
+ + mouse.move-by-offset=300
 + vimium-like hint (warpd), keynav-like grid?
 + position history
 + Move mouse to center of focused app?
++ Hide cursor after 5s
+ + uncluttered-mouse-mode.hide-cursor.enabled+idle-duration
+ + timeout.duration -> idle-duration
+ + Add timeout.enabled
++ Check LLKHF_INJECTED?

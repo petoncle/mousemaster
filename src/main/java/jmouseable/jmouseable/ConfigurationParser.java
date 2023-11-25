@@ -322,7 +322,7 @@ public class ConfigurationParser {
     }
 
     private static void checkColorFormat(String propertyValue) {
-        if (!propertyValue.matches("^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$"))
+        if (!propertyValue.matches("^#?([a-fA-F0-9]{6})$"))
             throw new IllegalArgumentException("Invalid hex color: " + propertyValue);
     }
 
