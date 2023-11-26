@@ -314,8 +314,7 @@ public class ConfigurationParser {
     }
 
     /**
-     * Copy everything except timeout configuration from the parent mode.
-     * Inheriting parent mode timeout could be confusing.
+     * Copy everything except timeout configuration and switch mode commands from the parent mode.
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()
@@ -323,8 +322,11 @@ public class ConfigurationParser {
                                                                .entrySet()) {
             Combo combo = entry.getKey();
             List<Command> commands = entry.getValue();
-            for (Command command : commands)
+            for (Command command : commands) {
+                if (command instanceof SwitchMode)
+                    continue;
                 childMode.comboMap().add(combo, command);
+            }
         }
         if (childMode.mouse().initialVelocity() == null)
             childMode.mouse().initialVelocity(parentMode.mouse().initialVelocity());

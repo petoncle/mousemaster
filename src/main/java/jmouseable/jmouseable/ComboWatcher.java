@@ -175,6 +175,7 @@ public class ComboWatcher {
      * The 3 combos are completed, but we ultimately want the move to stop,
      * i.e. the stop move command (+up -up +up) should be run after the
      * start move command (+up).
+     * Longest combos "have the last word".
      * Also deduplicate commands: if start-move-up is +up|#rightctrl +up: holding rightctrl
      * then up should not trigger two commands.
      */
