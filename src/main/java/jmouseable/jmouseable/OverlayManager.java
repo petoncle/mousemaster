@@ -19,10 +19,10 @@ public class OverlayManager {
             WindowsOverlay.setIndicatorColor(indicatorHexColor());
         else
             WindowsOverlay.hideIndicator();
-        if (modeManager.currentMode().attach().showGrid())
-            WindowsOverlay.setAttach(modeManager.currentMode().attach());
+        if (modeManager.currentMode().grid().visible())
+            WindowsOverlay.setGrid(modeManager.currentMode().grid());
         else
-            WindowsOverlay.hideAttachGrid();
+            WindowsOverlay.hideGrid();
         WindowsOverlay.setMousePosition(mouseManager.mouseX(), mouseManager.mouseY());
         enforceTopmostTimer -= delta;
         if (enforceTopmostTimer < 0) {

@@ -14,19 +14,19 @@ public class WindowsOverlay {
     private static final int indicatorSize = 16;
 
     private static WinDef.HWND indicatorWindowHwnd;
-    private static Set<AttachGridWindow> attachGridWindows;
+    private static Set<GridWindow> gridWindows;
     private static boolean showingIndicator;
     private static String currentIndicatorHexColor;
-    private static boolean showingAttachGrid;
-    private static Attach currentAttach;
+    private static boolean showingGrid;
+    private static Grid currentGrid;
     private static WinDef.POINT mousePosition;
 
     public static void setTopmost() {
         if (indicatorWindowHwnd != null)
             setWindowTopmost(indicatorWindowHwnd);
-        if (attachGridWindows != null) {
-            for (AttachGridWindow attachGridWindow : attachGridWindows)
-                setWindowTopmost(attachGridWindow.hwnd);
+        if (gridWindows != null) {
+            for (GridWindow gridWindow : gridWindows)
+                setWindowTopmost(gridWindow.hwnd);
         }
     }
 
@@ -35,7 +35,7 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
 
-    private record AttachGridWindow(Monitor monitor, WinDef.HWND hwnd) {
+    private record GridWindow(Monitor monitor, WinDef.HWND hwnd) {
 
     }
 
@@ -78,14 +78,14 @@ public class WindowsOverlay {
 
     }
 
-    private static void createAttachGridWindows() {
-        attachGridWindows = new HashSet<>();
+    private static void createGridWindows() {
+        gridWindows = new HashSet<>();
         for (Monitor monitor : findMonitors()) {
-            WinDef.HWND hwnd = createWindow("AttachGrid",
+            WinDef.HWND hwnd = createWindow("Grid",
                     monitor.left, monitor.top,
                     monitor.right() - monitor.left(), monitor.bottom() - monitor.top(),
-                    WindowsOverlay::attachGridWindowCallback);
-            attachGridWindows.add(new AttachGridWindow(monitor, hwnd));
+                    WindowsOverlay::gridWindowCallback);
+            gridWindows.add(new GridWindow(monitor, hwnd));
         }
     }
 
@@ -148,16 +148,16 @@ public class WindowsOverlay {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    private static WinDef.LRESULT attachGridWindowCallback(WinDef.HWND hwnd, int uMsg,
-                                                           WinDef.WPARAM wParam,
-                                                           WinDef.LPARAM lParam) {
+    private static WinDef.LRESULT gridWindowCallback(WinDef.HWND hwnd, int uMsg,
+                                                     WinDef.WPARAM wParam,
+                                                     WinDef.LPARAM lParam) {
         switch (uMsg) {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 // If not cleared, the previous drawings will be painted.
                 clearWindow(hdc, ps);
-                if (showingAttachGrid)
+                if (showingGrid)
                     paintGrid(hdc, ps);
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
@@ -173,14 +173,14 @@ public class WindowsOverlay {
 
     private static void paintGrid(WinDef.HDC hdc, ExtendedUser32.PAINTSTRUCT ps) {
         WinDef.RECT rect = ps.rcPaint;
-        int gridRowCount = currentAttach.gridRowCount();
-        int gridColumnCount = currentAttach.gridColumnCount();
+        int gridRowCount = currentGrid.rowCount();
+        int gridColumnCount = currentGrid.columnCount();
         int cellWidth = (rect.right - rect.left) / gridRowCount;
         int cellHeight = (rect.bottom - rect.top) / gridColumnCount;
         int[] polyCounts = new int[gridRowCount + 1 + gridColumnCount + 1];
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
-        int lineThickness = currentAttach.gridLineThickness();
+        int lineThickness = currentGrid.lineThickness();
         // Vertical lines
         for (int lineIndex = 0; lineIndex <= gridColumnCount; lineIndex++) {
             int x = rect.left + lineIndex * cellWidth;
@@ -209,12 +209,12 @@ public class WindowsOverlay {
             points[pointsOffset + 2 * lineIndex + 1].y = y;
             polyCounts[polyCountsOffset + lineIndex] = 2;
         }
-        String lineColor = currentAttach.gridLineHexColor();
+        String lineColor = currentGrid.lineHexColor();
         WinUser.HPEN gridPen =
                 ExtendedGDI32.INSTANCE.CreatePen(ExtendedGDI32.PS_SOLID, lineThickness,
                         hexColorStringToInt(lineColor));
         if (gridPen == null)
-            throw new IllegalStateException("Unable to create attach grid pen");
+            throw new IllegalStateException("Unable to create grid pen");
         WinNT.HANDLE oldPen = GDI32.INSTANCE.SelectObject(hdc, gridPen);
         boolean polyPolylineResult = ExtendedGDI32.INSTANCE.PolyPolyline(hdc, points, polyCounts,
                 polyCounts.length);
@@ -260,40 +260,39 @@ public class WindowsOverlay {
         requestWindowRepaint(indicatorWindowHwnd);
     }
 
-    public static void setAttach(Attach attach) {
-        if (showingAttachGrid && currentAttach != null &&
-            currentAttach.equals(attach))
+    public static void setGrid(Grid grid) {
+        if (showingGrid && currentGrid != null &&
+            currentGrid.equals(grid))
             return;
-        currentAttach = attach;
-        if (attach == null) {
-            hideAttachGrid();
+        currentGrid = grid;
+        if (grid == null) {
+            hideGrid();
             return;
         }
-        if (attachGridWindows != null) {
-            Set<Monitor> attachGridMonitors = attachGridWindows.stream()
-                                                               .map(AttachGridWindow::monitor)
-                                                               .collect(
-                                                                       Collectors.toSet());
-            if (!attachGridMonitors.equals(findMonitors())) {
+        if (gridWindows != null) {
+            Set<Monitor> gridMonitors = gridWindows.stream()
+                                                   .map(GridWindow::monitor)
+                                                   .collect(Collectors.toSet());
+            if (!gridMonitors.equals(findMonitors())) {
                 // Recreate windows if the monitors have changed.
-                for (AttachGridWindow attachGridWindow : attachGridWindows)
-                    removeWindow(attachGridWindow.hwnd);
-                attachGridWindows = null;
+                for (GridWindow gridWindow : gridWindows)
+                    removeWindow(gridWindow.hwnd);
+                gridWindows = null;
             }
         }
-        if (attachGridWindows == null)
-            createAttachGridWindows();
-        showingAttachGrid = true;
-        for (AttachGridWindow attachGridWindow : attachGridWindows)
-            requestWindowRepaint(attachGridWindow.hwnd);
+        if (gridWindows == null)
+            createGridWindows();
+        showingGrid = true;
+        for (GridWindow gridWindow : gridWindows)
+            requestWindowRepaint(gridWindow.hwnd);
     }
 
-    public static void hideAttachGrid() {
-        if (!showingAttachGrid)
+    public static void hideGrid() {
+        if (!showingGrid)
             return;
-        showingAttachGrid = false;
-        for (AttachGridWindow attachGridWindow : attachGridWindows)
-            requestWindowRepaint(attachGridWindow.hwnd);
+        showingGrid = false;
+        for (GridWindow gridWindow : gridWindows)
+            requestWindowRepaint(gridWindow.hwnd);
     }
 
     private static void requestWindowRepaint(WinDef.HWND hwnd) {

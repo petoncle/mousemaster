@@ -85,30 +85,30 @@ public class WindowsMouse {
         User32.INSTANCE.SendInput(nInputs, pInputs, size);
     }
 
-    public static void attachUp(Attach attach) {
-        attach(false, false, attach);
+    public static void snapUp(Grid grid) {
+        snap(false, false, grid);
     }
 
-    public static void attachDown(Attach attach) {
-        attach(false, true, attach);
+    public static void snapDown(Grid grid) {
+        snap(false, true, grid);
     }
 
-    public static void attachLeft(Attach attach) {
-        attach(true, false, attach);
+    public static void snapLeft(Grid grid) {
+        snap(true, false, grid);
     }
 
-    public static void attachRight(Attach attach) {
-        attach(true, true, attach);
+    public static void snapRight(Grid grid) {
+        snap(true, true, grid);
     }
 
-    private static void attach(boolean horizontal, boolean forward, Attach attach) {
+    private static void snap(boolean horizontal, boolean forward, Grid grid) {
         WinDef.POINT mousePosition = mousePosition();
         WinUser.MONITORINFO monitorInfo =
                 WindowsOverlay.findCurrentMonitorPosition(mousePosition);
         int rowWidth = (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) /
-                       attach.gridRowCount();
+                       grid.rowCount();
         int columnHeight = (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) /
-                           attach.gridColumnCount();
+                           grid.columnCount();
         double mouseRow = (double) mousePosition.x / rowWidth;
         double mouseColumn = (double) mousePosition.y / columnHeight;
         if (horizontal)

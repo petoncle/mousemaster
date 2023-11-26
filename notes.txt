@@ -66,9 +66,11 @@ _shift,^shift = press shift, release shift?
 - Min/max values for grid row/column count
 - Do not inherit SwitchMode commands with mode.extend
 + Keynav grid (2 rows x 2 columns grid)
- + Grid could have arbitrary number of rows/columns (for attaching), but the grid cuts and shifts are done on 2x2
- ++ Snap instead of attach?
+ + Grid could have arbitrary number of rows/columns (for snapping), but the grid cuts and shifts are done on 2x2
+ - Snap instead of grid?
  + Reset/Show grid to full screen, fixed-size around current mouse position, around focused window
+  + create-full-screen-grid, create-active-window-grid, create-around-cursor-grid
+   + grid.around-cursor-grid-width/height
   + press then release rightctrl, no up/... should be pressed
   + if rightctrl not released, then snap mode with grid not cutable/shiftable
    (+ temp-snap mode -> timeout 0.5s -> perm-snap-mode (which cannot go to grid mode))
@@ -80,7 +82,7 @@ _shift,^shift = press shift, release shift?
  + Hide grid (cannot disable a grid?)
   + press then release rightctrl (within 250ms, not interrupted by a grid shift like rightctrl up)
   + If try to use grid commands while grid is hidden/not initialized, create a new full screen grid
- + Attach to grid lines (mouse can be outside grid)
+ + Attach/Snap to grid lines (mouse can be outside grid) snap-left
   + In mouse-mode, arrow keys with rightctrl (like it currently works)
  + Move to grid center
  + Half (cut in half) grid in a direction (keep-top/bottom/left/right)
@@ -91,3 +93,5 @@ _shift,^shift = press shift, release shift?
   + move-to-grid-center-when-shifted
   + If grid already touches screen edge, then move grid to closest monitor
    + Resize too fullscreen if grid bigger than new monitor
+ + Teleport forward to +300px is snapping to (or shifting) the around-cursor grid?
+  + The corresponding grid window should be movable to a neighbor monitor

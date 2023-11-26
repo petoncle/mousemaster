@@ -37,9 +37,9 @@ public class ModeManager {
     }
 
     public void update(double delta) {
-        boolean justAttached = mouseManager.pollJustAttached();
+        boolean justSnapped = mouseManager.pollJustSnapped();
         boolean mouseIdling = !mouseManager.moving() && !mouseManager.pressing() &&
-                              !mouseManager.wheeling() && !justAttached;
+                              !mouseManager.wheeling() && !justSnapped;
         if (!mouseIdling) {
             resetIdleTimers();
             resetCurrentModeCursorHidden();
@@ -76,7 +76,7 @@ public class ModeManager {
         resetIdleTimers();
         mouseManager.setMouse(newMode.mouse());
         mouseManager.setWheel(newMode.wheel());
-        mouseManager.setAttach(newMode.attach());
+        mouseManager.setGrid(newMode.grid());
     }
 
     private void resetCurrentModeCursorHidden() {
@@ -94,10 +94,6 @@ public class ModeManager {
                 currentModeCursorHidden = true;
             }
         }
-    }
-
-    public void attached() {
-        resetIdleTimers();
     }
 
     private void resetIdleTimers() {

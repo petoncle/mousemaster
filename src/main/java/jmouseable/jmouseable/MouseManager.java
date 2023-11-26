@@ -1,14 +1,13 @@
 package jmouseable.jmouseable;
 
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.Stack;
 
 public class MouseManager {
 
     private Mouse mouse;
     private Wheel wheel;
-    private Attach attach;
+    private Grid grid;
     private double mouseX, mouseY;
     private double moveDuration;
     private double deltaDistanceX, deltaDistanceY;
@@ -19,7 +18,7 @@ public class MouseManager {
     private double wheelDuration;
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
-    private boolean justAttached;
+    private boolean justSnapped;
 
     public void reset() {
         moveDuration = 0;
@@ -30,7 +29,7 @@ public class MouseManager {
         wheelDuration = 0;
         xWheelForwardStack.clear();
         yWheelForwardStack.clear();
-        justAttached = false;
+        justSnapped = false;
     }
 
     public void setMouse(Mouse mouse) {
@@ -41,8 +40,8 @@ public class MouseManager {
         this.wheel = wheel;
     }
 
-    public void setAttach(Attach attach) {
-        this.attach = attach;
+    public void setGrid(Grid grid) {
+        this.grid = grid;
     }
 
     public boolean moving() {
@@ -57,11 +56,11 @@ public class MouseManager {
         return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty();
     }
 
-    public boolean pollJustAttached() {
+    public boolean pollJustSnapped() {
         try {
-            return justAttached;
+            return justSnapped;
         } finally {
-            justAttached = false;
+            justSnapped = false;
         }
     }
 
@@ -252,24 +251,24 @@ public class MouseManager {
             wheelDuration = 0;
     }
 
-    public void attachUp() {
-        WindowsMouse.attachUp(attach);
-        justAttached = true;
+    public void snapUp() {
+        WindowsMouse.snapUp(grid);
+        justSnapped = true;
     }
 
-    public void attachDown() {
-        WindowsMouse.attachDown(attach);
-        justAttached = true;
+    public void snapDown() {
+        WindowsMouse.snapDown(grid);
+        justSnapped = true;
     }
 
-    public void attachLeft() {
-        WindowsMouse.attachLeft(attach);
-        justAttached = true;
+    public void snapLeft() {
+        WindowsMouse.snapLeft(grid);
+        justSnapped = true;
     }
 
-    public void attachRight() {
-        WindowsMouse.attachRight(attach);
-        justAttached = true;
+    public void snapRight() {
+        WindowsMouse.snapRight(grid);
+        justSnapped = true;
     }
 
     public void showCursor() {

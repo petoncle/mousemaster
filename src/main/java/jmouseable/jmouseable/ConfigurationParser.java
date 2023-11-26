@@ -19,7 +19,7 @@ public class ConfigurationParser {
 
     private static final Mode defaultMode =
             new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
-                    new Wheel(1000, 1000, 500), new Attach(1, 1, false, null, 1),
+                    new Wheel(1000, 1000, 500), new Grid(1, 1, false, null, 1),
                     new ModeTimeout(false, null, null),
                     new Indicator(false, null, null, null, null, null),
                     new HideCursor(false, null));
@@ -98,33 +98,29 @@ public class ConfigurationParser {
                                 "Invalid wheel configuration: " + propertyKey);
                     }
                 }
-                case "attach" -> {
+                case "grid" -> {
                     if (matcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid attach configuration: " + propertyKey);
+                                "Invalid grid configuration: " + propertyKey);
                     switch (matcher.group(4)) {
-                        case "grid-row-count" -> mode.attach()
-                                                     .gridRowCount(parseUnsignedInteger(
-                                                             "attach grid-row-count",
-                                                             propertyValue, 1, 10));
-                        case "grid-column-count" -> mode.attach()
-                                                        .gridColumnCount(
-                                                                parseUnsignedInteger(
-                                                                        "attach grid-column-count",
-                                                                        propertyValue, 1,
-                                                                        10));
-                        case "show-grid" -> mode.attach()
-                                                .showGrid(Boolean.parseBoolean(
-                                                        propertyValue));
-                        case "grid-line-color" -> mode.attach()
-                                                      .gridLineHexColor(checkColorFormat(
-                                                              propertyValue));
-                        case "grid-line-thickness" -> mode.attach()
-                                                        .gridLineThickness(
-                                                                Integer.parseUnsignedInt(
-                                                                        propertyValue));
+                        case "row-count" -> mode.grid()
+                                                .rowCount(parseUnsignedInteger(
+                                                        "grid row-count", propertyValue,
+                                                        1, 10));
+                        case "column-count" -> mode.grid()
+                                                   .columnCount(parseUnsignedInteger(
+                                                           "grid column-count",
+                                                           propertyValue, 1, 10));
+                        case "visible" ->
+                                mode.grid().visible(Boolean.parseBoolean(propertyValue));
+                        case "line-color" ->
+                                mode.grid().lineHexColor(checkColorFormat(propertyValue));
+                        case "line-thickness" -> mode.grid()
+                                                     .lineThickness(
+                                                             Integer.parseUnsignedInt(
+                                                                     propertyValue));
                         default -> throw new IllegalArgumentException(
-                                "Invalid attach configuration: " + propertyKey);
+                                "Invalid grid configuration: " + propertyKey);
                     }
                 }
                 case "to" -> {
@@ -243,10 +239,10 @@ public class ConfigurationParser {
                 case "stop-wheel-left" -> addCommand(mode.comboMap(), propertyValue, new StopWheelLeft(), defaultComboMoveDuration);
                 case "stop-wheel-right" -> addCommand(mode.comboMap(), propertyValue, new StopWheelRight(), defaultComboMoveDuration);
 
-                case "attach-up" -> addCommand(mode.comboMap(), propertyValue, new AttachUp(), defaultComboMoveDuration);
-                case "attach-down" -> addCommand(mode.comboMap(), propertyValue, new AttachDown(), defaultComboMoveDuration);
-                case "attach-left" -> addCommand(mode.comboMap(), propertyValue, new AttachLeft(), defaultComboMoveDuration);
-                case "attach-right" -> addCommand(mode.comboMap(), propertyValue, new AttachRight(), defaultComboMoveDuration);
+                case "snap-up" -> addCommand(mode.comboMap(), propertyValue, new SnapUp(), defaultComboMoveDuration);
+                case "snap-down" -> addCommand(mode.comboMap(), propertyValue, new SnapDown(), defaultComboMoveDuration);
+                case "snap-left" -> addCommand(mode.comboMap(), propertyValue, new SnapLeft(), defaultComboMoveDuration);
+                case "snap-right" -> addCommand(mode.comboMap(), propertyValue, new SnapRight(), defaultComboMoveDuration);
                 // @formatter:on
                 default -> throw new IllegalArgumentException(
                         "Invalid configuration: " + propertyKey);
@@ -340,16 +336,16 @@ public class ConfigurationParser {
             childMode.wheel().maxVelocity(parentMode.wheel().maxVelocity());
         if (childMode.wheel().acceleration() == null)
             childMode.wheel().acceleration(parentMode.wheel().acceleration());
-        if (childMode.attach().gridRowCount() == null)
-            childMode.attach().gridRowCount(parentMode.attach().gridRowCount());
-        if (childMode.attach().gridColumnCount() == null)
-            childMode.attach().gridColumnCount(parentMode.attach().gridColumnCount());
-        if (childMode.attach().showGrid() == null)
-            childMode.attach().showGrid(parentMode.attach().showGrid());
-        if (childMode.attach().gridLineHexColor() == null)
-            childMode.attach().gridLineHexColor(parentMode.attach().gridLineHexColor());
-        if (childMode.attach().gridLineThickness() == null)
-            childMode.attach().gridLineThickness(parentMode.attach().gridLineThickness());
+        if (childMode.grid().rowCount() == null)
+            childMode.grid().rowCount(parentMode.grid().rowCount());
+        if (childMode.grid().columnCount() == null)
+            childMode.grid().columnCount(parentMode.grid().columnCount());
+        if (childMode.grid().visible() == null)
+            childMode.grid().visible(parentMode.grid().visible());
+        if (childMode.grid().lineHexColor() == null)
+            childMode.grid().lineHexColor(parentMode.grid().lineHexColor());
+        if (childMode.grid().lineThickness() == null)
+            childMode.grid().lineThickness(parentMode.grid().lineThickness());
         if (childMode.indicator().enabled() == null)
             childMode.indicator().enabled(parentMode.indicator().enabled());
         if (childMode.indicator().idleHexColor() == null)

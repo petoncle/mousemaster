@@ -32,9 +32,9 @@ public sealed interface Command {
     record StopWheelLeft() implements Command {}
     record StopWheelRight() implements Command {}
 
-    record AttachUp() implements Command {}
-    record AttachDown() implements Command {}
-    record AttachLeft() implements Command {}
-    record AttachRight() implements Command {}
+    record SnapUp() implements Command {}
+    record SnapDown() implements Command {}
+    record SnapLeft() implements Command {}
+    record SnapRight() implements Command {}
 
 }
