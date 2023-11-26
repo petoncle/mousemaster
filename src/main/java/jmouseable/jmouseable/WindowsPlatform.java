@@ -22,7 +22,7 @@ public class WindowsPlatform implements Platform {
         systemStartTime = now.minusMillis(uptimeMillis);
     }
 
-    private MouseManager mouseManager;
+    private MouseController mouseController;
     private KeyboardManager keyboardManager;
     private List<MousePositionListener> mousePositionListeners;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
@@ -55,10 +55,10 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
+    public void reset(MouseController mouseController, KeyboardManager keyboardManager,
                       KeyboardLayout keyboardLayout, ModeMap modeMap,
                       List<MousePositionListener> mousePositionListeners) {
-        this.mouseManager = mouseManager;
+        this.mouseController = mouseController;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
         Set<Key> allComboKeys = new HashSet<>();
@@ -160,11 +160,11 @@ public class WindowsPlatform implements Platform {
         }
         if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
             logger.info(
-                    "Resetting KeyManager and MouseManager since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
+                    "Resetting KeyboardManager and MouseController since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     keysThatDoNotSeemToBePressedAnymore);
             currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
-            mouseManager.reset();
+            mouseController.reset();
         }
     }
 
@@ -229,7 +229,7 @@ public class WindowsPlatform implements Platform {
                              String wParamString) {
         if (keyEvent.isPress()) {
             if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
-                keyboardManager.allCurrentlyPressedArePartOfCombo()) {
+                keyboardManager.allCurrentlyPressedKeysArePartOfCombo()) {
                 logKeyEvent(keyEvent, info, wParamString);
             }
         }

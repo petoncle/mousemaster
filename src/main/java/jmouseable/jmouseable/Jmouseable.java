@@ -15,9 +15,9 @@ public class Jmouseable {
     private final Platform platform;
     private final WatchService watchService;
     private Configuration configuration;
-    private MouseManager mouseManager;
+    private MouseController mouseController;
     private KeyboardManager keyboardManager;
-    private ModeManager modeManager;
+    private ModeController modeController;
     private OverlayManager overlayManager;
 
     public Jmouseable(Path configurationPath, Platform platform) throws IOException {
@@ -39,8 +39,8 @@ public class Jmouseable {
             double delta = deltaNanos / 1e9d;
             updateConfiguration();
             platform.update(delta);
-            modeManager.update(delta);
-            mouseManager.update(delta);
+            modeController.update(delta);
+            mouseController.update(delta);
             keyboardManager.update(delta);
             overlayManager.update(delta);
             Thread.sleep(10L);
@@ -78,19 +78,19 @@ public class Jmouseable {
         configuration = ConfigurationParser.parse(configurationPath);
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
                     configurationPath);
-        mouseManager = new MouseManager();
-        MouseState mouseState = new MouseState(mouseManager);
-        CommandRunner commandRunner = new CommandRunner(mouseManager);
+        mouseController = new MouseController();
+        MouseState mouseState = new MouseState(mouseController);
+        CommandRunner commandRunner = new CommandRunner(mouseController);
         ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
         keyboardManager = new KeyboardManager(comboWatcher);
         overlayManager = new OverlayManager(mouseState, keyboardManager);
-        modeManager = new ModeManager(configuration.modeMap(), mouseManager, mouseState,
+        modeController = new ModeController(configuration.modeMap(), mouseController, mouseState,
                 List.of(comboWatcher, overlayManager));
-        commandRunner.setModeManager(modeManager);
-        mouseManager.setGridListeners(List.of(modeManager));
+        commandRunner.setModeController(modeController);
+        mouseController.setGridListeners(List.of(modeController));
         MonitorManager monitorManager = new MonitorManager();
         GridManager gridManager = new GridManager(monitorManager);
-        platform.reset(mouseManager, keyboardManager, configuration.keyboardLayout(),
+        platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(), List.of(gridManager, monitorManager));
     }
 

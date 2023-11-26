@@ -38,7 +38,7 @@ public class KeyboardManager {
         if (keyEvent.isPress()) {
             PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
             if (processing == null) {
-                if (allCurrentlyPressedArePartOfCombo()) {
+                if (allCurrentlyPressedKeysArePartOfCombo()) {
                     processing = comboWatcher.keyEvent(keyEvent);
                     pressingNonComboKey = !processing.partOfCombo();
                 }
@@ -59,7 +59,7 @@ public class KeyboardManager {
                     return processing.mustBeEaten();
                 }
                 else {
-                    pressingNonComboKey = !allCurrentlyPressedArePartOfCombo();
+                    pressingNonComboKey = !allCurrentlyPressedKeysArePartOfCombo();
                     return false;
                 }
             }
@@ -72,7 +72,7 @@ public class KeyboardManager {
         return currentlyPressedKeys.containsKey(key);
     }
 
-    public boolean allCurrentlyPressedArePartOfCombo() {
+    public boolean allCurrentlyPressedKeysArePartOfCombo() {
         return currentlyPressedKeys.values()
                                    .stream()
                                    .allMatch(PressKeyEventProcessing::partOfCombo);

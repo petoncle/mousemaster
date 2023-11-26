@@ -6,12 +6,12 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 
-public class ModeManager implements GridListener {
+public class ModeController implements GridListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(ModeManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(ModeController.class);
 
     private final ModeMap modeMap;
-    private final MouseManager mouseManager;
+    private final MouseController mouseController;
     private final MouseState mouseState;
     private final List<ModeListener> listeners;
     private boolean currentModeCursorHidden;
@@ -20,10 +20,10 @@ public class ModeManager implements GridListener {
     private double hideCursorIdleTimer;
     private boolean justSnappedToGrid;
 
-    public ModeManager(ModeMap modeMap, MouseManager mouseManager, MouseState mouseState,
-                       List<ModeListener> listeners) {
+    public ModeController(ModeMap modeMap, MouseController mouseController, MouseState mouseState,
+                          List<ModeListener> listeners) {
         this.modeMap = modeMap;
-        this.mouseManager = mouseManager;
+        this.mouseController = mouseController;
         this.mouseState = mouseState;
         this.listeners = listeners;
         String defaultModeName = Mode.NORMAL_MODE_NAME;
@@ -59,7 +59,7 @@ public class ModeManager implements GridListener {
                     logger.debug("Hide cursor timer for " + currentMode.name() +
                                  " has elapsed");
                     currentModeCursorHidden = true;
-                    mouseManager.hideCursor();
+                    mouseController.hideCursor();
                 }
             }
             if (currentModeTimedOut) {
@@ -74,9 +74,9 @@ public class ModeManager implements GridListener {
         currentMode = newMode;
         resetCurrentModeCursorHidden();
         resetIdleTimers();
-        mouseManager.setMouse(newMode.mouse());
-        mouseManager.setWheel(newMode.wheel());
-        mouseManager.setGrid(newMode.gridConfiguration());
+        mouseController.setMouse(newMode.mouse());
+        mouseController.setWheel(newMode.wheel());
+        mouseController.setGrid(newMode.gridConfiguration());
         listeners.forEach(listener -> listener.modeChanged(newMode));
     }
 
@@ -84,14 +84,14 @@ public class ModeManager implements GridListener {
         if (currentModeCursorHidden) {
             if (!currentMode.hideCursor().enabled() ||
                 !currentMode.hideCursor().idleDuration().equals(Duration.ZERO)) {
-                mouseManager.showCursor();
+                mouseController.showCursor();
                 currentModeCursorHidden = false;
             }
         }
         else {
             if (currentMode.hideCursor().enabled() &&
                 currentMode.hideCursor().idleDuration().equals(Duration.ZERO)) {
-                mouseManager.hideCursor();
+                mouseController.hideCursor();
                 currentModeCursorHidden = true;
             }
         }

@@ -2,22 +2,22 @@ package jmouseable.jmouseable;
 
 public class MouseState {
 
-    private final MouseManager mouseManager;
+    private final MouseController mouseController;
 
-    public MouseState(MouseManager mouseManager) {
-        this.mouseManager = mouseManager;
+    public MouseState(MouseController mouseController) {
+        this.mouseController = mouseController;
     }
 
     public boolean moving() {
-        return mouseManager.moving();
+        return mouseController.moving();
     }
 
     public boolean pressing() {
-        return mouseManager.pressing();
+        return mouseController.pressing();
     }
 
     public boolean wheeling() {
-        return mouseManager.wheeling();
+        return mouseController.wheeling();
     }
 
 }

@@ -4,54 +4,54 @@ import static jmouseable.jmouseable.Command.*;
 
 public class CommandRunner {
 
-    private ModeManager modeManager;
-    private final MouseManager mouseManager;
+    private ModeController modeController;
+    private final MouseController mouseController;
 
-    public CommandRunner(MouseManager mouseManager) {
-        this.mouseManager = mouseManager;
+    public CommandRunner(MouseController mouseController) {
+        this.mouseController = mouseController;
     }
 
-    public void setModeManager(ModeManager modeManager) {
-        this.modeManager = modeManager;
+    public void setModeController(ModeController modeController) {
+        this.modeController = modeController;
     }
 
     public void run(Command command) {
         switch (command) {
             // @formatter:off
-            case SwitchMode switchMode -> modeManager.switchMode(switchMode.modeName());
+            case SwitchMode switchMode -> modeController.switchMode(switchMode.modeName());
 
-            case StartMoveUp startMoveUp -> mouseManager.startMoveUp();
-            case StartMoveDown startMoveDown -> mouseManager.startMoveDown();
-            case StartMoveLeft startMoveLeft -> mouseManager.startMoveLeft();
-            case StartMoveRight startMoveRight -> mouseManager.startMoveRight();
+            case StartMoveUp startMoveUp -> mouseController.startMoveUp();
+            case StartMoveDown startMoveDown -> mouseController.startMoveDown();
+            case StartMoveLeft startMoveLeft -> mouseController.startMoveLeft();
+            case StartMoveRight startMoveRight -> mouseController.startMoveRight();
 
-            case StopMoveUp stopMoveUp -> mouseManager.stopMoveUp();
-            case StopMoveDown stopMoveDown -> mouseManager.stopMoveDown();
-            case StopMoveLeft stopMoveLeft -> mouseManager.stopMoveLeft();
-            case StopMoveRight stopMoveRight -> mouseManager.stopMoveRight();
+            case StopMoveUp stopMoveUp -> mouseController.stopMoveUp();
+            case StopMoveDown stopMoveDown -> mouseController.stopMoveDown();
+            case StopMoveLeft stopMoveLeft -> mouseController.stopMoveLeft();
+            case StopMoveRight stopMoveRight -> mouseController.stopMoveRight();
 
-            case PressLeft pressLeft -> mouseManager.pressLeft();
-            case PressMiddle pressMiddle -> mouseManager.pressMiddle();
-            case PressRight pressRight -> mouseManager.pressRight();
+            case PressLeft pressLeft -> mouseController.pressLeft();
+            case PressMiddle pressMiddle -> mouseController.pressMiddle();
+            case PressRight pressRight -> mouseController.pressRight();
 
-            case ReleaseLeft releaseLeft -> mouseManager.releaseLeft();
-            case ReleaseMiddle releaseMiddle -> mouseManager.releaseMiddle();
-            case ReleaseRight releaseRight -> mouseManager.releaseRight();
+            case ReleaseLeft releaseLeft -> mouseController.releaseLeft();
+            case ReleaseMiddle releaseMiddle -> mouseController.releaseMiddle();
+            case ReleaseRight releaseRight -> mouseController.releaseRight();
 
-            case StartWheelUp startWheelUp -> mouseManager.startWheelUp();
-            case StartWheelDown startWheelDown -> mouseManager.startWheelDown();
-            case StartWheelLeft startWheelLeft -> mouseManager.startWheelLeft();
-            case StartWheelRight startWheelRight -> mouseManager.startWheelRight();
+            case StartWheelUp startWheelUp -> mouseController.startWheelUp();
+            case StartWheelDown startWheelDown -> mouseController.startWheelDown();
+            case StartWheelLeft startWheelLeft -> mouseController.startWheelLeft();
+            case StartWheelRight startWheelRight -> mouseController.startWheelRight();
 
-            case StopWheelUp stopWheelUp -> mouseManager.stopWheelUp();
-            case StopWheelDown stopWheelDown -> mouseManager.stopWheelDown();
-            case StopWheelLeft stopWheelLeft -> mouseManager.stopWheelLeft();
-            case StopWheelRight stopWheelRight -> mouseManager.stopWheelRight();
+            case StopWheelUp stopWheelUp -> mouseController.stopWheelUp();
+            case StopWheelDown stopWheelDown -> mouseController.stopWheelDown();
+            case StopWheelLeft stopWheelLeft -> mouseController.stopWheelLeft();
+            case StopWheelRight stopWheelRight -> mouseController.stopWheelRight();
 
-            case SnapUp snapUp -> mouseManager.snapUp();
-            case SnapDown snapDown -> mouseManager.snapDown();
-            case SnapLeft snapLeft -> mouseManager.snapLeft();
-            case SnapRight snapRight -> mouseManager.snapRight();
+            case SnapUp snapUp -> mouseController.snapUp();
+            case SnapDown snapDown -> mouseController.snapDown();
+            case SnapLeft snapLeft -> mouseController.snapLeft();
+            case SnapRight snapRight -> mouseController.snapRight();
 
             case KeepGridBottom keepGridBottom -> {}
             case KeepGridLeft keepGridLeft -> {}
