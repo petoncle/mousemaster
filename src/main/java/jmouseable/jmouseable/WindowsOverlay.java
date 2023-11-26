@@ -2,6 +2,7 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
+import jmouseable.jmouseable.MonitorManager.Monitor;
 import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
 import java.util.HashSet;
@@ -18,7 +19,7 @@ public class WindowsOverlay {
     private static boolean showingIndicator;
     private static String currentIndicatorHexColor;
     private static boolean showingGrid;
-    private static Grid currentGrid;
+    private static GridConfiguration currentGridConfiguration;
     private static WinDef.POINT mousePosition;
 
     public static void setTopmost() {
@@ -74,34 +75,14 @@ public class WindowsOverlay {
                 WindowsOverlay::indicatorWindowCallback);
     }
 
-    private record Monitor(int top, int bottom, int left, int right) {
-
-    }
-
     private static void createGridWindows() {
         gridWindows = new HashSet<>();
-        for (Monitor monitor : findMonitors()) {
-            WinDef.HWND hwnd = createWindow("Grid",
-                    monitor.left, monitor.top,
-                    monitor.right() - monitor.left(), monitor.bottom() - monitor.top(),
-                    WindowsOverlay::gridWindowCallback);
+        for (Monitor monitor : WindowsMonitor.findMonitors()) {
+            WinDef.HWND hwnd =
+                    createWindow("Grid", monitor.x(), monitor.y(), monitor.width(),
+                            monitor.height(), WindowsOverlay::gridWindowCallback);
             gridWindows.add(new GridWindow(monitor, hwnd));
         }
-    }
-
-    private static Set<Monitor> findMonitors() {
-        Set<Monitor> monitors = new HashSet<>();
-        User32.INSTANCE.EnumDisplayMonitors(null, null, new WinUser.MONITORENUMPROC() {
-            @Override
-            public int apply(WinUser.HMONITOR hMonitor, WinDef.HDC hdcMonitor,
-                             WinDef.RECT lprcMonitor, WinDef.LPARAM dwData) {
-                monitors.add(
-                        new Monitor(lprcMonitor.top, lprcMonitor.bottom, lprcMonitor.left,
-                                lprcMonitor.right));
-                return 1;
-            }
-        }, null);
-        return monitors;
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
@@ -173,14 +154,14 @@ public class WindowsOverlay {
 
     private static void paintGrid(WinDef.HDC hdc, ExtendedUser32.PAINTSTRUCT ps) {
         WinDef.RECT rect = ps.rcPaint;
-        int gridRowCount = currentGrid.rowCount();
-        int gridColumnCount = currentGrid.columnCount();
+        int gridRowCount = currentGridConfiguration.snapRowCount();
+        int gridColumnCount = currentGridConfiguration.snapColumnCount();
         int cellWidth = (rect.right - rect.left) / gridRowCount;
         int cellHeight = (rect.bottom - rect.top) / gridColumnCount;
         int[] polyCounts = new int[gridRowCount + 1 + gridColumnCount + 1];
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
-        int lineThickness = currentGrid.lineThickness();
+        int lineThickness = currentGridConfiguration.lineThickness();
         // Vertical lines
         for (int lineIndex = 0; lineIndex <= gridColumnCount; lineIndex++) {
             int x = rect.left + lineIndex * cellWidth;
@@ -209,7 +190,7 @@ public class WindowsOverlay {
             points[pointsOffset + 2 * lineIndex + 1].y = y;
             polyCounts[polyCountsOffset + lineIndex] = 2;
         }
-        String lineColor = currentGrid.lineHexColor();
+        String lineColor = currentGridConfiguration.lineHexColor();
         WinUser.HPEN gridPen =
                 ExtendedGDI32.INSTANCE.CreatePen(ExtendedGDI32.PS_SOLID, lineThickness,
                         hexColorStringToInt(lineColor));
@@ -260,12 +241,12 @@ public class WindowsOverlay {
         requestWindowRepaint(indicatorWindowHwnd);
     }
 
-    public static void setGrid(Grid grid) {
-        if (showingGrid && currentGrid != null &&
-            currentGrid.equals(grid))
+    public static void setGrid(GridConfiguration gridConfiguration) {
+        if (showingGrid && currentGridConfiguration != null &&
+            currentGridConfiguration.equals(gridConfiguration))
             return;
-        currentGrid = grid;
-        if (grid == null) {
+        currentGridConfiguration = gridConfiguration;
+        if (gridConfiguration == null) {
             hideGrid();
             return;
         }
@@ -273,7 +254,7 @@ public class WindowsOverlay {
             Set<Monitor> gridMonitors = gridWindows.stream()
                                                    .map(GridWindow::monitor)
                                                    .collect(Collectors.toSet());
-            if (!gridMonitors.equals(findMonitors())) {
+            if (!gridMonitors.equals(WindowsMonitor.findMonitors())) {
                 // Recreate windows if the monitors have changed.
                 for (GridWindow gridWindow : gridWindows)
                     removeWindow(gridWindow.hwnd);

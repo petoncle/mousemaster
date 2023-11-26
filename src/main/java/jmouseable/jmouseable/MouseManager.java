@@ -7,7 +7,7 @@ public class MouseManager {
 
     private Mouse mouse;
     private Wheel wheel;
-    private Grid grid;
+    private GridConfiguration gridConfiguration;
     private double mouseX, mouseY;
     private double moveDuration;
     private double deltaDistanceX, deltaDistanceY;
@@ -40,8 +40,8 @@ public class MouseManager {
         this.wheel = wheel;
     }
 
-    public void setGrid(Grid grid) {
-        this.grid = grid;
+    public void setGrid(GridConfiguration gridConfiguration) {
+        this.gridConfiguration = gridConfiguration;
     }
 
     public boolean moving() {
@@ -252,22 +252,22 @@ public class MouseManager {
     }
 
     public void snapUp() {
-        WindowsMouse.snapUp(grid);
+        WindowsMouse.snapUp(gridConfiguration);
         justSnapped = true;
     }
 
     public void snapDown() {
-        WindowsMouse.snapDown(grid);
+        WindowsMouse.snapDown(gridConfiguration);
         justSnapped = true;
     }
 
     public void snapLeft() {
-        WindowsMouse.snapLeft(grid);
+        WindowsMouse.snapLeft(gridConfiguration);
         justSnapped = true;
     }
 
     public void snapRight() {
-        WindowsMouse.snapRight(grid);
+        WindowsMouse.snapRight(gridConfiguration);
         justSnapped = true;
     }
 

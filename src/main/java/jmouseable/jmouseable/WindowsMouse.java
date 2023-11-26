@@ -85,30 +85,31 @@ public class WindowsMouse {
         User32.INSTANCE.SendInput(nInputs, pInputs, size);
     }
 
-    public static void snapUp(Grid grid) {
-        snap(false, false, grid);
+    public static void snapUp(GridConfiguration gridConfiguration) {
+        snap(false, false, gridConfiguration);
     }
 
-    public static void snapDown(Grid grid) {
-        snap(false, true, grid);
+    public static void snapDown(GridConfiguration gridConfiguration) {
+        snap(false, true, gridConfiguration);
     }
 
-    public static void snapLeft(Grid grid) {
-        snap(true, false, grid);
+    public static void snapLeft(GridConfiguration gridConfiguration) {
+        snap(true, false, gridConfiguration);
     }
 
-    public static void snapRight(Grid grid) {
-        snap(true, true, grid);
+    public static void snapRight(GridConfiguration gridConfiguration) {
+        snap(true, true, gridConfiguration);
     }
 
-    private static void snap(boolean horizontal, boolean forward, Grid grid) {
+    // TODO Should be in GridManager
+    private static void snap(boolean horizontal, boolean forward, GridConfiguration gridConfiguration) {
         WinDef.POINT mousePosition = mousePosition();
         WinUser.MONITORINFO monitorInfo =
                 WindowsOverlay.findCurrentMonitorPosition(mousePosition);
         int rowWidth = (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) /
-                       grid.rowCount();
+                       gridConfiguration.snapRowCount();
         int columnHeight = (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) /
-                           grid.columnCount();
+                           gridConfiguration.snapColumnCount();
         double mouseRow = (double) mousePosition.x / rowWidth;
         double mouseColumn = (double) mousePosition.y / columnHeight;
         if (horizontal)
@@ -117,7 +118,7 @@ public class WindowsMouse {
         else
             mousePosition.y = (int) ((forward ? Math.floor(mouseColumn) + 1 :
                     Math.ceil(mouseColumn) - 1) * columnHeight);
-        setMousePosition(mousePosition);
+        boolean setMousePositionResult = setMousePosition(mousePosition);
     }
 
     private static WinDef.POINT mousePosition() {

@@ -76,7 +76,7 @@ public class ModeManager {
         resetIdleTimers();
         mouseManager.setMouse(newMode.mouse());
         mouseManager.setWheel(newMode.wheel());
-        mouseManager.setGrid(newMode.grid());
+        mouseManager.setGrid(newMode.gridConfiguration());
     }
 
     private void resetCurrentModeCursorHidden() {

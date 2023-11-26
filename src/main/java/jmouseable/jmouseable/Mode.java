@@ -1,6 +1,6 @@
 package jmouseable.jmouseable;
 
-import jmouseable.jmouseable.Grid.GridBuilder;
+import jmouseable.jmouseable.GridConfiguration.GridBuilder;
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
 import jmouseable.jmouseable.HideCursor.HideCursorBuilder;
 import jmouseable.jmouseable.Indicator.IndicatorBuilder;
@@ -9,7 +9,7 @@ import jmouseable.jmouseable.Mouse.MouseBuilder;
 import jmouseable.jmouseable.Wheel.WheelBuilder;
 
 public record Mode(String name, ComboMap comboMap, Mouse mouse, Wheel wheel,
-                   Grid grid, ModeTimeout timeout, Indicator indicator,
+                   GridConfiguration gridConfiguration, ModeTimeout timeout, Indicator indicator,
                    HideCursor hideCursor) {
     public static final String NORMAL_MODE_NAME = "normal-mode";
 

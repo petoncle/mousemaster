@@ -83,7 +83,7 @@ _shift,^shift = press shift, release shift?
   + If try to use grid commands while grid is hidden/not initialized, create a new full screen grid
  + Snap to grid lines (mouse can be outside grid) snap-left
  + Move to grid center
- + Half (cut in half) grid in a direction (keep-top/bottom/left/right)
+ + Half (cut in half) grid in a direction (keep-grid-top/bottom/left/right)
   + arrow keys
   + Also moves to grid center automatically: move-to-grid-center-when-cut=true
  + Shift grid: shift-grid-top
@@ -93,3 +93,4 @@ _shift,^shift = press shift, release shift?
    + Resize too fullscreen if grid bigger than new monitor
  + Teleport forward to +300px is snapping to (or shifting) the around-cursor grid?
   + The corresponding grid window should be movable to a neighbor monitor
+ + OS-dependent code should access model code, not the opposite

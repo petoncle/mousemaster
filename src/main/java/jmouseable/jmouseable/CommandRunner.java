@@ -49,6 +49,11 @@ public class CommandRunner {
             case SnapDown snapDown -> mouseManager.snapDown();
             case SnapLeft snapLeft -> mouseManager.snapLeft();
             case SnapRight snapRight -> mouseManager.snapRight();
+
+            case KeepGridBottom keepGridBottom -> {}
+            case KeepGridLeft keepGridLeft -> {}
+            case KeepGridRight keepGridRight -> {}
+            case KeepGridTop keepGridTop -> {}
             // @formatter:on
         }
     }

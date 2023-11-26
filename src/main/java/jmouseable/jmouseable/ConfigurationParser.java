@@ -1,6 +1,7 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
+import jmouseable.jmouseable.GridConfiguration.GridType;
 import jmouseable.jmouseable.Mode.ModeBuilder;
 
 import java.io.IOException;
@@ -19,7 +20,8 @@ public class ConfigurationParser {
 
     private static final Mode defaultMode =
             new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
-                    new Wheel(1000, 1000, 500), new Grid(1, 1, false, null, 1),
+                    new Wheel(1000, 1000, 500),
+                    new GridConfiguration(GridType.FULL_SCREEN, true, 1, 1, false, null, 1),
                     new ModeTimeout(false, null, null),
                     new Indicator(false, null, null, null, null, null),
                     new HideCursor(false, null));
@@ -103,14 +105,21 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid grid configuration: " + propertyKey);
                     switch (matcher.group(4)) {
-                        case "row-count" -> mode.grid()
-                                                .rowCount(parseUnsignedInteger(
-                                                        "grid row-count", propertyValue,
-                                                        1, 10));
-                        case "column-count" -> mode.grid()
-                                                   .columnCount(parseUnsignedInteger(
-                                                           "grid column-count",
-                                                           propertyValue, 1, 10));
+                        case "type" -> mode.grid().type(parseGridType(propertyValue));
+                        case "auto-move-to-grid-center" -> mode.grid()
+                                                               .autoMoveToGridCenter(
+                                                                       Boolean.parseBoolean(
+                                                                               propertyValue));
+                        case "snap-row-count" -> mode.grid()
+                                                     .snapRowCount(parseUnsignedInteger(
+                                                             "grid snap-row-count",
+                                                             propertyValue, 1, 10));
+                        case "snap-column-count" -> mode.grid()
+                                                        .snapColumnCount(
+                                                                parseUnsignedInteger(
+                                                                        "grid snap-column-count",
+                                                                        propertyValue, 1,
+                                                                        10));
                         case "visible" ->
                                 mode.grid().visible(Boolean.parseBoolean(propertyValue));
                         case "line-color" ->
@@ -243,6 +252,11 @@ public class ConfigurationParser {
                 case "snap-down" -> addCommand(mode.comboMap(), propertyValue, new SnapDown(), defaultComboMoveDuration);
                 case "snap-left" -> addCommand(mode.comboMap(), propertyValue, new SnapLeft(), defaultComboMoveDuration);
                 case "snap-right" -> addCommand(mode.comboMap(), propertyValue, new SnapRight(), defaultComboMoveDuration);
+
+                case "keep-grid-top" -> addCommand(mode.comboMap(), propertyValue, new KeepGridTop(), defaultComboMoveDuration);
+                case "keep-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new KeepGridBottom(), defaultComboMoveDuration);
+                case "keep-grid-left" -> addCommand(mode.comboMap(), propertyValue, new KeepGridLeft(), defaultComboMoveDuration);
+                case "keep-grid-right" -> addCommand(mode.comboMap(), propertyValue, new KeepGridRight(), defaultComboMoveDuration);
                 // @formatter:on
                 default -> throw new IllegalArgumentException(
                         "Invalid configuration: " + propertyKey);
@@ -336,16 +350,20 @@ public class ConfigurationParser {
             childMode.wheel().maxVelocity(parentMode.wheel().maxVelocity());
         if (childMode.wheel().acceleration() == null)
             childMode.wheel().acceleration(parentMode.wheel().acceleration());
-        if (childMode.grid().rowCount() == null)
-            childMode.grid().rowCount(parentMode.grid().rowCount());
-        if (childMode.grid().columnCount() == null)
-            childMode.grid().columnCount(parentMode.grid().columnCount());
+        if (childMode.grid().type() == null)
+            childMode.grid().type(parentMode.gridConfiguration().type());
+        if (childMode.grid().autoMoveToGridCenter() == null)
+            childMode.grid().autoMoveToGridCenter(parentMode.gridConfiguration().autoMoveToGridCenter());
+        if (childMode.grid().snapRowCount() == null)
+            childMode.grid().snapRowCount(parentMode.gridConfiguration().snapRowCount());
+        if (childMode.grid().snapColumnCount() == null)
+            childMode.grid().snapColumnCount(parentMode.gridConfiguration().snapColumnCount());
         if (childMode.grid().visible() == null)
-            childMode.grid().visible(parentMode.grid().visible());
+            childMode.grid().visible(parentMode.gridConfiguration().visible());
         if (childMode.grid().lineHexColor() == null)
-            childMode.grid().lineHexColor(parentMode.grid().lineHexColor());
+            childMode.grid().lineHexColor(parentMode.gridConfiguration().lineHexColor());
         if (childMode.grid().lineThickness() == null)
-            childMode.grid().lineThickness(parentMode.grid().lineThickness());
+            childMode.grid().lineThickness(parentMode.gridConfiguration().lineThickness());
         if (childMode.indicator().enabled() == null)
             childMode.indicator().enabled(parentMode.indicator().enabled());
         if (childMode.indicator().idleHexColor() == null)
@@ -381,6 +399,15 @@ public class ConfigurationParser {
                     "Invalid " + configurationName + " configuration: " + integer +
                     " is not less than or equal to " + max);
         return integer;
+    }
+
+    private static GridType parseGridType(String string) {
+        return switch (string) {
+            case "full-screen" -> GridType.FULL_SCREEN;
+            case "active-window" -> GridType.ACTIVE_WINDOW;
+            case "around-cursor" -> GridType.AROUND_CURSOR;
+            default -> throw new IllegalArgumentException("Invalid grid type: " + string);
+        };
     }
 
     private static ComboMoveDuration parseComboMoveDuration(String string) {

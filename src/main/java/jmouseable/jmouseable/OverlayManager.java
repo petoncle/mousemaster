@@ -19,8 +19,8 @@ public class OverlayManager {
             WindowsOverlay.setIndicatorColor(indicatorHexColor());
         else
             WindowsOverlay.hideIndicator();
-        if (modeManager.currentMode().grid().visible())
-            WindowsOverlay.setGrid(modeManager.currentMode().grid());
+        if (modeManager.currentMode().gridConfiguration().visible())
+            WindowsOverlay.setGrid(modeManager.currentMode().gridConfiguration());
         else
             WindowsOverlay.hideGrid();
         WindowsOverlay.setMousePosition(mouseManager.mouseX(), mouseManager.mouseY());
