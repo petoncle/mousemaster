@@ -24,6 +24,7 @@ public class WindowsPlatform implements Platform {
 
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
+    private List<MousePositionListener> mousePositionListeners;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -54,11 +55,12 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public void reset(MouseManager mouseManager,
-                      KeyboardManager keyboardManager, KeyboardLayout keyboardLayout,
-                      ModeMap modeMap) {
+    public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
+                      KeyboardLayout keyboardLayout, ModeMap modeMap,
+                      List<MousePositionListener> mousePositionListeners) {
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
+        this.mousePositionListeners = mousePositionListeners;
         Set<Key> allComboKeys = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
@@ -257,7 +259,8 @@ public class WindowsPlatform implements Platform {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
             WindowsOverlay.mouseMoved(mousePosition);
-            mouseManager.mouseMoved(mousePosition.x, mousePosition.y);
+            mousePositionListeners.forEach(
+                    listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }

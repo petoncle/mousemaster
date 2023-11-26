@@ -1,14 +1,15 @@
 package jmouseable.jmouseable;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Stack;
 
 public class MouseManager {
 
+    private List<GridListener> gridListeners;
     private Mouse mouse;
     private Wheel wheel;
     private GridConfiguration gridConfiguration;
-    private double mouseX, mouseY;
     private double moveDuration;
     private double deltaDistanceX, deltaDistanceY;
     // Forward means right or down.
@@ -18,7 +19,10 @@ public class MouseManager {
     private double wheelDuration;
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
-    private boolean justSnapped;
+
+    public void setGridListeners(List<GridListener> gridListeners) {
+        this.gridListeners = gridListeners;
+    }
 
     public void reset() {
         moveDuration = 0;
@@ -29,7 +33,6 @@ public class MouseManager {
         wheelDuration = 0;
         xWheelForwardStack.clear();
         yWheelForwardStack.clear();
-        justSnapped = false;
     }
 
     public void setMouse(Mouse mouse) {
@@ -44,32 +47,16 @@ public class MouseManager {
         this.gridConfiguration = gridConfiguration;
     }
 
-    public boolean moving() {
+    boolean moving() {
         return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty();
     }
 
-    public boolean pressing() {
+    boolean pressing() {
         return leftPressing || middlePressing || rightPressing;
     }
 
-    public boolean wheeling() {
+    boolean wheeling() {
         return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty();
-    }
-
-    public boolean pollJustSnapped() {
-        try {
-            return justSnapped;
-        } finally {
-            justSnapped = false;
-        }
-    }
-
-    public double mouseX() {
-        return mouseX;
-    }
-
-    public double mouseY() {
-        return mouseY;
     }
 
     public void update(double delta) {
@@ -113,11 +100,6 @@ public class MouseManager {
             if (!yWheelForwardStack.isEmpty())
                 WindowsMouse.wheelVerticallyBy(yWheelForwardStack.peek(), deltaDistance);
         }
-    }
-
-    public void mouseMoved(double x, double y) {
-        this.mouseX = x;
-        this.mouseY = y;
     }
 
     public void startMoveUp() {
@@ -253,26 +235,26 @@ public class MouseManager {
 
     public void snapUp() {
         WindowsMouse.snapUp(gridConfiguration);
-        justSnapped = true;
     }
 
     public void snapDown() {
         WindowsMouse.snapDown(gridConfiguration);
-        justSnapped = true;
+        gridListeners.forEach(GridListener::snappedToGrid);
     }
 
     public void snapLeft() {
         WindowsMouse.snapLeft(gridConfiguration);
-        justSnapped = true;
+        gridListeners.forEach(GridListener::snappedToGrid);
     }
 
     public void snapRight() {
         WindowsMouse.snapRight(gridConfiguration);
-        justSnapped = true;
+        gridListeners.forEach(GridListener::snappedToGrid);
     }
 
     public void showCursor() {
         WindowsMouse.showCursor();
+        gridListeners.forEach(GridListener::snappedToGrid);
     }
 
     public void hideCursor() {

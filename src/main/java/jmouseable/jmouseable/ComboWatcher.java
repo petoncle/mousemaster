@@ -8,12 +8,12 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ComboWatcher {
+public class ComboWatcher implements ModeListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
-    private final ModeManager modeManager;
     private final CommandRunner commandRunner;
+    private Mode currentMode;
     private ComboPreparation comboPreparation;
     private ComboMoveDuration previousComboMoveDuration;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
@@ -26,15 +26,12 @@ public class ComboWatcher {
     private Map<Key, Set<Combo>> focusedCombos = new HashMap<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
 
-    public ComboWatcher(ModeManager modeManager, CommandRunner commandRunner) {
-        this.modeManager = modeManager;
+    public ComboWatcher(CommandRunner commandRunner) {
         this.commandRunner = commandRunner;
         this.comboPreparation = ComboPreparation.empty();
     }
 
     public void update(double delta) {
-        if (modeManager.pollCurrentModeTimedOut())
-            interrupt();
         List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
             comboWaitingForLastMoveToComplete.remainingWait -= delta;
@@ -65,7 +62,6 @@ public class ComboWatcher {
         boolean mustBeEaten = false;
         boolean partOfCombo = false;
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
-        Mode currentMode = modeManager.currentMode();
         ComboMoveDuration newComboDuration = null;
         Set<Combo> allFocusedCombos = focusedCombos.values()
                                                    .stream()
@@ -156,8 +152,7 @@ public class ComboWatcher {
         // Remove focused combos that are not in the new mode (if mode was changed),
         // as they will not be completed anymore.
         for (Set<Combo> focusedCombosForKey : focusedCombos.values()) {
-            focusedCombosForKey.removeIf(combo -> !modeManager.currentMode()
-                                                              .comboMap()
+            focusedCombosForKey.removeIf(combo -> !currentMode.comboMap()
                                                               .commandsByCombo()
                                                               .containsKey(combo));
         }
@@ -201,6 +196,16 @@ public class ComboWatcher {
         combosWaitingForLastMoveToComplete.clear();
         focusedCombos.clear();
         currentlyPressedComboKeys.clear();
+    }
+
+    @Override
+    public void modeChanged(Mode newMode) {
+        currentMode = newMode;
+    }
+
+    @Override
+    public void modeTimedOut() {
+        interrupt();
     }
 
     private static final class ComboWaitingForLastMoveToComplete {

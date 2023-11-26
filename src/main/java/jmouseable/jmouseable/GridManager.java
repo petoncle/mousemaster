@@ -3,11 +3,12 @@ package jmouseable.jmouseable;
 /**
  * Displays the grid and handles grid commands.
  */
-public class GridManager {
+public class GridManager implements MousePositionListener {
 
     private final MonitorManager monitorManager;
     private GridConfiguration gridConfiguration;
     private Grid grid;
+    private int mouseX, mouseY;
 
     public GridManager(MonitorManager monitorManager) {
         this.monitorManager = monitorManager;
@@ -36,4 +37,9 @@ public class GridManager {
 
     }
 
+    @Override
+    public void mouseMoved(int x, int y) {
+        this.mouseX = x;
+        this.mouseY = y;
+    }
 }

@@ -4,12 +4,15 @@ import static jmouseable.jmouseable.Command.*;
 
 public class CommandRunner {
 
-    private final ModeManager modeManager;
+    private ModeManager modeManager;
     private final MouseManager mouseManager;
 
-    public CommandRunner(ModeManager modeManager, MouseManager mouseManager) {
-        this.modeManager = modeManager;
+    public CommandRunner(MouseManager mouseManager) {
         this.mouseManager = mouseManager;
+    }
+
+    public void setModeManager(ModeManager modeManager) {
+        this.modeManager = modeManager;
     }
 
     public void run(Command command) {
@@ -57,5 +60,4 @@ public class CommandRunner {
             // @formatter:on
         }
     }
-
 }

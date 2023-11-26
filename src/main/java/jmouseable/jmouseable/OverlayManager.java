@@ -1,29 +1,27 @@
 package jmouseable.jmouseable;
 
-public class OverlayManager {
+public class OverlayManager implements ModeListener {
 
-    private final ModeManager modeManager;
-    private final MouseManager mouseManager;
+    private final MouseState mouseState;
     private final KeyboardManager keyboardManager;
+    private Mode currentMode;
     private double enforceTopmostTimer;
 
-    public OverlayManager(ModeManager modeManager, MouseManager mouseManager,
+    public OverlayManager(MouseState mouseState,
                           KeyboardManager keyboardManager) {
-        this.modeManager = modeManager;
-        this.mouseManager = mouseManager;
+        this.mouseState = mouseState;
         this.keyboardManager = keyboardManager;
     }
 
     public void update(double delta) {
-        if (modeManager.currentMode().indicator().enabled())
+        if (currentMode.indicator().enabled())
             WindowsOverlay.setIndicatorColor(indicatorHexColor());
         else
             WindowsOverlay.hideIndicator();
-        if (modeManager.currentMode().gridConfiguration().visible())
-            WindowsOverlay.setGrid(modeManager.currentMode().gridConfiguration());
+        if (currentMode.gridConfiguration().visible())
+            WindowsOverlay.setGrid(currentMode.gridConfiguration());
         else
             WindowsOverlay.hideGrid();
-        WindowsOverlay.setMousePosition(mouseManager.mouseX(), mouseManager.mouseY());
         enforceTopmostTimer -= delta;
         if (enforceTopmostTimer < 0) {
             // Every 200ms.
@@ -33,16 +31,26 @@ public class OverlayManager {
     }
 
     private String indicatorHexColor() {
-        Indicator indicator = modeManager.currentMode().indicator();
-        if (keyboardManager.pressingNonHandledKey() && indicator.nonComboKeyPressHexColor() != null)
+        Indicator indicator = currentMode.indicator();
+        if (keyboardManager.pressingNonHandledKey() &&
+            indicator.nonComboKeyPressHexColor() != null)
             return indicator.nonComboKeyPressHexColor();
-        if (mouseManager.pressing() && indicator.mousePressHexColor() != null)
+        if (mouseState.pressing() && indicator.mousePressHexColor() != null)
             return indicator.mousePressHexColor();
-        if (mouseManager.wheeling() && indicator.wheelHexColor() != null)
+        if (mouseState.wheeling() && indicator.wheelHexColor() != null)
             return indicator.wheelHexColor();
-        if (mouseManager.moving() && indicator.moveHexColor() != null)
+        if (mouseState.moving() && indicator.moveHexColor() != null)
             return indicator.moveHexColor();
         return indicator.idleHexColor();
     }
 
+    @Override
+    public void modeChanged(Mode newMode) {
+        currentMode = newMode;
+    }
+
+    @Override
+    public void modeTimedOut() {
+        // Ignored.
+    }
 }

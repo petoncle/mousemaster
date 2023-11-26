@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.List;
 
 public class Jmouseable {
 
@@ -78,14 +79,19 @@ public class Jmouseable {
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
                     configurationPath);
         mouseManager = new MouseManager();
-        modeManager = new ModeManager(configuration.modeMap(), mouseManager);
-        CommandRunner commandRunner = new CommandRunner(modeManager, mouseManager);
-        ComboWatcher comboWatcher = new ComboWatcher(modeManager, commandRunner);
+        MouseState mouseState = new MouseState(mouseManager);
+        CommandRunner commandRunner = new CommandRunner(mouseManager);
+        ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
         keyboardManager = new KeyboardManager(comboWatcher);
-        overlayManager =
-                new OverlayManager(modeManager, mouseManager, keyboardManager);
+        overlayManager = new OverlayManager(mouseState, keyboardManager);
+        modeManager = new ModeManager(configuration.modeMap(), mouseManager, mouseState,
+                List.of(comboWatcher, overlayManager));
+        commandRunner.setModeManager(modeManager);
+        mouseManager.setGridListeners(List.of(modeManager));
+        MonitorManager monitorManager = new MonitorManager();
+        GridManager gridManager = new GridManager(monitorManager);
         platform.reset(mouseManager, keyboardManager, configuration.keyboardLayout(),
-                configuration.modeMap());
+                configuration.modeMap(), List.of(gridManager, monitorManager));
     }
 
 }

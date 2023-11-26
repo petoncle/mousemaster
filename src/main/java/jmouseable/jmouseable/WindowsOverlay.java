@@ -291,16 +291,8 @@ public class WindowsOverlay {
         return monitorInfo;
     }
 
-    /**
-     * Caches the mouse position as an optimization to not have to recreate the POINT object.
-     */
     static void mouseMoved(WinDef.POINT mousePosition) {
         WindowsOverlay.mousePosition = mousePosition;
-    }
-
-    public static void setMousePosition(double x, double y) {
-        if (mousePosition == null)
-            return;
         WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
         CursorPositionAndSize cursorPositionAndSize =
                 WindowsMouse.cursorPositionAndSize();
@@ -310,6 +302,6 @@ public class WindowsOverlay {
                 bestIndicatorY(mousePosition.y, cursorPositionAndSize.height(),
                         monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
                 indicatorSize, indicatorSize, false);
-        mousePosition = null;
     }
+
 }
