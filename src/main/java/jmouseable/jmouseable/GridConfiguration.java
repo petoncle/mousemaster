@@ -1,6 +1,6 @@
 package jmouseable.jmouseable;
 
-public record GridConfiguration(boolean enabled, GridType type,
+public record GridConfiguration(GridType type,
                                 boolean autoMoveToGridCenter, int snapRowCount,
                                 int snapColumnCount, boolean visible, String lineHexColor,
                                 int lineThickness) {
@@ -12,7 +12,6 @@ public record GridConfiguration(boolean enabled, GridType type,
     }
 
     public static class GridBuilder {
-        private Boolean enabled;
         private GridType type;
         private Boolean autoMoveToGridCenter;
         private Integer snapRowCount;
@@ -20,11 +19,6 @@ public record GridConfiguration(boolean enabled, GridType type,
         private Boolean visible;
         private String lineHexColor;
         private Integer lineThickness;
-
-        public GridBuilder enabled(boolean enabled) {
-            this.enabled = enabled;
-            return this;
-        }
 
         public GridBuilder type(GridType type) {
             this.type = type;
@@ -65,10 +59,6 @@ public record GridConfiguration(boolean enabled, GridType type,
             return snapRowCount;
         }
 
-        public Boolean enabled() {
-            return enabled;
-        }
-
         public GridType type() {
             return type;
         }
@@ -94,7 +84,7 @@ public record GridConfiguration(boolean enabled, GridType type,
         }
 
         public GridConfiguration build() {
-            return new GridConfiguration(enabled, type, autoMoveToGridCenter, snapRowCount,
+            return new GridConfiguration(type, autoMoveToGridCenter, snapRowCount,
                     snapColumnCount, visible, lineHexColor, lineThickness);
         }
 

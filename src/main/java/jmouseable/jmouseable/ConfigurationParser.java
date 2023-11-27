@@ -21,7 +21,7 @@ public class ConfigurationParser {
     private static final Mode defaultMode =
             new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
                     new Wheel(1000, 1000, 500),
-                    new GridConfiguration(false, GridType.FULL_SCREEN, false, 1, 1, false, null, 1),
+                    new GridConfiguration(GridType.FULL_SCREEN, false, 1, 1, false, null, 1),
                     new ModeTimeout(false, null, null),
                     new Indicator(false, null, null, null, null, null),
                     new HideCursor(false, null));
@@ -105,7 +105,6 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid grid configuration: " + propertyKey);
                     switch (matcher.group(4)) {
-                        case "enabled" -> mode.grid().enabled(Boolean.parseBoolean(propertyValue));
                         case "type" -> mode.grid().type(parseGridType(propertyValue));
                         case "auto-move-to-grid-center" -> mode.grid()
                                                                .autoMoveToGridCenter(
@@ -356,8 +355,6 @@ public class ConfigurationParser {
             childMode.wheel().maxVelocity(parentMode.wheel().maxVelocity());
         if (childMode.wheel().acceleration() == null)
             childMode.wheel().acceleration(parentMode.wheel().acceleration());
-        if (childMode.grid().enabled() == null)
-            childMode.grid().enabled(parentMode.gridConfiguration().enabled());
         if (childMode.grid().type() == null)
             childMode.grid().type(parentMode.gridConfiguration().type());
         if (childMode.grid().autoMoveToGridCenter() == null)
