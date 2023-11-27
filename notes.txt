@@ -70,27 +70,26 @@ _shift,^shift = press shift, release shift?
  - Snap instead of grid?
  + Reset/Show grid to full screen, fixed-size around current mouse position, around focused window
   + create-full-screen-grid, create-active-window-grid, create-around-cursor-grid
-   + grid.around-cursor-grid-width/height
-   + press rightctrl -> temp-snap-mode
-   + temp-snap-mode -> idle timeout 0.2s -> grid-mode
-   + temp-snap-mode -> arrow key -> perm-snap-mode
-   + press rightctrl -> snap-mode -> release rightctrl -> mouse-mode
-   + temp-snap-mode -> quick release rightctrl -> normal mode
-   + grid-mode -> release rightctrl -> mouse-mode
+   - grid.around-cursor-grid-width/height
+   - press rightctrl -> temp-snap-mode
+   - temp-snap-mode -> idle timeout 0.2s -> grid-mode
+   - temp-snap-mode -> arrow key -> perm-snap-mode
+   - press rightctrl -> snap-mode -> release rightctrl -> mouse-mode
+   - temp-snap-mode -> quick release rightctrl -> normal mode
+   - grid-mode -> release rightctrl -> mouse-mode
   + If leftctrl also pressed then focused window grid, if leftshift then around current pos
   + also moves mouse to grid center: move-to-grid-center-when-created=true
  + Hide grid (cannot disable a grid?)
   + If try to use grid commands while grid is hidden/not initialized, create a new full screen grid
- + Snap to grid lines (mouse can be outside grid) snap-left
- + Move to grid center
+ - Snap to grid lines (mouse can be outside grid) snap-left
+ + Move to grid center (need separate command)
  - Half (cut in half) grid in a direction (cut-grid-top/bottom/left/right)
   - arrow keys
   - Also moves to grid center automatically: move-to-grid-center-when-cut=true
- + Shift grid: shift-grid-top
-  + arrow keys with rightctrl
-  + move-to-grid-center-when-shifted
-  + If grid already touches screen edge, then move grid to closest monitor
-   + Resize too fullscreen if grid bigger than new monitor
+ - Shift grid: shift-grid-top
+  - arrow keys with rightctrl
+  - move-to-grid-center-when-shifted
+  - If grid already touches screen edge, then move grid to closest monitor
+   - Resize too fullscreen if grid bigger than new monitor
  + Teleport forward to +300px is snapping to (or shifting) the around-cursor grid?
-  + The corresponding grid window should be movable to a neighbor monitor
- + OS-dependent code should access model code, not the opposite
+  - The corresponding grid window should be movable to a neighbor monitor

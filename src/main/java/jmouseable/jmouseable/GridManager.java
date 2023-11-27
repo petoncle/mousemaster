@@ -145,25 +145,31 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     @Override
     public void modeChanged(Mode newMode) {
-        currentMode = newMode;
-        GridConfiguration gridConfiguration = currentMode.gridConfiguration();
+        GridConfiguration gridConfiguration = newMode.gridConfiguration();
         if (gridConfiguration.type() != GridConfiguration.GridType.FULL_SCREEN)
             throw new UnsupportedOperationException(); // TODO
         Monitor monitor = monitorManager.activeMonitor();
-        grid = new Grid(monitor.x(), monitor.y(), monitor.width(), monitor.height(),
-                gridConfiguration.snapRowCount(), gridConfiguration.snapColumnCount(),
-                gridConfiguration.lineHexColor(), gridConfiguration.lineThickness());
+        Grid newGrid =
+                new Grid(monitor.x(), monitor.y(), monitor.width(), monitor.height(),
+                        gridConfiguration.snapRowCount(),
+                        gridConfiguration.snapColumnCount(),
+                        gridConfiguration.lineHexColor(),
+                        gridConfiguration.lineThickness());
+        if (currentMode != null &&
+            newMode.gridConfiguration().equals(currentMode.gridConfiguration()) &&
+            newGrid.equals(grid))
+            return;
+        currentMode = newMode;
+        grid = newGrid;
         gridChanged();
     }
 
     private void gridChanged() {
-        if (currentMode.gridConfiguration().enabled() &&
-            currentMode.gridConfiguration().visible())
+        if (currentMode.gridConfiguration().visible())
             WindowsOverlay.setGrid(grid);
         else
             WindowsOverlay.hideGrid();
-        if (currentMode.gridConfiguration().enabled() &&
-            currentMode.gridConfiguration().autoMoveToGridCenter())
+        if (currentMode.gridConfiguration().autoMoveToGridCenter())
             mouseController.moveTo(grid.x() + grid.width() / 2,
                     grid.y() + grid.height() / 2);
     }
