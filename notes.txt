@@ -26,7 +26,7 @@ _shift,^shift = press shift, release shift?
  - Ctrl-A,B == _ctrl _a ^ctrl ^a _b and _ctrl _a ^a ^ctrl _b
  - Could do complex combo like hold ctrl, then a, then a again: _ctrl _a ^a _a ^a
  - combo timeout = time after which we stop waiting for a combo to be completed (150ms,?)
- - A combo has to be non-interrupted (no unknown key presses), with at most 150ms between keys
+ - A combo has to be non-broken (no unknown key presses), with at most 150ms between keys
   - Large timeout to allow Ctrl, wait, Z. Or special __ctrl to indicate no timeout. Or no timeout at all?
 - Should a keyevent unrelated to a combo break the combo preparation? Yes.
  - Released event cannot be eaten if Pressed event was not eaten, otherwise apps will bug

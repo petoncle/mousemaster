@@ -1,20 +1,22 @@
 package jmouseable.jmouseable;
 
-import jmouseable.jmouseable.GridConfiguration.GridBuilder;
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
+import jmouseable.jmouseable.GridConfiguration.GridBuilder;
 import jmouseable.jmouseable.HideCursor.HideCursorBuilder;
 import jmouseable.jmouseable.Indicator.IndicatorBuilder;
 import jmouseable.jmouseable.ModeTimeout.ModeTimeoutBuilder;
 import jmouseable.jmouseable.Mouse.MouseBuilder;
 import jmouseable.jmouseable.Wheel.WheelBuilder;
 
-public record Mode(String name, ComboMap comboMap, Mouse mouse, Wheel wheel,
-                   GridConfiguration gridConfiguration, ModeTimeout timeout, Indicator indicator,
-                   HideCursor hideCursor) {
+public record Mode(String name, boolean breakComboPreparationWhenActivated,
+                   ComboMap comboMap, Mouse mouse, Wheel wheel,
+                   GridConfiguration gridConfiguration, ModeTimeout timeout,
+                   Indicator indicator, HideCursor hideCursor) {
     public static final String NORMAL_MODE_NAME = "normal-mode";
 
     public static class ModeBuilder {
         private String name;
+        private boolean breakComboPreparationWhenActivated = false;
         private ComboMapBuilder comboMap = new ComboMapBuilder();
         private MouseBuilder mouse = new MouseBuilder();
         private WheelBuilder wheel = new WheelBuilder();
@@ -29,6 +31,12 @@ public record Mode(String name, ComboMap comboMap, Mouse mouse, Wheel wheel,
 
         public String name() {
             return name;
+        }
+
+        public ModeBuilder breakComboPreparationWhenActivated(
+                boolean breakComboPreparationWhenActivated) {
+            this.breakComboPreparationWhenActivated = breakComboPreparationWhenActivated;
+            return this;
         }
 
         public ComboMapBuilder comboMap() {
@@ -60,9 +68,9 @@ public record Mode(String name, ComboMap comboMap, Mouse mouse, Wheel wheel,
         }
 
         public Mode build() {
-            return new Mode(name, comboMap.build(), mouse.build(), wheel.build(),
-                    grid.build(), timeout.build(), indicator.build(),
-                    hideCursor.build());
+            return new Mode(name, breakComboPreparationWhenActivated, comboMap.build(),
+                    mouse.build(), wheel.build(), grid.build(), timeout.build(),
+                    indicator.build(), hideCursor.build());
         }
 
     }

@@ -20,7 +20,7 @@ public class KeyboardManager {
 
     public void update(double delta) {
         if (delta > 10) {
-            logger.info("Tick took " + delta + "s, skipping update, clearing currentlyPressedKeys, and interrupting combos");
+            logger.info("Tick took " + delta + "s, skipping update, clearing currentlyPressedKeys, and breaking combos");
             reset();
         }
         else {

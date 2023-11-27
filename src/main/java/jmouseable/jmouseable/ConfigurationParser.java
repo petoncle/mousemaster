@@ -19,7 +19,7 @@ import static jmouseable.jmouseable.Command.*;
 public class ConfigurationParser {
 
     private static final Mode defaultMode =
-            new Mode(null, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
+            new Mode(null, false, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
                     new Wheel(1000, 1000, 500),
                     new GridConfiguration(GridType.FULL_SCREEN, false, 1, 1, false, null, 1),
                     new ModeTimeout(false, null, null),
@@ -63,6 +63,9 @@ public class ConfigurationParser {
             ModeBuilder mode = modeByName.computeIfAbsent(modeName, ModeBuilder::new);
             String group2 = matcher.group(2);
             switch (group2) {
+                case "break-combo-preparation-when-activated" ->
+                        mode.breakComboPreparationWhenActivated(
+                                Boolean.parseBoolean(propertyValue));
                 case "mouse" -> {
                     if (matcher.group(4) == null)
                         throw new IllegalArgumentException(
@@ -329,7 +332,10 @@ public class ConfigurationParser {
     }
 
     /**
-     * Copy everything except timeout configuration and switch mode commands from the parent mode.
+     * Copy everything except the following from the parent mode:
+     * - breakComboPreparationWhenActivated
+     * - timeout configuration
+     * - switch mode commands
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()

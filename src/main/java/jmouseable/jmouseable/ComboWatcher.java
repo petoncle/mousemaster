@@ -21,7 +21,7 @@ public class ComboWatcher implements ModeListener {
     /**
      * Do not start a new combo preparation if there are on going non-eaten pressed keys.
      * A non-eaten pressed key should prevent other combos: the combo containing the non-eaten pressed key must
-     * be completed, or be interrupted ({@link #interrupt()}, or the non-eaten pressed key must be released.
+     * be completed, or be broken ({@link #break_()}, or the non-eaten pressed key must be released.
      */
     private Map<Key, Set<Combo>> focusedCombos = new HashMap<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
@@ -59,6 +59,27 @@ public class ComboWatcher implements ModeListener {
             currentlyPressedComboKeys.remove(event.key());
         }
         comboPreparation.events().add(event);
+        Mode beforeMode;
+        boolean partOfCombo = false;
+        boolean mustBeEaten = false;
+        List<Mode> visitedModes = new ArrayList<>();
+        do {
+            if (visitedModes.contains(currentMode))
+                throw new IllegalStateException("Detected mode switch infinite loop: " +
+                                                visitedModes.stream()
+                                                            .map(Mode::name)
+                                                            .toList());
+            visitedModes.add(currentMode);
+            beforeMode = currentMode;
+            PressKeyEventProcessing processing = processKeyEventForCurrentMode(event);
+            partOfCombo |= processing.partOfCombo();
+            mustBeEaten |= processing.mustBeEaten();
+        } while (currentMode != beforeMode);
+        return event.isRelease() ? null :
+                PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
+    }
+
+    private PressKeyEventProcessing processKeyEventForCurrentMode(KeyEvent event) {
         boolean mustBeEaten = false;
         boolean partOfCombo = false;
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
@@ -156,8 +177,7 @@ public class ComboWatcher implements ModeListener {
                                                               .commandsByCombo()
                                                               .containsKey(combo));
         }
-        return event.isRelease() ? null :
-                PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
+        return PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
     }
 
     /**
@@ -187,8 +207,8 @@ public class ComboWatcher implements ModeListener {
                             .toList();
     }
 
-    public void interrupt() {
-        logger.debug("Interrupting combos, comboPreparation = " + comboPreparation +
+    public void break_() {
+        logger.debug("Breaking combos, comboPreparation = " + comboPreparation +
                      ", combosWaitingForLastMoveToComplete = " +
                      combosWaitingForLastMoveToComplete + ", focusedCombos = " +
                      focusedCombos);
@@ -198,7 +218,7 @@ public class ComboWatcher implements ModeListener {
     }
 
     public void reset() {
-        interrupt();
+        break_();
         // When a mode times out to a new mode, the currentlyPressedComboKeys should not be reset.
         currentlyPressedComboKeys.clear();
     }
@@ -206,11 +226,13 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
+        if (currentMode.breakComboPreparationWhenActivated())
+            break_();
     }
 
     @Override
     public void modeTimedOut() {
-        interrupt();
+        break_();
     }
 
     private static final class ComboWaitingForLastMoveToComplete {
