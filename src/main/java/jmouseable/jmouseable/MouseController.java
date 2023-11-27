@@ -260,4 +260,8 @@ public class MouseController {
     public void hideCursor() {
         WindowsMouse.hideCursor();
     }
+
+    public void moveTo(int x, int y) {
+        WindowsMouse.moveTo(x, y);
+    }
 }

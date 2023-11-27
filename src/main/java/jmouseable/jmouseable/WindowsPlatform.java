@@ -37,6 +37,7 @@ public class WindowsPlatform implements Platform {
     private WinUser.LowLevelKeyboardProc keyboardHookCallback;
     private WinNT.HANDLE singleInstanceMutex;
     private final WinUser.MSG msg = new WinUser.MSG();
+    private double enforceWindowsTopmostTimer;
 
     public WindowsPlatform() {
         if (!acquireSingleInstanceMutex())
@@ -52,6 +53,12 @@ public class WindowsPlatform implements Platform {
             User32.INSTANCE.DispatchMessage(msg);
         }
         sanityCheckCurrentlyPressedKeys(delta);
+        enforceWindowsTopmostTimer -= delta;
+        if (enforceWindowsTopmostTimer < 0) {
+            // Every 200ms.
+            enforceWindowsTopmostTimer = 0.2;
+            WindowsOverlay.setTopmost();
+        }
     }
 
     @Override

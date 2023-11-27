@@ -1,6 +1,7 @@
 package jmouseable.jmouseable;
 
-public record GridConfiguration(GridType type, boolean autoMoveToGridCenter, int snapRowCount,
+public record GridConfiguration(boolean enabled, GridType type,
+                                boolean autoMoveToGridCenter, int snapRowCount,
                                 int snapColumnCount, boolean visible, String lineHexColor,
                                 int lineThickness) {
 
@@ -11,6 +12,7 @@ public record GridConfiguration(GridType type, boolean autoMoveToGridCenter, int
     }
 
     public static class GridBuilder {
+        private Boolean enabled;
         private GridType type;
         private Boolean autoMoveToGridCenter;
         private Integer snapRowCount;
@@ -18,6 +20,11 @@ public record GridConfiguration(GridType type, boolean autoMoveToGridCenter, int
         private Boolean visible;
         private String lineHexColor;
         private Integer lineThickness;
+
+        public GridBuilder enabled(boolean enabled) {
+            this.enabled = enabled;
+            return this;
+        }
 
         public GridBuilder type(GridType type) {
             this.type = type;
@@ -58,9 +65,14 @@ public record GridConfiguration(GridType type, boolean autoMoveToGridCenter, int
             return snapRowCount;
         }
 
+        public Boolean enabled() {
+            return enabled;
+        }
+
         public GridType type() {
             return type;
         }
+
         public Boolean autoMoveToGridCenter() {
             return autoMoveToGridCenter;
         }
@@ -82,8 +94,8 @@ public record GridConfiguration(GridType type, boolean autoMoveToGridCenter, int
         }
 
         public GridConfiguration build() {
-            return new GridConfiguration(type, autoMoveToGridCenter, snapRowCount, snapColumnCount, visible,
-                    lineHexColor, lineThickness);
+            return new GridConfiguration(enabled, type, autoMoveToGridCenter, snapRowCount,
+                    snapColumnCount, visible, lineHexColor, lineThickness);
         }
 
     }

@@ -18,7 +18,6 @@ public class Jmouseable {
     private MouseController mouseController;
     private KeyboardManager keyboardManager;
     private ModeController modeController;
-    private OverlayManager overlayManager;
 
     public Jmouseable(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
@@ -42,7 +41,6 @@ public class Jmouseable {
             modeController.update(delta);
             mouseController.update(delta);
             keyboardManager.update(delta);
-            overlayManager.update(delta);
             Thread.sleep(10L);
         }
     }
@@ -80,16 +78,18 @@ public class Jmouseable {
                     configurationPath);
         mouseController = new MouseController();
         MouseState mouseState = new MouseState(mouseController);
-        CommandRunner commandRunner = new CommandRunner(mouseController);
+        MonitorManager monitorManager = new MonitorManager();
+        GridManager gridManager = new GridManager(monitorManager, mouseController);
+        CommandRunner commandRunner = new CommandRunner(mouseController, gridManager);
         ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
         keyboardManager = new KeyboardManager(comboWatcher);
-        overlayManager = new OverlayManager(mouseState, keyboardManager);
+        KeyboardState keyboardState = new KeyboardState(keyboardManager);
+        IndicatorManager indicatorManager =
+                new IndicatorManager(mouseState, keyboardState);
         modeController = new ModeController(configuration.modeMap(), mouseController, mouseState,
-                List.of(comboWatcher, overlayManager));
+                List.of(comboWatcher, indicatorManager, gridManager));
         commandRunner.setModeController(modeController);
-        mouseController.setGridListeners(List.of(modeController));
-        MonitorManager monitorManager = new MonitorManager();
-        GridManager gridManager = new GridManager(monitorManager);
+        mouseController.setGridListeners(List.of(modeController)); // TODO REMOVE
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(), List.of(gridManager, monitorManager));
     }

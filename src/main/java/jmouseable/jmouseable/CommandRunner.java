@@ -6,9 +6,11 @@ public class CommandRunner {
 
     private ModeController modeController;
     private final MouseController mouseController;
+    private final GridManager gridManager;
 
-    public CommandRunner(MouseController mouseController) {
+    public CommandRunner(MouseController mouseController, GridManager gridManager) {
         this.mouseController = mouseController;
+        this.gridManager = gridManager;
     }
 
     public void setModeController(ModeController modeController) {
@@ -53,10 +55,10 @@ public class CommandRunner {
             case SnapLeft snapLeft -> mouseController.snapLeft();
             case SnapRight snapRight -> mouseController.snapRight();
 
-            case KeepGridBottom keepGridBottom -> {}
-            case KeepGridLeft keepGridLeft -> {}
-            case KeepGridRight keepGridRight -> {}
-            case KeepGridTop keepGridTop -> {}
+            case KeepGridBottom keepGridBottom -> gridManager.keepGridBottom();
+            case KeepGridLeft keepGridLeft -> gridManager.keepGridLeft();
+            case KeepGridRight keepGridRight -> gridManager.keepGridRight();
+            case KeepGridTop keepGridTop -> gridManager.keepGridTop();
             // @formatter:on
         }
     }

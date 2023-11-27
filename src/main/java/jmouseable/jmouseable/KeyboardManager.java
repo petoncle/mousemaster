@@ -78,7 +78,7 @@ public class KeyboardManager {
                                    .allMatch(PressKeyEventProcessing::partOfCombo);
     }
 
-    public boolean pressingNonHandledKey() {
+    public boolean pressingNonComboKey() {
         return pressingNonComboKey;
     }
 

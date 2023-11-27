@@ -8,7 +8,15 @@ public class MonitorManager implements MousePositionListener {
     private int mouseY;
 
     public Monitor activeMonitor() {
-        return null;
+        Set<Monitor> monitors = monitors();
+        for (Monitor monitor : monitors) {
+            if (mouseX >= monitor.x() && mouseX <= monitor.x() + monitor.width() &&
+                mouseY >= monitor.y() && mouseY <= monitor.y() + monitor.height())
+                return monitor;
+        }
+        throw new IllegalStateException(
+                "Unable to find active monitor for mouse position " + mouseX + " " +
+                mouseY);
     }
 
     public Set<Monitor> monitors() {
@@ -19,10 +27,6 @@ public class MonitorManager implements MousePositionListener {
     public void mouseMoved(int x, int y) {
         this.mouseX = x;
         this.mouseY = y;
-    }
-
-    public record Monitor(int x, int y, int width, int height) {
-
     }
 
 }

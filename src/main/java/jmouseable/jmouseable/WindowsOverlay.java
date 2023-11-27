@@ -2,12 +2,9 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
-import jmouseable.jmouseable.MonitorManager.Monitor;
 import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 public class WindowsOverlay {
 
@@ -15,20 +12,17 @@ public class WindowsOverlay {
     private static final int indicatorSize = 16;
 
     private static WinDef.HWND indicatorWindowHwnd;
-    private static Set<GridWindow> gridWindows;
+    private static GridWindow gridWindow;
     private static boolean showingIndicator;
     private static String currentIndicatorHexColor;
     private static boolean showingGrid;
-    private static GridConfiguration currentGridConfiguration;
-    private static WinDef.POINT mousePosition;
+    private static Grid currentGrid;
 
     public static void setTopmost() {
         if (indicatorWindowHwnd != null)
             setWindowTopmost(indicatorWindowHwnd);
-        if (gridWindows != null) {
-            for (GridWindow gridWindow : gridWindows)
-                setWindowTopmost(gridWindow.hwnd);
-        }
+        if (gridWindow != null)
+            setWindowTopmost(gridWindow.hwnd);
     }
 
     private static void setWindowTopmost(WinDef.HWND hwnd) {
@@ -64,7 +58,7 @@ public class WindowsOverlay {
         CursorPositionAndSize cursorPositionAndSize =
                 WindowsMouse.cursorPositionAndSize();
         WinUser.MONITORINFO monitorInfo =
-                findCurrentMonitorPosition(cursorPositionAndSize.position());
+                WindowsMonitor.activeMonitorInfo(cursorPositionAndSize.position());
         indicatorWindowHwnd = createWindow("Indicator",
                 bestIndicatorX(cursorPositionAndSize.position().x,
                         cursorPositionAndSize.width(), monitorInfo.rcMonitor.left,
@@ -75,13 +69,12 @@ public class WindowsOverlay {
                 WindowsOverlay::indicatorWindowCallback);
     }
 
-    private static void createGridWindows() {
-        gridWindows = new HashSet<>();
+    private static void createGridWindow() {
         for (Monitor monitor : WindowsMonitor.findMonitors()) {
             WinDef.HWND hwnd =
                     createWindow("Grid", monitor.x(), monitor.y(), monitor.width(),
                             monitor.height(), WindowsOverlay::gridWindowCallback);
-            gridWindows.add(new GridWindow(monitor, hwnd));
+            gridWindow = new GridWindow(monitor, hwnd);
         }
     }
 
@@ -153,44 +146,44 @@ public class WindowsOverlay {
     }
 
     private static void paintGrid(WinDef.HDC hdc, ExtendedUser32.PAINTSTRUCT ps) {
-        WinDef.RECT rect = ps.rcPaint;
-        int gridRowCount = currentGridConfiguration.snapRowCount();
-        int gridColumnCount = currentGridConfiguration.snapColumnCount();
-        int cellWidth = (rect.right - rect.left) / gridRowCount;
-        int cellHeight = (rect.bottom - rect.top) / gridColumnCount;
-        int[] polyCounts = new int[gridRowCount + 1 + gridColumnCount + 1];
+        WinDef.RECT windowRect = ps.rcPaint; // Screen rect.
+        int snapRowCount = currentGrid.snapRowCount();
+        int snapColumnCount = currentGrid.snapColumnCount();
+        int cellWidth = currentGrid.width() / snapRowCount;
+        int cellHeight = currentGrid.height() / snapColumnCount;
+        int[] polyCounts = new int[snapRowCount + 1 + snapColumnCount + 1];
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
-        int lineThickness = currentGridConfiguration.lineThickness();
+        int lineThickness = currentGrid.lineThickness();
         // Vertical lines
-        for (int lineIndex = 0; lineIndex <= gridColumnCount; lineIndex++) {
-            int x = rect.left + lineIndex * cellWidth;
-            if (lineIndex == 0)
+        for (int lineIndex = 0; lineIndex <= snapColumnCount; lineIndex++) {
+            int x = currentGrid.x() + lineIndex * cellWidth;
+            if (x == windowRect.left)
                 x += lineThickness / 2;
-            else if (lineIndex == gridColumnCount)
+            else if (x == windowRect.right)
                 x -= lineThickness / 2 + lineThickness % 2;
             points[2 * lineIndex].x = x;
-            points[2 * lineIndex].y = rect.top;
+            points[2 * lineIndex].y = currentGrid.y();
             points[2 * lineIndex + 1].x = x;
-            points[2 * lineIndex + 1].y = rect.bottom;
+            points[2 * lineIndex + 1].y = currentGrid.y() + currentGrid.height();
             polyCounts[lineIndex] = 2;
         }
         // Horizontal lines
-        int polyCountsOffset = gridColumnCount + 1;
+        int polyCountsOffset = snapColumnCount + 1;
         int pointsOffset = 2 * polyCountsOffset;
-        for (int lineIndex = 0; lineIndex <= gridRowCount; lineIndex++) {
-            points[pointsOffset + 2 * lineIndex].x = rect.left;
-            int y = rect.top + lineIndex * cellHeight;
-            if (lineIndex == 0)
+        for (int lineIndex = 0; lineIndex <= snapRowCount; lineIndex++) {
+            int y = currentGrid.y() + lineIndex * cellHeight;
+            if (y == windowRect.top)
                 y += lineThickness / 2;
-            else if (lineIndex == gridRowCount)
+            else if (y == windowRect.bottom)
                 y -= lineThickness / 2 + lineThickness % 2;
+            points[pointsOffset + 2 * lineIndex].x = currentGrid.x();
             points[pointsOffset + 2 * lineIndex].y = y;
-            points[pointsOffset + 2 * lineIndex + 1].x = rect.right;
+            points[pointsOffset + 2 * lineIndex + 1].x = currentGrid.x() + currentGrid.width();
             points[pointsOffset + 2 * lineIndex + 1].y = y;
             polyCounts[polyCountsOffset + lineIndex] = 2;
         }
-        String lineColor = currentGridConfiguration.lineHexColor();
+        String lineColor = currentGrid.lineHexColor();
         WinUser.HPEN gridPen =
                 ExtendedGDI32.INSTANCE.CreatePen(ExtendedGDI32.PS_SOLID, lineThickness,
                         hexColorStringToInt(lineColor));
@@ -220,14 +213,11 @@ public class WindowsOverlay {
     }
 
     public static void setIndicatorColor(String hexColor) {
+        Objects.requireNonNull(hexColor);
         if (showingIndicator && currentIndicatorHexColor != null &&
             currentIndicatorHexColor.equals(hexColor))
             return;
         currentIndicatorHexColor = hexColor;
-        if (hexColor == null) {
-            hideIndicator();
-            return;
-        }
         if (indicatorWindowHwnd == null)
             createIndicatorWindow();
         showingIndicator = true;
@@ -241,39 +231,22 @@ public class WindowsOverlay {
         requestWindowRepaint(indicatorWindowHwnd);
     }
 
-    public static void setGrid(GridConfiguration gridConfiguration) {
-        if (showingGrid && currentGridConfiguration != null &&
-            currentGridConfiguration.equals(gridConfiguration))
+    public static void setGrid(Grid grid) {
+        Objects.requireNonNull(grid);
+        if (showingGrid && currentGrid != null && currentGrid.equals(grid))
             return;
-        currentGridConfiguration = gridConfiguration;
-        if (gridConfiguration == null) {
-            hideGrid();
-            return;
-        }
-        if (gridWindows != null) {
-            Set<Monitor> gridMonitors = gridWindows.stream()
-                                                   .map(GridWindow::monitor)
-                                                   .collect(Collectors.toSet());
-            if (!gridMonitors.equals(WindowsMonitor.findMonitors())) {
-                // Recreate windows if the monitors have changed.
-                for (GridWindow gridWindow : gridWindows)
-                    removeWindow(gridWindow.hwnd);
-                gridWindows = null;
-            }
-        }
-        if (gridWindows == null)
-            createGridWindows();
+        currentGrid = grid;
+        if (gridWindow == null)
+            createGridWindow();
         showingGrid = true;
-        for (GridWindow gridWindow : gridWindows)
-            requestWindowRepaint(gridWindow.hwnd);
+        requestWindowRepaint(gridWindow.hwnd);
     }
 
     public static void hideGrid() {
         if (!showingGrid)
             return;
         showingGrid = false;
-        for (GridWindow gridWindow : gridWindows)
-            requestWindowRepaint(gridWindow.hwnd);
+        requestWindowRepaint(gridWindow.hwnd);
     }
 
     private static void requestWindowRepaint(WinDef.HWND hwnd) {
@@ -281,19 +254,8 @@ public class WindowsOverlay {
         User32.INSTANCE.UpdateWindow(hwnd);
     }
 
-    public static WinUser.MONITORINFO findCurrentMonitorPosition(
-            WinDef.POINT mousePosition) {
-        WinUser.HMONITOR hMonitor = User32.INSTANCE.MonitorFromPoint(
-                new WinDef.POINT.ByValue(mousePosition.getPointer()),
-                WinUser.MONITOR_DEFAULTTONEAREST);
-        WinUser.MONITORINFO monitorInfo = new WinUser.MONITORINFO();
-        User32.INSTANCE.GetMonitorInfo(hMonitor, monitorInfo);
-        return monitorInfo;
-    }
-
     static void mouseMoved(WinDef.POINT mousePosition) {
-        WindowsOverlay.mousePosition = mousePosition;
-        WinUser.MONITORINFO monitorInfo = findCurrentMonitorPosition(mousePosition);
+        WinUser.MONITORINFO monitorInfo = WindowsMonitor.activeMonitorInfo(mousePosition);
         CursorPositionAndSize cursorPositionAndSize =
                 WindowsMouse.cursorPositionAndSize();
         User32.INSTANCE.MoveWindow(indicatorWindowHwnd,

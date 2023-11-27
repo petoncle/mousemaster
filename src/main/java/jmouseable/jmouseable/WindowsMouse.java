@@ -20,6 +20,10 @@ public class WindowsMouse {
                 (long) deltaY * (yForward ? 1 : -1), 0, ExtendedUser32.MOUSEEVENTF_MOVE));
     }
 
+    public static void moveTo(int x, int y) {
+        setMousePosition(new WinDef.POINT(x, y));
+    }
+
     public static void pressLeft() {
         mouseExecutor.execute(
                 () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN));
@@ -105,7 +109,7 @@ public class WindowsMouse {
     private static void snap(boolean horizontal, boolean forward, GridConfiguration gridConfiguration) {
         WinDef.POINT mousePosition = mousePosition();
         WinUser.MONITORINFO monitorInfo =
-                WindowsOverlay.findCurrentMonitorPosition(mousePosition);
+                WindowsMonitor.activeMonitorInfo(mousePosition);
         int rowWidth = (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) /
                        gridConfiguration.snapRowCount();
         int columnHeight = (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) /
