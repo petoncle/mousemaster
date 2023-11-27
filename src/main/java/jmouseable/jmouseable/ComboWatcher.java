@@ -195,6 +195,11 @@ public class ComboWatcher implements ModeListener {
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
         focusedCombos.clear();
+    }
+
+    public void reset() {
+        interrupt();
+        // When a mode times out to a new mode, the currentlyPressedComboKeys should not be reset.
         currentlyPressedComboKeys.clear();
     }
 

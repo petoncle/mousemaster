@@ -89,50 +89,10 @@ public class WindowsMouse {
         User32.INSTANCE.SendInput(nInputs, pInputs, size);
     }
 
-    public static void snapUp(GridConfiguration gridConfiguration) {
-        snap(false, false, gridConfiguration);
-    }
-
-    public static void snapDown(GridConfiguration gridConfiguration) {
-        snap(false, true, gridConfiguration);
-    }
-
-    public static void snapLeft(GridConfiguration gridConfiguration) {
-        snap(true, false, gridConfiguration);
-    }
-
-    public static void snapRight(GridConfiguration gridConfiguration) {
-        snap(true, true, gridConfiguration);
-    }
-
-    // TODO Should be in GridManager
-    private static void snap(boolean horizontal, boolean forward, GridConfiguration gridConfiguration) {
-        WinDef.POINT mousePosition = mousePosition();
-        WinUser.MONITORINFO monitorInfo =
-                WindowsMonitor.activeMonitorInfo(mousePosition);
-        int rowWidth = (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) /
-                       gridConfiguration.snapRowCount();
-        int columnHeight = (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) /
-                           gridConfiguration.snapColumnCount();
-        double mouseRow = (double) mousePosition.x / rowWidth;
-        double mouseColumn = (double) mousePosition.y / columnHeight;
-        if (horizontal)
-            mousePosition.x = (int) ((forward ? Math.floor(mouseRow) + 1 :
-                    Math.ceil(mouseRow) - 1) * rowWidth);
-        else
-            mousePosition.y = (int) ((forward ? Math.floor(mouseColumn) + 1 :
-                    Math.ceil(mouseColumn) - 1) * columnHeight);
-        boolean setMousePositionResult = setMousePosition(mousePosition);
-    }
-
-    private static WinDef.POINT mousePosition() {
-        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
-        ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo);
-        return cursorInfo.ptScreenPos;
-    }
+    public static WindowsPlatform windowsPlatform; // TODO Get rid of this field.
 
     private static boolean setMousePosition(WinDef.POINT mousePosition) {
-        WindowsOverlay.mouseMoved(mousePosition);
+        windowsPlatform.mousePositionSet(mousePosition);
         return User32.INSTANCE.SetCursorPos(mousePosition.x, mousePosition.y);
     }
 

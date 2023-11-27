@@ -42,6 +42,62 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
+    public void snapUp() {
+        snap(false, false);
+    }
+
+    public void snapDown() {
+        snap(false, true);
+    }
+
+    public void snapLeft() {
+        snap(true, false);
+    }
+
+    public void snapRight() {
+        snap(true, true);
+    }
+
+    private void snap(boolean horizontal, boolean forward) {
+        boolean mouseIsInsideGrid =
+                RectUtil.rectContains(grid.x(), grid.y(), grid.width(), grid.height(),
+                        mouseX, mouseY);
+        int x, y;
+        int rowWidth = Math.max(1, grid.width() / grid.snapRowCount());
+        int columnHeight = Math.max(1, grid.height() / grid.snapColumnCount());
+        if (mouseIsInsideGrid) {
+            double mouseRow = (double) (mouseX - grid.x()) / rowWidth;
+            double mouseColumn = (double) (mouseY - grid.y()) / columnHeight;
+            if (horizontal) {
+                x = grid.x() + (int) ((forward ? Math.floor(mouseRow) + 1 :
+                        Math.ceil(mouseRow) - 1) * rowWidth);
+                y = mouseY;
+            }
+            else {
+                x = mouseX;
+                y = grid.y() + (int) ((forward ? Math.floor(mouseColumn) + 1 :
+                        Math.ceil(mouseColumn) - 1) * columnHeight);
+            }
+            mouseController.moveTo(x, y);
+        }
+        // If mouse is not in grid, snap it to the grid edges...
+        else if (mouseX >= grid.x() && mouseX <= grid.x() + grid.width())
+            mouseController.moveTo(mouseX,
+                    mouseY < grid.y() ? grid.y() : (grid.y() + grid.height()));
+        else if (mouseY >= grid.y() && mouseY <= grid.y() + grid.height())
+            mouseController.moveTo(
+                    mouseX < grid.x() ? grid.x() : (grid.x() + grid.height()), mouseY);
+        // ...or to the grid corners.
+        else if (mouseX < grid.x() && mouseY < grid.y())
+            mouseController.moveTo(grid.x(), grid.y());
+        else if (mouseX > grid.x() + grid.width() && mouseY < grid.y())
+            mouseController.moveTo(grid.x() + grid.width(), grid.y());
+        else if (mouseX < grid.x() && mouseY > grid.y())
+            mouseController.moveTo(grid.x(), grid.y() + grid.height());
+        else
+            mouseController.moveTo(grid.x() + grid.width(), grid.y() + grid.height());
+    }
+
     @Override
     public void mouseMoved(int x, int y) {
         this.mouseX = x;

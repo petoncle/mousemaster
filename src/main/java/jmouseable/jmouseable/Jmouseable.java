@@ -89,7 +89,6 @@ public class Jmouseable {
         modeController = new ModeController(configuration.modeMap(), mouseController, mouseState,
                 List.of(comboWatcher, indicatorManager, gridManager));
         commandRunner.setModeController(modeController);
-        mouseController.setGridListeners(List.of(modeController)); // TODO REMOVE
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(), List.of(gridManager, monitorManager));
     }

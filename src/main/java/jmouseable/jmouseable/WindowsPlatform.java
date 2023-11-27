@@ -40,6 +40,7 @@ public class WindowsPlatform implements Platform {
     private double enforceWindowsTopmostTimer;
 
     public WindowsPlatform() {
+        WindowsMouse.windowsPlatform = this; // TODO Get rid of this.
         if (!acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
@@ -270,6 +271,15 @@ public class WindowsPlatform implements Platform {
                     listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
+    }
+
+    /**
+     * mouseHookCallback is not called when we call the SetMousePos() API.
+     */
+    public void mousePositionSet(WinDef.POINT mousePosition) {
+        WindowsOverlay.mouseMoved(mousePosition);
+        mousePositionListeners.forEach(
+                listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
     }
 
 }

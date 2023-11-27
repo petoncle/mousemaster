@@ -30,7 +30,7 @@ public class KeyboardManager {
 
     public void reset() {
         currentlyPressedKeys.clear();
-        comboWatcher.interrupt();
+        comboWatcher.reset();
     }
 
     public boolean keyEvent(KeyEvent keyEvent) {

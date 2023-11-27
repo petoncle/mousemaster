@@ -50,10 +50,10 @@ public class CommandRunner {
             case StopWheelLeft stopWheelLeft -> mouseController.stopWheelLeft();
             case StopWheelRight stopWheelRight -> mouseController.stopWheelRight();
 
-            case SnapUp snapUp -> mouseController.snapUp();
-            case SnapDown snapDown -> mouseController.snapDown();
-            case SnapLeft snapLeft -> mouseController.snapLeft();
-            case SnapRight snapRight -> mouseController.snapRight();
+            case SnapUp snapUp -> gridManager.snapUp();
+            case SnapDown snapDown -> gridManager.snapDown();
+            case SnapLeft snapLeft -> gridManager.snapLeft();
+            case SnapRight snapRight -> gridManager.snapRight();
 
             case CutGridBottom cutGridBottom -> gridManager.cutGridBottom();
             case CutGridLeft cutGridLeft -> gridManager.cutGridLeft();

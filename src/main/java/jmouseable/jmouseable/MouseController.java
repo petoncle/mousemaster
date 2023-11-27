@@ -1,15 +1,12 @@
 package jmouseable.jmouseable;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Stack;
 
 public class MouseController {
 
-    private List<GridListener> gridListeners;
     private Mouse mouse;
     private Wheel wheel;
-    private GridConfiguration gridConfiguration;
     private double moveDuration;
     private double deltaDistanceX, deltaDistanceY;
     // Forward means right or down.
@@ -19,10 +16,6 @@ public class MouseController {
     private double wheelDuration;
     private final Stack<Boolean> xWheelForwardStack = new Stack<>();
     private final Stack<Boolean> yWheelForwardStack = new Stack<>();
-
-    public void setGridListeners(List<GridListener> gridListeners) {
-        this.gridListeners = gridListeners;
-    }
 
     public void reset() {
         moveDuration = 0;
@@ -41,10 +34,6 @@ public class MouseController {
 
     public void setWheel(Wheel wheel) {
         this.wheel = wheel;
-    }
-
-    public void setGrid(GridConfiguration gridConfiguration) {
-        this.gridConfiguration = gridConfiguration;
     }
 
     boolean moving() {
@@ -233,28 +222,8 @@ public class MouseController {
             wheelDuration = 0;
     }
 
-    public void snapUp() {
-        WindowsMouse.snapUp(gridConfiguration);
-    }
-
-    public void snapDown() {
-        WindowsMouse.snapDown(gridConfiguration);
-        gridListeners.forEach(GridListener::snappedToGrid);
-    }
-
-    public void snapLeft() {
-        WindowsMouse.snapLeft(gridConfiguration);
-        gridListeners.forEach(GridListener::snappedToGrid);
-    }
-
-    public void snapRight() {
-        WindowsMouse.snapRight(gridConfiguration);
-        gridListeners.forEach(GridListener::snappedToGrid);
-    }
-
     public void showCursor() {
         WindowsMouse.showCursor();
-        gridListeners.forEach(GridListener::snappedToGrid);
     }
 
     public void hideCursor() {
@@ -264,4 +233,5 @@ public class MouseController {
     public void moveTo(int x, int y) {
         WindowsMouse.moveTo(x, y);
     }
+
 }
