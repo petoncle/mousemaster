@@ -154,6 +154,7 @@ public class GridManager implements MousePositionListener, ModeListener {
             Monitor monitor = monitorManager.nearestMonitorContaining(mouseX, mouseY);
             grid = gridFittingMonitor(gridCenteredAroundMouse(grid.builder()),
                     monitor).build();
+            gridChanged();
         }
     }
 
