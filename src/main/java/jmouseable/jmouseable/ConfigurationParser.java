@@ -21,7 +21,7 @@ public class ConfigurationParser {
     private static final Mode defaultMode =
             new Mode(null, false, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
                     new Wheel(1000, 1000, 500),
-                    new GridConfiguration(GridType.FULL_SCREEN, false, 1, 1, false, null, 1),
+                    new GridConfiguration(GridType.FULL_SCREEN, false, 2, 2, false, null, 1),
                     new ModeTimeout(false, null, null),
                     new Indicator(false, null, null, null, null, null),
                     new HideCursor(false, null));
