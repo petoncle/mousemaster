@@ -112,12 +112,14 @@ public class GridManager implements MousePositionListener, ModeListener {
             if (horizontal) {
                 x = grid.x() + (int) ((forward ? Math.floor(mouseRow) + 1 :
                         Math.ceil(mouseRow) - 1) * rowWidth);
+                x = Math.max(grid.x(), Math.min(grid.x() + grid.width(), x));
                 y = mouseY;
             }
             else {
                 x = mouseX;
                 y = grid.y() + (int) ((forward ? Math.floor(mouseColumn) + 1 :
                         Math.ceil(mouseColumn) - 1) * columnHeight);
+                y = Math.max(grid.y(), Math.min(grid.y() + grid.height(), y));
             }
             mouseController.moveTo(x, y);
         }
