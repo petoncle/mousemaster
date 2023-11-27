@@ -35,14 +35,15 @@ public class ConfigurationParser {
         Set<String> modeNameReferences = new HashSet<>();
         Map<String, Set<String>> childrenModeNamesByParentMode = new HashMap<>();
         Set<String> nonRootModeNames = new HashSet<>();
+        Pattern linePattern = Pattern.compile("(.+?)=(.+)");
         for (String line : lines) {
             if (line.startsWith("#"))
                 continue;
-            if (!line.matches("[^=]+=[^=]+")) {
+            Matcher lineMatcher = linePattern.matcher(line);
+            if (!lineMatcher.matches())
                 throw new IllegalArgumentException("Invalid property key=value: " + line);
-            }
-            String propertyKey = line.split("=")[0];
-            String propertyValue = line.split("=")[1];
+            String propertyKey = lineMatcher.group(1);
+            String propertyValue = lineMatcher.group(2);
             if (propertyKey.equals("default-combo-move-duration-millis")) {
                 defaultComboMoveDuration = parseComboMoveDuration(propertyValue);
                 continue;
@@ -56,21 +57,21 @@ public class ConfigurationParser {
                             KeyboardLayout.keyboardLayoutByName.keySet());
                 continue;
             }
-            Matcher matcher = modeKeyPattern.matcher(propertyKey);
-            if (!matcher.matches())
+            Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
+            if (!keyMatcher.matches())
                 continue;
-            String modeName = matcher.group(1);
+            String modeName = keyMatcher.group(1);
             ModeBuilder mode = modeByName.computeIfAbsent(modeName, ModeBuilder::new);
-            String group2 = matcher.group(2);
+            String group2 = keyMatcher.group(2);
             switch (group2) {
                 case "pause-combo-processing-when-mode-activated" ->
                         mode.pauseComboProcessingWhenModeActivated(
                                 Boolean.parseBoolean(propertyValue));
                 case "mouse" -> {
-                    if (matcher.group(4) == null)
+                    if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid mouse configuration: " + propertyKey);
-                    switch (matcher.group(4)) {
+                    switch (keyMatcher.group(4)) {
                         case "initial-velocity" -> mode.mouse()
                                                        .initialVelocity(
                                                                Double.parseDouble(
@@ -86,10 +87,10 @@ public class ConfigurationParser {
                     }
                 }
                 case "wheel" -> {
-                    if (matcher.group(4) == null)
+                    if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid wheel configuration: " + propertyKey);
-                    switch (matcher.group(4)) {
+                    switch (keyMatcher.group(4)) {
                         case "acceleration" -> mode.wheel()
                                                    .initialVelocity(Double.parseDouble(
                                                            propertyValue));
@@ -104,10 +105,10 @@ public class ConfigurationParser {
                     }
                 }
                 case "grid" -> {
-                    if (matcher.group(4) == null)
+                    if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid grid configuration: " + propertyKey);
-                    switch (matcher.group(4)) {
+                    switch (keyMatcher.group(4)) {
                         case "type" -> mode.grid().type(parseGridType(propertyValue));
                         case "auto-move-to-grid-center" -> mode.grid()
                                                                .autoMoveToGridCenter(
@@ -136,10 +137,10 @@ public class ConfigurationParser {
                     }
                 }
                 case "to" -> {
-                    if (matcher.group(4) == null)
+                    if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid to configuration: " + propertyKey);
-                    String newModeName = matcher.group(4);
+                    String newModeName = keyMatcher.group(4);
                     modeNameReferences.add(newModeName);
                     addCommand(mode.comboMap(), propertyValue,
                             new SwitchMode(newModeName), defaultComboMoveDuration);
@@ -156,10 +157,10 @@ public class ConfigurationParser {
                     modeNameReferences.add(parentModeName);
                 }
                 case "timeout" -> {
-                    if (matcher.group(4) == null)
+                    if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid timeout configuration: " + propertyKey);
-                    switch (matcher.group(4)) {
+                    switch (keyMatcher.group(4)) {
                         case "enabled" -> mode.timeout()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
@@ -179,10 +180,10 @@ public class ConfigurationParser {
                     }
                 }
                 case "indicator" -> {
-                    if (matcher.group(4) == null)
+                    if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid indicator configuration: " + propertyKey);
-                    switch (matcher.group(4)) {
+                    switch (keyMatcher.group(4)) {
                         case "enabled" -> mode.indicator()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
@@ -208,10 +209,10 @@ public class ConfigurationParser {
                     }
                 }
                 case "hide-cursor" -> {
-                    if (matcher.group(4) == null)
+                    if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
                                 "Invalid hide cursor configuration: " + propertyKey);
-                    switch (matcher.group(4)) {
+                    switch (keyMatcher.group(4)) {
                         case "enabled" -> mode.hideCursor()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
