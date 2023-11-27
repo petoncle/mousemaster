@@ -11,7 +11,7 @@ public record GridConfiguration(GridType type,
 
     }
 
-    public static class GridBuilder {
+    public static class GridConfigurationBuilder {
         private GridType type;
         private Boolean autoMoveToGridCenter;
         private Integer snapRowCount;
@@ -20,37 +20,37 @@ public record GridConfiguration(GridType type,
         private String lineHexColor;
         private Integer lineThickness;
 
-        public GridBuilder type(GridType type) {
+        public GridConfigurationBuilder type(GridType type) {
             this.type = type;
             return this;
         }
 
-        public GridBuilder autoMoveToGridCenter(boolean autoMoveToGridCenter) {
+        public GridConfigurationBuilder autoMoveToGridCenter(boolean autoMoveToGridCenter) {
             this.autoMoveToGridCenter = autoMoveToGridCenter;
             return this;
         }
 
-        public GridBuilder snapRowCount(int snapRowCount) {
+        public GridConfigurationBuilder snapRowCount(int snapRowCount) {
             this.snapRowCount = snapRowCount;
             return this;
         }
 
-        public GridBuilder snapColumnCount(int snapColumnCount) {
+        public GridConfigurationBuilder snapColumnCount(int snapColumnCount) {
             this.snapColumnCount = snapColumnCount;
             return this;
         }
 
-        public GridBuilder visible(boolean visible) {
+        public GridConfigurationBuilder visible(boolean visible) {
             this.visible = visible;
             return this;
         }
 
-        public GridBuilder lineHexColor(String lineHexColor) {
+        public GridConfigurationBuilder lineHexColor(String lineHexColor) {
             this.lineHexColor = lineHexColor;
             return this;
         }
 
-        public GridBuilder lineThickness(int lineThickness) {
+        public GridConfigurationBuilder lineThickness(int lineThickness) {
             this.lineThickness = lineThickness;
             return this;
         }

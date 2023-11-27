@@ -2,6 +2,7 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
+import jmouseable.jmouseable.Grid.GridBuilder;
 import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
 import java.util.Objects;
@@ -17,6 +18,16 @@ public class WindowsOverlay {
     private static String currentIndicatorHexColor;
     private static boolean showingGrid;
     private static Grid currentGrid;
+
+    public static GridBuilder gridFittingActiveWindow(GridBuilder grid) {
+        WinDef.HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
+        WinDef.RECT rect = new WinDef.RECT();
+        User32.INSTANCE.GetWindowRect(foregroundWindow, rect);
+        return grid.x(rect.left)
+                   .y(rect.top)
+                   .width(rect.right - rect.left)
+                   .height(rect.bottom - rect.top);
+    }
 
     public static void setTopmost() {
         if (indicatorWindowHwnd != null)
@@ -93,10 +104,6 @@ public class WindowsOverlay {
                 WinUser.LWA_COLORKEY);
         User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOWNORMAL);
         return hwnd;
-    }
-
-    private static void removeWindow(WinDef.HWND hwnd) {
-        User32.INSTANCE.DestroyWindow(hwnd);
     }
 
     private static WinDef.LRESULT indicatorWindowCallback(WinDef.HWND hwnd, int uMsg,

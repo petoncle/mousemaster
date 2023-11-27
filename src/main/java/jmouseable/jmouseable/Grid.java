@@ -17,6 +17,9 @@ public record Grid(int x, int y, int width, int height, int snapRowCount,
         private String lineHexColor;
         private int lineThickness;
 
+        public GridBuilder() {
+        }
+
         public GridBuilder(Grid grid) {
             this.x = grid.x;
             this.y = grid.y;

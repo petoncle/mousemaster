@@ -1,5 +1,7 @@
 package jmouseable.jmouseable;
 
+import jmouseable.jmouseable.Grid.GridBuilder;
+
 /**
  * Displays the grid and handles grid commands.
  */
@@ -146,15 +148,22 @@ public class GridManager implements MousePositionListener, ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         GridConfiguration gridConfiguration = newMode.gridConfiguration();
-        if (gridConfiguration.type() != GridConfiguration.GridType.FULL_SCREEN)
-            throw new UnsupportedOperationException(); // TODO
-        Monitor monitor = monitorManager.activeMonitor();
-        Grid newGrid =
-                new Grid(monitor.x(), monitor.y(), monitor.width(), monitor.height(),
-                        gridConfiguration.snapRowCount(),
+        Grid newGrid = switch (gridConfiguration.type()) {
+            case FULL_SCREEN -> {
+                Monitor monitor = monitorManager.activeMonitor();
+                yield new Grid(monitor.x(), monitor.y(), monitor.width(),
+                        monitor.height(), gridConfiguration.snapRowCount(),
                         gridConfiguration.snapColumnCount(),
                         gridConfiguration.lineHexColor(),
                         gridConfiguration.lineThickness());
+            }
+            case ACTIVE_WINDOW -> WindowsOverlay.gridFittingActiveWindow(
+                    new GridBuilder().snapRowCount(gridConfiguration.snapRowCount())
+                                     .snapColumnCount(gridConfiguration.snapColumnCount())
+                                     .lineHexColor(gridConfiguration.lineHexColor())
+                                     .lineThickness(grid.lineThickness())).build();
+            case AROUND_CURSOR -> throw new UnsupportedOperationException();
+        };
         if (currentMode != null &&
             newMode.gridConfiguration().equals(currentMode.gridConfiguration()) &&
             newGrid.equals(grid))

@@ -1,7 +1,7 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
-import jmouseable.jmouseable.GridConfiguration.GridBuilder;
+import jmouseable.jmouseable.GridConfiguration.GridConfigurationBuilder;
 import jmouseable.jmouseable.HideCursor.HideCursorBuilder;
 import jmouseable.jmouseable.Indicator.IndicatorBuilder;
 import jmouseable.jmouseable.ModeTimeout.ModeTimeoutBuilder;
@@ -20,7 +20,7 @@ public record Mode(String name, boolean pauseComboProcessingWhenModeActivated,
         private ComboMapBuilder comboMap = new ComboMapBuilder();
         private MouseBuilder mouse = new MouseBuilder();
         private WheelBuilder wheel = new WheelBuilder();
-        private GridBuilder grid = new GridBuilder();
+        private GridConfigurationBuilder grid = new GridConfigurationBuilder();
         private ModeTimeoutBuilder timeout = new ModeTimeoutBuilder();
         private IndicatorBuilder indicator = new IndicatorBuilder();
         private HideCursorBuilder hideCursor = new HideCursorBuilder();
@@ -51,7 +51,7 @@ public record Mode(String name, boolean pauseComboProcessingWhenModeActivated,
             return wheel;
         }
 
-        public GridBuilder grid() {
+        public GridConfigurationBuilder grid() {
             return grid;
         }
 
