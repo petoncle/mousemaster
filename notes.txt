@@ -93,3 +93,4 @@ _shift,^shift = press shift, release shift?
    - Resize too fullscreen if grid bigger than new monitor
  + Teleport forward to +300px is snapping to (or shifting) the around-cursor grid?
   - The corresponding grid window should be movable to a neighbor monitor
+ + Exit gracefully when exception thrown (e.g. infinite switch mode loop)

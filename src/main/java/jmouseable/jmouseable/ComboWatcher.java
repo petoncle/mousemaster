@@ -226,7 +226,7 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
-        if (currentMode.breakComboPreparationWhenActivated())
+        if (currentMode.breakComboPreparationWhenModeActivated())
             break_();
     }
 

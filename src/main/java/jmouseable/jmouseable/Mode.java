@@ -8,7 +8,7 @@ import jmouseable.jmouseable.ModeTimeout.ModeTimeoutBuilder;
 import jmouseable.jmouseable.Mouse.MouseBuilder;
 import jmouseable.jmouseable.Wheel.WheelBuilder;
 
-public record Mode(String name, boolean breakComboPreparationWhenActivated,
+public record Mode(String name, boolean breakComboPreparationWhenModeActivated,
                    ComboMap comboMap, Mouse mouse, Wheel wheel,
                    GridConfiguration gridConfiguration, ModeTimeout timeout,
                    Indicator indicator, HideCursor hideCursor) {
@@ -16,7 +16,7 @@ public record Mode(String name, boolean breakComboPreparationWhenActivated,
 
     public static class ModeBuilder {
         private String name;
-        private boolean breakComboPreparationWhenActivated = false;
+        private boolean breakComboPreparationWhenModeActivated = false;
         private ComboMapBuilder comboMap = new ComboMapBuilder();
         private MouseBuilder mouse = new MouseBuilder();
         private WheelBuilder wheel = new WheelBuilder();
@@ -33,9 +33,9 @@ public record Mode(String name, boolean breakComboPreparationWhenActivated,
             return name;
         }
 
-        public ModeBuilder breakComboPreparationWhenActivated(
-                boolean breakComboPreparationWhenActivated) {
-            this.breakComboPreparationWhenActivated = breakComboPreparationWhenActivated;
+        public ModeBuilder breakComboPreparationWhenModeActivated(
+                boolean breakComboPreparationWhenModeActivated) {
+            this.breakComboPreparationWhenModeActivated = breakComboPreparationWhenModeActivated;
             return this;
         }
 
@@ -68,7 +68,7 @@ public record Mode(String name, boolean breakComboPreparationWhenActivated,
         }
 
         public Mode build() {
-            return new Mode(name, breakComboPreparationWhenActivated, comboMap.build(),
+            return new Mode(name, breakComboPreparationWhenModeActivated, comboMap.build(),
                     mouse.build(), wheel.build(), grid.build(), timeout.build(),
                     indicator.build(), hideCursor.build());
         }
