@@ -63,8 +63,8 @@ public class ConfigurationParser {
             ModeBuilder mode = modeByName.computeIfAbsent(modeName, ModeBuilder::new);
             String group2 = matcher.group(2);
             switch (group2) {
-                case "break-combo-preparation-when-mode-activated" ->
-                        mode.breakComboPreparationWhenModeActivated(
+                case "pause-combo-processing-when-mode-activated" ->
+                        mode.pauseComboProcessingWhenModeActivated(
                                 Boolean.parseBoolean(propertyValue));
                 case "mouse" -> {
                     if (matcher.group(4) == null)
@@ -333,7 +333,7 @@ public class ConfigurationParser {
 
     /**
      * Copy everything except the following from the parent mode:
-     * - breakComboPreparationWhenModeActivated
+     * - pauseComboProcessingWhenModeActivated
      * - timeout configuration
      * - switch mode commands
      */

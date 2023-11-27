@@ -8,7 +8,7 @@ import jmouseable.jmouseable.ModeTimeout.ModeTimeoutBuilder;
 import jmouseable.jmouseable.Mouse.MouseBuilder;
 import jmouseable.jmouseable.Wheel.WheelBuilder;
 
-public record Mode(String name, boolean breakComboPreparationWhenModeActivated,
+public record Mode(String name, boolean pauseComboProcessingWhenModeActivated,
                    ComboMap comboMap, Mouse mouse, Wheel wheel,
                    GridConfiguration gridConfiguration, ModeTimeout timeout,
                    Indicator indicator, HideCursor hideCursor) {
@@ -16,7 +16,7 @@ public record Mode(String name, boolean breakComboPreparationWhenModeActivated,
 
     public static class ModeBuilder {
         private String name;
-        private boolean breakComboPreparationWhenModeActivated = false;
+        private boolean pauseComboProcessingWhenModeActivated = false;
         private ComboMapBuilder comboMap = new ComboMapBuilder();
         private MouseBuilder mouse = new MouseBuilder();
         private WheelBuilder wheel = new WheelBuilder();
@@ -33,9 +33,9 @@ public record Mode(String name, boolean breakComboPreparationWhenModeActivated,
             return name;
         }
 
-        public ModeBuilder breakComboPreparationWhenModeActivated(
-                boolean breakComboPreparationWhenModeActivated) {
-            this.breakComboPreparationWhenModeActivated = breakComboPreparationWhenModeActivated;
+        public ModeBuilder pauseComboProcessingWhenModeActivated(
+                boolean pauseComboProcessingWhenModeActivated) {
+            this.pauseComboProcessingWhenModeActivated = pauseComboProcessingWhenModeActivated;
             return this;
         }
 
@@ -68,7 +68,7 @@ public record Mode(String name, boolean breakComboPreparationWhenModeActivated,
         }
 
         public Mode build() {
-            return new Mode(name, breakComboPreparationWhenModeActivated, comboMap.build(),
+            return new Mode(name, pauseComboProcessingWhenModeActivated, comboMap.build(),
                     mouse.build(), wheel.build(), grid.build(), timeout.build(),
                     indicator.build(), hideCursor.build());
         }

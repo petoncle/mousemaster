@@ -21,7 +21,7 @@ public class ComboWatcher implements ModeListener {
     /**
      * Do not start a new combo preparation if there are on going non-eaten pressed keys.
      * A non-eaten pressed key should prevent other combos: the combo containing the non-eaten pressed key must
-     * be completed, or be broken ({@link #break_()}, or the non-eaten pressed key must be released.
+     * be completed, or be broken ({@link #breakComboPreparation()}, or the non-eaten pressed key must be released.
      */
     private Map<Key, Set<Combo>> focusedCombos = new HashMap<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
@@ -74,6 +74,9 @@ public class ComboWatcher implements ModeListener {
             PressKeyEventProcessing processing = processKeyEventForCurrentMode(event);
             partOfCombo |= processing.partOfCombo();
             mustBeEaten |= processing.mustBeEaten();
+            if (currentMode != beforeMode &&
+                currentMode.pauseComboProcessingWhenModeActivated())
+                break;
         } while (currentMode != beforeMode);
         return event.isRelease() ? null :
                 PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
@@ -207,7 +210,7 @@ public class ComboWatcher implements ModeListener {
                             .toList();
     }
 
-    public void break_() {
+    public void breakComboPreparation() {
         logger.debug("Breaking combos, comboPreparation = " + comboPreparation +
                      ", combosWaitingForLastMoveToComplete = " +
                      combosWaitingForLastMoveToComplete + ", focusedCombos = " +
@@ -218,7 +221,7 @@ public class ComboWatcher implements ModeListener {
     }
 
     public void reset() {
-        break_();
+        breakComboPreparation();
         // When a mode times out to a new mode, the currentlyPressedComboKeys should not be reset.
         currentlyPressedComboKeys.clear();
     }
@@ -226,13 +229,11 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
-        if (currentMode.breakComboPreparationWhenModeActivated())
-            break_();
     }
 
     @Override
     public void modeTimedOut() {
-        break_();
+        breakComboPreparation();
     }
 
     private static final class ComboWaitingForLastMoveToComplete {
