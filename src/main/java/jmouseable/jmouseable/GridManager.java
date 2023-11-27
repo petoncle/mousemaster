@@ -10,6 +10,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     private final MonitorManager monitorManager;
     private final MouseController mouseController;
     private Grid grid;
+    private boolean gridFollowsCursor;
     private int mouseX, mouseY;
     private Mode currentMode;
 
@@ -44,23 +45,26 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    private static Grid gridFittingMonitor(Grid grid, Monitor monitor) {
-        return grid.builder()
-                   .x(Math.max(monitor.x(), grid.x()))
+    private static GridBuilder gridFittingMonitor(GridBuilder grid, Monitor monitor) {
+        return grid.x(Math.max(monitor.x(), grid.x()))
                    .y(Math.max(monitor.y(), grid.y()))
                    .width(Math.min(monitor.width(), grid.width()))
-                   .height(Math.min(monitor.height(), grid.height()))
-                   .build();
+                   .height(Math.min(monitor.height(), grid.height()));
+    }
+
+    private GridBuilder gridCenteredAroundMouse(GridBuilder grid) {
+        return grid.x(mouseX - grid.width() / 2).y(mouseY - grid.height() / 2);
     }
 
     private void shiftGrid(int deltaX, int deltaY) {
-        Grid shiftedGrid = grid.builder().x(grid.x() + deltaX).y(grid.y() + deltaY).build();
+        GridBuilder shiftedGrid =
+                grid.builder().x(grid.x() + deltaX).y(grid.y() + deltaY);
         // Find nearest monitor containing the grid center, then reduce grid size if it
         // does not fit the monitor.
         Grid newGrid = gridFittingMonitor(shiftedGrid,
                 monitorManager.nearestMonitorContaining(
                         shiftedGrid.x() + shiftedGrid.width() / 2,
-                        shiftedGrid.y() + shiftedGrid.height() / 2));
+                        shiftedGrid.y() + shiftedGrid.height() / 2)).build();
         if (newGrid.equals(grid))
             return;
         grid = newGrid;
@@ -145,26 +149,40 @@ public class GridManager implements MousePositionListener, ModeListener {
     public void mouseMoved(int x, int y) {
         this.mouseX = x;
         this.mouseY = y;
+        if (gridFollowsCursor) {
+            // Can this be a performance bottleneck?
+            Monitor monitor = monitorManager.nearestMonitorContaining(mouseX, mouseY);
+            grid = gridFittingMonitor(gridCenteredAroundMouse(grid.builder()),
+                    monitor).build();
+        }
     }
 
     @Override
     public void modeChanged(Mode newMode) {
         GridConfiguration gridConfiguration = newMode.gridConfiguration();
+        GridBuilder gridBuilder =
+                new GridBuilder().snapRowCount(gridConfiguration.snapRowCount())
+                                 .snapColumnCount(gridConfiguration.snapColumnCount())
+                                 .lineHexColor(gridConfiguration.lineHexColor())
+                                 .lineThickness(gridConfiguration.lineThickness());
         Grid newGrid = switch (gridConfiguration.type()) {
-            case FULL_SCREEN -> {
+            case GridType.FullScreen fullScreen -> {
                 Monitor monitor = monitorManager.activeMonitor();
-                yield new Grid(monitor.x(), monitor.y(), monitor.width(),
-                        monitor.height(), gridConfiguration.snapRowCount(),
-                        gridConfiguration.snapColumnCount(),
-                        gridConfiguration.lineHexColor(),
-                        gridConfiguration.lineThickness());
+                yield gridBuilder.x(monitor.x())
+                                 .y(monitor.y())
+                                 .width(monitor.width())
+                                 .height(monitor.height())
+                                 .build();
             }
-            case ACTIVE_WINDOW -> WindowsOverlay.gridFittingActiveWindow(
-                    new GridBuilder().snapRowCount(gridConfiguration.snapRowCount())
-                                     .snapColumnCount(gridConfiguration.snapColumnCount())
-                                     .lineHexColor(gridConfiguration.lineHexColor())
-                                     .lineThickness(grid.lineThickness())).build();
-            case AROUND_CURSOR -> throw new UnsupportedOperationException();
+            case GridType.ActiveWindow activeWindow ->
+                    WindowsOverlay.gridFittingActiveWindow(gridBuilder).build();
+            case GridType.AroundMouse aroundMouse -> {
+                Monitor monitor = monitorManager.nearestMonitorContaining(mouseX, mouseY);
+                gridCenteredAroundMouse(
+                        gridBuilder.width(monitor.width() / aroundMouse.width())
+                                   .height(monitor.height() / aroundMouse.height()));
+                yield gridFittingMonitor(gridBuilder, monitor).build();
+            }
         };
         if (currentMode != null &&
             newMode.gridConfiguration().equals(currentMode.gridConfiguration()) &&
@@ -172,6 +190,8 @@ public class GridManager implements MousePositionListener, ModeListener {
             return;
         currentMode = newMode;
         grid = newGrid;
+        gridFollowsCursor =
+                currentMode.gridConfiguration().type() instanceof GridType.AroundMouse;
         gridChanged();
     }
 

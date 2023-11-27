@@ -31,6 +31,38 @@ public record Grid(int x, int y, int width, int height, int snapRowCount,
             this.lineThickness = grid.lineThickness;
         }
 
+        public int x() {
+            return x;
+        }
+
+        public int y() {
+            return y;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        public int height() {
+            return height;
+        }
+
+        public int snapRowCount() {
+            return snapRowCount;
+        }
+
+        public int snapColumnCount() {
+            return snapColumnCount;
+        }
+
+        public String lineHexColor() {
+            return lineHexColor;
+        }
+
+        public int lineThickness() {
+            return lineThickness;
+        }
+
         public GridBuilder x(int x) {
             this.x = x;
             return this;

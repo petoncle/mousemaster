@@ -5,12 +5,6 @@ public record GridConfiguration(GridType type,
                                 int snapColumnCount, boolean visible, String lineHexColor,
                                 int lineThickness) {
 
-    public enum GridType {
-
-        FULL_SCREEN, ACTIVE_WINDOW, AROUND_CURSOR
-
-    }
-
     public static class GridConfigurationBuilder {
         private GridType type;
         private Boolean autoMoveToGridCenter;

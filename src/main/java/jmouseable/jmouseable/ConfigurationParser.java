@@ -1,7 +1,7 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
-import jmouseable.jmouseable.GridConfiguration.GridType;
+import jmouseable.jmouseable.GridType.AroundMouse;
 import jmouseable.jmouseable.Mode.ModeBuilder;
 
 import java.io.IOException;
@@ -21,7 +21,7 @@ public class ConfigurationParser {
     private static final Mode defaultMode =
             new Mode(null, false, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
                     new Wheel(1000, 1000, 500),
-                    new GridConfiguration(GridType.FULL_SCREEN, false, 2, 2, false, null, 1),
+                    new GridConfiguration(new GridType.FullScreen(), false, 2, 2, false, null, 1),
                     new ModeTimeout(false, null, null),
                     new Indicator(false, null, null, null, null, null),
                     new HideCursor(false, null));
@@ -415,10 +415,16 @@ public class ConfigurationParser {
 
     private static GridType parseGridType(String string) {
         return switch (string) {
-            case "full-screen" -> GridType.FULL_SCREEN;
-            case "active-window" -> GridType.ACTIVE_WINDOW;
-            case "around-cursor" -> GridType.AROUND_CURSOR;
-            default -> throw new IllegalArgumentException("Invalid grid type: " + string);
+            case "full-screen" -> new GridType.FullScreen();
+            case "active-window" -> new GridType.ActiveWindow();
+            default -> {
+                Matcher matcher =
+                        Pattern.compile("around-mouse (\\d+) (\\d+)").matcher(string);
+                if (!matcher.matches())
+                    throw new IllegalArgumentException("Invalid grid type: " + string);
+                yield new AroundMouse(Integer.parseUnsignedInt(matcher.group(1)),
+                        Integer.parseUnsignedInt(matcher.group(2)));
+            }
         };
     }
 

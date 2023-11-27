@@ -69,8 +69,8 @@ _shift,^shift = press shift, release shift?
  + Grid could have arbitrary number of rows/columns (for snapping), but the grid cuts and shifts are done on 2x2
  - Snap instead of grid?
  + Reset/Show grid to full screen, fixed-size around current mouse position, around focused window
-  + create-full-screen-grid, create-active-window-grid, create-around-cursor-grid
-   - grid.around-cursor-grid-width/height
+  + create-full-screen-grid, create-active-window-grid, create-around-mouse-grid
+   - grid.around-mouse-grid-width/height
    - press rightctrl -> temp-snap-mode
    - temp-snap-mode -> idle timeout 0.2s -> grid-mode
    - temp-snap-mode -> arrow key -> perm-snap-mode
@@ -91,6 +91,7 @@ _shift,^shift = press shift, release shift?
   - move-to-grid-center-when-shifted
   - If grid already touches screen edge, then move grid to closest monitor
    - Resize too fullscreen if grid bigger than new monitor
- + Teleport forward to +300px is snapping to (or shifting) the around-cursor grid?
+ + Teleport forward to +300px is snapping to (or shifting) the around-mouse grid?
   - The corresponding grid window should be movable to a neighbor monitor
  + Exit gracefully when exception thrown (e.g. infinite switch mode loop)
+ + Rename shift-grid to move-grid
