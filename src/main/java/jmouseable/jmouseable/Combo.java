@@ -66,9 +66,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                          ComboMoveDuration defaultMoveDuration) {
         // One combo is: ^{key|...} _{key|...} move ...
         // Two combos: ^{key|...} _{key|...} move ... | ^{key|...} _{key|...} move ...
-        String nonEmptySequencePattern = "(\\^\\{[^}]+\\})?" + "(_\\{[^}]+\\})?" + "[^\\^{}|]+";
-        String nonEmptyMustNotBePressedPattern = "\\^\\{[^}]+\\}" + "(_\\{[^}]+\\})?" + "([^\\^{}|]+)?";
-        String nonEmptyMustBePressedPattern = "(\\^\\{[^}]+\\})?" + "_\\{[^}]+\\}" + "([^\\^{}|]+)?";
+        String nonEmptySequencePattern = "(\\^\\{[^}]+\\})?" + "(_\\{[^}]+\\})?" + "[^\\^_{}|]+";
+        String nonEmptyMustNotBePressedPattern = "\\^\\{[^}]+\\}" + "(_\\{[^}]+\\})?" + "([^\\^_{}|]+)?";
+        String nonEmptyMustBePressedPattern = "(\\^\\{[^}]+\\})?" + "_\\{[^}]+\\}" + "([^\\^_{}|]+)?";
         Matcher matcher = Pattern.compile(
                 "(" + nonEmptySequencePattern + ")|(" + nonEmptyMustNotBePressedPattern +
                 ")|(" + nonEmptyMustBePressedPattern + ")").matcher(multiComboString);
