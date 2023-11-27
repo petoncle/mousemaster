@@ -42,4 +42,9 @@ public sealed interface Command {
     record CutGridLeft() implements Command {}
     record CutGridRight() implements Command {}
 
+    record ShiftGridTop() implements Command {}
+    record ShiftGridBottom() implements Command {}
+    record ShiftGridLeft() implements Command {}
+    record ShiftGridRight() implements Command {}
+
 }

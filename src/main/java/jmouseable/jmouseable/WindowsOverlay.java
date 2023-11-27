@@ -30,7 +30,7 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
 
-    private record GridWindow(Monitor monitor, WinDef.HWND hwnd) {
+    private record GridWindow(WinDef.HWND hwnd) {
 
     }
 
@@ -69,13 +69,10 @@ public class WindowsOverlay {
                 WindowsOverlay::indicatorWindowCallback);
     }
 
-    private static void createGridWindow() {
-        for (Monitor monitor : WindowsMonitor.findMonitors()) {
-            WinDef.HWND hwnd =
-                    createWindow("Grid", monitor.x(), monitor.y(), monitor.width(),
-                            monitor.height(), WindowsOverlay::gridWindowCallback);
-            gridWindow = new GridWindow(monitor, hwnd);
-        }
+    private static void createGridWindow(int x, int y, int width, int height) {
+        WinDef.HWND hwnd = createWindow("Grid", x, y, width, height,
+                WindowsOverlay::gridWindowCallback);
+        gridWindow = new GridWindow(hwnd);
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
@@ -235,9 +232,19 @@ public class WindowsOverlay {
         Objects.requireNonNull(grid);
         if (showingGrid && currentGrid != null && currentGrid.equals(grid))
             return;
+        Grid oldGrid = currentGrid;
         currentGrid = grid;
         if (gridWindow == null)
-            createGridWindow();
+            createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width(),
+                    currentGrid.height());
+        else {
+            if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
+                grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
+                User32.INSTANCE.SetWindowPos(gridWindow.hwnd(),
+                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width(),
+                        grid.height(), WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
+            }
+        }
         showingGrid = true;
         requestWindowRepaint(gridWindow.hwnd);
     }

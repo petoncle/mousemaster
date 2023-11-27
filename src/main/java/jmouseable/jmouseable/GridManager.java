@@ -42,6 +42,45 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
+    private static Grid gridFittingMonitor(Grid grid, Monitor monitor) {
+        return grid.builder()
+                   .x(Math.max(monitor.x(), grid.x()))
+                   .y(Math.max(monitor.y(), grid.y()))
+                   .width(Math.min(monitor.width(), grid.width()))
+                   .height(Math.min(monitor.height(), grid.height()))
+                   .build();
+    }
+
+    private void shiftGrid(int deltaX, int deltaY) {
+        Grid shiftedGrid = grid.builder().x(grid.x() + deltaX).y(grid.y() + deltaY).build();
+        // Find nearest monitor containing the grid center, then reduce grid size if it
+        // does not fit the monitor.
+        Grid newGrid = gridFittingMonitor(shiftedGrid,
+                monitorManager.nearestMonitorContaining(
+                        shiftedGrid.x() + shiftedGrid.width() / 2,
+                        shiftedGrid.y() + shiftedGrid.height() / 2));
+        if (newGrid.equals(grid))
+            return;
+        grid = newGrid;
+        gridChanged();
+    }
+
+    public void shiftGridTop() {
+        shiftGrid(0, -grid.height());
+    }
+
+    public void shiftGridBottom() {
+        shiftGrid(0, grid.height());
+    }
+
+    public void shiftGridLeft() {
+        shiftGrid(-grid.width(), 0);
+    }
+
+    public void shiftGridRight() {
+        shiftGrid(grid.width(), 0);
+    }
+
     public void snapUp() {
         snap(false, false);
     }
@@ -133,4 +172,5 @@ public class GridManager implements MousePositionListener, ModeListener {
     public void modeTimedOut() {
         // No op.
     }
+
 }
