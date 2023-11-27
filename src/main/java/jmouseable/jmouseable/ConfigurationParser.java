@@ -254,10 +254,10 @@ public class ConfigurationParser {
                 case "snap-left" -> addCommand(mode.comboMap(), propertyValue, new SnapLeft(), defaultComboMoveDuration);
                 case "snap-right" -> addCommand(mode.comboMap(), propertyValue, new SnapRight(), defaultComboMoveDuration);
 
-                case "keep-grid-top" -> addCommand(mode.comboMap(), propertyValue, new KeepGridTop(), defaultComboMoveDuration);
-                case "keep-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new KeepGridBottom(), defaultComboMoveDuration);
-                case "keep-grid-left" -> addCommand(mode.comboMap(), propertyValue, new KeepGridLeft(), defaultComboMoveDuration);
-                case "keep-grid-right" -> addCommand(mode.comboMap(), propertyValue, new KeepGridRight(), defaultComboMoveDuration);
+                case "cut-grid-top" -> addCommand(mode.comboMap(), propertyValue, new CutGridTop(), defaultComboMoveDuration);
+                case "cut-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new CutGridBottom(), defaultComboMoveDuration);
+                case "cut-grid-left" -> addCommand(mode.comboMap(), propertyValue, new CutGridLeft(), defaultComboMoveDuration);
+                case "cut-grid-right" -> addCommand(mode.comboMap(), propertyValue, new CutGridRight(), defaultComboMoveDuration);
                 // @formatter:on
                 default -> throw new IllegalArgumentException(
                         "Invalid configuration: " + propertyKey);

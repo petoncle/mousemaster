@@ -83,9 +83,9 @@ _shift,^shift = press shift, release shift?
   + If try to use grid commands while grid is hidden/not initialized, create a new full screen grid
  + Snap to grid lines (mouse can be outside grid) snap-left
  + Move to grid center
- + Half (cut in half) grid in a direction (keep-grid-top/bottom/left/right)
-  + arrow keys
-  + Also moves to grid center automatically: move-to-grid-center-when-cut=true
+ - Half (cut in half) grid in a direction (cut-grid-top/bottom/left/right)
+  - arrow keys
+  - Also moves to grid center automatically: move-to-grid-center-when-cut=true
  + Shift grid: shift-grid-top
   + arrow keys with rightctrl
   + move-to-grid-center-when-shifted

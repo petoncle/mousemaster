@@ -37,9 +37,9 @@ public sealed interface Command {
     record SnapLeft() implements Command {}
     record SnapRight() implements Command {}
 
-    record KeepGridTop() implements Command {}
-    record KeepGridBottom() implements Command {}
-    record KeepGridLeft() implements Command {}
-    record KeepGridRight() implements Command {}
+    record CutGridTop() implements Command {}
+    record CutGridBottom() implements Command {}
+    record CutGridLeft() implements Command {}
+    record CutGridRight() implements Command {}
 
 }

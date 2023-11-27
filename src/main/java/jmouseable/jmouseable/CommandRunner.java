@@ -55,10 +55,10 @@ public class CommandRunner {
             case SnapLeft snapLeft -> mouseController.snapLeft();
             case SnapRight snapRight -> mouseController.snapRight();
 
-            case KeepGridBottom keepGridBottom -> gridManager.keepGridBottom();
-            case KeepGridLeft keepGridLeft -> gridManager.keepGridLeft();
-            case KeepGridRight keepGridRight -> gridManager.keepGridRight();
-            case KeepGridTop keepGridTop -> gridManager.keepGridTop();
+            case CutGridBottom cutGridBottom -> gridManager.cutGridBottom();
+            case CutGridLeft cutGridLeft -> gridManager.cutGridLeft();
+            case CutGridRight cutGridRight -> gridManager.cutGridRight();
+            case CutGridTop cutGridTop -> gridManager.cutGridTop();
             // @formatter:on
         }
     }

@@ -16,12 +16,12 @@ public class GridManager implements MousePositionListener, ModeListener {
         this.mouseController = mouseController;
     }
 
-    public void keepGridTop() {
+    public void cutGridTop() {
         grid = grid.builder().height(Math.max(1, grid.height() / 2)).build();
         gridChanged();
     }
 
-    public void keepGridBottom() {
+    public void cutGridBottom() {
         grid = grid.builder()
                    .y(grid.y() + grid.height() / 2)
                    .height(Math.max(1, grid.height() / 2))
@@ -29,12 +29,12 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    public void keepGridLeft() {
+    public void cutGridLeft() {
         grid = grid.builder().width(Math.max(1, grid.width() / 2)).build();
         gridChanged();
     }
 
-    public void keepGridRight() {
+    public void cutGridRight() {
         grid = grid.builder()
                    .x(grid.x() + grid.width() / 2)
                    .width(Math.max(1, grid.width() / 2))
