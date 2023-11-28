@@ -38,6 +38,15 @@ public class MonitorManager implements MousePositionListener {
         return WindowsMonitor.findMonitors();
     }
 
+    public Monitor monitorContaining(int x, int y) {
+        for (Monitor monitor : monitors()) {
+            if (RectUtil.rectContains(monitor.x(), monitor.y(), monitor.width(),
+                    monitor.height(), x, y))
+                return monitor;
+        }
+        return null;
+    }
+
     @Override
     public void mouseMoved(int x, int y) {
         this.mouseX = x;

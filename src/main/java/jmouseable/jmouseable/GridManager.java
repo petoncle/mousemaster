@@ -45,26 +45,25 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    private static GridBuilder gridFittingMonitor(GridBuilder grid, Monitor monitor) {
-        return grid.x(Math.max(monitor.x(), grid.x()))
-                   .y(Math.max(monitor.y(), grid.y()))
-                   .width(Math.min(monitor.width(), grid.width()))
-                   .height(Math.min(monitor.height(), grid.height()));
-    }
-
     private GridBuilder gridCenteredAroundMouse(GridBuilder grid) {
         return grid.x(mouseX - grid.width() / 2).y(mouseY - grid.height() / 2);
     }
 
     private void shiftGrid(int deltaX, int deltaY) {
-        GridBuilder shiftedGrid =
-                grid.builder().x(grid.x() + deltaX).y(grid.y() + deltaY);
-        // Find nearest monitor containing the grid center, then reduce grid size if it
-        // does not fit the monitor.
-        Grid newGrid = gridFittingMonitor(shiftedGrid,
-                monitorManager.nearestMonitorContaining(
-                        shiftedGrid.x() + shiftedGrid.width() / 2,
-                        shiftedGrid.y() + shiftedGrid.height() / 2)).build();
+        int x = grid.x() + deltaX;
+        int y = grid.y() + deltaY;
+        int gridCenterX = x + grid.width() / 2;
+        int gridCenterY = y + grid.height() / 2;
+        if (monitorManager.monitorContaining(gridCenterX, gridCenterY) == null) {
+            Monitor activeMonitor = monitorManager.activeMonitor();
+            x = Math.max(activeMonitor.x(),
+                    Math.min(activeMonitor.x() + activeMonitor.width() - grid.width(),
+                            x));
+            y = Math.max(activeMonitor.y(),
+                    Math.min(activeMonitor.y() + activeMonitor.height() - grid.height(),
+                            y));
+        }
+        Grid newGrid = grid.builder().x(x).y(y).build();
         if (newGrid.equals(grid))
             return;
         grid = newGrid;
@@ -124,6 +123,13 @@ public class GridManager implements MousePositionListener, ModeListener {
                 y = grid.y() + (int) ((forward ? Math.floor(mouseColumn) + 1 :
                         Math.ceil(mouseColumn) - 1) * columnHeight);
                 y = Math.max(grid.y(), Math.min(grid.y() + grid.height(), y));
+            }
+            if (monitorManager.monitorContaining(x, y) == null) {
+                Monitor activeMonitor = monitorManager.activeMonitor();
+                x = Math.max(activeMonitor.x(),
+                        Math.min(activeMonitor.x() + activeMonitor.width(), x));
+                y = Math.max(activeMonitor.y(),
+                        Math.min(activeMonitor.y() + activeMonitor.height(), y));
             }
             mouseController.moveTo(x, y);
         }
