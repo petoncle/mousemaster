@@ -90,6 +90,10 @@ public class WindowsPlatform implements Platform {
             }
         }
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboKeys, keyboardLayout);
+        WinDef.POINT mousePosition = WindowsMouse.cursorPositionAndSize().position();
+        mousePositionListeners.forEach(
+                mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
+                        mousePosition.y));
     }
 
     /**

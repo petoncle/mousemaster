@@ -157,7 +157,11 @@ public class GridManager implements MousePositionListener, ModeListener {
         this.mouseY = y;
         if (gridFollowsCursor) {
             grid = gridCenteredAroundMouse(grid.builder()).build();
-            gridChanged();
+            if (currentMode.gridConfiguration().visible())
+                WindowsOverlay.setGrid(grid);
+            else
+                WindowsOverlay.hideGrid();
+            // Unlike gridChanged(), does not call mouseController.moveTo().
         }
     }
 

@@ -26,8 +26,6 @@ public class ModeController implements GridListener {
         this.mouseController = mouseController;
         this.mouseState = mouseState;
         this.listeners = listeners;
-        String defaultModeName = Mode.NORMAL_MODE_NAME;
-        switchMode(defaultModeName);
     }
 
     public Mode currentMode() {

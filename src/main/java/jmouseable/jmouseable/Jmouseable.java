@@ -92,6 +92,7 @@ public class Jmouseable {
         commandRunner.setModeController(modeController);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(), List.of(gridManager, monitorManager));
+        modeController.switchMode(Mode.NORMAL_MODE_NAME);
     }
 
 }
