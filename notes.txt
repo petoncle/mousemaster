@@ -98,3 +98,4 @@ _shift,^shift = press shift, release shift?
  - Put back update() in IndicatorManager for updating the color
  - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
   - If not, keep grid in current monitor
+ + IndicatorManager should listen for mouse position and give it to WindowsIndicator
