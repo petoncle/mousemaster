@@ -1,6 +1,8 @@
 package jmouseable.jmouseable;
 
 import com.sun.jna.platform.win32.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.stream.LongStream;
 
 public class WindowsMouse {
 
+    private static final Logger logger = LoggerFactory.getLogger(WindowsMouse.class);
     private static final Executor mouseExecutor = Executors.newSingleThreadExecutor();
 
     public static void moveBy(boolean xForward, double deltaX, boolean yForward,
@@ -143,7 +146,7 @@ public class WindowsMouse {
             return cursorPositionAndSize;
         ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
         int cursorWidth, cursorHeight;
-        if (ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo)) {
+        if (ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) && cursorInfo.hCursor != null) {
             WinDef.POINT mousePosition = cursorInfo.ptScreenPos;
             WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
             if (User32.INSTANCE.GetIconInfo(new WinDef.HICON(cursorInfo.hCursor),
@@ -181,7 +184,9 @@ public class WindowsMouse {
                 return cursorPositionAndSize;
             }
         }
-        throw new IllegalStateException();
+        logger.info("Unable to find cursor position and size");
+        throw new IllegalStateException(
+                "Unable to find cursor position and size"); // TODO
     }
 
     public record CursorPositionAndSize(WinDef.POINT position, int width, int height) {

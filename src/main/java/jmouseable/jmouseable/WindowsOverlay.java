@@ -139,14 +139,12 @@ public class WindowsOverlay {
                                                      WinDef.LPARAM lParam) {
         switch (uMsg) {
             case WinUser.WM_PAINT:
-                WinDef.RECT windowRect = new WinDef.RECT();
-                User32.INSTANCE.GetWindowRect(hwnd, windowRect);
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 // If not cleared, the previous drawings will be painted.
                 clearWindow(hdc, ps.rcPaint);
                 if (showingGrid)
-                    paintGrid(hdc, windowRect);
+                    paintGrid(hdc, ps.rcPaint);
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
         }
@@ -170,11 +168,12 @@ public class WindowsOverlay {
         int lineThickness = currentGrid.lineThickness();
         // Vertical lines
         for (int lineIndex = 0; lineIndex <= snapColumnCount; lineIndex++) {
-            int x = lineIndex * cellWidth;
-//            if (x == windowRect.left) // TODO
-//                x += lineThickness / 2;
-//            else if (x == windowRect.right)
-//                x -= lineThickness / 2 + lineThickness % 2;
+            int x = lineIndex == snapColumnCount ? windowRect.right :
+                    lineIndex * cellWidth;
+            if (x == windowRect.left)
+                x += lineThickness / 2;
+            else if (x == windowRect.right)
+                x -= lineThickness / 2 + lineThickness % 2;
             points[2 * lineIndex].x = x;
             points[2 * lineIndex].y = 0;
             points[2 * lineIndex + 1].x = x;
@@ -185,11 +184,12 @@ public class WindowsOverlay {
         int polyCountsOffset = snapColumnCount + 1;
         int pointsOffset = 2 * polyCountsOffset;
         for (int lineIndex = 0; lineIndex <= snapRowCount; lineIndex++) {
-            int y = lineIndex * cellHeight;
-//            if (y == windowRect.top)
-//                y += lineThickness / 2;
-//            else if (y == windowRect.bottom)
-//                y -= lineThickness / 2 + lineThickness % 2;
+            int y = lineIndex == snapRowCount ? windowRect.bottom :
+                    lineIndex * cellHeight;
+            if (y == windowRect.top)
+                y += lineThickness / 2;
+            else if (y == windowRect.bottom)
+                y -= lineThickness / 2 + lineThickness % 2;
             points[pointsOffset + 2 * lineIndex].x = 0;
             points[pointsOffset + 2 * lineIndex].y = y;
             points[pointsOffset + 2 * lineIndex + 1].x = currentGrid.width();
@@ -256,12 +256,9 @@ public class WindowsOverlay {
         else {
             if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
                 grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
-                // +1 for width and height, otherwise the right and bottom edges of the grid
-                // are not always visible.
-                // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect#remarks
                 User32.INSTANCE.SetWindowPos(gridWindow.hwnd(),
-                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width() + 1,
-                        grid.height() + 1, 0);
+                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width(),
+                        grid.height(), 0);
             }
         }
         showingGrid = true;
