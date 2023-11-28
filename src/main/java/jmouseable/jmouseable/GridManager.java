@@ -55,13 +55,14 @@ public class GridManager implements MousePositionListener, ModeListener {
         int gridCenterX = x + grid.width() / 2;
         int gridCenterY = y + grid.height() / 2;
         if (monitorManager.monitorContaining(gridCenterX, gridCenterY) == null) {
+            // We want the grid center in screen.
             Monitor activeMonitor = monitorManager.activeMonitor();
-            x = Math.max(activeMonitor.x(),
-                    Math.min(activeMonitor.x() + activeMonitor.width() - grid.width(),
-                            x));
-            y = Math.max(activeMonitor.y(),
-                    Math.min(activeMonitor.y() + activeMonitor.height() - grid.height(),
-                            y));
+            gridCenterX = Math.max(activeMonitor.x(),
+                    Math.min(activeMonitor.x() + activeMonitor.width(), gridCenterX));
+            gridCenterY = Math.max(activeMonitor.y(),
+                    Math.min(activeMonitor.y() + activeMonitor.height(), gridCenterY));
+            x = gridCenterX - grid.width() / 2;
+            y = gridCenterY - grid.height() / 2;
         }
         Grid newGrid = grid.builder().x(x).y(y).build();
         if (newGrid.equals(grid))
