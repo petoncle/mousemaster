@@ -150,10 +150,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         this.mouseX = x;
         this.mouseY = y;
         if (gridFollowsCursor) {
-            // Can this be a performance bottleneck?
-            Monitor monitor = monitorManager.nearestMonitorContaining(mouseX, mouseY);
-            grid = gridFittingMonitor(gridCenteredAroundMouse(grid.builder()),
-                    monitor).build();
+            grid = gridCenteredAroundMouse(grid.builder()).build();
             gridChanged();
         }
     }
@@ -179,10 +176,10 @@ public class GridManager implements MousePositionListener, ModeListener {
                     WindowsOverlay.gridFittingActiveWindow(gridBuilder).build();
             case GridType.AroundMouse aroundMouse -> {
                 Monitor monitor = monitorManager.nearestMonitorContaining(mouseX, mouseY);
-                gridCenteredAroundMouse(
+                yield gridCenteredAroundMouse(
                         gridBuilder.width(monitor.width() / aroundMouse.width())
-                                   .height(monitor.height() / aroundMouse.height()));
-                yield gridFittingMonitor(gridBuilder, monitor).build();
+                                   .height(monitor.height() /
+                                           aroundMouse.height())).build();
             }
         };
         if (currentMode != null &&

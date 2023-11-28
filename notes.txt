@@ -95,3 +95,6 @@ _shift,^shift = press shift, release shift?
   - The corresponding grid window should be movable to a neighbor monitor
  + Exit gracefully when exception thrown (e.g. infinite switch mode loop)
  + Rename shift-grid to move-grid
+ + Put back update() in IndicatorManager for updating the color
+ + When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
+  + If not, keep grid in current monitor

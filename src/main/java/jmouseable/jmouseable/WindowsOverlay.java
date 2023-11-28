@@ -21,12 +21,20 @@ public class WindowsOverlay {
 
     public static GridBuilder gridFittingActiveWindow(GridBuilder grid) {
         WinDef.HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
+        // https://stackoverflow.com/a/65605845
+        WinDef.RECT excludeShadow = windowRectExcludingShadow(foregroundWindow);
+        return grid.x(excludeShadow.left)
+                   .y(excludeShadow.top)
+                   .width(excludeShadow.right - excludeShadow.left)
+                   .height(excludeShadow.bottom - excludeShadow.top);
+    }
+
+    private static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {
+        // On Windows 10+, DwmGetWindowAttribute() returns the extended frame bounds excluding shadow.
         WinDef.RECT rect = new WinDef.RECT();
-        User32.INSTANCE.GetWindowRect(foregroundWindow, rect);
-        return grid.x(rect.left)
-                   .y(rect.top)
-                   .width(rect.right - rect.left)
-                   .height(rect.bottom - rect.top);
+        Dwmapi.INSTANCE.DwmGetWindowAttribute(hwnd, Dwmapi.DWMWA_EXTENDED_FRAME_BOUNDS,
+                rect, rect.size());
+        return rect;
     }
 
     public static void setTopmost() {
@@ -113,7 +121,7 @@ public class WindowsOverlay {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                clearWindow(hdc, ps);
+                clearWindow(hdc, ps.rcPaint);
                 if (showingIndicator) {
                     WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(
                             hexColorStringToInt(currentIndicatorHexColor));
@@ -131,26 +139,27 @@ public class WindowsOverlay {
                                                      WinDef.LPARAM lParam) {
         switch (uMsg) {
             case WinUser.WM_PAINT:
+                WinDef.RECT windowRect = new WinDef.RECT();
+                User32.INSTANCE.GetWindowRect(hwnd, windowRect);
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 // If not cleared, the previous drawings will be painted.
-                clearWindow(hdc, ps);
+                clearWindow(hdc, ps.rcPaint);
                 if (showingGrid)
-                    paintGrid(hdc, ps);
+                    paintGrid(hdc, windowRect);
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
         }
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    private static void clearWindow(WinDef.HDC hdc, ExtendedUser32.PAINTSTRUCT ps) {
+    private static void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect) {
         WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(0);
-        ExtendedUser32.INSTANCE.FillRect(hdc, ps.rcPaint, hbrBackground);
+        ExtendedUser32.INSTANCE.FillRect(hdc, windowRect, hbrBackground);
         GDI32.INSTANCE.DeleteObject(hbrBackground);
     }
 
-    private static void paintGrid(WinDef.HDC hdc, ExtendedUser32.PAINTSTRUCT ps) {
-        WinDef.RECT windowRect = ps.rcPaint; // Screen rect.
+    private static void paintGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
         int snapRowCount = currentGrid.snapRowCount();
         int snapColumnCount = currentGrid.snapColumnCount();
         int cellWidth = currentGrid.width() / snapRowCount;
@@ -161,29 +170,29 @@ public class WindowsOverlay {
         int lineThickness = currentGrid.lineThickness();
         // Vertical lines
         for (int lineIndex = 0; lineIndex <= snapColumnCount; lineIndex++) {
-            int x = currentGrid.x() + lineIndex * cellWidth;
-            if (x == windowRect.left)
-                x += lineThickness / 2;
-            else if (x == windowRect.right)
-                x -= lineThickness / 2 + lineThickness % 2;
+            int x = lineIndex * cellWidth;
+//            if (x == windowRect.left) // TODO
+//                x += lineThickness / 2;
+//            else if (x == windowRect.right)
+//                x -= lineThickness / 2 + lineThickness % 2;
             points[2 * lineIndex].x = x;
-            points[2 * lineIndex].y = currentGrid.y();
+            points[2 * lineIndex].y = 0;
             points[2 * lineIndex + 1].x = x;
-            points[2 * lineIndex + 1].y = currentGrid.y() + currentGrid.height();
+            points[2 * lineIndex + 1].y = currentGrid.height();
             polyCounts[lineIndex] = 2;
         }
         // Horizontal lines
         int polyCountsOffset = snapColumnCount + 1;
         int pointsOffset = 2 * polyCountsOffset;
         for (int lineIndex = 0; lineIndex <= snapRowCount; lineIndex++) {
-            int y = currentGrid.y() + lineIndex * cellHeight;
-            if (y == windowRect.top)
-                y += lineThickness / 2;
-            else if (y == windowRect.bottom)
-                y -= lineThickness / 2 + lineThickness % 2;
-            points[pointsOffset + 2 * lineIndex].x = currentGrid.x();
+            int y = lineIndex * cellHeight;
+//            if (y == windowRect.top)
+//                y += lineThickness / 2;
+//            else if (y == windowRect.bottom)
+//                y -= lineThickness / 2 + lineThickness % 2;
+            points[pointsOffset + 2 * lineIndex].x = 0;
             points[pointsOffset + 2 * lineIndex].y = y;
-            points[pointsOffset + 2 * lineIndex + 1].x = currentGrid.x() + currentGrid.width();
+            points[pointsOffset + 2 * lineIndex + 1].x = currentGrid.width();
             points[pointsOffset + 2 * lineIndex + 1].y = y;
             polyCounts[polyCountsOffset + lineIndex] = 2;
         }
@@ -247,9 +256,12 @@ public class WindowsOverlay {
         else {
             if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
                 grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
+                // +1 for width and height, otherwise the right and bottom edges of the grid
+                // are not always visible.
+                // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect#remarks
                 User32.INSTANCE.SetWindowPos(gridWindow.hwnd(),
-                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width(),
-                        grid.height(), WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
+                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width() + 1,
+                        grid.height() + 1, 0);
             }
         }
         showingGrid = true;
