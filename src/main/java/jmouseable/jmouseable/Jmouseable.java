@@ -17,6 +17,7 @@ public class Jmouseable {
     private Configuration configuration;
     private MouseController mouseController;
     private KeyboardManager keyboardManager;
+    private IndicatorManager indicatorManager;
     private ModeController modeController;
 
     public Jmouseable(Path configurationPath, Platform platform) throws IOException {
@@ -41,6 +42,7 @@ public class Jmouseable {
             modeController.update(delta);
             mouseController.update(delta);
             keyboardManager.update(delta);
+            indicatorManager.update(delta);
             Thread.sleep(10L);
         }
     }
@@ -84,8 +86,7 @@ public class Jmouseable {
         ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
         keyboardManager = new KeyboardManager(comboWatcher);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
-        IndicatorManager indicatorManager =
-                new IndicatorManager(mouseState, keyboardState);
+        indicatorManager = new IndicatorManager(mouseState, keyboardState);
         modeController = new ModeController(configuration.modeMap(), mouseController, mouseState,
                 List.of(comboWatcher, indicatorManager, gridManager));
         commandRunner.setModeController(modeController);

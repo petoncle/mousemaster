@@ -11,9 +11,7 @@ public class IndicatorManager implements ModeListener {
         this.keyboardState = keyboardState;
     }
 
-    @Override
-    public void modeChanged(Mode newMode) {
-        currentMode = newMode;
+    public void update(double delta) {
         if (currentMode.indicator().enabled()) {
             String indicatorHexColor = indicatorHexColor();
             if (indicatorHexColor == null)
@@ -23,6 +21,11 @@ public class IndicatorManager implements ModeListener {
         }
         else
             WindowsOverlay.hideIndicator();
+    }
+
+    @Override
+    public void modeChanged(Mode newMode) {
+        currentMode = newMode;
     }
 
     @Override
