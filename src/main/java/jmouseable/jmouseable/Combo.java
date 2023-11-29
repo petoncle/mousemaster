@@ -66,18 +66,30 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                          ComboMoveDuration defaultMoveDuration) {
         // One combo is: ^{key|...} _{key|...} move ...
         // Two combos: ^{key|...} _{key|...} move ... | ^{key|...} _{key|...} move ...
-        String nonEmptySequencePattern = "(\\^\\{[^}]+\\})?" + "(_\\{[^}]+\\})?" + "[^\\^_{}|]+";
-        String nonEmptyMustNotBePressedPattern = "\\^\\{[^}]+\\}" + "(_\\{[^}]+\\})?" + "([^\\^_{}|]+)?";
-        String nonEmptyMustBePressedPattern = "(\\^\\{[^}]+\\})?" + "_\\{[^}]+\\}" + "([^\\^_{}|]+)?";
-        Matcher matcher = Pattern.compile(
-                "(" + nonEmptySequencePattern + ")|(" + nonEmptyMustNotBePressedPattern +
-                ")|(" + nonEmptyMustBePressedPattern + ")").matcher(multiComboString);
+        int comboBeginIndex = 0;
+        boolean rightBraceExpected = false;
         List<Combo> combos = new ArrayList<>();
-        while (matcher.find())
-            combos.add(of(matcher.group(0), defaultMoveDuration));
-        if (combos.isEmpty())
-            throw new IllegalArgumentException(
-                    "Invalid multi-combo: " + multiComboString);
+        for (int charIndex = 0; charIndex < multiComboString.length(); charIndex++) {
+            char character = multiComboString.charAt(charIndex);
+            if (character == '{') {
+                if (rightBraceExpected)
+                    throw new IllegalArgumentException(
+                            "Invalid multi-combo: " + multiComboString);
+                rightBraceExpected = true;
+            }
+            else if (character == '}') {
+                if (!rightBraceExpected)
+                    throw new IllegalArgumentException(
+                            "Invalid multi-combo: " + multiComboString);
+                rightBraceExpected = false;
+            }
+            else if (character == '|' && !rightBraceExpected) {
+                combos.add(of(multiComboString.substring(comboBeginIndex, charIndex),
+                        defaultMoveDuration));
+                comboBeginIndex = charIndex + 1;
+            }
+        }
+        combos.add(of(multiComboString.substring(comboBeginIndex), defaultMoveDuration));
         return List.copyOf(combos);
     }
 
