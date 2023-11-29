@@ -84,12 +84,14 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 rightBraceExpected = false;
             }
             else if (character == '|' && !rightBraceExpected) {
-                combos.add(of(multiComboString.substring(comboBeginIndex, charIndex),
-                        defaultMoveDuration));
+                combos.add(
+                        of(multiComboString.substring(comboBeginIndex, charIndex).strip(),
+                                defaultMoveDuration));
                 comboBeginIndex = charIndex + 1;
             }
         }
-        combos.add(of(multiComboString.substring(comboBeginIndex), defaultMoveDuration));
+        combos.add(of(multiComboString.substring(comboBeginIndex).strip(),
+                defaultMoveDuration));
         return List.copyOf(combos);
     }
 
