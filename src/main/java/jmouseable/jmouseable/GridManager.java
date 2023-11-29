@@ -49,7 +49,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         return grid.x(mouseX - grid.width() / 2).y(mouseY - grid.height() / 2);
     }
 
-    private void shiftGrid(int deltaX, int deltaY) {
+    private void moveGrid(int deltaX, int deltaY) {
         int x = grid.x() + deltaX;
         int y = grid.y() + deltaY;
         int gridCenterX = x + grid.width() / 2;
@@ -71,20 +71,20 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    public void shiftGridTop() {
-        shiftGrid(0, -grid.height());
+    public void moveGridTop() {
+        moveGrid(0, -grid.height());
     }
 
-    public void shiftGridBottom() {
-        shiftGrid(0, grid.height());
+    public void moveGridBottom() {
+        moveGrid(0, grid.height());
     }
 
-    public void shiftGridLeft() {
-        shiftGrid(-grid.width(), 0);
+    public void moveGridLeft() {
+        moveGrid(-grid.width(), 0);
     }
 
-    public void shiftGridRight() {
-        shiftGrid(grid.width(), 0);
+    public void moveGridRight() {
+        moveGrid(grid.width(), 0);
     }
 
     public void snapUp() {

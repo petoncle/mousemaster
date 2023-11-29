@@ -86,15 +86,15 @@ _shift,^shift = press shift, release shift?
  - Half (cut in half) grid in a direction (cut-grid-top/bottom/left/right)
   - arrow keys
   - Also moves to grid center automatically: move-to-grid-center-when-cut=true
- - Shift grid: shift-grid-top
+ - Shift grid: move-grid-top
   - arrow keys with rightctrl
   - move-to-grid-center-when-shifted
   - If grid already touches screen edge, then move grid to closest monitor
    - Resize too fullscreen if grid bigger than new monitor
- + Teleport forward to +300px is snapping to (or shifting) the around-mouse grid?
+ - Teleport forward to +300px is snapping to (or moving-grid) the around-mouse grid?
   - The corresponding grid window should be movable to a neighbor monitor
  + Exit gracefully when exception thrown (e.g. infinite switch mode loop)
- + Rename shift-grid to move-grid
+ - Rename shift-grid to move-grid
  - Put back update() in IndicatorManager for updating the color
  - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
   - If not, keep grid in current monitor

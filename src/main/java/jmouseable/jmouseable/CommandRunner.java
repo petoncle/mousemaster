@@ -60,10 +60,10 @@ public class CommandRunner {
             case CutGridLeft cutGridLeft -> gridManager.cutGridLeft();
             case CutGridRight cutGridRight -> gridManager.cutGridRight();
 
-            case ShiftGridTop shiftGridTop -> gridManager.shiftGridTop();
-            case ShiftGridBottom shiftGridBottom -> gridManager.shiftGridBottom();
-            case ShiftGridLeft shiftGridLeft -> gridManager.shiftGridLeft();
-            case ShiftGridRight shiftGridRight -> gridManager.shiftGridRight();
+            case MoveGridTop moveGridTop -> gridManager.moveGridTop();
+            case MoveGridBottom moveGridBottom -> gridManager.moveGridBottom();
+            case MoveGridLeft moveGridLeft -> gridManager.moveGridLeft();
+            case MoveGridRight moveGridRight -> gridManager.moveGridRight();
             // @formatter:on
         }
     }
