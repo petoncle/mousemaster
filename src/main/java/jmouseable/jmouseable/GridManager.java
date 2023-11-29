@@ -135,21 +135,35 @@ public class GridManager implements MousePositionListener, ModeListener {
             mouseController.moveTo(x, y);
         }
         // If mouse is not in grid, snap it to the grid edges...
-        else if (mouseX >= grid.x() && mouseX <= grid.x() + grid.width())
-            mouseController.moveTo(mouseX,
-                    mouseY < grid.y() ? grid.y() : (grid.y() + grid.height()));
-        else if (mouseY >= grid.y() && mouseY <= grid.y() + grid.height())
-            mouseController.moveTo(
-                    mouseX < grid.x() ? grid.x() : (grid.x() + grid.height()), mouseY);
+        else if (mouseX >= grid.x() && mouseX <= grid.x() + grid.width()) {
+            if (!horizontal && forward && mouseY < grid.y())
+                mouseController.moveTo(mouseX, grid.y());
+            else if (!horizontal && !forward && mouseY > grid.y())
+                mouseController.moveTo(mouseX, grid.y() + grid.height());
+        }
+        else if (mouseY >= grid.y() && mouseY <= grid.y() + grid.height()) {
+            if (horizontal && forward && mouseX < grid.x())
+                mouseController.moveTo(grid.x(), mouseY);
+            else if (horizontal && !forward && mouseX > grid.x())
+                mouseController.moveTo(grid.x() + grid.height(), mouseY);
+        }
         // ...or to the grid corners.
-        else if (mouseX < grid.x() && mouseY < grid.y())
-            mouseController.moveTo(grid.x(), grid.y());
-        else if (mouseX > grid.x() + grid.width() && mouseY < grid.y())
-            mouseController.moveTo(grid.x() + grid.width(), grid.y());
-        else if (mouseX < grid.x() && mouseY > grid.y())
-            mouseController.moveTo(grid.x(), grid.y() + grid.height());
-        else
-            mouseController.moveTo(grid.x() + grid.width(), grid.y() + grid.height());
+        else if (mouseX < grid.x() && mouseY < grid.y()) {
+            if (horizontal && forward || !horizontal && forward)
+                mouseController.moveTo(grid.x(), grid.y());
+        }
+        else if (mouseX > grid.x() + grid.width() && mouseY < grid.y()) {
+            if (horizontal && !forward || !horizontal && forward)
+                mouseController.moveTo(grid.x() + grid.width(), grid.y());
+        }
+        else if (mouseX < grid.x() && mouseY > grid.y() + grid.height()) {
+            if (horizontal && forward || !horizontal && !forward)
+                mouseController.moveTo(grid.x(), grid.y() + grid.height());
+        }
+        else {
+            if (horizontal && !forward || !horizontal && !forward)
+                mouseController.moveTo(grid.x() + grid.width(), grid.y() + grid.height());
+        }
     }
 
     @Override
@@ -162,7 +176,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                 WindowsOverlay.setGrid(grid);
             else
                 WindowsOverlay.hideGrid();
-            // Unlike gridChanged(), does not call mouseController.moveTo().
+            // Unlike gridChanged(), do not call mouseController.moveTo().
         }
     }
 
