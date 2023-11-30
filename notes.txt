@@ -116,8 +116,21 @@ _shift,^shift = press shift, release shift?
   + Else: Find hintLength, hintCount = hintCharacterCount^hintLength >= rowCount*columnCount
   + grid.hint-enabled=false/true
 
-  - Seamlessly move mouse across screens
-  - Can overlap move keys (e.g. right, left, right)
-  - Distinguish between left and right alt/ctrl/shift keys
-  - Keyboard layout-aware
-  - Can have an indicator next to mouse, with different colors for when idling, pressing buttons, scrolling
+- No UI (just a command line app that loads the configuration from a file)
+- Seamlessly move mouse across screens (mouseable does it, warpd does not)
+- Configuration file is reloaded when changes are saved to it
+- Distinguish between left and right alt/ctrl/shift keys
+- Keyboard layout-aware
+- Can have an indicator next to mouse (or not), with different colors for when idling, moving, pressing buttons, and scrolling.
+- The indicator will re-position itself when the mouse is close to the edges of the screen so that it stays visible
+- Configuration of keys is done in terms of key press and key release events, and whether the key events should be passed onto other apps or not.
+  This allows for defining advanced key combos, but at the cost of added complexity for the user
+  (not as simple as warpd, keynav and mouseable).
+- The user defines modes. Each mode has its own key combo map.
+- Each mode can have its own mouse and wheel configuration (initial velocity, max velocity, acceleration).
+  This can be used to create "slow" or "fast" modes.
+- A timeout can be set on a mode to switch to another mode after some idle time (this can be used for disabling Xxx after a while, hiding the indicator after a while, etc.)
+- Grids.
+- The major structural differences with mouseable and warpd are the way key combos are defined (key presses and key releases),
+  the "create your own modes" approach, and the grids which are used for doing both mouseable-style "attach", mouseable-style "teleport",
+  warpd-style "cutable grid", warpd-style "screen selection hints", and warpd-style "regular" hints.
