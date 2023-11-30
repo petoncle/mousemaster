@@ -1,7 +1,7 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
-import jmouseable.jmouseable.GridType.AroundMouse;
+import jmouseable.jmouseable.GridType.FollowMouse;
 import jmouseable.jmouseable.Mode.ModeBuilder;
 
 import java.io.IOException;
@@ -419,10 +419,10 @@ public class ConfigurationParser {
             case "active-window" -> new GridType.ActiveWindow();
             default -> {
                 Matcher matcher =
-                        Pattern.compile("around-mouse (\\d+) (\\d+)").matcher(string);
+                        Pattern.compile("follow-mouse (\\d+) (\\d+)").matcher(string);
                 if (!matcher.matches())
                     throw new IllegalArgumentException("Invalid grid type: " + string);
-                yield new AroundMouse(Integer.parseUnsignedInt(matcher.group(1)),
+                yield new FollowMouse(Integer.parseUnsignedInt(matcher.group(1)),
                         Integer.parseUnsignedInt(matcher.group(2)));
             }
         };

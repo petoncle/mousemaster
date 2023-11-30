@@ -8,7 +8,7 @@ public sealed interface GridType {
     record ActiveWindow() implements GridType {
     }
 
-    record AroundMouse(int width, int height) implements GridType {
+    record FollowMouse(int width, int height) implements GridType {
     }
 
 }

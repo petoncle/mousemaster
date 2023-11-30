@@ -10,7 +10,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     private final MonitorManager monitorManager;
     private final MouseController mouseController;
     private Grid grid;
-    private boolean gridFollowsCursor;
+    private boolean gridFollowsMouse;
     private int mouseX, mouseY;
     private Mode currentMode;
 
@@ -170,7 +170,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     public void mouseMoved(int x, int y) {
         this.mouseX = x;
         this.mouseY = y;
-        if (gridFollowsCursor) {
+        if (gridFollowsMouse) {
             grid = gridCenteredAroundMouse(grid.builder()).build();
             if (currentMode.gridConfiguration().visible())
                 WindowsOverlay.setGrid(grid);
@@ -199,12 +199,12 @@ public class GridManager implements MousePositionListener, ModeListener {
             }
             case GridType.ActiveWindow activeWindow ->
                     WindowsOverlay.gridFittingActiveWindow(gridBuilder).build();
-            case GridType.AroundMouse aroundMouse -> {
+            case GridType.FollowMouse followMouse -> {
                 Monitor monitor = monitorManager.nearestMonitorContaining(mouseX, mouseY);
                 yield gridCenteredAroundMouse(
-                        gridBuilder.width(monitor.width() / aroundMouse.width())
+                        gridBuilder.width(monitor.width() / followMouse.width())
                                    .height(monitor.height() /
-                                           aroundMouse.height())).build();
+                                           followMouse.height())).build();
             }
         };
         if (currentMode != null &&
@@ -213,8 +213,8 @@ public class GridManager implements MousePositionListener, ModeListener {
             return;
         currentMode = newMode;
         grid = newGrid;
-        gridFollowsCursor =
-                currentMode.gridConfiguration().type() instanceof GridType.AroundMouse;
+        gridFollowsMouse =
+                currentMode.gridConfiguration().type() instanceof GridType.FollowMouse;
         gridChanged();
     }
 
