@@ -19,14 +19,20 @@ public class WindowsOverlay {
     private static boolean showingGrid;
     private static Grid currentGrid;
 
-    public static GridBuilder gridFittingActiveWindow(GridBuilder grid) {
+    public static GridBuilder gridFittingActiveWindow(GridBuilder grid,
+                                                      double windowWidthPercent,
+                                                      double windowHeightPercent) {
         WinDef.HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
         // https://stackoverflow.com/a/65605845
         WinDef.RECT excludeShadow = windowRectExcludingShadow(foregroundWindow);
-        return grid.x(excludeShadow.left)
-                   .y(excludeShadow.top)
-                   .width(excludeShadow.right - excludeShadow.left)
-                   .height(excludeShadow.bottom - excludeShadow.top);
+        int windowWidth = excludeShadow.right - excludeShadow.left;
+        int windowHeight = excludeShadow.bottom - excludeShadow.top;
+        int gridWidth = (int) (windowWidth * windowWidthPercent);
+        int gridHeight = (int) (windowHeight * windowHeightPercent);
+        return grid.x(excludeShadow.left + (windowWidth - gridWidth) / 2)
+                   .y(excludeShadow.top + (windowHeight - gridHeight) / 2)
+                   .width(gridWidth)
+                   .height(gridHeight);
     }
 
     private static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {

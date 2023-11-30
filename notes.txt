@@ -98,8 +98,9 @@ _shift,^shift = press shift, release shift?
  - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
   - If not, keep grid in current monitor
  + Move to grid center (need separate command)
- + synchronization=mouse-follows-grid-center / grid-center-follows-mouse / mouse-and-grid-center-unsynchronized
-  + grid.type->area = active-screen 1.0 1.0, active-window 1.0 1.0
+ - synchronization=mouse-follows-grid-center / grid-center-follows-mouse / mouse-and-grid-center-unsynchronized
+  - grid.type->area = active-screen 1.0 1.0, active-window 1.0 1.0
+ + Rename snapRow/ColumnCount to row/ColumnCount
  + IndicatorManager should listen for mouse position and give it to WindowsIndicator
  + Hints
   + Grid hints (hints on the current grid, which can be a fullscreen or active window or around mouse grid)
@@ -125,7 +126,6 @@ _shift,^shift = press shift, release shift?
 - The indicator will re-position itself when the mouse is close to the edges of the screen so that it stays visible
 - Configuration of keys is done in terms of key press and key release events, and whether the key events should be passed onto other apps or not.
   This allows for defining advanced key combos, but at the cost of added complexity of the configuration file
-  (definitely not as simple as warpd, keynav and mouseable).
 - The user defines modes. There is only one predefined mode, the "normal-mode" which has no key combos defined (i.e. this is the "Xxx is disabled mode").
 - Each mode has its own key combo map.
 - Each mode can have its own mouse and wheel configuration (initial velocity, max velocity, acceleration).
@@ -136,5 +136,10 @@ _shift,^shift = press shift, release shift?
   chain commands (e.g. if your move combos are arrow keys while holding ctrl, you can move left/right without releasing ctrl)
 - Grids. Grid area
 - The major structural differences with mouseable and warpd are the way key combos are defined (key presses and key releases),
-  the "create your own modes" approach, and the grids which are used for doing mouseable-style "attach", mouseable-style "teleport",
+  the "create your own modes" approach, and the generalization of the grid concept used for
+  implementing mouseable-style "attach to screen edge", mouseable-style "teleport forward",
   warpd/keynav-style "cutable grid", warpd-style "screen selection hints", and warpd-style "regular hints".
+- The configuration is much more complex than warpd/mouseable, mostly because you have to think in terms of key presses and key releases
+- It's Windows only because just like mouseable, it relies on the Windows API.
+  I have not looked at making it cross-platform simply because I don't have an incentive for doing so
+  (all my desktops are Windows).

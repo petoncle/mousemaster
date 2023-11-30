@@ -1,7 +1,6 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
-import jmouseable.jmouseable.GridType.FollowMouse;
 import jmouseable.jmouseable.Mode.ModeBuilder;
 
 import java.io.IOException;
@@ -18,13 +17,26 @@ import static jmouseable.jmouseable.Command.*;
 
 public class ConfigurationParser {
 
-    private static final Mode defaultMode =
-            new Mode(null, false, new ComboMap(Map.of()), new Mouse(200, 750, 1000),
-                    new Wheel(1000, 1000, 500),
-                    new GridConfiguration(new GridType.FullScreen(), false, 2, 2, false, null, 1),
-                    new ModeTimeout(false, null, null),
-                    new Indicator(false, null, null, null, null, null),
-                    new HideCursor(false, null));
+    private static final Mode defaultMode;
+
+    static {
+        ModeBuilder builder = new ModeBuilder(null);
+        builder.pauseComboProcessingWhenModeActivated(false);
+        builder.mouse().initialVelocity(200).maxVelocity(750).acceleration(1000);
+        builder.wheel().initialVelocity(1000).maxVelocity(1000).acceleration(500);
+        builder.grid()
+               .area(new Area.ActiveScreen(1, 1))
+               .synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
+               .snapRowCount(2)
+               .snapColumnCount(2)
+               .visible(false)
+               .lineHexColor(null)
+               .lineThickness(1);
+        builder.timeout().enabled(false);
+        builder.indicator().enabled(false);
+        builder.hideCursor().enabled(false);
+        defaultMode = builder.build();
+    }
 
     public static Configuration parse(Path path) throws IOException {
         List<String> lines = Files.readAllLines(path);
@@ -109,10 +121,10 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid grid configuration: " + propertyKey);
                     switch (keyMatcher.group(4)) {
-                        case "type" -> mode.grid().type(parseGridType(propertyValue));
-                        case "auto-move-to-grid-center" -> mode.grid()
-                                                               .autoMoveToGridCenter(
-                                                                       Boolean.parseBoolean(
+                        case "area" -> mode.grid().area(parseArea(propertyValue));
+                        case "synchronization" -> mode.grid()
+                                                               .synchronization(
+                                                                      parseSynchronization(
                                                                                propertyValue));
                         case "snap-row-count" -> mode.grid()
                                                      .snapRowCount(parseUnsignedInteger(
@@ -362,10 +374,10 @@ public class ConfigurationParser {
             childMode.wheel().maxVelocity(parentMode.wheel().maxVelocity());
         if (childMode.wheel().acceleration() == null)
             childMode.wheel().acceleration(parentMode.wheel().acceleration());
-        if (childMode.grid().type() == null)
-            childMode.grid().type(parentMode.gridConfiguration().type());
-        if (childMode.grid().autoMoveToGridCenter() == null)
-            childMode.grid().autoMoveToGridCenter(parentMode.gridConfiguration().autoMoveToGridCenter());
+        if (childMode.grid().area() == null)
+            childMode.grid().area(parentMode.gridConfiguration().area());
+        if (childMode.grid().synchronization() == null)
+            childMode.grid().synchronization(parentMode.gridConfiguration().synchronization());
         if (childMode.grid().snapRowCount() == null)
             childMode.grid().snapRowCount(parentMode.gridConfiguration().snapRowCount());
         if (childMode.grid().snapColumnCount() == null)
@@ -413,18 +425,36 @@ public class ConfigurationParser {
         return integer;
     }
 
-    private static GridType parseGridType(String string) {
+    private static Area parseArea(String string) {
+        String[] split = string.split("\\s+");
+        double width, height;
+        if (split.length == 1)
+            width = height = 1;
+        else if (split.length == 3) {
+            width = Double.parseDouble(split[1]);
+            height = Double.parseDouble(split[2]);
+            if (width < 0 || width > 1 || height < 0 || height > 1)
+                throw new IllegalArgumentException(
+                        "Invalid grid area configuration: " + string);
+        }
+        else
+            throw new IllegalArgumentException("Invalid grid area configuration: " + string);
+        return switch (split[0]) {
+            case "active-screen" -> new Area.ActiveScreen(width, height);
+            case "active-window" -> new Area.ActiveWindow(width, height);
+            default -> throw new IllegalArgumentException(
+                    "Invalid grid area configuration: " + string);
+        };
+    }
+
+    private static Synchronization parseSynchronization(String string) {
         return switch (string) {
-            case "full-screen" -> new GridType.FullScreen();
-            case "active-window" -> new GridType.ActiveWindow();
-            default -> {
-                Matcher matcher =
-                        Pattern.compile("follow-mouse (\\d+) (\\d+)").matcher(string);
-                if (!matcher.matches())
-                    throw new IllegalArgumentException("Invalid grid type: " + string);
-                yield new FollowMouse(Integer.parseUnsignedInt(matcher.group(1)),
-                        Integer.parseUnsignedInt(matcher.group(2)));
-            }
+            case "mouse-and-grid-center-unsynchronized" ->
+                    Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED;
+            case "mouse-follows-grid-center" -> Synchronization.MOUSE_FOLLOWS_GRID_CENTER;
+            case "grid-center-follows-mouse" -> Synchronization.GRID_CENTER_FOLLOWS_MOUSE;
+            default -> throw new IllegalArgumentException(
+                    "Invalid grid synchronization configuration: " + string);
         };
     }
 

@@ -1,26 +1,26 @@
 package jmouseable.jmouseable;
 
-public record GridConfiguration(GridType type,
-                                boolean autoMoveToGridCenter, int snapRowCount,
+public record GridConfiguration(Area area,
+                                Synchronization synchronization, int snapRowCount,
                                 int snapColumnCount, boolean visible, String lineHexColor,
                                 int lineThickness) {
 
     public static class GridConfigurationBuilder {
-        private GridType type;
-        private Boolean autoMoveToGridCenter;
+        private Area area;
+        private Synchronization synchronization;
         private Integer snapRowCount;
         private Integer snapColumnCount;
         private Boolean visible;
         private String lineHexColor;
         private Integer lineThickness;
 
-        public GridConfigurationBuilder type(GridType type) {
-            this.type = type;
+        public GridConfigurationBuilder area(Area area) {
+            this.area = area;
             return this;
         }
 
-        public GridConfigurationBuilder autoMoveToGridCenter(boolean autoMoveToGridCenter) {
-            this.autoMoveToGridCenter = autoMoveToGridCenter;
+        public GridConfigurationBuilder synchronization(Synchronization synchronization) {
+            this.synchronization = synchronization;
             return this;
         }
 
@@ -53,12 +53,12 @@ public record GridConfiguration(GridType type,
             return snapRowCount;
         }
 
-        public GridType type() {
-            return type;
+        public Area area() {
+            return area;
         }
 
-        public Boolean autoMoveToGridCenter() {
-            return autoMoveToGridCenter;
+        public Synchronization synchronization() {
+            return synchronization;
         }
 
         public Integer snapColumnCount() {
@@ -78,7 +78,7 @@ public record GridConfiguration(GridType type,
         }
 
         public GridConfiguration build() {
-            return new GridConfiguration(type, autoMoveToGridCenter, snapRowCount,
+            return new GridConfiguration(area, synchronization, snapRowCount,
                     snapColumnCount, visible, lineHexColor, lineThickness);
         }
 

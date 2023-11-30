@@ -135,7 +135,7 @@ public class WindowsPlatform implements Platform {
             boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
             logger.info(
                     "Keyboard and mouse hooks uninstalled " + keyboardHookUnhooked + " " +
-                    mouseHookUnhooked);
+                    (mouseHookUnhooked ? "successfully" : "unsuccessfully"));
             releaseSingleInstanceMutex();
             logger.info("Single instance mutex released");
         }));
