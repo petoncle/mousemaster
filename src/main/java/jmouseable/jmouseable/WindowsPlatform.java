@@ -70,6 +70,7 @@ public class WindowsPlatform implements Platform {
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
         Set<Key> allComboKeys = new HashSet<>();
+        Set<String> hintFontNames = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 combo.precondition()
@@ -88,6 +89,11 @@ public class WindowsPlatform implements Platform {
                      .map(ComboMove::key)
                      .forEach(allComboKeys::add);
             }
+            hintFontNames.add(mode.gridConfiguration().hintFontName());
+        }
+        for (String hintFontName : hintFontNames) {
+            if (!WindowsOverlay.doesFontExist(hintFontName))
+                throw new IllegalStateException("Unable to find font: " + hintFontName);
         }
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboKeys, keyboardLayout);
         WinDef.POINT mousePosition = WindowsMouse.cursorPositionAndSize().position();

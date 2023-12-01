@@ -247,7 +247,7 @@ public class WindowsOverlay {
                 // In Windows API, negative font size means "point size" (as opposed to pixels).
                 WinDef.HFONT hintFont = ExtendedGDI32.INSTANCE.CreateFontA(
                         fontHeight, 0, 0, 0,
-                        FW_NORMAL,
+                        FW_BOLD,
                         new WinDef.DWORD(0),
                         new WinDef.DWORD(0),
                         new WinDef.DWORD(0),
@@ -374,6 +374,38 @@ public class WindowsOverlay {
                 bestIndicatorY(mousePosition.y, cursorPositionAndSize.height(),
                         monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
                 indicatorSize, indicatorSize, false);
+    }
+
+    public static boolean doesFontExist(String fontName) {
+        ExtendedGDI32.EnumFontFamExProc fontEnumProc = new ExtendedGDI32.EnumFontFamExProc() {
+            public int callback(LOGFONT lpelfe, TEXTMETRIC lpntme, WinDef.DWORD FontType, WinDef.LPARAM lParam) {
+                int nameLength = 0;
+                for (int i = 0; i < lpelfe.lfFaceName.length; i++) {
+                    if (lpelfe.lfFaceName[i] == 0) {
+                        nameLength = i;
+                        break;
+                    }
+                }
+                String faceName = new String(lpelfe.lfFaceName, 0, nameLength);
+                if (fontName.equalsIgnoreCase(faceName)) {
+                    // Font found
+                    return 0; // Return 0 to stop enumeration
+                }
+                return 1; // Continue enumeration
+            }
+        };
+        WinDef.HDC hdc = User32.INSTANCE.GetDC(null);
+        LOGFONT logfont = new LOGFONT();
+        logfont.lfCharSet = ExtendedGDI32.DEFAULT_CHARSET;
+        byte[] fontBytes = fontName.getBytes();
+        System.arraycopy(fontBytes, 0, logfont.lfFaceName, 0,
+                Math.min(fontBytes.length, logfont.lfFaceName.length - 1));
+        // lfFaceName[this.lfFaceName.length - 1] is 0, it is the null-terminator.
+        boolean fontExists =
+                ExtendedGDI32.INSTANCE.EnumFontFamiliesExA(hdc, logfont, fontEnumProc,
+                        new WinDef.LPARAM(0), new WinDef.DWORD(0)) == 0;
+        User32.INSTANCE.ReleaseDC(null, hdc);
+        return fontExists;
     }
 
 }

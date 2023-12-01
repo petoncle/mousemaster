@@ -1,9 +1,13 @@
 package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
+import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.GDI32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
+import com.sun.jna.win32.W32APITypeMapper;
+
+import java.util.List;
 
 public interface ExtendedGDI32 extends GDI32 {
     ExtendedGDI32 INSTANCE = Native.load("gdi32", ExtendedGDI32.class);
@@ -18,6 +22,7 @@ public interface ExtendedGDI32 extends GDI32 {
 
     int LOGPIXELSY = 90;
     int FW_NORMAL = 400;
+    int FW_BOLD = 700;
     int ANSI_CHARSET = 0;
     int OUT_DEFAULT_PRECIS = 0;
     int CLIP_DEFAULT_PRECIS = 0;
@@ -42,6 +47,80 @@ public interface ExtendedGDI32 extends GDI32 {
     boolean GetTextExtentPoint32A(WinDef.HDC hdc, String lpString, int cbString, WinUser.SIZE lpSize);
     boolean SetTextColor(WinDef.HDC hdc, int crColor);
     boolean SetBkMode(WinDef.HDC hdc, int iBkMode);
+
+    interface EnumFontFamExProc extends StdCallCallback {
+        int callback(LOGFONT lpelfe, TEXTMETRIC lpntme, WinDef.DWORD FontType, WinDef.LPARAM lParam);
+    }
+
+    int EnumFontFamiliesExA(WinDef.HDC hdc, LOGFONT lpLogfont,
+                            EnumFontFamExProc lpEnumFontFamExProc, WinDef.LPARAM lParam,
+                            WinDef.DWORD dwFlags);
+
+    public class TEXTMETRIC extends Structure {
+        public WinDef.LONG tmHeight;
+        public WinDef.LONG tmAscent;
+        public WinDef.LONG tmDescent;
+        public WinDef.LONG tmInternalLeading;
+        public WinDef.LONG tmExternalLeading;
+        public WinDef.LONG tmAveCharWidth;
+        public WinDef.LONG tmMaxCharWidth;
+        public WinDef.LONG tmWeight;
+        public WinDef.LONG tmOverhang;
+        public WinDef.LONG tmDigitizedAspectX;
+        public WinDef.LONG tmDigitizedAspectY;
+        public byte tmFirstChar;
+        public byte tmLastChar;
+        public byte tmDefaultChar;
+        public byte tmBreakChar;
+        public byte tmItalic;
+        public byte tmUnderlined;
+        public byte tmStruckOut;
+        public byte tmPitchAndFamily;
+        public byte tmCharSet;
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("tmHeight", "tmAscent", "tmDescent", "tmInternalLeading",
+                    "tmExternalLeading", "tmAveCharWidth", "tmMaxCharWidth", "tmWeight",
+                    "tmOverhang", "tmDigitizedAspectX", "tmDigitizedAspectY", "tmFirstChar",
+                    "tmLastChar", "tmDefaultChar", "tmBreakChar", "tmItalic", "tmUnderlined",
+                    "tmStruckOut", "tmPitchAndFamily", "tmCharSet");
+        }
+
+        public TEXTMETRIC() {
+            super();
+        }
+    }
+
+    public class LOGFONT extends Structure {
+        public WinDef.LONG lfHeight;
+        public WinDef.LONG lfWidth;
+        public WinDef.LONG lfEscapement;
+        public WinDef.LONG lfOrientation;
+        public WinDef.LONG lfWeight;
+        public byte lfItalic;
+        public byte lfUnderline;
+        public byte lfStrikeOut;
+        public byte lfCharSet;
+        public byte lfOutPrecision;
+        public byte lfClipPrecision;
+        public byte lfQuality;
+        public byte lfPitchAndFamily;
+        public byte[] lfFaceName = new byte[32];
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("lfHeight", "lfWidth", "lfEscapement", "lfOrientation", "lfWeight",
+                    "lfItalic", "lfUnderline", "lfStrikeOut", "lfCharSet", "lfOutPrecision",
+                    "lfClipPrecision", "lfQuality", "lfPitchAndFamily", "lfFaceName");
+        }
+
+        public LOGFONT() {
+            super(W32APITypeMapper.DEFAULT);
+        }
+    }
+
+    byte DEFAULT_CHARSET = 1;
 
 
 }
