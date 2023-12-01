@@ -44,7 +44,7 @@ public class ConfigurationParser {
                .hintFontHexColor("#FFFFFF")
                .hintBoxHexColor("#204E8A")
                .lineVisible(false)
-               .lineHexColor(null)
+               .lineHexColor("#FF0000")
                .lineThickness(1);
         builder.timeout().enabled(false);
         builder.indicator()
@@ -178,6 +178,10 @@ public class ConfigurationParser {
                             modeNameReferences.add(modeAfterHintSelection);
                             mode.grid().modeAfterHintSelection(modeAfterHintSelection);
                         }
+                        case "click-button-after-hint-selection" -> mode.grid()
+                                                                        .clickButtonAfterHintSelection(
+                                                                                parseButton(
+                                                                                        propertyValue));
                         case "line-visible" ->
                                 mode.grid().lineVisible(Boolean.parseBoolean(propertyValue));
                         case "line-color" ->
@@ -392,6 +396,7 @@ public class ConfigurationParser {
      * - timeout configuration
      * - switch mode commands
      * - mode after hint selection
+     * - clickButtonAfterHintSelection
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()
@@ -480,6 +485,15 @@ public class ConfigurationParser {
                     "Invalid " + configurationName + " configuration: " + integer +
                     " is not less than or equal to " + max);
         return integer;
+    }
+
+    private static Button parseButton(String string) {
+        return switch (string) {
+            case "left" -> Button.LEFT_BUTTON;
+            case "middle" -> Button.MIDDLE_BUTTON;
+            case "right" -> Button.RIGHT_BUTTON;
+            default -> throw new IllegalArgumentException("Invalid button: " + string);
+        };
     }
 
     private static List<Key> parseHintKeys(String string) {

@@ -6,7 +6,8 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
                                 int columnCount, boolean hintEnabled, List<Key> hintKeys,
                                 Key hintUndoKey, String hintFontName, int hintFontSize,
                                 String hintFontHexColor, String hintBoxHexColor,
-                                String modeAfterHintSelection, boolean lineVisible,
+                                String modeAfterHintSelection,
+                                Button clickButtonAfterHintSelection, boolean lineVisible,
                                 String lineHexColor, int lineThickness) {
 
     public static class GridConfigurationBuilder {
@@ -22,6 +23,7 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
         private String hintFontHexColor;
         private String hintBoxHexColor;
         private String modeAfterHintSelection;
+        private Button clickButtonAfterHintSelection;
         private Boolean lineVisible;
         private String lineHexColor;
         private Integer lineThickness;
@@ -84,6 +86,12 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
         public GridConfigurationBuilder modeAfterHintSelection(
                 String modeAfterHintSelection) {
             this.modeAfterHintSelection = modeAfterHintSelection;
+            return this;
+        }
+
+        public GridConfigurationBuilder clickButtonAfterHintSelection(
+                Button clickButtonAfterHintSelection) {
+            this.clickButtonAfterHintSelection = clickButtonAfterHintSelection;
             return this;
         }
 
@@ -150,6 +158,10 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
             return modeAfterHintSelection;
         }
 
+        public Button clickButtonAfterHintSelection() {
+            return clickButtonAfterHintSelection;
+        }
+
         public Boolean lineVisible() {
             return lineVisible;
         }
@@ -166,7 +178,8 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
             return new GridConfiguration(area, synchronization, rowCount, columnCount,
                     hintEnabled, hintKeys, hintUndoKey, hintFontName, hintFontSize,
                     hintFontHexColor, hintBoxHexColor, modeAfterHintSelection,
-                    lineVisible, lineHexColor, lineThickness);
+                    clickButtonAfterHintSelection, lineVisible, lineHexColor,
+                    lineThickness);
         }
 
     }

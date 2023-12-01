@@ -248,15 +248,11 @@ public class GridManager implements MousePositionListener, ModeListener {
             if (oldGridConfiguration.hintEnabled() &&
                 oldGridConfiguration.rowCount() == gridConfiguration.rowCount() &&
                 oldGridConfiguration.columnCount() == gridConfiguration.columnCount() &&
-                oldGridConfiguration.hintKeys().equals(gridConfiguration.hintKeys()) &&
-                oldGridConfiguration.hintFontName()
-                                    .equals(gridConfiguration.hintFontName()) &&
-                oldGridConfiguration.hintFontSize() == gridConfiguration.hintFontSize() &&
-                oldGridConfiguration.hintFontHexColor()
-                                    .equals(gridConfiguration.hintFontHexColor()) &&
-                oldGridConfiguration.hintBoxHexColor()
-                                    .equals(gridConfiguration.hintBoxHexColor())) {
-                grid.hints(this.grid.hints());
+                oldGridConfiguration.hintKeys().equals(gridConfiguration.hintKeys())) {
+                // Keep the old focusedHintKeySequence.
+                // This is useful for clicking-hint-mode that extends hint-mode.
+                grid.hints(this.grid.hints())
+                    .focusedHintKeySequence(this.grid.focusedHintKeySequence());
                 return grid;
             }
         }
@@ -353,6 +349,13 @@ public class GridManager implements MousePositionListener, ModeListener {
             return true;
         if (exactMatchHint != null) {
             cutGridToCell(exactMatchHintRowIndex, exactMatchHintColumnIndex);
+            if (currentMode.gridConfiguration().clickButtonAfterHintSelection() != null) {
+                switch (currentMode.gridConfiguration().clickButtonAfterHintSelection()) {
+                    case LEFT_BUTTON -> mouseController.clickLeft();
+                    case MIDDLE_BUTTON -> mouseController.clickMiddle();
+                    case RIGHT_BUTTON -> mouseController.clickRight();
+                }
+            }
             if (currentMode.gridConfiguration().modeAfterHintSelection() != null)
                 modeController.switchMode(
                         currentMode.gridConfiguration().modeAfterHintSelection());

@@ -149,6 +149,21 @@ public class MouseController {
             moveDuration = 0;
     }
 
+    public void clickLeft() {
+        WindowsMouse.pressLeft();
+        WindowsMouse.releaseLeft();
+    }
+
+    public void clickMiddle() {
+        WindowsMouse.pressMiddle();
+        WindowsMouse.releaseMiddle();
+    }
+
+    public void clickRight() {
+        WindowsMouse.pressRight();
+        WindowsMouse.releaseRight();
+    }
+
     public void pressLeft() {
         leftPressing = true;
         WindowsMouse.pressLeft();
