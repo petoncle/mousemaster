@@ -257,10 +257,11 @@ public class GridManager implements MousePositionListener, ModeListener {
         }
         int rowCount = gridConfiguration.rowCount();
         int columnCount = gridConfiguration.columnCount();
-        List<Key> keys = gridConfiguration.hintKeys();
+        List<Key> keySubset =
+                hintKeySubset(gridConfiguration.hintKeys(), rowCount, columnCount);
         int hintCount = rowCount * columnCount;
         // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
-        int hintLength = (int) Math.ceil(Math.log(hintCount) / Math.log(keys.size()));
+        int hintLength = (int) Math.ceil(Math.log(hintCount) / Math.log(keySubset.size()));
         Hint[][] hints = new Hint[rowCount][columnCount];
         int cellIndex = 0;
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
@@ -272,15 +273,20 @@ public class GridManager implements MousePositionListener, ModeListener {
                 // za, zb, zc, ..., zz
                 // The ideal situation is when rowCount = columnCount = hintKeys.size().
                 for (int i = 0; i < hintLength; i++)
-                    keySequence.add(keys.get(
-                            (int) (cellIndex / Math.pow(keys.size(), hintLength - 1 - i) %
-                                   keys.size())));
+                    keySequence.add(keySubset.get(
+                            (int) (cellIndex / Math.pow(keySubset.size(), hintLength - 1 - i) %
+                                   keySubset.size())));
                 cellIndex++;
                 hints[rowIndex][columnIndex] = new Hint(keySequence);
             }
         }
         grid.hints(hints);
         return grid;
+    }
+
+    private static List<Key> hintKeySubset(List<Key> keys, int rowCount, int columnCount) {
+        return rowCount == columnCount && rowCount < keys.size() ?
+                keys.subList(0, rowCount) : keys;
     }
 
     private void gridChanged() {
@@ -302,14 +308,17 @@ public class GridManager implements MousePositionListener, ModeListener {
     public boolean keyPressed(Key key) {
         if (!grid.hintEnabled())
             return false;
-        if (!currentMode.gridConfiguration().hintKeys().contains(key))
+        List<Key> keySubset =
+                hintKeySubset(currentMode.gridConfiguration().hintKeys(), grid.rowCount(),
+                        grid.columnCount());
+        if (!keySubset.contains(key))
             return false;
         List<Key> newFocusedHintKeySequence =
                 new ArrayList<>(grid.focusedHintKeySequence());
         newFocusedHintKeySequence.add(key);
         Hint exactMatchHint = null;
         int exactMatchHintRowIndex = -1, exactMatchHintColumnIndex = -1;
-        boolean atLeastOneHintIsPrefixedByNewFocusedHintKeySequence = false;
+        boolean atLeastOneHintIsContainsNewFocusedHintKeySequence = false;
         row_loop:
         for (int rowIndex = 0; rowIndex < grid.hints().length; rowIndex++) {
             for (int columnIndex = 0;
@@ -317,11 +326,9 @@ public class GridManager implements MousePositionListener, ModeListener {
                 Hint hint = grid.hints()[rowIndex][columnIndex];
                 if (hint.keySequence().size() < newFocusedHintKeySequence.size())
                     continue;
-                if (!hint.keySequence()
-                         .get(newFocusedHintKeySequence.size() - 1)
-                         .equals(key))
+                if (!hint.containsSequence(newFocusedHintKeySequence))
                     continue;
-                atLeastOneHintIsPrefixedByNewFocusedHintKeySequence = true;
+                atLeastOneHintIsContainsNewFocusedHintKeySequence = true;
                 if (hint.keySequence().size() == newFocusedHintKeySequence.size()) {
                     exactMatchHint = hint;
                     exactMatchHintRowIndex = rowIndex;
@@ -330,7 +337,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                 }
             }
         }
-        if (!atLeastOneHintIsPrefixedByNewFocusedHintKeySequence)
+        if (!atLeastOneHintIsContainsNewFocusedHintKeySequence)
             return true;
         if (exactMatchHint != null) {
             cutGridToCell(exactMatchHintRowIndex, exactMatchHintColumnIndex);
@@ -342,7 +349,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         }
         return true;
     }
-    // TODO focused-hint-font-color,
+    // TODO focused-hint-font-color, hint-undo-key, hint-undo-all-key
 
 }
 

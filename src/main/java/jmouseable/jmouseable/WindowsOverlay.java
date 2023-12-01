@@ -242,7 +242,7 @@ public class WindowsOverlay {
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 Hint hint = hints[rowIndex][columnIndex];
-                if (!hint.isPrefixedBy(focusedHintKeySequence))
+                if (!hint.containsSequence(focusedHintKeySequence))
                     continue;
                 // Convert point size to logical units.
                 // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
@@ -273,11 +273,12 @@ public class WindowsOverlay {
                 // Calculate text and box positions.
                 int textX = columnIndex * cellWidth + (cellWidth - textSize.cx) / 2;
                 int textY = rowIndex * cellHeight + (cellHeight - textSize.cy) / 2;
-                int padding = 10;
-                int boxLeft = textX - padding;
-                int boxTop = textY - padding;
-                int boxRight = textX + textSize.cx + padding;
-                int boxBottom = textY + textSize.cy + padding;
+                int xPadding = (int) (0.2d * textSize.cx);
+                int yPadding = (int) (0.1d * textSize.cy);
+                int boxLeft = textX - xPadding;
+                int boxTop = textY - yPadding;
+                int boxRight = textX + textSize.cx + xPadding;
+                int boxBottom = textY + textSize.cy + yPadding;
                 // Draw background box.
                 WinDef.HBRUSH boxBrush = ExtendedGDI32.INSTANCE.CreateSolidBrush(
                         hexColorStringToInt(boxHexColor));

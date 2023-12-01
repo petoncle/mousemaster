@@ -1,14 +1,14 @@
 package jmouseable.jmouseable;
 
+import java.util.Collections;
 import java.util.List;
 
 public record Hint(List<Key> keySequence) {
 
-    boolean isPrefixedBy(List<Key> focusedHintKeySequence) {
+    boolean containsSequence(List<Key> focusedHintKeySequence) {
         if (focusedHintKeySequence.isEmpty())
             return true;
-        return keySequence.subList(0, focusedHintKeySequence.size())
-                          .equals(focusedHintKeySequence);
+        return Collections.indexOfSubList(keySequence, focusedHintKeySequence) != -1;
     }
 
 }
