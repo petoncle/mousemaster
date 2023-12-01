@@ -148,8 +148,10 @@ public class ConfigurationParser {
                                                                         50));
                         case "hint-enabled" ->
                                 mode.grid().hintEnabled(Boolean.parseBoolean(propertyValue));
-                        case "hint-keys" -> mode.grid().hintKeys(parseHintKeys(
-                                propertyValue));
+                        case "hint-keys" ->
+                                mode.grid().hintKeys(parseHintKeys(propertyValue));
+                        case "hint-undo" ->
+                                mode.grid().hintUndoKey(Key.ofName(propertyValue));
                         case "hint-font-name" -> mode.grid().hintFontName(propertyValue);
                         case "hint-font-size" -> mode.grid()
                                                      .hintFontSize(parseUnsignedInteger(
@@ -417,6 +419,8 @@ public class ConfigurationParser {
             childMode.grid().hintEnabled(parentMode.gridConfiguration().hintEnabled());
         if (childMode.grid().hintKeys() == null)
             childMode.grid().hintKeys(parentMode.gridConfiguration().hintKeys());
+        if (childMode.grid().hintUndoKey() == null)
+            childMode.grid().hintUndoKey(parentMode.gridConfiguration().hintUndoKey());
         if (childMode.grid().hintFontName() == null)
             childMode.grid().hintFontName(parentMode.gridConfiguration().hintFontName());
         if (childMode.grid().hintFontSize() == null)

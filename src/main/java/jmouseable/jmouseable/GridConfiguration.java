@@ -4,7 +4,7 @@ import java.util.List;
 
 public record GridConfiguration(Area area, Synchronization synchronization, int rowCount,
                                 int columnCount, boolean hintEnabled, List<Key> hintKeys,
-                                String hintFontName, int hintFontSize,
+                                Key hintUndoKey, String hintFontName, int hintFontSize,
                                 String hintFontHexColor, String hintBoxHexColor,
                                 String modeAfterHintSelection, boolean lineVisible,
                                 String lineHexColor, int lineThickness) {
@@ -16,6 +16,7 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
         private Integer columnCount;
         private Boolean hintEnabled;
         private List<Key> hintKeys;
+        private Key hintUndoKey;
         private String hintFontName;
         private Integer hintFontSize;
         private String hintFontHexColor;
@@ -52,6 +53,11 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
 
         public GridConfigurationBuilder hintKeys(List<Key> hintKeys) {
             this.hintKeys = hintKeys;
+            return this;
+        }
+
+        public GridConfigurationBuilder hintUndoKey(Key hintUndoKey) {
+            this.hintUndoKey = hintUndoKey;
             return this;
         }
 
@@ -120,6 +126,10 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
             return hintKeys;
         }
 
+        public Key hintUndoKey() {
+            return hintUndoKey;
+        }
+
         public String hintFontName() {
             return hintFontName;
         }
@@ -154,9 +164,9 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
 
         public GridConfiguration build() {
             return new GridConfiguration(area, synchronization, rowCount, columnCount,
-                    hintEnabled, hintKeys, hintFontName, hintFontSize, hintFontHexColor,
-                    hintBoxHexColor, modeAfterHintSelection, lineVisible, lineHexColor,
-                    lineThickness);
+                    hintEnabled, hintKeys, hintUndoKey, hintFontName, hintFontSize,
+                    hintFontHexColor, hintBoxHexColor, modeAfterHintSelection,
+                    lineVisible, lineHexColor, lineThickness);
         }
 
     }

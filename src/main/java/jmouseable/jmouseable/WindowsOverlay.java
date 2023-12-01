@@ -150,13 +150,14 @@ public class WindowsOverlay {
         switch (uMsg) {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                // The area has to be cleared otherwise the previous drawings will be drawn.
-                clearWindow(hdc, ps.rcPaint);
                 if (!showingGrid) {
+                    WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
+                    // The area has to be cleared otherwise the previous drawings will be drawn.
+                    clearWindow(hdc, ps.rcPaint);
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                     break;
                 }
+                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 WinDef.HDC memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
                 // We may want to use the window's full dimension (GetClientRect) instead of rcPaint?
                 int width = ps.rcPaint.right - ps.rcPaint.left;
@@ -164,6 +165,7 @@ public class WindowsOverlay {
                 WinDef.HBITMAP
                         hBitmap = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
                 WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
+                clearWindow(memDC, ps.rcPaint);
                 if (currentGrid.lineVisible())
                     drawGridLines(memDC, ps.rcPaint);
                 if (currentGrid.hintEnabled())

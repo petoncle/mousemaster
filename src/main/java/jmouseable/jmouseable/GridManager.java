@@ -313,6 +313,13 @@ public class GridManager implements MousePositionListener, ModeListener {
     public boolean keyPressed(Key key) {
         if (!grid.hintEnabled())
             return false;
+        if (key.equals(currentMode.gridConfiguration().hintUndoKey())) {
+            if (!grid.focusedHintKeySequence().isEmpty()) {
+                grid = grid.builder().focusedHintKeySequence(List.of()).build();
+                gridChanged();
+            }
+            return true;
+        }
         List<Key> keySubset =
                 hintKeySubset(currentMode.gridConfiguration().hintKeys(), grid.rowCount(),
                         grid.columnCount());
@@ -356,7 +363,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         }
         return true;
     }
-    // TODO focused-hint-font-color, hint-undo-key, hint-undo-all-key
+    // TODO focused-hint-font-color
 
 }
 
