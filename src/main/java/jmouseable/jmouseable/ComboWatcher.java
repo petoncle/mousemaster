@@ -201,9 +201,8 @@ public class ComboWatcher implements ModeListener {
         return commandsToRun.stream()
                             .sorted(Comparator.comparing(ComboAndCommands::combo,
                                     Comparator.comparing(Combo::sequence,
-                                            Comparator.comparingInt(
-                                                    sequence -> sequence.moves()
-                                                                        .size()))))
+                                    Comparator.comparing(ComboSequence::moves,
+                                    Comparator.comparingInt(List::size)))))
                             .map(ComboAndCommands::commands)
                             .flatMap(Collection::stream)
                             .distinct()
