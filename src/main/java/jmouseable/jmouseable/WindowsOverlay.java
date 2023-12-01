@@ -153,12 +153,27 @@ public class WindowsOverlay {
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 // The area has to be cleared otherwise the previous drawings will be drawn.
                 clearWindow(hdc, ps.rcPaint);
-                if (showingGrid) {
-                    if (currentGrid.lineVisible())
-                        drawGridLines(hdc, ps.rcPaint);
-                    if (currentGrid.hintEnabled())
-                        drawGridHints(hdc, ps.rcPaint);
+                if (!showingGrid) {
+                    ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
+                    break;
                 }
+                WinDef.HDC memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
+                // We may want to use the window's full dimension (GetClientRect) instead of rcPaint?
+                int width = ps.rcPaint.right - ps.rcPaint.left;
+                int height = ps.rcPaint.bottom - ps.rcPaint.top;
+                WinDef.HBITMAP
+                        hBitmap = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
+                WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
+                if (currentGrid.lineVisible())
+                    drawGridLines(memDC, ps.rcPaint);
+                if (currentGrid.hintEnabled())
+                    drawGridHints(memDC, ps.rcPaint);
+                // Copy (blit) the off-screen buffer to the screen.
+                GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
+                        GDI32.SRCCOPY);
+                GDI32.INSTANCE.SelectObject(memDC, oldBitmap);
+                GDI32.INSTANCE.DeleteObject(hBitmap);
+                GDI32.INSTANCE.DeleteDC(memDC);
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
         }

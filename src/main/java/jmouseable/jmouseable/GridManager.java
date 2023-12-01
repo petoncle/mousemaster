@@ -357,7 +357,6 @@ public class GridManager implements MousePositionListener, ModeListener {
         return true;
     }
     // TODO focused-hint-font-color, hint-undo-key, hint-undo-all-key
-    // TODO paint in buffer
 
 }
 
