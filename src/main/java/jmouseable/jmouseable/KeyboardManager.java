@@ -11,11 +11,13 @@ public class KeyboardManager {
     private static final Logger logger = LoggerFactory.getLogger(KeyboardManager.class);
 
     private final ComboWatcher comboWatcher;
+    private final GridManager gridManager;
     private final Map<Key, PressKeyEventProcessing> currentlyPressedKeys = new HashMap<>();
-    private boolean pressingNonComboKey;
+    private boolean pressingNotHandledKey; // Handled means part of combo or part of hint.
 
-    public KeyboardManager(ComboWatcher comboWatcher) {
+    public KeyboardManager(ComboWatcher comboWatcher, GridManager gridManager) {
         this.comboWatcher = comboWatcher;
+        this.gridManager = gridManager;
     }
 
     public void update(double delta) {
@@ -38,13 +40,16 @@ public class KeyboardManager {
         if (keyEvent.isPress()) {
             PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
             if (processing == null) {
-                if (allCurrentlyPressedKeysArePartOfCombo()) {
-                    processing = comboWatcher.keyEvent(keyEvent);
-                    pressingNonComboKey = !processing.partOfCombo();
+                if (allCurrentlyPressedKeysAreHandled()) {
+                    if (gridManager.keyPressed(keyEvent.key()))
+                        processing = PressKeyEventProcessing.partOfHint();
+                    else
+                        processing = comboWatcher.keyEvent(keyEvent);
+                    pressingNotHandledKey = !processing.handled();
                 }
                 else {
-                    processing = PressKeyEventProcessing.NOT_PART_OF_COMBO;
-                    pressingNonComboKey = true;
+                    processing = PressKeyEventProcessing.NOT_HANDLED;
+                    pressingNotHandledKey = true;
                 }
                 currentlyPressedKeys.put(key, processing);
             }
@@ -53,13 +58,14 @@ public class KeyboardManager {
         else {
             PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
             if (processing != null) {
-                if (processing.partOfCombo()) {
-                    comboWatcher.keyEvent(keyEvent); // Returns null.
+                if (processing.handled()) {
+                    if (processing.isPartOfCombo())
+                        comboWatcher.keyEvent(keyEvent); // Returns null.
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.
                     return processing.mustBeEaten();
                 }
                 else {
-                    pressingNonComboKey = !allCurrentlyPressedKeysArePartOfCombo();
+                    pressingNotHandledKey = !allCurrentlyPressedKeysAreHandled();
                     return false;
                 }
             }
@@ -72,14 +78,14 @@ public class KeyboardManager {
         return currentlyPressedKeys.containsKey(key);
     }
 
-    public boolean allCurrentlyPressedKeysArePartOfCombo() {
+    public boolean allCurrentlyPressedKeysAreHandled() {
         return currentlyPressedKeys.values()
                                    .stream()
-                                   .allMatch(PressKeyEventProcessing::partOfCombo);
+                                   .allMatch(PressKeyEventProcessing::handled);
     }
 
-    public boolean pressingNonComboKey() {
-        return pressingNonComboKey;
+    public boolean pressingNotHandledKey() {
+        return pressingNotHandledKey;
     }
 
 }

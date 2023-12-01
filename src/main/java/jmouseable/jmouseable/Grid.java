@@ -1,9 +1,12 @@
 package jmouseable.jmouseable;
 
+import java.util.List;
+
 public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
-                   boolean hintEnabled, Hint[][] hints, String hintFontName,
-                   int hintFontSize, String hintFontHexColor, String hintBoxHexColor,
-                   boolean lineVisible, String lineHexColor, int lineThickness) {
+                   boolean hintEnabled, Hint[][] hints, List<Key> focusedHintKeySequence,
+                   String hintFontName, int hintFontSize, String hintFontHexColor,
+                   String hintBoxHexColor, boolean lineVisible, String lineHexColor,
+                   int lineThickness) {
 
     public GridBuilder builder() {
         return new GridBuilder(this);
@@ -18,6 +21,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         private int columnCount;
         private boolean hintEnabled;
         private Hint[][] hints;
+        private List<Key> focusedHintKeySequence = List.of();
         private String hintFontName;
         private int hintFontSize;
         private String hintFontHexColor;
@@ -38,6 +42,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             this.columnCount = grid.columnCount;
             this.hintEnabled = grid.hintEnabled;
             this.hints = grid.hints;
+            this.focusedHintKeySequence = grid.focusedHintKeySequence;
             this.hintFontName = grid.hintFontName;
             this.hintFontSize = grid.hintFontSize;
             this.hintFontHexColor = grid.hintFontHexColor;
@@ -77,6 +82,10 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
 
         public Hint[][] hints() {
             return hints;
+        }
+
+        public List<Key> focusedHintKeySequence() {
+            return focusedHintKeySequence;
         }
 
         public String hintFontName() {
@@ -147,6 +156,11 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
+        public GridBuilder focusedHintKeySequence(List<Key> focusedHintKeySequence) {
+            this.focusedHintKeySequence = focusedHintKeySequence;
+            return this;
+        }
+
         public GridBuilder hintFontName(String hintFontName) {
             this.hintFontName = hintFontName;
             return this;
@@ -184,8 +198,9 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
 
         public Grid build() {
             return new Grid(x, y, width, height, rowCount, columnCount, hintEnabled,
-                    hints, hintFontName, hintFontSize, hintFontHexColor, hintBoxHexColor,
-                    lineVisible, lineHexColor, lineThickness);
+                    hints, focusedHintKeySequence, hintFontName, hintFontSize,
+                    hintFontHexColor, hintBoxHexColor, lineVisible, lineHexColor,
+                    lineThickness);
         }
     }
 

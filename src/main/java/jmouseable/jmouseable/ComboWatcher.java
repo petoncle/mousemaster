@@ -72,14 +72,15 @@ public class ComboWatcher implements ModeListener {
             visitedModes.add(currentMode);
             beforeMode = currentMode;
             PressKeyEventProcessing processing = processKeyEventForCurrentMode(event);
-            partOfCombo |= processing.partOfCombo();
+            partOfCombo |= processing.handled();
             mustBeEaten |= processing.mustBeEaten();
             if (currentMode != beforeMode &&
                 currentMode.pauseComboProcessingWhenModeActivated())
                 break;
         } while (currentMode != beforeMode);
         return event.isRelease() ? null :
-                PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
+                (!partOfCombo ? PressKeyEventProcessing.notHandled() :
+                        PressKeyEventProcessing.partOfCombo(mustBeEaten));
     }
 
     private PressKeyEventProcessing processKeyEventForCurrentMode(KeyEvent event) {
@@ -180,7 +181,8 @@ public class ComboWatcher implements ModeListener {
                                                               .commandsByCombo()
                                                               .containsKey(combo));
         }
-        return PressKeyEventProcessing.of(partOfCombo, mustBeEaten);
+        return !partOfCombo ? PressKeyEventProcessing.notHandled() :
+                PressKeyEventProcessing.partOfCombo(mustBeEaten);
     }
 
     /**

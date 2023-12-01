@@ -21,6 +21,18 @@ public class GridManager implements MousePositionListener, ModeListener {
         this.mouseController = mouseController;
     }
 
+    private void cutGridToCell(int rowIndex, int columnIndex) {
+        int cellWidth = Math.max(1, grid.width() / grid.columnCount());
+        int cellHeight = Math.max(1, grid.height() / grid.rowCount());
+        grid = grid.builder()
+                   .x(grid.x() + columnIndex * cellWidth)
+                   .y(grid.y() + rowIndex * cellHeight)
+                   .width(cellWidth)
+                   .height(cellHeight)
+                   .build();
+        gridChanged();
+    }
+
     public void cutGridTop() {
         grid = grid.builder().height(Math.max(1, grid.height() / 2)).build();
         gridChanged();
@@ -110,21 +122,21 @@ public class GridManager implements MousePositionListener, ModeListener {
                 RectUtil.rectContains(grid.x(), grid.y(), grid.width(), grid.height(),
                         mouseX, mouseY);
         int x, y;
-        int rowWidth = Math.max(1, grid.width() / grid.rowCount());
-        int columnHeight = Math.max(1, grid.height() / grid.columnCount());
+        int cellWidth = Math.max(1, grid.width() / grid.columnCount());
+        int cellHeight = Math.max(1, grid.height() / grid.rowCount());
         if (mouseIsInsideGrid) {
-            double mouseRow = (double) (mouseX - grid.x()) / rowWidth;
-            double mouseColumn = (double) (mouseY - grid.y()) / columnHeight;
+            double mouseColumn = (double) (mouseX - grid.x()) / cellWidth;
+            double mouseRow = (double) (mouseY - grid.y()) / cellHeight;
             if (horizontal) {
-                x = grid.x() + (int) ((forward ? Math.floor(mouseRow) + 1 :
-                        Math.ceil(mouseRow) - 1) * rowWidth);
+                x = grid.x() + (int) ((forward ? Math.floor(mouseColumn) + 1 :
+                        Math.ceil(mouseColumn) - 1) * cellWidth);
                 x = Math.max(grid.x(), Math.min(grid.x() + grid.width(), x));
                 y = mouseY;
             }
             else {
                 x = mouseX;
-                y = grid.y() + (int) ((forward ? Math.floor(mouseColumn) + 1 :
-                        Math.ceil(mouseColumn) - 1) * columnHeight);
+                y = grid.y() + (int) ((forward ? Math.floor(mouseRow) + 1 :
+                        Math.ceil(mouseRow) - 1) * cellHeight);
                 y = Math.max(grid.y(), Math.min(grid.y() + grid.height(), y));
             }
             if (monitorManager.monitorContaining(x, y) == null) {
@@ -218,14 +230,14 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    private void buildHints(GridBuilder grid, GridConfiguration gridConfiguration) {
+    private GridBuilder buildHints(GridBuilder grid, GridConfiguration gridConfiguration) {
         grid.hintEnabled(gridConfiguration.hintEnabled())
             .hintFontName(gridConfiguration.hintFontName())
             .hintFontSize(gridConfiguration.hintFontSize())
             .hintFontHexColor(gridConfiguration.hintFontHexColor())
             .hintBoxHexColor(gridConfiguration.hintBoxHexColor());
         if (!gridConfiguration.hintEnabled())
-            return;
+            return grid;
         if (currentMode != null) {
             GridConfiguration oldGridConfiguration = currentMode.gridConfiguration();
             if (oldGridConfiguration.hintEnabled() &&
@@ -240,7 +252,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                 oldGridConfiguration.hintBoxHexColor()
                                     .equals(gridConfiguration.hintBoxHexColor())) {
                 grid.hints(this.grid.hints());
-                return;
+                return grid;
             }
         }
         int rowCount = gridConfiguration.rowCount();
@@ -268,6 +280,7 @@ public class GridManager implements MousePositionListener, ModeListener {
             }
         }
         grid.hints(hints);
+        return grid;
     }
 
     private void gridChanged() {
@@ -286,4 +299,50 @@ public class GridManager implements MousePositionListener, ModeListener {
         // No op.
     }
 
+    public boolean keyPressed(Key key) {
+        if (!grid.hintEnabled())
+            return false;
+        if (!currentMode.gridConfiguration().hintKeys().contains(key))
+            return false;
+        List<Key> newFocusedHintKeySequence =
+                new ArrayList<>(grid.focusedHintKeySequence());
+        newFocusedHintKeySequence.add(key);
+        Hint exactMatchHint = null;
+        int exactMatchHintRowIndex = -1, exactMatchHintColumnIndex = -1;
+        boolean atLeastOneHintIsPrefixedByNewFocusedHintKeySequence = false;
+        row_loop:
+        for (int rowIndex = 0; rowIndex < grid.hints().length; rowIndex++) {
+            for (int columnIndex = 0;
+                 columnIndex < grid.hints()[rowIndex].length; columnIndex++) {
+                Hint hint = grid.hints()[rowIndex][columnIndex];
+                if (hint.keySequence().size() < newFocusedHintKeySequence.size())
+                    continue;
+                if (!hint.keySequence()
+                         .get(newFocusedHintKeySequence.size() - 1)
+                         .equals(key))
+                    continue;
+                atLeastOneHintIsPrefixedByNewFocusedHintKeySequence = true;
+                if (hint.keySequence().size() == newFocusedHintKeySequence.size()) {
+                    exactMatchHint = hint;
+                    exactMatchHintRowIndex = rowIndex;
+                    exactMatchHintColumnIndex = columnIndex;
+                    break row_loop;
+                }
+            }
+        }
+        if (!atLeastOneHintIsPrefixedByNewFocusedHintKeySequence)
+            return true;
+        if (exactMatchHint != null) {
+            cutGridToCell(exactMatchHintRowIndex, exactMatchHintColumnIndex);
+            // TODO switch mode if necessary
+        }
+        else {
+            grid = grid.builder().focusedHintKeySequence(newFocusedHintKeySequence).build();
+            gridChanged();
+        }
+        return true;
+    }
+    // TODO focused-hint-font-color,
+
 }
+

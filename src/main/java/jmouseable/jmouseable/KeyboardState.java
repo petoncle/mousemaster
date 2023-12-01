@@ -10,7 +10,7 @@ public class KeyboardState {
     }
 
     public boolean pressingNonComboKey() {
-        return keyboardManager.pressingNonComboKey();
+        return keyboardManager.pressingNotHandledKey();
     }
 
 }

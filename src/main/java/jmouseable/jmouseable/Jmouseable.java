@@ -84,7 +84,7 @@ public class Jmouseable {
         GridManager gridManager = new GridManager(monitorManager, mouseController);
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager);
         ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
-        keyboardManager = new KeyboardManager(comboWatcher);
+        keyboardManager = new KeyboardManager(comboWatcher, gridManager);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
         modeController = new ModeController(configuration.modeMap(), mouseController, mouseState,

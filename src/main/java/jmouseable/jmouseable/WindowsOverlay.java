@@ -5,6 +5,7 @@ import com.sun.jna.platform.win32.*;
 import jmouseable.jmouseable.Grid.GridBuilder;
 import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -237,9 +238,12 @@ public class WindowsOverlay {
         String fontHexColor = currentGrid.hintFontHexColor();
         String boxHexColor = currentGrid.hintBoxHexColor();
         Hint[][] hints = currentGrid.hints();
+        List<Key> focusedHintKeySequence = currentGrid.focusedHintKeySequence();
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 Hint hint = hints[rowIndex][columnIndex];
+                if (!hint.isPrefixedBy(focusedHintKeySequence))
+                    continue;
                 // Convert point size to logical units.
                 // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
                 int fontHeight =
@@ -270,7 +274,7 @@ public class WindowsOverlay {
                 int textX = columnIndex * cellWidth + (cellWidth - textSize.cx) / 2;
                 int textY = rowIndex * cellHeight + (cellHeight - textSize.cy) / 2;
                 int padding = 10;
-                int boxLeft = textX - padding; // Add some padding for the box
+                int boxLeft = textX - padding;
                 int boxTop = textY - padding;
                 int boxRight = textX + textSize.cx + padding;
                 int boxBottom = textY + textSize.cy + padding;

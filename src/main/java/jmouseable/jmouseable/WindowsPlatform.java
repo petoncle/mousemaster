@@ -247,7 +247,7 @@ public class WindowsPlatform implements Platform {
                              String wParamString) {
         if (keyEvent.isPress()) {
             if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
-                keyboardManager.allCurrentlyPressedKeysArePartOfCombo()) {
+                keyboardManager.allCurrentlyPressedKeysAreHandled()) {
                 logKeyEvent(keyEvent, info, wParamString);
             }
         }
