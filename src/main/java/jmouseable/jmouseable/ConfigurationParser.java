@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static jmouseable.jmouseable.Command.*;
 
@@ -29,7 +30,13 @@ public class ConfigurationParser {
                .synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
                .rowCount(2)
                .columnCount(2)
-               .visible(false)
+               .hintEnabled(false)
+               .hintKeys(Stream.of("h", "j", "k", "l").map(Key::ofName).toList())
+               .hintFontName("Arial")
+               .hintFontSize(20)
+               .hintFontHexColor("#FFFFFF")
+               .hintBoxHexColor("#204E8A")
+               .lineVisible(false)
                .lineHexColor(null)
                .lineThickness(1);
         builder.timeout().enabled(false);
@@ -129,15 +136,30 @@ public class ConfigurationParser {
                         case "row-count" -> mode.grid()
                                                      .rowCount(parseUnsignedInteger(
                                                              "grid row-count",
-                                                             propertyValue, 1, 10));
+                                                             propertyValue, 1, 50));
                         case "column-count" -> mode.grid()
                                                         .columnCount(
                                                                 parseUnsignedInteger(
                                                                         "grid column-count",
                                                                         propertyValue, 1,
-                                                                        10));
-                        case "visible" ->
-                                mode.grid().visible(Boolean.parseBoolean(propertyValue));
+                                                                        50));
+                        case "hint-enabled" ->
+                                mode.grid().hintEnabled(Boolean.parseBoolean(propertyValue));
+                        case "hint-keys" -> mode.grid().hintKeys(parseHintKeys(
+                                propertyValue));
+                        case "hint-font-name" -> mode.grid().hintFontName(propertyValue);
+                        case "hint-font-size" -> mode.grid()
+                                                     .hintFontSize(parseUnsignedInteger(
+                                                             "grid hint-font-size",
+                                                             propertyValue, 1, 1000));
+                        case "hint-font-color" -> mode.grid()
+                                                      .hintFontHexColor(checkColorFormat(
+                                                              propertyValue));
+                        case "hint-box-color" -> mode.grid()
+                                                     .hintBoxHexColor(checkColorFormat(
+                                                             propertyValue));
+                        case "line-visible" ->
+                                mode.grid().lineVisible(Boolean.parseBoolean(propertyValue));
                         case "line-color" ->
                                 mode.grid().lineHexColor(checkColorFormat(propertyValue));
                         case "line-thickness" -> mode.grid()
@@ -382,8 +404,20 @@ public class ConfigurationParser {
             childMode.grid().rowCount(parentMode.gridConfiguration().rowCount());
         if (childMode.grid().columnCount() == null)
             childMode.grid().columnCount(parentMode.gridConfiguration().columnCount());
-        if (childMode.grid().visible() == null)
-            childMode.grid().visible(parentMode.gridConfiguration().visible());
+        if (childMode.grid().hintEnabled() == null)
+            childMode.grid().hintEnabled(parentMode.gridConfiguration().hintEnabled());
+        if (childMode.grid().hintKeys() == null)
+            childMode.grid().hintKeys(parentMode.gridConfiguration().hintKeys());
+        if (childMode.grid().hintFontName() == null)
+            childMode.grid().hintFontName(parentMode.gridConfiguration().hintFontName());
+        if (childMode.grid().hintFontSize() == null)
+            childMode.grid().hintFontSize(parentMode.gridConfiguration().hintFontSize());
+        if (childMode.grid().hintFontHexColor() == null)
+            childMode.grid().hintFontHexColor(parentMode.gridConfiguration().hintFontHexColor());
+        if (childMode.grid().hintBoxHexColor() == null)
+            childMode.grid().hintBoxHexColor(parentMode.gridConfiguration().hintBoxHexColor());
+        if (childMode.grid().lineVisible() == null)
+            childMode.grid().lineVisible(parentMode.gridConfiguration().lineVisible());
         if (childMode.grid().lineHexColor() == null)
             childMode.grid().lineHexColor(parentMode.gridConfiguration().lineHexColor());
         if (childMode.grid().lineThickness() == null)
@@ -423,6 +457,14 @@ public class ConfigurationParser {
                     "Invalid " + configurationName + " configuration: " + integer +
                     " is not less than or equal to " + max);
         return integer;
+    }
+
+    private static List<Key> parseHintKeys(String string) {
+        String[] split = string.split("\\s+");
+        if (split.length == 0)
+            throw new IllegalArgumentException(
+                    "Invalid hint keys configuration: " + string);
+        return Arrays.stream(split).map(Key::ofName).toList();
     }
 
     private static Area parseArea(String string) {

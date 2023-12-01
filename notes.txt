@@ -123,8 +123,10 @@ _shift,^shift = press shift, release shift?
   + Else: Find hintLength, hintCount = hintCharacterCount^hintLength >= rowCount*columnCount
   + grid.hint-enabled=false/true
 + History (positions previously selected through hints)
- - normal-mode -> idle-mode?
- + mode.blinking-cursor.enabled/visible-duration/invisible-duration
+- normal-mode -> idle-mode
++ Rename Mouse, Wheel, etc. to Mouse/Wheel/...Configuration
++ mode.blinking-cursor.enabled/visible-duration/invisible-duration
++ Change pause-combo-processing-when-mode-activated to when-mode-exited and simplify absolute-snap-mode
 
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)

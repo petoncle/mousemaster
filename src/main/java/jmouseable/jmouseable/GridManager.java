@@ -214,8 +214,8 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     private void gridChanged() {
-        if (currentMode.gridConfiguration().visible())
-            WindowsOverlay.setGrid(grid);
+        if (currentMode.gridConfiguration().lineVisible())
+            WindowsOverlay.setGrid(grid); // TODO add lineVisible to Grid.
         else
             WindowsOverlay.hideGrid();
         if (currentMode.gridConfiguration().synchronization() ==
