@@ -107,8 +107,8 @@ public class GridManager implements MousePositionListener, ModeListener {
                 RectUtil.rectContains(grid.x(), grid.y(), grid.width(), grid.height(),
                         mouseX, mouseY);
         int x, y;
-        int rowWidth = Math.max(1, grid.width() / grid.snapRowCount());
-        int columnHeight = Math.max(1, grid.height() / grid.snapColumnCount());
+        int rowWidth = Math.max(1, grid.width() / grid.rowCount());
+        int columnHeight = Math.max(1, grid.height() / grid.columnCount());
         if (mouseIsInsideGrid) {
             double mouseRow = (double) (mouseX - grid.x()) / rowWidth;
             double mouseColumn = (double) (mouseY - grid.y()) / columnHeight;
@@ -180,8 +180,8 @@ public class GridManager implements MousePositionListener, ModeListener {
     public void modeChanged(Mode newMode) {
         GridConfiguration gridConfiguration = newMode.gridConfiguration();
         GridBuilder gridBuilder =
-                new GridBuilder().snapRowCount(gridConfiguration.snapRowCount())
-                                 .snapColumnCount(gridConfiguration.snapColumnCount())
+                new GridBuilder().rowCount(gridConfiguration.rowCount())
+                                 .columnCount(gridConfiguration.columnCount())
                                  .lineHexColor(gridConfiguration.lineHexColor())
                                  .lineThickness(gridConfiguration.lineThickness());
         GridBuilder newGridBuilder = switch (gridConfiguration.area()) {

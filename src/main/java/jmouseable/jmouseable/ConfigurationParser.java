@@ -27,8 +27,8 @@ public class ConfigurationParser {
         builder.grid()
                .area(new Area.ActiveScreen(1, 1))
                .synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
-               .snapRowCount(2)
-               .snapColumnCount(2)
+               .rowCount(2)
+               .columnCount(2)
                .visible(false)
                .lineHexColor(null)
                .lineThickness(1);
@@ -126,14 +126,14 @@ public class ConfigurationParser {
                                                                .synchronization(
                                                                       parseSynchronization(
                                                                                propertyValue));
-                        case "snap-row-count" -> mode.grid()
-                                                     .snapRowCount(parseUnsignedInteger(
-                                                             "grid snap-row-count",
+                        case "row-count" -> mode.grid()
+                                                     .rowCount(parseUnsignedInteger(
+                                                             "grid row-count",
                                                              propertyValue, 1, 10));
-                        case "snap-column-count" -> mode.grid()
-                                                        .snapColumnCount(
+                        case "column-count" -> mode.grid()
+                                                        .columnCount(
                                                                 parseUnsignedInteger(
-                                                                        "grid snap-column-count",
+                                                                        "grid column-count",
                                                                         propertyValue, 1,
                                                                         10));
                         case "visible" ->
@@ -378,10 +378,10 @@ public class ConfigurationParser {
             childMode.grid().area(parentMode.gridConfiguration().area());
         if (childMode.grid().synchronization() == null)
             childMode.grid().synchronization(parentMode.gridConfiguration().synchronization());
-        if (childMode.grid().snapRowCount() == null)
-            childMode.grid().snapRowCount(parentMode.gridConfiguration().snapRowCount());
-        if (childMode.grid().snapColumnCount() == null)
-            childMode.grid().snapColumnCount(parentMode.gridConfiguration().snapColumnCount());
+        if (childMode.grid().rowCount() == null)
+            childMode.grid().rowCount(parentMode.gridConfiguration().rowCount());
+        if (childMode.grid().columnCount() == null)
+            childMode.grid().columnCount(parentMode.gridConfiguration().columnCount());
         if (childMode.grid().visible() == null)
             childMode.grid().visible(parentMode.gridConfiguration().visible());
         if (childMode.grid().lineHexColor() == null)

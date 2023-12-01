@@ -55,7 +55,6 @@ _shift,^shift = press shift, release shift?
  + Name it move-left-by instead of teleport-left
  + mouse.move-by-offset=300
 + vimium-like hint (warpd), keynav-like grid?
-+ position history
 + Move mouse to center of focused app?
 - Hide cursor after 5s
  - uncluttered-mouse-mode.hide-cursor.enabled+idle-duration
@@ -100,7 +99,7 @@ _shift,^shift = press shift, release shift?
  + Move to grid center (need separate command)
  - synchronization=mouse-follows-grid-center / grid-center-follows-mouse / mouse-and-grid-center-unsynchronized
   - grid.type->area = active-screen 1.0 1.0, active-window 1.0 1.0
- + Rename snapRow/ColumnCount to row/ColumnCount
+ - Rename snapRow/ColumnCount to row/ColumnCount
  + IndicatorManager should listen for mouse position and give it to WindowsIndicator
  + Hints
   + Grid hints (hints on the current grid, which can be a fullscreen or active window or around mouse grid)
@@ -114,15 +113,16 @@ _shift,^shift = press shift, release shift?
    + mode.grid.end.cut-count = 2 to have 2-phase hint selection
     + grid.end.next-mode
     + Or: mode.grid.next-mode-after-cut=smaller-grid-around-cursor-mode
+     + switch-to-mode-after-grid-cut=new-mode
+     + mode.switch-mode-after-hint-selected-=...
+     ++ or mode.to.new-mode=once-hint-selected
   + Regular hint = active-screen-hints-mode = active-screen grid with row/column count 20 20
   + grid.row-count=hint-character-count
   + If hint character count == row and column count, then 2-character hints in order (aa, ab, ac, etc.)
   + If hint character count > hint count (e.g. screen selection) then 1-character hints
   + Else: Find hintLength, hintCount = hintCharacterCount^hintLength >= rowCount*columnCount
   + grid.hint-enabled=false/true
-  + mode.click-after-hint-selected=left/middle/right
-  + mode.switch-mode-after-hint-selected-=... or mode.to.new-mode=hint-selected
-
++ History (positions previously selected through hints)
  - normal-mode -> idle-mode?
  + mode.blinking-cursor.enabled/visible-duration/invisible-duration
 

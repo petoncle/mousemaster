@@ -1,15 +1,14 @@
 package jmouseable.jmouseable;
 
-public record GridConfiguration(Area area,
-                                Synchronization synchronization, int snapRowCount,
-                                int snapColumnCount, boolean visible, String lineHexColor,
+public record GridConfiguration(Area area, Synchronization synchronization, int rowCount,
+                                int columnCount, boolean visible, String lineHexColor,
                                 int lineThickness) {
 
     public static class GridConfigurationBuilder {
         private Area area;
         private Synchronization synchronization;
-        private Integer snapRowCount;
-        private Integer snapColumnCount;
+        private Integer rowCount;
+        private Integer columnCount;
         private Boolean visible;
         private String lineHexColor;
         private Integer lineThickness;
@@ -24,13 +23,13 @@ public record GridConfiguration(Area area,
             return this;
         }
 
-        public GridConfigurationBuilder snapRowCount(int snapRowCount) {
-            this.snapRowCount = snapRowCount;
+        public GridConfigurationBuilder rowCount(int rowCount) {
+            this.rowCount = rowCount;
             return this;
         }
 
-        public GridConfigurationBuilder snapColumnCount(int snapColumnCount) {
-            this.snapColumnCount = snapColumnCount;
+        public GridConfigurationBuilder columnCount(int columnCount) {
+            this.columnCount = columnCount;
             return this;
         }
 
@@ -49,8 +48,8 @@ public record GridConfiguration(Area area,
             return this;
         }
 
-        public Integer snapRowCount() {
-            return snapRowCount;
+        public Integer rowCount() {
+            return rowCount;
         }
 
         public Area area() {
@@ -61,8 +60,8 @@ public record GridConfiguration(Area area,
             return synchronization;
         }
 
-        public Integer snapColumnCount() {
-            return snapColumnCount;
+        public Integer columnCount() {
+            return columnCount;
         }
 
         public Boolean visible() {
@@ -78,8 +77,8 @@ public record GridConfiguration(Area area,
         }
 
         public GridConfiguration build() {
-            return new GridConfiguration(area, synchronization, snapRowCount,
-                    snapColumnCount, visible, lineHexColor, lineThickness);
+            return new GridConfiguration(area, synchronization, rowCount,
+                    columnCount, visible, lineHexColor, lineThickness);
         }
 
     }

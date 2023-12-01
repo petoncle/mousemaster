@@ -164,17 +164,17 @@ public class WindowsOverlay {
     }
 
     private static void paintGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
-        int snapRowCount = currentGrid.snapRowCount();
-        int snapColumnCount = currentGrid.snapColumnCount();
-        int cellWidth = currentGrid.width() / snapRowCount;
-        int cellHeight = currentGrid.height() / snapColumnCount;
-        int[] polyCounts = new int[snapRowCount + 1 + snapColumnCount + 1];
+        int rowCount = currentGrid.rowCount();
+        int columnCount = currentGrid.columnCount();
+        int cellWidth = currentGrid.width() / rowCount;
+        int cellHeight = currentGrid.height() / columnCount;
+        int[] polyCounts = new int[rowCount + 1 + columnCount + 1];
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
         int lineThickness = currentGrid.lineThickness();
         // Vertical lines
-        for (int lineIndex = 0; lineIndex <= snapColumnCount; lineIndex++) {
-            int x = lineIndex == snapColumnCount ? windowRect.right :
+        for (int lineIndex = 0; lineIndex <= columnCount; lineIndex++) {
+            int x = lineIndex == columnCount ? windowRect.right :
                     lineIndex * cellWidth;
             if (x == windowRect.left)
                 x += lineThickness / 2;
@@ -187,10 +187,10 @@ public class WindowsOverlay {
             polyCounts[lineIndex] = 2;
         }
         // Horizontal lines
-        int polyCountsOffset = snapColumnCount + 1;
+        int polyCountsOffset = columnCount + 1;
         int pointsOffset = 2 * polyCountsOffset;
-        for (int lineIndex = 0; lineIndex <= snapRowCount; lineIndex++) {
-            int y = lineIndex == snapRowCount ? windowRect.bottom :
+        for (int lineIndex = 0; lineIndex <= rowCount; lineIndex++) {
+            int y = lineIndex == rowCount ? windowRect.bottom :
                     lineIndex * cellHeight;
             if (y == windowRect.top)
                 y += lineThickness / 2;

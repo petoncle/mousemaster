@@ -1,7 +1,7 @@
 package jmouseable.jmouseable;
 
-public record Grid(int x, int y, int width, int height, int snapRowCount,
-                   int snapColumnCount, String lineHexColor, int lineThickness) {
+public record Grid(int x, int y, int width, int height, int rowCount,
+                   int columnCount, String lineHexColor, int lineThickness) {
 
     public GridBuilder builder() {
         return new GridBuilder(this);
@@ -12,8 +12,8 @@ public record Grid(int x, int y, int width, int height, int snapRowCount,
         private int y;
         private int width;
         private int height;
-        private int snapRowCount;
-        private int snapColumnCount;
+        private int rowCount;
+        private int columnCount;
         private String lineHexColor;
         private int lineThickness;
 
@@ -25,8 +25,8 @@ public record Grid(int x, int y, int width, int height, int snapRowCount,
             this.y = grid.y;
             this.width = grid.width;
             this.height = grid.height;
-            this.snapRowCount = grid.snapRowCount;
-            this.snapColumnCount = grid.snapColumnCount;
+            this.rowCount = grid.rowCount;
+            this.columnCount = grid.columnCount;
             this.lineHexColor = grid.lineHexColor;
             this.lineThickness = grid.lineThickness;
         }
@@ -47,12 +47,12 @@ public record Grid(int x, int y, int width, int height, int snapRowCount,
             return height;
         }
 
-        public int snapRowCount() {
-            return snapRowCount;
+        public int rowCount() {
+            return rowCount;
         }
 
-        public int snapColumnCount() {
-            return snapColumnCount;
+        public int columnCount() {
+            return columnCount;
         }
 
         public String lineHexColor() {
@@ -83,13 +83,13 @@ public record Grid(int x, int y, int width, int height, int snapRowCount,
             return this;
         }
 
-        public GridBuilder snapRowCount(int snapRowCount) {
-            this.snapRowCount = snapRowCount;
+        public GridBuilder rowCount(int rowCount) {
+            this.rowCount = rowCount;
             return this;
         }
 
-        public GridBuilder snapColumnCount(int snapColumnCount) {
-            this.snapColumnCount = snapColumnCount;
+        public GridBuilder columnCount(int columnCount) {
+            this.columnCount = columnCount;
             return this;
         }
 
@@ -104,7 +104,7 @@ public record Grid(int x, int y, int width, int height, int snapRowCount,
         }
 
         public Grid build() {
-            return new Grid(x, y, width, height, snapRowCount, snapColumnCount,
+            return new Grid(x, y, width, height, rowCount, columnCount,
                     lineHexColor, lineThickness);
         }
     }
