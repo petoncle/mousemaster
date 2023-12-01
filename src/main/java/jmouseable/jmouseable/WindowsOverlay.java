@@ -242,7 +242,7 @@ public class WindowsOverlay {
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 Hint hint = hints[rowIndex][columnIndex];
-                if (!hint.containsSequence(focusedHintKeySequence))
+                if (!hint.startsWith(focusedHintKeySequence))
                     continue;
                 // Convert point size to logical units.
                 // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.

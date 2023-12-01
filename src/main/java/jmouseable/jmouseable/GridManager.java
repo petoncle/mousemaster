@@ -268,13 +268,13 @@ public class GridManager implements MousePositionListener, ModeListener {
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 List<Key> keySequence = new ArrayList<>();
                 // We want the hints to look like this:
-                // aa, ab, ac, ..., az,
-                // ba, bb, bc, ..., bz,
-                // za, zb, zc, ..., zz
+                // aa, ba, ..., za
+                // ab, bb, ..., zb
+                // az, bz, ..., zz
                 // The ideal situation is when rowCount = columnCount = hintKeys.size().
                 for (int i = 0; i < hintLength; i++)
                     keySequence.add(keySubset.get(
-                            (int) (cellIndex / Math.pow(keySubset.size(), hintLength - 1 - i) %
+                            (int) (cellIndex / Math.pow(keySubset.size(), i) %
                                    keySubset.size())));
                 cellIndex++;
                 hints[rowIndex][columnIndex] = new Hint(keySequence);
@@ -318,7 +318,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         newFocusedHintKeySequence.add(key);
         Hint exactMatchHint = null;
         int exactMatchHintRowIndex = -1, exactMatchHintColumnIndex = -1;
-        boolean atLeastOneHintIsContainsNewFocusedHintKeySequence = false;
+        boolean atLeastOneHintIsStartsWithNewFocusedHintKeySequence = false;
         row_loop:
         for (int rowIndex = 0; rowIndex < grid.hints().length; rowIndex++) {
             for (int columnIndex = 0;
@@ -326,9 +326,9 @@ public class GridManager implements MousePositionListener, ModeListener {
                 Hint hint = grid.hints()[rowIndex][columnIndex];
                 if (hint.keySequence().size() < newFocusedHintKeySequence.size())
                     continue;
-                if (!hint.containsSequence(newFocusedHintKeySequence))
+                if (!hint.startsWith(newFocusedHintKeySequence))
                     continue;
-                atLeastOneHintIsContainsNewFocusedHintKeySequence = true;
+                atLeastOneHintIsStartsWithNewFocusedHintKeySequence = true;
                 if (hint.keySequence().size() == newFocusedHintKeySequence.size()) {
                     exactMatchHint = hint;
                     exactMatchHintRowIndex = rowIndex;
@@ -337,7 +337,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                 }
             }
         }
-        if (!atLeastOneHintIsContainsNewFocusedHintKeySequence)
+        if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return true;
         if (exactMatchHint != null) {
             cutGridToCell(exactMatchHintRowIndex, exactMatchHintColumnIndex);
@@ -350,6 +350,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         return true;
     }
     // TODO focused-hint-font-color, hint-undo-key, hint-undo-all-key
+    // TODO paint in buffer
 
 }
 
