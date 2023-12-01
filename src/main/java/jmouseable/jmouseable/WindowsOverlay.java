@@ -48,14 +48,29 @@ public class WindowsOverlay {
     }
 
     public static void setTopmost() {
-        if (indicatorWindowHwnd != null)
-            setWindowTopmost(indicatorWindowHwnd);
+        if (indicatorWindowHwnd != null && gridWindow != null) {
+            setWindowTopmost(gridWindow.hwnd, ExtendedUser32.HWND_TOPMOST);
+            if (windowBelow(gridWindow.hwnd).equals(indicatorWindowHwnd))
+                return;
+            setWindowTopmost(indicatorWindowHwnd, ExtendedUser32.HWND_TOPMOST);
+            setWindowTopmost(gridWindow.hwnd, ExtendedUser32.HWND_TOPMOST);
+            return;
+        }
+        // Either gridWindow or indicatorWindowHwnd is null.
         if (gridWindow != null)
-            setWindowTopmost(gridWindow.hwnd);
+            setWindowTopmost(gridWindow.hwnd, ExtendedUser32.HWND_TOPMOST);
+        if (indicatorWindowHwnd != null)
+            setWindowTopmost(indicatorWindowHwnd, ExtendedUser32.HWND_TOPMOST);
     }
 
-    private static void setWindowTopmost(WinDef.HWND hwnd) {
-        User32.INSTANCE.SetWindowPos(hwnd, ExtendedUser32.HWND_TOPMOST, 0, 0, 0, 0,
+    private static WinDef.HWND windowBelow(WinDef.HWND hwnd) {
+        WinDef.HWND nextHwnd =
+                User32.INSTANCE.GetWindow(hwnd, new WinDef.DWORD(User32.GW_HWNDNEXT));
+        return nextHwnd;
+    }
+
+    private static void setWindowTopmost(WinDef.HWND hwnd, WinDef.HWND hwndTopmost) {
+        User32.INSTANCE.SetWindowPos(hwnd, hwndTopmost, 0, 0, 0, 0,
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
 

@@ -21,6 +21,10 @@ public class ConfigurationParser {
     private static final Mode defaultMode;
 
     static {
+        defaultMode = defaultMode();
+    }
+
+    private static Mode defaultMode() {
         ModeBuilder builder = new ModeBuilder(null);
         builder.pauseComboProcessingWhenModeActivated(false);
         builder.mouse().initialVelocity(200).maxVelocity(750).acceleration(1000);
@@ -43,9 +47,15 @@ public class ConfigurationParser {
                .lineHexColor(null)
                .lineThickness(1);
         builder.timeout().enabled(false);
-        builder.indicator().enabled(false);
+        builder.indicator()
+               .enabled(false)
+               .idleHexColor("#FF0000")
+               .moveHexColor("#FF0000")
+               .wheelHexColor("#FFFF00")
+               .mousePressHexColor("#00FF00")
+               .nonComboKeyPressHexColor("#0000FF");
         builder.hideCursor().enabled(false);
-        defaultMode = builder.build();
+        return builder.build();
     }
 
     public static Configuration parse(Path path) throws IOException {
