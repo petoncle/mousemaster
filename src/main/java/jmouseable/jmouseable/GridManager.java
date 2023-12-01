@@ -2,6 +2,9 @@ package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.Grid.GridBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Displays the grid and handles grid commands.
  */
@@ -179,9 +182,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         GridConfiguration gridConfiguration = newMode.gridConfiguration();
-        GridBuilder gridBuilder =
+        GridBuilder gridBuilder = //
                 new GridBuilder().rowCount(gridConfiguration.rowCount())
                                  .columnCount(gridConfiguration.columnCount())
+                                 .lineVisible(gridConfiguration.lineVisible())
                                  .lineHexColor(gridConfiguration.lineHexColor())
                                  .lineThickness(gridConfiguration.lineThickness());
         GridBuilder newGridBuilder = switch (gridConfiguration.area()) {
@@ -203,6 +207,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (gridConfiguration.synchronization() ==
             Synchronization.GRID_CENTER_FOLLOWS_MOUSE)
             gridCenteredAroundMouse(newGridBuilder);
+        buildHints(newGridBuilder, gridConfiguration);
         Grid newGrid = newGridBuilder.build();
         if (currentMode != null &&
             newMode.gridConfiguration().equals(currentMode.gridConfiguration()) &&
@@ -213,9 +218,61 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
+    private void buildHints(GridBuilder grid, GridConfiguration gridConfiguration) {
+        grid.hintEnabled(gridConfiguration.hintEnabled())
+            .hintFontName(gridConfiguration.hintFontName())
+            .hintFontSize(gridConfiguration.hintFontSize())
+            .hintFontHexColor(gridConfiguration.hintFontHexColor())
+            .hintBoxHexColor(gridConfiguration.hintBoxHexColor());
+        if (!gridConfiguration.hintEnabled())
+            return;
+        if (currentMode != null) {
+            GridConfiguration oldGridConfiguration = currentMode.gridConfiguration();
+            if (oldGridConfiguration.hintEnabled() &&
+                oldGridConfiguration.rowCount() == gridConfiguration.rowCount() &&
+                oldGridConfiguration.columnCount() == gridConfiguration.columnCount() &&
+                oldGridConfiguration.hintKeys().equals(gridConfiguration.hintKeys()) &&
+                oldGridConfiguration.hintFontName()
+                                    .equals(gridConfiguration.hintFontName()) &&
+                oldGridConfiguration.hintFontSize() == gridConfiguration.hintFontSize() &&
+                oldGridConfiguration.hintFontHexColor()
+                                    .equals(gridConfiguration.hintFontHexColor()) &&
+                oldGridConfiguration.hintBoxHexColor()
+                                    .equals(gridConfiguration.hintBoxHexColor())) {
+                grid.hints(this.grid.hints());
+                return;
+            }
+        }
+        int rowCount = gridConfiguration.rowCount();
+        int columnCount = gridConfiguration.columnCount();
+        List<Key> keys = gridConfiguration.hintKeys();
+        int hintCount = rowCount * columnCount;
+        // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
+        int hintLength = (int) Math.ceil(Math.log(hintCount) / Math.log(keys.size()));
+        Hint[][] hints = new Hint[rowCount][columnCount];
+        int cellIndex = 0;
+        for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                List<Key> keySequence = new ArrayList<>();
+                // We want the hints to look like this:
+                // aa, ab, ac, ..., az,
+                // ba, bb, bc, ..., bz,
+                // za, zb, zc, ..., zz
+                // The ideal situation is when rowCount = columnCount = hintKeys.size().
+                for (int i = 0; i < hintLength; i++)
+                    keySequence.add(keys.get(
+                            (int) (cellIndex / Math.pow(keys.size(), hintLength - 1 - i) %
+                                   keys.size())));
+                cellIndex++;
+                hints[rowIndex][columnIndex] = new Hint(keySequence);
+            }
+        }
+        grid.hints(hints);
+    }
+
     private void gridChanged() {
-        if (currentMode.gridConfiguration().lineVisible())
-            WindowsOverlay.setGrid(grid); // TODO add lineVisible to Grid.
+        if (grid.lineVisible() || grid.hintEnabled())
+            WindowsOverlay.setGrid(grid);
         else
             WindowsOverlay.hideGrid();
         if (currentMode.gridConfiguration().synchronization() ==

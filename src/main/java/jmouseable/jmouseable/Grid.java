@@ -1,7 +1,9 @@
 package jmouseable.jmouseable;
 
-public record Grid(int x, int y, int width, int height, int rowCount,
-                   int columnCount, String lineHexColor, int lineThickness) {
+public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
+                   boolean hintEnabled, Hint[][] hints, String hintFontName,
+                   int hintFontSize, String hintFontHexColor, String hintBoxHexColor,
+                   boolean lineVisible, String lineHexColor, int lineThickness) {
 
     public GridBuilder builder() {
         return new GridBuilder(this);
@@ -14,6 +16,13 @@ public record Grid(int x, int y, int width, int height, int rowCount,
         private int height;
         private int rowCount;
         private int columnCount;
+        private boolean hintEnabled;
+        private Hint[][] hints;
+        private String hintFontName;
+        private int hintFontSize;
+        private String hintFontHexColor;
+        private String hintBoxHexColor;
+        private boolean lineVisible;
         private String lineHexColor;
         private int lineThickness;
 
@@ -27,6 +36,13 @@ public record Grid(int x, int y, int width, int height, int rowCount,
             this.height = grid.height;
             this.rowCount = grid.rowCount;
             this.columnCount = grid.columnCount;
+            this.hintEnabled = grid.hintEnabled;
+            this.hints = grid.hints;
+            this.hintFontName = grid.hintFontName;
+            this.hintFontSize = grid.hintFontSize;
+            this.hintFontHexColor = grid.hintFontHexColor;
+            this.hintBoxHexColor = grid.hintBoxHexColor;
+            this.lineVisible = grid.lineVisible;
             this.lineHexColor = grid.lineHexColor;
             this.lineThickness = grid.lineThickness;
         }
@@ -53,6 +69,34 @@ public record Grid(int x, int y, int width, int height, int rowCount,
 
         public int columnCount() {
             return columnCount;
+        }
+
+        public boolean hintEnabled() {
+            return hintEnabled;
+        }
+
+        public Hint[][] hints() {
+            return hints;
+        }
+
+        public String hintFontName() {
+            return hintFontName;
+        }
+
+        public int hintFontSize() {
+            return hintFontSize;
+        }
+
+        public String hintFontHexColor() {
+            return hintFontHexColor;
+        }
+
+        public String hintBoxHexColor() {
+            return hintBoxHexColor;
+        }
+
+        public boolean lineVisible() {
+            return lineVisible;
         }
 
         public String lineHexColor() {
@@ -93,6 +137,41 @@ public record Grid(int x, int y, int width, int height, int rowCount,
             return this;
         }
 
+        public GridBuilder hintEnabled(boolean hintEnabled) {
+            this.hintEnabled = hintEnabled;
+            return this;
+        }
+
+        public GridBuilder hints(Hint[][] hints) {
+            this.hints = hints;
+            return this;
+        }
+
+        public GridBuilder hintFontName(String hintFontName) {
+            this.hintFontName = hintFontName;
+            return this;
+        }
+
+        public GridBuilder hintFontSize(int hintFontSize) {
+            this.hintFontSize = hintFontSize;
+            return this;
+        }
+
+        public GridBuilder hintFontHexColor(String hintFontHexColor) {
+            this.hintFontHexColor = hintFontHexColor;
+            return this;
+        }
+
+        public GridBuilder hintBoxHexColor(String hintBoxHexColor) {
+            this.hintBoxHexColor = hintBoxHexColor;
+            return this;
+        }
+
+        public GridBuilder lineVisible(boolean lineVisible) {
+            this.lineVisible = lineVisible;
+            return this;
+        }
+
         public GridBuilder lineHexColor(String lineHexColor) {
             this.lineHexColor = lineHexColor;
             return this;
@@ -104,8 +183,9 @@ public record Grid(int x, int y, int width, int height, int rowCount,
         }
 
         public Grid build() {
-            return new Grid(x, y, width, height, rowCount, columnCount,
-                    lineHexColor, lineThickness);
+            return new Grid(x, y, width, height, rowCount, columnCount, hintEnabled,
+                    hints, hintFontName, hintFontSize, hintFontHexColor, hintBoxHexColor,
+                    lineVisible, lineHexColor, lineThickness);
         }
     }
 

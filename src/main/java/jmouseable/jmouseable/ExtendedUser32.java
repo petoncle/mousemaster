@@ -4,11 +4,14 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.win32.W32APIOptions;
 
 import java.util.List;
 
 public interface ExtendedUser32 extends User32 {
-    ExtendedUser32 INSTANCE = Native.load("user32", ExtendedUser32.class);
+    // W32APIOptions.DEFAULT_OPTIONS is required for JNA to find DrawText().
+    ExtendedUser32 INSTANCE =
+            Native.load("user32", ExtendedUser32.class, W32APIOptions.DEFAULT_OPTIONS);
 
     int WS_EX_NOACTIVATE = 0x08000000;
     int WS_EX_TOOLWINDOW = 0x00000080;
@@ -90,5 +93,7 @@ public interface ExtendedUser32 extends User32 {
     int SPI_SETCURSORS = 0x0057;
 
     HWND HWND_TOPMOST = new HWND(new Pointer(-1));
+
+    int DrawText(HDC hdc, String lpchText, int cchText, RECT lprc, UINT format);
 
 }

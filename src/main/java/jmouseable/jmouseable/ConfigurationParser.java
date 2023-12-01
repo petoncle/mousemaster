@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import static jmouseable.jmouseable.Command.*;
 
@@ -31,7 +31,10 @@ public class ConfigurationParser {
                .rowCount(2)
                .columnCount(2)
                .hintEnabled(false)
-               .hintKeys(Stream.of("h", "j", "k", "l").map(Key::ofName).toList())
+               .hintKeys(IntStream.rangeClosed('a', 'z')
+                                  .mapToObj(c -> String.valueOf((char) c))
+                                  .map(Key::ofName)
+                                  .toList())
                .hintFontName("Arial")
                .hintFontSize(20)
                .hintFontHexColor("#FFFFFF")
@@ -461,7 +464,8 @@ public class ConfigurationParser {
 
     private static List<Key> parseHintKeys(String string) {
         String[] split = string.split("\\s+");
-        if (split.length == 0)
+        if (split.length <= 1)
+            // Even 1 key is not enough because we use fixed-length hints.
             throw new IllegalArgumentException(
                     "Invalid hint keys configuration: " + string);
         return Arrays.stream(split).map(Key::ofName).toList();

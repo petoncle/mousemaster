@@ -6,6 +6,9 @@ import jmouseable.jmouseable.Grid.GridBuilder;
 import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static jmouseable.jmouseable.ExtendedGDI32.*;
 
 public class WindowsOverlay {
 
@@ -147,10 +150,14 @@ public class WindowsOverlay {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                // If not cleared, the previous drawings will be painted.
+                // The area has to be cleared otherwise the previous drawings will be drawn.
                 clearWindow(hdc, ps.rcPaint);
-                if (showingGrid)
-                    paintGrid(hdc, ps.rcPaint);
+                if (showingGrid) {
+                    if (currentGrid.lineVisible())
+                        drawGridLines(hdc, ps.rcPaint);
+                    if (currentGrid.hintEnabled())
+                        drawGridHints(hdc, ps.rcPaint);
+                }
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
         }
@@ -163,7 +170,7 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(hbrBackground);
     }
 
-    private static void paintGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
+    private static void drawGridLines(WinDef.HDC hdc, WinDef.RECT windowRect) {
         int rowCount = currentGrid.rowCount();
         int columnCount = currentGrid.columnCount();
         int cellWidth = currentGrid.width() / rowCount;
@@ -218,6 +225,80 @@ public class WindowsOverlay {
         }
         GDI32.INSTANCE.SelectObject(hdc, oldPen);
         GDI32.INSTANCE.DeleteObject(gridPen);
+    }
+
+    private static void drawGridHints(WinDef.HDC hdc, WinDef.RECT windowRect) {
+        int rowCount = currentGrid.rowCount();
+        int columnCount = currentGrid.columnCount();
+        int cellWidth = currentGrid.width() / rowCount;
+        int cellHeight = currentGrid.height() / columnCount;
+        String fontName = currentGrid.hintFontName();
+        int fontSize = currentGrid.hintFontSize();
+        String fontHexColor = currentGrid.hintFontHexColor();
+        String boxHexColor = currentGrid.hintBoxHexColor();
+        Hint[][] hints = currentGrid.hints();
+        for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                Hint hint = hints[rowIndex][columnIndex];
+                // Convert point size to logical units.
+                // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
+                int fontHeight =
+                        -fontSize * GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY) / 72;
+                // In Windows API, negative font size means "point size" (as opposed to pixels).
+                WinDef.HFONT hintFont = ExtendedGDI32.INSTANCE.CreateFontA(
+                        fontHeight, 0, 0, 0,
+                        FW_NORMAL,
+                        new WinDef.DWORD(0),
+                        new WinDef.DWORD(0),
+                        new WinDef.DWORD(0),
+                        new WinDef.DWORD(ANSI_CHARSET),
+                        new WinDef.DWORD(OUT_DEFAULT_PRECIS),
+                        new WinDef.DWORD(CLIP_DEFAULT_PRECIS),
+                        new WinDef.DWORD(DEFAULT_QUALITY),
+                        new WinDef.DWORD(DEFAULT_PITCH | FF_SWISS),
+                        fontName);
+                WinNT.HANDLE oldFont = GDI32.INSTANCE.SelectObject(hdc, hintFont);
+                // Measure text size
+                WinUser.SIZE textSize = new WinUser.SIZE();
+                String text = hint.keySequence()
+                                  .stream()
+                                  .map(Key::name)
+                                  .map(String::toUpperCase) // This could be problematic since it uses Locale.default().
+                                  .collect(Collectors.joining());
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(), textSize);
+                // Calculate text and box positions.
+                int textX = columnIndex * cellWidth + (cellWidth - textSize.cx) / 2;
+                int textY = rowIndex * cellHeight + (cellHeight - textSize.cy) / 2;
+                int padding = 10;
+                int boxLeft = textX - padding; // Add some padding for the box
+                int boxTop = textY - padding;
+                int boxRight = textX + textSize.cx + padding;
+                int boxBottom = textY + textSize.cy + padding;
+                // Draw background box.
+                WinDef.HBRUSH boxBrush = ExtendedGDI32.INSTANCE.CreateSolidBrush(
+                        hexColorStringToInt(boxHexColor));
+                WinDef.RECT boxRect = new WinDef.RECT();
+                boxRect.left = boxLeft;
+                boxRect.top = boxTop;
+                boxRect.right = boxRight;
+                boxRect.bottom = boxBottom;
+                ExtendedUser32.INSTANCE.FillRect(hdc, boxRect, boxBrush);
+                // Draw text.
+                ExtendedGDI32.INSTANCE.SetTextColor(hdc, hexColorStringToInt(fontHexColor));
+                ExtendedGDI32.INSTANCE.SetBkMode(hdc, TRANSPARENT);
+                WinDef.RECT textRect = new WinDef.RECT();
+                textRect.left = textX;
+                textRect.top = textY;
+                textRect.right = textX + textSize.cx; // Not strictly necessary for DT_SINGLELINE
+                textRect.bottom = textY + textSize.cy; // Not strictly necessary for DT_SINGLELINE
+                ExtendedUser32.INSTANCE.DrawText(hdc, text, -1, textRect,
+                        new WinDef.UINT(DT_SINGLELINE | DT_CENTER | DT_VCENTER));
+                // Clean up.
+                GDI32.INSTANCE.SelectObject(hdc, oldFont);
+                GDI32.INSTANCE.DeleteObject(hintFont);
+                GDI32.INSTANCE.DeleteObject(boxBrush);
+            }
+        }
     }
 
     private static int hexColorStringToInt(String hexColor) {

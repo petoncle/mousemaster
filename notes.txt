@@ -117,10 +117,10 @@ _shift,^shift = press shift, release shift?
      + mode.switch-mode-after-hint-selected-=...
      ++ or mode.to.new-mode=once-hint-selected
   + Regular hint = active-screen-hints-mode = active-screen grid with row/column count 20 20
-  + grid.row-count=hint-character-count
-  + If hint character count == row and column count, then 2-character hints in order (aa, ab, ac, etc.)
-  + If hint character count > hint count (e.g. screen selection) then 1-character hints
-  + Else: Find hintLength, hintCount = hintCharacterCount^hintLength >= rowCount*columnCount
+  + grid.row-count=hint-key-count
+  + If hint key count == row and column count, then 2-key hints in order (aa, ab, ac, etc.)
+  + If hint key count > hint count (e.g. screen selection) then 1-key hints
+  + Else: Find hintLength, hintCount = hintKeyCount^hintLength >= rowCount*columnCount
   + grid.hint-enabled=false/true
 + History (positions previously selected through hints)
 - normal-mode -> idle-mode
