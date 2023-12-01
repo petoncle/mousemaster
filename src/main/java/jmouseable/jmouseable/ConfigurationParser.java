@@ -161,6 +161,11 @@ public class ConfigurationParser {
                         case "hint-box-color" -> mode.grid()
                                                      .hintBoxHexColor(checkColorFormat(
                                                              propertyValue));
+                        case "mode-after-hint-selection" -> {
+                            String modeAfterHintSelection = propertyValue;
+                            modeNameReferences.add(modeAfterHintSelection);
+                            mode.grid().modeAfterHintSelection(modeAfterHintSelection);
+                        }
                         case "line-visible" ->
                                 mode.grid().lineVisible(Boolean.parseBoolean(propertyValue));
                         case "line-color" ->
@@ -374,6 +379,7 @@ public class ConfigurationParser {
      * - pauseComboProcessingWhenModeActivated
      * - timeout configuration
      * - switch mode commands
+     * - mode after hint selection
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()

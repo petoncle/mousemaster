@@ -12,6 +12,7 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private final MonitorManager monitorManager;
     private final MouseController mouseController;
+    private ModeController modeController;
     private Grid grid;
     private int mouseX, mouseY;
     private Mode currentMode;
@@ -19,6 +20,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     public GridManager(MonitorManager monitorManager, MouseController mouseController) {
         this.monitorManager = monitorManager;
         this.mouseController = mouseController;
+    }
+
+    public void setModeController(ModeController modeController) {
+        this.modeController = modeController;
     }
 
     private void cutGridToCell(int rowIndex, int columnIndex) {
@@ -341,7 +346,9 @@ public class GridManager implements MousePositionListener, ModeListener {
             return true;
         if (exactMatchHint != null) {
             cutGridToCell(exactMatchHintRowIndex, exactMatchHintColumnIndex);
-            // TODO switch mode if necessary
+            if (currentMode.gridConfiguration().modeAfterHintSelection() != null)
+                modeController.switchMode(
+                        currentMode.gridConfiguration().modeAfterHintSelection());
         }
         else {
             grid = grid.builder().focusedHintKeySequence(newFocusedHintKeySequence).build();

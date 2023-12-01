@@ -109,20 +109,24 @@ _shift,^shift = press shift, release shift?
   + One hint per grid cell
   + Screen selection = all-screens grid with row/column count 1
     + In all screen grid, cannot move grid or cut grid (but can snap)
-  ++ Hint selection is like cutting the grid to a specific cell
-   + mode.grid.end.cut-count = 2 to have 2-phase hint selection
-    + grid.end.next-mode
-    + Or: mode.grid.next-mode-after-cut=smaller-grid-around-cursor-mode
-     + switch-to-mode-after-grid-cut=new-mode
-     + mode.switch-mode-after-hint-selected-=...
-     ++ or mode.to.new-mode=once-hint-selected
-  + Regular hint = active-screen-hints-mode = active-screen grid with row/column count 20 20
-  + grid.row-count=hint-key-count
-  + If hint key count == row and column count, then 2-key hints in order (aa, ab, ac, etc.)
-  + If hint key count > hint count (e.g. screen selection) then 1-key hints
-  + Else: Find hintLength, hintCount = hintKeyCount^hintLength >= rowCount*columnCount
-  + grid.hint-enabled=false/true
+  - Hint selection is like cutting the grid to a specific cell
+   - mode.grid.end.cut-count = 2 to have 2-phase hint selection
+    - grid.end.next-mode
+    - Or: mode.grid.next-mode-after-cut=smaller-grid-around-cursor-mode
+     - switch-to-mode-after-grid-cut=new-mode
+     - mode.switch-mode-after-hint-selected-=...
+     - or mode.to.new-mode=once-hint-selected
+  - Regular hint = active-screen-hints-mode = active-screen grid with row/column count 20 20
+  - grid.row-count=hint-key-count
+  - If hint key count == row and column count, then 2-key hints in order (aa, ab, ac, etc.)
+  - If hint key count > hint count (e.g. screen selection) then 1-key hints
+  - Else: Find hintLength, hintCount = hintKeyCount^hintLength >= rowCount*columnCount
+  - grid.hint-enabled=false/true
 + History (positions previously selected through hints)
+ + grid.area/row-count -> grid.layout=position-history | active-screen 0.99 0.99 2(rowCount) 2
+  + Grid with variable-size rows and columns
+  + Each historical position is the center of one cell
+  + Compute the midpoints between consecutive hint positions, that is the cell width/height
 - normal-mode -> idle-mode
 + Rename Mouse, Wheel, etc. to Mouse/Wheel/...Configuration
 + mode.blinking-cursor.enabled/visible-duration/invisible-duration

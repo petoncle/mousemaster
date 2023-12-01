@@ -6,7 +6,8 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
                                 int columnCount, boolean hintEnabled, List<Key> hintKeys,
                                 String hintFontName, int hintFontSize,
                                 String hintFontHexColor, String hintBoxHexColor,
-                                boolean lineVisible, String lineHexColor, int lineThickness) {
+                                String modeAfterHintSelection, boolean lineVisible,
+                                String lineHexColor, int lineThickness) {
 
     public static class GridConfigurationBuilder {
         private Area area;
@@ -19,6 +20,7 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
         private Integer hintFontSize;
         private String hintFontHexColor;
         private String hintBoxHexColor;
+        private String modeAfterHintSelection;
         private Boolean lineVisible;
         private String lineHexColor;
         private Integer lineThickness;
@@ -70,6 +72,12 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
 
         public GridConfigurationBuilder hintBoxHexColor(String hintBoxHexColor) {
             this.hintBoxHexColor = hintBoxHexColor;
+            return this;
+        }
+
+        public GridConfigurationBuilder modeAfterHintSelection(
+                String modeAfterHintSelection) {
+            this.modeAfterHintSelection = modeAfterHintSelection;
             return this;
         }
 
@@ -128,6 +136,10 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
             return hintBoxHexColor;
         }
 
+        public String modeAfterHintSelection() {
+            return modeAfterHintSelection;
+        }
+
         public Boolean lineVisible() {
             return lineVisible;
         }
@@ -143,7 +155,8 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
         public GridConfiguration build() {
             return new GridConfiguration(area, synchronization, rowCount, columnCount,
                     hintEnabled, hintKeys, hintFontName, hintFontSize, hintFontHexColor,
-                    hintBoxHexColor, lineVisible, lineHexColor, lineThickness);
+                    hintBoxHexColor, modeAfterHintSelection, lineVisible, lineHexColor,
+                    lineThickness);
         }
 
     }
