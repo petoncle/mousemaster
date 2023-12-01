@@ -90,7 +90,7 @@ public class Jmouseable {
         modeController = new ModeController(configuration.modeMap(), mouseController, mouseState,
                 List.of(comboWatcher, indicatorManager, gridManager));
         commandRunner.setModeController(modeController);
-        modeController.switchMode(Mode.NORMAL_MODE_NAME);
+        modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(), List.of(gridManager, monitorManager));
     }

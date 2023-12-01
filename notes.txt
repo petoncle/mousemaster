@@ -110,24 +110,35 @@ _shift,^shift = press shift, release shift?
   + One hint per grid cell
   + Screen selection = all-screens grid with row/column count 1
     + In all screen grid, cannot move grid or cut grid (but can snap)
+  ++ Hint selection is like cutting the grid to a specific cell
+   + mode.grid.end.cut-count = 2 to have 2-phase hint selection
+    + grid.end.next-mode
+    + Or: mode.grid.next-mode-after-cut=smaller-grid-around-cursor-mode
   + Regular hint = active-screen-hints-mode = active-screen grid with row/column count 20 20
   + grid.row-count=hint-character-count
   + If hint character count == row and column count, then 2-character hints in order (aa, ab, ac, etc.)
   + If hint character count > hint count (e.g. screen selection) then 1-character hints
   + Else: Find hintLength, hintCount = hintCharacterCount^hintLength >= rowCount*columnCount
   + grid.hint-enabled=false/true
+  + mode.click-after-hint-selected=left/middle/right
+  + mode.switch-mode-after-hint-selected-=... or mode.to.new-mode=hint-selected
+
+ - normal-mode -> idle-mode?
+ + mode.blinking-cursor.enabled/visible-duration/invisible-duration
 
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)
-- Configuration file is reloaded when changes are saved to it
+- Configuration file is automatically reloaded when changes are saved to it
 - Distinguish between left and right alt/ctrl/shift keys
 - Keyboard layout-aware
 - Can have an indicator next to the mouse (or not), with different colors for when idling, moving, pressing buttons, and scrolling
 - The indicator will re-position itself when the mouse is close to the edges of the screen so that it stays visible
 - Configuration of keys is done in terms of key press and key release events, and whether the key events should be passed onto other apps or not.
   This allows for defining advanced key combos, but at the cost of added complexity of the configuration file
-- The user defines modes. There is only one predefined mode, the "normal-mode" which has no key combos defined (i.e. this is the "Xxx is disabled mode").
-- Each mode has its own key combo map.
+- Each command (e.g. start-move-left) is triggered by one or more key combos
+- The same key combo can be used to trigger multiple commands. This can be used to do many things including "click and disable".
+- The user defines modes. There is only one predefined mode, the "idle-mode" which has no key combos defined (i.e. this is the "Xxx is disabled mode").
+- Each mode has its own (command -> key combo) map.
 - Each mode can have its own mouse and wheel configuration (initial velocity, max velocity, acceleration).
   This can be used to create "slow" and "fast" modes.
 - A timeout can be set on a mode to switch to another mode after some idle time
@@ -135,11 +146,11 @@ _shift,^shift = press shift, release shift?
 - This way of defining key combos and modes can be used to implement "toggle dragging",
   chain commands (e.g. if your move combos are arrow keys while holding ctrl, you can move left/right without releasing ctrl)
 - Grids. Grid area
-- The major structural differences with mouseable and warpd are the way key combos are defined (key presses and key releases),
+- The major structural differences with mouseable and warpd are the way key combos are defined
+  (key presses and key releases instead of "just keys"),
   the "create your own modes" approach, and the generalization of the grid concept used for
   implementing mouseable-style "attach to screen edge", mouseable-style "teleport forward",
   warpd/keynav-style "cutable grid", warpd-style "screen selection hints", and warpd-style "regular hints".
-- The configuration is much more complex than warpd/mouseable, mostly because you have to think in terms of key presses and key releases
-- It's Windows only because just like mouseable, it relies on the Windows API.
-  I have not looked at making it cross-platform simply because I don't have an incentive for doing so
-  (all my desktops are Windows).
+- The configuration is more complex than warpd/mouseable, mostly because you have to think in terms of key presses and key releases.
+- It's Windows only, I have not looked at making it cross-platform simply because I don't have an incentive for doing so
+  (all my desktops are Windows based).

@@ -12,7 +12,7 @@ public record Mode(String name, boolean pauseComboProcessingWhenModeActivated,
                    ComboMap comboMap, Mouse mouse, Wheel wheel,
                    GridConfiguration gridConfiguration, ModeTimeout timeout,
                    Indicator indicator, HideCursor hideCursor) {
-    public static final String NORMAL_MODE_NAME = "normal-mode";
+    public static final String IDLE_MODE_NAME = "idle-mode";
 
     public static class ModeBuilder {
         private String name;
