@@ -2,7 +2,7 @@ package jmouseable.jmouseable;
 
 import java.util.List;
 
-public record Hint(List<Key> keySequence) {
+public record Hint(int centerX, int centerY, List<Key> keySequence) {
 
     boolean startsWith(List<Key> focusedHintKeySequence) {
         if (focusedHintKeySequence.isEmpty())

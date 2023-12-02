@@ -82,15 +82,16 @@ public class Jmouseable {
         MouseState mouseState = new MouseState(mouseController);
         MonitorManager monitorManager = new MonitorManager();
         GridManager gridManager = new GridManager(monitorManager, mouseController);
+        HintManager hintManager = new HintManager(monitorManager, mouseController);
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager);
         ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
-        keyboardManager = new KeyboardManager(comboWatcher, gridManager);
+        keyboardManager = new KeyboardManager(comboWatcher, hintManager);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
         modeController = new ModeController(configuration.modeMap(), mouseController, mouseState,
-                List.of(comboWatcher, indicatorManager, gridManager));
+                List.of(comboWatcher, indicatorManager, gridManager, hintManager));
         commandRunner.setModeController(modeController);
-        gridManager.setModeController(modeController);
+        hintManager.setModeController(modeController);
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(), List.of(gridManager, monitorManager));

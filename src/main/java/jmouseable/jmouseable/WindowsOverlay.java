@@ -2,11 +2,9 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
-import jmouseable.jmouseable.Grid.GridBuilder;
 import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static jmouseable.jmouseable.ExtendedGDI32.*;
@@ -17,15 +15,18 @@ public class WindowsOverlay {
     private static final int indicatorSize = 16;
 
     private static WinDef.HWND indicatorWindowHwnd;
-    private static GridWindow gridWindow;
     private static boolean showingIndicator;
     private static String currentIndicatorHexColor;
+    private static GridWindow gridWindow;
     private static boolean showingGrid;
     private static Grid currentGrid;
+    private static final Map<Monitor, HintMeshWindow> hintMeshWindows =
+            new LinkedHashMap<>(); // Ordered for topmost handling.
+    private static boolean showingHintMesh;
+    private static HintMesh currentHintMesh;
 
-    public static GridBuilder gridFittingActiveWindow(GridBuilder grid,
-                                                      double windowWidthPercent,
-                                                      double windowHeightPercent) {
+    public static Rectangle activeWindowRectangle(double windowWidthPercent,
+                                                  double windowHeightPercent) {
         WinDef.HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
         // https://stackoverflow.com/a/65605845
         WinDef.RECT excludeShadow = windowRectExcludingShadow(foregroundWindow);
@@ -33,10 +34,9 @@ public class WindowsOverlay {
         int windowHeight = excludeShadow.bottom - excludeShadow.top;
         int gridWidth = (int) (windowWidth * windowWidthPercent);
         int gridHeight = (int) (windowHeight * windowHeightPercent);
-        return grid.x(excludeShadow.left + (windowWidth - gridWidth) / 2)
-                   .y(excludeShadow.top + (windowHeight - gridHeight) / 2)
-                   .width(gridWidth)
-                   .height(gridHeight);
+        return new Rectangle(excludeShadow.left + (windowWidth - gridWidth) / 2,
+                excludeShadow.top + (windowHeight - gridHeight) / 2, gridWidth,
+                gridHeight);
     }
 
     private static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {
@@ -48,19 +48,28 @@ public class WindowsOverlay {
     }
 
     public static void setTopmost() {
-        if (indicatorWindowHwnd != null && gridWindow != null) {
-            setWindowTopmost(gridWindow.hwnd, ExtendedUser32.HWND_TOPMOST);
-            if (windowBelow(gridWindow.hwnd).equals(indicatorWindowHwnd))
-                return;
-            setWindowTopmost(indicatorWindowHwnd, ExtendedUser32.HWND_TOPMOST);
-            setWindowTopmost(gridWindow.hwnd, ExtendedUser32.HWND_TOPMOST);
-            return;
-        }
-        // Either gridWindow or indicatorWindowHwnd is null.
-        if (gridWindow != null)
-            setWindowTopmost(gridWindow.hwnd, ExtendedUser32.HWND_TOPMOST);
+        List<WinDef.HWND> hwnds = new ArrayList<>();
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            hwnds.add(hintMeshWindow.hwnd);
         if (indicatorWindowHwnd != null)
-            setWindowTopmost(indicatorWindowHwnd, ExtendedUser32.HWND_TOPMOST);
+            hwnds.add(indicatorWindowHwnd);
+        if (gridWindow != null)
+            hwnds.add(gridWindow.hwnd);
+        if (hwnds.isEmpty())
+            return;
+        setWindowTopmost(hwnds.getFirst(), ExtendedUser32.HWND_TOPMOST);
+        boolean allOtherWindowsAreBelowInOrder = true;
+        for (int windowIndex = 0; windowIndex < hwnds.size() - 1; windowIndex++) {
+            if (windowBelow(hwnds.get(windowIndex)).equals(hwnds.get(windowIndex + 1)))
+                // For example, windowBelow(indicator).equals(grid).
+                continue;
+            allOtherWindowsAreBelowInOrder = false;
+            break;
+        }
+        if (allOtherWindowsAreBelowInOrder)
+            return;
+        for (int windowIndex = hwnds.size() - 1; windowIndex >= 0; windowIndex--)
+            setWindowTopmost(hwnds.get(windowIndex), ExtendedUser32.HWND_TOPMOST);
     }
 
     private static WinDef.HWND windowBelow(WinDef.HWND hwnd) {
@@ -75,6 +84,10 @@ public class WindowsOverlay {
     }
 
     private record GridWindow(WinDef.HWND hwnd) {
+
+    }
+
+    private record HintMeshWindow(WinDef.HWND hwnd, List<Hint> hints) {
 
     }
 
@@ -117,6 +130,37 @@ public class WindowsOverlay {
         WinDef.HWND hwnd = createWindow("Grid", x, y, width, height,
                 WindowsOverlay::gridWindowCallback);
         gridWindow = new GridWindow(hwnd);
+    }
+
+    private static void createOrUpdateHintMeshWindows(List<Hint> hints) {
+        Set<Monitor> monitors = WindowsMonitor.findMonitors();
+        Map<Monitor, List<Hint>> hintsByMonitor = new HashMap<>();
+        for (Hint hint : hints) {
+            for (Monitor monitor : monitors) {
+                if (!Rectangle.rectangleContains(monitor.x(), monitor.y(), monitor.width(),
+                        monitor.height(), hint.centerX(), hint.centerY()))
+                    continue;
+                hintsByMonitor.computeIfAbsent(monitor, monitor1 -> new ArrayList<>())
+                              .add(hint);
+                break;
+            }
+        }
+        for (Map.Entry<Monitor, List<Hint>> entry : hintsByMonitor.entrySet()) {
+            Monitor monitor = entry.getKey();
+            List<Hint> hintsInMonitor = entry.getValue();
+            HintMeshWindow existingWindow = hintMeshWindows.get(monitor);
+            if (existingWindow == null) {
+                WinDef.HWND hwnd = createWindow("HintMesh", monitor.x(), monitor.y(),
+                        monitor.width(), monitor.height(),
+                        (hwnd1, uMsg, wParam, lParam) -> hintMeshWindowCallback(monitor,
+                                hwnd1, uMsg, wParam, lParam));
+                hintMeshWindows.put(monitor, new HintMeshWindow(hwnd, hintsInMonitor));
+            }
+            else {
+                hintMeshWindows.put(monitor,
+                        new HintMeshWindow(existingWindow.hwnd, hintsInMonitor));
+            }
+        }
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
@@ -181,10 +225,44 @@ public class WindowsOverlay {
                         hBitmap = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
                 WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
                 clearWindow(memDC, ps.rcPaint);
-                if (currentGrid.lineVisible())
-                    drawGridLines(memDC, ps.rcPaint);
-                if (currentGrid.hintEnabled())
-                    drawGridHints(memDC, ps.rcPaint);
+                drawGrid(memDC, ps.rcPaint);
+                // Copy (blit) the off-screen buffer to the screen.
+                GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
+                        GDI32.SRCCOPY);
+                GDI32.INSTANCE.SelectObject(memDC, oldBitmap);
+                GDI32.INSTANCE.DeleteObject(hBitmap);
+                GDI32.INSTANCE.DeleteDC(memDC);
+                ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
+                break;
+        }
+        return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
+
+    private static WinDef.LRESULT hintMeshWindowCallback(Monitor monitor,
+                                                         WinDef.HWND hwnd, int uMsg,
+                                                         WinDef.WPARAM wParam,
+                                                         WinDef.LPARAM lParam) {
+        switch (uMsg) {
+            case WinUser.WM_PAINT:
+                ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
+                if (!showingHintMesh) {
+                    WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
+                    // The area has to be cleared otherwise the previous drawings will be drawn.
+                    clearWindow(hdc, ps.rcPaint);
+                    ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
+                    break;
+                }
+                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
+                WinDef.HDC memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
+                // We may want to use the window's full dimension (GetClientRect) instead of rcPaint?
+                int width = ps.rcPaint.right - ps.rcPaint.left;
+                int height = ps.rcPaint.bottom - ps.rcPaint.top;
+                WinDef.HBITMAP hBitmap =
+                        GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
+                WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
+                clearWindow(memDC, ps.rcPaint);
+                HintMeshWindow hintMeshWindow = hintMeshWindows.get(monitor);
+                drawHints(memDC, ps.rcPaint, hintMeshWindow.hints);
                 // Copy (blit) the off-screen buffer to the screen.
                 GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
                         GDI32.SRCCOPY);
@@ -203,7 +281,7 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(hbrBackground);
     }
 
-    private static void drawGridLines(WinDef.HDC hdc, WinDef.RECT windowRect) {
+    private static void drawGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
         int rowCount = currentGrid.rowCount();
         int columnCount = currentGrid.columnCount();
         int cellWidth = currentGrid.width() / rowCount;
@@ -260,82 +338,71 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(gridPen);
     }
 
-    private static void drawGridHints(WinDef.HDC hdc, WinDef.RECT windowRect) {
-        int rowCount = currentGrid.rowCount();
-        int columnCount = currentGrid.columnCount();
-        int cellWidth = currentGrid.width() / rowCount;
-        int cellHeight = currentGrid.height() / columnCount;
-        String fontName = currentGrid.hintFontName();
-        int fontSize = currentGrid.hintFontSize();
-        String fontHexColor = currentGrid.hintFontHexColor();
-        String selectedPrefixFontHexColor = currentGrid.hintSelectedPrefixFontHexColor();
-        String boxHexColor = currentGrid.hintBoxHexColor();
-        Hint[][] hints = currentGrid.hints();
-        List<Key> focusedHintKeySequence = currentGrid.focusedHintKeySequence();
-        for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                Hint hint = hints[rowIndex][columnIndex];
-                if (!hint.startsWith(focusedHintKeySequence))
-                    continue;
-                // Convert point size to logical units.
-                // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
-                int fontHeight =
-                        -fontSize * GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY) / 72;
-                // In Windows API, negative font size means "point size" (as opposed to pixels).
-                WinDef.HFONT hintFont = ExtendedGDI32.INSTANCE.CreateFontA(
-                        fontHeight, 0, 0, 0,
-                        FW_BOLD,
-                        new WinDef.DWORD(0),
-                        new WinDef.DWORD(0),
-                        new WinDef.DWORD(0),
+    private static void drawHints(WinDef.HDC hdc, WinDef.RECT windowRect,
+                                  List<Hint> windowHints) {
+        String fontName = currentHintMesh.fontName();
+        int fontSize = currentHintMesh.fontSize();
+        String fontHexColor = currentHintMesh.fontHexColor();
+        String selectedPrefixFontHexColor = currentHintMesh.selectedPrefixFontHexColor();
+        String boxHexColor = currentHintMesh.boxHexColor();
+        List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
+        // Convert point size to logical units.
+        // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
+        int fontHeight = -fontSize * GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY) / 72;
+        // In Windows API, negative font size means "point size" (as opposed to pixels).
+        WinDef.HFONT hintFont =
+                ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0, FW_BOLD,
+                        new WinDef.DWORD(0), new WinDef.DWORD(0), new WinDef.DWORD(0),
                         new WinDef.DWORD(ANSI_CHARSET),
                         new WinDef.DWORD(OUT_DEFAULT_PRECIS),
                         new WinDef.DWORD(CLIP_DEFAULT_PRECIS),
                         new WinDef.DWORD(DEFAULT_QUALITY),
-                        new WinDef.DWORD(DEFAULT_PITCH | FF_SWISS),
-                        fontName);
-                WinNT.HANDLE oldFont = GDI32.INSTANCE.SelectObject(hdc, hintFont);
-                // Measure text size
-                WinUser.SIZE textSize = new WinUser.SIZE();
-                String text = hint.keySequence()
-                                  .stream()
-                                  .map(Key::name)
-                                  .map(String::toUpperCase) // This could be problematic since it uses Locale.default().
-                                  .collect(Collectors.joining());
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(), textSize);
-                int textX = columnIndex * cellWidth + (cellWidth - textSize.cx) / 2;
-                int textY = rowIndex * cellHeight + (cellHeight - textSize.cy) / 2;
-                WinDef.RECT textRect = new WinDef.RECT();
-                textRect.left = textX;
-                textRect.top = textY;
-                textRect.right = textX + textSize.cx;
-                textRect.bottom = textY + textSize.cy;
-                // For Arial 10, cx is 26 and cy is 24. I want a padding of 4, 4 in that case.
-                int xPadding = (int) ((double) textSize.cx / 26 * 4);
-                int yPadding = (int) ((double) textSize.cy / 24 * 4);
-                WinDef.HBRUSH boxBrush = ExtendedGDI32.INSTANCE.CreateSolidBrush(
-                        hexColorStringToInt(boxHexColor));
-                WinDef.RECT boxRect = new WinDef.RECT();
-                boxRect.left = textX - xPadding;
-                boxRect.top = textY - yPadding;
-                boxRect.right = textX + textSize.cx + xPadding;
-                boxRect.bottom = textY + textSize.cy + yPadding;
-                ExtendedUser32.INSTANCE.FillRect(hdc, boxRect, boxBrush);
-                drawHintText(hdc, fontHexColor, textRect, text);
-                if (!focusedHintKeySequence.isEmpty()) {
-                    String selectedPrefixText = //
-                            focusedHintKeySequence.stream()
-                                                  .map(Key::name)
-                                                  .map(String::toUpperCase)
-                                                  .collect(Collectors.joining());
-                    drawHintText(hdc, selectedPrefixFontHexColor, textRect,
-                            selectedPrefixText);
-                }
-                GDI32.INSTANCE.SelectObject(hdc, oldFont);
-                GDI32.INSTANCE.DeleteObject(hintFont);
-                GDI32.INSTANCE.DeleteObject(boxBrush);
+                        new WinDef.DWORD(DEFAULT_PITCH | FF_SWISS), fontName);
+        WinNT.HANDLE oldFont = GDI32.INSTANCE.SelectObject(hdc, hintFont);
+        WinDef.HBRUSH boxBrush = ExtendedGDI32.INSTANCE.CreateSolidBrush(
+                hexColorStringToInt(boxHexColor));
+        for (Hint hint : windowHints) {
+            if (!hint.startsWith(focusedHintKeySequence))
+                continue;
+            // Measure text size
+            WinUser.SIZE textSize = new WinUser.SIZE();
+            String text = hint.keySequence()
+                              .stream()
+                              .map(Key::name)
+                              .map(String::toUpperCase) // This could be problematic since it uses Locale.default().
+                              .collect(Collectors.joining());
+            ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(),
+                    textSize);
+            int textX = hint.centerX() - textSize.cx / 2;
+            int textY = hint.centerY() - textSize.cy / 2;
+            WinDef.RECT textRect = new WinDef.RECT();
+            textRect.left = textX;
+            textRect.top = textY;
+            textRect.right = textX + textSize.cx;
+            textRect.bottom = textY + textSize.cy;
+            // For Arial 10, cx is 26 and cy is 24. I want a padding of 4, 4 in that case.
+            int xPadding = (int) ((double) textSize.cx / 26 * 4);
+            int yPadding = (int) ((double) textSize.cy / 24 * 4);
+            WinDef.RECT boxRect = new WinDef.RECT();
+            boxRect.left = textX - xPadding;
+            boxRect.top = textY - yPadding;
+            boxRect.right = textX + textSize.cx + xPadding;
+            boxRect.bottom = textY + textSize.cy + yPadding;
+            ExtendedUser32.INSTANCE.FillRect(hdc, boxRect, boxBrush);
+            drawHintText(hdc, fontHexColor, textRect, text);
+            if (!focusedHintKeySequence.isEmpty()) {
+                String selectedPrefixText = //
+                        focusedHintKeySequence.stream()
+                                              .map(Key::name)
+                                              .map(String::toUpperCase)
+                                              .collect(Collectors.joining());
+                drawHintText(hdc, selectedPrefixFontHexColor, textRect,
+                        selectedPrefixText);
             }
         }
+        GDI32.INSTANCE.SelectObject(hdc, oldFont);
+        GDI32.INSTANCE.DeleteObject(hintFont);
+        GDI32.INSTANCE.DeleteObject(boxBrush);
     }
 
     private static void drawHintText(WinDef.HDC hdc, String fontHexColor, WinDef.RECT textRect, String text) {
@@ -396,11 +463,30 @@ public class WindowsOverlay {
         requestWindowRepaint(gridWindow.hwnd);
     }
 
+    public static void setHintMesh(HintMesh hintMesh) {
+        Objects.requireNonNull(hintMesh);
+        if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
+            return;
+        currentHintMesh = hintMesh;
+        createOrUpdateHintMeshWindows(currentHintMesh.hints());
+        showingHintMesh = true;
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            requestWindowRepaint(hintMeshWindow.hwnd);
+    }
+
     public static void hideGrid() {
         if (!showingGrid)
             return;
         showingGrid = false;
         requestWindowRepaint(gridWindow.hwnd);
+    }
+
+    public static void hideHintMesh() {
+        if (!showingHintMesh)
+            return;
+        showingHintMesh = false;
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            requestWindowRepaint(hintMeshWindow.hwnd);
     }
 
     private static void requestWindowRepaint(WinDef.HWND hwnd) {

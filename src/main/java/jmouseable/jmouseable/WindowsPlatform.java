@@ -89,11 +89,11 @@ public class WindowsPlatform implements Platform {
                      .map(ComboMove::key)
                      .forEach(allComboKeys::add);
             }
-            hintFontNames.add(mode.gridConfiguration().hintFontName());
+            hintFontNames.add(mode.hintMesh().fontName());
         }
         for (String hintFontName : hintFontNames) {
             if (!WindowsOverlay.doesFontExist(hintFontName))
-                throw new IllegalStateException("Unable to find font: " + hintFontName);
+                throw new IllegalStateException("Unable to find hint font: " + hintFontName);
         }
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboKeys, keyboardLayout);
         WinDef.POINT mousePosition = WindowsMouse.cursorPositionAndSize().position();

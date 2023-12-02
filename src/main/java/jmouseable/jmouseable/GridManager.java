@@ -2,9 +2,6 @@ package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.Grid.GridBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Displays the grid and handles grid commands.
  */
@@ -12,7 +9,6 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private final MonitorManager monitorManager;
     private final MouseController mouseController;
-    private ModeController modeController;
     private Grid grid;
     private int mouseX, mouseY;
     private Mode currentMode;
@@ -22,25 +18,9 @@ public class GridManager implements MousePositionListener, ModeListener {
         this.mouseController = mouseController;
     }
 
-    public void setModeController(ModeController modeController) {
-        this.modeController = modeController;
-    }
-
-    private void cutGridToCell(int rowIndex, int columnIndex) {
-        int cellWidth = Math.max(1, grid.width() / grid.columnCount());
-        int cellHeight = Math.max(1, grid.height() / grid.rowCount());
-        grid = grid.builder()
-                   .x(grid.x() + columnIndex * cellWidth)
-                   .y(grid.y() + rowIndex * cellHeight)
-                   .width(cellWidth)
-                   .height(cellHeight)
-                   .build();
-        gridChanged(false);
-    }
-
     public void cutGridTop() {
         grid = grid.builder().height(Math.max(1, grid.height() / 2)).build();
-        gridChanged(false);
+        gridChanged();
     }
 
     public void cutGridBottom() {
@@ -48,12 +28,12 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .y(grid.y() + grid.height() / 2)
                    .height(Math.max(1, grid.height() / 2))
                    .build();
-        gridChanged(false);
+        gridChanged();
     }
 
     public void cutGridLeft() {
         grid = grid.builder().width(Math.max(1, grid.width() / 2)).build();
-        gridChanged(false);
+        gridChanged();
     }
 
     public void cutGridRight() {
@@ -61,7 +41,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .x(grid.x() + grid.width() / 2)
                    .width(Math.max(1, grid.width() / 2))
                    .build();
-        gridChanged(false);
+        gridChanged();
     }
 
     private GridBuilder gridCenteredAroundMouse(GridBuilder grid) {
@@ -87,7 +67,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (newGrid.equals(grid))
             return;
         grid = newGrid;
-        gridChanged(false);
+        gridChanged();
     }
 
     public void moveGridTop() {
@@ -124,7 +104,7 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private void snap(boolean horizontal, boolean forward) {
         boolean mouseIsInsideGrid =
-                RectUtil.rectContains(grid.x(), grid.y(), grid.width(), grid.height(),
+                Rectangle.rectangleContains(grid.x(), grid.y(), grid.width(), grid.height(),
                         mouseX, mouseY);
         int x, y;
         int cellWidth = Math.max(1, grid.width() / grid.columnCount());
@@ -189,189 +169,71 @@ public class GridManager implements MousePositionListener, ModeListener {
     public void mouseMoved(int x, int y) {
         this.mouseX = x;
         this.mouseY = y;
-        if (currentMode.gridConfiguration().synchronization() ==
+        if (currentMode.grid().synchronization() ==
             Synchronization.GRID_CENTER_FOLLOWS_MOUSE) {
             grid = gridCenteredAroundMouse(grid.builder()).build();
-            gridChanged(false);
+            gridChanged();
         }
     }
 
     @Override
     public void modeChanged(Mode newMode) {
-        GridConfiguration gridConfiguration = newMode.gridConfiguration();
+        GridConfiguration gridConfiguration = newMode.grid();
         GridBuilder gridBuilder = //
                 new GridBuilder().rowCount(gridConfiguration.rowCount())
                                  .columnCount(gridConfiguration.columnCount())
                                  .lineVisible(gridConfiguration.lineVisible())
                                  .lineHexColor(gridConfiguration.lineHexColor())
                                  .lineThickness(gridConfiguration.lineThickness());
-        GridBuilder newGridBuilder = switch (gridConfiguration.area()) {
-            case Area.ActiveScreen activeScreen -> {
+        switch (gridConfiguration.area()) {
+            case GridArea.ActiveScreen activeScreen -> {
                 Monitor monitor = monitorManager.activeMonitor();
                 int gridWidth = (int) (monitor.width() * activeScreen.screenWidthPercent());
                 int gridHeight =
                         (int) (monitor.height() * activeScreen.screenHeightPercent());
-                yield gridBuilder.x(monitor.x() + (monitor.width() - gridWidth) / 2)
+                gridBuilder.x(monitor.x() + (monitor.width() - gridWidth) / 2)
                                  .y(monitor.y() + (monitor.height() - gridHeight) / 2)
                                  .width(gridWidth)
                                  .height(gridHeight);
             }
-            case Area.ActiveWindow activeWindow ->
-                    WindowsOverlay.gridFittingActiveWindow(gridBuilder,
-                            activeWindow.windowWidthPercent(),
-                            activeWindow.windowHeightPercent());
+            case GridArea.ActiveWindow activeWindow -> {
+                Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
+                        activeWindow.windowWidthPercent(),
+                        activeWindow.windowHeightPercent());
+                gridBuilder.x(activeWindowRectangle.x())
+                           .y(activeWindowRectangle.y())
+                           .width(activeWindowRectangle.width())
+                           .height(activeWindowRectangle.height());
+            }
         };
         if (gridConfiguration.synchronization() ==
             Synchronization.GRID_CENTER_FOLLOWS_MOUSE)
-            gridCenteredAroundMouse(newGridBuilder);
-        buildHints(newGridBuilder, gridConfiguration);
-        Grid newGrid = newGridBuilder.build();
+            gridCenteredAroundMouse(gridBuilder);
+        Grid newGrid = gridBuilder.build();
         if (currentMode != null &&
-            newMode.gridConfiguration().equals(currentMode.gridConfiguration()) &&
+            newMode.grid().equals(currentMode.grid()) &&
             newGrid.equals(grid))
             return;
         currentMode = newMode;
         grid = newGrid;
-        gridChanged(true);
+        gridChanged();
     }
 
-    private GridBuilder buildHints(GridBuilder grid, GridConfiguration gridConfiguration) {
-        grid.hintEnabled(gridConfiguration.hintEnabled())
-            .hintFontName(gridConfiguration.hintFontName())
-            .hintFontSize(gridConfiguration.hintFontSize())
-            .hintFontHexColor(gridConfiguration.hintFontHexColor())
-            .hintSelectedPrefixFontHexColor(
-                    gridConfiguration.hintSelectedPrefixFontHexColor())
-            .hintBoxHexColor(gridConfiguration.hintBoxHexColor());
-        if (!gridConfiguration.hintEnabled())
-            return grid;
-        if (currentMode != null) {
-            GridConfiguration oldGridConfiguration = currentMode.gridConfiguration();
-            if (oldGridConfiguration.hintEnabled() &&
-                oldGridConfiguration.rowCount() == gridConfiguration.rowCount() &&
-                oldGridConfiguration.columnCount() == gridConfiguration.columnCount() &&
-                oldGridConfiguration.hintKeys().equals(gridConfiguration.hintKeys())) {
-                // Keep the old focusedHintKeySequence.
-                // This is useful for clicking-hint-mode that extends hint-mode.
-                grid.hints(this.grid.hints())
-                    .focusedHintKeySequence(this.grid.focusedHintKeySequence());
-                return grid;
-            }
-        }
-        int rowCount = gridConfiguration.rowCount();
-        int columnCount = gridConfiguration.columnCount();
-        List<Key> keySubset =
-                hintKeySubset(gridConfiguration.hintKeys(), rowCount, columnCount);
-        int hintCount = rowCount * columnCount;
-        // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
-        int hintLength = (int) Math.ceil(Math.log(hintCount) / Math.log(keySubset.size()));
-        Hint[][] hints = new Hint[rowCount][columnCount];
-        int cellIndex = 0;
-        for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                List<Key> keySequence = new ArrayList<>();
-                // We want the hints to look like this:
-                // aa, ba, ..., za
-                // ab, bb, ..., zb
-                // az, bz, ..., zz
-                // The ideal situation is when rowCount = columnCount = hintKeys.size().
-                for (int i = 0; i < hintLength; i++)
-                    keySequence.add(keySubset.get(
-                            (int) (cellIndex / Math.pow(keySubset.size(), i) %
-                                   keySubset.size())));
-                cellIndex++;
-                hints[rowIndex][columnIndex] = new Hint(keySequence);
-            }
-        }
-        grid.hints(hints);
-        return grid;
-    }
-
-    private static List<Key> hintKeySubset(List<Key> keys, int rowCount, int columnCount) {
-        return rowCount == columnCount && rowCount < keys.size() ?
-                keys.subList(0, rowCount) : keys;
-    }
-
-    private void gridChanged(boolean modeChanged) {
-        if (grid.lineVisible() || grid.hintEnabled())
+    private void gridChanged() {
+        if (grid.lineVisible())
             WindowsOverlay.setGrid(grid);
         else
             WindowsOverlay.hideGrid();
         Synchronization synchronization =
-                currentMode.gridConfiguration().synchronization();
-        if (!modeChanged && synchronization ==
-                            Synchronization.MOUSE_FOLLOWS_GRID_CENTER_EXCEPT_WHEN_GRID_CREATED ||
-            synchronization == Synchronization.MOUSE_FOLLOWS_GRID_CENTER) {
+                currentMode.grid().synchronization();
+        if (synchronization == Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
             mouseController.moveTo(grid.x() + grid.width() / 2,
                     grid.y() + grid.height() / 2);
-        }
     }
 
     @Override
     public void modeTimedOut() {
         // No op.
-    }
-
-    public boolean keyPressed(Key key) {
-        if (!grid.hintEnabled())
-            return false;
-        if (key.equals(currentMode.gridConfiguration().hintUndoKey())) {
-            if (!grid.focusedHintKeySequence().isEmpty()) {
-                grid = grid.builder().focusedHintKeySequence(List.of()).build();
-                gridChanged(false);
-                return true;
-            }
-            return false; // ComboWatcher can have a go at it.
-        }
-        List<Key> keySubset =
-                hintKeySubset(currentMode.gridConfiguration().hintKeys(), grid.rowCount(),
-                        grid.columnCount());
-        if (!keySubset.contains(key))
-            return false;
-        List<Key> newFocusedHintKeySequence =
-                new ArrayList<>(grid.focusedHintKeySequence());
-        newFocusedHintKeySequence.add(key);
-        Hint exactMatchHint = null;
-        int exactMatchHintRowIndex = -1, exactMatchHintColumnIndex = -1;
-        boolean atLeastOneHintIsStartsWithNewFocusedHintKeySequence = false;
-        row_loop:
-        for (int rowIndex = 0; rowIndex < grid.hints().length; rowIndex++) {
-            for (int columnIndex = 0;
-                 columnIndex < grid.hints()[rowIndex].length; columnIndex++) {
-                Hint hint = grid.hints()[rowIndex][columnIndex];
-                if (hint.keySequence().size() < newFocusedHintKeySequence.size())
-                    continue;
-                if (!hint.startsWith(newFocusedHintKeySequence))
-                    continue;
-                atLeastOneHintIsStartsWithNewFocusedHintKeySequence = true;
-                if (hint.keySequence().size() == newFocusedHintKeySequence.size()) {
-                    exactMatchHint = hint;
-                    exactMatchHintRowIndex = rowIndex;
-                    exactMatchHintColumnIndex = columnIndex;
-                    break row_loop;
-                }
-            }
-        }
-        if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
-            return true;
-        if (exactMatchHint != null) {
-            cutGridToCell(exactMatchHintRowIndex, exactMatchHintColumnIndex);
-            if (currentMode.gridConfiguration().clickButtonAfterHintSelection() != null) {
-                switch (currentMode.gridConfiguration().clickButtonAfterHintSelection()) {
-                    case LEFT_BUTTON -> mouseController.clickLeft();
-                    case MIDDLE_BUTTON -> mouseController.clickMiddle();
-                    case RIGHT_BUTTON -> mouseController.clickRight();
-                }
-            }
-            if (currentMode.gridConfiguration().modeAfterHintSelection() != null)
-                modeController.switchMode(
-                        currentMode.gridConfiguration().modeAfterHintSelection());
-        }
-        else {
-            grid = grid.builder().focusedHintKeySequence(newFocusedHintKeySequence).build();
-            gridChanged(false);
-        }
-        return true;
     }
 
 }

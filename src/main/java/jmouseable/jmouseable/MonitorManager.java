@@ -17,14 +17,14 @@ public class MonitorManager implements MousePositionListener {
         if (monitors.isEmpty())
             throw new IllegalStateException("No monitors found");
         for (Monitor monitor : monitors) {
-            if (RectUtil.rectContains(monitor.x(), monitor.y(), monitor.width(),
+            if (Rectangle.rectangleContains(monitor.x(), monitor.y(), monitor.width(),
                     monitor.height(), pointX, pointY))
                 return monitor;
         }
         double minDistance = Double.MAX_VALUE;
         Monitor nearestMonitor = null;
         for (Monitor monitor : monitors) {
-            double distance = RectUtil.rectEdgeDistanceTo(monitor.x(), monitor.y(),
+            double distance = Rectangle.rectangleEdgeDistanceTo(monitor.x(), monitor.y(),
                     monitor.width(), monitor.height(), pointX, pointY);
             if (distance < minDistance) {
                 minDistance = distance;
@@ -40,7 +40,7 @@ public class MonitorManager implements MousePositionListener {
 
     public Monitor monitorContaining(int x, int y) {
         for (Monitor monitor : monitors()) {
-            if (RectUtil.rectContains(monitor.x(), monitor.y(), monitor.width(),
+            if (Rectangle.rectangleContains(monitor.x(), monitor.y(), monitor.width(),
                     monitor.height(), x, y))
                 return monitor;
         }

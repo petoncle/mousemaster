@@ -29,23 +29,25 @@ public class ConfigurationParser {
         builder.mouse().initialVelocity(200).maxVelocity(750).acceleration(1000);
         builder.wheel().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         builder.grid()
-               .area(new Area.ActiveScreen(1, 1))
+               .area(new GridArea.ActiveScreen(1, 1))
                .synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
                .rowCount(2)
                .columnCount(2)
-               .hintEnabled(false)
-               .hintKeys(IntStream.rangeClosed('a', 'z')
-                                  .mapToObj(c -> String.valueOf((char) c))
-                                  .map(Key::ofName)
-                                  .toList())
-               .hintFontName("Arial")
-               .hintFontSize(20)
-               .hintFontHexColor("#FFFFFF")
-               .hintSelectedPrefixFontHexColor("#8FA6C4")
-               .hintBoxHexColor("#204E8A")
                .lineVisible(false)
                .lineHexColor("#FF0000")
                .lineThickness(1);
+        builder.hintMesh()
+               .type(new HintMeshType.ActiveScreen(1, 1, 20, 20))
+               .enabled(false)
+               .selectionKeys(IntStream.rangeClosed('a', 'z')
+                                       .mapToObj(c -> String.valueOf((char) c))
+                                       .map(Key::ofName)
+                                       .toList())
+               .fontName("Arial")
+               .fontSize(20)
+               .fontHexColor("#FFFFFF")
+               .selectedPrefixFontHexColor("#8FA6C4")
+               .boxHexColor("#204E8A");
         builder.timeout().enabled(false);
         builder.indicator()
                .enabled(false)
@@ -141,7 +143,7 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid grid configuration: " + propertyKey);
                     switch (keyMatcher.group(4)) {
-                        case "area" -> mode.grid().area(parseArea(propertyValue));
+                        case "area" -> mode.grid().area(parseGridArea(propertyValue));
                         case "synchronization" -> mode.grid()
                                                                .synchronization(
                                                                       parseSynchronization(
@@ -156,36 +158,6 @@ public class ConfigurationParser {
                                                                         "grid column-count",
                                                                         propertyValue, 1,
                                                                         50));
-                        case "hint-enabled" ->
-                                mode.grid().hintEnabled(Boolean.parseBoolean(propertyValue));
-                        case "hint-keys" ->
-                                mode.grid().hintKeys(parseHintKeys(propertyValue));
-                        case "hint-undo" ->
-                                mode.grid().hintUndoKey(Key.ofName(propertyValue));
-                        case "hint-font-name" -> mode.grid().hintFontName(propertyValue);
-                        case "hint-font-size" -> mode.grid()
-                                                     .hintFontSize(parseUnsignedInteger(
-                                                             "grid hint-font-size",
-                                                             propertyValue, 1, 1000));
-                        case "hint-font-color" -> mode.grid()
-                                                      .hintFontHexColor(checkColorFormat(
-                                                              propertyValue));
-                        case "hint-selected-prefix-font-color" -> mode.grid()
-                                                                      .hintSelectedPrefixFontHexColor(
-                                                                              checkColorFormat(
-                                                                                      propertyValue));
-                        case "hint-box-color" -> mode.grid()
-                                                     .hintBoxHexColor(checkColorFormat(
-                                                             propertyValue));
-                        case "mode-after-hint-selection" -> {
-                            String modeAfterHintSelection = propertyValue;
-                            modeNameReferences.add(modeAfterHintSelection);
-                            mode.grid().modeAfterHintSelection(modeAfterHintSelection);
-                        }
-                        case "click-button-after-hint-selection" -> mode.grid()
-                                                                        .clickButtonAfterHintSelection(
-                                                                                parseButton(
-                                                                                        propertyValue));
                         case "line-visible" ->
                                 mode.grid().lineVisible(Boolean.parseBoolean(propertyValue));
                         case "line-color" ->
@@ -196,6 +168,46 @@ public class ConfigurationParser {
                                                                      propertyValue));
                         default -> throw new IllegalArgumentException(
                                 "Invalid grid configuration: " + propertyKey);
+                    }
+                }
+                case "hint" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid grid configuration: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        case "enabled" -> mode.hintMesh()
+                                              .enabled(Boolean.parseBoolean(
+                                                      propertyValue));
+                        case "type" ->
+                                mode.hintMesh().type(parseHintMeshType(propertyValue));
+                        case "selection-keys" -> mode.hintMesh()
+                                                     .selectionKeys(parseHintKeys(
+                                                             propertyValue));
+                        case "undo" -> mode.hintMesh().undoKey(Key.ofName(propertyValue));
+                        case "font-name" -> mode.hintMesh().fontName(propertyValue);
+                        case "font-size" -> mode.hintMesh()
+                                                .fontSize(parseUnsignedInteger(
+                                                        "hint font-size", propertyValue,
+                                                        1, 1000));
+                        case "font-color" -> mode.hintMesh()
+                                                 .fontHexColor(
+                                                         checkColorFormat(propertyValue));
+                        case "selected-prefix-font-color" -> mode.hintMesh()
+                                                                 .selectedPrefixFontHexColor(
+                                                                         checkColorFormat(
+                                                                                 propertyValue));
+                        case "box-color" -> mode.hintMesh()
+                                                .boxHexColor(
+                                                        checkColorFormat(propertyValue));
+                        case "mode-after-selection" -> {
+                            String modeAfterSelection = propertyValue;
+                            modeNameReferences.add(modeAfterSelection);
+                            mode.hintMesh().modeAfterSelection(modeAfterSelection);
+                        }
+                        case "click-button-after-selection" -> mode.hintMesh()
+                                                                        .clickButtonAfterSelection(
+                                                                                parseButton(
+                                                                                        propertyValue));
                     }
                 }
                 case "to" -> {
@@ -402,7 +414,7 @@ public class ConfigurationParser {
      * - timeout configuration
      * - switch mode commands
      * - mode after hint selection
-     * - clickButtonAfterHintSelection
+     * - clickButton after hint selection
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()
@@ -429,35 +441,37 @@ public class ConfigurationParser {
         if (childMode.wheel().acceleration() == null)
             childMode.wheel().acceleration(parentMode.wheel().acceleration());
         if (childMode.grid().area() == null)
-            childMode.grid().area(parentMode.gridConfiguration().area());
+            childMode.grid().area(parentMode.grid().area());
         if (childMode.grid().synchronization() == null)
-            childMode.grid().synchronization(parentMode.gridConfiguration().synchronization());
+            childMode.grid().synchronization(parentMode.grid().synchronization());
         if (childMode.grid().rowCount() == null)
-            childMode.grid().rowCount(parentMode.gridConfiguration().rowCount());
+            childMode.grid().rowCount(parentMode.grid().rowCount());
         if (childMode.grid().columnCount() == null)
-            childMode.grid().columnCount(parentMode.gridConfiguration().columnCount());
-        if (childMode.grid().hintEnabled() == null)
-            childMode.grid().hintEnabled(parentMode.gridConfiguration().hintEnabled());
-        if (childMode.grid().hintKeys() == null)
-            childMode.grid().hintKeys(parentMode.gridConfiguration().hintKeys());
-        if (childMode.grid().hintUndoKey() == null)
-            childMode.grid().hintUndoKey(parentMode.gridConfiguration().hintUndoKey());
-        if (childMode.grid().hintFontName() == null)
-            childMode.grid().hintFontName(parentMode.gridConfiguration().hintFontName());
-        if (childMode.grid().hintFontSize() == null)
-            childMode.grid().hintFontSize(parentMode.gridConfiguration().hintFontSize());
-        if (childMode.grid().hintFontHexColor() == null)
-            childMode.grid().hintFontHexColor(parentMode.gridConfiguration().hintFontHexColor());
-        if (childMode.grid().hintSelectedPrefixFontHexColor() == null)
-            childMode.grid().hintSelectedPrefixFontHexColor(parentMode.gridConfiguration().hintSelectedPrefixFontHexColor());
-        if (childMode.grid().hintBoxHexColor() == null)
-            childMode.grid().hintBoxHexColor(parentMode.gridConfiguration().hintBoxHexColor());
+            childMode.grid().columnCount(parentMode.grid().columnCount());
         if (childMode.grid().lineVisible() == null)
-            childMode.grid().lineVisible(parentMode.gridConfiguration().lineVisible());
+            childMode.grid().lineVisible(parentMode.grid().lineVisible());
         if (childMode.grid().lineHexColor() == null)
-            childMode.grid().lineHexColor(parentMode.gridConfiguration().lineHexColor());
+            childMode.grid().lineHexColor(parentMode.grid().lineHexColor());
         if (childMode.grid().lineThickness() == null)
-            childMode.grid().lineThickness(parentMode.gridConfiguration().lineThickness());
+            childMode.grid().lineThickness(parentMode.grid().lineThickness());
+        if (childMode.hintMesh().enabled() == null)
+            childMode.hintMesh().enabled(parentMode.hintMesh().enabled());
+        if (childMode.hintMesh().type() == null)
+            childMode.hintMesh().type(parentMode.hintMesh().type());
+        if (childMode.hintMesh().selectionKeys() == null)
+            childMode.hintMesh().selectionKeys(parentMode.hintMesh().selectionKeys());
+        if (childMode.hintMesh().undoKey() == null)
+            childMode.hintMesh().undoKey(parentMode.hintMesh().undoKey());
+        if (childMode.hintMesh().fontName() == null)
+            childMode.hintMesh().fontName(parentMode.hintMesh().fontName());
+        if (childMode.hintMesh().fontSize() == null)
+            childMode.hintMesh().fontSize(parentMode.hintMesh().fontSize());
+        if (childMode.hintMesh().fontHexColor() == null)
+            childMode.hintMesh().fontHexColor(parentMode.hintMesh().fontHexColor());
+        if (childMode.hintMesh().selectedPrefixFontHexColor() == null)
+            childMode.hintMesh().selectedPrefixFontHexColor(parentMode.hintMesh().selectedPrefixFontHexColor());
+        if (childMode.hintMesh().boxHexColor() == null)
+            childMode.hintMesh().boxHexColor(parentMode.hintMesh().boxHexColor());
         if (childMode.indicator().enabled() == null)
             childMode.indicator().enabled(parentMode.indicator().enabled());
         if (childMode.indicator().idleHexColor() == null)
@@ -513,7 +527,36 @@ public class ConfigurationParser {
         return Arrays.stream(split).map(Key::ofName).toList();
     }
 
-    private static Area parseArea(String string) {
+    private static HintMeshType parseHintMeshType(String string) {
+        String[] split = string.split("\\s+");
+        double width, height;
+        if (split.length == 0)
+            throw new IllegalArgumentException(
+                    "Invalid hint type configuration: " + string);
+        if (split[0].equals("active-screen") || split[0].equals("active-window")) {
+            if (split.length != 5)
+                throw new IllegalArgumentException(
+                        "Invalid hint type configuration: " + string);
+            width = Double.parseDouble(split[1]);
+            height = Double.parseDouble(split[2]);
+            if (width < 0 || width > 1 || height < 0 || height > 1)
+                throw new IllegalArgumentException(
+                        "Invalid hint type configuration: " + string);
+            int rowCount = parseUnsignedInteger("hint", split[3], 1, 50);
+            int columnCount = parseUnsignedInteger("hint", split[4], 1, 50);
+            if (split[0].equals("active-screen"))
+                return new HintMeshType.ActiveScreen(width, height, rowCount,
+                        columnCount);
+            else
+                return new HintMeshType.ActiveWindow(width, height, rowCount,
+                        columnCount);
+        }
+        else
+            throw new IllegalArgumentException(
+                    "Invalid hint type configuration: " + string);
+    }
+
+    private static GridArea parseGridArea(String string) {
         String[] split = string.split("\\s+");
         double width, height;
         if (split.length == 1)
@@ -528,8 +571,8 @@ public class ConfigurationParser {
         else
             throw new IllegalArgumentException("Invalid grid area configuration: " + string);
         return switch (split[0]) {
-            case "active-screen" -> new Area.ActiveScreen(width, height);
-            case "active-window" -> new Area.ActiveWindow(width, height);
+            case "active-screen" -> new GridArea.ActiveScreen(width, height);
+            case "active-window" -> new GridArea.ActiveWindow(width, height);
             default -> throw new IllegalArgumentException(
                     "Invalid grid area configuration: " + string);
         };
@@ -540,8 +583,6 @@ public class ConfigurationParser {
             case "mouse-and-grid-center-unsynchronized" ->
                     Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED;
             case "mouse-follows-grid-center" -> Synchronization.MOUSE_FOLLOWS_GRID_CENTER;
-            case "mouse-follows-grid-center-except-when-grid-created" ->
-                    Synchronization.MOUSE_FOLLOWS_GRID_CENTER_EXCEPT_WHEN_GRID_CREATED;
             case "grid-center-follows-mouse" -> Synchronization.GRID_CENTER_FOLLOWS_MOUSE;
             default -> throw new IllegalArgumentException(
                     "Invalid grid synchronization configuration: " + string);

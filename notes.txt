@@ -125,10 +125,11 @@ _shift,^shift = press shift, release shift?
   - If hint key count > hint count (e.g. screen selection) then 1-key hints
   - Else: Find hintLength, hintCount = hintKeyCount^hintLength >= rowCount*columnCount
   - grid.hint-enabled=false/true
-  + Split hint into its own class HintManager
+  - Split hint into its own class HintManager
    + hint.area=active-screen, active-window, all-screens
-++ Give a chance to _{} ^{} combos when mode switched?
- + Dragging: normal-mode -> press left -> dragging-normal-mode -> hint mode -> dragging-normal-mode
+- Give a chance to _{} ^{} combos when mode switched? No
+ + Dragging: normal-mode -> press left -> hint mode (handles left release key) -> normal-mode
++ Update hint windows when monitors changed?
 + History (positions previously selected through hints)
  + grid.area/row-count -> grid.layout=position-history | active-screen 0.99 0.99 2(rowCount) 2
   + Grid with variable-size rows and columns
@@ -164,10 +165,8 @@ _shift,^shift = press shift, release shift?
 - Can use mode to implement hints (e.g. a b c d ... z), and click-after-hint-selected when holding shift
 - Position history: multi-screen position history hints (I believe warpd has position history hints for a single screen only)
 - The major structural differences with mouseable and warpd are the way key combos are defined
-  (key presses and key releases instead of "just keys"),
-  the "create your own modes" approach, and the generalization of the grid concept used for
-  implementing mouseable-style "attach to screen edge", mouseable-style "teleport forward",
-  warpd/keynav-style "cutable grid". Also, a mode is not restricted to "just normal mouse movements" or "just grid" or "just hints".
+  (key presses and key releases instead of "just keys"), and the "create your own modes" approach.
+  A mode is not restricted to "just normal mouse movements" or "just grid" or "just hints".
 - The configuration is more complex than warpd/mouseable, mostly because you have to think in terms of key presses and key releases.
 - It's Windows only, I have not looked at making it cross-platform simply because I don't have an incentive for doing so
   (all my desktops are Windows based).

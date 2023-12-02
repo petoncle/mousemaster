@@ -11,13 +11,13 @@ public class KeyboardManager {
     private static final Logger logger = LoggerFactory.getLogger(KeyboardManager.class);
 
     private final ComboWatcher comboWatcher;
-    private final GridManager gridManager;
+    private final HintManager hintManager;
     private final Map<Key, PressKeyEventProcessing> currentlyPressedKeys = new HashMap<>();
     private boolean pressingNotHandledKey; // Handled means part of combo or part of hint.
 
-    public KeyboardManager(ComboWatcher comboWatcher, GridManager gridManager) {
+    public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager) {
         this.comboWatcher = comboWatcher;
-        this.gridManager = gridManager;
+        this.hintManager = hintManager;
     }
 
     public void update(double delta) {
@@ -41,7 +41,7 @@ public class KeyboardManager {
             PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
             if (processing == null) {
                 if (allCurrentlyPressedKeysAreHandled()) {
-                    if (gridManager.keyPressed(keyEvent.key()))
+                    if (hintManager.keyPressed(keyEvent.key()))
                         processing = PressKeyEventProcessing.partOfHint();
                     else
                         processing = comboWatcher.keyEvent(keyEvent);

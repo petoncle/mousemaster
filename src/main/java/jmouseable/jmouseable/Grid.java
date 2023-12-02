@@ -1,13 +1,7 @@
 package jmouseable.jmouseable;
 
-import java.util.List;
-
 public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
-                   boolean hintEnabled, Hint[][] hints, List<Key> focusedHintKeySequence,
-                   String hintFontName, int hintFontSize, String hintFontHexColor,
-                   String hintSelectedPrefixFontHexColor,
-                   String hintBoxHexColor, boolean lineVisible, String lineHexColor,
-                   int lineThickness) {
+                   boolean lineVisible, String lineHexColor, int lineThickness) {
 
     public GridBuilder builder() {
         return new GridBuilder(this);
@@ -20,14 +14,6 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         private int height;
         private int rowCount;
         private int columnCount;
-        private boolean hintEnabled;
-        private Hint[][] hints;
-        private List<Key> focusedHintKeySequence = List.of();
-        private String hintFontName;
-        private int hintFontSize;
-        private String hintFontHexColor;
-        private String hintSelectedPrefixFontHexColor;
-        private String hintBoxHexColor;
         private boolean lineVisible;
         private String lineHexColor;
         private int lineThickness;
@@ -42,14 +28,6 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             this.height = grid.height;
             this.rowCount = grid.rowCount;
             this.columnCount = grid.columnCount;
-            this.hintEnabled = grid.hintEnabled;
-            this.hints = grid.hints;
-            this.focusedHintKeySequence = grid.focusedHintKeySequence;
-            this.hintFontName = grid.hintFontName;
-            this.hintFontSize = grid.hintFontSize;
-            this.hintFontHexColor = grid.hintFontHexColor;
-            this.hintSelectedPrefixFontHexColor = grid.hintSelectedPrefixFontHexColor;
-            this.hintBoxHexColor = grid.hintBoxHexColor;
             this.lineVisible = grid.lineVisible;
             this.lineHexColor = grid.lineHexColor;
             this.lineThickness = grid.lineThickness;
@@ -77,38 +55,6 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
 
         public int columnCount() {
             return columnCount;
-        }
-
-        public boolean hintEnabled() {
-            return hintEnabled;
-        }
-
-        public Hint[][] hints() {
-            return hints;
-        }
-
-        public List<Key> focusedHintKeySequence() {
-            return focusedHintKeySequence;
-        }
-
-        public String hintFontName() {
-            return hintFontName;
-        }
-
-        public int hintFontSize() {
-            return hintFontSize;
-        }
-
-        public String hintFontHexColor() {
-            return hintFontHexColor;
-        }
-
-        public String hintSelectedPrefixFontHexColor() {
-            return hintSelectedPrefixFontHexColor;
-        }
-
-        public String hintBoxHexColor() {
-            return hintBoxHexColor;
         }
 
         public boolean lineVisible() {
@@ -153,47 +99,6 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
-        public GridBuilder hintEnabled(boolean hintEnabled) {
-            this.hintEnabled = hintEnabled;
-            return this;
-        }
-
-        public GridBuilder hints(Hint[][] hints) {
-            this.hints = hints;
-            return this;
-        }
-
-        public GridBuilder focusedHintKeySequence(List<Key> focusedHintKeySequence) {
-            this.focusedHintKeySequence = focusedHintKeySequence;
-            return this;
-        }
-
-        public GridBuilder hintFontName(String hintFontName) {
-            this.hintFontName = hintFontName;
-            return this;
-        }
-
-        public GridBuilder hintFontSize(int hintFontSize) {
-            this.hintFontSize = hintFontSize;
-            return this;
-        }
-
-        public GridBuilder hintFontHexColor(String hintFontHexColor) {
-            this.hintFontHexColor = hintFontHexColor;
-            return this;
-        }
-
-        public GridBuilder hintSelectedPrefixFontHexColor(
-                String hintSelectedPrefixFontHexColor) {
-            this.hintSelectedPrefixFontHexColor = hintSelectedPrefixFontHexColor;
-            return this;
-        }
-
-        public GridBuilder hintBoxHexColor(String hintBoxHexColor) {
-            this.hintBoxHexColor = hintBoxHexColor;
-            return this;
-        }
-
         public GridBuilder lineVisible(boolean lineVisible) {
             this.lineVisible = lineVisible;
             return this;
@@ -210,10 +115,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         }
 
         public Grid build() {
-            return new Grid(x, y, width, height, rowCount, columnCount, hintEnabled,
-                    hints, focusedHintKeySequence, hintFontName, hintFontSize,
-                    hintFontHexColor, hintSelectedPrefixFontHexColor, hintBoxHexColor,
-                    lineVisible, lineHexColor, lineThickness);
+            return new Grid(x, y, width, height, rowCount, columnCount, lineVisible,
+                    lineHexColor, lineThickness);
         }
     }
 

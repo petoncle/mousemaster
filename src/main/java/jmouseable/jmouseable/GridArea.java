@@ -1,13 +1,13 @@
 package jmouseable.jmouseable;
 
-public sealed interface Area {
+public sealed interface GridArea {
 
     record ActiveScreen(double screenWidthPercent, double screenHeightPercent)
-            implements Area {
+            implements GridArea {
     }
 
     record ActiveWindow(double windowWidthPercent, double windowHeightPercent)
-            implements Area {
+            implements GridArea {
     }
 
 }
