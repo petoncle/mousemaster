@@ -5,7 +5,9 @@ import java.util.List;
 public record GridConfiguration(Area area, Synchronization synchronization, int rowCount,
                                 int columnCount, boolean hintEnabled, List<Key> hintKeys,
                                 Key hintUndoKey, String hintFontName, int hintFontSize,
-                                String hintFontHexColor, String hintBoxHexColor,
+                                String hintFontHexColor,
+                                String hintSelectedPrefixFontHexColor,
+                                String hintBoxHexColor,
                                 String modeAfterHintSelection,
                                 Button clickButtonAfterHintSelection, boolean lineVisible,
                                 String lineHexColor, int lineThickness) {
@@ -21,6 +23,7 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
         private String hintFontName;
         private Integer hintFontSize;
         private String hintFontHexColor;
+        private String hintSelectedPrefixFontHexColor;
         private String hintBoxHexColor;
         private String modeAfterHintSelection;
         private Button clickButtonAfterHintSelection;
@@ -75,6 +78,12 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
 
         public GridConfigurationBuilder hintFontHexColor(String hintFontHexColor) {
             this.hintFontHexColor = hintFontHexColor;
+            return this;
+        }
+
+        public GridConfigurationBuilder hintSelectedPrefixFontHexColor(
+                String hintSelectedPrefixFontHexColor) {
+            this.hintSelectedPrefixFontHexColor = hintSelectedPrefixFontHexColor;
             return this;
         }
 
@@ -150,6 +159,10 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
             return hintFontHexColor;
         }
 
+        public String hintSelectedPrefixFontHexColor() {
+            return hintSelectedPrefixFontHexColor;
+        }
+
         public String hintBoxHexColor() {
             return hintBoxHexColor;
         }
@@ -177,9 +190,9 @@ public record GridConfiguration(Area area, Synchronization synchronization, int 
         public GridConfiguration build() {
             return new GridConfiguration(area, synchronization, rowCount, columnCount,
                     hintEnabled, hintKeys, hintUndoKey, hintFontName, hintFontSize,
-                    hintFontHexColor, hintBoxHexColor, modeAfterHintSelection,
-                    clickButtonAfterHintSelection, lineVisible, lineHexColor,
-                    lineThickness);
+                    hintFontHexColor, hintSelectedPrefixFontHexColor, hintBoxHexColor,
+                    modeAfterHintSelection, clickButtonAfterHintSelection, lineVisible,
+                    lineHexColor, lineThickness);
         }
 
     }

@@ -42,6 +42,7 @@ public class ConfigurationParser {
                .hintFontName("Arial")
                .hintFontSize(20)
                .hintFontHexColor("#FFFFFF")
+               .hintSelectedPrefixFontHexColor("#8FA6C4")
                .hintBoxHexColor("#204E8A")
                .lineVisible(false)
                .lineHexColor("#FF0000")
@@ -170,6 +171,10 @@ public class ConfigurationParser {
                         case "hint-font-color" -> mode.grid()
                                                       .hintFontHexColor(checkColorFormat(
                                                               propertyValue));
+                        case "hint-selected-prefix-font-color" -> mode.grid()
+                                                                      .hintSelectedPrefixFontHexColor(
+                                                                              checkColorFormat(
+                                                                                      propertyValue));
                         case "hint-box-color" -> mode.grid()
                                                      .hintBoxHexColor(checkColorFormat(
                                                              propertyValue));
@@ -442,6 +447,8 @@ public class ConfigurationParser {
             childMode.grid().hintFontSize(parentMode.gridConfiguration().hintFontSize());
         if (childMode.grid().hintFontHexColor() == null)
             childMode.grid().hintFontHexColor(parentMode.gridConfiguration().hintFontHexColor());
+        if (childMode.grid().hintSelectedPrefixFontHexColor() == null)
+            childMode.grid().hintSelectedPrefixFontHexColor(parentMode.gridConfiguration().hintSelectedPrefixFontHexColor());
         if (childMode.grid().hintBoxHexColor() == null)
             childMode.grid().hintBoxHexColor(parentMode.gridConfiguration().hintBoxHexColor());
         if (childMode.grid().lineVisible() == null)

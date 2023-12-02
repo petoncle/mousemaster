@@ -152,6 +152,7 @@ _shift,^shift = press shift, release shift?
 - This way of defining key combos and modes can be used to implement "toggle dragging",
   chain commands (e.g. if your move combos are arrow keys while holding ctrl, you can move left/right without releasing ctrl)
 - Grids. Grid area
+- Can use mode to implement hints (e.g. a b c d ... z), and click-after-hint-selected when holding shift
 - Position history: multi-screen position history hints (I believe warpd has position history hints for a single screen only)
 - The major structural differences with mouseable and warpd are the way key combos are defined
   (key presses and key releases instead of "just keys"),

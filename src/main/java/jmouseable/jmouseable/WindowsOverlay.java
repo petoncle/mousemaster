@@ -268,6 +268,7 @@ public class WindowsOverlay {
         String fontName = currentGrid.hintFontName();
         int fontSize = currentGrid.hintFontSize();
         String fontHexColor = currentGrid.hintFontHexColor();
+        String selectedPrefixFontHexColor = currentGrid.hintSelectedPrefixFontHexColor();
         String boxHexColor = currentGrid.hintBoxHexColor();
         Hint[][] hints = currentGrid.hints();
         List<Key> focusedHintKeySequence = currentGrid.focusedHintKeySequence();
@@ -302,40 +303,46 @@ public class WindowsOverlay {
                                   .map(String::toUpperCase) // This could be problematic since it uses Locale.default().
                                   .collect(Collectors.joining());
                 ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(), textSize);
-                // Calculate text and box positions.
                 int textX = columnIndex * cellWidth + (cellWidth - textSize.cx) / 2;
                 int textY = rowIndex * cellHeight + (cellHeight - textSize.cy) / 2;
-                int xPadding = (int) (0.2d * textSize.cx);
-                int yPadding = (int) (0.1d * textSize.cy);
-                int boxLeft = textX - xPadding;
-                int boxTop = textY - yPadding;
-                int boxRight = textX + textSize.cx + xPadding;
-                int boxBottom = textY + textSize.cy + yPadding;
-                // Draw background box.
-                WinDef.HBRUSH boxBrush = ExtendedGDI32.INSTANCE.CreateSolidBrush(
-                        hexColorStringToInt(boxHexColor));
-                WinDef.RECT boxRect = new WinDef.RECT();
-                boxRect.left = boxLeft;
-                boxRect.top = boxTop;
-                boxRect.right = boxRight;
-                boxRect.bottom = boxBottom;
-                ExtendedUser32.INSTANCE.FillRect(hdc, boxRect, boxBrush);
-                // Draw text.
-                ExtendedGDI32.INSTANCE.SetTextColor(hdc, hexColorStringToInt(fontHexColor));
-                ExtendedGDI32.INSTANCE.SetBkMode(hdc, TRANSPARENT);
                 WinDef.RECT textRect = new WinDef.RECT();
                 textRect.left = textX;
                 textRect.top = textY;
-                textRect.right = textX + textSize.cx; // Not strictly necessary for DT_SINGLELINE
-                textRect.bottom = textY + textSize.cy; // Not strictly necessary for DT_SINGLELINE
-                ExtendedUser32.INSTANCE.DrawText(hdc, text, -1, textRect,
-                        new WinDef.UINT(DT_SINGLELINE | DT_CENTER | DT_VCENTER));
-                // Clean up.
+                textRect.right = textX + textSize.cx;
+                textRect.bottom = textY + textSize.cy;
+                // For Arial 10, cx is 26 and cy is 24. I want a padding of 4, 4 in that case.
+                int xPadding = (int) ((double) textSize.cx / 26 * 4);
+                int yPadding = (int) ((double) textSize.cy / 24 * 4);
+                WinDef.HBRUSH boxBrush = ExtendedGDI32.INSTANCE.CreateSolidBrush(
+                        hexColorStringToInt(boxHexColor));
+                WinDef.RECT boxRect = new WinDef.RECT();
+                boxRect.left = textX - xPadding;
+                boxRect.top = textY - yPadding;
+                boxRect.right = textX + textSize.cx + xPadding;
+                boxRect.bottom = textY + textSize.cy + yPadding;
+                ExtendedUser32.INSTANCE.FillRect(hdc, boxRect, boxBrush);
+                drawHintText(hdc, fontHexColor, textRect, text);
+                if (!focusedHintKeySequence.isEmpty()) {
+                    String selectedPrefixText = //
+                            focusedHintKeySequence.stream()
+                                                  .map(Key::name)
+                                                  .map(String::toUpperCase)
+                                                  .collect(Collectors.joining());
+                    drawHintText(hdc, selectedPrefixFontHexColor, textRect,
+                            selectedPrefixText);
+                }
                 GDI32.INSTANCE.SelectObject(hdc, oldFont);
                 GDI32.INSTANCE.DeleteObject(hintFont);
                 GDI32.INSTANCE.DeleteObject(boxBrush);
             }
         }
+    }
+
+    private static void drawHintText(WinDef.HDC hdc, String fontHexColor, WinDef.RECT textRect, String text) {
+        ExtendedGDI32.INSTANCE.SetTextColor(hdc, hexColorStringToInt(fontHexColor));
+        ExtendedGDI32.INSTANCE.SetBkMode(hdc, TRANSPARENT);
+        ExtendedUser32.INSTANCE.DrawText(hdc, text, -1, textRect,
+                new WinDef.UINT(DT_SINGLELINE | DT_LEFT | DT_TOP | DT_NOPREFIX));
     }
 
     private static int hexColorStringToInt(String hexColor) {

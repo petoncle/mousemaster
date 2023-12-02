@@ -240,6 +240,8 @@ public class GridManager implements MousePositionListener, ModeListener {
             .hintFontName(gridConfiguration.hintFontName())
             .hintFontSize(gridConfiguration.hintFontSize())
             .hintFontHexColor(gridConfiguration.hintFontHexColor())
+            .hintSelectedPrefixFontHexColor(
+                    gridConfiguration.hintSelectedPrefixFontHexColor())
             .hintBoxHexColor(gridConfiguration.hintBoxHexColor());
         if (!gridConfiguration.hintEnabled())
             return grid;

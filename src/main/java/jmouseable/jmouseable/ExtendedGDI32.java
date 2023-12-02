@@ -36,6 +36,7 @@ public interface ExtendedGDI32 extends GDI32 {
     int DT_TOP = 0x000;
     int DT_CENTER = 0x0001;
     int DT_VCENTER = 0x0004;
+    int DT_NOPREFIX = 0x800;
     int TRANSPARENT = 1;
 
     WinDef.HFONT CreateFontA(int cHeight, int cWidth, int cEscapement, int cOrientation,

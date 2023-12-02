@@ -5,6 +5,7 @@ import java.util.List;
 public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
                    boolean hintEnabled, Hint[][] hints, List<Key> focusedHintKeySequence,
                    String hintFontName, int hintFontSize, String hintFontHexColor,
+                   String hintSelectedPrefixFontHexColor,
                    String hintBoxHexColor, boolean lineVisible, String lineHexColor,
                    int lineThickness) {
 
@@ -25,6 +26,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         private String hintFontName;
         private int hintFontSize;
         private String hintFontHexColor;
+        private String hintSelectedPrefixFontHexColor;
         private String hintBoxHexColor;
         private boolean lineVisible;
         private String lineHexColor;
@@ -46,6 +48,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             this.hintFontName = grid.hintFontName;
             this.hintFontSize = grid.hintFontSize;
             this.hintFontHexColor = grid.hintFontHexColor;
+            this.hintSelectedPrefixFontHexColor = grid.hintSelectedPrefixFontHexColor;
             this.hintBoxHexColor = grid.hintBoxHexColor;
             this.lineVisible = grid.lineVisible;
             this.lineHexColor = grid.lineHexColor;
@@ -98,6 +101,10 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
 
         public String hintFontHexColor() {
             return hintFontHexColor;
+        }
+
+        public String hintSelectedPrefixFontHexColor() {
+            return hintSelectedPrefixFontHexColor;
         }
 
         public String hintBoxHexColor() {
@@ -176,6 +183,12 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
+        public GridBuilder hintSelectedPrefixFontHexColor(
+                String hintSelectedPrefixFontHexColor) {
+            this.hintSelectedPrefixFontHexColor = hintSelectedPrefixFontHexColor;
+            return this;
+        }
+
         public GridBuilder hintBoxHexColor(String hintBoxHexColor) {
             this.hintBoxHexColor = hintBoxHexColor;
             return this;
@@ -199,8 +212,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         public Grid build() {
             return new Grid(x, y, width, height, rowCount, columnCount, hintEnabled,
                     hints, focusedHintKeySequence, hintFontName, hintFontSize,
-                    hintFontHexColor, hintBoxHexColor, lineVisible, lineHexColor,
-                    lineThickness);
+                    hintFontHexColor, hintSelectedPrefixFontHexColor, hintBoxHexColor,
+                    lineVisible, lineHexColor, lineThickness);
         }
     }
 
