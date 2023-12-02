@@ -93,6 +93,9 @@ public class ConfigurationParser {
             if (!keyMatcher.matches())
                 continue;
             String modeName = keyMatcher.group(1);
+            if (modeName.equals(Mode.PREVIOUS_MODE_IDENTIFIER))
+                throw new IllegalArgumentException(
+                        "Invalid mode name: previous-mode is a reserved mode name");
             ModeBuilder mode = modeByName.computeIfAbsent(modeName, ModeBuilder::new);
             String group2 = keyMatcher.group(2);
             switch (group2) {
@@ -331,10 +334,13 @@ public class ConfigurationParser {
             }
         }
         // Verify mode name references are valid.
-        for (String modeNameReference : modeNameReferences)
+        for (String modeNameReference : modeNameReferences) {
+            if (modeNameReference.equals(Mode.PREVIOUS_MODE_IDENTIFIER))
+                continue;
             if (!modeByName.containsKey(modeNameReference))
                 throw new IllegalStateException(
                         "Definition of mode " + modeNameReference + " is missing");
+        }
         Set<String> rootModeNames = modeByName.keySet()
                                               .stream()
                                               .filter(Predicate.not(

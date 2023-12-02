@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 public class ModeController implements GridListener {
@@ -16,6 +18,7 @@ public class ModeController implements GridListener {
     private final List<ModeListener> listeners;
     private boolean currentModeCursorHidden;
     private Mode currentMode;
+    private final Deque<Mode> modeHistoryStack = new ArrayDeque<>();
     private double timeoutIdleTimer;
     private double hideCursorIdleTimer;
     private boolean justSnappedToGrid;
@@ -68,7 +71,24 @@ public class ModeController implements GridListener {
     }
 
     public void switchMode(String newModeName) {
-        Mode newMode = modeMap.get(newModeName);
+        Mode newMode;
+        Mode previousMode = modeHistoryStack.peek();
+        if (newModeName.equals(Mode.PREVIOUS_MODE_IDENTIFIER)) {
+            if (previousMode == null)
+                throw new IllegalStateException(
+                        "Unable to switch to previous mode as there are no mode preceding the current mode " +
+                        newModeName);
+            newMode = previousMode;
+        }
+        else
+            newMode = modeMap.get(newModeName);
+        if (modeHistoryStack.contains(newMode)) {
+            while (!newMode.equals(modeHistoryStack.peek()))
+                modeHistoryStack.poll();
+            modeHistoryStack.poll();
+        }
+        else if (currentMode != null && !modeHistoryStack.contains(currentMode))
+            modeHistoryStack.push(currentMode);
         currentMode = newMode;
         resetCurrentModeCursorHidden();
         resetIdleTimers();

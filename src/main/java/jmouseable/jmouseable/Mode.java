@@ -12,6 +12,7 @@ public record Mode(String name, ComboMap comboMap, Mouse mouse, Wheel wheel,
                    GridConfiguration gridConfiguration, ModeTimeout timeout,
                    Indicator indicator, HideCursor hideCursor) {
     public static final String IDLE_MODE_NAME = "idle-mode";
+    public static final String PREVIOUS_MODE_IDENTIFIER = "previous-mode";
 
     public static class ModeBuilder {
         private String name;

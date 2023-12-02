@@ -315,8 +315,9 @@ public class GridManager implements MousePositionListener, ModeListener {
             if (!grid.focusedHintKeySequence().isEmpty()) {
                 grid = grid.builder().focusedHintKeySequence(List.of()).build();
                 gridChanged();
+                return true;
             }
-            return true;
+            return false; // ComboWatcher can have a go at it.
         }
         List<Key> keySubset =
                 hintKeySubset(currentMode.gridConfiguration().hintKeys(), grid.rowCount(),

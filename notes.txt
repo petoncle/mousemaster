@@ -97,7 +97,9 @@ _shift,^shift = press shift, release shift?
  - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
   - If not, keep grid in current monitor
  +++++ Move to grid center (need separate command)
-  + mouse-follows-grid-center should not initially synchronize the mouse
+  ++ mouse-follows-grid-center should not initially synchronize the mouse
+   + _{rightctrl} move-to-grid-center
+  + mouse-follows-grid-center-except-when-grid-created?
  - synchronization=mouse-follows-grid-center / grid-center-follows-mouse / mouse-and-grid-center-unsynchronized
   - grid.type->area = active-screen 1.0 1.0, active-window 1.0 1.0
  - Rename snapRow/ColumnCount to row/ColumnCount
@@ -128,6 +130,7 @@ _shift,^shift = press shift, release shift?
   + Grid with variable-size rows and columns
   + Each historical position is the center of one cell
   + Compute the midpoints between consecutive hint positions, that is the cell width/height
+  + Or one mini 1x1 grid per historical position
 - normal-mode -> idle-mode
 + Rename Mouse, Wheel, etc. to Mouse/Wheel/...Configuration
 + mode.blinking-cursor.enabled/visible-duration/invisible-duration
