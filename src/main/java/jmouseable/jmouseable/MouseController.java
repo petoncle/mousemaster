@@ -1,7 +1,8 @@
 package jmouseable.jmouseable;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
-import java.util.Stack;
 
 public class MouseController {
 
@@ -10,12 +11,12 @@ public class MouseController {
     private double moveDuration;
     private double deltaDistanceX, deltaDistanceY;
     // Forward means right or down.
-    private final Stack<Boolean> xMoveForwardStack = new Stack<>();
-    private final Stack<Boolean> yMoveForwardStack = new Stack<>();
+    private final Deque<Boolean> xMoveForwardStack = new ArrayDeque<>();
+    private final Deque<Boolean> yMoveForwardStack = new ArrayDeque<>();
     private boolean leftPressing, middlePressing, rightPressing;
     private double wheelDuration;
-    private final Stack<Boolean> xWheelForwardStack = new Stack<>();
-    private final Stack<Boolean> yWheelForwardStack = new Stack<>();
+    private final Deque<Boolean> xWheelForwardStack = new ArrayDeque<>();
+    private final Deque<Boolean> yWheelForwardStack = new ArrayDeque<>();
 
     public void reset() {
         moveDuration = 0;
@@ -115,7 +116,7 @@ public class MouseController {
             moveDuration = 0;
     }
 
-    private static void removeFirst(Stack<Boolean> moveForward, boolean forward) {
+    private static void removeFirst(Deque<Boolean> moveForward, boolean forward) {
         Iterator<Boolean> iterator = moveForward.iterator();
         while (iterator.hasNext()) {
             if (iterator.next() == forward) {
