@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ComboWatcher implements ModeListener {
@@ -59,31 +60,23 @@ public class ComboWatcher implements ModeListener {
             currentlyPressedComboKeys.remove(event.key());
         }
         comboPreparation.events().add(event);
-        Mode beforeMode;
-        boolean partOfCombo = false;
-        boolean mustBeEaten = false;
-        List<Mode> visitedModes = new ArrayList<>();
-        do {
-            if (visitedModes.contains(currentMode))
-                throw new IllegalStateException("Detected mode switch infinite loop: " +
-                                                visitedModes.stream()
-                                                            .map(Mode::name)
-                                                            .toList());
-            visitedModes.add(currentMode);
-            beforeMode = currentMode;
-            PressKeyEventProcessing processing = processKeyEventForCurrentMode(event);
+        Mode beforeMode = currentMode;
+        PressKeyEventProcessing processing = processKeyEventForCurrentMode(event, false);
+        boolean partOfCombo = processing.handled();
+        boolean mustBeEaten = processing.mustBeEaten();
+        if (currentMode != beforeMode) {
+            // Second pass to give a chance to new mode's combos to run now.
+            processing = processKeyEventForCurrentMode(event, true);
             partOfCombo |= processing.handled();
             mustBeEaten |= processing.mustBeEaten();
-            if (currentMode != beforeMode &&
-                currentMode.pauseComboProcessingWhenModeActivated())
-                break;
-        } while (currentMode != beforeMode);
+        }
         return event.isRelease() ? null :
                 (!partOfCombo ? PressKeyEventProcessing.notHandled() :
                         PressKeyEventProcessing.partOfCombo(mustBeEaten));
     }
 
-    private PressKeyEventProcessing processKeyEventForCurrentMode(KeyEvent event) {
+    private PressKeyEventProcessing processKeyEventForCurrentMode(KeyEvent event,
+                                                                  boolean ignoreSwitchModeCommands) {
         boolean mustBeEaten = false;
         boolean partOfCombo = false;
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
@@ -142,11 +135,23 @@ public class ComboWatcher implements ModeListener {
             if (!preparationComplete)
                 continue;
             focusedCombos.values().forEach(combos -> combos.remove(combo));
-            ComboAndCommands comboAndCommands =
-                    new ComboAndCommands(combo, entry.getValue());
+            List<Command> commands = entry.getValue();
+            if (ignoreSwitchModeCommands &&
+                commands.stream().anyMatch(Command.SwitchMode.class::isInstance)) {
+                logger.debug("Ignoring SwitchMode commands: " + commands.stream()
+                                                                       .filter(Command.SwitchMode.class::isInstance)
+                                                                       .toList() +
+                            " (currentMode = " + currentMode.name() + ")");
+                commands = commands.stream()
+                                   .filter(Predicate.not(
+                                           Command.SwitchMode.class::isInstance))
+                                   .toList();
+            }
+            ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands);
             ComboMove comboLastMove = combo.sequence().moves().isEmpty() ? null :
                     combo.sequence().moves().getLast();
-            if (comboLastMove != null && !comboLastMove.duration().min().equals(Duration.ZERO)) {
+            if (comboLastMove != null &&
+                !comboLastMove.duration().min().equals(Duration.ZERO)) {
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(comboAndCommands,
                                 comboLastMove.duration().min().toNanos() / 1e9d));
@@ -157,12 +162,12 @@ public class ComboWatcher implements ModeListener {
         }
         if (newComboDuration != null)
             previousComboMoveDuration = newComboDuration;
-        List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
+        List<Command> commandsToRun =
+                longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
         logger.debug("currentMode = " + currentMode.name() + ", comboPreparation = " +
                      comboPreparation + ", partOfCombo = " + partOfCombo +
-                     ", mustBeEaten = " + mustBeEaten +
-                     ", commandsToRun = " + commandsToRun + ", focusedCombos = " +
-                     focusedCombos);
+                     ", mustBeEaten = " + mustBeEaten + ", commandsToRun = " +
+                     commandsToRun + ", focusedCombos = " + focusedCombos);
         commandsToRun.forEach(commandRunner::run);
         if (!partOfCombo) {
             comboPreparation = ComboPreparation.empty();

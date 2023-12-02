@@ -368,7 +368,6 @@ public class GridManager implements MousePositionListener, ModeListener {
         }
         return true;
     }
-    // TODO focused-hint-font-color
 
 }
 

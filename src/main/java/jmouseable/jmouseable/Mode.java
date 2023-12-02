@@ -8,15 +8,13 @@ import jmouseable.jmouseable.ModeTimeout.ModeTimeoutBuilder;
 import jmouseable.jmouseable.Mouse.MouseBuilder;
 import jmouseable.jmouseable.Wheel.WheelBuilder;
 
-public record Mode(String name, boolean pauseComboProcessingWhenModeActivated,
-                   ComboMap comboMap, Mouse mouse, Wheel wheel,
+public record Mode(String name, ComboMap comboMap, Mouse mouse, Wheel wheel,
                    GridConfiguration gridConfiguration, ModeTimeout timeout,
                    Indicator indicator, HideCursor hideCursor) {
     public static final String IDLE_MODE_NAME = "idle-mode";
 
     public static class ModeBuilder {
         private String name;
-        private boolean pauseComboProcessingWhenModeActivated = false;
         private ComboMapBuilder comboMap = new ComboMapBuilder();
         private MouseBuilder mouse = new MouseBuilder();
         private WheelBuilder wheel = new WheelBuilder();
@@ -31,12 +29,6 @@ public record Mode(String name, boolean pauseComboProcessingWhenModeActivated,
 
         public String name() {
             return name;
-        }
-
-        public ModeBuilder pauseComboProcessingWhenModeActivated(
-                boolean pauseComboProcessingWhenModeActivated) {
-            this.pauseComboProcessingWhenModeActivated = pauseComboProcessingWhenModeActivated;
-            return this;
         }
 
         public ComboMapBuilder comboMap() {
@@ -68,9 +60,8 @@ public record Mode(String name, boolean pauseComboProcessingWhenModeActivated,
         }
 
         public Mode build() {
-            return new Mode(name, pauseComboProcessingWhenModeActivated, comboMap.build(),
-                    mouse.build(), wheel.build(), grid.build(), timeout.build(),
-                    indicator.build(), hideCursor.build());
+            return new Mode(name, comboMap.build(), mouse.build(), wheel.build(),
+                    grid.build(), timeout.build(), indicator.build(), hideCursor.build());
         }
 
     }

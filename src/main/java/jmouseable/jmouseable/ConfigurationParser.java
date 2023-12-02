@@ -26,7 +26,6 @@ public class ConfigurationParser {
 
     private static Mode defaultMode() {
         ModeBuilder builder = new ModeBuilder(null);
-        builder.pauseComboProcessingWhenModeActivated(false);
         builder.mouse().initialVelocity(200).maxVelocity(750).acceleration(1000);
         builder.wheel().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         builder.grid()
@@ -97,9 +96,6 @@ public class ConfigurationParser {
             ModeBuilder mode = modeByName.computeIfAbsent(modeName, ModeBuilder::new);
             String group2 = keyMatcher.group(2);
             switch (group2) {
-                case "pause-combo-processing-when-mode-activated" ->
-                        mode.pauseComboProcessingWhenModeActivated(
-                                Boolean.parseBoolean(propertyValue));
                 case "mouse" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
@@ -397,7 +393,6 @@ public class ConfigurationParser {
 
     /**
      * Copy everything except the following from the parent mode:
-     * - pauseComboProcessingWhenModeActivated
      * - timeout configuration
      * - switch mode commands
      * - mode after hint selection

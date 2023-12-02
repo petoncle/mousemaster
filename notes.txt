@@ -96,7 +96,8 @@ _shift,^shift = press shift, release shift?
  - Put back update() in IndicatorManager for updating the color
  - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
   - If not, keep grid in current monitor
- + Move to grid center (need separate command)
+ +++++ Move to grid center (need separate command)
+  + mouse-follows-grid-center should not initially synchronize the mouse
  - synchronization=mouse-follows-grid-center / grid-center-follows-mouse / mouse-and-grid-center-unsynchronized
   - grid.type->area = active-screen 1.0 1.0, active-window 1.0 1.0
  - Rename snapRow/ColumnCount to row/ColumnCount
@@ -130,7 +131,8 @@ _shift,^shift = press shift, release shift?
 - normal-mode -> idle-mode
 + Rename Mouse, Wheel, etc. to Mouse/Wheel/...Configuration
 + mode.blinking-cursor.enabled/visible-duration/invisible-duration
-+ Change pause-combo-processing-when-mode-activated to when-mode-exited and simplify absolute-snap-mode
+- Change pause-combo-processing-when-mode-activated to when-mode-exited and simplify absolute-snap-mode
+ - Remove it completely? Ignore switch-mode combo if mode has already been changed?
 
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)
