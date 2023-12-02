@@ -138,10 +138,11 @@ public class ComboWatcher implements ModeListener {
             List<Command> commands = entry.getValue();
             if (ignoreSwitchModeCommands &&
                 commands.stream().anyMatch(Command.SwitchMode.class::isInstance)) {
-                logger.debug("Ignoring SwitchMode commands: " + commands.stream()
-                                                                       .filter(Command.SwitchMode.class::isInstance)
-                                                                       .toList() +
-                            " (currentMode = " + currentMode.name() + ")");
+                logger.debug(
+                        "Ignoring the following SwitchMode commands since the mode was just changed to " +
+                        currentMode.name() + ": " + commands.stream()
+                                                            .filter(Command.SwitchMode.class::isInstance)
+                                                            .toList());
                 commands = commands.stream()
                                    .filter(Predicate.not(
                                            Command.SwitchMode.class::isInstance))
