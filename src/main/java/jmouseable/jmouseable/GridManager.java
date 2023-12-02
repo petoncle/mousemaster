@@ -35,12 +35,12 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .width(cellWidth)
                    .height(cellHeight)
                    .build();
-        gridChanged();
+        gridChanged(false);
     }
 
     public void cutGridTop() {
         grid = grid.builder().height(Math.max(1, grid.height() / 2)).build();
-        gridChanged();
+        gridChanged(false);
     }
 
     public void cutGridBottom() {
@@ -48,12 +48,12 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .y(grid.y() + grid.height() / 2)
                    .height(Math.max(1, grid.height() / 2))
                    .build();
-        gridChanged();
+        gridChanged(false);
     }
 
     public void cutGridLeft() {
         grid = grid.builder().width(Math.max(1, grid.width() / 2)).build();
-        gridChanged();
+        gridChanged(false);
     }
 
     public void cutGridRight() {
@@ -61,7 +61,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .x(grid.x() + grid.width() / 2)
                    .width(Math.max(1, grid.width() / 2))
                    .build();
-        gridChanged();
+        gridChanged(false);
     }
 
     private GridBuilder gridCenteredAroundMouse(GridBuilder grid) {
@@ -87,7 +87,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (newGrid.equals(grid))
             return;
         grid = newGrid;
-        gridChanged();
+        gridChanged(false);
     }
 
     public void moveGridTop() {
@@ -192,7 +192,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (currentMode.gridConfiguration().synchronization() ==
             Synchronization.GRID_CENTER_FOLLOWS_MOUSE) {
             grid = gridCenteredAroundMouse(grid.builder()).build();
-            gridChanged();
+            gridChanged(false);
         }
     }
 
@@ -232,7 +232,7 @@ public class GridManager implements MousePositionListener, ModeListener {
             return;
         currentMode = newMode;
         grid = newGrid;
-        gridChanged();
+        gridChanged(true);
     }
 
     private GridBuilder buildHints(GridBuilder grid, GridConfiguration gridConfiguration) {
@@ -292,15 +292,19 @@ public class GridManager implements MousePositionListener, ModeListener {
                 keys.subList(0, rowCount) : keys;
     }
 
-    private void gridChanged() {
+    private void gridChanged(boolean modeChanged) {
         if (grid.lineVisible() || grid.hintEnabled())
             WindowsOverlay.setGrid(grid);
         else
             WindowsOverlay.hideGrid();
-        if (currentMode.gridConfiguration().synchronization() ==
-            Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
+        Synchronization synchronization =
+                currentMode.gridConfiguration().synchronization();
+        if (!modeChanged && synchronization ==
+                            Synchronization.MOUSE_FOLLOWS_GRID_CENTER_EXCEPT_WHEN_GRID_CREATED ||
+            synchronization == Synchronization.MOUSE_FOLLOWS_GRID_CENTER) {
             mouseController.moveTo(grid.x() + grid.width() / 2,
                     grid.y() + grid.height() / 2);
+        }
     }
 
     @Override
@@ -314,7 +318,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (key.equals(currentMode.gridConfiguration().hintUndoKey())) {
             if (!grid.focusedHintKeySequence().isEmpty()) {
                 grid = grid.builder().focusedHintKeySequence(List.of()).build();
-                gridChanged();
+                gridChanged(false);
                 return true;
             }
             return false; // ComboWatcher can have a go at it.
@@ -365,7 +369,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         }
         else {
             grid = grid.builder().focusedHintKeySequence(newFocusedHintKeySequence).build();
-            gridChanged();
+            gridChanged(false);
         }
         return true;
     }

@@ -540,6 +540,8 @@ public class ConfigurationParser {
             case "mouse-and-grid-center-unsynchronized" ->
                     Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED;
             case "mouse-follows-grid-center" -> Synchronization.MOUSE_FOLLOWS_GRID_CENTER;
+            case "mouse-follows-grid-center-except-when-grid-created" ->
+                    Synchronization.MOUSE_FOLLOWS_GRID_CENTER_EXCEPT_WHEN_GRID_CREATED;
             case "grid-center-follows-mouse" -> Synchronization.GRID_CENTER_FOLLOWS_MOUSE;
             default -> throw new IllegalArgumentException(
                     "Invalid grid synchronization configuration: " + string);
