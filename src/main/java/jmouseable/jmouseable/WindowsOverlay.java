@@ -14,7 +14,7 @@ public class WindowsOverlay {
     private static final int indicatorEdgeThreshold = 100; // in pixels
     private static final int indicatorSize = 16;
 
-    private static WinDef.HWND indicatorWindowHwnd;
+    private static IndicatorWindow indicatorWindow;
     private static boolean showingIndicator;
     private static String currentIndicatorHexColor;
     private static GridWindow gridWindow;
@@ -51,8 +51,8 @@ public class WindowsOverlay {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hwnds.add(hintMeshWindow.hwnd);
-        if (indicatorWindowHwnd != null)
-            hwnds.add(indicatorWindowHwnd);
+        if (indicatorWindow != null)
+            hwnds.add(indicatorWindow.hwnd);
         if (gridWindow != null)
             hwnds.add(gridWindow.hwnd);
         if (hwnds.isEmpty())
@@ -83,11 +83,15 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
 
-    private record GridWindow(WinDef.HWND hwnd) {
+    private record IndicatorWindow(WinDef.HWND hwnd, WinUser.WindowProc callback) {
 
     }
 
-    private record HintMeshWindow(WinDef.HWND hwnd, List<Hint> hints) {
+    private record GridWindow(WinDef.HWND hwnd, WinUser.WindowProc callback) {
+
+    }
+
+    private record HintMeshWindow(WinDef.HWND hwnd, WinUser.WindowProc callback, List<Hint> hints) {
 
     }
 
@@ -116,20 +120,23 @@ public class WindowsOverlay {
                 WindowsMouse.cursorPositionAndSize();
         WinUser.MONITORINFO monitorInfo =
                 WindowsMonitor.activeMonitorInfo(cursorPositionAndSize.position());
-        indicatorWindowHwnd = createWindow("Indicator",
+        WinUser.WindowProc callback =
+                WindowsOverlay::indicatorWindowCallback;
+        WinDef.HWND hwnd = createWindow("Indicator",
                 bestIndicatorX(cursorPositionAndSize.position().x,
                         cursorPositionAndSize.width(), monitorInfo.rcMonitor.left,
                         monitorInfo.rcMonitor.right),
                 bestIndicatorY(cursorPositionAndSize.position().y,
                         cursorPositionAndSize.height(), monitorInfo.rcMonitor.top,
                         monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize,
-                WindowsOverlay::indicatorWindowCallback);
+                callback);
+        indicatorWindow = new IndicatorWindow(hwnd, callback);
     }
 
     private static void createGridWindow(int x, int y, int width, int height) {
-        WinDef.HWND hwnd = createWindow("Grid", x, y, width, height,
-                WindowsOverlay::gridWindowCallback);
-        gridWindow = new GridWindow(hwnd);
+        WinUser.WindowProc callback = WindowsOverlay::gridWindowCallback;
+        WinDef.HWND hwnd = createWindow("Grid", x, y, width, height, callback);
+        gridWindow = new GridWindow(hwnd, callback);
     }
 
     private static void createOrUpdateHintMeshWindows(List<Hint> hints) {
@@ -150,15 +157,18 @@ public class WindowsOverlay {
             List<Hint> hintsInMonitor = entry.getValue();
             HintMeshWindow existingWindow = hintMeshWindows.get(monitor);
             if (existingWindow == null) {
-                WinDef.HWND hwnd = createWindow("HintMesh", monitor.x(), monitor.y(),
-                        monitor.width(), monitor.height(),
+                WinUser.WindowProc callback =
                         (hwnd1, uMsg, wParam, lParam) -> hintMeshWindowCallback(monitor,
-                                hwnd1, uMsg, wParam, lParam));
-                hintMeshWindows.put(monitor, new HintMeshWindow(hwnd, hintsInMonitor));
+                                hwnd1, uMsg, wParam, lParam);
+                WinDef.HWND hwnd = createWindow("HintMesh", monitor.x(), monitor.y(),
+                        monitor.width(), monitor.height(), callback);
+                hintMeshWindows.put(monitor,
+                        new HintMeshWindow(hwnd, callback, hintsInMonitor));
             }
             else {
                 hintMeshWindows.put(monitor,
-                        new HintMeshWindow(existingWindow.hwnd, hintsInMonitor));
+                        new HintMeshWindow(existingWindow.hwnd, existingWindow.callback,
+                                hintsInMonitor));
             }
         }
     }
@@ -429,17 +439,17 @@ public class WindowsOverlay {
             currentIndicatorHexColor.equals(hexColor))
             return;
         currentIndicatorHexColor = hexColor;
-        if (indicatorWindowHwnd == null)
+        if (indicatorWindow == null)
             createIndicatorWindow();
         showingIndicator = true;
-        requestWindowRepaint(indicatorWindowHwnd);
+        requestWindowRepaint(indicatorWindow.hwnd);
     }
 
     public static void hideIndicator() {
         if (!showingIndicator)
             return;
         showingIndicator = false;
-        requestWindowRepaint(indicatorWindowHwnd);
+        requestWindowRepaint(indicatorWindow.hwnd);
     }
 
     public static void setGrid(Grid grid) {
@@ -498,7 +508,7 @@ public class WindowsOverlay {
         WinUser.MONITORINFO monitorInfo = WindowsMonitor.activeMonitorInfo(mousePosition);
         CursorPositionAndSize cursorPositionAndSize =
                 WindowsMouse.cursorPositionAndSize();
-        User32.INSTANCE.MoveWindow(indicatorWindowHwnd,
+        User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
                 bestIndicatorX(mousePosition.x, cursorPositionAndSize.width(),
                         monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
                 bestIndicatorY(mousePosition.y, cursorPositionAndSize.height(),
