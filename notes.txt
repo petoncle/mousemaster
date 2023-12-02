@@ -115,9 +115,9 @@ _shift,^shift = press shift, release shift?
   - Hint selection is like cutting the grid to a specific cell
    - mode.grid.end.cut-count = 2 to have 2-phase hint selection
     - grid.end.next-mode
-    - Or: mode.grid.next-mode-after-cut=smaller-grid-around-cursor-mode
-     - switch-to-mode-after-grid-cut=new-mode
-     - mode.switch-mode-after-hint-selected-=...
+    - Or: mode.grid.next-next-mode-after-cut=smaller-grid-around-cursor-mode
+     - switch-to-next-mode-after-grid-cut=new-mode
+     - mode.switch-next-mode-after-hint-selected-=...
      - or mode.to.new-mode=once-hint-selected
   - Regular hint = active-screen-hints-mode = active-screen grid with row/column count 20 20
   - grid.row-count=hint-key-count

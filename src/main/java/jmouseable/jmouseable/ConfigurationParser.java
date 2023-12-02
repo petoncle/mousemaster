@@ -199,10 +199,10 @@ public class ConfigurationParser {
                         case "box-color" -> mode.hintMesh()
                                                 .boxHexColor(
                                                         checkColorFormat(propertyValue));
-                        case "mode-after-selection" -> {
-                            String modeAfterSelection = propertyValue;
-                            modeNameReferences.add(modeAfterSelection);
-                            mode.hintMesh().modeAfterSelection(modeAfterSelection);
+                        case "next-mode-after-selection" -> {
+                            String nextModeAfterSelection = propertyValue;
+                            modeNameReferences.add(nextModeAfterSelection);
+                            mode.hintMesh().nextModeAfterSelection(nextModeAfterSelection);
                         }
                         case "click-button-after-selection" -> mode.hintMesh()
                                                                         .clickButtonAfterSelection(

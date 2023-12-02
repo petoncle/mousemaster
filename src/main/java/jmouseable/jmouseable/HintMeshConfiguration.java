@@ -6,7 +6,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
                                     List<Key> selectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
                                     String selectedPrefixFontHexColor, String boxHexColor,
-                                    String modeAfterSelection,
+                                    String nextModeAfterSelection,
                                     Button clickButtonAfterSelection) {
 
     public static class HintMeshConfigurationBuilder {
@@ -19,7 +19,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         private String fontHexColor;
         private String selectedPrefixFontHexColor;
         private String boxHexColor;
-        private String modeAfterSelection;
+        private String nextModeAfterSelection;
         private Button clickButtonAfterSelection;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
@@ -68,9 +68,9 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return this;
         }
 
-        public HintMeshConfigurationBuilder modeAfterSelection(
-                String modeAfterSelection) {
-            this.modeAfterSelection = modeAfterSelection;
+        public HintMeshConfigurationBuilder nextModeAfterSelection(
+                String nextModeAfterSelection) {
+            this.nextModeAfterSelection = nextModeAfterSelection;
             return this;
         }
 
@@ -116,8 +116,8 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return boxHexColor;
         }
 
-        public String modeAfterSelection() {
-            return modeAfterSelection;
+        public String nextModeAfterSelection() {
+            return nextModeAfterSelection;
         }
 
         public Button clickButtonAfterSelection() {
@@ -127,7 +127,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, type, selectionKeys, undoKey,
                     fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
-                    boxHexColor, modeAfterSelection, clickButtonAfterSelection);
+                    boxHexColor, nextModeAfterSelection, clickButtonAfterSelection);
         }
 
     }

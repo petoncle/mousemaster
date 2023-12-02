@@ -189,8 +189,8 @@ public class HintManager implements ModeListener {
                     case Button.RIGHT_BUTTON -> mouseController.clickRight();
                 }
             }
-            if (hintMeshConfiguration.modeAfterSelection() != null)
-                modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
+            if (hintMeshConfiguration.nextModeAfterSelection() != null)
+                modeController.switchMode(hintMeshConfiguration.nextModeAfterSelection());
             else {
                 hintMesh =
                         hintMesh.builder().focusedKeySequence(List.of()).build();
