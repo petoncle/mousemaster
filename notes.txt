@@ -1,23 +1,23 @@
 _shift,^shift = press shift, release shift?
 - begin when key down, end when key up?
  - <mode>.<action> = <key combo>
- - normal-mode.to.mouse-mode=_ctrl,^ctrl,_ctrl,^ctrl
- - mouse-mode.to.temp-mouse-mode=_ctrl,^ctrl
- - temp-mouse-mode.to.normal-mode=_ctrl,^ctrl
- - mouse-mode.press-left=_shift
- - mouse-mode.release-left=^shift
- - mouse-mode.start-move-left=_leftarrow
- - mouse-mode.stop-move-left=^leftarrow
- - mouse-mode.mouse-acceleration, wheel.acceleration
- - mouse-mode.indicator.color=red
-- temp-mouse-mode.timeout.duration=1s # automatically changes mode if no key combo was detected during 1s and no action is currently running (e.g. move-up)
-- temp-mouse-mode.timeout.next-mode=normal-mode
-- temp-mouse-mode.oneshot.next-mode=normal-mode # once an action has run (e.g. move-up), mode changes automatically
+ - normal-mode.to.normal-mode=_ctrl,^ctrl,_ctrl,^ctrl
+ - normal-mode.to.temp-normal-mode=_ctrl,^ctrl
+ - temp-normal-mode.to.normal-mode=_ctrl,^ctrl
+ - normal-mode.press-left=_shift
+ - normal-mode.release-left=^shift
+ - normal-mode.start-move-left=_leftarrow
+ - normal-mode.stop-move-left=^leftarrow
+ - normal-mode.mouse-acceleration, wheel.acceleration
+ - normal-mode.indicator.color=red
+- temp-normal-mode.timeout.duration=1s # automatically changes mode if no key combo was detected during 1s and no action is currently running (e.g. move-up)
+- temp-normal-mode.timeout.next-mode=normal-mode
+- temp-normal-mode.oneshot.next-mode=normal-mode # once an action has run (e.g. move-up), mode changes automatically
 - Can assign multiple combo to same action
- - mouse-mode.press-left=_lshift
- - mouse-mode.press-left=_rshift
+ - normal-mode.press-left=_lshift
+ - normal-mode.press-left=_rshift
 - Can assign one combo to multiple actions
- - normal-mode.to.mouse-mode=_leftarrow,^leftarrow,_leftarrow
+ - normal-mode.to.normal-mode=_leftarrow,^leftarrow,_leftarrow
  - normal-mode.start-move-left=_leftarrow,^leftarrow,_leftarrow
 - Non-last keys involved in a combo should not be eaten
  - Reason is Up, Up: if only press single up, the Up,Up combo should not eat the first Up
@@ -35,7 +35,7 @@ _shift,^shift = press shift, release shift?
   -- Imagine Ctrl+up/down moves the mouse. We want to be able to hold Ctrl, (wait long) then up/down
    - This should be done with a mode (enabled with Ctrl)
   - _arrow,^arrow,_arrow should enable mouse mode and move up
-   - Done by defining move-up in both normal-mode and mouse-mode
+   - Done by defining move-up in both normal-mode and normal-mode
   - _arrow,^arrow,_arrow,^arrow,(some time)_arrow should enable mouse mode then move up
   - _arrow,^arrow,_arrow,^arrow,_arrow should enable mouse mode then scroll up
 - Combo(List<KeyAction>), KeyAction(Key, KeyState=PRESSED,RELEASED)
@@ -57,7 +57,7 @@ _shift,^shift = press shift, release shift?
 + vimium-like hint (warpd), keynav-like grid?
 + Move mouse to center of focused app?
 - Hide cursor after 5s
- - uncluttered-mouse-mode.hide-cursor.enabled+idle-duration
+ - uncluttered-normal-mode.hide-cursor.enabled+idle-duration
  - timeout.duration -> idle-duration
  - Add timeout.enabled
 - Rename OsManager to Platform
@@ -73,9 +73,9 @@ _shift,^shift = press shift, release shift?
    - press rightctrl -> temp-snap-mode
    - temp-snap-mode -> idle timeout 0.2s -> grid-mode
    - temp-snap-mode -> arrow key -> perm-snap-mode
-   - press rightctrl -> snap-mode -> release rightctrl -> mouse-mode
-   - temp-snap-mode -> quick release rightctrl -> normal mode
-   - grid-mode -> release rightctrl -> mouse-mode
+   - press rightctrl -> snap-mode -> release rightctrl -> normal-mode
+   - temp-snap-mode -> quick release rightctrl -> normal-mode
+   - grid-mode -> release rightctrl -> normal-mode
   + If leftctrl also pressed then focused window grid, if leftshift then around current pos
   + also moves mouse to grid center: move-to-grid-center-when-created=true
  + Hide grid (cannot disable a grid?)
@@ -96,10 +96,10 @@ _shift,^shift = press shift, release shift?
  - Put back update() in IndicatorManager for updating the color
  - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
   - If not, keep grid in current monitor
- +++++ Move to grid center (need separate command)
-  ++ mouse-follows-grid-center should not initially synchronize the mouse
-   + _{rightctrl} move-to-grid-center
-  + mouse-follows-grid-center-except-when-grid-created?
+ - Move to grid center (need separate command)
+  - mouse-follows-grid-center should not initially synchronize the mouse
+   - _{rightctrl} move-to-grid-center: does not work for modes triggered after idle timeout
+  - mouse-follows-grid-center-except-when-grid-created?
  - synchronization=mouse-follows-grid-center / grid-center-follows-mouse / mouse-and-grid-center-unsynchronized
   - grid.type->area = active-screen 1.0 1.0, active-window 1.0 1.0
  - Rename snapRow/ColumnCount to row/ColumnCount
@@ -125,6 +125,10 @@ _shift,^shift = press shift, release shift?
   - If hint key count > hint count (e.g. screen selection) then 1-key hints
   - Else: Find hintLength, hintCount = hintKeyCount^hintLength >= rowCount*columnCount
   - grid.hint-enabled=false/true
+  + Split hint into its own class HintManager
+   + hint.area=active-screen, active-window, all-screens
+++ Give a chance to _{} ^{} combos when mode switched?
+ + Dragging: normal-mode -> press left -> dragging-normal-mode -> hint mode -> dragging-normal-mode
 + History (positions previously selected through hints)
  + grid.area/row-count -> grid.layout=position-history | active-screen 0.99 0.99 2(rowCount) 2
   + Grid with variable-size rows and columns
@@ -133,7 +137,7 @@ _shift,^shift = press shift, release shift?
   + Or one mini 1x1 grid per historical position
 - normal-mode -> idle-mode
 + Rename Mouse, Wheel, etc. to Mouse/Wheel/...Configuration
-+ mode.blinking-cursor.enabled/visible-duration/invisible-duration
++ mode.blinking-mouse.enabled/visible-duration/invisible-duration
 - Change pause-combo-processing-when-mode-activated to when-mode-exited and simplify absolute-snap-mode
  - Remove it completely? Ignore switch-mode combo if mode has already been changed?
 
@@ -163,7 +167,7 @@ _shift,^shift = press shift, release shift?
   (key presses and key releases instead of "just keys"),
   the "create your own modes" approach, and the generalization of the grid concept used for
   implementing mouseable-style "attach to screen edge", mouseable-style "teleport forward",
-  warpd/keynav-style "cutable grid", warpd-style "screen selection hints", and warpd-style "regular hints".
+  warpd/keynav-style "cutable grid". Also, a mode is not restricted to "just normal mouse movements" or "just grid" or "just hints".
 - The configuration is more complex than warpd/mouseable, mostly because you have to think in terms of key presses and key releases.
 - It's Windows only, I have not looked at making it cross-platform simply because I don't have an incentive for doing so
   (all my desktops are Windows based).
