@@ -533,7 +533,8 @@ public class ConfigurationParser {
         if (split.length == 0)
             throw new IllegalArgumentException(
                     "Invalid hint type configuration: " + string);
-        if (split[0].equals("active-screen") || split[0].equals("active-window")) {
+        if (split[0].equals("active-screen") || split[0].equals("active-window") ||
+            split[0].equals("all-screens")) {
             if (split.length != 5)
                 throw new IllegalArgumentException(
                         "Invalid hint type configuration: " + string);
@@ -547,13 +548,17 @@ public class ConfigurationParser {
             if (split[0].equals("active-screen"))
                 return new HintMeshType.ActiveScreen(width, height, rowCount,
                         columnCount);
-            else
+            else if (split[0].equals("active-window"))
                 return new HintMeshType.ActiveWindow(width, height, rowCount,
                         columnCount);
+            else
+                return new HintMeshType.AllScreens(width, height, rowCount,
+                        columnCount);
         }
-        else
+        else {
             throw new IllegalArgumentException(
                     "Invalid hint type configuration: " + string);
+        }
     }
 
     private static GridArea parseGridArea(String string) {

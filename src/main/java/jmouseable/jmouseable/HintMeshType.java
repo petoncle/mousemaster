@@ -10,7 +10,11 @@ public sealed interface HintMeshType {
                         int rowCount, int columnCount) implements HintMeshType {
     }
 
-    // TODO AllScreens
+    record AllScreens(double screenWidthPercent, double screenHeightPercent,
+                      int rowCount, int columnCount) implements HintMeshType {
+
+    }
+
     // TODO PositionHistory
 
 }

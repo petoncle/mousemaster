@@ -72,63 +72,48 @@ public class HintManager implements ModeListener {
         }
         HintMeshType type = hintMeshConfiguration.type();
         if (type instanceof HintMeshType.ActiveScreen ||
-            type instanceof HintMeshType.ActiveWindow) {
-            int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount,
-                    columnCount;
-            if (type instanceof HintMeshType.ActiveScreen activeScreen) {
-                Monitor monitor = monitorManager.activeMonitor();
-                hintMeshX = monitor.x();
-                hintMeshY = monitor.y();
-                hintMeshWidth =
-                        (int) (monitor.width() * activeScreen.screenWidthPercent());
-                hintMeshHeight =
-                        (int) (monitor.height() * activeScreen.screenHeightPercent());
-                rowCount = activeScreen.rowCount();
-                columnCount = activeScreen.columnCount();
+            type instanceof HintMeshType.ActiveWindow ||
+            type instanceof HintMeshType.AllScreens) {
+            List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
+            if (type instanceof HintMeshType.ActiveScreen activeScreen)
+                fixedSizeHintGrids.add(screenFixedSizeHintGrid(activeScreen,
+                        monitorManager.activeMonitor()));
+            else if (type instanceof HintMeshType.AllScreens allScreens) {
+                for (Monitor monitor : monitorManager.monitors())
+                    fixedSizeHintGrids.add(screenFixedSizeHintGrid(allScreens, monitor));
             }
             else if (type instanceof HintMeshType.ActiveWindow activeWindow) {
                 Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
                         activeWindow.windowWidthPercent(),
                         activeWindow.windowHeightPercent());
+                int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
                 hintMeshX = activeWindowRectangle.x();
                 hintMeshY = activeWindowRectangle.y();
                 hintMeshWidth = activeWindowRectangle.width();
                 hintMeshHeight = activeWindowRectangle.height();
                 rowCount = activeWindow.rowCount();
                 columnCount = activeWindow.columnCount();
+                fixedSizeHintGrids.add(
+                        new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth,
+                                hintMeshHeight, rowCount, columnCount));
             }
             else
                 throw new IllegalStateException();
             List<Key> selectionKeySubset =
-                    gridSelectionKeySubset(hintMeshConfiguration.selectionKeys(), rowCount,
-                            columnCount);
-            int hintCount = rowCount * columnCount;
+                    gridSelectionKeySubset(hintMeshConfiguration.selectionKeys(),
+                            fixedSizeHintGrids.getFirst().rowCount,
+                            fixedSizeHintGrids.getFirst().columnCount);
+            int hintCount = fixedSizeHintGrids.getFirst().rowCount *
+                            fixedSizeHintGrids.getFirst().columnCount *
+                            fixedSizeHintGrids.size();
             // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
-            int hintLength = (int) Math.ceil(
+            int hintLength = hintCount == 1 ? 1 : (int) Math.ceil(
                     Math.log(hintCount) / Math.log(selectionKeySubset.size()));
-            int cellWidth = hintMeshWidth / rowCount;
-            int cellHeight = hintMeshHeight / columnCount;
-            List<Hint> hints = new ArrayList<>(hintCount);
-            int cellIndex = 0;
-            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                    List<Key> keySequence = new ArrayList<>();
-                    // We want the hints to look like this:
-                    // aa, ba, ..., za
-                    // ab, bb, ..., zb
-                    // az, bz, ..., zz
-                    // The ideal situation is when rowCount = columnCount = hintKeys.size().
-                    for (int i = 0; i < hintLength; i++)
-                        keySequence.add(selectionKeySubset.get((int) (cellIndex /
-                                                                      Math.pow(
-                                                                              selectionKeySubset.size(),
-                                                                              i) %
-                                                                      selectionKeySubset.size())));
-                    cellIndex++;
-                    int hintCenterX = hintMeshX + columnIndex * cellWidth + cellWidth / 2;
-                    int hintCenterY = hintMeshY + rowIndex * cellHeight + cellHeight / 2;
-                    hints.add(new Hint(hintCenterX, hintCenterY, keySequence));
-                }
+            List<Hint> hints = new ArrayList<>();
+            for (FixedSizeHintGrid fixedSizeHintGrid : fixedSizeHintGrids) {
+                int beginHintIndex = hints.size();
+                hints.addAll(buildHints(fixedSizeHintGrid, selectionKeySubset, hintLength,
+                        beginHintIndex));
             }
             hintMesh.hints(hints);
         }
@@ -136,6 +121,76 @@ public class HintManager implements ModeListener {
             // TODO
         }
         return hintMesh.build();
+    }
+
+    private static List<Hint> buildHints(FixedSizeHintGrid fixedSizeHintGrid,
+                                         List<Key> selectionKeySubset, int hintLength,
+                                         int beginHintIndex) {
+        int rowCount = fixedSizeHintGrid.rowCount();
+        int columnCount = fixedSizeHintGrid.columnCount();
+        int hintMeshWidth = fixedSizeHintGrid.hintMeshWidth();
+        int hintMeshHeight = fixedSizeHintGrid.hintMeshHeight();
+        int hintMeshX = fixedSizeHintGrid.hintMeshX();
+        int hintMeshY = fixedSizeHintGrid.hintMeshY();
+        int cellWidth = hintMeshWidth / rowCount;
+        int cellHeight = hintMeshHeight / columnCount;
+        int gridHintCount = rowCount*columnCount;
+        List<Hint> hints = new ArrayList<>(gridHintCount);
+        int hintIndex = beginHintIndex;
+        for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                List<Key> keySequence = new ArrayList<>();
+                // We want the hints to look like this:
+                // aa, ba, ..., za
+                // ab, bb, ..., zb
+                // az, bz, ..., zz
+                // The ideal situation is when rowCount = columnCount = hintKeys.size().
+                for (int i = 0; i < hintLength; i++) {
+                    keySequence.add(selectionKeySubset.get(
+                            (int) (hintIndex / Math.pow(selectionKeySubset.size(), i) %
+                                   selectionKeySubset.size())));
+                }
+                hintIndex++;
+                int hintCenterX = hintMeshX + columnIndex * cellWidth + cellWidth / 2;
+                int hintCenterY = hintMeshY + rowIndex * cellHeight + cellHeight / 2;
+                hints.add(new Hint(hintCenterX, hintCenterY, keySequence));
+            }
+        }
+        return hints;
+    }
+
+    private FixedSizeHintGrid screenFixedSizeHintGrid(HintMeshType type,
+                                                      Monitor monitor) {
+        if (!(type instanceof HintMeshType.ActiveScreen) &&
+            !(type instanceof HintMeshType.AllScreens))
+            throw new IllegalArgumentException();
+        int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
+        hintMeshX = monitor.x();
+        hintMeshY = monitor.y();
+        double screenWidthPercent, screenHeightPercent;
+        if (type instanceof HintMeshType.ActiveScreen activeScreen) {
+            screenWidthPercent = activeScreen.screenWidthPercent();
+            screenHeightPercent = activeScreen.screenHeightPercent();
+            rowCount = activeScreen.rowCount();
+            columnCount = activeScreen.columnCount();
+        }
+        else if (type instanceof HintMeshType.AllScreens allScreens) {
+            screenWidthPercent = allScreens.screenWidthPercent();
+            screenHeightPercent = allScreens.screenHeightPercent();
+            rowCount = allScreens.rowCount();
+            columnCount = allScreens.columnCount();
+        }
+        else
+            throw new IllegalStateException();
+        hintMeshWidth = (int) (monitor.width() * screenWidthPercent);
+        hintMeshHeight = (int) (monitor.height() * screenHeightPercent);
+        return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
+                rowCount, columnCount);
+    }
+
+    private record FixedSizeHintGrid(int hintMeshX, int hintMeshY, int hintMeshWidth,
+                                     int hintMeshHeight, int rowCount, int columnCount) {
+
     }
 
     private static List<Key> gridSelectionKeySubset(List<Key> keys, int rowCount,
