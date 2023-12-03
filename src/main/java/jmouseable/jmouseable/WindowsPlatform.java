@@ -96,7 +96,7 @@ public class WindowsPlatform implements Platform {
                 throw new IllegalStateException("Unable to find hint font: " + hintFontName);
         }
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboKeys, keyboardLayout);
-        WinDef.POINT mousePosition = WindowsMouse.cursorPositionAndSize().position();
+        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
                         mousePosition.y));

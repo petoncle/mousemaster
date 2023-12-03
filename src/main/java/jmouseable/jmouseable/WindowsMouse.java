@@ -115,8 +115,8 @@ public class WindowsMouse {
         if (cursorHidden)
             return;
         cursorHidden = true;
-        int cursorWidth = cursorPositionAndSize().width();
-        int cursorHeight = cursorPositionAndSize().height();
+        int cursorWidth = mouseSize().width();
+        int cursorHeight = mouseSize().height();
         byte[] andMask = new byte[cursorWidth * cursorHeight];
         byte[] xorMask = new byte[cursorWidth * cursorHeight];
         Arrays.fill(andMask, (byte) 0xFF);
@@ -139,57 +139,55 @@ public class WindowsMouse {
         }
     }
 
-    private static CursorPositionAndSize cursorPositionAndSize;
-
-    static CursorPositionAndSize cursorPositionAndSize() {
-        if (cursorPositionAndSize != null)
-            return cursorPositionAndSize;
-        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
-        int cursorWidth, cursorHeight;
-        if (ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) && cursorInfo.hCursor != null) {
-            WinDef.POINT mousePosition = cursorInfo.ptScreenPos;
-            WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
-            if (User32.INSTANCE.GetIconInfo(new WinDef.HICON(cursorInfo.hCursor),
-                    iconInfo)) {
-                WinGDI.BITMAP bmp = new WinGDI.BITMAP();
-
-                int sizeOfBitmap = bmp.size();
-                if (iconInfo.hbmColor != null) {
-                    // Get the color bitmap information.
-                    GDI32.INSTANCE.GetObject(iconInfo.hbmColor, sizeOfBitmap,
-                            bmp.getPointer());
-                }
-                else {
-                    // Get the mask bitmap information if there is no color bitmap.
-                    GDI32.INSTANCE.GetObject(iconInfo.hbmMask, sizeOfBitmap,
-                            bmp.getPointer());
-                }
-                bmp.read();
-
-                cursorWidth = bmp.bmWidth.intValue();
-                cursorHeight = bmp.bmHeight.intValue();
-
-                // If there is no color bitmap, height is for both the mask and the inverted mask.
-                if (iconInfo.hbmColor == null) {
-                    cursorHeight /= 2;
-                }
-                if (iconInfo.hbmColor != null)
-                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
-                if (iconInfo.hbmMask != null)
-                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
-                CursorPositionAndSize cursorPositionAndSize =
-                        new CursorPositionAndSize(mousePosition, cursorWidth,
-                                cursorHeight);
-                WindowsMouse.cursorPositionAndSize = cursorPositionAndSize;
-                return cursorPositionAndSize;
-            }
-        }
-        logger.info("Unable to find cursor position and size");
-        throw new IllegalStateException(
-                "Unable to find cursor position and size"); // TODO
+    public static WinDef.POINT findMousePosition() {
+        WinDef.POINT mousePosition = new WinDef.POINT();
+        boolean getCursorPosResult = User32.INSTANCE.GetCursorPos(mousePosition);
+        if (!getCursorPosResult)
+            throw new IllegalStateException("Unable to find mouse position");
+        return mousePosition;
     }
 
-    public record CursorPositionAndSize(WinDef.POINT position, int width, int height) {
+    private static MouseSize mouseSize;
+
+    static MouseSize mouseSize() {
+        if (mouseSize != null)
+            return mouseSize;
+        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
+        int cursorWidth, cursorHeight;
+        if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) ||
+            cursorInfo.hCursor == null)
+            throw new IllegalStateException("Unable to find mouse size"); // TODO
+        WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+        if (!User32.INSTANCE.GetIconInfo(new WinDef.HICON(cursorInfo.hCursor),
+                iconInfo))
+            throw new IllegalStateException("Unable to find mouse size"); // TODO
+        WinGDI.BITMAP bmp = new WinGDI.BITMAP();
+        int sizeOfBitmap = bmp.size();
+        if (iconInfo.hbmColor != null) {
+            // Get the color bitmap information.
+            GDI32.INSTANCE.GetObject(iconInfo.hbmColor, sizeOfBitmap, bmp.getPointer());
+        }
+        else {
+            // Get the mask bitmap information if there is no color bitmap.
+            GDI32.INSTANCE.GetObject(iconInfo.hbmMask, sizeOfBitmap, bmp.getPointer());
+        }
+        bmp.read();
+        cursorWidth = bmp.bmWidth.intValue();
+        cursorHeight = bmp.bmHeight.intValue();
+        // If there is no color bitmap, height is for both the mask and the inverted mask.
+        if (iconInfo.hbmColor == null) {
+            cursorHeight /= 2;
+        }
+        if (iconInfo.hbmColor != null)
+            GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
+        if (iconInfo.hbmMask != null)
+            GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
+        MouseSize mouseSize = new MouseSize(cursorWidth, cursorHeight);
+        WindowsMouse.mouseSize = mouseSize;
+        return mouseSize;
+    }
+
+    public record MouseSize(int width, int height) {
 
     }
 }

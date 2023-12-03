@@ -2,7 +2,7 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
-import jmouseable.jmouseable.WindowsMouse.CursorPositionAndSize;
+import jmouseable.jmouseable.WindowsMouse.MouseSize;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -116,20 +116,16 @@ public class WindowsOverlay {
     }
 
     private static void createIndicatorWindow() {
-        CursorPositionAndSize cursorPositionAndSize =
-                WindowsMouse.cursorPositionAndSize();
-        WinUser.MONITORINFO monitorInfo =
-                WindowsMonitor.activeMonitorInfo(cursorPositionAndSize.position());
-        WinUser.WindowProc callback =
-                WindowsOverlay::indicatorWindowCallback;
+        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        MouseSize mouseSize = WindowsMouse.mouseSize();
+        WinUser.MONITORINFO monitorInfo = WindowsMonitor.activeMonitorInfo(mousePosition);
+        WinUser.WindowProc callback = WindowsOverlay::indicatorWindowCallback;
         WinDef.HWND hwnd = createWindow("Indicator",
-                bestIndicatorX(cursorPositionAndSize.position().x,
-                        cursorPositionAndSize.width(), monitorInfo.rcMonitor.left,
-                        monitorInfo.rcMonitor.right),
-                bestIndicatorY(cursorPositionAndSize.position().y,
-                        cursorPositionAndSize.height(), monitorInfo.rcMonitor.top,
-                        monitorInfo.rcMonitor.bottom), indicatorSize, indicatorSize,
-                callback);
+                bestIndicatorX(mousePosition.x, mouseSize.width(),
+                        monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
+                bestIndicatorY(mousePosition.y, mouseSize.height(),
+                        monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
+                indicatorSize, indicatorSize, callback);
         indicatorWindow = new IndicatorWindow(hwnd, callback);
     }
 
@@ -508,12 +504,11 @@ public class WindowsOverlay {
         if (indicatorWindow == null)
             return;
         WinUser.MONITORINFO monitorInfo = WindowsMonitor.activeMonitorInfo(mousePosition);
-        CursorPositionAndSize cursorPositionAndSize =
-                WindowsMouse.cursorPositionAndSize();
+        MouseSize mouseSize = WindowsMouse.mouseSize();
         User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
-                bestIndicatorX(mousePosition.x, cursorPositionAndSize.width(),
+                bestIndicatorX(mousePosition.x, mouseSize.width(),
                         monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
-                bestIndicatorY(mousePosition.y, cursorPositionAndSize.height(),
+                bestIndicatorY(mousePosition.y, mouseSize.height(),
                         monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
                 indicatorSize, indicatorSize, false);
     }
