@@ -38,6 +38,7 @@ public class ConfigurationParser {
                .lineThickness(1);
         builder.hintMesh()
                .type(new HintMeshType.ActiveScreen(1, 1, 20, 20))
+               .center(HintMeshCenter.ACTIVE_SCREEN)
                .enabled(false)
                .selectionKeys(IntStream.rangeClosed('a', 'z')
                                        .mapToObj(c -> String.valueOf((char) c))
@@ -180,6 +181,8 @@ public class ConfigurationParser {
                                                       propertyValue));
                         case "type" ->
                                 mode.hintMesh().type(parseHintMeshType(propertyValue));
+                        case "center" ->
+                                mode.hintMesh().center(parseHintMeshCenter(propertyValue));
                         case "selection-keys" -> mode.hintMesh()
                                                      .selectionKeys(parseHintKeys(
                                                              propertyValue));
@@ -460,6 +463,8 @@ public class ConfigurationParser {
             childMode.hintMesh().enabled(parentMode.hintMesh().enabled());
         if (childMode.hintMesh().type() == null)
             childMode.hintMesh().type(parentMode.hintMesh().type());
+        if (childMode.hintMesh().center() == null)
+            childMode.hintMesh().center(parentMode.hintMesh().center());
         if (childMode.hintMesh().selectionKeys() == null)
             childMode.hintMesh().selectionKeys(parentMode.hintMesh().selectionKeys());
         if (childMode.hintMesh().undoKey() == null)
@@ -561,6 +566,16 @@ public class ConfigurationParser {
             throw new IllegalArgumentException(
                     "Invalid hint type configuration: " + string);
         }
+    }
+
+    private static HintMeshCenter parseHintMeshCenter(String string) {
+        return switch (string) {
+            case "active-screen" -> HintMeshCenter.ACTIVE_SCREEN;
+            case "active-window" -> HintMeshCenter.ACTIVE_WINDOW;
+            case "mouse" -> HintMeshCenter.MOUSE;
+            default -> throw new IllegalArgumentException(
+                    "Invalid hint center configuration: " + string);
+        };
     }
 
     private static GridArea parseGridArea(String string) {

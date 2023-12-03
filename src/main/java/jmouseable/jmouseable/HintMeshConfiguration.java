@@ -3,6 +3,7 @@ package jmouseable.jmouseable;
 import java.util.List;
 
 public record HintMeshConfiguration(boolean enabled, HintMeshType type,
+                                    HintMeshCenter center,
                                     List<Key> selectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
                                     String selectedPrefixFontHexColor, String boxHexColor,
@@ -12,6 +13,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
         private HintMeshType type;
+        private HintMeshCenter center;
         private List<Key> selectionKeys;
         private Key undoKey;
         private String fontName;
@@ -29,6 +31,11 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
 
         public HintMeshConfigurationBuilder type(HintMeshType type) {
             this.type = type;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder center(HintMeshCenter center) {
+            this.center = center;
             return this;
         }
 
@@ -84,6 +91,10 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return type;
         }
 
+        public HintMeshCenter center() {
+            return center;
+        }
+
         public Boolean enabled() {
             return enabled;
         }
@@ -125,8 +136,8 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         }
 
         public HintMeshConfiguration build() {
-            return new HintMeshConfiguration(enabled, type, selectionKeys, undoKey,
-                    fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
+            return new HintMeshConfiguration(enabled, type, center, selectionKeys,
+                    undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
                     boxHexColor, nextModeAfterSelection, clickButtonAfterSelection);
         }
 

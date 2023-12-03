@@ -8,13 +8,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class HintManager implements ModeListener {
+public class HintManager implements ModeListener, MousePositionListener {
 
     private final MonitorManager monitorManager;
     private final MouseController mouseController;
     private ModeController modeController;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
+    private int mouseX, mouseY;
     private Mode currentMode;
 
     public HintManager(MonitorManager monitorManager, MouseController mouseController) {
@@ -24,6 +25,12 @@ public class HintManager implements ModeListener {
 
     public void setModeController(ModeController modeController) {
         this.modeController = modeController;
+    }
+
+    @Override
+    public void mouseMoved(int x, int y) {
+        this.mouseX = x;
+        this.mouseY = y;
     }
 
     @Override
@@ -65,6 +72,7 @@ public class HintManager implements ModeListener {
                                         .equals(hintMeshConfiguration.selectionKeys())) {
                 // Keep the old focusedKeySequence.
                 // This is useful for hint-then-click-mode that extends hint-mode.
+                // Note: changes to hint mesh center are ignored here.
                 hintMesh.hints(this.hintMesh.hints())
                         .focusedKeySequence(this.hintMesh.focusedKeySequence());
                 return hintMesh.build();
@@ -75,22 +83,26 @@ public class HintManager implements ModeListener {
             type instanceof HintMeshType.ActiveWindow ||
             type instanceof HintMeshType.AllScreens) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
-            if (type instanceof HintMeshType.ActiveScreen activeScreen)
+            Point hintMeshCenter = hintMeshCenter(monitorManager.activeMonitor(),
+                    hintMeshConfiguration.center());
+            if (type instanceof HintMeshType.ActiveScreen activeScreen) {
                 fixedSizeHintGrids.add(screenFixedSizeHintGrid(activeScreen,
-                        monitorManager.activeMonitor()));
+                        monitorManager.activeMonitor(), hintMeshCenter));
+            }
             else if (type instanceof HintMeshType.AllScreens allScreens) {
                 for (Monitor monitor : monitorManager.monitors())
-                    fixedSizeHintGrids.add(screenFixedSizeHintGrid(allScreens, monitor));
+                    fixedSizeHintGrids.add(
+                            screenFixedSizeHintGrid(allScreens, monitor, hintMeshCenter));
             }
             else if (type instanceof HintMeshType.ActiveWindow activeWindow) {
                 Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
                         activeWindow.windowWidthPercent(),
                         activeWindow.windowHeightPercent());
                 int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
-                hintMeshX = activeWindowRectangle.x();
-                hintMeshY = activeWindowRectangle.y();
                 hintMeshWidth = activeWindowRectangle.width();
                 hintMeshHeight = activeWindowRectangle.height();
+                hintMeshX = hintMeshCenter.x() - hintMeshWidth / 2;
+                hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
                 rowCount = activeWindow.rowCount();
                 columnCount = activeWindow.columnCount();
                 fixedSizeHintGrids.add(
@@ -159,14 +171,12 @@ public class HintManager implements ModeListener {
         return hints;
     }
 
-    private FixedSizeHintGrid screenFixedSizeHintGrid(HintMeshType type,
-                                                      Monitor monitor) {
+    private FixedSizeHintGrid screenFixedSizeHintGrid(HintMeshType type, Monitor monitor,
+                                                      Point hintMeshCenter) {
         if (!(type instanceof HintMeshType.ActiveScreen) &&
             !(type instanceof HintMeshType.AllScreens))
             throw new IllegalArgumentException();
         int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
-        hintMeshX = monitor.x();
-        hintMeshY = monitor.y();
         double screenWidthPercent, screenHeightPercent;
         if (type instanceof HintMeshType.ActiveScreen activeScreen) {
             screenWidthPercent = activeScreen.screenWidthPercent();
@@ -184,8 +194,34 @@ public class HintManager implements ModeListener {
             throw new IllegalStateException();
         hintMeshWidth = (int) (monitor.width() * screenWidthPercent);
         hintMeshHeight = (int) (monitor.height() * screenHeightPercent);
+        hintMeshX = hintMeshCenter.x() - hintMeshWidth / 2;
+        hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
                 rowCount, columnCount);
+    }
+
+    private Point hintMeshCenter(Monitor activeMonitor, HintMeshCenter center) {
+        int centerX = 0, centerY = 0;
+        switch (center) {
+            case ACTIVE_SCREEN -> {
+                centerX = activeMonitor.x() + activeMonitor.width() / 2;
+                centerY = activeMonitor.y() + activeMonitor.height() / 2;
+            }
+            case ACTIVE_WINDOW -> {
+                Rectangle activeWindowRectangle =
+                        WindowsOverlay.activeWindowRectangle(1, 1);
+                centerX = activeWindowRectangle.x() + activeWindowRectangle.width() / 2;
+                centerY = activeWindowRectangle.y() + activeWindowRectangle.height() / 2;
+            }
+            case MOUSE -> {
+                centerX = mouseX;
+                centerY = mouseY;
+            }
+        }
+        return new Point(centerX, centerY);
+    }
+
+    private record Point(int x, int y) {
     }
 
     private record FixedSizeHintGrid(int hintMeshX, int hintMeshY, int hintMeshWidth,
@@ -237,6 +273,11 @@ public class HintManager implements ModeListener {
             return false;
         if (exactMatchHint != null) {
             mouseController.moveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
+            // Do not wait for the asynchronous mouse moved callback.
+            // The next mode may be hint stage 2 mode that needs the new mouse
+            // position before the mouse moved callback is called.
+            mouseX = exactMatchHint.centerX();
+            mouseY = exactMatchHint.centerY();
             if (hintMeshConfiguration.clickButtonAfterSelection() != null) {
                 switch (hintMeshConfiguration.clickButtonAfterSelection()) {
                     case Button.LEFT_BUTTON -> mouseController.clickLeft();

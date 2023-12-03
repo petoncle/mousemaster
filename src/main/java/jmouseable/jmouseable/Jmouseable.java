@@ -94,7 +94,8 @@ public class Jmouseable {
         hintManager.setModeController(modeController);
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
-                configuration.modeMap(), List.of(gridManager, monitorManager));
+                configuration.modeMap(),
+                List.of(gridManager, hintManager, monitorManager));
     }
 
 }
