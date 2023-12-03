@@ -454,15 +454,16 @@ public class WindowsOverlay {
             return;
         Grid oldGrid = currentGrid;
         currentGrid = grid;
+        // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         if (gridWindow == null)
-            createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width(),
-                    currentGrid.height());
+            createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width() + 1,
+                    currentGrid.height() + 1);
         else {
             if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
                 grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
                 User32.INSTANCE.SetWindowPos(gridWindow.hwnd(),
-                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width(),
-                        grid.height(), 0);
+                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width() + 1,
+                        grid.height() + 1, 0);
             }
         }
         showingGrid = true;
