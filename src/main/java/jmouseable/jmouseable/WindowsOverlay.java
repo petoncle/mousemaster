@@ -290,8 +290,8 @@ public class WindowsOverlay {
     private static void drawGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
         int rowCount = currentGrid.rowCount();
         int columnCount = currentGrid.columnCount();
-        int cellWidth = currentGrid.width() / rowCount;
-        int cellHeight = currentGrid.height() / columnCount;
+        int cellWidth = currentGrid.width() / columnCount;
+        int cellHeight = currentGrid.height() / rowCount;
         int[] polyCounts = new int[rowCount + 1 + columnCount + 1];
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);

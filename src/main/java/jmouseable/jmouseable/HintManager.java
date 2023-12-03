@@ -113,8 +113,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                 throw new IllegalStateException();
             List<Key> selectionKeySubset =
                     gridSelectionKeySubset(hintMeshConfiguration.selectionKeys(),
-                            fixedSizeHintGrids.getFirst().rowCount,
-                            fixedSizeHintGrids.getFirst().columnCount);
+                            fixedSizeHintGrids.getFirst().rowCount *
+                            fixedSizeHintGrids.size(),
+                            fixedSizeHintGrids.getFirst().columnCount *
+                            fixedSizeHintGrids.size());
             int hintCount = fixedSizeHintGrids.getFirst().rowCount *
                             fixedSizeHintGrids.getFirst().columnCount *
                             fixedSizeHintGrids.size();
@@ -144,9 +146,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         int hintMeshHeight = fixedSizeHintGrid.hintMeshHeight();
         int hintMeshX = fixedSizeHintGrid.hintMeshX();
         int hintMeshY = fixedSizeHintGrid.hintMeshY();
-        int cellWidth = hintMeshWidth / rowCount;
-        int cellHeight = hintMeshHeight / columnCount;
-        int gridHintCount = rowCount*columnCount;
+        int cellWidth = hintMeshWidth / columnCount;
+        int cellHeight = hintMeshHeight / rowCount;
+        int gridHintCount = rowCount * columnCount;
         List<Hint> hints = new ArrayList<>(gridHintCount);
         int hintIndex = beginHintIndex;
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
@@ -231,6 +233,10 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private static List<Key> gridSelectionKeySubset(List<Key> keys, int rowCount,
                                                     int columnCount) {
+        int hintCount = rowCount * columnCount;
+        if (hintCount < keys.size())
+            // Will be single-key hints.
+            return keys.subList(0, hintCount);
         return rowCount == columnCount && rowCount < keys.size() ?
                 keys.subList(0, rowCount) : keys;
     }
