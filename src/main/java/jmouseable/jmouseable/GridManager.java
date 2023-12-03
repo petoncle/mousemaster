@@ -20,6 +20,9 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     public void cutGridTop() {
         grid = grid.builder()
+                   .x(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
+                           mouseX - grid.width() / 2)
                    .y(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.y() :
                            mouseY - grid.height() / 4)
@@ -30,6 +33,9 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     public void cutGridBottom() {
         grid = grid.builder()
+                   .x(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
+                           mouseX - grid.width() / 2)
                    .y(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ?
                            grid.y() + grid.height() / 2 : mouseY - grid.height() / 4)
@@ -43,6 +49,9 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
                            mouseX - grid.width() / 4)
+                   .y(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.y() :
+                           mouseY - grid.height() / 2)
                    .width(Math.max(1, grid.width() / 2))
                    .build();
         gridChanged();
@@ -53,6 +62,9 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ?
                            grid.x() + grid.width() / 2 : mouseX - grid.width() / 4)
+                   .y(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.y() :
+                           mouseY - grid.height() / 2)
                    .width(Math.max(1, grid.width() / 2))
                    .build();
         gridChanged();
