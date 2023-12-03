@@ -47,4 +47,6 @@ public sealed interface Command {
     record MoveGridLeft() implements Command {}
     record MoveGridRight() implements Command {}
 
+    record MoveToGridCenter() implements Command {}
+
 }

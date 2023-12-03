@@ -64,6 +64,8 @@ public class CommandRunner {
             case MoveGridBottom moveGridBottom -> gridManager.moveGridBottom();
             case MoveGridLeft moveGridLeft -> gridManager.moveGridLeft();
             case MoveGridRight moveGridRight -> gridManager.moveGridRight();
+
+            case MoveToGridCenter moveToGridCenter -> gridManager.moveToGridCenter();
             // @formatter:on
         }
     }

@@ -112,6 +112,10 @@ public class GridManager implements MousePositionListener, ModeListener {
         moveGrid(grid.width(), 0);
     }
 
+    public void moveToGridCenter() {
+        mouseController.moveTo(grid.x() + grid.width() / 2, grid.y() + grid.height() / 2);
+    }
+
     public void snapUp() {
         snap(false, false);
     }

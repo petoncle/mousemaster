@@ -96,7 +96,6 @@ _shift,^shift = press shift, release shift?
  - Put back update() in IndicatorManager for updating the color
  - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
   - If not, keep grid in current monitor
- - Move to grid center (need separate command)
   - mouse-follows-grid-center should not initially synchronize the mouse
    - _{rightctrl} move-to-grid-center: does not work for modes triggered after idle timeout
   - mouse-follows-grid-center-except-when-grid-created?
@@ -147,6 +146,7 @@ _shift,^shift = press shift, release shift?
 + Is grid follows mouse useful? Should it be replaced with jump-forward command
   and jump-forward-screen-percent?
   + Make mouse-follows-grid-center the default, need grid.enabled?
+  - Or Move to grid center command
 
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)
