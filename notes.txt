@@ -140,8 +140,13 @@ _shift,^shift = press shift, release shift?
 - normal-mode -> idle-mode
 + Rename Mouse, Wheel, etc. to Mouse/Wheel/...Configuration
 + mode.blinking-mouse.enabled/visible-duration/invisible-duration
++ previous-mode is not great. mode.save-to-mode-history=true?
 - Change pause-combo-processing-when-mode-activated to when-mode-exited and simplify absolute-snap-mode
  - Remove it completely? Ignore switch-mode combo if mode has already been changed?
++ Cannot have grid created centered on mouse?
++ Is grid follows mouse useful? Should it be replaced with jump-forward command
+  and jump-forward-screen-percent?
+  + Make mouse-follows-grid-center the default, need grid.enabled?
 
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)

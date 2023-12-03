@@ -19,26 +19,40 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void cutGridTop() {
-        grid = grid.builder().height(Math.max(1, grid.height() / 2)).build();
+        grid = grid.builder()
+                   .y(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.y() :
+                           mouseY - grid.height() / 4)
+                   .height(Math.max(1, grid.height() / 2))
+                   .build();
         gridChanged();
     }
 
     public void cutGridBottom() {
         grid = grid.builder()
-                   .y(grid.y() + grid.height() / 2)
+                   .y(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ?
+                           grid.y() + grid.height() / 2 : mouseY - grid.height() / 4)
                    .height(Math.max(1, grid.height() / 2))
                    .build();
         gridChanged();
     }
 
     public void cutGridLeft() {
-        grid = grid.builder().width(Math.max(1, grid.width() / 2)).build();
+        grid = grid.builder()
+                   .x(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
+                           mouseX - grid.width() / 4)
+                   .width(Math.max(1, grid.width() / 2))
+                   .build();
         gridChanged();
     }
 
     public void cutGridRight() {
         grid = grid.builder()
-                   .x(grid.x() + grid.width() / 2)
+                   .x(currentMode.grid().synchronization() !=
+                      Synchronization.GRID_CENTER_FOLLOWS_MOUSE ?
+                           grid.x() + grid.width() / 2 : mouseX - grid.width() / 4)
                    .width(Math.max(1, grid.width() / 2))
                    .build();
         gridChanged();
