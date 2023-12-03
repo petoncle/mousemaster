@@ -26,6 +26,7 @@ public class ConfigurationParser {
 
     private static Mode defaultMode() {
         ModeBuilder builder = new ModeBuilder(null);
+        builder.pushModeToHistoryStack(false);
         builder.mouse().initialVelocity(200).maxVelocity(750).acceleration(1000);
         builder.wheel().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         builder.grid()
@@ -96,12 +97,14 @@ public class ConfigurationParser {
             if (!keyMatcher.matches())
                 continue;
             String modeName = keyMatcher.group(1);
-            if (modeName.equals(Mode.PREVIOUS_MODE_IDENTIFIER))
+            if (modeName.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER))
                 throw new IllegalArgumentException(
                         "Invalid mode name: previous-mode is a reserved mode name");
             ModeBuilder mode = modeByName.computeIfAbsent(modeName, ModeBuilder::new);
             String group2 = keyMatcher.group(2);
             switch (group2) {
+                case "push-mode-to-history-stack" ->
+                        mode.pushModeToHistoryStack(Boolean.parseBoolean(propertyValue));
                 case "mouse" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
@@ -354,7 +357,7 @@ public class ConfigurationParser {
         }
         // Verify mode name references are valid.
         for (String modeNameReference : modeNameReferences) {
-            if (modeNameReference.equals(Mode.PREVIOUS_MODE_IDENTIFIER))
+            if (modeNameReference.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER))
                 continue;
             if (!modeByName.containsKey(modeNameReference))
                 throw new IllegalStateException(
@@ -434,6 +437,7 @@ public class ConfigurationParser {
 
     /**
      * Copy everything except the following from the parent mode:
+     * - pushModeToHistoryStack
      * - timeout configuration
      * - switch mode commands
      * - mode after hint selection

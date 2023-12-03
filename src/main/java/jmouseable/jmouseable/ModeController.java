@@ -73,11 +73,10 @@ public class ModeController implements GridListener {
     public void switchMode(String newModeName) {
         Mode newMode;
         Mode previousMode = modeHistoryStack.peek();
-        if (newModeName.equals(Mode.PREVIOUS_MODE_IDENTIFIER)) {
+        if (newModeName.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER)) {
             if (previousMode == null)
                 throw new IllegalStateException(
-                        "Unable to switch to previous mode as there are no mode preceding the current mode " +
-                        newModeName);
+                        "Unable to switch to previous mode as the mode history stack is empty");
             newMode = previousMode;
         }
         else
@@ -87,7 +86,8 @@ public class ModeController implements GridListener {
                 modeHistoryStack.poll();
             modeHistoryStack.poll();
         }
-        else if (currentMode != null && !modeHistoryStack.contains(currentMode))
+        else if (currentMode != null && currentMode.pushModeToHistoryStack() &&
+                 !modeHistoryStack.contains(currentMode))
             modeHistoryStack.push(currentMode);
         currentMode = newMode;
         resetCurrentModeCursorHidden();
