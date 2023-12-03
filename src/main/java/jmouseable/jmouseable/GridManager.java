@@ -124,18 +124,20 @@ public class GridManager implements MousePositionListener, ModeListener {
         int cellWidth = Math.max(1, grid.width() / grid.columnCount());
         int cellHeight = Math.max(1, grid.height() / grid.rowCount());
         if (mouseIsInsideGrid) {
-            double mouseColumn = (double) (mouseX - grid.x()) / cellWidth;
-            double mouseRow = (double) (mouseY - grid.y()) / cellHeight;
+            int mouseColumn = (mouseX - grid.x()) / cellWidth;
+            int mouseRow = (mouseY - grid.y()) / cellHeight;
             if (horizontal) {
-                x = grid.x() + (int) ((forward ? Math.floor(mouseColumn) + 1 :
-                        Math.ceil(mouseColumn) - 1) * cellWidth);
+                x = grid.x() + (forward ?
+                        (mouseColumn + (mouseX % cellWidth == 0 ? 0 : 1)) * cellWidth :
+                        (mouseColumn == 0 ? 0 : (mouseColumn - 1) * cellWidth));
                 x = Math.max(grid.x(), Math.min(grid.x() + grid.width(), x));
                 y = mouseY;
             }
             else {
                 x = mouseX;
-                y = grid.y() + (int) ((forward ? Math.floor(mouseRow) + 1 :
-                        Math.ceil(mouseRow) - 1) * cellHeight);
+                y = grid.y() + (forward ?
+                        (mouseRow + (mouseY % cellHeight == 0 ? 0 : 1)) * cellHeight :
+                        (mouseRow == 0 ? 0 : (mouseRow - 1) * cellHeight));
                 y = Math.max(grid.y(), Math.min(grid.y() + grid.height(), y));
             }
             if (monitorManager.monitorContaining(x, y) == null) {
