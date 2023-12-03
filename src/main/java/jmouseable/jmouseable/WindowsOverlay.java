@@ -505,6 +505,8 @@ public class WindowsOverlay {
     }
 
     static void mouseMoved(WinDef.POINT mousePosition) {
+        if (indicatorWindow == null)
+            return;
         WinUser.MONITORINFO monitorInfo = WindowsMonitor.activeMonitorInfo(mousePosition);
         CursorPositionAndSize cursorPositionAndSize =
                 WindowsMouse.cursorPositionAndSize();
