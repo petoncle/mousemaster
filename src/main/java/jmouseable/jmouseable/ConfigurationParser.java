@@ -204,7 +204,8 @@ public class ConfigurationParser {
                                                         checkColorFormat(propertyValue));
                         case "next-mode-after-selection" -> {
                             String nextModeAfterSelection = propertyValue;
-                            modeNameReferences.add(nextModeAfterSelection);
+                            modeNameReferences.add(
+                                    checkNonExtendModeReference(nextModeAfterSelection));
                             mode.hintMesh().nextModeAfterSelection(nextModeAfterSelection);
                         }
                         case "click-button-after-selection" -> mode.hintMesh()
@@ -218,7 +219,7 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid to configuration: " + propertyKey);
                     String newModeName = keyMatcher.group(4);
-                    modeNameReferences.add(newModeName);
+                    modeNameReferences.add(checkNonExtendModeReference(newModeName));
                     addCommand(mode.comboMap(), propertyValue,
                             new SwitchMode(newModeName), defaultComboMoveDuration);
                 }
@@ -250,7 +251,8 @@ public class ConfigurationParser {
                                         "Invalid timeout next mode " + nextModeName +
                                         " for mode " + modeName);
                             mode.timeout().nextModeName(nextModeName);
-                            modeNameReferences.add(nextModeName);
+                            modeNameReferences.add(
+                                    checkNonExtendModeReference(nextModeName));
                         }
                         default -> throw new IllegalArgumentException(
                                 "Invalid timeout configuration: " + propertyKey);
@@ -371,6 +373,14 @@ public class ConfigurationParser {
                     alreadyBuiltModeNodeNames));
         for (ModeNode rootModeNode : rootModeNodes)
             recursivelyExtendMode(defaultMode, rootModeNode, modeByName);
+        if (modeByName.size() != 1 || !modeByName.containsKey(Mode.IDLE_MODE_NAME)) {
+            for (ModeBuilder mode : modeByName.values()) {
+                if (!modeNameReferences.contains(mode.name()) && !mode.name().startsWith("_"))
+                    throw new IllegalStateException("Mode " + mode.name() +
+                                                    " is not referenced anywhere, if this is an abstract mode then its name should start with _");
+
+            }
+        }
         for (ModeBuilder mode : modeByName.values()) {
             if (mode.timeout().enabled() && (mode.timeout().idleDuration() == null ||
                                              mode.timeout().nextModeName() == null))
@@ -387,6 +397,14 @@ public class ConfigurationParser {
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
         return new Configuration(keyboardLayout, new ModeMap(modes));
+    }
+
+    private static String checkNonExtendModeReference(String modeNameReference) {
+        if (modeNameReference.startsWith("_"))
+            throw new IllegalArgumentException(
+                    "Referencing an abstract mode (a mode starting with _) is not allowed: " +
+                    modeNameReference);
+        return modeNameReference;
     }
 
     private static void recursivelyExtendMode(Mode parentMode, ModeNode modeNode,
