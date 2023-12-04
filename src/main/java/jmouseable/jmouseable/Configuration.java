@@ -1,5 +1,6 @@
 package jmouseable.jmouseable;
 
-public record Configuration(KeyboardLayout keyboardLayout, ModeMap modeMap) {
+public record Configuration(KeyboardLayout keyboardLayout,
+                            int maxMousePositionHistorySize, ModeMap modeMap) {
 
 }

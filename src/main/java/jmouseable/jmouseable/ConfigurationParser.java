@@ -66,8 +66,10 @@ public class ConfigurationParser {
 
     public static Configuration parse(Path path) throws IOException {
         List<String> lines = Files.readAllLines(path);
-        ComboMoveDuration defaultComboMoveDuration = defaultComboMoveDuration();
+        ComboMoveDuration defaultComboMoveDuration =
+                new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
         KeyboardLayout keyboardLayout = null;
+        int maxMousePositionHistorySize = 16;
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Set<String> modeNameReferences = new HashSet<>();
@@ -93,6 +95,11 @@ public class ConfigurationParser {
                             "Invalid keyboard layout: " + propertyValue +
                             ", available keyboard layouts: " +
                             KeyboardLayout.keyboardLayoutByName.keySet());
+                continue;
+            }
+            else if (propertyKey.equals("max-mouse-position-history-size")) {
+                maxMousePositionHistorySize = parseUnsignedInteger("max mouse position history max size",
+                        propertyValue, 1, 100);
                 continue;
             }
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
@@ -405,7 +412,8 @@ public class ConfigurationParser {
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
-        return new Configuration(keyboardLayout, new ModeMap(modes));
+        return new Configuration(keyboardLayout, maxMousePositionHistorySize,
+                new ModeMap(modes));
     }
 
     private static String checkNonExtendModeReference(String modeNameReference) {
@@ -654,10 +662,6 @@ public class ConfigurationParser {
 
     private static Duration parseDuration(String string) {
         return Duration.ofMillis(Integer.parseUnsignedInt(string));
-    }
-
-    private static ComboMoveDuration defaultComboMoveDuration() {
-        return new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
     }
 
     private static void addCommand(ComboMapBuilder comboMap,

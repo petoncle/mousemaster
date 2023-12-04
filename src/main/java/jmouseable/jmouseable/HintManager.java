@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 public class HintManager implements ModeListener, MousePositionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(HintManager.class);
-    private static final int MAX_MOUSE_POSITION_HISTORY_SIZE = 16;
 
     private final ScreenManager screenManager;
     private final MouseController mouseController;
@@ -20,13 +19,16 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int mouseX, mouseY;
     private Mode currentMode;
     private final List<Point> mousePositionHistory = new ArrayList<>();
+    private final int maxMousePositionHistorySize;
     /**
-     * Used for deterministic hints.
+     * Used for deterministic hint key sequences.
      */
     private int mousePositionIdCount = 0;
     private final Map<Point, Integer> idByMousePosition = new HashMap<>();
 
-    public HintManager(ScreenManager screenManager, MouseController mouseController) {
+    public HintManager(int maxMousePositionHistorySize, ScreenManager screenManager,
+                       MouseController mouseController) {
+        this.maxMousePositionHistorySize = maxMousePositionHistorySize;
         this.screenManager = screenManager;
         this.mouseController = mouseController;
     }
@@ -143,16 +145,16 @@ public class HintManager implements ModeListener, MousePositionListener {
         else {
             int hintCount = mousePositionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
-            List<Key> selectionKeySubset = MAX_MOUSE_POSITION_HISTORY_SIZE >=
+            List<Key> selectionKeySubset = maxMousePositionHistorySize >=
                                            hintMeshConfiguration.selectionKeys().size() ?
                     hintMeshConfiguration.selectionKeys() :
                     hintMeshConfiguration.selectionKeys()
-                                         .subList(0, MAX_MOUSE_POSITION_HISTORY_SIZE);
-            int hintLength = (int) Math.ceil(Math.log(MAX_MOUSE_POSITION_HISTORY_SIZE) /
+                                         .subList(0, maxMousePositionHistorySize);
+            int hintLength = (int) Math.ceil(Math.log(maxMousePositionHistorySize) /
                                              Math.log(selectionKeySubset.size()));
             for (Point point : mousePositionHistory) {
                 List<Key> keySequence = hintKeySequence(selectionKeySubset, hintLength,
-                        idByMousePosition.get(point) % MAX_MOUSE_POSITION_HISTORY_SIZE);
+                        idByMousePosition.get(point) % maxMousePositionHistorySize);
                 hints.add(new Hint(point.x(), point.y(), keySequence));
             }
             hintMesh.hints(hints);
@@ -357,9 +359,9 @@ public class HintManager implements ModeListener, MousePositionListener {
             mousePositionIdCount = 0;
         else
             mousePositionIdCount++;
-        mousePositionHistory.add(point);
-        if (mousePositionHistory.size() == MAX_MOUSE_POSITION_HISTORY_SIZE)
+        if (mousePositionHistory.size() == maxMousePositionHistorySize)
             mousePositionHistory.removeFirst();
+        mousePositionHistory.add(point);
         logger.debug(
                 "Saved mouse position " + point.x() + "," + point.y() + " to history");
     }
