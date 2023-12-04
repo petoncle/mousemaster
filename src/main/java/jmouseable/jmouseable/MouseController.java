@@ -207,18 +207,26 @@ public class MouseController {
     }
 
     public void startWheelUp() {
+        if (!yWheelForwardStack.isEmpty() && yWheelForwardStack.peek() == false)
+            return;
         yWheelForwardStack.push(false);
     }
 
     public void startWheelDown() {
+        if (!yWheelForwardStack.isEmpty() && yWheelForwardStack.peek() == true)
+            return;
         yWheelForwardStack.push(true);
     }
 
     public void startWheelLeft() {
+        if (!xWheelForwardStack.isEmpty() && xWheelForwardStack.peek() == false)
+            return;
         xWheelForwardStack.push(false);
     }
 
     public void startWheelRight() {
+        if (!xWheelForwardStack.isEmpty() && xWheelForwardStack.peek() == true)
+            return;
         xWheelForwardStack.push(true);
     }
 
