@@ -81,7 +81,7 @@ _shift,^shift = press shift, release shift?
  + Hide grid (cannot disable a grid?)
   + If try to use grid commands while grid is hidden/not initialized, create a new full screen grid
  - Snap to grid lines (mouse can be outside grid) snap-left
- - Half (cut in half) grid in a direction (cut-grid-top/bottom/left/right)
+ - Half (cut in half) grid in a direction (shrink-grid-top/bottom/left/right)
   - arrow keys
   - Also moves to grid center automatically: move-to-grid-center-when-cut=true
  - Shift grid: move-grid-top
@@ -112,7 +112,7 @@ _shift,^shift = press shift, release shift?
   + Screen selection = all-screens grid with row/column count 1
     + In all screen grid, cannot move grid or cut grid (but can snap)
   - Hint selection is like cutting the grid to a specific cell
-   - mode.grid.end.cut-count = 2 to have 2-phase hint selection
+   - mode.grid.end.shrink-count = 2 to have 2-phase hint selection
     - grid.end.next-mode
     - Or: mode.grid.next-next-mode-after-cut=smaller-grid-around-cursor-mode
      - switch-to-next-mode-after-grid-cut=new-mode

@@ -357,10 +357,10 @@ public class ConfigurationParser {
                 case "snap-left" -> addCommand(mode.comboMap(), propertyValue, new SnapLeft(), defaultComboMoveDuration);
                 case "snap-right" -> addCommand(mode.comboMap(), propertyValue, new SnapRight(), defaultComboMoveDuration);
 
-                case "cut-grid-top" -> addCommand(mode.comboMap(), propertyValue, new CutGridTop(), defaultComboMoveDuration);
-                case "cut-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new CutGridBottom(), defaultComboMoveDuration);
-                case "cut-grid-left" -> addCommand(mode.comboMap(), propertyValue, new CutGridLeft(), defaultComboMoveDuration);
-                case "cut-grid-right" -> addCommand(mode.comboMap(), propertyValue, new CutGridRight(), defaultComboMoveDuration);
+                case "shrink-grid-top" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridTop(), defaultComboMoveDuration);
+                case "shrink-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridBottom(), defaultComboMoveDuration);
+                case "shrink-grid-left" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridLeft(), defaultComboMoveDuration);
+                case "shrink-grid-right" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridRight(), defaultComboMoveDuration);
 
                 case "move-grid-top" -> addCommand(mode.comboMap(), propertyValue, new MoveGridTop(), defaultComboMoveDuration);
                 case "move-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new MoveGridBottom(), defaultComboMoveDuration);

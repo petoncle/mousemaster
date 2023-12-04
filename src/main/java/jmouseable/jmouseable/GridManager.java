@@ -18,7 +18,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         this.mouseController = mouseController;
     }
 
-    public void cutGridTop() {
+    public void shrinkGridTop() {
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
@@ -31,7 +31,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    public void cutGridBottom() {
+    public void shrinkGridBottom() {
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
@@ -44,7 +44,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    public void cutGridLeft() {
+    public void shrinkGridLeft() {
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
@@ -57,7 +57,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         gridChanged();
     }
 
-    public void cutGridRight() {
+    public void shrinkGridRight() {
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ?
