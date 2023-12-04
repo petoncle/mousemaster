@@ -74,6 +74,7 @@ public class ConfigurationParser {
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Set<String> modeNameReferences = new HashSet<>();
         Map<String, Set<String>> childrenModeNamesByParentMode = new HashMap<>();
+        Map<String, Set<String>> referencedModeNamesByReferencerMode = new HashMap<>();
         Set<String> nonRootModeNames = new HashSet<>();
         Pattern linePattern = Pattern.compile("(.+?)=(.+)");
         for (String line : lines) {
@@ -218,6 +219,9 @@ public class ConfigurationParser {
                             String nextModeAfterSelection = propertyValue;
                             modeNameReferences.add(
                                     checkNonExtendModeReference(nextModeAfterSelection));
+                            referencedModeNamesByReferencerMode.computeIfAbsent(modeName,
+                                                                       modeName_ -> new HashSet<>())
+                                                               .add(nextModeAfterSelection);
                             mode.hintMesh().nextModeAfterSelection(nextModeAfterSelection);
                         }
                         case "click-button-after-selection" -> mode.hintMesh()
@@ -238,6 +242,9 @@ public class ConfigurationParser {
                                 "Invalid to configuration: " + propertyKey);
                     String newModeName = keyMatcher.group(4);
                     modeNameReferences.add(checkNonExtendModeReference(newModeName));
+                    referencedModeNamesByReferencerMode.computeIfAbsent(modeName,
+                                                               modeName_ -> new HashSet<>())
+                                                       .add(newModeName);
                     addCommand(mode.comboMap(), propertyValue,
                             new SwitchMode(newModeName), defaultComboMoveDuration);
                 }
@@ -271,6 +278,9 @@ public class ConfigurationParser {
                             mode.timeout().nextModeName(nextModeName);
                             modeNameReferences.add(
                                     checkNonExtendModeReference(nextModeName));
+                            referencedModeNamesByReferencerMode.computeIfAbsent(modeName,
+                                                                       modeName_ -> new HashSet<>())
+                                                               .add(nextModeName);
                         }
                         default -> throw new IllegalArgumentException(
                                 "Invalid timeout configuration: " + propertyKey);
@@ -384,19 +394,31 @@ public class ConfigurationParser {
                 throw new IllegalStateException(
                         "Definition of mode " + modeNameReference + " is missing");
         }
-        Set<String> rootModeNames = modeByName.keySet()
-                                              .stream()
-                                              .filter(Predicate.not(
-                                                      nonRootModeNames::contains))
-                                              .collect(Collectors.toSet());
-        Set<ModeNode> rootModeNodes = new HashSet<>();
-        Set<String> alreadyBuiltModeNodeNames = new HashSet<>();
-        for (String rootModeName : rootModeNames)
-            rootModeNodes.add(
-                    recursivelyBuildModeNode(rootModeName, childrenModeNamesByParentMode,
-                    alreadyBuiltModeNodeNames));
-        for (ModeNode rootModeNode : rootModeNodes)
-            recursivelyExtendMode(defaultMode, rootModeNode, modeByName);
+        Set<String> rootInheritanceModeNames = modeByName.keySet()
+                                                         .stream()
+                                                         .filter(Predicate.not(
+                                                                 nonRootModeNames::contains))
+                                                         .collect(Collectors.toSet());
+        Set<ModeNode> rootInheritanceNodes = new HashSet<>();
+        Set<String> inheritanceNodeNames = new HashSet<>();
+        for (String rootModeName : rootInheritanceModeNames)
+            rootInheritanceNodes.add(recursivelyBuildInheritanceNode(rootModeName,
+                    childrenModeNamesByParentMode, inheritanceNodeNames));
+        Map<String, ModeNode> referenceNodeByName = new HashMap<>();
+        ModeNode rootReferenceNode = recursivelyBuildReferenceNode(Mode.IDLE_MODE_NAME,
+                referencedModeNamesByReferencerMode, referenceNodeByName);
+        if (modeByName.size() != 1 || !modeByName.containsKey(Mode.IDLE_MODE_NAME)) {
+            for (String modeName : modeByName.keySet()) {
+                if (modeName.equals(Mode.IDLE_MODE_NAME))
+                    continue;
+                if (!referenceNodeByName.containsKey(modeName) && !modeName.startsWith("_"))
+                    throw new IllegalStateException("Mode " + modeName +
+                                                    " is not referenced anywhere, if this is an abstract mode then its name should start with _");
+
+            }
+        }
+        for (ModeNode rootInheritanceNode : rootInheritanceNodes)
+            recursivelyExtendMode(defaultMode, rootInheritanceNode, modeByName);
         for (ModeBuilder mode : modeByName.values()) {
             if (mode.timeout().enabled() && (mode.timeout().idleDuration() == null ||
                                              mode.timeout().nextModeName() == null))
@@ -432,19 +454,40 @@ public class ConfigurationParser {
             recursivelyExtendMode(mode.build(), subModeNode, modeByName);
     }
 
-    private static ModeNode recursivelyBuildModeNode(String modeName,
-                                                     Map<String, Set<String>> childrenModeNamesByParentMode,
-                                                     Set<String> alreadyBuiltModeNodeNames) {
+    private static ModeNode recursivelyBuildInheritanceNode(String modeName,
+                                                            Map<String, Set<String>> childrenModeNamesByParentMode,
+                                                            Set<String> alreadyBuiltModeNodeNames) {
         if (!alreadyBuiltModeNodeNames.add(modeName))
             throw new IllegalStateException(
                     "Found extend dependency cycle involving mode " + modeName);
-        Set<ModeNode> subModes = new HashSet<>();
+        List<ModeNode> subModes = new ArrayList<>();
         Set<String> childrenModeNames = childrenModeNamesByParentMode.get(modeName);
         if (childrenModeNames != null) {
             for (String childModeName : childrenModeNames)
                 subModes.add(
-                        recursivelyBuildModeNode(childModeName, childrenModeNamesByParentMode,
+                        recursivelyBuildInheritanceNode(childModeName, childrenModeNamesByParentMode,
                         alreadyBuiltModeNodeNames));
+        }
+        return new ModeNode(modeName, subModes);
+    }
+
+    private static ModeNode recursivelyBuildReferenceNode(String modeName,
+                                                            Map<String, Set<String>> childrenModeNamesByParentMode,
+                                                            Map<String, ModeNode> nodeByName) {
+        ModeNode modeNode = nodeByName.computeIfAbsent(modeName,
+                modeName_ -> new ModeNode(modeName, new ArrayList<>()));
+        List<ModeNode> subModes = modeNode.subModes;
+        Set<String> childrenModeNames = childrenModeNamesByParentMode.get(modeName);
+        if (childrenModeNames != null) {
+            for (String childModeName : childrenModeNames) {
+                if (childModeName.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER))
+                    continue;
+                ModeNode childNode = nodeByName.get(childModeName);
+                if (childNode == null)
+                    childNode = recursivelyBuildReferenceNode(childModeName,
+                            childrenModeNamesByParentMode, nodeByName);
+                subModes.add(childNode);
+            }
         }
         return new ModeNode(modeName, subModes);
     }
@@ -675,7 +718,7 @@ public class ConfigurationParser {
     /**
      * Dependency tree.
      */
-    private record ModeNode(String modeName, Set<ModeNode> subModes) {
+    private record ModeNode(String modeName, List<ModeNode> subModes) {
     }
 
 }
