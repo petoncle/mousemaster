@@ -103,8 +103,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                 hintMeshHeight = activeWindowRectangle.height();
                 hintMeshX = hintMeshCenter.x() - hintMeshWidth / 2;
                 hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
-                rowCount = activeWindow.rowCount();
-                columnCount = activeWindow.columnCount();
+                Screen activeScreen = screenManager.activeScreen();
+                rowCount = dpiDescaled(activeWindow.rowCount(), activeScreen.dpi());
+                columnCount = dpiDescaled(activeWindow.columnCount(), activeScreen.dpi());
                 fixedSizeHintGrids.add(
                         new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth,
                                 hintMeshHeight, rowCount, columnCount));
@@ -180,18 +181,18 @@ public class HintManager implements ModeListener, MousePositionListener {
             throw new IllegalArgumentException();
         int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
         double screenWidthPercent, screenHeightPercent;
+        int dpi = screen.dpi();
         if (type instanceof HintMeshType.ActiveScreen activeScreen) {
             screenWidthPercent = activeScreen.screenWidthPercent();
             screenHeightPercent = activeScreen.screenHeightPercent();
-            int dpi = screen.dpi();
             rowCount = dpiDescaled(activeScreen.rowCount(), dpi);
             columnCount = dpiDescaled(activeScreen.columnCount(), dpi);
         }
         else if (type instanceof HintMeshType.AllScreens allScreens) {
             screenWidthPercent = allScreens.screenWidthPercent();
             screenHeightPercent = allScreens.screenHeightPercent();
-            rowCount = allScreens.rowCount();
-            columnCount = allScreens.columnCount();
+            rowCount = dpiDescaled(allScreens.rowCount(), dpi);
+            columnCount = dpiDescaled(allScreens.columnCount(), dpi);
         }
         else
             throw new IllegalStateException();
