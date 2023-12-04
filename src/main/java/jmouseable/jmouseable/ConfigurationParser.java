@@ -82,11 +82,17 @@ public class ConfigurationParser {
                 continue;
             Matcher lineMatcher = linePattern.matcher(line);
             if (!lineMatcher.matches())
-                throw new IllegalArgumentException("Invalid property key=value: " + line);
+                throw new IllegalArgumentException("Invalid property " + line);
             String propertyKey = lineMatcher.group(1);
             String propertyValue = lineMatcher.group(2);
+            if (propertyKey.isBlank())
+                throw new IllegalArgumentException(
+                        "Invalid property " + line + ": property key cannot be blank");
+            if (propertyValue.isBlank())
+                throw new IllegalArgumentException(
+                        "Invalid property " + line + ": property value cannot be blank");
             if (propertyKey.equals("default-combo-move-duration-millis")) {
-                defaultComboMoveDuration = parseComboMoveDuration(propertyValue);
+                defaultComboMoveDuration = parseComboMoveDuration(propertyKey, propertyValue);
                 continue;
             }
             else if (propertyKey.equals("keyboard-layout")) {
@@ -99,17 +105,23 @@ public class ConfigurationParser {
                 continue;
             }
             else if (propertyKey.equals("max-mouse-position-history-size")) {
-                maxMousePositionHistorySize = parseUnsignedInteger("max mouse position history max size",
-                        propertyValue, 1, 100);
+                maxMousePositionHistorySize =
+                        parseUnsignedInteger(propertyKey, propertyValue, 1, 100);
                 continue;
             }
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
             if (!keyMatcher.matches())
                 continue;
             String modeName = keyMatcher.group(1);
+            if (!modeName.endsWith("-mode"))
+                throw new IllegalArgumentException(
+                        "Invalid mode name in property key " + propertyKey +
+                        ": mode names should end with -mode");
             if (modeName.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER))
                 throw new IllegalArgumentException(
-                        "Invalid mode name: previous-mode is a reserved mode name");
+                        "Invalid mode name in property key " + propertyKey + ": " +
+                        Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER +
+                        " is a reserved mode name");
             ModeBuilder mode = modeByName.computeIfAbsent(modeName, ModeBuilder::new);
             String group2 = keyMatcher.group(2);
             switch (group2) {
@@ -118,7 +130,7 @@ public class ConfigurationParser {
                 case "mouse" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid mouse configuration: " + propertyKey);
+                                "Invalid mouse property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
                         case "initial-velocity" -> mode.mouse()
                                                        .initialVelocity(
@@ -131,13 +143,13 @@ public class ConfigurationParser {
                                                    .acceleration(Double.parseDouble(
                                                            propertyValue));
                         default -> throw new IllegalArgumentException(
-                                "Invalid mouse configuration: " + propertyKey);
+                                "Invalid mouse property key: " + propertyKey);
                     }
                 }
                 case "wheel" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid wheel configuration: " + propertyKey);
+                                "Invalid wheel property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
                         case "acceleration" -> mode.wheel()
                                                    .initialVelocity(Double.parseDouble(
@@ -149,72 +161,76 @@ public class ConfigurationParser {
                                                    .acceleration(Double.parseDouble(
                                                            propertyValue));
                         default -> throw new IllegalArgumentException(
-                                "Invalid wheel configuration: " + propertyKey);
+                                "Invalid wheel property key: " + propertyKey);
                     }
                 }
                 case "grid" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid grid configuration: " + propertyKey);
+                                "Invalid grid property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
-                        case "area" -> mode.grid().area(parseGridArea(propertyValue));
+                        case "area" -> mode.grid().area(parseGridArea(propertyKey, propertyValue));
                         case "synchronization" -> mode.grid()
-                                                               .synchronization(
-                                                                      parseSynchronization(
-                                                                               propertyValue));
+                                                      .synchronization(
+                                                              parseSynchronization(
+                                                                      propertyKey,
+                                                                      propertyValue));
                         case "row-count" -> mode.grid()
                                                      .rowCount(parseUnsignedInteger(
-                                                             "grid row-count",
+                                                             propertyKey,
                                                              propertyValue, 1, 50));
                         case "column-count" -> mode.grid()
-                                                        .columnCount(
-                                                                parseUnsignedInteger(
-                                                                        "grid column-count",
-                                                                        propertyValue, 1,
-                                                                        50));
+                                                   .columnCount(parseUnsignedInteger(
+                                                           propertyKey, propertyValue, 1,
+                                                           50));
                         case "line-visible" ->
                                 mode.grid().lineVisible(Boolean.parseBoolean(propertyValue));
                         case "line-color" ->
-                                mode.grid().lineHexColor(checkColorFormat(propertyValue));
+                                mode.grid().lineHexColor(checkColorFormat(propertyKey,
+                                        propertyValue));
                         case "line-thickness" -> mode.grid()
                                                      .lineThickness(
                                                              Integer.parseUnsignedInt(
                                                                      propertyValue));
                         default -> throw new IllegalArgumentException(
-                                "Invalid grid configuration: " + propertyKey);
+                                "Invalid grid property key: " + propertyKey);
                     }
                 }
                 case "hint" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid grid configuration: " + propertyKey);
+                                "Invalid hint property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
                         case "enabled" -> mode.hintMesh()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
                         case "type" ->
-                                mode.hintMesh().type(parseHintMeshType(propertyValue));
+                                mode.hintMesh().type(parseHintMeshType(propertyKey, propertyValue));
                         case "center" ->
-                                mode.hintMesh().center(parseHintMeshCenter(propertyValue));
+                                mode.hintMesh().center(parseHintMeshCenter(propertyKey, propertyValue));
                         case "selection-keys" -> mode.hintMesh()
-                                                     .selectionKeys(parseHintKeys(
-                                                             propertyValue));
+                                                     .selectionKeys(
+                                                             parseHintKeys(propertyKey,
+                                                                     propertyValue));
                         case "undo" -> mode.hintMesh().undoKey(Key.ofName(propertyValue));
                         case "font-name" -> mode.hintMesh().fontName(propertyValue);
                         case "font-size" -> mode.hintMesh()
-                                                .fontSize(parseUnsignedInteger(
-                                                        "hint font-size", propertyValue,
-                                                        1, 1000));
+                                                .fontSize(
+                                                        parseUnsignedInteger(propertyKey,
+                                                                propertyValue, 1, 1000));
                         case "font-color" -> mode.hintMesh()
                                                  .fontHexColor(
-                                                         checkColorFormat(propertyValue));
+                                                         checkColorFormat(propertyKey,
+                                                                 propertyValue));
                         case "selected-prefix-font-color" -> mode.hintMesh()
                                                                  .selectedPrefixFontHexColor(
                                                                          checkColorFormat(
+                                                                                 propertyKey,
                                                                                  propertyValue));
                         case "box-color" -> mode.hintMesh()
                                                 .boxHexColor(
-                                                        checkColorFormat(propertyValue));
+                                                        checkColorFormat(propertyKey,
+                                                                propertyValue));
                         case "next-mode-after-selection" -> {
                             String nextModeAfterSelection = propertyValue;
                             modeNameReferences.add(
@@ -226,20 +242,20 @@ public class ConfigurationParser {
                         }
                         case "click-button-after-selection" -> mode.hintMesh()
                                                                         .clickButtonAfterSelection(
-                                                                                parseButton(
+                                                                                parseButton(propertyKey,
                                                                                         propertyValue));
                         case "save-mouse-position-after-selection" -> mode.hintMesh()
                                                                                .saveMousePositionAfterSelection(
                                                                                        Boolean.parseBoolean(
                                                                                                propertyValue));
                         default -> throw new IllegalArgumentException(
-                                "Invalid hint configuration: " + propertyKey);
+                                "Invalid hint property key: " + propertyKey);
                     }
                 }
                 case "to" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid to configuration: " + propertyKey);
+                                "Invalid to (mode switch) property key: " + propertyKey);
                     String newModeName = keyMatcher.group(4);
                     modeNameReferences.add(checkNonExtendModeReference(newModeName));
                     referencedModeNamesByReferencerMode.computeIfAbsent(modeName,
@@ -252,8 +268,8 @@ public class ConfigurationParser {
                     String parentModeName = propertyValue;
                     if (parentModeName.equals(modeName))
                         throw new IllegalArgumentException(
-                                "Invalid extend parent mode " + parentModeName +
-                                " for mode " + modeName);
+                                "Invalid extend property " + propertyKey + "=" +
+                                propertyValue + ": a mode cannot extend itself");
                     childrenModeNamesByParentMode.computeIfAbsent(parentModeName,
                             parentModeName_ -> new HashSet<>()).add(modeName);
                     nonRootModeNames.add(modeName);
@@ -262,7 +278,7 @@ public class ConfigurationParser {
                 case "timeout" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid timeout configuration: " + propertyKey);
+                                "Invalid timeout property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
                         case "enabled" -> mode.timeout()
                                               .enabled(Boolean.parseBoolean(
@@ -271,10 +287,6 @@ public class ConfigurationParser {
                                 mode.timeout().idleDuration(parseDuration(propertyValue));
                         case "next-mode" -> {
                             String nextModeName = propertyValue;
-                            if (nextModeName.equals(modeName))
-                                throw new IllegalArgumentException(
-                                        "Invalid timeout next mode " + nextModeName +
-                                        " for mode " + modeName);
                             mode.timeout().nextModeName(nextModeName);
                             modeNameReferences.add(
                                     checkNonExtendModeReference(nextModeName));
@@ -283,45 +295,49 @@ public class ConfigurationParser {
                                                                .add(nextModeName);
                         }
                         default -> throw new IllegalArgumentException(
-                                "Invalid timeout configuration: " + propertyKey);
+                                "Invalid timeout property key: " + propertyKey);
                     }
                 }
                 case "indicator" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid indicator configuration: " + propertyKey);
+                                "Invalid indicator property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
                         case "enabled" -> mode.indicator()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
                         case "size" -> mode.indicator()
-                                           .size(parseUnsignedInteger("indicator size",
+                                           .size(parseUnsignedInteger(propertyKey,
                                                    propertyValue, 1, 100));
                         case "idle-color" -> mode.indicator()
                                                  .idleHexColor(
-                                                         checkColorFormat(propertyValue));
+                                                         checkColorFormat(propertyKey,
+                                                                 propertyValue));
                         case "move-color" -> mode.indicator()
                                                  .moveHexColor(
-                                                         checkColorFormat(propertyValue));
+                                                         checkColorFormat(propertyKey,
+                                                                 propertyValue));
                         case "wheel-color" -> mode.indicator()
                                                   .wheelHexColor(checkColorFormat(
-                                                          propertyValue));
+                                                          propertyKey, propertyValue));
                         case "mouse-press-color" -> mode.indicator()
                                                         .mousePressHexColor(
                                                                 checkColorFormat(
+                                                                        propertyKey,
                                                                         propertyValue));
                         case "non-combo-key-press-color" -> mode.indicator()
                                                                 .nonComboKeyPressHexColor(
                                                                         checkColorFormat(
+                                                                                propertyKey,
                                                                                 propertyValue));
                         default -> throw new IllegalArgumentException(
-                                "Invalid indicator configuration: " + propertyKey);
+                                "Invalid indicator property key: " + propertyKey);
                     }
                 }
                 case "hide-cursor" -> {
                     if (keyMatcher.group(4) == null)
                         throw new IllegalArgumentException(
-                                "Invalid hide cursor configuration: " + propertyKey);
+                                "Invalid hide-cursor property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
                         case "enabled" -> mode.hideCursor()
                                               .enabled(Boolean.parseBoolean(
@@ -330,7 +346,7 @@ public class ConfigurationParser {
                                                            .idleDuration(parseDuration(
                                                                    propertyValue));
                         default -> throw new IllegalArgumentException(
-                                "Invalid hide cursor configuration: " + propertyKey);
+                                "Invalid hide-cursor configuration: " + propertyKey);
                     }
                 }
                 // @formatter:off
@@ -383,7 +399,7 @@ public class ConfigurationParser {
                 case "clear-mouse-position-history" -> addCommand(mode.comboMap(), propertyValue, new ClearMousePositionHistory(), defaultComboMoveDuration);
                 // @formatter:on
                 default -> throw new IllegalArgumentException(
-                        "Invalid configuration: " + propertyKey);
+                        "Invalid mode property key: " + propertyKey);
             }
         }
         // Verify mode name references are valid.
@@ -580,61 +596,66 @@ public class ConfigurationParser {
             childMode.hideCursor().idleDuration(parentMode.hideCursor().idleDuration());
     }
 
-    private static String checkColorFormat(String propertyValue) {
+    private static String checkColorFormat(String propertyKey, String propertyValue) {
         if (!propertyValue.matches("^#?([a-fA-F0-9]{6})$"))
-            throw new IllegalArgumentException("Invalid hex color: " + propertyValue);
+            throw new IllegalArgumentException(
+                    "Invalid color " + propertyKey + "=" + propertyValue +
+                    ": a color should be in the #FFFFFF format");
         return propertyValue;
     }
 
-    private static int parseUnsignedInteger(String configurationName, String string, int min, int max) {
+    private static int parseUnsignedInteger(String propertyKey, String string, int min, int max) {
         int integer = Integer.parseUnsignedInt(string);
         if (integer < min)
             throw new IllegalArgumentException(
-                    "Invalid " + configurationName + " configuration: " + integer +
-                    " is not greater than or equal to " + min);
+                    "Invalid property value in " + propertyKey + ": " + integer +
+                    " must greater than or equal to " + min);
         if (integer > max)
             throw new IllegalArgumentException(
-                    "Invalid " + configurationName + " configuration: " + integer +
-                    " is not less than or equal to " + max);
+                    "Invalid property value in " + propertyKey + ": " + integer +
+                    " must be less than or equal to " + max);
         return integer;
     }
 
-    private static Button parseButton(String string) {
+    private static Button parseButton(String propertyKey, String string) {
         return switch (string) {
             case "left" -> Button.LEFT_BUTTON;
             case "middle" -> Button.MIDDLE_BUTTON;
             case "right" -> Button.RIGHT_BUTTON;
-            default -> throw new IllegalArgumentException("Invalid button: " + string);
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + string + ": button must be one of " +
+                    List.of("left", "middle", "right"));
         };
     }
 
-    private static List<Key> parseHintKeys(String string) {
-        String[] split = string.split("\\s+");
+    private static List<Key> parseHintKeys(String propertyKey, String propertyValue) {
+        String[] split = propertyValue.split("\\s+");
         if (split.length <= 1)
             // Even 1 key is not enough because we use fixed-length hints.
             throw new IllegalArgumentException(
-                    "Invalid hint keys configuration: " + string);
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": at least two keys are required");
         return Arrays.stream(split).map(Key::ofName).toList();
     }
 
-    private static HintMeshType parseHintMeshType(String string) {
-        String[] split = string.split("\\s+");
+    private static HintMeshType parseHintMeshType(String propertyKey, String propertyValue) {
+        String[] split = propertyValue.split("\\s+");
         double width, height;
-        if (split.length == 0)
-            throw new IllegalArgumentException(
-                    "Invalid hint type configuration: " + string);
         if (split[0].equals("active-screen") || split[0].equals("active-window") ||
             split[0].equals("all-screens")) {
             if (split.length != 5)
                 throw new IllegalArgumentException(
-                        "Invalid hint type configuration: " + string);
+                        "Invalid property value in " + propertyKey + "=" + propertyValue + ": expected " +
+                        split[0] +
+                        " <width percent> <height percent> <row count> <column count>");
             width = Double.parseDouble(split[1]);
             height = Double.parseDouble(split[2]);
             if (width < 0 || width > 1 || height < 0 || height > 1)
                 throw new IllegalArgumentException(
-                        "Invalid hint type configuration: " + string);
-            int rowCount = parseUnsignedInteger("hint", split[3], 1, 50);
-            int columnCount = parseUnsignedInteger("hint", split[4], 1, 50);
+                        "Invalid property value in " + propertyKey + "=" + propertyValue +
+                        ": width percent and height percent should be greater than 0.0 and less than or equal to 1.0");
+            int rowCount = parseUnsignedInteger(propertyKey, split[3], 1, 50);
+            int columnCount = parseUnsignedInteger(propertyKey, split[4], 1, 50);
             if (split[0].equals("active-screen"))
                 return new HintMeshType.ActiveScreen(width, height, rowCount,
                         columnCount);
@@ -649,22 +670,27 @@ public class ConfigurationParser {
             return new HintMeshType.MousePositionHistory();
         else {
             throw new IllegalArgumentException(
-                    "Invalid hint type configuration: " + string);
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " +
+                    List.of("active-screen", "active-window", "all-screens",
+                            "mouse-position-history"));
         }
     }
 
-    private static HintMeshCenter parseHintMeshCenter(String string) {
-        return switch (string) {
+    private static HintMeshCenter parseHintMeshCenter(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
             case "active-screen" -> HintMeshCenter.ACTIVE_SCREEN;
             case "active-window" -> HintMeshCenter.ACTIVE_WINDOW;
             case "mouse" -> HintMeshCenter.MOUSE;
             default -> throw new IllegalArgumentException(
-                    "Invalid hint center configuration: " + string);
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " +
+                    List.of("active-screen", "active-window", "mouse"));
         };
     }
 
-    private static GridArea parseGridArea(String string) {
-        String[] split = string.split("\\s+");
+    private static GridArea parseGridArea(String propertyKey, String propertyValue) {
+        String[] split = propertyValue.split("\\s+");
         double width, height;
         if (split.length == 1)
             width = height = 1;
@@ -673,31 +699,41 @@ public class ConfigurationParser {
             height = Double.parseDouble(split[2]);
             if (width < 0 || width > 1 || height < 0 || height > 1)
                 throw new IllegalArgumentException(
-                        "Invalid grid area configuration: " + string);
+                        "Invalid property value in " + propertyKey + "=" + propertyValue +
+                        ": width percent and height percent should be greater than 0.0 and less than or equal to 1.0");
         }
         else
-            throw new IllegalArgumentException("Invalid grid area configuration: " + string);
+            throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected active-screen|active-window <width percent> <height percent>");
         return switch (split[0]) {
             case "active-screen" -> new GridArea.ActiveScreen(width, height);
             case "active-window" -> new GridArea.ActiveWindow(width, height);
             default -> throw new IllegalArgumentException(
-                    "Invalid grid area configuration: " + string);
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " + List.of("active-screen", "active-window"));
         };
     }
 
-    private static Synchronization parseSynchronization(String string) {
-        return switch (string) {
+    private static Synchronization parseSynchronization(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
             case "mouse-and-grid-center-unsynchronized" ->
                     Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED;
             case "mouse-follows-grid-center" -> Synchronization.MOUSE_FOLLOWS_GRID_CENTER;
             case "grid-center-follows-mouse" -> Synchronization.GRID_CENTER_FOLLOWS_MOUSE;
             default -> throw new IllegalArgumentException(
-                    "Invalid grid synchronization configuration: " + string);
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " + List.of("mouse-and-grid-center-unsynchronized",
+                            "mouse-follows-grid-center", "grid-center-follows-mouse"));
         };
     }
 
-    private static ComboMoveDuration parseComboMoveDuration(String string) {
-        String[] split = string.split("-");
+    private static ComboMoveDuration parseComboMoveDuration(String propertyKey, String propertyValue) {
+        String[] split = propertyValue.split("-");
+        if (split.length != 2)
+            throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected <min millis>-<max millis>");
         return new ComboMoveDuration(
                 Duration.ofMillis(Integer.parseUnsignedInt(split[0])),
                 Duration.ofMillis(Integer.parseUnsignedInt(split[1])));

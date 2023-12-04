@@ -154,7 +154,9 @@ _shift,^shift = press shift, release shift?
   - Or Move to grid center command
 ++ Zoom mode? Useful for 2-stage hint?
 + Configuration for indicator offset
-+ Check mode reference tree (previous-mode is tricky)
+- Check mode reference tree
++ Improve error handling in config parser
+ + Wrap all parseBoolean/... into try catch that log the error with the property key and value
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)
 - Configuration file is automatically reloaded when changes are saved to it
