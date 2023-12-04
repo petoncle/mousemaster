@@ -145,17 +145,23 @@ public class GridManager implements MousePositionListener, ModeListener {
             int mouseColumn = (mouseX - grid.x()) / cellWidth;
             int mouseRow = (mouseY - grid.y()) / cellHeight;
             if (horizontal) {
-                x = grid.x() + (forward ?
-                        (mouseColumn + (mouseX % cellWidth == 0 ? 0 : 1)) * cellWidth :
-                        (mouseColumn == 0 ? 0 : (mouseColumn - 1) * cellWidth));
+                if (forward)
+                    x = grid.x() + (mouseColumn + 1) * cellWidth;
+                else
+                    x = grid.x() +
+                        (mouseColumn - ((mouseX - grid.x()) % cellWidth == 0 ? 1 : 0)) *
+                        cellWidth;
                 x = Math.max(grid.x(), Math.min(grid.x() + grid.width(), x));
                 y = mouseY;
             }
             else {
                 x = mouseX;
-                y = grid.y() + (forward ?
-                        (mouseRow + (mouseY % cellHeight == 0 ? 0 : 1)) * cellHeight :
-                        (mouseRow == 0 ? 0 : (mouseRow - 1) * cellHeight));
+                if (forward)
+                    y = grid.y() + (mouseRow + 1) * cellHeight;
+                else
+                    y = grid.y() +
+                        (mouseRow - ((mouseY - grid.y()) % cellHeight == 0 ? 1 : 0)) *
+                        cellHeight;
                 y = Math.max(grid.y(), Math.min(grid.y() + grid.height(), y));
             }
             if (screenManager.screenContaining(x, y) == null) {

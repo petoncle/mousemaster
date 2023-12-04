@@ -130,15 +130,15 @@ _shift,^shift = press shift, release shift?
  + Dragging: normal-mode -> press left -> hint mode (handles left release key) -> normal-mode
 + Update hint windows when screens changed?
 + Hint undo key could be a combo instead of a key
-+ History (positions previously selected through hints)
+- History (positions previously selected through hints)
  - hint.save-mouse-position-after-selection=true
  - save-mouse-position=+leftalt +leftalt
  - clear-mouse-position-history=+leftalt +leftalt +leftalt
- + grid.area/row-count -> grid.layout=position-history | active-screen 0.99 0.99 2(rowCount) 2
-  + Grid with variable-size rows and columns
-  + Each historical position is the center of one cell
-  + Compute the midpoints between consecutive hint positions, that is the cell width/height
-  + Or one mini 1x1 grid per historical position
+ - grid.area/row-count -> grid.layout=position-history | active-screen 0.99 0.99 2(rowCount) 2
+  - Grid with variable-size rows and columns
+  - Each historical position is the center of one cell
+  - Compute the midpoints between consecutive hint positions, that is the cell width/height
+  - Or one mini 1x1 grid per historical position
 - normal-mode -> idle-mode
 + Rename Mouse, Wheel, etc. to Mouse/Wheel/...Configuration
 + mode.blinking-mouse.enabled/visible-duration/invisible-duration
@@ -153,7 +153,8 @@ _shift,^shift = press shift, release shift?
   + Make mouse-follows-grid-center the default, need grid.enabled?
   - Or Move to grid center command
 ++ Zoom mode? Useful for 2-stage hint?
-
++ Configuration for indicator offset
++ Check mode reference tree (previous-mode is tricky)
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)
 - Configuration file is automatically reloaded when changes are saved to it
