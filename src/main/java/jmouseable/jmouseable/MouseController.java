@@ -93,18 +93,26 @@ public class MouseController {
     }
 
     public void startMoveUp() {
+        if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.peek() == false)
+            return;
         yMoveForwardStack.push(false);
     }
 
     public void startMoveDown() {
+        if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.peek() == true)
+            return;
         yMoveForwardStack.push(true);
     }
 
     public void startMoveLeft() {
+        if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek() == false)
+            return;
         xMoveForwardStack.push(false);
     }
 
     public void startMoveRight() {
+        if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek() == true)
+            return;
         xMoveForwardStack.push(true);
     }
 
