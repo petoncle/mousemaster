@@ -194,8 +194,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         else
             throw new IllegalStateException();
-        hintMeshWidth = (int) (screen.width() * screenWidthPercent);
-        hintMeshHeight = (int) (screen.height() * screenHeightPercent);
+        hintMeshWidth = (int) (screen.rectangle().width() * screenWidthPercent);
+        hintMeshHeight = (int) (screen.rectangle().height() * screenHeightPercent);
         hintMeshX = hintMeshCenter.x() - hintMeshWidth / 2;
         hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
@@ -206,8 +206,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         int centerX = 0, centerY = 0;
         switch (center) {
             case ACTIVE_SCREEN -> {
-                centerX = activeScreen.x() + activeScreen.width() / 2;
-                centerY = activeScreen.y() + activeScreen.height() / 2;
+                centerX = activeScreen.rectangle().x() +
+                          activeScreen.rectangle().width() / 2;
+                centerY = activeScreen.rectangle().y() +
+                          activeScreen.rectangle().height() / 2;
             }
             case ACTIVE_WINDOW -> {
                 Rectangle activeWindowRectangle =

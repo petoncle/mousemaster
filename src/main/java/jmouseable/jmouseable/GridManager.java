@@ -82,10 +82,12 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (screenManager.screenContaining(gridCenterX, gridCenterY) == null) {
             // We want the grid center in screen.
             Screen activeScreen = screenManager.activeScreen();
-            gridCenterX = Math.max(activeScreen.x(),
-                    Math.min(activeScreen.x() + activeScreen.width(), gridCenterX));
-            gridCenterY = Math.max(activeScreen.y(),
-                    Math.min(activeScreen.y() + activeScreen.height(), gridCenterY));
+            gridCenterX = Math.max(activeScreen.rectangle().x(), Math.min(
+                    activeScreen.rectangle().x() + activeScreen.rectangle().width(),
+                    gridCenterX));
+            gridCenterY = Math.max(activeScreen.rectangle().y(), Math.min(
+                    activeScreen.rectangle().y() + activeScreen.rectangle().height(),
+                    gridCenterY));
             x = gridCenterX - grid.width() / 2;
             y = gridCenterY - grid.height() / 2;
         }
@@ -134,8 +136,8 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private void snap(boolean horizontal, boolean forward) {
         boolean mouseIsInsideGrid =
-                Rectangle.rectangleContains(grid.x(), grid.y(), grid.width(), grid.height(),
-                        mouseX, mouseY);
+                Rectangle.rectangleContains(grid.x(), grid.y(), grid.width(),
+                        grid.height(), mouseX, mouseY);
         int x, y;
         int cellWidth = Math.max(1, grid.width() / grid.columnCount());
         int cellHeight = Math.max(1, grid.height() / grid.rowCount());
@@ -158,10 +160,12 @@ public class GridManager implements MousePositionListener, ModeListener {
             }
             if (screenManager.screenContaining(x, y) == null) {
                 Screen activeScreen = screenManager.activeScreen();
-                x = Math.max(activeScreen.x(),
-                        Math.min(activeScreen.x() + activeScreen.width(), x));
-                y = Math.max(activeScreen.y(),
-                        Math.min(activeScreen.y() + activeScreen.height(), y));
+                x = Math.max(activeScreen.rectangle().x(), Math.min(
+                        activeScreen.rectangle().x() + activeScreen.rectangle().width(),
+                        x));
+                y = Math.max(activeScreen.rectangle().y(), Math.min(
+                        activeScreen.rectangle().y() + activeScreen.rectangle().height(),
+                        y));
             }
             mouseController.moveTo(x, y);
         }
@@ -220,13 +224,16 @@ public class GridManager implements MousePositionListener, ModeListener {
         switch (gridConfiguration.area()) {
             case GridArea.ActiveScreen activeScreen -> {
                 Screen screen = screenManager.activeScreen();
-                int gridWidth = (int) (screen.width() * activeScreen.screenWidthPercent());
-                int gridHeight =
-                        (int) (screen.height() * activeScreen.screenHeightPercent());
-                gridBuilder.x(screen.x() + (screen.width() - gridWidth) / 2)
-                                 .y(screen.y() + (screen.height() - gridHeight) / 2)
-                                 .width(gridWidth)
-                                 .height(gridHeight);
+                int gridWidth = (int) (screen.rectangle().width() *
+                                       activeScreen.screenWidthPercent());
+                int gridHeight = (int) (screen.rectangle().height() *
+                                        activeScreen.screenHeightPercent());
+                gridBuilder.x(screen.rectangle().x() +
+                              (screen.rectangle().width() - gridWidth) / 2)
+                           .y(screen.rectangle().y() +
+                              (screen.rectangle().height() - gridHeight) / 2)
+                           .width(gridWidth)
+                           .height(gridHeight);
             }
             case GridArea.ActiveWindow activeWindow -> {
                 Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
@@ -237,13 +244,13 @@ public class GridManager implements MousePositionListener, ModeListener {
                            .width(activeWindowRectangle.width())
                            .height(activeWindowRectangle.height());
             }
-        };
+        }
+        ;
         if (gridConfiguration.synchronization() ==
             Synchronization.GRID_CENTER_FOLLOWS_MOUSE)
             gridCenteredAroundMouse(gridBuilder);
         Grid newGrid = gridBuilder.build();
-        if (currentMode != null &&
-            newMode.grid().equals(currentMode.grid()) &&
+        if (currentMode != null && newMode.grid().equals(currentMode.grid()) &&
             newGrid.equals(grid))
             return;
         currentMode = newMode;
@@ -256,8 +263,7 @@ public class GridManager implements MousePositionListener, ModeListener {
             WindowsOverlay.setGrid(grid);
         else
             WindowsOverlay.hideGrid();
-        Synchronization synchronization =
-                currentMode.grid().synchronization();
+        Synchronization synchronization = currentMode.grid().synchronization();
         if (synchronization == Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
             mouseController.moveTo(grid.x() + grid.width() / 2,
                     grid.y() + grid.height() / 2);

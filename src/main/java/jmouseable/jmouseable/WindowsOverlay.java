@@ -2,7 +2,6 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
-import jmouseable.jmouseable.WindowsScreen.ScreenRectangleAndDpi;
 import jmouseable.jmouseable.WindowsMouse.MouseSize;
 
 import java.util.*;
@@ -124,16 +123,15 @@ public class WindowsOverlay {
     private static void createIndicatorWindow(int indicatorSize) {
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         MouseSize mouseSize = WindowsMouse.mouseSize();
-        ScreenRectangleAndDpi screenRectangleAndDpi =
-                WindowsScreen.activeScreenRectangleAndDpi(mousePosition);
+        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         WinUser.WindowProc callback = WindowsOverlay::indicatorWindowCallback;
-        int scaledIndicatorSize = dpiScaled(indicatorSize, screenRectangleAndDpi.dpi());
+        int scaledIndicatorSize = dpiScaled(indicatorSize, activeScreen.dpi());
         // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         WinDef.HWND hwnd = createWindow("Indicator",
                 bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        activeScreen.rectangle(), scaledIndicatorSize),
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        activeScreen.rectangle(), scaledIndicatorSize),
                 scaledIndicatorSize + 1, scaledIndicatorSize + 1, callback);
         indicatorWindow = new IndicatorWindow(hwnd, callback);
     }
@@ -154,8 +152,9 @@ public class WindowsOverlay {
         Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
         for (Hint hint : hints) {
             for (Screen screen : screens) {
-                if (!Rectangle.rectangleContains(screen.x(), screen.y(), screen.width(),
-                        screen.height(), hint.centerX(), hint.centerY()))
+                if (!Rectangle.rectangleContains(screen.rectangle().x(),
+                        screen.rectangle().y(), screen.rectangle().width(),
+                        screen.rectangle().height(), hint.centerX(), hint.centerY()))
                     continue;
                 hintsByScreen.computeIfAbsent(screen, monitor1 -> new ArrayList<>())
                               .add(hint);
@@ -170,8 +169,9 @@ public class WindowsOverlay {
                 WinUser.WindowProc callback =
                         (hwnd1, uMsg, wParam, lParam) -> hintMeshWindowCallback(screen,
                                 hwnd1, uMsg, wParam, lParam);
-                WinDef.HWND hwnd = createWindow("HintMesh", screen.x(), screen.y(),
-                        screen.width() + 1, screen.height() + 1, callback);
+                WinDef.HWND hwnd = createWindow("HintMesh", screen.rectangle().x(),
+                        screen.rectangle().y(), screen.rectangle().width() + 1,
+                        screen.rectangle().height() + 1, callback);
                 hintMeshWindows.put(screen,
                         new HintMeshWindow(hwnd, callback, hintsInScreen));
             }
@@ -526,16 +526,15 @@ public class WindowsOverlay {
     static void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
             return;
-        ScreenRectangleAndDpi screenRectangleAndDpi =
-                WindowsScreen.activeScreenRectangleAndDpi(mousePosition);
+        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         int scaledIndicatorSize =
-                dpiScaled(currentIndicator.size(), screenRectangleAndDpi.dpi());
+                dpiScaled(currentIndicator.size(), activeScreen.dpi());
         MouseSize mouseSize = WindowsMouse.mouseSize();
         User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
                 bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        activeScreen.rectangle(), scaledIndicatorSize),
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        activeScreen.rectangle(), scaledIndicatorSize),
                 scaledIndicatorSize, scaledIndicatorSize, false);
     }
 
