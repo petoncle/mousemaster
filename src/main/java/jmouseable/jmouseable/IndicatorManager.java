@@ -17,7 +17,8 @@ public class IndicatorManager implements ModeListener {
             if (indicatorHexColor == null)
                 WindowsOverlay.hideIndicator();
             else
-                WindowsOverlay.setIndicatorColor(indicatorHexColor);
+                WindowsOverlay.setIndicator(
+                        new Indicator(currentMode.indicator().size(), indicatorHexColor));
         }
         else
             WindowsOverlay.hideIndicator();
@@ -34,16 +35,16 @@ public class IndicatorManager implements ModeListener {
     }
 
     private String indicatorHexColor() {
-        Indicator indicator = currentMode.indicator();
+        IndicatorConfiguration indicatorConfiguration = currentMode.indicator();
         if (keyboardState.pressingNonComboKey() &&
-            indicator.nonComboKeyPressHexColor() != null)
-            return indicator.nonComboKeyPressHexColor();
-        if (mouseState.pressing() && indicator.mousePressHexColor() != null)
-            return indicator.mousePressHexColor();
-        if (mouseState.wheeling() && indicator.wheelHexColor() != null)
-            return indicator.wheelHexColor();
-        if (mouseState.moving() && indicator.moveHexColor() != null)
-            return indicator.moveHexColor();
-        return indicator.idleHexColor();
+            indicatorConfiguration.nonComboKeyPressHexColor() != null)
+            return indicatorConfiguration.nonComboKeyPressHexColor();
+        if (mouseState.pressing() && indicatorConfiguration.mousePressHexColor() != null)
+            return indicatorConfiguration.mousePressHexColor();
+        if (mouseState.wheeling() && indicatorConfiguration.wheelHexColor() != null)
+            return indicatorConfiguration.wheelHexColor();
+        if (mouseState.moving() && indicatorConfiguration.moveHexColor() != null)
+            return indicatorConfiguration.moveHexColor();
+        return indicatorConfiguration.idleHexColor();
     }
 }

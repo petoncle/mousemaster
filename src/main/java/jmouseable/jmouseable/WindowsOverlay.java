@@ -2,6 +2,7 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
+import jmouseable.jmouseable.WindowsMonitor.MonitorRectangleAndDpi;
 import jmouseable.jmouseable.WindowsMouse.MouseSize;
 
 import java.util.*;
@@ -12,11 +13,10 @@ import static jmouseable.jmouseable.ExtendedGDI32.*;
 public class WindowsOverlay {
 
     private static final int indicatorEdgeThreshold = 100; // in pixels
-    private static final int indicatorSize = 16;
 
     private static IndicatorWindow indicatorWindow;
     private static boolean showingIndicator;
-    private static String currentIndicatorHexColor;
+    private static Indicator currentIndicator;
     private static GridWindow gridWindow;
     private static boolean showingGrid;
     private static Grid currentGrid;
@@ -95,38 +95,52 @@ public class WindowsOverlay {
 
     }
 
-    private static int bestIndicatorX(int mouseX, int cursorWidth, int monitorLeft,
-                                      int monitorRight) {
-        mouseX = Math.min(monitorRight, Math.max(monitorLeft, mouseX));
-        boolean isNearLeftEdge = mouseX <= (monitorLeft + indicatorEdgeThreshold);
-        boolean isNearRightEdge = mouseX >= (monitorRight - indicatorEdgeThreshold);
+    private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle monitorRectangle,
+                                      int scaledIndicatorSize) {
+        mouseX = Math.min(monitorRectangle.x() + monitorRectangle.width(),
+                Math.max(monitorRectangle.x(), mouseX));
+        boolean isNearLeftEdge = mouseX <= (monitorRectangle.x() + indicatorEdgeThreshold);
+        boolean isNearRightEdge = mouseX >=
+                                  (monitorRectangle.x() + monitorRectangle.width() -
+                                   indicatorEdgeThreshold);
         if (isNearRightEdge)
-            return mouseX - indicatorSize;
+            return mouseX - scaledIndicatorSize;
         return mouseX + cursorWidth / 2;
     }
 
-    private static int bestIndicatorY(int mouseY, int cursorHeight, int monitorTop,
-                                      int monitorBottom) {
-        mouseY = Math.min(monitorBottom, Math.max(monitorTop, mouseY));
-        boolean isNearBottomEdge = mouseY >= (monitorBottom - indicatorEdgeThreshold);
-        boolean isNearTopEdge = mouseY <= (monitorTop + indicatorEdgeThreshold);
+    private static int bestIndicatorY(int mouseY, int cursorHeight, Rectangle monitorRectangle,
+                                      int scaledIndicatorSize) {
+        mouseY = Math.min(monitorRectangle.y() + monitorRectangle.height(),
+                Math.max(monitorRectangle.y(), mouseY));
+        boolean isNearBottomEdge = mouseY >=
+                                   (monitorRectangle.y() + monitorRectangle.height() -
+                                    indicatorEdgeThreshold);
+        boolean isNearTopEdge = mouseY <= (monitorRectangle.y() + indicatorEdgeThreshold);
         if (isNearBottomEdge)
-            return mouseY - indicatorSize;
+            return mouseY - scaledIndicatorSize;
         return mouseY + cursorHeight / 2;
     }
 
-    private static void createIndicatorWindow() {
+    private static void createIndicatorWindow(int indicatorSize) {
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         MouseSize mouseSize = WindowsMouse.mouseSize();
-        WinUser.MONITORINFO monitorInfo = WindowsMonitor.activeMonitorInfo(mousePosition);
+        MonitorRectangleAndDpi monitorRectangleAndDpi =
+                WindowsMonitor.activeMonitorRectangleAndDpi(mousePosition);
         WinUser.WindowProc callback = WindowsOverlay::indicatorWindowCallback;
+        int scaledIndicatorSize = dpiScaled(indicatorSize, monitorRectangleAndDpi.dpi());
+        // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         WinDef.HWND hwnd = createWindow("Indicator",
                 bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
+                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
-                indicatorSize, indicatorSize, callback);
+                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                scaledIndicatorSize + 1, scaledIndicatorSize + 1, callback);
         indicatorWindow = new IndicatorWindow(hwnd, callback);
+    }
+
+    private static int dpiScaled(int originalInPixels, int dpi) {
+        // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
+        return originalInPixels * dpi / 72;
     }
 
     private static void createGridWindow(int x, int y, int width, int height) {
@@ -157,7 +171,7 @@ public class WindowsOverlay {
                         (hwnd1, uMsg, wParam, lParam) -> hintMeshWindowCallback(monitor,
                                 hwnd1, uMsg, wParam, lParam);
                 WinDef.HWND hwnd = createWindow("HintMesh", monitor.x(), monitor.y(),
-                        monitor.width(), monitor.height(), callback);
+                        monitor.width() + 1, monitor.height() + 1, callback);
                 hintMeshWindows.put(monitor,
                         new HintMeshWindow(hwnd, callback, hintsInMonitor));
             }
@@ -199,7 +213,7 @@ public class WindowsOverlay {
                 clearWindow(hdc, ps.rcPaint);
                 if (showingIndicator) {
                     WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(
-                            hexColorStringToInt(currentIndicatorHexColor));
+                            hexColorStringToInt(currentIndicator.hexColor()));
                     ExtendedUser32.INSTANCE.FillRect(hdc, ps.rcPaint, hbrBackground);
                     GDI32.INSTANCE.DeleteObject(hbrBackground);
                 }
@@ -295,15 +309,16 @@ public class WindowsOverlay {
         int[] polyCounts = new int[rowCount + 1 + columnCount + 1];
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
-        int lineThickness = currentGrid.lineThickness();
+        int dpi = GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY);
+        int scaledLineThickness = dpiScaled(currentGrid.lineThickness(), dpi);
         // Vertical lines
         for (int lineIndex = 0; lineIndex <= columnCount; lineIndex++) {
             int x = lineIndex == columnCount ? windowRect.right :
                     lineIndex * cellWidth;
             if (x == windowRect.left)
-                x += lineThickness / 2;
+                x += scaledLineThickness / 2;
             else if (x == windowRect.right)
-                x -= lineThickness / 2 + lineThickness % 2;
+                x -= scaledLineThickness / 2 + scaledLineThickness % 2;
             points[2 * lineIndex].x = x;
             points[2 * lineIndex].y = 0;
             points[2 * lineIndex + 1].x = x;
@@ -317,9 +332,9 @@ public class WindowsOverlay {
             int y = lineIndex == rowCount ? windowRect.bottom :
                     lineIndex * cellHeight;
             if (y == windowRect.top)
-                y += lineThickness / 2;
+                y += scaledLineThickness / 2;
             else if (y == windowRect.bottom)
-                y -= lineThickness / 2 + lineThickness % 2;
+                y -= scaledLineThickness / 2 + scaledLineThickness % 2;
             points[pointsOffset + 2 * lineIndex].x = 0;
             points[pointsOffset + 2 * lineIndex].y = y;
             points[pointsOffset + 2 * lineIndex + 1].x = currentGrid.width();
@@ -328,7 +343,7 @@ public class WindowsOverlay {
         }
         String lineColor = currentGrid.lineHexColor();
         WinUser.HPEN gridPen =
-                ExtendedGDI32.INSTANCE.CreatePen(ExtendedGDI32.PS_SOLID, lineThickness,
+                ExtendedGDI32.INSTANCE.CreatePen(ExtendedGDI32.PS_SOLID, scaledLineThickness,
                         hexColorStringToInt(lineColor));
         if (gridPen == null)
             throw new IllegalStateException("Unable to create grid pen");
@@ -353,8 +368,8 @@ public class WindowsOverlay {
         String boxHexColor = currentHintMesh.boxHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
         // Convert point size to logical units.
-        // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
-        int fontHeight = -fontSize * GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY) / 72;
+        int dpi = GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY);
+        int fontHeight = -dpiScaled(fontSize, dpi);
         // In Windows API, negative font size means "point size" (as opposed to pixels).
         WinDef.HFONT hintFont =
                 ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0, FW_BOLD,
@@ -429,14 +444,22 @@ public class WindowsOverlay {
         return (blue << 16) | (green << 8) | red;
     }
 
-    public static void setIndicatorColor(String hexColor) {
-        Objects.requireNonNull(hexColor);
-        if (showingIndicator && currentIndicatorHexColor != null &&
-            currentIndicatorHexColor.equals(hexColor))
+    public static void setIndicator(Indicator indicator) {
+        Objects.requireNonNull(indicator);
+        if (showingIndicator && currentIndicator != null &&
+            currentIndicator.equals(indicator))
             return;
-        currentIndicatorHexColor = hexColor;
+        Indicator oldIndicator = currentIndicator;
+        currentIndicator = indicator;
         if (indicatorWindow == null)
-            createIndicatorWindow();
+            createIndicatorWindow(indicator.size());
+        else if (indicator.size() != oldIndicator.size()) {
+            int dpi = ExtendedUser32.INSTANCE.GetDpiForWindow(indicatorWindow.hwnd);
+            int scaledIndicatorSize = dpiScaled(indicator.size(), dpi);
+            User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, 0, 0,
+                    scaledIndicatorSize, scaledIndicatorSize,
+                    User32.SWP_NOMOVE | User32.SWP_NOZORDER);
+        }
         showingIndicator = true;
         requestWindowRepaint(indicatorWindow.hwnd);
     }
@@ -461,9 +484,8 @@ public class WindowsOverlay {
         else {
             if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
                 grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
-                User32.INSTANCE.SetWindowPos(gridWindow.hwnd(),
-                        ExtendedUser32.HWND_TOPMOST, grid.x(), grid.y(), grid.width() + 1,
-                        grid.height() + 1, 0);
+                User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(), grid.y(),
+                        grid.width() + 1, grid.height() + 1, User32.SWP_NOZORDER);
             }
         }
         showingGrid = true;
@@ -504,14 +526,17 @@ public class WindowsOverlay {
     static void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
             return;
-        WinUser.MONITORINFO monitorInfo = WindowsMonitor.activeMonitorInfo(mousePosition);
+        MonitorRectangleAndDpi monitorRectangleAndDpi =
+                WindowsMonitor.activeMonitorRectangleAndDpi(mousePosition);
+        int scaledIndicatorSize =
+                dpiScaled(currentIndicator.size(), monitorRectangleAndDpi.dpi());
         MouseSize mouseSize = WindowsMouse.mouseSize();
         User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
                 bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.right),
+                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.bottom),
-                indicatorSize, indicatorSize, false);
+                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                scaledIndicatorSize, scaledIndicatorSize, false);
     }
 
     public static boolean doesFontExist(String fontName) {

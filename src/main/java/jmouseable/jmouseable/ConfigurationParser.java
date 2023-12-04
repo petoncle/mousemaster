@@ -53,6 +53,7 @@ public class ConfigurationParser {
         builder.timeout().enabled(false);
         builder.indicator()
                .enabled(false)
+               .size(8)
                .idleHexColor("#FF0000")
                .moveHexColor("#FF0000")
                .wheelHexColor("#FFFF00")
@@ -269,6 +270,9 @@ public class ConfigurationParser {
                         case "enabled" -> mode.indicator()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
+                        case "size" -> mode.indicator()
+                                           .size(parseUnsignedInteger("indicator size",
+                                                   propertyValue, 1, 100));
                         case "idle-color" -> mode.indicator()
                                                  .idleHexColor(
                                                          checkColorFormat(propertyValue));
@@ -503,6 +507,8 @@ public class ConfigurationParser {
             childMode.hintMesh().boxHexColor(parentMode.hintMesh().boxHexColor());
         if (childMode.indicator().enabled() == null)
             childMode.indicator().enabled(parentMode.indicator().enabled());
+        if (childMode.indicator().size() == null)
+            childMode.indicator().size(parentMode.indicator().size());
         if (childMode.indicator().idleHexColor() == null)
             childMode.indicator().idleHexColor(parentMode.indicator().idleHexColor());
         if (childMode.indicator().moveHexColor() == null)

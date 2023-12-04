@@ -30,6 +30,8 @@ public interface ExtendedUser32 extends User32 {
 
     int LLKHF_INJECTED = 0x00000010;
 
+    int GetDpiForWindow(HWND hwnd);
+
     boolean GetCursorInfo(CURSORINFO pci);
 
     boolean GetIconInfo(HICON hIcon, WinGDI.ICONINFO piconinfo);
@@ -77,6 +79,7 @@ public interface ExtendedUser32 extends User32 {
     int FillRect(WinDef.HDC hDC, WinDef.RECT lprc, WinDef.HBRUSH hbr);
 
     boolean SetProcessDpiAwarenessContext(HANDLE dpiContext);
+    long DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4L;
 
     HKL LoadKeyboardLayoutA(String pwszKLID, int Flags);
 

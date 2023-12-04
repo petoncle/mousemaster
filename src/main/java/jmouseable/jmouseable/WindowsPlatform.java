@@ -107,13 +107,14 @@ public class WindowsPlatform implements Platform {
      * (otherwise mouse coordinates are wrong on scaled displays).
      * It is recommended to do it with a manifest file instead but I am unsure
      * how to include it in the native image.
-     * When running as a java app (non-native image), the DPI awareness already
-     * seemed to be set, and SetProcessDpiAwarenessContext() returns error code 5.
+     * When running as a java app (non-native image), the DPI awareness seems to
+     * already be set, and SetProcessDpiAwarenessContext() returns error code 5.
      */
     private void setDpiAwareness() {
         boolean setProcessDpiAwarenessContextResult =
-                ExtendedUser32.INSTANCE.SetProcessDpiAwarenessContext(
-                        new WinNT.HANDLE(Pointer.createConstant(-4L)));
+                ExtendedUser32.INSTANCE.SetProcessDpiAwarenessContext(new WinNT.HANDLE(
+                        Pointer.createConstant(
+                                ExtendedUser32.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)));
         int dpiAwarenessErrorCode = Kernel32.INSTANCE.GetLastError();
         logger.info("SetProcessDpiAwarenessContext returned " +
                     setProcessDpiAwarenessContextResult +

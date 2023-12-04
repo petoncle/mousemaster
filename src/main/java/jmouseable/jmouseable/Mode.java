@@ -4,7 +4,7 @@ import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
 import jmouseable.jmouseable.GridConfiguration.GridConfigurationBuilder;
 import jmouseable.jmouseable.HideCursor.HideCursorBuilder;
 import jmouseable.jmouseable.HintMeshConfiguration.HintMeshConfigurationBuilder;
-import jmouseable.jmouseable.Indicator.IndicatorBuilder;
+import jmouseable.jmouseable.IndicatorConfiguration.IndicatorConfigurationBuilder;
 import jmouseable.jmouseable.ModeTimeout.ModeTimeoutBuilder;
 import jmouseable.jmouseable.Mouse.MouseBuilder;
 import jmouseable.jmouseable.Wheel.WheelBuilder;
@@ -12,7 +12,7 @@ import jmouseable.jmouseable.Wheel.WheelBuilder;
 public record Mode(String name, boolean pushModeToHistoryStack, ComboMap comboMap,
                    Mouse mouse, Wheel wheel, GridConfiguration grid,
                    HintMeshConfiguration hintMesh, ModeTimeout timeout,
-                   Indicator indicator, HideCursor hideCursor) {
+                   IndicatorConfiguration indicator, HideCursor hideCursor) {
     public static final String IDLE_MODE_NAME = "idle-mode";
     public static final String PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER =
             "previous-mode-from-history-stack";
@@ -27,7 +27,8 @@ public record Mode(String name, boolean pushModeToHistoryStack, ComboMap comboMa
         private HintMeshConfigurationBuilder hintMesh =
                 new HintMeshConfigurationBuilder();
         private ModeTimeoutBuilder timeout = new ModeTimeoutBuilder();
-        private IndicatorBuilder indicator = new IndicatorBuilder();
+        private IndicatorConfigurationBuilder
+                indicator = new IndicatorConfigurationBuilder();
         private HideCursorBuilder hideCursor = new HideCursorBuilder();
 
         public ModeBuilder(String name) {
@@ -66,7 +67,7 @@ public record Mode(String name, boolean pushModeToHistoryStack, ComboMap comboMa
             return timeout;
         }
 
-        public IndicatorBuilder indicator() {
+        public IndicatorConfigurationBuilder indicator() {
             return indicator;
         }
 
