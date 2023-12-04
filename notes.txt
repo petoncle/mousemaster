@@ -131,6 +131,9 @@ _shift,^shift = press shift, release shift?
 + Update hint windows when screens changed?
 + Hint undo key could be a combo instead of a key
 + History (positions previously selected through hints)
+ - hint.save-mouse-position-after-selection=true
+ - save-mouse-position=+leftalt +leftalt
+ - clear-mouse-position-history=+leftalt +leftalt +leftalt
  + grid.area/row-count -> grid.layout=position-history | active-screen 0.99 0.99 2(rowCount) 2
   + Grid with variable-size rows and columns
   + Each historical position is the center of one cell

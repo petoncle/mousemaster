@@ -1,14 +1,16 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.HintMesh.HintMeshBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class HintManager implements ModeListener, MousePositionListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(HintManager.class);
+    private static final int MAX_MOUSE_POSITION_HISTORY_SIZE = 16;
 
     private final ScreenManager screenManager;
     private final MouseController mouseController;
@@ -17,6 +19,12 @@ public class HintManager implements ModeListener, MousePositionListener {
     private Set<Key> selectionKeySubset;
     private int mouseX, mouseY;
     private Mode currentMode;
+    private final List<Point> mousePositionHistory = new ArrayList<>();
+    /**
+     * Used for deterministic hints.
+     */
+    private int mousePositionIdCount = 0;
+    private final Map<Point, Integer> idByMousePosition = new HashMap<>();
 
     public HintManager(ScreenManager screenManager, MouseController mouseController) {
         this.screenManager = screenManager;
@@ -64,24 +72,24 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .selectedPrefixFontHexColor(
                         hintMeshConfiguration.selectedPrefixFontHexColor())
                 .boxHexColor(hintMeshConfiguration.boxHexColor());
-        if (currentMode != null) {
-            HintMeshConfiguration oldHintMeshConfiguration = currentMode.hintMesh();
-            if (oldHintMeshConfiguration.enabled() &&
-                oldHintMeshConfiguration.type().equals(hintMeshConfiguration.type()) &&
-                oldHintMeshConfiguration.selectionKeys()
-                                        .equals(hintMeshConfiguration.selectionKeys())) {
-                // Keep the old focusedKeySequence.
-                // This is useful for hint-then-click-mode that extends hint-mode.
-                // Note: changes to hint mesh center are ignored here.
-                hintMesh.hints(this.hintMesh.hints())
-                        .focusedKeySequence(this.hintMesh.focusedKeySequence());
-                return hintMesh.build();
-            }
-        }
         HintMeshType type = hintMeshConfiguration.type();
         if (type instanceof HintMeshType.ActiveScreen ||
             type instanceof HintMeshType.ActiveWindow ||
             type instanceof HintMeshType.AllScreens) {
+            if (currentMode != null) {
+                HintMeshConfiguration oldHintMeshConfiguration = currentMode.hintMesh();
+                if (oldHintMeshConfiguration.enabled() &&
+                    oldHintMeshConfiguration.type().equals(hintMeshConfiguration.type()) &&
+                    oldHintMeshConfiguration.selectionKeys()
+                                            .equals(hintMeshConfiguration.selectionKeys())) {
+                    // Keep the old focusedKeySequence.
+                    // This is useful for hint-then-click-mode that extends hint-mode.
+                    // Note: changes to hint mesh center are ignored here.
+                    hintMesh.hints(this.hintMesh.hints())
+                            .focusedKeySequence(this.hintMesh.focusedKeySequence());
+                    return hintMesh.build();
+                }
+            }
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
             Point hintMeshCenter = hintMeshCenter(screenManager.activeScreen(),
                     hintMeshConfiguration.center());
@@ -133,7 +141,21 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints);
         }
         else {
-            // TODO
+            int hintCount = mousePositionHistory.size();
+            List<Hint> hints = new ArrayList<>(hintCount);
+            List<Key> selectionKeySubset = MAX_MOUSE_POSITION_HISTORY_SIZE >=
+                                           hintMeshConfiguration.selectionKeys().size() ?
+                    hintMeshConfiguration.selectionKeys() :
+                    hintMeshConfiguration.selectionKeys()
+                                         .subList(0, MAX_MOUSE_POSITION_HISTORY_SIZE);
+            int hintLength = (int) Math.ceil(Math.log(MAX_MOUSE_POSITION_HISTORY_SIZE) /
+                                             Math.log(selectionKeySubset.size()));
+            for (Point point : mousePositionHistory) {
+                List<Key> keySequence = hintKeySequence(selectionKeySubset, hintLength,
+                        idByMousePosition.get(point) % MAX_MOUSE_POSITION_HISTORY_SIZE);
+                hints.add(new Hint(point.x(), point.y(), keySequence));
+            }
+            hintMesh.hints(hints);
         }
         return hintMesh.build();
     }
@@ -154,17 +176,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         int hintIndex = beginHintIndex;
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                List<Key> keySequence = new ArrayList<>();
-                // We want the hints to look like this:
-                // aa, ba, ..., za
-                // ab, bb, ..., zb
-                // az, bz, ..., zz
-                // The ideal situation is when rowCount = columnCount = hintKeys.size().
-                for (int i = 0; i < hintLength; i++) {
-                    keySequence.add(selectionKeySubset.get(
-                            (int) (hintIndex / Math.pow(selectionKeySubset.size(), i) %
-                                   selectionKeySubset.size())));
-                }
+                List<Key> keySequence = hintKeySequence(selectionKeySubset, hintLength, hintIndex);
                 hintIndex++;
                 int hintCenterX = hintMeshX + columnIndex * cellWidth + cellWidth / 2;
                 int hintCenterY = hintMeshY + rowIndex * cellHeight + cellHeight / 2;
@@ -172,6 +184,22 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
         }
         return hints;
+    }
+
+    private static List<Key> hintKeySequence(List<Key> selectionKeySubset, int hintLength,
+                                             int hintIndex) {
+        List<Key> keySequence = new ArrayList<>();
+        // We want the hints to look like this:
+        // aa, ba, ..., za
+        // ab, bb, ..., zb
+        // az, bz, ..., zz
+        // The ideal situation is when rowCount = columnCount = hintKeys.size().
+        for (int i = 0; i < hintLength; i++) {
+            keySequence.add(selectionKeySubset.get(
+                    (int) (hintIndex / Math.pow(selectionKeySubset.size(), i) %
+                           selectionKeySubset.size())));
+        }
+        return keySequence;
     }
 
     private FixedSizeHintGrid screenFixedSizeHintGrid(HintMeshType type, Screen screen,
@@ -295,6 +323,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             // position before the mouse moved callback is called.
             mouseX = exactMatchHint.centerX();
             mouseY = exactMatchHint.centerY();
+            if (hintMeshConfiguration.saveMousePositionAfterSelection())
+                saveMousePosition();
             if (hintMeshConfiguration.clickButtonAfterSelection() != null) {
                 switch (hintMeshConfiguration.clickButtonAfterSelection()) {
                     case Button.LEFT_BUTTON -> mouseController.clickLeft();
@@ -316,6 +346,29 @@ public class HintManager implements ModeListener, MousePositionListener {
             WindowsOverlay.setHintMesh(hintMesh);
         }
         return true;
+    }
+
+    public void saveMousePosition() {
+        Point point = new Point(mouseX, mouseY);
+        if (mousePositionHistory.contains(point))
+            return;
+        idByMousePosition.put(point, mousePositionIdCount);
+        if (mousePositionIdCount == Integer.MAX_VALUE)
+            mousePositionIdCount = 0;
+        else
+            mousePositionIdCount++;
+        mousePositionHistory.add(point);
+        if (mousePositionHistory.size() == MAX_MOUSE_POSITION_HISTORY_SIZE)
+            mousePositionHistory.removeFirst();
+        logger.debug(
+                "Saved mouse position " + point.x() + "," + point.y() + " to history");
+    }
+
+    public void clearMousePositionHistory() {
+        mousePositionHistory.clear();
+        idByMousePosition.clear();
+        mousePositionIdCount = 0;
+        logger.debug("Reset mouse position history");
     }
 
 }

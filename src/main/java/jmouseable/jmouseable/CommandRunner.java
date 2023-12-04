@@ -7,10 +7,13 @@ public class CommandRunner {
     private ModeController modeController;
     private final MouseController mouseController;
     private final GridManager gridManager;
+    private final HintManager hintManager;
 
-    public CommandRunner(MouseController mouseController, GridManager gridManager) {
+    public CommandRunner(MouseController mouseController, GridManager gridManager,
+                         HintManager hintManager) {
         this.mouseController = mouseController;
         this.gridManager = gridManager;
+        this.hintManager = hintManager;
     }
 
     public void setModeController(ModeController modeController) {
@@ -66,6 +69,9 @@ public class CommandRunner {
             case MoveGridRight moveGridRight -> gridManager.moveGridRight();
 
             case MoveToGridCenter moveToGridCenter -> gridManager.moveToGridCenter();
+
+            case SaveMousePosition saveMousePosition -> hintManager.saveMousePosition();
+            case ClearMousePositionHistory clearMousePositionHistory -> hintManager.clearMousePositionHistory();
             // @formatter:on
         }
     }

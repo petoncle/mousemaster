@@ -49,7 +49,8 @@ public class ConfigurationParser {
                .fontSize(20)
                .fontHexColor("#FFFFFF")
                .selectedPrefixFontHexColor("#8FA6C4")
-               .boxHexColor("#204E8A");
+               .boxHexColor("#204E8A")
+               .saveMousePositionAfterSelection(false);
         builder.timeout().enabled(false);
         builder.indicator()
                .enabled(false)
@@ -216,6 +217,12 @@ public class ConfigurationParser {
                                                                         .clickButtonAfterSelection(
                                                                                 parseButton(
                                                                                         propertyValue));
+                        case "save-mouse-position-after-selection" -> mode.hintMesh()
+                                                                               .saveMousePositionAfterSelection(
+                                                                                       Boolean.parseBoolean(
+                                                                                               propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid hint configuration: " + propertyKey);
                     }
                 }
                 case "to" -> {
@@ -354,6 +361,9 @@ public class ConfigurationParser {
                 case "move-grid-right" -> addCommand(mode.comboMap(), propertyValue, new MoveGridRight(), defaultComboMoveDuration);
 
                 case "move-to-grid-center" -> addCommand(mode.comboMap(), propertyValue, new MoveToGridCenter(), defaultComboMoveDuration);
+
+                case "save-mouse-position" -> addCommand(mode.comboMap(), propertyValue, new SaveMousePosition(), defaultComboMoveDuration);
+                case "clear-mouse-position-history" -> addCommand(mode.comboMap(), propertyValue, new ClearMousePositionHistory(), defaultComboMoveDuration);
                 // @formatter:on
                 default -> throw new IllegalArgumentException(
                         "Invalid configuration: " + propertyKey);
@@ -380,14 +390,6 @@ public class ConfigurationParser {
                     alreadyBuiltModeNodeNames));
         for (ModeNode rootModeNode : rootModeNodes)
             recursivelyExtendMode(defaultMode, rootModeNode, modeByName);
-        if (modeByName.size() != 1 || !modeByName.containsKey(Mode.IDLE_MODE_NAME)) {
-            for (ModeBuilder mode : modeByName.values()) {
-                if (!modeNameReferences.contains(mode.name()) && !mode.name().startsWith("_"))
-                    throw new IllegalStateException("Mode " + mode.name() +
-                                                    " is not referenced anywhere, if this is an abstract mode then its name should start with _");
-
-            }
-        }
         for (ModeBuilder mode : modeByName.values()) {
             if (mode.timeout().enabled() && (mode.timeout().idleDuration() == null ||
                                              mode.timeout().nextModeName() == null))
@@ -445,7 +447,9 @@ public class ConfigurationParser {
      * - timeout configuration
      * - switch mode commands
      * - mode after hint selection
+     * - switch mode after hint selection
      * - clickButton after hint selection
+     * - save mouse position after hint selection
      */
     private static void extendMode(Mode parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()
@@ -590,6 +594,8 @@ public class ConfigurationParser {
                 return new HintMeshType.AllScreens(width, height, rowCount,
                         columnCount);
         }
+        else if (split[0].equals("mouse-position-history"))
+            return new HintMeshType.MousePositionHistory();
         else {
             throw new IllegalArgumentException(
                     "Invalid hint type configuration: " + string);

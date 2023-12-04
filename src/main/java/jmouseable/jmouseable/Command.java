@@ -49,4 +49,7 @@ public sealed interface Command {
 
     record MoveToGridCenter() implements Command {}
 
+    record SaveMousePosition() implements Command {}
+    record ClearMousePositionHistory() implements Command {}
+
 }

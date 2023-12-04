@@ -15,6 +15,8 @@ public sealed interface HintMeshType {
 
     }
 
-    // TODO MousePositionHistory
+    record MousePositionHistory() implements HintMeshType {
+
+    }
 
 }

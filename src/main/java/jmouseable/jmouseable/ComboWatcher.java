@@ -204,16 +204,21 @@ public class ComboWatcher implements ModeListener {
      * Longest combos "have the last word".
      * Also deduplicate commands: if start-move-up is +up|#rightctrl +up: holding rightctrl
      * then up should not trigger two commands.
+     * Also move the Switch commands last: useful for saving a mouse position then switching to position-history mode
      */
     private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
         return commandsToRun.stream()
                             .sorted(Comparator.comparing(ComboAndCommands::combo,
                                     Comparator.comparing(Combo::sequence,
-                                    Comparator.comparing(ComboSequence::moves,
-                                    Comparator.comparingInt(List::size)))))
+                                            Comparator.comparing(ComboSequence::moves,
+                                                    Comparator.comparingInt(
+                                                            List::size)))))
                             .map(ComboAndCommands::commands)
                             .flatMap(Collection::stream)
                             .distinct()
+                            .sorted(Comparator.comparingInt(
+                                    command -> command instanceof Command.SwitchMode ? 1 :
+                                            0))
                             .toList();
     }
 

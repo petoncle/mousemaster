@@ -8,7 +8,8 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
                                     int fontSize, String fontHexColor,
                                     String selectedPrefixFontHexColor, String boxHexColor,
                                     String nextModeAfterSelection,
-                                    Button clickButtonAfterSelection) {
+                                    Button clickButtonAfterSelection,
+                                    boolean saveMousePositionAfterSelection) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -23,6 +24,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         private String boxHexColor;
         private String nextModeAfterSelection;
         private Button clickButtonAfterSelection;
+        private boolean saveMousePositionAfterSelection;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -87,6 +89,12 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return this;
         }
 
+        public HintMeshConfigurationBuilder saveMousePositionAfterSelection(
+                boolean saveMousePositionAfterSelection) {
+            this.saveMousePositionAfterSelection = saveMousePositionAfterSelection;
+            return this;
+        }
+
         public HintMeshType type() {
             return type;
         }
@@ -135,10 +143,15 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return clickButtonAfterSelection;
         }
 
+        public boolean saveMousePositionAfterSelection() {
+            return saveMousePositionAfterSelection;
+        }
+
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, type, center, selectionKeys,
                     undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
-                    boxHexColor, nextModeAfterSelection, clickButtonAfterSelection);
+                    boxHexColor, nextModeAfterSelection, clickButtonAfterSelection,
+                    saveMousePositionAfterSelection);
         }
 
     }
