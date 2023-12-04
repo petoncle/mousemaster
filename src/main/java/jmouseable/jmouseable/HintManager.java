@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class HintManager implements ModeListener, MousePositionListener {
 
-    private final MonitorManager monitorManager;
+    private final ScreenManager screenManager;
     private final MouseController mouseController;
     private ModeController modeController;
     private HintMesh hintMesh;
@@ -18,8 +18,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int mouseX, mouseY;
     private Mode currentMode;
 
-    public HintManager(MonitorManager monitorManager, MouseController mouseController) {
-        this.monitorManager = monitorManager;
+    public HintManager(ScreenManager screenManager, MouseController mouseController) {
+        this.screenManager = screenManager;
         this.mouseController = mouseController;
     }
 
@@ -83,16 +83,16 @@ public class HintManager implements ModeListener, MousePositionListener {
             type instanceof HintMeshType.ActiveWindow ||
             type instanceof HintMeshType.AllScreens) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
-            Point hintMeshCenter = hintMeshCenter(monitorManager.activeMonitor(),
+            Point hintMeshCenter = hintMeshCenter(screenManager.activeScreen(),
                     hintMeshConfiguration.center());
             if (type instanceof HintMeshType.ActiveScreen activeScreen) {
                 fixedSizeHintGrids.add(screenFixedSizeHintGrid(activeScreen,
-                        monitorManager.activeMonitor(), hintMeshCenter));
+                        screenManager.activeScreen(), hintMeshCenter));
             }
             else if (type instanceof HintMeshType.AllScreens allScreens) {
-                for (Monitor monitor : monitorManager.monitors())
+                for (Screen screen : screenManager.screens())
                     fixedSizeHintGrids.add(
-                            screenFixedSizeHintGrid(allScreens, monitor, hintMeshCenter));
+                            screenFixedSizeHintGrid(allScreens, screen, hintMeshCenter));
             }
             else if (type instanceof HintMeshType.ActiveWindow activeWindow) {
                 Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
@@ -173,7 +173,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         return hints;
     }
 
-    private FixedSizeHintGrid screenFixedSizeHintGrid(HintMeshType type, Monitor monitor,
+    private FixedSizeHintGrid screenFixedSizeHintGrid(HintMeshType type, Screen screen,
                                                       Point hintMeshCenter) {
         if (!(type instanceof HintMeshType.ActiveScreen) &&
             !(type instanceof HintMeshType.AllScreens))
@@ -194,20 +194,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         else
             throw new IllegalStateException();
-        hintMeshWidth = (int) (monitor.width() * screenWidthPercent);
-        hintMeshHeight = (int) (monitor.height() * screenHeightPercent);
+        hintMeshWidth = (int) (screen.width() * screenWidthPercent);
+        hintMeshHeight = (int) (screen.height() * screenHeightPercent);
         hintMeshX = hintMeshCenter.x() - hintMeshWidth / 2;
         hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
                 rowCount, columnCount);
     }
 
-    private Point hintMeshCenter(Monitor activeMonitor, HintMeshCenter center) {
+    private Point hintMeshCenter(Screen activeScreen, HintMeshCenter center) {
         int centerX = 0, centerY = 0;
         switch (center) {
             case ACTIVE_SCREEN -> {
-                centerX = activeMonitor.x() + activeMonitor.width() / 2;
-                centerY = activeMonitor.y() + activeMonitor.height() / 2;
+                centerX = activeScreen.x() + activeScreen.width() / 2;
+                centerY = activeScreen.y() + activeScreen.height() / 2;
             }
             case ACTIVE_WINDOW -> {
                 Rectangle activeWindowRectangle =

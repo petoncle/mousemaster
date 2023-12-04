@@ -2,7 +2,7 @@ package jmouseable.jmouseable;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
-import jmouseable.jmouseable.WindowsMonitor.MonitorRectangleAndDpi;
+import jmouseable.jmouseable.WindowsScreen.ScreenRectangleAndDpi;
 import jmouseable.jmouseable.WindowsMouse.MouseSize;
 
 import java.util.*;
@@ -20,7 +20,7 @@ public class WindowsOverlay {
     private static GridWindow gridWindow;
     private static boolean showingGrid;
     private static Grid currentGrid;
-    private static final Map<Monitor, HintMeshWindow> hintMeshWindows =
+    private static final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static boolean showingHintMesh;
     private static HintMesh currentHintMesh;
@@ -95,27 +95,27 @@ public class WindowsOverlay {
 
     }
 
-    private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle monitorRectangle,
+    private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle screenRectangle,
                                       int scaledIndicatorSize) {
-        mouseX = Math.min(monitorRectangle.x() + monitorRectangle.width(),
-                Math.max(monitorRectangle.x(), mouseX));
-        boolean isNearLeftEdge = mouseX <= (monitorRectangle.x() + indicatorEdgeThreshold);
+        mouseX = Math.min(screenRectangle.x() + screenRectangle.width(),
+                Math.max(screenRectangle.x(), mouseX));
+        boolean isNearLeftEdge = mouseX <= (screenRectangle.x() + indicatorEdgeThreshold);
         boolean isNearRightEdge = mouseX >=
-                                  (monitorRectangle.x() + monitorRectangle.width() -
+                                  (screenRectangle.x() + screenRectangle.width() -
                                    indicatorEdgeThreshold);
         if (isNearRightEdge)
             return mouseX - scaledIndicatorSize;
         return mouseX + cursorWidth / 2;
     }
 
-    private static int bestIndicatorY(int mouseY, int cursorHeight, Rectangle monitorRectangle,
+    private static int bestIndicatorY(int mouseY, int cursorHeight, Rectangle screenRectangle,
                                       int scaledIndicatorSize) {
-        mouseY = Math.min(monitorRectangle.y() + monitorRectangle.height(),
-                Math.max(monitorRectangle.y(), mouseY));
+        mouseY = Math.min(screenRectangle.y() + screenRectangle.height(),
+                Math.max(screenRectangle.y(), mouseY));
         boolean isNearBottomEdge = mouseY >=
-                                   (monitorRectangle.y() + monitorRectangle.height() -
+                                   (screenRectangle.y() + screenRectangle.height() -
                                     indicatorEdgeThreshold);
-        boolean isNearTopEdge = mouseY <= (monitorRectangle.y() + indicatorEdgeThreshold);
+        boolean isNearTopEdge = mouseY <= (screenRectangle.y() + indicatorEdgeThreshold);
         if (isNearBottomEdge)
             return mouseY - scaledIndicatorSize;
         return mouseY + cursorHeight / 2;
@@ -124,16 +124,16 @@ public class WindowsOverlay {
     private static void createIndicatorWindow(int indicatorSize) {
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         MouseSize mouseSize = WindowsMouse.mouseSize();
-        MonitorRectangleAndDpi monitorRectangleAndDpi =
-                WindowsMonitor.activeMonitorRectangleAndDpi(mousePosition);
+        ScreenRectangleAndDpi screenRectangleAndDpi =
+                WindowsScreen.activeScreenRectangleAndDpi(mousePosition);
         WinUser.WindowProc callback = WindowsOverlay::indicatorWindowCallback;
-        int scaledIndicatorSize = dpiScaled(indicatorSize, monitorRectangleAndDpi.dpi());
+        int scaledIndicatorSize = dpiScaled(indicatorSize, screenRectangleAndDpi.dpi());
         // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         WinDef.HWND hwnd = createWindow("Indicator",
                 bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
                 scaledIndicatorSize + 1, scaledIndicatorSize + 1, callback);
         indicatorWindow = new IndicatorWindow(hwnd, callback);
     }
@@ -150,35 +150,35 @@ public class WindowsOverlay {
     }
 
     private static void createOrUpdateHintMeshWindows(List<Hint> hints) {
-        Set<Monitor> monitors = WindowsMonitor.findMonitors();
-        Map<Monitor, List<Hint>> hintsByMonitor = new HashMap<>();
+        Set<Screen> screens = WindowsScreen.findScreens();
+        Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
         for (Hint hint : hints) {
-            for (Monitor monitor : monitors) {
-                if (!Rectangle.rectangleContains(monitor.x(), monitor.y(), monitor.width(),
-                        monitor.height(), hint.centerX(), hint.centerY()))
+            for (Screen screen : screens) {
+                if (!Rectangle.rectangleContains(screen.x(), screen.y(), screen.width(),
+                        screen.height(), hint.centerX(), hint.centerY()))
                     continue;
-                hintsByMonitor.computeIfAbsent(monitor, monitor1 -> new ArrayList<>())
+                hintsByScreen.computeIfAbsent(screen, monitor1 -> new ArrayList<>())
                               .add(hint);
                 break;
             }
         }
-        for (Map.Entry<Monitor, List<Hint>> entry : hintsByMonitor.entrySet()) {
-            Monitor monitor = entry.getKey();
-            List<Hint> hintsInMonitor = entry.getValue();
-            HintMeshWindow existingWindow = hintMeshWindows.get(monitor);
+        for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
+            Screen screen = entry.getKey();
+            List<Hint> hintsInScreen = entry.getValue();
+            HintMeshWindow existingWindow = hintMeshWindows.get(screen);
             if (existingWindow == null) {
                 WinUser.WindowProc callback =
-                        (hwnd1, uMsg, wParam, lParam) -> hintMeshWindowCallback(monitor,
+                        (hwnd1, uMsg, wParam, lParam) -> hintMeshWindowCallback(screen,
                                 hwnd1, uMsg, wParam, lParam);
-                WinDef.HWND hwnd = createWindow("HintMesh", monitor.x(), monitor.y(),
-                        monitor.width() + 1, monitor.height() + 1, callback);
-                hintMeshWindows.put(monitor,
-                        new HintMeshWindow(hwnd, callback, hintsInMonitor));
+                WinDef.HWND hwnd = createWindow("HintMesh", screen.x(), screen.y(),
+                        screen.width() + 1, screen.height() + 1, callback);
+                hintMeshWindows.put(screen,
+                        new HintMeshWindow(hwnd, callback, hintsInScreen));
             }
             else {
-                hintMeshWindows.put(monitor,
+                hintMeshWindows.put(screen,
                         new HintMeshWindow(existingWindow.hwnd, existingWindow.callback,
-                                hintsInMonitor));
+                                hintsInScreen));
             }
         }
     }
@@ -258,7 +258,7 @@ public class WindowsOverlay {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    private static WinDef.LRESULT hintMeshWindowCallback(Monitor monitor,
+    private static WinDef.LRESULT hintMeshWindowCallback(Screen screen,
                                                          WinDef.HWND hwnd, int uMsg,
                                                          WinDef.WPARAM wParam,
                                                          WinDef.LPARAM lParam) {
@@ -281,7 +281,7 @@ public class WindowsOverlay {
                         GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
                 WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
                 clearWindow(memDC, ps.rcPaint);
-                HintMeshWindow hintMeshWindow = hintMeshWindows.get(monitor);
+                HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
                 drawHints(memDC, ps.rcPaint, hintMeshWindow.hints);
                 // Copy (blit) the off-screen buffer to the screen.
                 GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
@@ -526,16 +526,16 @@ public class WindowsOverlay {
     static void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
             return;
-        MonitorRectangleAndDpi monitorRectangleAndDpi =
-                WindowsMonitor.activeMonitorRectangleAndDpi(mousePosition);
+        ScreenRectangleAndDpi screenRectangleAndDpi =
+                WindowsScreen.activeScreenRectangleAndDpi(mousePosition);
         int scaledIndicatorSize =
-                dpiScaled(currentIndicator.size(), monitorRectangleAndDpi.dpi());
+                dpiScaled(currentIndicator.size(), screenRectangleAndDpi.dpi());
         MouseSize mouseSize = WindowsMouse.mouseSize();
         User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
                 bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        monitorRectangleAndDpi.rectangle(), scaledIndicatorSize),
+                        screenRectangleAndDpi.rectangle(), scaledIndicatorSize),
                 scaledIndicatorSize, scaledIndicatorSize, false);
     }
 

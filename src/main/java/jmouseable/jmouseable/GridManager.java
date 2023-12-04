@@ -7,14 +7,14 @@ import jmouseable.jmouseable.Grid.GridBuilder;
  */
 public class GridManager implements MousePositionListener, ModeListener {
 
-    private final MonitorManager monitorManager;
+    private final ScreenManager screenManager;
     private final MouseController mouseController;
     private Grid grid;
     private int mouseX, mouseY;
     private Mode currentMode;
 
-    public GridManager(MonitorManager monitorManager, MouseController mouseController) {
-        this.monitorManager = monitorManager;
+    public GridManager(ScreenManager screenManager, MouseController mouseController) {
+        this.screenManager = screenManager;
         this.mouseController = mouseController;
     }
 
@@ -79,13 +79,13 @@ public class GridManager implements MousePositionListener, ModeListener {
         int y = grid.y() + deltaY;
         int gridCenterX = x + grid.width() / 2;
         int gridCenterY = y + grid.height() / 2;
-        if (monitorManager.monitorContaining(gridCenterX, gridCenterY) == null) {
+        if (screenManager.screenContaining(gridCenterX, gridCenterY) == null) {
             // We want the grid center in screen.
-            Monitor activeMonitor = monitorManager.activeMonitor();
-            gridCenterX = Math.max(activeMonitor.x(),
-                    Math.min(activeMonitor.x() + activeMonitor.width(), gridCenterX));
-            gridCenterY = Math.max(activeMonitor.y(),
-                    Math.min(activeMonitor.y() + activeMonitor.height(), gridCenterY));
+            Screen activeScreen = screenManager.activeScreen();
+            gridCenterX = Math.max(activeScreen.x(),
+                    Math.min(activeScreen.x() + activeScreen.width(), gridCenterX));
+            gridCenterY = Math.max(activeScreen.y(),
+                    Math.min(activeScreen.y() + activeScreen.height(), gridCenterY));
             x = gridCenterX - grid.width() / 2;
             y = gridCenterY - grid.height() / 2;
         }
@@ -156,12 +156,12 @@ public class GridManager implements MousePositionListener, ModeListener {
                         (mouseRow == 0 ? 0 : (mouseRow - 1) * cellHeight));
                 y = Math.max(grid.y(), Math.min(grid.y() + grid.height(), y));
             }
-            if (monitorManager.monitorContaining(x, y) == null) {
-                Monitor activeMonitor = monitorManager.activeMonitor();
-                x = Math.max(activeMonitor.x(),
-                        Math.min(activeMonitor.x() + activeMonitor.width(), x));
-                y = Math.max(activeMonitor.y(),
-                        Math.min(activeMonitor.y() + activeMonitor.height(), y));
+            if (screenManager.screenContaining(x, y) == null) {
+                Screen activeScreen = screenManager.activeScreen();
+                x = Math.max(activeScreen.x(),
+                        Math.min(activeScreen.x() + activeScreen.width(), x));
+                y = Math.max(activeScreen.y(),
+                        Math.min(activeScreen.y() + activeScreen.height(), y));
             }
             mouseController.moveTo(x, y);
         }
@@ -219,12 +219,12 @@ public class GridManager implements MousePositionListener, ModeListener {
                                  .lineThickness(gridConfiguration.lineThickness());
         switch (gridConfiguration.area()) {
             case GridArea.ActiveScreen activeScreen -> {
-                Monitor monitor = monitorManager.activeMonitor();
-                int gridWidth = (int) (monitor.width() * activeScreen.screenWidthPercent());
+                Screen screen = screenManager.activeScreen();
+                int gridWidth = (int) (screen.width() * activeScreen.screenWidthPercent());
                 int gridHeight =
-                        (int) (monitor.height() * activeScreen.screenHeightPercent());
-                gridBuilder.x(monitor.x() + (monitor.width() - gridWidth) / 2)
-                                 .y(monitor.y() + (monitor.height() - gridHeight) / 2)
+                        (int) (screen.height() * activeScreen.screenHeightPercent());
+                gridBuilder.x(screen.x() + (screen.width() - gridWidth) / 2)
+                                 .y(screen.y() + (screen.height() - gridHeight) / 2)
                                  .width(gridWidth)
                                  .height(gridHeight);
             }

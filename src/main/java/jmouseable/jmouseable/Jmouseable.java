@@ -80,9 +80,9 @@ public class Jmouseable {
                     configurationPath);
         mouseController = new MouseController();
         MouseState mouseState = new MouseState(mouseController);
-        MonitorManager monitorManager = new MonitorManager();
-        GridManager gridManager = new GridManager(monitorManager, mouseController);
-        HintManager hintManager = new HintManager(monitorManager, mouseController);
+        ScreenManager screenManager = new ScreenManager();
+        GridManager gridManager = new GridManager(screenManager, mouseController);
+        HintManager hintManager = new HintManager(screenManager, mouseController);
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager);
         ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager);
@@ -95,7 +95,7 @@ public class Jmouseable {
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(),
-                List.of(gridManager, hintManager, monitorManager));
+                List.of(gridManager, hintManager, screenManager));
     }
 
 }

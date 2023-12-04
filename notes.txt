@@ -87,15 +87,15 @@ _shift,^shift = press shift, release shift?
  - Shift grid: move-grid-top
   - arrow keys with rightctrl
   - move-to-grid-center-when-shifted
-  - If grid already touches screen edge, then move grid to closest monitor
-   - Resize too fullscreen if grid bigger than new monitor
+  - If grid already touches screen edge, then move grid to closest screen
+   - Resize too fullscreen if grid bigger than new screen
  - Teleport forward to +300px is snapping to (or moving-grid) the follow-mouse grid?
-  - The corresponding grid window should be movable to a neighbor monitor
+  - The corresponding grid window should be movable to a neighbor screen
  + Exit gracefully when exception thrown (e.g. infinite switch mode loop)
  - Rename shift-grid to move-grid
  - Put back update() in IndicatorManager for updating the color
- - When moving/snapping grid to edge of screen, check if there is a monitor containing grid center
-  - If not, keep grid in current monitor
+ - When moving/snapping grid to edge of screen, check if there is a screen containing grid center
+  - If not, keep grid in current screen
   - mouse-follows-grid-center should not initially synchronize the mouse
    - _{rightctrl} move-to-grid-center: does not work for modes triggered after idle timeout
   - mouse-follows-grid-center-except-when-grid-created?
@@ -128,7 +128,7 @@ _shift,^shift = press shift, release shift?
    + hint.area=active-screen, active-window, all-screens
 - Give a chance to _{} ^{} combos when mode switched? No
  + Dragging: normal-mode -> press left -> hint mode (handles left release key) -> normal-mode
-+ Update hint windows when monitors changed?
++ Update hint windows when screens changed?
 + Hint undo key could be a combo instead of a key
 + History (positions previously selected through hints)
  + grid.area/row-count -> grid.layout=position-history | active-screen 0.99 0.99 2(rowCount) 2
