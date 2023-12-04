@@ -53,7 +53,7 @@ public class ConfigurationParser {
         builder.timeout().enabled(false);
         builder.indicator()
                .enabled(false)
-               .size(8)
+               .size(12)
                .idleHexColor("#FF0000")
                .moveHexColor("#FF0000")
                .wheelHexColor("#FFFF00")

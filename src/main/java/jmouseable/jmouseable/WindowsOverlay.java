@@ -125,7 +125,7 @@ public class WindowsOverlay {
         MouseSize mouseSize = WindowsMouse.mouseSize();
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         WinUser.WindowProc callback = WindowsOverlay::indicatorWindowCallback;
-        int scaledIndicatorSize = dpiScaled(indicatorSize, activeScreen.dpi());
+        int scaledIndicatorSize = pixelsDpiScaled(indicatorSize, activeScreen.dpi());
         // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         WinDef.HWND hwnd = createWindow("Indicator",
                 bestIndicatorX(mousePosition.x, mouseSize.width(),
@@ -136,9 +136,8 @@ public class WindowsOverlay {
         indicatorWindow = new IndicatorWindow(hwnd, callback);
     }
 
-    private static int dpiScaled(int originalInPixels, int dpi) {
-        // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
-        return originalInPixels * dpi / 72;
+    private static int pixelsDpiScaled(int originalInPixels, int dpi) {
+        return (int) Math.ceil((double) originalInPixels * dpi / 96);
     }
 
     private static void createGridWindow(int x, int y, int width, int height) {
@@ -310,7 +309,7 @@ public class WindowsOverlay {
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
         int dpi = GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY);
-        int scaledLineThickness = dpiScaled(currentGrid.lineThickness(), dpi);
+        int scaledLineThickness = pixelsDpiScaled(currentGrid.lineThickness(), dpi);
         // Vertical lines
         for (int lineIndex = 0; lineIndex <= columnCount; lineIndex++) {
             int x = lineIndex == columnCount ? windowRect.right :
@@ -369,7 +368,8 @@ public class WindowsOverlay {
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
         // Convert point size to logical units.
         int dpi = GDI32.INSTANCE.GetDeviceCaps(hdc, LOGPIXELSY);
-        int fontHeight = -dpiScaled(fontSize, dpi);
+        // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
+        int fontHeight = -fontSize * dpi / 72;
         // In Windows API, negative font size means "point size" (as opposed to pixels).
         WinDef.HFONT hintFont =
                 ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0, FW_BOLD,
@@ -455,7 +455,7 @@ public class WindowsOverlay {
             createIndicatorWindow(indicator.size());
         else if (indicator.size() != oldIndicator.size()) {
             int dpi = ExtendedUser32.INSTANCE.GetDpiForWindow(indicatorWindow.hwnd);
-            int scaledIndicatorSize = dpiScaled(indicator.size(), dpi);
+            int scaledIndicatorSize = pixelsDpiScaled(indicator.size(), dpi);
             User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, 0, 0,
                     scaledIndicatorSize, scaledIndicatorSize,
                     User32.SWP_NOMOVE | User32.SWP_NOZORDER);
@@ -528,7 +528,7 @@ public class WindowsOverlay {
             return;
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         int scaledIndicatorSize =
-                dpiScaled(currentIndicator.size(), activeScreen.dpi());
+                pixelsDpiScaled(currentIndicator.size(), activeScreen.dpi());
         MouseSize mouseSize = WindowsMouse.mouseSize();
         User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
                 bestIndicatorX(mousePosition.x, mouseSize.width(),

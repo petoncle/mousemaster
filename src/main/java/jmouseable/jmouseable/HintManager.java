@@ -183,8 +183,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (type instanceof HintMeshType.ActiveScreen activeScreen) {
             screenWidthPercent = activeScreen.screenWidthPercent();
             screenHeightPercent = activeScreen.screenHeightPercent();
-            rowCount = activeScreen.rowCount();
-            columnCount = activeScreen.columnCount();
+            int dpi = screen.dpi();
+            rowCount = dpiDescaled(activeScreen.rowCount(), dpi);
+            columnCount = dpiDescaled(activeScreen.columnCount(), dpi);
         }
         else if (type instanceof HintMeshType.AllScreens allScreens) {
             screenWidthPercent = allScreens.screenWidthPercent();
@@ -200,6 +201,13 @@ public class HintManager implements ModeListener, MousePositionListener {
         hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
                 rowCount, columnCount);
+    }
+
+    /**
+     * 26 rows, scale 150% (== dpi 144) -> 18 rows.
+     */
+    private static int dpiDescaled(int value, int dpi) {
+        return (int) Math.ceil((double) value * 96 / dpi);
     }
 
     private Point hintMeshCenter(Screen activeScreen, HintMeshCenter center) {
