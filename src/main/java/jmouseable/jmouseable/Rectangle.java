@@ -13,4 +13,13 @@ public record Rectangle(int x, int y, int width, int height) {
         int closestY = Math.max(rectY, Math.min(pointY, rectY + rectHeight));
         return Math.hypot(closestX - pointX, closestY - pointY);
     }
+
+    public Point center() {
+        int centerX;
+        int centerY;
+        centerX = x() + width() / 2;
+        centerY = y() + height() / 2;
+        return new Point(centerX, centerY);
+    }
+
 }

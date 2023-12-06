@@ -2,6 +2,8 @@ package jmouseable.jmouseable;
 
 public sealed interface GridArea {
 
+    // TODO
+
     record ActiveScreen(double screenWidthPercent, double screenHeightPercent)
             implements GridArea {
     }

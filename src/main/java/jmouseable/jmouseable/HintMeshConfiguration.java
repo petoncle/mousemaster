@@ -1,9 +1,10 @@
 package jmouseable.jmouseable;
 
+import jmouseable.jmouseable.HintMeshType.HintMeshTypeBuilder;
+
 import java.util.List;
 
 public record HintMeshConfiguration(boolean enabled, HintMeshType type,
-                                    HintMeshCenter center,
                                     List<Key> selectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
                                     String selectedPrefixFontHexColor, String boxHexColor,
@@ -13,8 +14,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
-        private HintMeshType type;
-        private HintMeshCenter center;
+        private HintMeshTypeBuilder type = new HintMeshTypeBuilder();
         private List<Key> selectionKeys;
         private Key undoKey;
         private String fontName;
@@ -28,16 +28,6 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
-            return this;
-        }
-
-        public HintMeshConfigurationBuilder type(HintMeshType type) {
-            this.type = type;
-            return this;
-        }
-
-        public HintMeshConfigurationBuilder center(HintMeshCenter center) {
-            this.center = center;
             return this;
         }
 
@@ -95,12 +85,8 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return this;
         }
 
-        public HintMeshType type() {
+        public HintMeshTypeBuilder type() {
             return type;
-        }
-
-        public HintMeshCenter center() {
-            return center;
         }
 
         public Boolean enabled() {
@@ -148,7 +134,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         }
 
         public HintMeshConfiguration build() {
-            return new HintMeshConfiguration(enabled, type, center, selectionKeys,
+            return new HintMeshConfiguration(enabled, type.build(), selectionKeys,
                     undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
                     boxHexColor, nextModeAfterSelection, clickButtonAfterSelection,
                     saveMousePositionAfterSelection);

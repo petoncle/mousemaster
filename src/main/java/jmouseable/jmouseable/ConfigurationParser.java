@@ -1,6 +1,7 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
+import jmouseable.jmouseable.HintGridArea.HintGridAreaType;
 import jmouseable.jmouseable.Mode.ModeBuilder;
 
 import java.io.IOException;
@@ -18,13 +19,13 @@ import static jmouseable.jmouseable.Command.*;
 
 public class ConfigurationParser {
 
-    private static final Mode defaultMode;
+    private static final ModeBuilder defaultMode;
 
     static {
         defaultMode = defaultMode();
     }
 
-    private static Mode defaultMode() {
+    private static ModeBuilder defaultMode() {
         ModeBuilder builder = new ModeBuilder(null);
         builder.pushModeToHistoryStack(false);
         builder.mouse().initialVelocity(200).maxVelocity(750).acceleration(1000);
@@ -38,8 +39,6 @@ public class ConfigurationParser {
                .lineHexColor("#FF0000")
                .lineThickness(1);
         builder.hintMesh()
-               .type(new HintMeshType.ActiveScreen(1, 1, 20, 20))
-               .center(HintMeshCenter.ACTIVE_SCREEN)
                .enabled(false)
                .selectionKeys(IntStream.rangeClosed('a', 'z')
                                        .mapToObj(c -> String.valueOf((char) c))
@@ -51,6 +50,17 @@ public class ConfigurationParser {
                .selectedPrefixFontHexColor("#8FA6C4")
                .boxHexColor("#204E8A")
                .saveMousePositionAfterSelection(false);
+        HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = builder.hintMesh().type();
+        hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
+                           .gridRowCount(20)
+                           .gridColumnCount(20);
+        HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
+                builder.hintMesh().type().gridArea();
+        hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
+                           .widthPercent(1)
+                           .heightPercent(1)
+                           .activeScreenHintGridAreaCenter(
+                                   ActiveScreenHintGridAreaCenter.SCREEN_CENTER);
         builder.timeout().enabled(false);
         builder.indicator()
                .enabled(false)
@@ -61,7 +71,7 @@ public class ConfigurationParser {
                .mousePressHexColor("#00FF00")
                .nonComboKeyPressHexColor("#0000FF");
         builder.hideCursor().enabled(false);
-        return builder.build();
+        return builder;
     }
 
     public static Configuration parse(Path path) throws IOException {
@@ -204,10 +214,48 @@ public class ConfigurationParser {
                         case "enabled" -> mode.hintMesh()
                                               .enabled(Boolean.parseBoolean(
                                                       propertyValue));
-                        case "type" ->
-                                mode.hintMesh().type(parseHintMeshType(propertyKey, propertyValue));
-                        case "center" ->
-                                mode.hintMesh().center(parseHintMeshCenter(propertyKey, propertyValue));
+                        case "type" -> mode.hintMesh()
+                                           .type()
+                                           .type(parseHintMeshTypeType(propertyKey,
+                                                   propertyValue));
+                        case "grid-area" -> mode.hintMesh()
+                                                .type()
+                                                .gridArea()
+                                                .type(parseHintGridAreaType(propertyKey,
+                                                        propertyValue));
+                        case "grid-area-width-percent" -> mode.hintMesh()
+                                                              .type()
+                                                              .gridArea()
+                                                              .widthPercent(
+                                                                      parseNonZeroPercent(
+                                                                              propertyKey,
+                                                                              propertyValue));
+                        case "grid-area-height-percent" -> mode.hintMesh()
+                                                              .type()
+                                                              .gridArea()
+                                                              .heightPercent(
+                                                                      parseNonZeroPercent(
+                                                                              propertyKey,
+                                                                              propertyValue));
+                        case "active-screen-grid-area-center" -> mode.hintMesh()
+                                                                     .type()
+                                                                     .gridArea()
+                                                                     .activeScreenHintGridAreaCenter(
+                                                                             parseActiveScreenHintGridAreaCenter(
+                                                                                     propertyKey,
+                                                                                     propertyValue));
+                        case "grid-row-count" -> mode.hintMesh()
+                                                     .type()
+                                                     .gridRowCount(parseUnsignedInteger(
+                                                             propertyKey, propertyValue,
+                                                             1, 50));
+                        case "grid-column-count" -> mode.hintMesh()
+                                                        .type()
+                                                        .gridColumnCount(
+                                                                parseUnsignedInteger(
+                                                                        propertyKey,
+                                                                        propertyValue, 1,
+                                                                        50));
                         case "selection-keys" -> mode.hintMesh()
                                                      .selectionKeys(
                                                              parseHintKeys(propertyKey,
@@ -462,12 +510,12 @@ public class ConfigurationParser {
         return modeNameReference;
     }
 
-    private static void recursivelyExtendMode(Mode parentMode, ModeNode modeNode,
+    private static void recursivelyExtendMode(ModeBuilder parentMode, ModeNode modeNode,
                                               Map<String, ModeBuilder> modeByName) {
         ModeBuilder mode = modeByName.get(modeNode.modeName);
         extendMode(parentMode, mode);
         for (ModeNode subModeNode : modeNode.subModes)
-            recursivelyExtendMode(mode.build(), subModeNode, modeByName);
+            recursivelyExtendMode(mode, subModeNode, modeByName);
     }
 
     private static ModeNode recursivelyBuildInheritanceNode(String modeName,
@@ -518,7 +566,7 @@ public class ConfigurationParser {
      * - clickButton after hint selection
      * - save mouse position after hint selection
      */
-    private static void extendMode(Mode parentMode, ModeBuilder childMode) {
+    private static void extendMode(ModeBuilder parentMode, ModeBuilder childMode) {
         for (Map.Entry<Combo, List<Command>> entry : parentMode.comboMap()
                                                                .commandsByCombo()
                                                                .entrySet()) {
@@ -558,10 +606,20 @@ public class ConfigurationParser {
             childMode.grid().lineThickness(parentMode.grid().lineThickness());
         if (childMode.hintMesh().enabled() == null)
             childMode.hintMesh().enabled(parentMode.hintMesh().enabled());
-        if (childMode.hintMesh().type() == null)
-            childMode.hintMesh().type(parentMode.hintMesh().type());
-        if (childMode.hintMesh().center() == null)
-            childMode.hintMesh().center(parentMode.hintMesh().center());
+        if (childMode.hintMesh().type().type() == null)
+            childMode.hintMesh().type().type(parentMode.hintMesh().type().type());
+        if (childMode.hintMesh().type().gridArea().type() == null)
+            childMode.hintMesh().type().gridArea().type(parentMode.hintMesh().type().gridArea().type());
+        if (childMode.hintMesh().type().gridArea().widthPercent() == null)
+            childMode.hintMesh().type().gridArea().widthPercent(parentMode.hintMesh().type().gridArea().widthPercent());
+        if (childMode.hintMesh().type().gridArea().heightPercent() == null)
+            childMode.hintMesh().type().gridArea().heightPercent(parentMode.hintMesh().type().gridArea().heightPercent());
+        if (childMode.hintMesh().type().gridArea().activeScreenHintGridAreaCenter() == null)
+            childMode.hintMesh().type().gridArea().activeScreenHintGridAreaCenter(parentMode.hintMesh().type().gridArea().activeScreenHintGridAreaCenter());
+        if (childMode.hintMesh().type().gridRowCount() == null)
+            childMode.hintMesh().type().gridRowCount(parentMode.hintMesh().type().gridRowCount());
+        if (childMode.hintMesh().type().gridColumnCount() == null)
+            childMode.hintMesh().type().gridColumnCount(parentMode.hintMesh().type().gridColumnCount());
         if (childMode.hintMesh().selectionKeys() == null)
             childMode.hintMesh().selectionKeys(parentMode.hintMesh().selectionKeys());
         if (childMode.hintMesh().undoKey() == null)
@@ -604,8 +662,8 @@ public class ConfigurationParser {
         return propertyValue;
     }
 
-    private static int parseUnsignedInteger(String propertyKey, String string, int min, int max) {
-        int integer = Integer.parseUnsignedInt(string);
+    private static int parseUnsignedInteger(String propertyKey, String propertyValue, int min, int max) {
+        int integer = Integer.parseUnsignedInt(propertyValue);
         if (integer < min)
             throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + ": " + integer +
@@ -615,6 +673,19 @@ public class ConfigurationParser {
                     "Invalid property value in " + propertyKey + ": " + integer +
                     " must be less than or equal to " + max);
         return integer;
+    }
+
+    private static double parseNonZeroPercent(String propertyKey, String propertyValue) {
+        double percent = Double.parseDouble(propertyValue);
+        if (percent <= 0)
+            throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey +
+                    ": percent must greater than 0.0");
+        if (percent > 1)
+            throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey +
+                    ": percent must be less than or equal to 1.0");
+        return percent;
     }
 
     private static Button parseButton(String propertyKey, String string) {
@@ -638,54 +709,39 @@ public class ConfigurationParser {
         return Arrays.stream(split).map(Key::ofName).toList();
     }
 
-    private static HintMeshType parseHintMeshType(String propertyKey, String propertyValue) {
-        String[] split = propertyValue.split("\\s+");
-        double width, height;
-        if (split[0].equals("active-screen") || split[0].equals("active-window") ||
-            split[0].equals("all-screens")) {
-            if (split.length != 5)
-                throw new IllegalArgumentException(
-                        "Invalid property value in " + propertyKey + "=" + propertyValue + ": expected " +
-                        split[0] +
-                        " <width percent> <height percent> <row count> <column count>");
-            width = Double.parseDouble(split[1]);
-            height = Double.parseDouble(split[2]);
-            if (width < 0 || width > 1 || height < 0 || height > 1)
-                throw new IllegalArgumentException(
-                        "Invalid property value in " + propertyKey + "=" + propertyValue +
-                        ": width percent and height percent should be greater than 0.0 and less than or equal to 1.0");
-            int rowCount = parseUnsignedInteger(propertyKey, split[3], 1, 50);
-            int columnCount = parseUnsignedInteger(propertyKey, split[4], 1, 50);
-            if (split[0].equals("active-screen"))
-                return new HintMeshType.ActiveScreen(width, height, rowCount,
-                        columnCount);
-            else if (split[0].equals("active-window"))
-                return new HintMeshType.ActiveWindow(width, height, rowCount,
-                        columnCount);
-            else
-                return new HintMeshType.AllScreens(width, height, rowCount,
-                        columnCount);
-        }
-        else if (split[0].equals("mouse-position-history"))
-            return new HintMeshType.MousePositionHistory();
-        else {
-            throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " +
-                    List.of("active-screen", "active-window", "all-screens",
-                            "mouse-position-history"));
-        }
-    }
-
-    private static HintMeshCenter parseHintMeshCenter(String propertyKey, String propertyValue) {
+    private static HintMeshType.HintMeshTypeType parseHintMeshTypeType(String propertyKey,
+                                                                       String propertyValue) {
         return switch (propertyValue) {
-            case "active-screen" -> HintMeshCenter.ACTIVE_SCREEN;
-            case "active-window" -> HintMeshCenter.ACTIVE_WINDOW;
-            case "mouse" -> HintMeshCenter.MOUSE;
+            case "grid" -> HintMeshType.HintMeshTypeType.GRID;
+            case "mouse-position-history" ->
+                    HintMeshType.HintMeshTypeType.MOUSE_POSITION_HISTORY;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " +
-                    List.of("active-screen", "active-window", "mouse"));
+                    ": type should be one of " +
+                    List.of("grid", "mouse-position-history"));
+        };
+    }
+
+    private static HintGridAreaType parseHintGridAreaType(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "active-screen" -> HintGridAreaType.ACTIVE_SCREEN;
+            case "active-window" -> HintGridAreaType.ACTIVE_WINDOW;
+            case "all-screens" -> HintGridAreaType.ALL_SCREENS;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": type should be one of " +
+                    List.of("active-screen", "active-window", "all-screens"));
+        };
+    }
+
+    private static ActiveScreenHintGridAreaCenter parseActiveScreenHintGridAreaCenter(
+            String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "screen-center" -> ActiveScreenHintGridAreaCenter.SCREEN_CENTER;
+            case "mouse" -> ActiveScreenHintGridAreaCenter.MOUSE;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " + List.of("screen-center", "mouse"));
         };
     }
 

@@ -17,6 +17,10 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
             return this;
         }
 
+        public Map<Combo, List<Command>> commandsByCombo() {
+            return commandsByCombo;
+        }
+
         public ComboMap build() {
             return new ComboMap(Map.copyOf(commandsByCombo));
         }

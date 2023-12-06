@@ -1,5 +1,8 @@
 package jmouseable.jmouseable;
 
+import jmouseable.jmouseable.HintGridArea.ActiveScreenHintGridArea;
+import jmouseable.jmouseable.HintGridArea.ActiveWindowHintGridArea;
+import jmouseable.jmouseable.HintGridArea.AllScreensHintGridArea;
 import jmouseable.jmouseable.HintMesh.HintMeshBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,9 +78,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         hintMeshConfiguration.selectedPrefixFontHexColor())
                 .boxHexColor(hintMeshConfiguration.boxHexColor());
         HintMeshType type = hintMeshConfiguration.type();
-        if (type instanceof HintMeshType.ActiveScreen ||
-            type instanceof HintMeshType.ActiveWindow ||
-            type instanceof HintMeshType.AllScreens) {
+        if (type instanceof HintMeshType.HintGrid hintGrid) {
             if (currentMode != null) {
                 HintMeshConfiguration oldHintMeshConfiguration = currentMode.hintMesh();
                 if (oldHintMeshConfiguration.enabled() &&
@@ -93,29 +94,38 @@ public class HintManager implements ModeListener, MousePositionListener {
                 }
             }
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
-            Point hintMeshCenter = hintMeshCenter(screenManager.activeScreen(),
-                    hintMeshConfiguration.center());
-            if (type instanceof HintMeshType.ActiveScreen activeScreen) {
-                fixedSizeHintGrids.add(screenFixedSizeHintGrid(activeScreen,
-                        screenManager.activeScreen(), hintMeshCenter));
+            if (hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea) {
+                Screen gridScreen = screenManager.activeScreen();
+                Point gridCenter = switch (activeScreenHintGridArea.center()) {
+                    case SCREEN_CENTER -> gridScreen.rectangle().center();
+                    case MOUSE -> new Point(mouseX, mouseY);
+                };
+                fixedSizeHintGrids.add(
+                        screenFixedSizeHintGrid(activeScreenHintGridArea, screenManager.activeScreen(),
+                                gridCenter, hintGrid.rowCount(), hintGrid.columnCount()));
             }
-            else if (type instanceof HintMeshType.AllScreens allScreens) {
-                for (Screen screen : screenManager.screens())
+            else if (hintGrid.area() instanceof AllScreensHintGridArea allScreensHintGridArea) {
+                for (Screen screen : screenManager.screens()) {
+                    Point gridCenter = screen.rectangle().center();
                     fixedSizeHintGrids.add(
-                            screenFixedSizeHintGrid(allScreens, screen, hintMeshCenter));
+                            screenFixedSizeHintGrid(allScreensHintGridArea, screen, gridCenter,
+                                    hintGrid.rowCount(), hintGrid.columnCount()));
+                }
             }
-            else if (type instanceof HintMeshType.ActiveWindow activeWindow) {
+            else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
-                        activeWindow.windowWidthPercent(),
-                        activeWindow.windowHeightPercent());
-                int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
+                        activeWindowHintGridArea.widthPercent(),
+                        activeWindowHintGridArea.heightPercent());
+                Point gridCenter = activeWindowRectangle.center();
+                int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount,
+                        columnCount;
                 hintMeshWidth = activeWindowRectangle.width();
                 hintMeshHeight = activeWindowRectangle.height();
-                hintMeshX = hintMeshCenter.x() - hintMeshWidth / 2;
-                hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
+                hintMeshX = gridCenter.x() - hintMeshWidth / 2;
+                hintMeshY = gridCenter.y() - hintMeshHeight / 2;
                 Screen activeScreen = screenManager.activeScreen();
-                rowCount = dpiDescaled(activeWindow.rowCount(), activeScreen.dpi());
-                columnCount = dpiDescaled(activeWindow.columnCount(), activeScreen.dpi());
+                rowCount = dpiDescaled(hintGrid.rowCount(), activeScreen.dpi());
+                columnCount = dpiDescaled(hintGrid.columnCount(), activeScreen.dpi());
                 fixedSizeHintGrids.add(
                         new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth,
                                 hintMeshHeight, rowCount, columnCount));
@@ -204,34 +214,33 @@ public class HintManager implements ModeListener, MousePositionListener {
         return keySequence;
     }
 
-    private FixedSizeHintGrid screenFixedSizeHintGrid(HintMeshType type, Screen screen,
-                                                      Point hintMeshCenter) {
-        if (!(type instanceof HintMeshType.ActiveScreen) &&
-            !(type instanceof HintMeshType.AllScreens))
+    private FixedSizeHintGrid screenFixedSizeHintGrid(HintGridArea area, Screen screen,
+                                                      Point gridCenter, int rowCount,
+                                                      int columnCount) {
+        if (!(area instanceof ActiveScreenHintGridArea) &&
+            !(area instanceof AllScreensHintGridArea))
             throw new IllegalArgumentException();
-        int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
+        int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight;
         double screenWidthPercent, screenHeightPercent;
-        int dpi = screen.dpi();
-        if (type instanceof HintMeshType.ActiveScreen activeScreen) {
-            screenWidthPercent = activeScreen.screenWidthPercent();
-            screenHeightPercent = activeScreen.screenHeightPercent();
-            rowCount = dpiDescaled(activeScreen.rowCount(), dpi);
-            columnCount = dpiDescaled(activeScreen.columnCount(), dpi);
+        if (area instanceof ActiveScreenHintGridArea activeScreenHintGridArea) {
+            screenWidthPercent = activeScreenHintGridArea.widthPercent();
+            screenHeightPercent = activeScreenHintGridArea.heightPercent();
         }
-        else if (type instanceof HintMeshType.AllScreens allScreens) {
-            screenWidthPercent = allScreens.screenWidthPercent();
-            screenHeightPercent = allScreens.screenHeightPercent();
-            rowCount = dpiDescaled(allScreens.rowCount(), dpi);
-            columnCount = dpiDescaled(allScreens.columnCount(), dpi);
+        else if (area instanceof AllScreensHintGridArea allScreensHintGridArea) {
+            screenWidthPercent = allScreensHintGridArea.widthPercent();
+            screenHeightPercent = allScreensHintGridArea.heightPercent();
         }
         else
             throw new IllegalStateException();
         hintMeshWidth = (int) (screen.rectangle().width() * screenWidthPercent);
         hintMeshHeight = (int) (screen.rectangle().height() * screenHeightPercent);
-        hintMeshX = hintMeshCenter.x() - hintMeshWidth / 2;
-        hintMeshY = hintMeshCenter.y() - hintMeshHeight / 2;
+        hintMeshX = gridCenter.x() - hintMeshWidth / 2;
+        hintMeshY = gridCenter.y() - hintMeshHeight / 2;
+        int dpi = screen.dpi();
+        int dpiDescaledRowCount = dpiDescaled(rowCount, dpi);
+        int dpiDescaledColumnCount = dpiDescaled(columnCount, dpi);
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
-                rowCount, columnCount);
+                dpiDescaledRowCount, dpiDescaledColumnCount);
     }
 
     /**
@@ -239,32 +248,6 @@ public class HintManager implements ModeListener, MousePositionListener {
      */
     private static int dpiDescaled(int value, int dpi) {
         return (int) Math.ceil((double) value * 96 / dpi);
-    }
-
-    private Point hintMeshCenter(Screen activeScreen, HintMeshCenter center) {
-        int centerX = 0, centerY = 0;
-        switch (center) {
-            case ACTIVE_SCREEN -> {
-                centerX = activeScreen.rectangle().x() +
-                          activeScreen.rectangle().width() / 2;
-                centerY = activeScreen.rectangle().y() +
-                          activeScreen.rectangle().height() / 2;
-            }
-            case ACTIVE_WINDOW -> {
-                Rectangle activeWindowRectangle =
-                        WindowsOverlay.activeWindowRectangle(1, 1);
-                centerX = activeWindowRectangle.x() + activeWindowRectangle.width() / 2;
-                centerY = activeWindowRectangle.y() + activeWindowRectangle.height() / 2;
-            }
-            case MOUSE -> {
-                centerX = mouseX;
-                centerY = mouseY;
-            }
-        }
-        return new Point(centerX, centerY);
-    }
-
-    private record Point(int x, int y) {
     }
 
     private record FixedSizeHintGrid(int hintMeshX, int hintMeshY, int hintMeshWidth,
