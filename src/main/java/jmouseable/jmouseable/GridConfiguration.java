@@ -1,22 +1,19 @@
 package jmouseable.jmouseable;
 
+import jmouseable.jmouseable.GridArea.GridAreaBuilder;
+
 public record GridConfiguration(GridArea area, Synchronization synchronization, int rowCount,
                                 int columnCount, boolean lineVisible,
                                 String lineHexColor, int lineThickness) {
 
     public static class GridConfigurationBuilder {
-        private GridArea area;
+        private GridAreaBuilder area = new GridAreaBuilder();
         private Synchronization synchronization;
         private Integer rowCount;
         private Integer columnCount;
         private Boolean lineVisible;
         private String lineHexColor;
         private Integer lineThickness;
-
-        public GridConfigurationBuilder area(GridArea area) {
-            this.area = area;
-            return this;
-        }
 
         public GridConfigurationBuilder synchronization(Synchronization synchronization) {
             this.synchronization = synchronization;
@@ -48,7 +45,7 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return this;
         }
 
-        public GridArea area() {
+        public GridAreaBuilder area() {
             return area;
         }
 
@@ -77,8 +74,8 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
         }
 
         public GridConfiguration build() {
-            return new GridConfiguration(area, synchronization, rowCount, columnCount,
-                    lineVisible, lineHexColor, lineThickness);
+            return new GridConfiguration(area.build(), synchronization, rowCount,
+                    columnCount, lineVisible, lineHexColor, lineThickness);
         }
 
     }

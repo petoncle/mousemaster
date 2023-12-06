@@ -1,6 +1,7 @@
 package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.ComboMap.ComboMapBuilder;
+import jmouseable.jmouseable.GridArea.GridAreaType;
 import jmouseable.jmouseable.HintGridArea.HintGridAreaType;
 import jmouseable.jmouseable.Mode.ModeBuilder;
 
@@ -31,13 +32,16 @@ public class ConfigurationParser {
         builder.mouse().initialVelocity(200).maxVelocity(750).acceleration(1000);
         builder.wheel().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         builder.grid()
-               .area(new GridArea.ActiveScreen(1, 1))
                .synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
                .rowCount(2)
                .columnCount(2)
                .lineVisible(false)
                .lineHexColor("#FF0000")
                .lineThickness(1);
+        GridArea.GridAreaBuilder gridAreaBuilder = builder.grid().area();
+        gridAreaBuilder.type(GridAreaType.ACTIVE_SCREEN)
+                       .widthPercent(1)
+                       .heightPercent(1);
         builder.hintMesh()
                .enabled(false)
                .selectionKeys(IntStream.rangeClosed('a', 'z')
@@ -179,9 +183,23 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid grid property key: " + propertyKey);
                     switch (keyMatcher.group(4)) {
-                        case "area" -> mode.grid().area(parseGridArea(propertyKey, propertyValue));
-                        case "synchronization" -> mode.grid()
-                                                      .synchronization(
+                        case "area" -> mode.grid()
+                                           .area()
+                                           .type(parseGridAreaType(propertyKey,
+                                                   propertyValue));
+                        case "area-width-percent" -> mode.grid()
+                                                         .area()
+                                                         .widthPercent(
+                                                                 parseNonZeroPercent(
+                                                                         propertyKey,
+                                                                         propertyValue));
+                        case "area-height-percent" -> mode.grid()
+                                                          .area()
+                                                          .heightPercent(
+                                                                  parseNonZeroPercent(
+                                                                          propertyKey,
+                                                                          propertyValue));
+                        case "synchronization" -> mode.grid().synchronization(
                                                               parseSynchronization(
                                                                       propertyKey,
                                                                       propertyValue));
@@ -590,8 +608,12 @@ public class ConfigurationParser {
             childMode.wheel().maxVelocity(parentMode.wheel().maxVelocity());
         if (childMode.wheel().acceleration() == null)
             childMode.wheel().acceleration(parentMode.wheel().acceleration());
-        if (childMode.grid().area() == null)
-            childMode.grid().area(parentMode.grid().area());
+        if (childMode.grid().area().type() == null)
+            childMode.grid().area().type(parentMode.grid().area().type());
+        if (childMode.grid().area().widthPercent() == null)
+            childMode.grid().area().widthPercent(parentMode.grid().area().widthPercent());
+        if (childMode.grid().area().heightPercent() == null)
+            childMode.grid().area().heightPercent(parentMode.grid().area().heightPercent());
         if (childMode.grid().synchronization() == null)
             childMode.grid().synchronization(parentMode.grid().synchronization());
         if (childMode.grid().rowCount() == null)
@@ -745,29 +767,15 @@ public class ConfigurationParser {
         };
     }
 
-    private static GridArea parseGridArea(String propertyKey, String propertyValue) {
-        String[] split = propertyValue.split("\\s+");
-        double width, height;
-        if (split.length == 1)
-            width = height = 1;
-        else if (split.length == 3) {
-            width = Double.parseDouble(split[1]);
-            height = Double.parseDouble(split[2]);
-            if (width < 0 || width > 1 || height < 0 || height > 1)
-                throw new IllegalArgumentException(
-                        "Invalid property value in " + propertyKey + "=" + propertyValue +
-                        ": width percent and height percent should be greater than 0.0 and less than or equal to 1.0");
-        }
-        else
-            throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected active-screen|active-window <width percent> <height percent>");
-        return switch (split[0]) {
-            case "active-screen" -> new GridArea.ActiveScreen(width, height);
-            case "active-window" -> new GridArea.ActiveWindow(width, height);
+    private static GridAreaType parseGridAreaType(String propertyKey,
+                                                  String propertyValue) {
+        return switch (propertyValue) {
+            case "active-screen" -> GridAreaType.ACTIVE_SCREEN;
+            case "active-window" -> GridAreaType.ACTIVE_WINDOW;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " + List.of("active-screen", "active-window"));
+                    ": type should be one of " +
+                    List.of("active-screen", "active-window"));
         };
     }
 

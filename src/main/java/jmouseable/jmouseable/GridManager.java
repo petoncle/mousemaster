@@ -228,12 +228,12 @@ public class GridManager implements MousePositionListener, ModeListener {
                                  .lineHexColor(gridConfiguration.lineHexColor())
                                  .lineThickness(gridConfiguration.lineThickness());
         switch (gridConfiguration.area()) {
-            case GridArea.ActiveScreen activeScreen -> {
+            case GridArea.ActiveScreenGridArea activeScreenGridArea -> {
                 Screen screen = screenManager.activeScreen();
                 int gridWidth = (int) (screen.rectangle().width() *
-                                       activeScreen.screenWidthPercent());
+                                       activeScreenGridArea.widthPercent());
                 int gridHeight = (int) (screen.rectangle().height() *
-                                        activeScreen.screenHeightPercent());
+                                        activeScreenGridArea.heightPercent());
                 gridBuilder.x(screen.rectangle().x() +
                               (screen.rectangle().width() - gridWidth) / 2)
                            .y(screen.rectangle().y() +
@@ -241,10 +241,10 @@ public class GridManager implements MousePositionListener, ModeListener {
                            .width(gridWidth)
                            .height(gridHeight);
             }
-            case GridArea.ActiveWindow activeWindow -> {
+            case GridArea.ActiveWindowGridArea activeWindowGridArea -> {
                 Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
-                        activeWindow.windowWidthPercent(),
-                        activeWindow.windowHeightPercent());
+                        activeWindowGridArea.widthPercent(),
+                        activeWindowGridArea.heightPercent());
                 gridBuilder.x(activeWindowRectangle.x())
                            .y(activeWindowRectangle.y())
                            .width(activeWindowRectangle.width())
