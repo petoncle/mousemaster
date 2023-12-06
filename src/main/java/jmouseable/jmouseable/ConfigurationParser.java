@@ -415,52 +415,123 @@ public class ConfigurationParser {
                                 "Invalid hide-cursor configuration: " + propertyKey);
                     }
                 }
+                case "start-move" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid start-move property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> addCommand(mode.comboMap(), propertyValue, new StartMoveUp(), defaultComboMoveDuration);
+                        case "down" -> addCommand(mode.comboMap(), propertyValue, new StartMoveDown(), defaultComboMoveDuration);
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new StartMoveLeft(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new StartMoveRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "stop-move" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid stop-move property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> addCommand(mode.comboMap(), propertyValue, new StopMoveUp(), defaultComboMoveDuration);
+                        case "down" -> addCommand(mode.comboMap(), propertyValue, new StopMoveDown(), defaultComboMoveDuration);
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new StopMoveLeft(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new StopMoveRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "press" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid press property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new PressLeft(), defaultComboMoveDuration);
+                        case "middle" -> addCommand(mode.comboMap(), propertyValue, new PressMiddle(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new PressRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "release" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid release property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new ReleaseLeft(), defaultComboMoveDuration);
+                        case "middle" -> addCommand(mode.comboMap(), propertyValue, new ReleaseMiddle(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new ReleaseRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "start-wheel" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid start-wheel property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> addCommand(mode.comboMap(), propertyValue, new StartWheelUp(), defaultComboMoveDuration);
+                        case "down" -> addCommand(mode.comboMap(), propertyValue, new StartWheelDown(), defaultComboMoveDuration);
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new StartWheelLeft(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new StartWheelRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "stop-wheel" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid stop-wheel property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> addCommand(mode.comboMap(), propertyValue, new StopWheelUp(), defaultComboMoveDuration);
+                        case "down" -> addCommand(mode.comboMap(), propertyValue, new StopWheelDown(), defaultComboMoveDuration);
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new StopWheelLeft(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new StopWheelRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "snap" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid snap property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> addCommand(mode.comboMap(), propertyValue, new SnapUp(), defaultComboMoveDuration);
+                        case "down" -> addCommand(mode.comboMap(), propertyValue, new SnapDown(), defaultComboMoveDuration);
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new SnapLeft(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new SnapRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "shrink-grid" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid shrink-grid property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridUp(), defaultComboMoveDuration);
+                        case "down" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridDown(), defaultComboMoveDuration);
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridLeft(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
+                case "move-grid" -> {
+                    if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid move-grid property key: " + propertyKey);
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> addCommand(mode.comboMap(), propertyValue, new MoveGridUp(), defaultComboMoveDuration);
+                        case "down" -> addCommand(mode.comboMap(), propertyValue, new MoveGridDown(), defaultComboMoveDuration);
+                        case "left" -> addCommand(mode.comboMap(), propertyValue, new MoveGridLeft(), defaultComboMoveDuration);
+                        case "right" -> addCommand(mode.comboMap(), propertyValue, new MoveGridRight(), defaultComboMoveDuration);
+                        // @formatter:on
+                    }
+                }
                 // @formatter:off
-                case "start-move-up" -> addCommand(mode.comboMap(), propertyValue, new StartMoveUp(), defaultComboMoveDuration);
-                case "start-move-down" -> addCommand(mode.comboMap(), propertyValue, new StartMoveDown(), defaultComboMoveDuration);
-                case "start-move-left" -> addCommand(mode.comboMap(), propertyValue, new StartMoveLeft(), defaultComboMoveDuration);
-                case "start-move-right" -> addCommand(mode.comboMap(), propertyValue, new StartMoveRight(), defaultComboMoveDuration);
-
-                case "stop-move-up" -> addCommand(mode.comboMap(), propertyValue, new StopMoveUp(), defaultComboMoveDuration);
-                case "stop-move-down" -> addCommand(mode.comboMap(), propertyValue, new StopMoveDown(), defaultComboMoveDuration);
-                case "stop-move-left" -> addCommand(mode.comboMap(), propertyValue, new StopMoveLeft(), defaultComboMoveDuration);
-                case "stop-move-right" -> addCommand(mode.comboMap(), propertyValue, new StopMoveRight(), defaultComboMoveDuration);
-
-                case "press-left" -> addCommand(mode.comboMap(), propertyValue, new PressLeft(), defaultComboMoveDuration);
-                case "press-middle" -> addCommand(mode.comboMap(), propertyValue, new PressMiddle(), defaultComboMoveDuration);
-                case "press-right" -> addCommand(mode.comboMap(), propertyValue, new PressRight(), defaultComboMoveDuration);
-
-                case "release-left" -> addCommand(mode.comboMap(), propertyValue, new ReleaseLeft(), defaultComboMoveDuration);
-                case "release-middle" -> addCommand(mode.comboMap(), propertyValue, new ReleaseMiddle(), defaultComboMoveDuration);
-                case "release-right" -> addCommand(mode.comboMap(), propertyValue, new ReleaseRight(), defaultComboMoveDuration);
-
-                case "start-wheel-up" -> addCommand(mode.comboMap(), propertyValue, new StartWheelUp(), defaultComboMoveDuration);
-                case "start-wheel-down" -> addCommand(mode.comboMap(), propertyValue, new StartWheelDown(), defaultComboMoveDuration);
-                case "start-wheel-left" -> addCommand(mode.comboMap(), propertyValue, new StartWheelLeft(), defaultComboMoveDuration);
-                case "start-wheel-right" -> addCommand(mode.comboMap(), propertyValue, new StartWheelRight(), defaultComboMoveDuration);
-
-                case "stop-wheel-up" -> addCommand(mode.comboMap(), propertyValue, new StopWheelUp(), defaultComboMoveDuration);
-                case "stop-wheel-down" -> addCommand(mode.comboMap(), propertyValue, new StopWheelDown(), defaultComboMoveDuration);
-                case "stop-wheel-left" -> addCommand(mode.comboMap(), propertyValue, new StopWheelLeft(), defaultComboMoveDuration);
-                case "stop-wheel-right" -> addCommand(mode.comboMap(), propertyValue, new StopWheelRight(), defaultComboMoveDuration);
-
-                case "snap-up" -> addCommand(mode.comboMap(), propertyValue, new SnapUp(), defaultComboMoveDuration);
-                case "snap-down" -> addCommand(mode.comboMap(), propertyValue, new SnapDown(), defaultComboMoveDuration);
-                case "snap-left" -> addCommand(mode.comboMap(), propertyValue, new SnapLeft(), defaultComboMoveDuration);
-                case "snap-right" -> addCommand(mode.comboMap(), propertyValue, new SnapRight(), defaultComboMoveDuration);
-
-                case "shrink-grid-top" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridTop(), defaultComboMoveDuration);
-                case "shrink-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridBottom(), defaultComboMoveDuration);
-                case "shrink-grid-left" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridLeft(), defaultComboMoveDuration);
-                case "shrink-grid-right" -> addCommand(mode.comboMap(), propertyValue, new ShrinkGridRight(), defaultComboMoveDuration);
-
-                case "move-grid-top" -> addCommand(mode.comboMap(), propertyValue, new MoveGridTop(), defaultComboMoveDuration);
-                case "move-grid-bottom" -> addCommand(mode.comboMap(), propertyValue, new MoveGridBottom(), defaultComboMoveDuration);
-                case "move-grid-left" -> addCommand(mode.comboMap(), propertyValue, new MoveGridLeft(), defaultComboMoveDuration);
-                case "move-grid-right" -> addCommand(mode.comboMap(), propertyValue, new MoveGridRight(), defaultComboMoveDuration);
-
                 case "move-to-grid-center" -> addCommand(mode.comboMap(), propertyValue, new MoveToGridCenter(), defaultComboMoveDuration);
-
                 case "save-mouse-position" -> addCommand(mode.comboMap(), propertyValue, new SaveMousePosition(), defaultComboMoveDuration);
                 case "clear-mouse-position-history" -> addCommand(mode.comboMap(), propertyValue, new ClearMousePositionHistory(), defaultComboMoveDuration);
                 // @formatter:on

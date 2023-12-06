@@ -58,13 +58,13 @@ public class CommandRunner {
             case SnapLeft snapLeft -> gridManager.snapLeft();
             case SnapRight snapRight -> gridManager.snapRight();
 
-            case ShrinkGridTop shrinkGridTop -> gridManager.shrinkGridTop();
-            case ShrinkGridBottom shrinkGridBottom -> gridManager.shrinkGridBottom();
+            case ShrinkGridUp shrinkGridUp -> gridManager.shrinkGridUp();
+            case ShrinkGridDown shrinkGridDown -> gridManager.shrinkGridDown();
             case ShrinkGridLeft shrinkGridLeft -> gridManager.shrinkGridLeft();
             case ShrinkGridRight shrinkGridRight -> gridManager.shrinkGridRight();
 
-            case MoveGridTop moveGridTop -> gridManager.moveGridTop();
-            case MoveGridBottom moveGridBottom -> gridManager.moveGridBottom();
+            case MoveGridUp moveGridUp -> gridManager.moveGridUp();
+            case MoveGridDown moveGridDown -> gridManager.moveGridDown();
             case MoveGridLeft moveGridLeft -> gridManager.moveGridLeft();
             case MoveGridRight moveGridRight -> gridManager.moveGridRight();
 

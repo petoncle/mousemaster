@@ -37,13 +37,13 @@ public sealed interface Command {
     record SnapLeft() implements Command {}
     record SnapRight() implements Command {}
 
-    record ShrinkGridTop() implements Command {}
-    record ShrinkGridBottom() implements Command {}
+    record ShrinkGridUp() implements Command {}
+    record ShrinkGridDown() implements Command {}
     record ShrinkGridLeft() implements Command {}
     record ShrinkGridRight() implements Command {}
 
-    record MoveGridTop() implements Command {}
-    record MoveGridBottom() implements Command {}
+    record MoveGridUp() implements Command {}
+    record MoveGridDown() implements Command {}
     record MoveGridLeft() implements Command {}
     record MoveGridRight() implements Command {}
 
