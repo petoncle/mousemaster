@@ -160,6 +160,12 @@ public class WindowsOverlay {
                 break;
             }
         }
+        for (Map.Entry<Screen, HintMeshWindow> entry : hintMeshWindows.entrySet()) {
+            Screen screen = entry.getKey();
+            HintMeshWindow window = entry.getValue();
+            if (!hintsByScreen.containsKey(screen))
+                window.hints.clear();
+        }
         for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
             Screen screen = entry.getKey();
             List<Hint> hintsInScreen = entry.getValue();
