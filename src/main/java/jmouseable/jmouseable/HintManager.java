@@ -282,8 +282,12 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!hintMeshConfiguration.enabled())
             return false;
         if (key.equals(hintMeshConfiguration.undoKey())) {
-            if (!hintMesh.focusedKeySequence().isEmpty()) {
-                hintMesh = hintMesh.builder().focusedKeySequence(List.of()).build();
+            List<Key> focusedKeySequence = hintMesh.focusedKeySequence();
+            if (!focusedKeySequence.isEmpty()) {
+                hintMesh = hintMesh.builder()
+                                   .focusedKeySequence(focusedKeySequence.subList(0,
+                                           focusedKeySequence.size() - 1))
+                                   .build();
                 WindowsOverlay.setHintMesh(hintMesh);
                 return true;
             }

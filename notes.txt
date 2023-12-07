@@ -165,7 +165,7 @@ _shift,^shift = press shift, release shift?
  - Allow all mode.Xxx to be copied, but cannot chain them (the copy source cannot, itself, copy from another mode)
  - Remove enabled fields like HintMeshConfiguration.enabled?
 - Prevent duplicate property keys in configuration files
-+ Fix undo key which is undoing all
+- Fix undo key which is undoing all
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)
 - Configuration file is automatically reloaded when changes are saved to it
