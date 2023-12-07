@@ -2,6 +2,8 @@ package jmouseable.jmouseable;
 
 import jmouseable.jmouseable.Grid.GridBuilder;
 
+import java.util.List;
+
 /**
  * Displays the grid and handles grid commands.
  */
@@ -9,6 +11,7 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private final ScreenManager screenManager;
     private final MouseController mouseController;
+    private List<GridListener> listeners;
     private Grid grid;
     private int mouseX, mouseY;
     private Mode currentMode;
@@ -16,6 +19,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     public GridManager(ScreenManager screenManager, MouseController mouseController) {
         this.screenManager = screenManager;
         this.mouseController = mouseController;
+    }
+
+    public void setListeners(List<GridListener> listeners) {
+        this.listeners = listeners;
     }
 
     public void shrinkGridUp() {
@@ -205,6 +212,7 @@ public class GridManager implements MousePositionListener, ModeListener {
             if (horizontal && !forward || !horizontal && !forward)
                 mouseController.moveTo(grid.x() + grid.width(), grid.y() + grid.height());
         }
+        listeners.forEach(GridListener::snappedToGrid);
     }
 
     @Override

@@ -17,23 +17,30 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final ScreenManager screenManager;
     private final MouseController mouseController;
     private ModeController modeController;
+    private List<PositionHistoryListener> positionHistoryListeners;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
     private int mouseX, mouseY;
     private Mode currentMode;
-    private final List<Point> mousePositionHistory = new ArrayList<>();
-    private final int maxMousePositionHistorySize;
+    private final List<Point> positionHistory = new ArrayList<>();
+    private final int maxPositionHistorySize;
     /**
      * Used for deterministic hint key sequences.
      */
-    private int mousePositionIdCount = 0;
-    private final Map<Point, Integer> idByMousePosition = new HashMap<>();
+    private int positionIdCount = 0;
+    private final Map<Point, Integer> idByPosition = new HashMap<>();
+    private int positionCycleIndex = 0;
 
-    public HintManager(int maxMousePositionHistorySize, ScreenManager screenManager,
+    public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
                        MouseController mouseController) {
-        this.maxMousePositionHistorySize = maxMousePositionHistorySize;
+        this.maxPositionHistorySize = maxPositionHistorySize;
         this.screenManager = screenManager;
         this.mouseController = mouseController;
+    }
+
+    public void setPositionHistoryListener(
+            List<PositionHistoryListener> positionHistoryListeners) {
+        this.positionHistoryListeners = positionHistoryListeners;
     }
 
     public void setModeController(ModeController modeController) {
@@ -153,18 +160,18 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints);
         }
         else {
-            int hintCount = mousePositionHistory.size();
+            int hintCount = positionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
-            List<Key> selectionKeySubset = maxMousePositionHistorySize >=
+            List<Key> selectionKeySubset = maxPositionHistorySize >=
                                            hintMeshConfiguration.selectionKeys().size() ?
                     hintMeshConfiguration.selectionKeys() :
                     hintMeshConfiguration.selectionKeys()
-                                         .subList(0, maxMousePositionHistorySize);
-            int hintLength = (int) Math.ceil(Math.log(maxMousePositionHistorySize) /
+                                         .subList(0, maxPositionHistorySize);
+            int hintLength = (int) Math.ceil(Math.log(maxPositionHistorySize) /
                                              Math.log(selectionKeySubset.size()));
-            for (Point point : mousePositionHistory) {
+            for (Point point : positionHistory) {
                 List<Key> keySequence = hintKeySequence(selectionKeySubset, hintLength,
-                        idByMousePosition.get(point) % maxMousePositionHistorySize);
+                        idByPosition.get(point) % maxPositionHistorySize);
                 hints.add(new Hint(point.x(), point.y(), keySequence));
             }
             hintMesh.hints(hints);
@@ -308,8 +315,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             // position before the mouse moved callback is called.
             mouseX = exactMatchHint.centerX();
             mouseY = exactMatchHint.centerY();
-            if (hintMeshConfiguration.saveMousePositionAfterSelection())
-                saveMousePosition();
+            if (hintMeshConfiguration.savePositionAfterSelection())
+                savePosition();
             if (hintMeshConfiguration.clickButtonAfterSelection() != null) {
                 switch (hintMeshConfiguration.clickButtonAfterSelection()) {
                     case Button.LEFT_BUTTON -> mouseController.clickLeft();
@@ -333,27 +340,61 @@ public class HintManager implements ModeListener, MousePositionListener {
         return true;
     }
 
-    public void saveMousePosition() {
+    public void savePosition() {
         Point point = new Point(mouseX, mouseY);
-        if (mousePositionHistory.contains(point))
+        if (positionHistory.contains(point))
             return;
-        idByMousePosition.put(point, mousePositionIdCount);
-        if (mousePositionIdCount == Integer.MAX_VALUE)
-            mousePositionIdCount = 0;
+        idByPosition.put(point, positionIdCount);
+        if (positionIdCount == Integer.MAX_VALUE)
+            positionIdCount = 0;
         else
-            mousePositionIdCount++;
-        if (mousePositionHistory.size() == maxMousePositionHistorySize)
-            mousePositionHistory.removeFirst();
-        mousePositionHistory.add(point);
+            positionIdCount++;
+        if (positionHistory.size() == maxPositionHistorySize)
+            positionHistory.removeFirst();
+        positionHistory.add(point);
+        positionCycleIndex = positionHistory.size() - 1;
         logger.debug(
                 "Saved mouse position " + point.x() + "," + point.y() + " to history");
     }
 
-    public void clearMousePositionHistory() {
-        mousePositionHistory.clear();
-        idByMousePosition.clear();
-        mousePositionIdCount = 0;
+    public void clearPositionHistory() {
+        positionHistory.clear();
+        idByPosition.clear();
+        positionIdCount = 0;
+        positionCycleIndex = 0;
         logger.debug("Reset mouse position history");
+    }
+
+    public void cycleNextPosition() {
+        if (positionHistory.isEmpty())
+            return;
+        findPositionHistoryEntryMatchingCurrentPosition();
+        positionCycleIndex = (positionCycleIndex + 1) % positionHistory.size();
+        Point point = positionHistory.get(positionCycleIndex);
+        mouseController.moveTo(point.x(), point.y());
+        positionHistoryListeners.forEach(PositionHistoryListener::cycledPosition);
+    }
+
+    private void findPositionHistoryEntryMatchingCurrentPosition() {
+        for (int positionIndex = 0;
+             positionIndex < positionHistory.size(); positionIndex++) {
+            Point point = positionHistory.get(positionIndex);
+            if (point.x() == mouseX && point.y() == mouseY) {
+                positionCycleIndex = positionIndex;
+                break;
+            }
+        }
+    }
+
+    public void cyclePreviousPosition() {
+        if (positionHistory.isEmpty())
+            return;
+        findPositionHistoryEntryMatchingCurrentPosition();
+        positionCycleIndex = (positionCycleIndex - 1 + positionHistory.size()) %
+                             positionHistory.size();
+        Point point = positionHistory.get(positionCycleIndex);
+        mouseController.moveTo(point.x(), point.y());
+        positionHistoryListeners.forEach(PositionHistoryListener::cycledPosition);
     }
 
 }

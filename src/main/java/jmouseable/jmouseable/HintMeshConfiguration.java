@@ -10,7 +10,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
                                     String selectedPrefixFontHexColor, String boxHexColor,
                                     String nextModeAfterSelection,
                                     Button clickButtonAfterSelection,
-                                    boolean saveMousePositionAfterSelection) {
+                                    boolean savePositionAfterSelection) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -24,7 +24,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         private String boxHexColor;
         private String nextModeAfterSelection;
         private Button clickButtonAfterSelection;
-        private boolean saveMousePositionAfterSelection;
+        private boolean savePositionAfterSelection;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -79,9 +79,9 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return this;
         }
 
-        public HintMeshConfigurationBuilder saveMousePositionAfterSelection(
-                boolean saveMousePositionAfterSelection) {
-            this.saveMousePositionAfterSelection = saveMousePositionAfterSelection;
+        public HintMeshConfigurationBuilder savePositionAfterSelection(
+                boolean savePositionAfterSelection) {
+            this.savePositionAfterSelection = savePositionAfterSelection;
             return this;
         }
 
@@ -129,15 +129,15 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return clickButtonAfterSelection;
         }
 
-        public boolean saveMousePositionAfterSelection() {
-            return saveMousePositionAfterSelection;
+        public boolean savePositionAfterSelection() {
+            return savePositionAfterSelection;
         }
 
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, type.build(), selectionKeys,
                     undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
                     boxHexColor, nextModeAfterSelection, clickButtonAfterSelection,
-                    saveMousePositionAfterSelection);
+                    savePositionAfterSelection);
         }
 
     }

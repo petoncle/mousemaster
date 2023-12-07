@@ -1,7 +1,9 @@
 package jmouseable.jmouseable;
 
-import jmouseable.jmouseable.Command.ClearMousePositionHistory;
-import jmouseable.jmouseable.Command.SaveMousePosition;
+import jmouseable.jmouseable.Command.ClearPositionHistory;
+import jmouseable.jmouseable.Command.CycleNextPosition;
+import jmouseable.jmouseable.Command.CyclePreviousPosition;
+import jmouseable.jmouseable.Command.SavePosition;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,8 +25,10 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
         private Map<Combo, List<Command>> shrinkGrid = new HashMap<>();
         private Map<Combo, List<Command>> moveGrid = new HashMap<>();
         private Map<Combo, List<Command>> moveToGridCenter = new HashMap<>();
-        private Map<Combo, List<Command>> saveMousePosition = new HashMap<>();
-        private Map<Combo, List<Command>> clearMousePositionHistory = new HashMap<>();
+        private Map<Combo, List<Command>> savePosition = new HashMap<>();
+        private Map<Combo, List<Command>> clearPositionHistory = new HashMap<>();
+        private Map<Combo, List<Command>> cycleNextPosition = new HashMap<>();
+        private Map<Combo, List<Command>> cyclePreviousPosition = new HashMap<>();
 
         public ComboMapBuilder add(Combo combo, Command command) {
             Map<Combo, List<Command>> map = switch (command) {
@@ -76,8 +80,10 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
 
                 case Command.MoveToGridCenter moveToGridCenter_ -> moveToGridCenter;
 
-                case SaveMousePosition saveMousePosition_ -> saveMousePosition;
-                case ClearMousePositionHistory clearMousePositionHistory_ -> clearMousePositionHistory;
+                case SavePosition savePosition_ -> savePosition;
+                case ClearPositionHistory clearPositionHistory_ -> clearPositionHistory;
+                case CycleNextPosition cycleNextPosition_ -> cycleNextPosition;
+                case CyclePreviousPosition cyclePreviousPosition_ -> cyclePreviousPosition;
                 // @formatter:on
             };
             map.computeIfAbsent(combo, combo1 -> new ArrayList<>()).add(command);
@@ -97,8 +103,10 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
             add(commandsByCombo, shrinkGrid);
             add(commandsByCombo, moveGrid);
             add(commandsByCombo, moveToGridCenter);
-            add(commandsByCombo, saveMousePosition);
-            add(commandsByCombo, clearMousePositionHistory);
+            add(commandsByCombo, savePosition);
+            add(commandsByCombo, clearPositionHistory);
+            add(commandsByCombo, cycleNextPosition);
+            add(commandsByCombo, cyclePreviousPosition);
             return commandsByCombo;
         }
 

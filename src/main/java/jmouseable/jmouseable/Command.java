@@ -49,7 +49,9 @@ public sealed interface Command {
 
     record MoveToGridCenter() implements Command {}
 
-    record SaveMousePosition() implements Command {}
-    record ClearMousePositionHistory() implements Command {}
+    record SavePosition() implements Command {}
+    record ClearPositionHistory() implements Command {}
+    record CycleNextPosition() implements Command {}
+    record CyclePreviousPosition() implements Command {}
 
 }

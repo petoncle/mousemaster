@@ -70,8 +70,10 @@ public class CommandRunner {
 
             case MoveToGridCenter moveToGridCenter -> gridManager.moveToGridCenter();
 
-            case SaveMousePosition saveMousePosition -> hintManager.saveMousePosition();
-            case ClearMousePositionHistory clearMousePositionHistory -> hintManager.clearMousePositionHistory();
+            case SavePosition savePosition -> hintManager.savePosition();
+            case ClearPositionHistory clearPositionHistory -> hintManager.clearPositionHistory();
+            case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
+            case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
             // @formatter:on
         }
     }

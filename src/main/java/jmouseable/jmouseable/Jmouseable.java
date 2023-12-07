@@ -83,7 +83,7 @@ public class Jmouseable {
         ScreenManager screenManager = new ScreenManager();
         GridManager gridManager = new GridManager(screenManager, mouseController);
         HintManager hintManager =
-                new HintManager(configuration.maxMousePositionHistorySize(),
+                new HintManager(configuration.maxPositionHistorySize(),
                         screenManager, mouseController);
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager,
                 hintManager);
@@ -95,6 +95,8 @@ public class Jmouseable {
                 List.of(comboWatcher, indicatorManager, gridManager, hintManager));
         commandRunner.setModeController(modeController);
         hintManager.setModeController(modeController);
+        gridManager.setListeners(List.of(modeController));
+        hintManager.setPositionHistoryListener(List.of(modeController));
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(),

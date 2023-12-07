@@ -8,13 +8,13 @@ public sealed interface HintMeshType {
             implements HintMeshType {
     }
 
-    record HintMousePositionHistory() implements HintMeshType {
+    record HintPositionHistory() implements HintMeshType {
 
     }
 
     enum HintMeshTypeType {
 
-        GRID, MOUSE_POSITION_HISTORY
+        GRID, POSITION_HISTORY
 
     }
 
@@ -37,8 +37,8 @@ public sealed interface HintMeshType {
                     this.gridRowCount = hintGrid.rowCount;
                     this.gridColumnCount = hintGrid.columnCount;
                 }
-                case HintMousePositionHistory hintMousePositionHistory -> {
-                    this.type = HintMeshTypeType.MOUSE_POSITION_HISTORY;
+                case HintPositionHistory hintPositionHistory -> {
+                    this.type = HintMeshTypeType.POSITION_HISTORY;
                 }
             }
         }
@@ -78,7 +78,7 @@ public sealed interface HintMeshType {
             return switch (type) {
                 case GRID ->
                         new HintGrid(gridArea.build(), gridRowCount, gridColumnCount);
-                case MOUSE_POSITION_HISTORY -> new HintMousePositionHistory();
+                case POSITION_HISTORY -> new HintPositionHistory();
             };
         }
     }

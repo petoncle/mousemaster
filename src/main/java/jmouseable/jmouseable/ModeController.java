@@ -8,7 +8,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-public class ModeController implements GridListener {
+public class ModeController implements GridListener, PositionHistoryListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ModeController.class);
 
@@ -22,6 +22,7 @@ public class ModeController implements GridListener {
     private double timeoutIdleTimer;
     private double hideCursorIdleTimer;
     private boolean justSnappedToGrid;
+    private boolean justCycledPosition;
 
     public ModeController(ModeMap modeMap, MouseController mouseController, MouseState mouseState,
                           List<ModeListener> listeners) {
@@ -37,8 +38,10 @@ public class ModeController implements GridListener {
 
     public void update(double delta) {
         boolean mouseIdling = !mouseState.moving() && !mouseState.pressing() &&
-                              !mouseState.wheeling() && !justSnappedToGrid;
+                              !mouseState.wheeling() && !justSnappedToGrid &&
+                              !justCycledPosition;
         justSnappedToGrid = false;
+        justCycledPosition = false;
         if (!mouseIdling) {
             resetIdleTimers();
             resetCurrentModeCursorHidden();
@@ -125,7 +128,11 @@ public class ModeController implements GridListener {
 
     @Override
     public void snappedToGrid() {
-        this.justSnappedToGrid = true;
+        justSnappedToGrid = true;
     }
 
+    @Override
+    public void cycledPosition() {
+        justCycledPosition = true;
+    }
 }
