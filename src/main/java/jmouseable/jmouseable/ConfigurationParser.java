@@ -284,6 +284,7 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid hint property key: " + propertyKey);
                     else {
+                        mode.hintMesh.builder.enabled(true);
                         switch (keyMatcher.group(4)) {
                             case "enabled" -> mode.hintMesh.builder.enabled(
                                     Boolean.parseBoolean(propertyValue));
@@ -391,11 +392,13 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid timeout property key: " + propertyKey);
                     else {
+                        mode.timeout.builder.enabled(true);
                         switch (keyMatcher.group(4)) {
                             case "enabled" -> mode.timeout.builder.enabled(
                                     Boolean.parseBoolean(propertyValue));
                             case "idle-duration-millis" ->
-                                    mode.timeout.builder.idleDuration(parseDuration(propertyValue));
+                                    mode.timeout.builder.idleDuration(
+                                            parseDuration(propertyValue));
                             case "next-mode" -> {
                                 String nextModeName = propertyValue;
                                 mode.timeout.builder.nextModeName(nextModeName);
@@ -419,6 +422,7 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid indicator property key: " + propertyKey);
                     else {
+                        mode.indicator.builder.enabled(true);
                         switch (keyMatcher.group(4)) {
                             case "enabled" -> mode.indicator.builder.enabled(
                                     Boolean.parseBoolean(propertyValue));
@@ -450,6 +454,7 @@ public class ConfigurationParser {
                         throw new IllegalArgumentException(
                                 "Invalid hide-cursor property key: " + propertyKey);
                     else {
+                        mode.hideCursor.builder.enabled(true);
                         switch (keyMatcher.group(4)) {
                             case "enabled" -> mode.hideCursor.builder.enabled(
                                     Boolean.parseBoolean(propertyValue));
