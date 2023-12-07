@@ -24,11 +24,9 @@ public record Mode(String name, boolean pushModeToHistoryStack, ComboMap comboMa
         private MouseBuilder mouse = new MouseBuilder();
         private WheelBuilder wheel = new WheelBuilder();
         private GridConfigurationBuilder grid = new GridConfigurationBuilder();
-        private HintMeshConfigurationBuilder hintMesh =
-                new HintMeshConfigurationBuilder();
+        private HintMeshConfigurationBuilder hintMesh = new HintMeshConfigurationBuilder();
         private ModeTimeoutBuilder timeout = new ModeTimeoutBuilder();
-        private IndicatorConfigurationBuilder
-                indicator = new IndicatorConfigurationBuilder();
+        private IndicatorConfigurationBuilder indicator = new IndicatorConfigurationBuilder();
         private HideCursorBuilder hideCursor = new HideCursorBuilder();
 
         public ModeBuilder(String name) {

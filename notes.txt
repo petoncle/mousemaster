@@ -161,7 +161,7 @@ _shift,^shift = press shift, release shift?
  + hint.type = mouse-position-history
  + grid.area
 ++ Remove extend? Replace with absolute-snap-mode.indicator=temp-absolute-snap-mode.indicator
- + start-move-up -> start-move.up/down/... (block that can be copied), stop-move.up/down/...
+ - start-move-up -> start-move.up/down/... (block that can be copied), stop-move.up/down/...
  + Allow all mode.Xxx to be copied, but cannot chain them (the copy source cannot, itself, copy from another mode)
  + Remove enabled fields like HintMeshConfiguration.enabled?
 + Prevent duplicate property keys in configuration files
