@@ -152,24 +152,32 @@ public class GridManager implements MousePositionListener, ModeListener {
             int mouseColumn = (mouseX - grid.x()) / cellWidth;
             int mouseRow = (mouseY - grid.y()) / cellHeight;
             if (horizontal) {
-                if (forward)
-                    x = grid.x() + (mouseColumn + 1) * cellWidth;
+                int newMouseColumn =
+                        forward ? Math.min(grid.columnCount(), mouseColumn + 1) :
+                                Math.max(0, mouseColumn -
+                                            ((mouseX - grid.x()) % cellWidth <= 1 ? 1 :
+                                                    0));
+                if (newMouseColumn == 0)
+                    x = grid.x();
+                else if (newMouseColumn == grid.columnCount())
+                    x = grid.x() + grid.width();
                 else
-                    x = grid.x() +
-                        (mouseColumn - ((mouseX - grid.x()) % cellWidth == 0 ? 1 : 0)) *
-                        cellWidth;
-                x = Math.max(grid.x(), Math.min(grid.x() + grid.width(), x));
+                    x = grid.x() + newMouseColumn * cellWidth;
                 y = mouseY;
             }
             else {
                 x = mouseX;
-                if (forward)
-                    y = grid.y() + (mouseRow + 1) * cellHeight;
+                int newMouseRow =
+                        forward ? Math.min(grid.rowCount(), mouseRow + 1) :
+                                Math.max(0, mouseRow -
+                                            ((mouseY - grid.y()) % cellHeight <= 1 ? 1 :
+                                                    0));
+                if (newMouseRow == 0)
+                    y = grid.y();
+                else if (newMouseRow == grid.rowCount())
+                    y = grid.y() + grid.height();
                 else
-                    y = grid.y() +
-                        (mouseRow - ((mouseY - grid.y()) % cellHeight == 0 ? 1 : 0)) *
-                        cellHeight;
-                y = Math.max(grid.y(), Math.min(grid.y() + grid.height(), y));
+                    y = grid.y() + newMouseRow * cellHeight;
             }
             if (screenManager.screenContaining(x, y) == null) {
                 Screen activeScreen = screenManager.activeScreen();
