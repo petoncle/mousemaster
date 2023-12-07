@@ -157,14 +157,14 @@ _shift,^shift = press shift, release shift?
 - Check mode reference tree
 + Improve error handling in config parser
  + Wrap all parseBoolean/... into try catch that log the error with the property key and value
-++ hint.type -> hint.type=grid .area=active-screen/... hint.area-width-percent, .row-count
- + hint.type = mouse-position-history
- + grid.area
-++ Remove extend? Replace with absolute-snap-mode.indicator=temp-absolute-snap-mode.indicator
+- hint.type -> hint.type=grid .area=active-screen/... hint.area-width-percent, .row-count
+ - hint.type = mouse-position-history
+ - grid.area
+- Remove extend? Replace with absolute-snap-mode.indicator=temp-absolute-snap-mode.indicator
  - start-move-up -> start-move.up/down/... (block that can be copied), stop-move.up/down/...
- + Allow all mode.Xxx to be copied, but cannot chain them (the copy source cannot, itself, copy from another mode)
+ - Allow all mode.Xxx to be copied, but cannot chain them (the copy source cannot, itself, copy from another mode)
  + Remove enabled fields like HintMeshConfiguration.enabled?
-+ Prevent duplicate property keys in configuration files
+- Prevent duplicate property keys in configuration files
 + Fix undo key which is undoing all
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)

@@ -120,7 +120,7 @@ public class ConfigurationParser {
         KeyboardLayout keyboardLayout = null;
         int maxMousePositionHistorySize = 16;
         Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
-        Map<String, ModeConfigurationBuilder> modeByName = new HashMap<>();
+        Map<String, ModeBuilder> modeByName = new HashMap<>();
         Map<PropertyKey, Property<?>> propertyByKey = new HashMap<>();
         Set<PropertyKey> nonRootPropertyKeys = new HashSet<>();
         Set<String> modeReferences = new HashSet<>();
@@ -144,7 +144,7 @@ public class ConfigurationParser {
                         "Invalid property " + line + ": property value cannot be blank");
             if (!visitedPropertyKeys.add(propertyKey))
                 throw new IllegalArgumentException(
-                        "Property key " + propertyKey + " is defined twice");
+                        "Property " + propertyKey + " is defined twice");
             if (propertyKey.equals("default-combo-move-duration-millis")) {
                 defaultComboMoveDuration = parseComboMoveDuration(propertyKey, propertyValue);
                 continue;
@@ -180,9 +180,9 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "Invalid mode name in property key " + propertyKey +
                         ": mode names cannot contains . or =");
-            ModeConfigurationBuilder mode =
+            ModeBuilder mode =
                     modeByName.computeIfAbsent(modeName,
-                            modeName1 -> new ModeConfigurationBuilder(modeName1, propertyByKey));
+                            modeName1 -> new ModeBuilder(modeName1, propertyByKey));
             String group2 = keyMatcher.group(2);
             ComboMoveDuration finalDefaultComboMoveDuration = defaultComboMoveDuration;
             switch (group2) {
@@ -686,17 +686,17 @@ public class ConfigurationParser {
             recursivelyExtendProperty(
                     defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
                     rootPropertyNode, propertyByKey);
-        for (ModeConfigurationBuilder mode : modeByName.values())
+        for (ModeBuilder mode : modeByName.values())
             checkMissingProperties(mode);
         Set<Mode> modes = modeByName.values()
                                     .stream()
-                                    .map(ModeConfigurationBuilder::build)
+                                    .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
         return new Configuration(keyboardLayout, maxMousePositionHistorySize,
                 new ModeMap(modes));
     }
 
-    private static void checkMissingProperties(ModeConfigurationBuilder mode) {
+    private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() &&
             (mode.timeout.builder.idleDuration() == null ||
              mode.timeout.builder.nextModeName() == null))
@@ -992,7 +992,7 @@ public class ConfigurationParser {
     }
 
     @SuppressWarnings("unchecked")
-    private static final class ModeConfigurationBuilder {
+    private static final class ModeBuilder {
         final String modeName;
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
         ComboMapConfigurationBuilder comboMap;
@@ -1004,8 +1004,8 @@ public class ConfigurationParser {
         Property<IndicatorConfigurationBuilder> indicator;
         Property<HideCursorBuilder> hideCursor;
 
-        private ModeConfigurationBuilder(String modeName,
-                                         Map<PropertyKey, Property<?>> propertyByKey) {
+        private ModeBuilder(String modeName,
+                            Map<PropertyKey, Property<?>> propertyByKey) {
             this.modeName = modeName;
             comboMap = new ComboMapConfigurationBuilder(modeName, propertyByKey);
             pushModeToHistoryStack = new Property<>("push-mode-to-history-stack", modeName,
