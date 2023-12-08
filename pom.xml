@@ -73,8 +73,15 @@
                         </executions>
                         <configuration>
                             <fallback>false</fallback>
+                            <!-- https://graalvm.github.io/native-build-tools/latest/maven-plugin.html#agent-support-configuring-options -->
+                            <!-- https://medium.com/graalvm/simplifying-native-image-generation-with-maven-plugin-and-embeddable-configuration-d5b283b92f57 -->
+                            <!-- ./mvnw -Pnative -Dagent package will read the json files from the jar's META-INF/native-image. -->
                             <agent>
                                 <enabled>true</enabled>
+                                <defaultMode>direct</defaultMode>
+                                <modes>
+                                    <direct>config-output-dir=src/main/resources/META-INF/native-image</direct>
+                                </modes>
                             </agent>
                         </configuration>
                     </plugin>

@@ -1,0 +1,26 @@
+[
+  {
+    "interfaces":["com.sun.jna.platform.win32.GDI32"]
+  },
+  {
+    "interfaces":["com.sun.jna.platform.win32.Kernel32"]
+  },
+  {
+    "interfaces":["com.sun.jna.platform.win32.User32"]
+  },
+  {
+    "interfaces":["jmouseable.jmouseable.Dwmapi"]
+  },
+  {
+    "interfaces":["jmouseable.jmouseable.ExtendedGDI32"]
+  },
+  {
+    "interfaces":["jmouseable.jmouseable.ExtendedKernel32"]
+  },
+  {
+    "interfaces":["jmouseable.jmouseable.ExtendedUser32"]
+  },
+  {
+    "interfaces":["jmouseable.jmouseable.Shcore"]
+  }
+]

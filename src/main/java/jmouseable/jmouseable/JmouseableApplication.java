@@ -29,10 +29,10 @@ public class JmouseableApplication {
                                        .map(Paths::get)
                                        .orElse(Paths.get("jmouseable.properties"));
         if (Stream.of(args).anyMatch(Predicate.isEqual(("--graalvm-agent-run")))) {
-            logger.info("--graalvm-agent-run flag found, exiting in 5s");
+            logger.info("--graalvm-agent-run flag found, exiting in 20s");
             new Thread(() -> {
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(20000);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
