@@ -12,6 +12,8 @@
     JAVA_HOME=~/Documents/tools/graalvm-jdk-21.0.1+12.1/ ./mvnw clean package
     JAVA_HOME=~/Documents/tools/graalvm-jdk-21.0.1+12.1/ ./mvnw -Pnative -Dagent exec:exec@java-agent
     JAVA_HOME=~/Documents/tools/graalvm-jdk-21.0.1+12.1/ ./mvnw -Pnative -Dagent package
+    https://github.com/oracle/graal/issues/1762#issuecomment-1297370039
+    ./pefrmdllembed/pefrmdllembed.exe -impinj target/jmouseable.exe ./pefrmdllembed/VCRUNTIME140.dll target/jmouseable-with-vcruntime140.exe
     -->
 
     <properties>
