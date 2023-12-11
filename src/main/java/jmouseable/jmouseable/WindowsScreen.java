@@ -59,9 +59,15 @@ public class WindowsScreen {
     }
 
     private static double findScreenScale(WinUser.HMONITOR hMonitor) {
-        IntByReference scaleFactor = new IntByReference();
-        Shcore.INSTANCE.GetScaleFactorForMonitor(hMonitor, scaleFactor);
-        return scaleFactor.getValue() / 100d;
+        // https://stackoverflow.com/questions/63692872/is-getscalefactorformonitor-winapi-returning-incorrect-scaling-factor
+        // When running with GraalVM, and with a Display scale of 150%, GetScaleFactorForMonitor returns 140.
+        // When running with Temurin, GetScaleFactorForMonitor returns 150.
+        // This is apparently due to process DPI awareness, which is set to unaware when running with Temurin (??).
+//        IntByReference scaleFactor = new IntByReference();
+//        Shcore.INSTANCE.GetScaleFactorForMonitor(hMonitor, scaleFactor);
+//        return scaleFactor.getValue() / 100d;
+        double scale = findScreenDpi(hMonitor, true) / 96d;
+        return scale;
     }
 
 }

@@ -126,15 +126,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Rectangle activeWindowRectangle =
                         WindowsOverlay.activeWindowRectangle(1, 1);
                 Point gridCenter = activeWindowRectangle.center();
-                int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount,
-                        columnCount;
+                int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
                 Screen activeScreen = screenManager.activeScreen();
                 rowCount = Math.max(1, Math.min(hintGrid.maxRowCount(),
-                        (int) (activeWindowRectangle.height() / hintGrid.cellHeight() /
-                               activeScreen.scale())));
+                        (int) ((double) activeWindowRectangle.height() /
+                               hintGrid.cellHeight() / activeScreen.scale())));
                 columnCount = Math.max(1, Math.min(hintGrid.maxColumnCount(),
-                        (int) (activeWindowRectangle.width() / hintGrid.cellWidth() /
-                               activeScreen.scale())));
+                        (int) ((double) activeWindowRectangle.width() /
+                               hintGrid.cellWidth() / activeScreen.scale())));
                 hintMeshWidth = Math.min(activeWindowRectangle.width(),
                         (int) (columnCount * hintGrid.cellWidth() /
                                activeScreen.scale()));
@@ -239,9 +238,11 @@ public class HintManager implements ModeListener, MousePositionListener {
             throw new IllegalArgumentException();
         int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight;
         int rowCount = Math.max(1, Math.min(maxRowCount,
-                (int) (screen.rectangle().height() / cellHeight / screen.scale())));
+                (int) ((double) screen.rectangle().height() / cellHeight /
+                       screen.scale())));
         int columnCount = Math.max(1, Math.min(maxColumnCount,
-                (int) (screen.rectangle().width() / cellWidth / screen.scale())));
+                (int) ((double) screen.rectangle().width() / cellWidth /
+                       screen.scale())));
         hintMeshWidth = Math.min(screen.rectangle().width(),
                 (int) (columnCount * cellWidth * screen.scale()));
         hintMeshHeight = Math.min(screen.rectangle().height(),
