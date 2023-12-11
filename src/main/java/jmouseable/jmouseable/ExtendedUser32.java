@@ -30,8 +30,6 @@ public interface ExtendedUser32 extends User32 {
 
     int LLKHF_INJECTED = 0x00000010;
 
-    int GetDpiForWindow(HWND hwnd);
-
     boolean GetCursorInfo(CURSORINFO pci);
 
     boolean GetIconInfo(HICON hIcon, WinGDI.ICONINFO piconinfo);

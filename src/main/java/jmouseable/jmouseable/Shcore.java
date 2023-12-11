@@ -28,4 +28,7 @@ public interface Shcore extends StdCallLibrary {
 
     WinNT.HRESULT GetDpiForMonitor(WinUser.HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType,
                                    IntByReference dpiX, IntByReference dpiY);
+
+    WinNT.HRESULT GetScaleFactorForMonitor(WinUser.HMONITOR hmonitor,
+                                           IntByReference scaleFactor);
 }
