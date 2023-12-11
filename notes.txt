@@ -51,11 +51,11 @@ _shift,^shift = press shift, release shift?
  - On windows lock screen, I hit space then enter the pin. Space press is recorded by the app but the
    corresponding release is never received, never removed from currentlyPressedKeys. This blocks the app.
 - toggle logging?
-+ teleport key should use current display size percentage: not if we go from one screen to another
- + Name it move-left-by instead of teleport-left
- + mouse.move-by-offset=300
-+ vimium-like hint (warpd), keynav-like grid?
-+ Move mouse to center of focused app?
+- teleport key should use current display size percentage: not if we go from one screen to another
+ - Name it move-left-by instead of teleport-left
+ - mouse.move-by-offset=300
+- vimium-like hint (warpd), keynav-like grid?
+- Move mouse to center of focused app?
 - Hide cursor after 5s
  - uncluttered-normal-mode.hide-cursor.enabled+idle-duration
  - timeout.duration -> idle-duration
@@ -64,11 +64,11 @@ _shift,^shift = press shift, release shift?
 - Check LLKHF_INJECTED?
 - Min/max values for grid row/column count
 - Do not inherit SwitchMode commands with mode.extend
-+ Keynav grid (2 rows x 2 columns grid)
- + Grid could have arbitrary number of rows/columns (for snapping), but the grid cuts and shifts are done on 2x2
+- Keynav grid (2 rows x 2 columns grid)
+ - Grid could have arbitrary number of rows/columns (for snapping), but the grid cuts and shifts are done on 2x2
  - Snap instead of grid?
- + Reset/Show grid to full screen, fixed-size around current mouse position, around focused window
-  + create-full-screen-grid, create-active-window-grid, create-follow-mouse-grid
+ - Reset/Show grid to full screen, fixed-size around current mouse position, around focused window
+  - create-full-screen-grid, create-active-window-grid, create-follow-mouse-grid
    - grid.follow-mouse-grid-width/height
    - press rightctrl -> temp-snap-mode
    - temp-snap-mode -> idle timeout 0.2s -> grid-mode
@@ -76,10 +76,10 @@ _shift,^shift = press shift, release shift?
    - press rightctrl -> snap-mode -> release rightctrl -> normal-mode
    - temp-snap-mode -> quick release rightctrl -> normal-mode
    - grid-mode -> release rightctrl -> normal-mode
-  + If leftctrl also pressed then focused window grid, if leftshift then around current pos
-  + also moves mouse to grid center: move-to-grid-center-when-created=true
- + Hide grid (cannot disable a grid?)
-  + If try to use grid commands while grid is hidden/not initialized, create a new full screen grid
+  - If leftctrl also pressed then focused window grid, if leftshift then around current pos
+  - also moves mouse to grid center: move-to-grid-center-when-created=true
+ - Hide grid (cannot disable a grid?)
+ -- If try to use grid commands while grid is hidden/not initialized, create a new full screen grid
  - Snap to grid lines (mouse can be outside grid) snap-left
  - Half (cut in half) grid in a direction (shrink-grid-top/bottom/left/right)
   - arrow keys
@@ -103,14 +103,14 @@ _shift,^shift = press shift, release shift?
   - grid.type->area = active-screen 1.0 1.0, active-window 1.0 1.0
  - Rename snapRow/ColumnCount to row/ColumnCount
  + IndicatorManager should listen for mouse position and give it to WindowsIndicator
- + Hints
-  + Grid hints (hints on the current grid, which can be a fullscreen or active window or around mouse grid)
-  + Screen hints = one-hint-per-screen-mode (one per screen)
-  + Grid type: active-screen (instead of full screen) and all-screens
-  + all-screens: WindowsOverlay.setGrid(List<Grid>)
-  + One hint per grid cell
-  + Screen selection = all-screens grid with row/column count 1
-    + In all screen grid, cannot move grid or cut grid (but can snap)
+ - Hints
+  - Grid hints (hints on the current grid, which can be a fullscreen or active window or around mouse grid)
+  - Screen hints = one-hint-per-screen-mode (one per screen)
+  - Grid type: active-screen (instead of full screen) and all-screens
+  - all-screens: WindowsOverlay.setGrid(List<Grid>)
+  - One hint per grid cell
+  - Screen selection = all-screens grid with row/column count 1
+    - In all screen grid, cannot move grid or cut grid (but can snap)
   - Hint selection is like cutting the grid to a specific cell
    - mode.grid.end.shrink-count = 2 to have 2-phase hint selection
     - grid.end.next-mode
@@ -125,9 +125,9 @@ _shift,^shift = press shift, release shift?
   - Else: Find hintLength, hintCount = hintKeyCount^hintLength >= rowCount*columnCount
   - grid.hint-enabled=false/true
   - Split hint into its own class HintManager
-   + hint.area=active-screen, active-window, all-screens
+   - hint.area=active-screen, active-window, all-screens
 - Give a chance to _{} ^{} combos when mode switched? No
- + Dragging: normal-mode -> press left -> hint mode (handles left release key) -> normal-mode
+ - Dragging: normal-mode -> press left -> hint mode (handles left release key) -> normal-mode
 + Update hint windows when screens changed?
 + Hint undo key could be a combo instead of a key
 - History (positions previously selected through hints)
@@ -147,10 +147,9 @@ _shift,^shift = press shift, release shift?
  - push-mode-to-history-stack=true
 - Change pause-combo-processing-when-mode-activated to when-mode-exited and simplify absolute-snap-mode
  - Remove it completely? Ignore switch-mode combo if mode has already been changed?
-+ Cannot have grid created centered on mouse?
-+ Is grid follows mouse useful? Should it be replaced with jump-forward command
+- Is grid follows mouse useful? Should it be replaced with jump-forward command
   and jump-forward-screen-percent?
-  + Make mouse-follows-grid-center the default, need grid.enabled?
+  - Make mouse-follows-grid-center the default, need grid.enabled?
   - Or Move to grid center command
 ++ Zoom mode? Useful for 2-stage hint?
 + Configuration for indicator offset
@@ -166,23 +165,24 @@ _shift,^shift = press shift, release shift?
  - Remove enabled fields like HintMeshConfiguration.enabled?
 - Prevent duplicate property keys in configuration files
 - Fix undo key which is undoing all
+
 - No UI (just a command line app that loads the configuration from a file)
 - Seamlessly move mouse across screens (like mouseable does)
 - Configuration file is automatically reloaded when changes are saved to it
 - Distinguish between left and right alt/ctrl/shift keys
 - Keyboard layout-aware
 - Can have an indicator next to the mouse (or not), with different colors for when idling, moving, pressing buttons, and scrolling
-- The indicator will re-position itself when the mouse is close to the edges of the screen so that it stays visible
+- The indicator will re-position itself around the mouse when the mouse is close to the edges of the screen so that it stays visible
 - Configuration of keys is done in terms of key press and key release events, and whether the key events should be passed onto other apps or not.
   This allows for defining advanced key combos, but at the cost of added complexity of the configuration file
-- Each command (e.g. start-move-left) is triggered by one or more key combos
+- Each command (e.g. start-move.left, stop-move.left, press.middle) is triggered by one or more key combos
 - The same key combo can be used to trigger multiple commands. This can be used to do many things including "click and disable".
-- The user defines modes. There is only one predefined mode, the "idle-mode" which has no key combos defined (i.e. this is the "Xxx is disabled mode").
+- The user defines modes. There is only one predefined mode, the "idle-mode" which has no key combos defined (i.e. this is the "jmouseable is disabled mode").
 - Each mode has its own (command -> key combo) map.
 - Each mode can have its own mouse and wheel configuration (initial velocity, max velocity, acceleration).
   This can be used to create "slow" and "fast" modes.
 - A timeout can be set on a mode to switch to another mode after some idle time
- (this can be used for disabling Xxx after a while, hiding the indicator after a while, etc.)
+ (this can be used for disabling Xxx after a while, hiding the indicator after a while)
 - This way of defining key combos and modes can be used to implement "toggle dragging",
   chain commands (e.g. if your move combos are arrow keys while holding ctrl, you can move left/right without releasing ctrl)
 - Grids. Grid area

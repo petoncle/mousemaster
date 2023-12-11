@@ -213,6 +213,7 @@ public class WindowsPlatform implements Platform {
                         case WinUser.WM_SYSKEYDOWN -> "WM_SYSKEYDOWN";
                         default -> throw new IllegalStateException();
                     };
+                    logKeyEvent(info, wParamString);
                     if ((info.flags & ExtendedUser32.LLKHF_INJECTED) ==
                         ExtendedUser32.LLKHF_INJECTED) {
                         // SendInput from another app.
@@ -246,17 +247,6 @@ public class WindowsPlatform implements Platform {
 
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
                              String wParamString) {
-        if (keyEvent.isPress()) {
-            if (!keyboardManager.currentlyPressed(keyEvent.key()) &&
-                keyboardManager.allCurrentlyPressedKeysAreHandled()) {
-                logKeyEvent(keyEvent, info, wParamString);
-            }
-        }
-        else {
-            currentlyPressedNotEatenKeys.remove(keyEvent.key());
-            if (keyboardManager.currentlyPressed(keyEvent.key()))
-                logKeyEvent(keyEvent, info, wParamString);
-        }
         boolean mustBeEaten = keyboardManager.keyEvent(keyEvent);
         if (keyEvent.isPress() && !mustBeEaten) {
             currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
@@ -265,12 +255,15 @@ public class WindowsPlatform implements Platform {
         return mustBeEaten;
     }
 
-    private static void logKeyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
+    private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,
                                     String wParamString) {
-        logger.trace("Received key event: " + keyEvent + ", vk = " +
-                     WindowsVirtualKey.values.get(info.vkCode) + ", scanCode = " +
-                     info.scanCode + ", flags = 0x" + Integer.toHexString(info.flags) +
-                     ", wParam = " + wParamString);
+        if (logger.isTraceEnabled())
+            logger.trace(
+                    "Received key event: vkCode = 0x" + Integer.toHexString(info.vkCode) +
+                    " (" + WindowsVirtualKey.values.get(info.vkCode) +
+                    "), scanCode = 0x" + Integer.toHexString(info.scanCode) +
+                    ", flags = 0x" + Integer.toHexString(info.flags) + ", wParam = " +
+                    wParamString);
     }
 
     private WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
