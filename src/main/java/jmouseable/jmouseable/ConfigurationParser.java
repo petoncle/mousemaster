@@ -66,8 +66,8 @@ public class ConfigurationParser {
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
-                           .gridRowCount(20)
-                           .gridColumnCount(20);
+                           .gridCellWidth(70)
+                           .gridCellHeight(40);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
         hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
@@ -319,20 +319,20 @@ public class ConfigurationParser {
                                                                  parseActiveScreenHintGridAreaCenter(
                                                                          propertyKey,
                                                                          propertyValue));
-                            case "grid-row-count" -> mode.hintMesh.builder.type()
-                                                                          .gridRowCount(
+                            case "grid-cell-width" -> mode.hintMesh.builder.type()
+                                                                          .gridCellWidth(
                                                                                   parseUnsignedInteger(
                                                                                           propertyKey,
                                                                                           propertyValue,
                                                                                           1,
-                                                                                          50));
-                            case "grid-column-count" -> mode.hintMesh.builder.type()
-                                                                             .gridColumnCount(
+                                                                                          10_000));
+                            case "grid-cell-height" -> mode.hintMesh.builder.type()
+                                                                             .gridCellHeight(
                                                                                      parseUnsignedInteger(
                                                                                              propertyKey,
                                                                                              propertyValue,
                                                                                              1,
-                                                                                             50));
+                                                                                             10_000));
                             case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                     parseHintKeys(propertyKey, propertyValue));
                             case "undo" ->
@@ -738,12 +738,12 @@ public class ConfigurationParser {
                 mode.hintMesh.builder.type();
         switch (hintMeshType.type()) {
             case GRID -> {
-                if (hintMeshType.gridRowCount() == null ||
-                    hintMeshType.gridColumnCount() == null)
+                if (hintMeshType.gridCellWidth() == null ||
+                    hintMeshType.gridCellHeight() == null)
                     throw new IllegalArgumentException(
                             "Definition of hint for " + mode.modeName +
                             " is incomplete: expected " +
-                            List.of("grid-row-count", "grid-column-count"));
+                            List.of("grid-cell-width", "grid-cell-height"));
             }
             case POSITION_HISTORY -> {
                 // No op.
@@ -1103,10 +1103,10 @@ public class ConfigurationParser {
                         builder.type().gridArea().heightPercent(parent.type().gridArea().heightPercent());
                     if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
                         builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
-                    if (builder.type().gridRowCount() == null)
-                        builder.type().gridRowCount(parent.type().gridRowCount());
-                    if (builder.type().gridColumnCount() == null)
-                        builder.type().gridColumnCount(parent.type().gridColumnCount());
+                    if (builder.type().gridCellWidth() == null)
+                        builder.type().gridCellWidth(parent.type().gridCellWidth());
+                    if (builder.type().gridCellHeight() == null)
+                        builder.type().gridCellHeight(parent.type().gridCellHeight());
                     if (builder.selectionKeys() == null)
                         builder.selectionKeys(parent.selectionKeys());
                     if (builder.undoKey() == null)

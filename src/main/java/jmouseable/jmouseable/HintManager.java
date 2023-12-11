@@ -109,14 +109,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                 };
                 fixedSizeHintGrids.add(
                         screenFixedSizeHintGrid(activeScreenHintGridArea, screenManager.activeScreen(),
-                                gridCenter, hintGrid.rowCount(), hintGrid.columnCount()));
+                                gridCenter, hintGrid.cellWidth(), hintGrid.cellHeight()));
             }
             else if (hintGrid.area() instanceof AllScreensHintGridArea allScreensHintGridArea) {
                 for (Screen screen : screenManager.screens()) {
                     Point gridCenter = screen.rectangle().center();
                     fixedSizeHintGrids.add(
                             screenFixedSizeHintGrid(allScreensHintGridArea, screen, gridCenter,
-                                    hintGrid.rowCount(), hintGrid.columnCount()));
+                                    hintGrid.cellWidth(), hintGrid.cellHeight()));
                 }
             }
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
@@ -124,18 +124,20 @@ public class HintManager implements ModeListener, MousePositionListener {
                         activeWindowHintGridArea.widthPercent(),
                         activeWindowHintGridArea.heightPercent());
                 Point gridCenter = activeWindowRectangle.center();
-                int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, descaledRowCount,
-                        descaledColumnCount;
+                int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount,
+                        columnCount;
                 hintMeshWidth = activeWindowRectangle.width();
                 hintMeshHeight = activeWindowRectangle.height();
                 hintMeshX = gridCenter.x() - hintMeshWidth / 2;
                 hintMeshY = gridCenter.y() - hintMeshHeight / 2;
                 Screen activeScreen = screenManager.activeScreen();
-                descaledRowCount = (int) (hintGrid.rowCount() / activeScreen.scale());
-                descaledColumnCount = (int) (hintGrid.columnCount() / activeScreen.scale());
+                rowCount = Math.max(1, (int) (hintMeshHeight / hintGrid.cellHeight() /
+                                  activeScreen.scale()));
+                columnCount = Math.max(1, (int) (hintMeshWidth / hintGrid.cellWidth() /
+                                  activeScreen.scale()));
                 fixedSizeHintGrids.add(
                         new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth,
-                                hintMeshHeight, descaledRowCount, descaledColumnCount));
+                                hintMeshHeight, rowCount, columnCount));
             }
             else
                 throw new IllegalStateException();
@@ -222,8 +224,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private FixedSizeHintGrid screenFixedSizeHintGrid(HintGridArea area, Screen screen,
-                                                      Point gridCenter, int rowCount,
-                                                      int columnCount) {
+                                                      Point gridCenter, int cellWidth,
+                                                      int cellHeight) {
         if (!(area instanceof ActiveScreenHintGridArea) &&
             !(area instanceof AllScreensHintGridArea))
             throw new IllegalArgumentException();
@@ -243,10 +245,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         hintMeshHeight = (int) (screen.rectangle().height() * screenHeightPercent);
         hintMeshX = gridCenter.x() - hintMeshWidth / 2;
         hintMeshY = gridCenter.y() - hintMeshHeight / 2;
-        int descaledRowCount = (int) (rowCount / screen.scale());
-        int descaledColumnCount = (int) (columnCount / screen.scale());
+        int rowCount = Math.max(1, (int) (hintMeshHeight / cellHeight / screen.scale()));
+        int columnCount = Math.max(1, (int) (hintMeshWidth / cellWidth / screen.scale()));
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
-                descaledRowCount, descaledColumnCount);
+                rowCount, columnCount);
     }
 
     private record FixedSizeHintGrid(int hintMeshX, int hintMeshY, int hintMeshWidth,

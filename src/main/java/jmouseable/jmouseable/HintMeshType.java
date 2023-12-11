@@ -4,7 +4,7 @@ import jmouseable.jmouseable.HintGridArea.HintGridAreaBuilder;
 
 public sealed interface HintMeshType {
 
-    record HintGrid(HintGridArea area, int rowCount, int columnCount)
+    record HintGrid(HintGridArea area, int cellWidth, int cellHeight)
             implements HintMeshType {
     }
 
@@ -22,8 +22,8 @@ public sealed interface HintMeshType {
 
         private HintMeshTypeType type;
         private HintGridAreaBuilder gridArea = new HintGridAreaBuilder();
-        private Integer gridRowCount;
-        private Integer gridColumnCount;
+        private Integer gridCellWidth;
+        private Integer gridCellHeight;
 
         public HintMeshTypeBuilder() {
 
@@ -34,8 +34,8 @@ public sealed interface HintMeshType {
                 case HintGrid hintGrid -> {
                     this.type = HintMeshTypeType.GRID;
                     this.gridArea = hintGrid.area.builder();
-                    this.gridRowCount = hintGrid.rowCount;
-                    this.gridColumnCount = hintGrid.columnCount;
+                    this.gridCellWidth = hintGrid.cellWidth;
+                    this.gridCellHeight = hintGrid.cellHeight;
                 }
                 case HintPositionHistory hintPositionHistory -> {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
@@ -51,12 +51,12 @@ public sealed interface HintMeshType {
             return gridArea;
         }
 
-        public Integer gridRowCount() {
-            return gridRowCount;
+        public Integer gridCellWidth() {
+            return gridCellWidth;
         }
 
-        public Integer gridColumnCount() {
-            return gridColumnCount;
+        public Integer gridCellHeight() {
+            return gridCellHeight;
         }
 
         public HintMeshTypeBuilder type(HintMeshTypeType type) {
@@ -64,20 +64,20 @@ public sealed interface HintMeshType {
             return this;
         }
 
-        public HintMeshTypeBuilder gridRowCount(Integer gridRowCount) {
-            this.gridRowCount = gridRowCount;
+        public HintMeshTypeBuilder gridCellWidth(Integer gridCellWidth) {
+            this.gridCellWidth = gridCellWidth;
             return this;
         }
 
-        public HintMeshTypeBuilder gridColumnCount(Integer gridColumnCount) {
-            this.gridColumnCount = gridColumnCount;
+        public HintMeshTypeBuilder gridCellHeight(Integer gridCellHeight) {
+            this.gridCellHeight = gridCellHeight;
             return this;
         }
 
         public HintMeshType build() {
             return switch (type) {
                 case GRID ->
-                        new HintGrid(gridArea.build(), gridRowCount, gridColumnCount);
+                        new HintGrid(gridArea.build(), gridCellWidth, gridCellHeight);
                 case POSITION_HISTORY -> new HintPositionHistory();
             };
         }
