@@ -4,8 +4,8 @@ import jmouseable.jmouseable.HintGridArea.HintGridAreaBuilder;
 
 public sealed interface HintMeshType {
 
-    record HintGrid(HintGridArea area, int cellWidth, int cellHeight)
-            implements HintMeshType {
+    record HintGrid(HintGridArea area, int maxRowCount, int maxColumnCount, int cellWidth,
+                    int cellHeight) implements HintMeshType {
     }
 
     record HintPositionHistory() implements HintMeshType {
@@ -22,6 +22,8 @@ public sealed interface HintMeshType {
 
         private HintMeshTypeType type;
         private HintGridAreaBuilder gridArea = new HintGridAreaBuilder();
+        private Integer gridMaxRowCount;
+        private Integer gridMaxColumnCount;
         private Integer gridCellWidth;
         private Integer gridCellHeight;
 
@@ -51,6 +53,14 @@ public sealed interface HintMeshType {
             return gridArea;
         }
 
+        public Integer gridMaxRowCount() {
+            return gridMaxRowCount;
+        }
+
+        public Integer gridMaxColumnCount() {
+            return gridMaxColumnCount;
+        }
+
         public Integer gridCellWidth() {
             return gridCellWidth;
         }
@@ -61,6 +71,16 @@ public sealed interface HintMeshType {
 
         public HintMeshTypeBuilder type(HintMeshTypeType type) {
             this.type = type;
+            return this;
+        }
+
+        public HintMeshTypeBuilder gridMaxRowCount(Integer gridMaxRowCount) {
+            this.gridMaxRowCount = gridMaxRowCount;
+            return this;
+        }
+
+        public HintMeshTypeBuilder gridMaxColumnCount(Integer gridMaxColumnCount) {
+            this.gridMaxColumnCount = gridMaxColumnCount;
             return this;
         }
 
@@ -76,8 +96,8 @@ public sealed interface HintMeshType {
 
         public HintMeshType build() {
             return switch (type) {
-                case GRID ->
-                        new HintGrid(gridArea.build(), gridCellWidth, gridCellHeight);
+                case GRID -> new HintGrid(gridArea.build(), gridMaxRowCount,
+                        gridMaxColumnCount, gridCellWidth, gridCellHeight);
                 case POSITION_HISTORY -> new HintPositionHistory();
             };
         }

@@ -66,13 +66,13 @@ public class ConfigurationParser {
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
+                           .gridMaxRowCount(20)
+                           .gridMaxColumnCount(20)
                            .gridCellWidth(70)
                            .gridCellHeight(40);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
         hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
-                           .widthPercent(1)
-                           .heightPercent(1)
                            .activeScreenHintGridAreaCenter(
                                    ActiveScreenHintGridAreaCenter.SCREEN_CENTER);
         ModeTimeoutBuilder timeout = new ModeTimeoutBuilder().enabled(false);
@@ -300,18 +300,6 @@ public class ConfigurationParser {
                                                                      .type(parseHintGridAreaType(
                                                                              propertyKey,
                                                                              propertyValue));
-                            case "grid-area-width-percent" -> mode.hintMesh.builder.type()
-                                                                                   .gridArea()
-                                                                                   .widthPercent(
-                                                                                           parseNonZeroPercent(
-                                                                                                   propertyKey,
-                                                                                                   propertyValue));
-                            case "grid-area-height-percent" -> mode.hintMesh.builder.type()
-                                                                                    .gridArea()
-                                                                                    .heightPercent(
-                                                                                            parseNonZeroPercent(
-                                                                                                    propertyKey,
-                                                                                                    propertyValue));
                             case "active-screen-grid-area-center" ->
                                     mode.hintMesh.builder.type()
                                                          .gridArea()
@@ -319,6 +307,18 @@ public class ConfigurationParser {
                                                                  parseActiveScreenHintGridAreaCenter(
                                                                          propertyKey,
                                                                          propertyValue));
+                            case "grid-max-row-count" -> mode.hintMesh.builder.type()
+                                                                                   .gridMaxRowCount(
+                                                                                           parseUnsignedInteger(
+                                                                                                   propertyKey,
+                                                                                                   propertyValue, 1, 100));
+                            case "grid-max-column-count" -> mode.hintMesh.builder.type()
+                                                                                 .gridMaxColumnCount(
+                                                                                         parseUnsignedInteger(
+                                                                                                 propertyKey,
+                                                                                                 propertyValue,
+                                                                                                 1,
+                                                                                                 100));
                             case "grid-cell-width" -> mode.hintMesh.builder.type()
                                                                           .gridCellWidth(
                                                                                   parseUnsignedInteger(
@@ -738,12 +738,15 @@ public class ConfigurationParser {
                 mode.hintMesh.builder.type();
         switch (hintMeshType.type()) {
             case GRID -> {
-                if (hintMeshType.gridCellWidth() == null ||
+                if (hintMeshType.gridMaxRowCount() == null ||
+                    hintMeshType.gridMaxColumnCount() == null ||
+                    hintMeshType.gridCellWidth() == null ||
                     hintMeshType.gridCellHeight() == null)
                     throw new IllegalArgumentException(
                             "Definition of hint for " + mode.modeName +
                             " is incomplete: expected " +
-                            List.of("grid-cell-width", "grid-cell-height"));
+                            List.of("grid-max-row-count", "grid-max-column-count",
+                                    "grid-cell-width", "grid-cell-height"));
             }
             case POSITION_HISTORY -> {
                 // No op.
@@ -752,32 +755,17 @@ public class ConfigurationParser {
         HintGridArea.HintGridAreaBuilder hintGridArea = hintMeshType.gridArea();
         switch (hintGridArea.type()) {
             case ACTIVE_SCREEN -> {
-                if (hintGridArea.widthPercent() == null ||
-                    hintGridArea.heightPercent() == null ||
-                    hintGridArea.activeScreenHintGridAreaCenter() == null)
+                if (hintGridArea.activeScreenHintGridAreaCenter() == null)
                     throw new IllegalArgumentException(
                             "Definition of active-screen hint.grid-area for " +
                             mode.modeName + " is incomplete: expected " +
-                            List.of("grid-area-width-percent",
-                                    "grid-area-height-percent",
-                                    "active-screen-grid-area-center"));
+                            List.of("active-screen-grid-area-center"));
             }
             case ACTIVE_WINDOW -> {
-                if (hintGridArea.widthPercent() == null ||
-                    hintGridArea.heightPercent() == null)
-                    throw new IllegalArgumentException(
-                            "Definition of active-window hint.grid-area for " +
-                            mode.modeName + " is incomplete: expected " +
-                            List.of("grid-area-width-percent",
-                                    "grid-area-height-percent"));
+                // No op.
             }
             case ALL_SCREENS -> {
-                if (hintGridArea.widthPercent() == null ||
-                    hintGridArea.heightPercent() == null)
-                    throw new IllegalArgumentException(
-                            "Definition of all-screens hint.grid-area for " +
-                            mode.modeName + " is incomplete: expected " +
-                            List.of("grid-area-height-percent"));
+                // No op.
             }
         }
     }
@@ -1097,12 +1085,12 @@ public class ConfigurationParser {
                         builder.type().type(parent.type().type());
                     if (builder.type().gridArea().type() == null)
                         builder.type().gridArea().type(parent.type().gridArea().type());
-                    if (builder.type().gridArea().widthPercent() == null)
-                        builder.type().gridArea().widthPercent(parent.type().gridArea().widthPercent());
-                    if (builder.type().gridArea().heightPercent() == null)
-                        builder.type().gridArea().heightPercent(parent.type().gridArea().heightPercent());
                     if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
                         builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
+                    if (builder.type().gridMaxRowCount() == null)
+                        builder.type().gridMaxRowCount(parent.type().gridMaxRowCount());
+                    if (builder.type().gridMaxColumnCount() == null)
+                        builder.type().gridMaxColumnCount(parent.type().gridMaxColumnCount());
                     if (builder.type().gridCellWidth() == null)
                         builder.type().gridCellWidth(parent.type().gridCellWidth());
                     if (builder.type().gridCellHeight() == null)
