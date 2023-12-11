@@ -247,6 +247,8 @@ public class WindowsPlatform implements Platform {
 
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,
                              String wParamString) {
+        if (!keyEvent.isPress())
+            currentlyPressedNotEatenKeys.remove(keyEvent.key());
         boolean mustBeEaten = keyboardManager.keyEvent(keyEvent);
         if (keyEvent.isPress() && !mustBeEaten) {
             currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
