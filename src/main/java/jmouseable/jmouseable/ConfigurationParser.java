@@ -66,8 +66,8 @@ public class ConfigurationParser {
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
-                           .gridMaxRowCount(20)
-                           .gridMaxColumnCount(20)
+                           .gridMaxRowCount(26)
+                           .gridMaxColumnCount(26)
                            .gridCellWidth(70)
                            .gridCellHeight(40);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =

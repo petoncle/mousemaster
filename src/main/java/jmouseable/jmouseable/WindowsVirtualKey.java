@@ -346,7 +346,7 @@ public enum WindowsVirtualKey {
                 Map.entry(Key.insert, VK_INSERT),
                 Map.entry(Key.del, VK_DELETE),
                 Map.entry(Key.win, VK_LWIN),
-                Map.entry(Key.menu, VK_CONTEXT),
+                Map.entry(Key.menu, VK_CONTEXTMENU),
                 Map.entry(Key.numpad0, VK_NUMPAD0),
                 Map.entry(Key.numpad1, VK_NUMPAD1),
                 Map.entry(Key.numpad2, VK_NUMPAD2),
