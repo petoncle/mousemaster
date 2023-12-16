@@ -9,7 +9,7 @@ public class KeyboardState {
         this.keyboardManager = keyboardManager;
     }
 
-    public boolean pressingNonComboKey() {
+    public boolean pressingNotHandledKey() {
         return keyboardManager.pressingNotHandledKey();
     }
 

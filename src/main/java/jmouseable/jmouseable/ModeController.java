@@ -15,6 +15,7 @@ public class ModeController implements GridListener, PositionHistoryListener {
     private final ModeMap modeMap;
     private final MouseController mouseController;
     private final MouseState mouseState;
+    private final KeyboardState keyboardState;
     private final List<ModeListener> listeners;
     private boolean currentModeCursorHidden;
     private Mode currentMode;
@@ -24,19 +25,23 @@ public class ModeController implements GridListener, PositionHistoryListener {
     private boolean justSnappedToGrid;
     private boolean justCycledPosition;
 
-    public ModeController(ModeMap modeMap, MouseController mouseController, MouseState mouseState,
+    public ModeController(ModeMap modeMap, MouseController mouseController,
+                          MouseState mouseState, KeyboardState keyboardState,
                           List<ModeListener> listeners) {
         this.modeMap = modeMap;
         this.mouseController = mouseController;
         this.mouseState = mouseState;
+        this.keyboardState = keyboardState;
         this.listeners = listeners;
     }
 
-    public Mode currentMode() {
-        return currentMode;
-    }
-
     public void update(double delta) {
+        if (keyboardState.pressingNotHandledKey()) {
+            if (currentMode.modeAfterNotHandledKeyPress() != null) {
+                switchMode(currentMode.modeAfterNotHandledKeyPress());
+                return;
+            }
+        }
         boolean mouseIdling = !mouseState.moving() && !mouseState.pressing() &&
                               !mouseState.wheeling() && !justSnappedToGrid &&
                               !justCycledPosition;

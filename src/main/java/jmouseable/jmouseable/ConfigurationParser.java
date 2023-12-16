@@ -37,6 +37,7 @@ public class ConfigurationParser {
 
     private static Map<String, Property<?>> defaultPropertyByName() {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
+        AtomicReference<String> modeAfterNotHandledKeyPress = new AtomicReference<>();
         MouseBuilder mouse = new MouseBuilder().initialVelocity(200).maxVelocity(750).acceleration(1000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         GridConfigurationBuilder grid =
@@ -84,12 +85,13 @@ public class ConfigurationParser {
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
                  .mousePressHexColor("#00FF00")
-                 .nonComboKeyPressHexColor("#0000FF");
+                 .notHandledKeyPressHexColor("#0000FF");
         HideCursorBuilder hideCursor = new HideCursorBuilder().enabled(false);
         // @formatter:off
         return Stream.of( //
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
-                new Property<>("mouse", mouse), 
+                new Property<>("mode-after-not-handled-key-press", modeAfterNotHandledKeyPress),
+                new Property<>("mouse", mouse),
                 new Property<>("wheel", wheel), 
                 new Property<>("grid", grid), 
                 new Property<>("hint", hintMesh), 
@@ -195,6 +197,17 @@ public class ConfigurationParser {
                                         Boolean.parseBoolean(propertyValue)),
                                 childPropertiesByParentProperty,
                                 nonRootPropertyKeys);
+                case "mode-after-not-handled-key-press" -> {
+                    String modeAfterNotHandledKeyPress =
+                            checkModeReference(propertyValue);
+                    mode.modeAfterNotHandledKeyPress.parseReferenceOr(propertyKey,
+                            modeAfterNotHandledKeyPress, builder -> {
+                                builder.set(modeAfterNotHandledKeyPress);
+                                referencedModesByReferencerMode.computeIfAbsent(modeName,
+                                                                       modeName_ -> new HashSet<>())
+                                                               .add(modeAfterNotHandledKeyPress);
+                            }, childPropertiesByParentProperty, nonRootPropertyKeys);
+                }
                 case "mouse" -> {
                     if (keyMatcher.group(3) == null)
                         mode.mouse.parsePropertyReference(propertyKey, propertyValue,
@@ -440,8 +453,8 @@ public class ConfigurationParser {
                             case "mouse-press-color" ->
                                     mode.indicator.builder.mousePressHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
-                            case "non-combo-key-press-color" ->
-                                    mode.indicator.builder.nonComboKeyPressHexColor(
+                            case "not-handled-key-press-color" ->
+                                    mode.indicator.builder.notHandledKeyPressHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
                             default -> throw new IllegalArgumentException(
                                     "Invalid indicator property key: " + propertyKey);
@@ -1002,6 +1015,7 @@ public class ConfigurationParser {
     private static final class ModeBuilder {
         final String modeName;
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
+        Property<AtomicReference<String>> modeAfterNotHandledKeyPress;
         ComboMapConfigurationBuilder comboMap;
         Property<MouseBuilder> mouse;
         Property<WheelBuilder> wheel;
@@ -1020,6 +1034,15 @@ public class ConfigurationParser {
                 @Override
                 void extend(Object parent_) {
                     AtomicReference<Boolean> parent = (AtomicReference<Boolean>) parent_;
+                    if (builder.get() == null)
+                        builder.set(parent.get());
+                }
+            };
+            modeAfterNotHandledKeyPress = new Property<>("mode-after-not-handled-key-press", modeName,
+                    propertyByKey, new AtomicReference<>()) {
+                @Override
+                void extend(Object parent_) {
+                    AtomicReference<String> parent = (AtomicReference<String>) parent_;
                     if (builder.get() == null)
                         builder.set(parent.get());
                 }
@@ -1142,8 +1165,8 @@ public class ConfigurationParser {
                         builder.wheelHexColor(parent.wheelHexColor());
                     if (builder.mousePressHexColor() == null)
                         builder.mousePressHexColor(parent.mousePressHexColor());
-                    if (builder.nonComboKeyPressHexColor() == null)
-                        builder.nonComboKeyPressHexColor(parent.nonComboKeyPressHexColor());
+                    if (builder.notHandledKeyPressHexColor() == null)
+                        builder.notHandledKeyPressHexColor(parent.notHandledKeyPressHexColor());
                 }
             };
             hideCursor = new Property<>("hide-cursor", modeName, propertyByKey,
@@ -1161,10 +1184,10 @@ public class ConfigurationParser {
 
         public Mode build() {
             return new Mode(modeName, pushModeToHistoryStack.builder.get(),
-                    comboMap.build(), mouse.builder.build(), wheel.builder.build(),
-                    grid.builder.build(), hintMesh.builder.build(),
-                    timeout.builder.build(), indicator.builder.build(),
-                    hideCursor.builder.build());
+                    modeAfterNotHandledKeyPress.builder.get(), comboMap.build(),
+                    mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
+                    hintMesh.builder.build(), timeout.builder.build(),
+                    indicator.builder.build(), hideCursor.builder.build());
         }
 
     }
