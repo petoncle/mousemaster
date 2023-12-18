@@ -36,9 +36,9 @@ public class IndicatorManager implements ModeListener {
 
     private String indicatorHexColor() {
         IndicatorConfiguration indicatorConfiguration = currentMode.indicator();
-        if (keyboardState.pressingNotHandledKey() &&
-            indicatorConfiguration.notHandledKeyPressHexColor() != null)
-            return indicatorConfiguration.notHandledKeyPressHexColor();
+        if (keyboardState.pressingUnhandledKey() &&
+            indicatorConfiguration.unhandledKeyPressHexColor() != null)
+            return indicatorConfiguration.unhandledKeyPressHexColor();
         if (mouseState.pressing() && indicatorConfiguration.mousePressHexColor() != null)
             return indicatorConfiguration.mousePressHexColor();
         if (mouseState.wheeling() && indicatorConfiguration.wheelHexColor() != null)

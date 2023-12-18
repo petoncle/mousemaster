@@ -71,7 +71,7 @@ public class ComboWatcher implements ModeListener {
             mustBeEaten |= processing.mustBeEaten();
         }
         return event.isRelease() ? null :
-                (!partOfCombo ? PressKeyEventProcessing.notHandled() :
+                (!partOfCombo ? PressKeyEventProcessing.unhandled() :
                         PressKeyEventProcessing.partOfCombo(mustBeEaten));
     }
 
@@ -187,7 +187,7 @@ public class ComboWatcher implements ModeListener {
                                                               .commandsByCombo()
                                                               .containsKey(combo));
         }
-        return !partOfCombo ? PressKeyEventProcessing.notHandled() :
+        return !partOfCombo ? PressKeyEventProcessing.unhandled() :
                 PressKeyEventProcessing.partOfCombo(mustBeEaten);
     }
 

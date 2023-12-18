@@ -37,7 +37,7 @@ public class ConfigurationParser {
 
     private static Map<String, Property<?>> defaultPropertyByName() {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
-        AtomicReference<String> modeAfterNotHandledKeyPress = new AtomicReference<>();
+        AtomicReference<String> modeAfterUnhandledKeyPress = new AtomicReference<>();
         MouseBuilder mouse = new MouseBuilder().initialVelocity(200).maxVelocity(750).acceleration(1000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         GridConfigurationBuilder grid =
@@ -85,12 +85,12 @@ public class ConfigurationParser {
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
                  .mousePressHexColor("#00FF00")
-                 .notHandledKeyPressHexColor("#0000FF");
+                 .unhandledKeyPressHexColor("#0000FF");
         HideCursorBuilder hideCursor = new HideCursorBuilder().enabled(false);
         // @formatter:off
         return Stream.of( //
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
-                new Property<>("mode-after-not-handled-key-press", modeAfterNotHandledKeyPress),
+                new Property<>("mode-after-unhandled-key-press", modeAfterUnhandledKeyPress),
                 new Property<>("mouse", mouse),
                 new Property<>("wheel", wheel), 
                 new Property<>("grid", grid), 
@@ -197,15 +197,15 @@ public class ConfigurationParser {
                                         Boolean.parseBoolean(propertyValue)),
                                 childPropertiesByParentProperty,
                                 nonRootPropertyKeys);
-                case "mode-after-not-handled-key-press" -> {
-                    String modeAfterNotHandledKeyPress =
+                case "mode-after-unhandled-key-press" -> {
+                    String modeAfterUnhandledKeyPress =
                             checkModeReference(propertyValue);
-                    mode.modeAfterNotHandledKeyPress.parseReferenceOr(propertyKey,
-                            modeAfterNotHandledKeyPress, builder -> {
-                                builder.set(modeAfterNotHandledKeyPress);
+                    mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
+                            modeAfterUnhandledKeyPress, builder -> {
+                                builder.set(modeAfterUnhandledKeyPress);
                                 referencedModesByReferencerMode.computeIfAbsent(modeName,
                                                                        modeName_ -> new HashSet<>())
-                                                               .add(modeAfterNotHandledKeyPress);
+                                                               .add(modeAfterUnhandledKeyPress);
                             }, childPropertiesByParentProperty, nonRootPropertyKeys);
                 }
                 case "mouse" -> {
@@ -453,8 +453,8 @@ public class ConfigurationParser {
                             case "mouse-press-color" ->
                                     mode.indicator.builder.mousePressHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
-                            case "not-handled-key-press-color" ->
-                                    mode.indicator.builder.notHandledKeyPressHexColor(
+                            case "unhandled-key-press-color" ->
+                                    mode.indicator.builder.unhandledKeyPressHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
                             default -> throw new IllegalArgumentException(
                                     "Invalid indicator property key: " + propertyKey);
@@ -1015,7 +1015,7 @@ public class ConfigurationParser {
     private static final class ModeBuilder {
         final String modeName;
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
-        Property<AtomicReference<String>> modeAfterNotHandledKeyPress;
+        Property<AtomicReference<String>> modeAfterUnhandledKeyPress;
         ComboMapConfigurationBuilder comboMap;
         Property<MouseBuilder> mouse;
         Property<WheelBuilder> wheel;
@@ -1038,7 +1038,7 @@ public class ConfigurationParser {
                         builder.set(parent.get());
                 }
             };
-            modeAfterNotHandledKeyPress = new Property<>("mode-after-not-handled-key-press", modeName,
+            modeAfterUnhandledKeyPress = new Property<>("mode-after-unhandled-key-press", modeName,
                     propertyByKey, new AtomicReference<>()) {
                 @Override
                 void extend(Object parent_) {
@@ -1165,8 +1165,8 @@ public class ConfigurationParser {
                         builder.wheelHexColor(parent.wheelHexColor());
                     if (builder.mousePressHexColor() == null)
                         builder.mousePressHexColor(parent.mousePressHexColor());
-                    if (builder.notHandledKeyPressHexColor() == null)
-                        builder.notHandledKeyPressHexColor(parent.notHandledKeyPressHexColor());
+                    if (builder.unhandledKeyPressHexColor() == null)
+                        builder.unhandledKeyPressHexColor(parent.unhandledKeyPressHexColor());
                 }
             };
             hideCursor = new Property<>("hide-cursor", modeName, propertyByKey,
@@ -1184,7 +1184,7 @@ public class ConfigurationParser {
 
         public Mode build() {
             return new Mode(modeName, pushModeToHistoryStack.builder.get(),
-                    modeAfterNotHandledKeyPress.builder.get(), comboMap.build(),
+                    modeAfterUnhandledKeyPress.builder.get(), comboMap.build(),
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build());

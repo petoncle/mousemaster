@@ -36,9 +36,9 @@ public class ModeController implements GridListener, PositionHistoryListener {
     }
 
     public void update(double delta) {
-        if (keyboardState.pressingNotHandledKey()) {
-            if (currentMode.modeAfterNotHandledKeyPress() != null) {
-                switchMode(currentMode.modeAfterNotHandledKeyPress());
+        if (keyboardState.pressingUnhandledKey()) {
+            if (currentMode.modeAfterUnhandledKeyPress() != null) {
+                switchMode(currentMode.modeAfterUnhandledKeyPress());
                 return;
             }
         }

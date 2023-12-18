@@ -13,7 +13,7 @@ public class KeyboardManager {
     private final ComboWatcher comboWatcher;
     private final HintManager hintManager;
     private final Map<Key, PressKeyEventProcessing> currentlyPressedKeys = new HashMap<>();
-    private boolean pressingNotHandledKey; // Handled means part of combo or part of hint.
+    private boolean pressingUnhandledKey; // Handled means part of combo or part of hint.
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager) {
         this.comboWatcher = comboWatcher;
@@ -45,11 +45,11 @@ public class KeyboardManager {
                         processing = PressKeyEventProcessing.partOfHint();
                     else
                         processing = comboWatcher.keyEvent(keyEvent);
-                    pressingNotHandledKey = !processing.handled();
+                    pressingUnhandledKey = !processing.handled();
                 }
                 else {
                     processing = PressKeyEventProcessing.NOT_HANDLED;
-                    pressingNotHandledKey = true;
+                    pressingUnhandledKey = true;
                 }
                 currentlyPressedKeys.put(key, processing);
             }
@@ -65,7 +65,7 @@ public class KeyboardManager {
                     return processing.mustBeEaten();
                 }
                 else {
-                    pressingNotHandledKey = !allCurrentlyPressedKeysAreHandled();
+                    pressingUnhandledKey = !allCurrentlyPressedKeysAreHandled();
                     return false;
                 }
             }
@@ -84,8 +84,8 @@ public class KeyboardManager {
                                    .allMatch(PressKeyEventProcessing::handled);
     }
 
-    public boolean pressingNotHandledKey() {
-        return pressingNotHandledKey;
+    public boolean pressingUnhandledKey() {
+        return pressingUnhandledKey;
     }
 
 }

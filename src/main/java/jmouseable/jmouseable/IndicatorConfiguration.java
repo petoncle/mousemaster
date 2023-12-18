@@ -2,7 +2,7 @@ package jmouseable.jmouseable;
 
 public record IndicatorConfiguration(boolean enabled, int size, String idleHexColor, String moveHexColor,
                                      String wheelHexColor, String mousePressHexColor,
-                                     String notHandledKeyPressHexColor) {
+                                     String unhandledKeyPressHexColor) {
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
         private Integer size;
@@ -10,7 +10,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
         private String moveHexColor;
         private String wheelHexColor;
         private String mousePressHexColor;
-        private String notHandledKeyPressHexColor;
+        private String unhandledKeyPressHexColor;
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -42,9 +42,9 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return this;
         }
 
-        public IndicatorConfigurationBuilder notHandledKeyPressHexColor(
-                String notHandledKeyPressHexColor) {
-            this.notHandledKeyPressHexColor = notHandledKeyPressHexColor;
+        public IndicatorConfigurationBuilder unhandledKeyPressHexColor(
+                String unhandledKeyPressHexColor) {
+            this.unhandledKeyPressHexColor = unhandledKeyPressHexColor;
             return this;
         }
 
@@ -71,13 +71,13 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return mousePressHexColor;
         }
 
-        public String notHandledKeyPressHexColor() {
-            return notHandledKeyPressHexColor;
+        public String unhandledKeyPressHexColor() {
+            return unhandledKeyPressHexColor;
         }
 
         public IndicatorConfiguration build() {
             return new IndicatorConfiguration(enabled, size, idleHexColor, moveHexColor, wheelHexColor,
-                    mousePressHexColor, notHandledKeyPressHexColor);
+                    mousePressHexColor, unhandledKeyPressHexColor);
         }
 
     }

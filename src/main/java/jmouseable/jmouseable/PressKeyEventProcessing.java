@@ -22,7 +22,7 @@ public enum PressKeyEventProcessing {
                this == PART_OF_COMBO_MUST_BE_EATEN;
     }
 
-    public static PressKeyEventProcessing notHandled() {
+    public static PressKeyEventProcessing unhandled() {
         return NOT_HANDLED;
     }
 
