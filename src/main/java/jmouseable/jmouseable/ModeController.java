@@ -58,7 +58,7 @@ public class ModeController implements GridListener, PositionHistoryListener {
                 if (timeoutIdleTimer <= 0) {
                     logger.debug("Current " + currentMode.name() +
                                  " has timed out, switching to " +
-                                 currentMode.timeout().nextModeName());
+                                 currentMode.timeout().modeName());
                     currentModeTimedOut = true;
                 }
             }
@@ -73,7 +73,7 @@ public class ModeController implements GridListener, PositionHistoryListener {
             }
             if (currentModeTimedOut) {
                 listeners.forEach(ModeListener::modeTimedOut);
-                switchMode(currentMode.timeout().nextModeName());
+                switchMode(currentMode.timeout().modeName());
             }
         }
     }

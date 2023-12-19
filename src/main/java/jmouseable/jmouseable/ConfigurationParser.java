@@ -415,14 +415,14 @@ public class ConfigurationParser {
                             case "idle-duration-millis" ->
                                     mode.timeout.builder.idleDuration(
                                             parseDuration(propertyValue));
-                            case "next-mode" -> {
-                                String nextModeName = propertyValue;
-                                mode.timeout.builder.nextModeName(nextModeName);
+                            case "mode" -> {
+                                String timeoutModeName = propertyValue;
+                                mode.timeout.builder.modeName(timeoutModeName);
                                 modeReferences.add(
-                                        checkModeReference(nextModeName));
+                                        checkModeReference(timeoutModeName));
                                 referencedModesByReferencerMode.computeIfAbsent(modeName,
                                                                            modeName_ -> new HashSet<>())
-                                                                   .add(nextModeName);
+                                                                   .add(timeoutModeName);
                             }
                             default -> throw new IllegalArgumentException(
                                     "Invalid timeout property key: " + propertyKey);
@@ -731,11 +731,11 @@ public class ConfigurationParser {
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() &&
             (mode.timeout.builder.idleDuration() == null ||
-             mode.timeout.builder.nextModeName() == null))
+             mode.timeout.builder.modeName() == null))
             throw new IllegalArgumentException(
                     "Definition of timeout for " + mode.modeName +
                     " is incomplete: expected " +
-                    List.of("enabled", "idle-duration", "next-mode-name"));
+                    List.of("enabled", "idle-duration", "mode"));
         if (mode.hideCursor.builder.enabled() &&
             mode.hideCursor.builder.idleDuration() == null)
             throw new IllegalArgumentException(
@@ -1143,8 +1143,8 @@ public class ConfigurationParser {
                         builder.enabled(parent.enabled());
                     if (builder.idleDuration() == null)
                         builder.idleDuration(parent.idleDuration());
-                    if (builder.nextModeName() == null)
-                        builder.nextModeName(parent.nextModeName());
+                    if (builder.modeName() == null)
+                        builder.modeName(parent.modeName());
                 }
             };
             indicator = new Property<>("indicator", modeName, propertyByKey,

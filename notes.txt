@@ -11,8 +11,8 @@ _shift,^shift = press shift, release shift?
  - normal-mode.mouse-acceleration, wheel.acceleration
  - normal-mode.indicator.color=red
 - temp-normal-mode.timeout.duration=1s # automatically changes mode if no key combo was detected during 1s and no action is currently running (e.g. move-up)
-- temp-normal-mode.timeout.next-mode=normal-mode
-- temp-normal-mode.oneshot.next-mode=normal-mode # once an action has run (e.g. move-up), mode changes automatically
+- temp-normal-mode.timeout.mode=normal-mode
+- temp-normal-mode.oneshot.mode=normal-mode # once an action has run (e.g. move-up), mode changes automatically
 - Can assign multiple combo to same action
  - normal-mode.press-left=_lshift
  - normal-mode.press-left=_rshift
