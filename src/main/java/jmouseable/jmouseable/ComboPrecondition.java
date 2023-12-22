@@ -10,15 +10,15 @@ public record ComboPrecondition(Set<Set<Key>> mustNotBePressedKeySets,
         return mustNotBePressedKeySets.isEmpty() && mustBePressedKeySets.isEmpty();
     }
 
-    public boolean satisfied(Set<Key> currentlyPressedComboKeys) {
+    public boolean satisfied(Set<Key> currentlyPressedKeys) {
         for (Set<Key> mustNotBePressedKeySet : mustNotBePressedKeySets) {
-            if (currentlyPressedComboKeys.containsAll(mustNotBePressedKeySet))
+            if (currentlyPressedKeys.containsAll(mustNotBePressedKeySet))
                 return false;
         }
         if (mustBePressedKeySets.isEmpty())
             return true;
         for (Set<Key> mustBePressedKeySet : mustBePressedKeySets) {
-            if (currentlyPressedComboKeys.containsAll(mustBePressedKeySet))
+            if (currentlyPressedKeys.equals(mustBePressedKeySet))
                 return true;
         }
         return false;
