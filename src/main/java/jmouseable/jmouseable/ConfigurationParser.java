@@ -133,7 +133,7 @@ public class ConfigurationParser {
         Pattern linePattern = Pattern.compile("(.+?)=(.+)");
         Set<String> visitedPropertyKeys = new HashSet<>();
         for (String line : lines) {
-            if (line.startsWith("#"))
+            if (line.startsWith("#") || line.isBlank())
                 continue;
             Matcher lineMatcher = linePattern.matcher(line);
             if (!lineMatcher.matches())
