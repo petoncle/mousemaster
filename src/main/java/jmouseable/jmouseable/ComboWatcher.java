@@ -52,9 +52,11 @@ public class ComboWatcher implements ModeListener {
             // The corresponding press event was either part of a combo or part of a combo precondition,
             // otherwise this method would not have been called.
             currentlyPressedKeys.remove(event.key());
-            if (currentlyPressedComboPreconditionOnlyKeys.remove(event.key()))
+            if (currentlyPressedComboPreconditionOnlyKeys.remove(event.key())) {
                 // The key is not part of a combo sequence.
+                focusedCombos.remove(event.key());
                 return null;
+            }
         }
         if (!combosWaitingForLastMoveToComplete.isEmpty())
             combosWaitingForLastMoveToComplete.clear();
@@ -89,7 +91,7 @@ public class ComboWatcher implements ModeListener {
                                                                   boolean ignoreSwitchModeCommands) {
         boolean mustBeEaten = false;
         boolean partOfComboSequence = false;
-        boolean partOfComboPrecondition = false;
+        Set<Combo> partOfComboPreconditionCombos = new HashSet<>();
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
         ComboMoveDuration newComboDuration = null;
         Set<Combo> allFocusedCombos = focusedCombos.values()
@@ -100,8 +102,8 @@ public class ComboWatcher implements ModeListener {
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
             Combo combo = entry.getKey();
-            partOfComboPrecondition |=
-                    combo.precondition().isMustBePressedKey(event.key());
+            if (combo.precondition().isMustBePressedKey(event.key()))
+                partOfComboPreconditionCombos.add(combo);
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
             if (matchingMoveCount == 0) {
                 if (combo.sequence().moves().isEmpty() &&
@@ -178,6 +180,7 @@ public class ComboWatcher implements ModeListener {
             previousComboMoveDuration = newComboDuration;
         List<Command> commandsToRun =
                 longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
+        boolean partOfComboPrecondition = !partOfComboPreconditionCombos.isEmpty();
         logger.debug("currentMode = " + currentMode.name() + ", comboPreparation = " +
                      comboPreparation +
                      ", partOfComboPrecondition = " + partOfComboPrecondition +
@@ -189,6 +192,9 @@ public class ComboWatcher implements ModeListener {
             comboPreparation = ComboPreparation.empty();
             if (event.isRelease())
                 focusedCombos.remove(event.key());
+            else if (partOfComboPrecondition)
+                focusedCombos.computeIfAbsent(event.key(), key -> new HashSet<>())
+                             .addAll(partOfComboPreconditionCombos);
         }
         if (partOfComboSequence || partOfComboPrecondition) {
             if (event.isPress()) {
@@ -197,7 +203,6 @@ public class ComboWatcher implements ModeListener {
                     currentlyPressedComboPreconditionOnlyKeys.add(event.key());
             }
         }
-        focusedCombos.remove(event.key());
         // Remove focused combos that are not in the new mode (if mode was changed),
         // as they will not be completed anymore.
         for (Set<Combo> focusedCombosForKey : focusedCombos.values()) {
