@@ -24,7 +24,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         private String boxHexColor;
         private String modeAfterSelection;
         private Button clickButtonAfterSelection;
-        private boolean savePositionAfterSelection;
+        private Boolean savePositionAfterSelection;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -129,7 +129,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return clickButtonAfterSelection;
         }
 
-        public boolean savePositionAfterSelection() {
+        public Boolean savePositionAfterSelection() {
             return savePositionAfterSelection;
         }
 

@@ -60,7 +60,7 @@ public class ConfigurationParser {
                                         .map(Key::ofName)
                                         .toList())
                 .fontName("Arial")
-                .fontSize(20)
+                .fontSize(10)
                 .fontHexColor("#FFFFFF")
                 .selectedPrefixFontHexColor("#8FA6C4")
                 .boxHexColor("#204E8A")
@@ -1132,6 +1132,12 @@ public class ConfigurationParser {
                         builder.selectedPrefixFontHexColor(parent.selectedPrefixFontHexColor());
                     if (builder.boxHexColor() == null)
                         builder.boxHexColor(parent.boxHexColor());
+                    if (builder.modeAfterSelection() == null)
+                        builder.modeAfterSelection(parent.modeAfterSelection());
+                    if (builder.clickButtonAfterSelection() == null)
+                        builder.clickButtonAfterSelection(parent.clickButtonAfterSelection());
+                    if (builder.savePositionAfterSelection() == null)
+                        builder.savePositionAfterSelection(parent.savePositionAfterSelection());
                 }
             };
             timeout = new Property<>("timeout", modeName, propertyByKey,
