@@ -5,7 +5,7 @@ import java.time.Instant;
 
 public record ComboMoveDuration(Duration min, Duration max) {
 
-    public boolean isRespected(Instant previousEventTime, Instant currentEventTime) {
+    public boolean satisfied(Instant previousEventTime, Instant currentEventTime) {
         if (previousEventTime.plus(max).isBefore(currentEventTime))
             // Previous move broke the combo because too much time has passed.
             return false;

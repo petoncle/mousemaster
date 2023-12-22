@@ -61,7 +61,7 @@ public class ComboWatcher implements ModeListener {
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
         if (previousEvent != null &&
-            !previousComboMoveDuration.isRespected(previousEvent.time(), event.time()))
+            !previousComboMoveDuration.satisfied(previousEvent.time(), event.time()))
             comboPreparation = ComboPreparation.empty();
         comboPreparation.events().add(event);
         Mode beforeMode = currentMode;

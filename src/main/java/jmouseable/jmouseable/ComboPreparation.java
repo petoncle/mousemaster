@@ -33,7 +33,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                         preparationEvents.get(preparationEventIndex - 1);
                 ComboMove previousComboMove = subComboMoves.get(subComboMoveIndex - 1);
                 if (!previousComboMove.duration()
-                                      .isRespected(previousPreparationEvent.time(),
+                                      .satisfied(previousPreparationEvent.time(),
                                               preparationEvent.time()))
                     continue sub_combos_loop;
             }
