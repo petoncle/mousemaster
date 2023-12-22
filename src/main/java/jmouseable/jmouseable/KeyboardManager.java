@@ -48,7 +48,7 @@ public class KeyboardManager {
                     pressingUnhandledKey = !processing.handled();
                 }
                 else {
-                    processing = PressKeyEventProcessing.NOT_HANDLED;
+                    processing = PressKeyEventProcessing.unhandled();
                     pressingUnhandledKey = true;
                 }
                 currentlyPressedKeys.put(key, processing);
@@ -81,7 +81,8 @@ public class KeyboardManager {
     public boolean allCurrentlyPressedKeysAreHandled() {
         return currentlyPressedKeys.values()
                                    .stream()
-                                   .allMatch(PressKeyEventProcessing::handled);
+                                   .allMatch(
+                                           PressKeyEventProcessing::handled);
     }
 
     public boolean pressingUnhandledKey() {

@@ -24,6 +24,14 @@ public record ComboPrecondition(Set<Set<Key>> mustNotBePressedKeySets,
         return false;
     }
 
+    public boolean isMustBePressedKey(Key key) {
+        for (Set<Key> mustBePressedKeySet : mustBePressedKeySets) {
+            if (mustBePressedKeySet.contains(key))
+                return true;
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
         return String.join(" ", "^{" + keySetsToString(mustNotBePressedKeySets) + "}",
