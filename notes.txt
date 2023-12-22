@@ -175,6 +175,8 @@ _shift,^shift = press shift, release shift?
 - The indicator will re-position itself around the mouse when the mouse is close to the edges of the screen so that it stays visible
 - Configuration of keys is done in terms of key press and key release events, and whether the key events should be passed onto other apps or not.
   This allows for defining advanced key combos, but at the cost of added complexity of the configuration file
+- Instead of saying "left arrow means move left", the user has to say
+  "pressing left arrow means start moving left" and "releasing left arrow means stop moving left"
 - Each command (e.g. start-move.left, stop-move.left, press.middle) is triggered by one or more key combos
 - The same key combo can be used to trigger multiple commands. This can be used to do many things including "click and disable".
 - The user defines modes. There is only one predefined mode, the "idle-mode" which has no key combos defined (i.e. this is the "jmouseable is disabled mode").
@@ -193,4 +195,5 @@ _shift,^shift = press shift, release shift?
   A mode is not restricted to "just normal mouse movements" or "just grid" or "just hints".
 - The configuration is more complex than warpd/mouseable, mostly because you have to think in terms of key presses and key releases.
 - It's Windows only, I have not looked at making it cross-platform simply because I don't have an incentive for doing so
-  (all my desktops are Windows based).
+  (all my desktops are Windows based). Besides, it is possible that the Linux and macOS APIs offer less control than the Windows API when it
+  comes to handling mouse and keyboard events, and some of the features in mousemaster may not be implementable in Linux and macOS.

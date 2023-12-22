@@ -149,7 +149,10 @@ public class ComboWatcher implements ModeListener {
                     matchingMoveCount == combo.sequence().moves().size();
             if (!preparationComplete)
                 continue;
-            focusedCombos.values().forEach(combos -> combos.remove(combo));
+            if (currentlyPressedComboPreconditionOnlyKeys.stream()
+                                                         .noneMatch(
+                                                                 combo.precondition()::isMustBePressedKey))
+                focusedCombos.values().forEach(combos -> combos.remove(combo));
             List<Command> commands = entry.getValue();
             if (ignoreSwitchModeCommands &&
                 commands.stream().anyMatch(Command.SwitchMode.class::isInstance)) {
