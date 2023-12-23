@@ -94,8 +94,8 @@ public class Jmouseable {
         modeController =
                 new ModeController(configuration.modeMap(), mouseController, mouseState,
                         keyboardState,
-                        List.of(comboWatcher, indicatorManager, gridManager,
-                                hintManager));
+                        List.of(comboWatcher, mouseController, indicatorManager,
+                                gridManager, hintManager));
         commandRunner.setModeController(modeController);
         hintManager.setModeController(modeController);
         gridManager.setListeners(List.of(modeController));

@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 
-public class MouseController {
+public class MouseController implements ModeListener {
 
     private Mouse mouse;
     private Wheel wheel;
@@ -266,4 +266,14 @@ public class MouseController {
         WindowsMouse.moveTo(x, y);
     }
 
+    @Override
+    public void modeChanged(Mode newMode) {
+        setMouse(newMode.mouse());
+        setWheel(newMode.wheel());
+    }
+
+    @Override
+    public void modeTimedOut() {
+        // No op.
+    }
 }

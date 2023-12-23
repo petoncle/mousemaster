@@ -102,9 +102,6 @@ public class ModeController implements GridListener, PositionHistoryListener {
         currentMode = newMode;
         resetCurrentModeCursorHidden();
         resetIdleTimers();
-        // TODO Make mouseController a ModeListener
-        mouseController.setMouse(newMode.mouse());
-        mouseController.setWheel(newMode.wheel());
         listeners.forEach(listener -> listener.modeChanged(newMode));
     }
 
