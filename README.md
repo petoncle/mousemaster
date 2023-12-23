@@ -9,7 +9,8 @@ TODO
 
 ## Getting Started
 
-1. Download mousemaster.exe (a portable executable), or build it from source
+1. Download [mousemaster.exe](https://github.com/petoncle/mousemaster/releases/tag/1.0.0) (a
+portable executable), or build it from source
 2. Choose then download one of the existing configuration files:
     - [warpd.properties](configuration/warpd.properties): warpd-style configuration
     - [mouseable.properties](configuration/mouseable.properties): mouseable-style configuration
