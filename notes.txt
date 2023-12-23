@@ -183,22 +183,29 @@ _shift,^shift = press shift, release shift?
 - Examples of more advanced combos: "hold alt for 1 second" (I personally use that for the clear position history command),
   "press then release alt twice in a row".
 - Each command (e.g. start-move.left, stop-move.left, press.middle) is triggered by one or more key combos
-- The same key combo can be used to trigger multiple commands. This can be used to do many things including "click and disable".
-- The user defines modes. There is only one predefined mode, the "idle-mode" which has no key combos defined (i.e. this is the "jmouseable is disabled mode").
+- The same key combo can be used to trigger multiple commands.
+- Multiple key combos can be used to trigger the same command.
+- The user defines modes. There is only one predefined mode, the "idle-mode" which has no key combos defined
+  (i.e. this is the "mousemaster-is-disabled mode").
 - Each mode has its own (command -> key combo) map.
 - Each mode can have its own mouse and wheel configuration (initial velocity, max velocity, acceleration).
   This can be used to create "slow" and "fast" modes.
 - A timeout can be set on a mode to switch to another mode after some idle time
- (this can be used for disabling Xxx after a while, hiding the indicator after a while)
+ (this can be used for disabling mousemaster after a while, or hiding the indicator after a while)
 - This way of defining key combos and modes can be used to implement "toggle dragging",
-  chain commands (e.g. if your move combos are arrow keys while holding ctrl, you can move left/right without releasing ctrl)
-- Grids. Grid area
-- Can use mode to implement hints (e.g. a b c d ... z), and click-after-hint-selected when holding shift
+- Chain commands: for example, if your snap to screen edge combo is "hold ctrl then press arrow key", you can snap left/right without releasing ctrl
+- Grids: regular keynav-style grids (warpd has them too)
+- A grid can cover the active screen or the active window
+- A grid size can be 0-100% of the active screen/window: I personally use 99% to give the grid an offset
+- A grid can follow the mouse: this can be used for implementing mouseable-style "teleport the mouse forward at +300 pixels"
+- Hints: regular Vimium-like hints
+- A hint grid can cover the active screen, the active window, or all screens (that last one is used for screen selection hints)
+- Can automatically trigger a mouse click after a hint is selected
 - Position history: multi-screen position history hints (I believe warpd has position history hints for a single screen only)
-- The major structural differences with mouseable and warpd are the way key combos are defined
+- The two major differences with mouseable and warpd are the more granular way key combos are defined
   (key presses and key releases instead of "just keys"), and the "create your own modes" approach.
-  A mode is not restricted to "just normal mouse movements" or "just grid" or "just hints".
+  A mode is not restricted to "just normal mouse movements", "just grid" or "just hints".
 - The configuration is more complex than warpd/mouseable, mostly because you have to think in terms of key presses and key releases.
 - It's Windows only, I have not looked at making it cross-platform simply because I don't have an incentive for doing so
   (all my desktops are Windows based). Besides, it is possible that the Linux and macOS APIs offer less control than the Windows API when it
-  comes to handling mouse and keyboard events, and some of the features in mousemaster may not be implementable in Linux and macOS.
+  comes to handling mouse and keyboard events, and for that reason some of the features of mousemaster may not currently be implementable in Linux and macOS.
