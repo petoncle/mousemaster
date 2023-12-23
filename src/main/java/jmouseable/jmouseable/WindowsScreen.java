@@ -30,7 +30,7 @@ public class WindowsScreen {
 
     public static Screen findActiveScreen(WinDef.POINT containedPoint) {
         WinUser.HMONITOR hMonitor = User32.INSTANCE.MonitorFromPoint(
-                new WinDef.POINT.ByValue(containedPoint.getPointer()),
+                new WinDef.POINT.ByValue(containedPoint.x, containedPoint.y),
                 WinUser.MONITOR_DEFAULTTONEAREST);
         WinUser.MONITORINFO monitorInfo = new WinUser.MONITORINFO();
         User32.INSTANCE.GetMonitorInfo(hMonitor, monitorInfo);
