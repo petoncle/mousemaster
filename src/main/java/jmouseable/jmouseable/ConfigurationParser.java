@@ -239,11 +239,11 @@ public class ConfigurationParser {
                                 "Invalid wheel property key: " + propertyKey);
                     else {
                         switch (keyMatcher.group(4)) {
-                            case "acceleration" -> mode.wheel.builder.initialVelocity(
+                            case "acceleration" -> mode.wheel.builder.acceleration(
                                     Double.parseDouble(propertyValue));
-                            case "initial-velocity" -> mode.wheel.builder.maxVelocity(
+                            case "initial-velocity" -> mode.wheel.builder.initialVelocity(
                                     Double.parseDouble(propertyValue));
-                            case "max-velocity" -> mode.wheel.builder.acceleration(
+                            case "max-velocity" -> mode.wheel.builder.maxVelocity(
                                     Double.parseDouble(propertyValue));
                             default -> throw new IllegalArgumentException(
                                     "Invalid wheel property key: " + propertyKey);
