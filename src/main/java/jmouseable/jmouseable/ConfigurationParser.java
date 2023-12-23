@@ -69,7 +69,8 @@ public class ConfigurationParser {
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
                            .gridMaxRowCount(26)
                            .gridMaxColumnCount(26)
-                           .gridCellWidth(70)
+                           // 72 is the right value for getting AA -> ZZ hints in a 1920x1080 screen.
+                           .gridCellWidth(72)
                            .gridCellHeight(40);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();

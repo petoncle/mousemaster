@@ -171,9 +171,7 @@ public class WindowsOverlay {
             List<Hint> hintsInScreen = entry.getValue();
             HintMeshWindow existingWindow = hintMeshWindows.get(screen);
             if (existingWindow == null) {
-                WinUser.WindowProc callback =
-                        (hwnd1, uMsg, wParam, lParam) -> hintMeshWindowCallback(screen,
-                                hwnd1, uMsg, wParam, lParam);
+                WinUser.WindowProc callback = WindowsOverlay::hintMeshWindowCallback;
                 WinDef.HWND hwnd = createWindow("HintMesh", screen.rectangle().x(),
                         screen.rectangle().y(), screen.rectangle().width() + 1,
                         screen.rectangle().height() + 1, callback);
@@ -263,13 +261,28 @@ public class WindowsOverlay {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    private static WinDef.LRESULT hintMeshWindowCallback(Screen screen,
-                                                         WinDef.HWND hwnd, int uMsg,
+    private static WinDef.LRESULT hintMeshWindowCallback(WinDef.HWND hwnd, int uMsg,
                                                          WinDef.WPARAM wParam,
                                                          WinDef.LPARAM lParam) {
         switch (uMsg) {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
+                // I was unable to successfully pass screen as an argument of the method.
+                // With 2 screens, there are 2 callbacks, but JNA would always pass the screen reference
+                // corresponding to the first ever created callback.
+                // As a workaround, we don't pass the screen as an argument and find it using the hwnd.
+                Screen screen = null;
+                HintMeshWindow hintMeshWindow = null;
+                for (Map.Entry<Screen, HintMeshWindow> entry : hintMeshWindows.entrySet()) {
+                    if (entry.getValue().hwnd.equals(hwnd)) {
+                        screen = entry.getKey();
+                        hintMeshWindow = entry.getValue();
+                        break;
+                    }
+                }
+                if (hintMeshWindow == null)
+                    throw new IllegalStateException();
+                System.out.println("WindowsOverlay.hintMeshWindowCallback " + hwnd + " " + screen);
                 if (!showingHintMesh) {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
@@ -286,8 +299,7 @@ public class WindowsOverlay {
                         GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
                 WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
                 clearWindow(memDC, ps.rcPaint);
-                HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
-                drawHints(memDC, ps.rcPaint, hintMeshWindow.hints);
+                drawHints(memDC, ps.rcPaint, screen, hintMeshWindow.hints);
                 // Copy (blit) the off-screen buffer to the screen.
                 GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
                         GDI32.SRCCOPY);
@@ -365,7 +377,7 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(gridPen);
     }
 
-    private static void drawHints(WinDef.HDC hdc, WinDef.RECT windowRect,
+    private static void drawHints(WinDef.HDC hdc, WinDef.RECT windowRect, Screen screen,
                                   List<Hint> windowHints) {
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
@@ -387,8 +399,8 @@ public class WindowsOverlay {
                         new WinDef.DWORD(DEFAULT_QUALITY),
                         new WinDef.DWORD(DEFAULT_PITCH | FF_SWISS), fontName);
         WinNT.HANDLE oldFont = GDI32.INSTANCE.SelectObject(hdc, hintFont);
-        WinDef.HBRUSH boxBrush = ExtendedGDI32.INSTANCE.CreateSolidBrush(
-                hexColorStringToInt(boxHexColor));
+        WinDef.HBRUSH boxBrush =
+                ExtendedGDI32.INSTANCE.CreateSolidBrush(hexColorStringToInt(boxHexColor));
         for (Hint hint : windowHints) {
             if (!hint.startsWith(focusedHintKeySequence))
                 continue;
@@ -401,8 +413,8 @@ public class WindowsOverlay {
                               .collect(Collectors.joining());
             ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(),
                     textSize);
-            int textX = hint.centerX() - textSize.cx / 2;
-            int textY = hint.centerY() - textSize.cy / 2;
+            int textX = hint.centerX() - screen.rectangle().x() - textSize.cx / 2;
+            int textY = hint.centerY() - screen.rectangle().y() - textSize.cy / 2;
             WinDef.RECT textRect = new WinDef.RECT();
             textRect.left = textX;
             textRect.top = textY;
