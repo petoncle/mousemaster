@@ -3,25 +3,25 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>jmouseable</groupId>
-    <artifactId>jmouseable</artifactId>
+    <groupId>mousemaster</groupId>
+    <artifactId>mousemaster</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>jmouseable</name>
+    <name>mousemaster</name>
     <!--
     See https://graalvm.github.io/native-build-tools/latest/maven-plugin-quickstart.html
     JAVA_HOME=~/Documents/tools/graalvm-jdk-21.0.1+12.1/ ./mvnw clean package
     JAVA_HOME=~/Documents/tools/graalvm-jdk-21.0.1+12.1/ ./mvnw -Pnative -Dagent exec:exec@java-agent
     JAVA_HOME=~/Documents/tools/graalvm-jdk-21.0.1+12.1/ ./mvnw -Pnative -Dagent package
     https://github.com/oracle/graal/issues/1762#issuecomment-1297370039
-    ./pefrmdllembed/pefrmdllembed.exe -impinj target/jmouseable.exe ./pefrmdllembed/VCRUNTIME140.dll target/jmouseable-with-vcruntime140.exe
+    ./pefrmdllembed/pefrmdllembed.exe -impinj target/mousemaster.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster-with-vcruntime140.exe
     -->
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <native.maven.plugin.version>0.9.28</native.maven.plugin.version>
-        <imageName>jmouseable</imageName>
-        <mainClass>jmouseable.jmouseable.JmouseableApplication</mainClass>
+        <imageName>mousemaster</imageName>
+        <mainClass>mousemaster.MousemasterApplication</mainClass>
         <jna.version>5.13.0</jna.version> <!-- Check https://www.graalvm.org/latest/reference-manual/native-image/metadata/ -->
     </properties>
     <dependencies>

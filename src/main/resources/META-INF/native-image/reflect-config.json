@@ -391,41 +391,41 @@
   "name":"javax.smartcardio.CardPermission"
 },
 {
-  "name":"jmouseable.jmouseable.ExtendedGDI32",
+  "name":"mousemaster.ExtendedGDI32",
   "allPublicFields":true
 },
 {
-  "name":"jmouseable.jmouseable.ExtendedGDI32$EnumFontFamExProc",
+  "name":"mousemaster.ExtendedGDI32$EnumFontFamExProc",
   "queryAllDeclaredMethods":true,
   "queryAllPublicMethods":true,
-  "methods":[{"name":"callback","parameterTypes":["jmouseable.jmouseable.ExtendedGDI32$LOGFONT","jmouseable.jmouseable.ExtendedGDI32$TEXTMETRIC","com.sun.jna.platform.win32.WinDef$DWORD","com.sun.jna.platform.win32.WinDef$LPARAM"] }]
+  "methods":[{"name":"callback","parameterTypes":["mousemaster.ExtendedGDI32$LOGFONT","mousemaster.ExtendedGDI32$TEXTMETRIC","com.sun.jna.platform.win32.WinDef$DWORD","com.sun.jna.platform.win32.WinDef$LPARAM"] }]
 },
 {
-  "name":"jmouseable.jmouseable.ExtendedGDI32$LOGFONT",
+  "name":"mousemaster.ExtendedGDI32$LOGFONT",
   "allDeclaredFields":true,
   "queryAllPublicConstructors":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"jmouseable.jmouseable.ExtendedGDI32$TEXTMETRIC",
+  "name":"mousemaster.ExtendedGDI32$TEXTMETRIC",
   "allDeclaredFields":true,
   "queryAllPublicConstructors":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"jmouseable.jmouseable.ExtendedUser32$CURSORINFO",
+  "name":"mousemaster.ExtendedUser32$CURSORINFO",
   "allDeclaredFields":true
 },
 {
-  "name":"jmouseable.jmouseable.ExtendedUser32$PAINTSTRUCT",
+  "name":"mousemaster.ExtendedUser32$PAINTSTRUCT",
   "allDeclaredFields":true
 },
 {
-  "name":"jmouseable.jmouseable.Shcore$MONITOR_DPI_TYPE",
+  "name":"mousemaster.Shcore$MONITOR_DPI_TYPE",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"jmouseable.jmouseable.WindowsScreen$1",
+  "name":"mousemaster.WindowsScreen$1",
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
 },
 {

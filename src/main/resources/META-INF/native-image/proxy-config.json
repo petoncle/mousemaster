@@ -9,18 +9,18 @@
     "interfaces":["com.sun.jna.platform.win32.User32"]
   },
   {
-    "interfaces":["jmouseable.jmouseable.Dwmapi"]
+    "interfaces":["mousemaster.Dwmapi"]
   },
   {
-    "interfaces":["jmouseable.jmouseable.ExtendedGDI32"]
+    "interfaces":["mousemaster.ExtendedGDI32"]
   },
   {
-    "interfaces":["jmouseable.jmouseable.ExtendedKernel32"]
+    "interfaces":["mousemaster.ExtendedKernel32"]
   },
   {
-    "interfaces":["jmouseable.jmouseable.ExtendedUser32"]
+    "interfaces":["mousemaster.ExtendedUser32"]
   },
   {
-    "interfaces":["jmouseable.jmouseable.Shcore"]
+    "interfaces":["mousemaster.Shcore"]
   }
 ]

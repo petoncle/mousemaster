@@ -165,7 +165,7 @@
   "methods":[{"name":"array","parameterTypes":[] }, {"name":"arrayOffset","parameterTypes":[] }]
 },
 {
-  "name":"jmouseable.jmouseable.JmouseableApplication",
+  "name":"mousemaster.MousemasterApplication",
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 }
 ]

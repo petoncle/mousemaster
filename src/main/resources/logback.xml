@@ -9,6 +9,6 @@
         <appender-ref ref="CONSOLE"/>
     </root>
 
-    <logger name="jmouseable" level="DEBUG"/>
+    <logger name="mousemaster" level="DEBUG"/>
 
 </configuration>
