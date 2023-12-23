@@ -171,6 +171,8 @@ _shift,^shift = press shift, release shift?
 - Configuration file is automatically reloaded when changes are saved to it
 - Can have an indicator next to the mouse (or not), with different colors for when idling, moving, pressing buttons, and scrolling
 - The indicator re-positions itself around the mouse when the mouse is close to the edges of the screen so that it stays visible
+- You can move the mouse from one screen to the next seamlessly (like mouseable). warpd does not allow that as far as I know.
+- You can move from one screen to the next using a single hint per screen (warpd calls that the screen selection mode).
 - Configuration of keys is done in terms of key press and key release events, and whether the key events should be passed onto other apps or not.
   This allows for defining advanced key combos, but at the cost of added complexity of the configuration file
 - Distinguish between left and right alt/ctrl/shift keys (they are called them leftalt, rightalt, leftctrl, etc.)
