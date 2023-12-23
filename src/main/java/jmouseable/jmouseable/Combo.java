@@ -1,9 +1,6 @@
 package jmouseable.jmouseable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -15,34 +12,65 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
         Set<Set<Key>> mustRemainUnpressedKeySets;
         String mustRemainPressedAndSequenceString;
+        String mustRemainUnpressedKeySetsString;
         if (mustRemainUnpressedKeySetsMatcher.find()) {
-            String mustRemainUnpressedKeySetsString = mustRemainUnpressedKeySetsMatcher.group(1);
-            mustRemainUnpressedKeySets =
-                    parseKeySets(mustRemainUnpressedKeySetsString);
-            mustRemainPressedAndSequenceString = string.substring(mustRemainUnpressedKeySetsMatcher.end());
+            mustRemainUnpressedKeySetsString = mustRemainUnpressedKeySetsMatcher.group(1);
+            mustRemainUnpressedKeySets = parseKeySets(mustRemainUnpressedKeySetsString);
+            mustRemainPressedAndSequenceString =
+                    string.substring(mustRemainUnpressedKeySetsMatcher.end());
         }
         else {
+            mustRemainUnpressedKeySetsString = null;
             mustRemainUnpressedKeySets = Set.of();
             mustRemainPressedAndSequenceString = string;
         }
-        Matcher mustRemainPressedKeySetsMatcher =
-                Pattern.compile("_\\{([^{}]+)\\}\\s*").matcher(mustRemainPressedAndSequenceString);
+        Matcher mustRemainPressedKeySetsMatcher = Pattern.compile("_\\{([^{}]+)\\}\\s*")
+                                                         .matcher(
+                                                                 mustRemainPressedAndSequenceString);
         Set<Set<Key>> mustRemainPressedKeySets;
         String sequenceString;
+        String mustRemainPressedKeySetsString;
         if (mustRemainPressedKeySetsMatcher.find()) {
-            String mustRemainPressedKeySetsString = mustRemainPressedKeySetsMatcher.group(1);
-            mustRemainPressedKeySets =
-                    parseKeySets(mustRemainPressedKeySetsString);
-            sequenceString = mustRemainPressedAndSequenceString.substring(mustRemainPressedKeySetsMatcher.end());
+            mustRemainPressedKeySetsString = mustRemainPressedKeySetsMatcher.group(1);
+            mustRemainPressedKeySets = parseKeySets(mustRemainPressedKeySetsString);
+            sequenceString = mustRemainPressedAndSequenceString.substring(
+                    mustRemainPressedKeySetsMatcher.end());
         }
         else {
+            mustRemainPressedKeySetsString = null;
             mustRemainPressedKeySets = Set.of();
             sequenceString = mustRemainPressedAndSequenceString;
         }
+        if (mustRemainUnpressedKeySets.stream()
+                                      .flatMap(Collection::stream)
+                                      .anyMatch(mustRemainPressedKeySets.stream()
+                                                                        .flatMap(
+                                                                                Collection::stream)
+                                                                        .collect(
+                                                                                Collectors.toSet())::contains)) {
+            throw new IllegalArgumentException(
+                    "There cannot be an overlap between must remain unpressed keys and must remain pressed keys: " +
+                    "^{" + mustRemainUnpressedKeySetsString + "} _{" +
+                    mustRemainPressedKeySetsString + "}");
+        }
         ComboSequence sequence = sequenceString.isEmpty() ? new ComboSequence(List.of()) :
                 ComboSequence.parseSequence(sequenceString, defaultMoveDuration);
-        ComboPrecondition precondition =
-                new ComboPrecondition(mustRemainUnpressedKeySets, mustRemainPressedKeySets);
+        Set<Key> sequenceKeys =
+                sequence.moves().stream().map(ComboMove::key).collect(Collectors.toSet());
+        if (mustRemainUnpressedKeySets.stream()
+                                      .flatMap(Collection::stream)
+                                      .anyMatch(sequenceKeys::contains))
+            throw new IllegalArgumentException(
+                    "There cannot be an overlap between must remain unpressed keys and combo sequence keys: " +
+                    "^{" + mustRemainUnpressedKeySetsString + "} " + sequenceString);
+        if (mustRemainPressedKeySets.stream()
+                                    .flatMap(Collection::stream)
+                                    .anyMatch(sequenceKeys::contains))
+            throw new IllegalArgumentException(
+                    "There cannot be an overlap between must remain pressed keys and combo sequence keys: " +
+                    "_{" + mustRemainPressedKeySetsString + "} " + sequenceString);
+        ComboPrecondition precondition = new ComboPrecondition(mustRemainUnpressedKeySets,
+                mustRemainPressedKeySets);
         if (precondition.isEmpty() && sequence.moves().isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
         return new Combo(precondition, sequence);
@@ -57,9 +85,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     private static Set<Key> parseKeySet(String keySetString) {
         String[] keyStrings = keySetString.split("\\s+");
-        return Arrays.stream(keyStrings)
-                     .map(Key::ofName)
-                     .collect(Collectors.toSet());
+        return Arrays.stream(keyStrings).map(Key::ofName).collect(Collectors.toSet());
     }
 
     public static List<Combo> multiCombo(String multiComboString,
