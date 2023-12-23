@@ -109,7 +109,7 @@ public class ConfigurationParser {
                 new Property<>("shrink-grid", Map.of()),
                 new Property<>("move-grid", Map.of()),
                 new Property<>("move-grid-to-center", Map.of()),
-                new Property<>("save", Map.of()),
+                new Property<>("save-position", Map.of()),
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of())
@@ -662,7 +662,7 @@ public class ConfigurationParser {
                     else {
                         switch (keyMatcher.group(4)) {
                             // @formatter:off
-                            case "save" -> setCommand(mode.comboMap.savePosition.builder, propertyValue, new SavePosition(), defaultComboMoveDuration);
+                            case "save-position" -> setCommand(mode.comboMap.savePosition.builder, propertyValue, new SavePosition(), defaultComboMoveDuration);
                             case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder, propertyValue, new ClearPositionHistory(), defaultComboMoveDuration);
                             case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder, propertyValue, new CycleNextPosition(), defaultComboMoveDuration);
                             case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder, propertyValue, new CyclePreviousPosition(), defaultComboMoveDuration);
@@ -1229,7 +1229,7 @@ public class ConfigurationParser {
             shrinkGrid = new ComboMapProperty("shrink-grid", modeName, propertyByKey);
             moveGrid = new ComboMapProperty("move-grid", modeName, propertyByKey);
             moveToGridCenter = new ComboMapProperty("move-grid-to-center", modeName, propertyByKey);
-            savePosition = new ComboMapProperty("save", modeName, propertyByKey);
+            savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
