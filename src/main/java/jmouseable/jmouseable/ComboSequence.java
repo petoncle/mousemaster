@@ -13,7 +13,10 @@ public record ComboSequence(List<ComboMove> moves) {
         String[] moveStrings = movesString.split("\\s+");
         List<ComboMove> moves = new ArrayList<>();
         for (String moveString : moveStrings) {
-            Matcher matcher = Pattern.compile("([+\\-#])(.+?)(-(\\d+)-(\\d+))?")
+            // +leftctrl
+            // +leftctrl-0-250
+            // +leftctrl-1000
+            Matcher matcher = Pattern.compile("([+\\-#])([^-]+?)(-(\\d+)(-(\\d+))?)?")
                                      .matcher(moveString);
             if (!matcher.matches())
                 throw new IllegalArgumentException("Invalid move: " + moveString);
@@ -24,7 +27,8 @@ public record ComboSequence(List<ComboMove> moves) {
             else
                 moveDuration = new ComboMoveDuration(
                         Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(4))),
-                        Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(5))));
+                        matcher.group(6) == null ? null : Duration.ofMillis(
+                                Integer.parseUnsignedInt(matcher.group(6))));
             String keyName = matcher.group(2);
             Key key = Key.ofName(keyName);
             ComboMove move;

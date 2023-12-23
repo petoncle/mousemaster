@@ -129,8 +129,10 @@ public class ComboWatcher implements ModeListener {
                         newComboDuration =
                                 new ComboMoveDuration(currentMove.duration().min(),
                                         newComboDuration.max());
-                    if (newComboDuration.max().compareTo(currentMove.duration().max()) <
-                        0)
+                    if (newComboDuration.max() != null &&
+                        (currentMove.duration().max() == null ||
+                         newComboDuration.max().compareTo(currentMove.duration().max()) <
+                         0))
                         newComboDuration = new ComboMoveDuration(newComboDuration.min(),
                                 currentMove.duration().max());
                 }
