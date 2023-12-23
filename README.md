@@ -5,14 +5,15 @@
   and [mouseable](https://github.com/wirekang/mouseable/)
 
 ## Demo
+TODO
 
 ## Getting Started
 
 1. Download mousemaster.exe (a portable executable), or build it from source
 2. Choose then download one of the existing configuration files:
-    - warpd.properties: warpd-style configuration
-    - mouseable.properties: mouseable-style configuration
-    - author.properties: my own configuration which may not suit everyone, but is a good
+    - [warpd.properties](configuration/warpd.properties): warpd-style configuration
+    - [mouseable.properties](configuration/mouseable.properties): mouseable-style configuration
+    - [author.properties](configuration/author.properties): my own configuration which will not suit everyone, but is a good
       showcase of mousemaster's features
 3. Place the executable and the configuration file of your choice in the same directory
 4. Rename the configuration file to mousemaster.properties
