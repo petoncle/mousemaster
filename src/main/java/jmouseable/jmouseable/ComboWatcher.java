@@ -94,7 +94,7 @@ public class ComboWatcher implements ModeListener {
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
             Combo combo = entry.getKey();
-            if (event.isPress() && combo.precondition().isMustBePressedKey(event.key())) {
+            if (event.isPress() && combo.precondition().isMustRemainPressedKey(event.key())) {
                 partOfComboPrecondition = true;
             }
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());

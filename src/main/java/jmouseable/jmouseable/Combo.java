@@ -11,38 +11,38 @@ import java.util.stream.Collectors;
 public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     public static Combo of(String string, ComboMoveDuration defaultMoveDuration) {
-        Matcher mustNotBePressedKeySetsMatcher =
+        Matcher mustRemainUnpressedKeySetsMatcher =
                 Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
-        Set<Set<Key>> mustNotBePressedKeySets;
-        String mustBePressedAndSequenceString;
-        if (mustNotBePressedKeySetsMatcher.find()) {
-            String mustNotBePressedKeySetsString = mustNotBePressedKeySetsMatcher.group(1);
-            mustNotBePressedKeySets =
-                    parseKeySets(mustNotBePressedKeySetsString);
-            mustBePressedAndSequenceString = string.substring(mustNotBePressedKeySetsMatcher.end());
+        Set<Set<Key>> mustRemainUnpressedKeySets;
+        String mustRemainPressedAndSequenceString;
+        if (mustRemainUnpressedKeySetsMatcher.find()) {
+            String mustRemainUnpressedKeySetsString = mustRemainUnpressedKeySetsMatcher.group(1);
+            mustRemainUnpressedKeySets =
+                    parseKeySets(mustRemainUnpressedKeySetsString);
+            mustRemainPressedAndSequenceString = string.substring(mustRemainUnpressedKeySetsMatcher.end());
         }
         else {
-            mustNotBePressedKeySets = Set.of();
-            mustBePressedAndSequenceString = string;
+            mustRemainUnpressedKeySets = Set.of();
+            mustRemainPressedAndSequenceString = string;
         }
-        Matcher mustBePressedKeySetsMatcher =
-                Pattern.compile("_\\{([^{}]+)\\}\\s*").matcher(mustBePressedAndSequenceString);
-        Set<Set<Key>> mustBePressedKeySets;
+        Matcher mustRemainPressedKeySetsMatcher =
+                Pattern.compile("_\\{([^{}]+)\\}\\s*").matcher(mustRemainPressedAndSequenceString);
+        Set<Set<Key>> mustRemainPressedKeySets;
         String sequenceString;
-        if (mustBePressedKeySetsMatcher.find()) {
-            String mustBePressedKeySetsString = mustBePressedKeySetsMatcher.group(1);
-            mustBePressedKeySets =
-                    parseKeySets(mustBePressedKeySetsString);
-            sequenceString = mustBePressedAndSequenceString.substring(mustBePressedKeySetsMatcher.end());
+        if (mustRemainPressedKeySetsMatcher.find()) {
+            String mustRemainPressedKeySetsString = mustRemainPressedKeySetsMatcher.group(1);
+            mustRemainPressedKeySets =
+                    parseKeySets(mustRemainPressedKeySetsString);
+            sequenceString = mustRemainPressedAndSequenceString.substring(mustRemainPressedKeySetsMatcher.end());
         }
         else {
-            mustBePressedKeySets = Set.of();
-            sequenceString = mustBePressedAndSequenceString;
+            mustRemainPressedKeySets = Set.of();
+            sequenceString = mustRemainPressedAndSequenceString;
         }
         ComboSequence sequence = sequenceString.isEmpty() ? new ComboSequence(List.of()) :
                 ComboSequence.parseSequence(sequenceString, defaultMoveDuration);
         ComboPrecondition precondition =
-                new ComboPrecondition(mustNotBePressedKeySets, mustBePressedKeySets);
+                new ComboPrecondition(mustRemainUnpressedKeySets, mustRemainPressedKeySets);
         if (precondition.isEmpty() && sequence.moves().isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
         return new Combo(precondition, sequence);

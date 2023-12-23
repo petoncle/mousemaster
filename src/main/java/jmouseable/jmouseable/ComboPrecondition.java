@@ -3,30 +3,30 @@ package jmouseable.jmouseable;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public record ComboPrecondition(Set<Set<Key>> mustNotBePressedKeySets,
-                                Set<Set<Key>> mustBePressedKeySets) {
+public record ComboPrecondition(Set<Set<Key>> mustRemainUnpressedKeySets,
+                                Set<Set<Key>> mustRemainPressedKeySets) {
 
     public boolean isEmpty() {
-        return mustNotBePressedKeySets.isEmpty() && mustBePressedKeySets.isEmpty();
+        return mustRemainUnpressedKeySets.isEmpty() && mustRemainPressedKeySets.isEmpty();
     }
 
     public boolean satisfied(Set<Key> currentlyPressedKeys) {
-        for (Set<Key> mustNotBePressedKeySet : mustNotBePressedKeySets) {
-            if (currentlyPressedKeys.containsAll(mustNotBePressedKeySet))
+        for (Set<Key> mustRemainUnpressedKeySet : mustRemainUnpressedKeySets) {
+            if (currentlyPressedKeys.containsAll(mustRemainUnpressedKeySet))
                 return false;
         }
-        if (mustBePressedKeySets.isEmpty())
+        if (mustRemainPressedKeySets.isEmpty())
             return true;
-        for (Set<Key> mustBePressedKeySet : mustBePressedKeySets) {
-            if (currentlyPressedKeys.containsAll(mustBePressedKeySet))
+        for (Set<Key> mustRemainPressedKeySet : mustRemainPressedKeySets) {
+            if (currentlyPressedKeys.containsAll(mustRemainPressedKeySet))
                 return true;
         }
         return false;
     }
 
-    public boolean isMustBePressedKey(Key key) {
-        for (Set<Key> mustBePressedKeySet : mustBePressedKeySets) {
-            if (mustBePressedKeySet.contains(key))
+    public boolean isMustRemainPressedKey(Key key) {
+        for (Set<Key> mustRemainPressedKeySet : mustRemainPressedKeySets) {
+            if (mustRemainPressedKeySet.contains(key))
                 return true;
         }
         return false;
@@ -34,8 +34,8 @@ public record ComboPrecondition(Set<Set<Key>> mustNotBePressedKeySets,
 
     @Override
     public String toString() {
-        return String.join(" ", "^{" + keySetsToString(mustNotBePressedKeySets) + "}",
-                "_{" + keySetsToString(mustBePressedKeySets) + "}");
+        return String.join(" ", "^{" + keySetsToString(mustRemainUnpressedKeySets) + "}",
+                "_{" + keySetsToString(mustRemainPressedKeySets) + "}");
     }
 
     private static String keySetsToString(Set<Set<Key>> keySets) {

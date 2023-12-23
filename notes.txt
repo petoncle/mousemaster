@@ -175,10 +175,13 @@ _shift,^shift = press shift, release shift?
   This allows for defining advanced key combos, but at the cost of added complexity of the configuration file
 - Distinguish between left and right alt/ctrl/shift keys (they are called them leftalt, rightalt, leftctrl, etc.)
 - All keys are treated the same way, meaning that for example, you can implement
-  a "hold capslock then press enter" combo just like you would implement a "hold alt then press X" combo
+  "hold capslock then press enter" and "hold Z then press X" combos
+  just like you would implement a "hold alt then press X" combo
 - Keyboard layout-aware
-- Instead of saying "left arrow means move left", the user has to say
+- Instead of saying "left arrow means move left", the user has to say both
   "pressing left arrow means start moving left" and "releasing left arrow means stop moving left"
+- Examples of more advanced combos: "hold alt for 1 second" (I personally use that for the clear position history command),
+  "press then release alt twice in a row".
 - Each command (e.g. start-move.left, stop-move.left, press.middle) is triggered by one or more key combos
 - The same key combo can be used to trigger multiple commands. This can be used to do many things including "click and disable".
 - The user defines modes. There is only one predefined mode, the "idle-mode" which has no key combos defined (i.e. this is the "jmouseable is disabled mode").
