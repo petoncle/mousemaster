@@ -27,12 +27,16 @@ public class ComboWatcher implements ModeListener {
     }
 
     public void update(double delta) {
+        // Cancel combo if precondition is not satisfied anymore
+        combosWaitingForLastMoveToComplete.removeIf(
+                comboWaitingForLastMoveToComplete -> !comboWaitingForLastMoveToComplete.comboAndCommands.combo.precondition()
+                                                                                                              .satisfied(
+                                                                                                                      currentlyPressedComboPreconditionKeys));
         List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
             comboWaitingForLastMoveToComplete.remainingWait -= delta;
             if (comboWaitingForLastMoveToComplete.remainingWait < 0)
                 completeCombos.add(comboWaitingForLastMoveToComplete);
-            // TODO cancel if combo precondition is not satisfied anymore
         }
         List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
                                                                                            .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
