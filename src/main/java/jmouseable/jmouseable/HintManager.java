@@ -324,8 +324,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                     case Button.RIGHT_BUTTON -> mouseController.clickRight();
                 }
             }
-            if (hintMeshConfiguration.modeAfterSelection() != null)
+            if (hintMeshConfiguration.modeAfterSelection() != null) {
+                logger.debug("Hint " + exactMatchHint.keySequence()
+                                                     .stream()
+                                                     .map(Key::name)
+                                                     .toList() +
+                             " selected, switching to " +
+                             hintMeshConfiguration.modeAfterSelection());
                 modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
+            }
             else {
                 hintMesh =
                         hintMesh.builder().focusedKeySequence(List.of()).build();

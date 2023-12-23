@@ -73,10 +73,6 @@ public class KeyboardManager {
         }
     }
 
-    public boolean currentlyPressed(Key key) {
-        return currentlyPressedKeys.containsKey(key);
-    }
-
     private boolean allCurrentlyPressedKeysAreHandled() {
         return currentlyPressedKeys.values()
                                    .stream()
