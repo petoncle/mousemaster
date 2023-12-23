@@ -32,6 +32,7 @@ public class KeyboardManager {
 
     public void reset() {
         currentlyPressedKeys.clear();
+        pressingUnhandledKey = false;
         comboWatcher.reset();
     }
 
@@ -40,7 +41,7 @@ public class KeyboardManager {
         if (keyEvent.isPress()) {
             PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
             if (processing == null) {
-                if (allCurrentlyPressedKeysAreHandled()) {
+                if (!pressingUnhandledKey) {
                     if (hintManager.keyPressed(keyEvent.key()))
                         processing = PressKeyEventProcessing.partOfHint();
                     else
@@ -49,7 +50,6 @@ public class KeyboardManager {
                 }
                 else {
                     processing = PressKeyEventProcessing.unhandled();
-                    pressingUnhandledKey = true;
                 }
                 currentlyPressedKeys.put(key, processing);
             }
@@ -58,16 +58,15 @@ public class KeyboardManager {
         else {
             PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
             if (processing != null) {
+                pressingUnhandledKey = !allCurrentlyPressedKeysAreHandled();
                 if (processing.handled()) {
                     if (processing.isPartOfCombo())
                         comboWatcher.keyEvent(keyEvent); // Returns null.
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.
                     return processing.mustBeEaten();
                 }
-                else {
-                    pressingUnhandledKey = !allCurrentlyPressedKeysAreHandled();
+                else
                     return false;
-                }
             }
             else
                 return false;
@@ -78,7 +77,7 @@ public class KeyboardManager {
         return currentlyPressedKeys.containsKey(key);
     }
 
-    public boolean allCurrentlyPressedKeysAreHandled() {
+    private boolean allCurrentlyPressedKeysAreHandled() {
         return currentlyPressedKeys.values()
                                    .stream()
                                    .allMatch(
