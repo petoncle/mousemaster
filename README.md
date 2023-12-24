@@ -6,6 +6,13 @@
 - Heavily inspired by [warpd](https://github.com/rvaiya/warpd)
   and [mouseable](https://github.com/wirekang/mouseable/)
 
+<p align="center">
+<a href="#demo">Demo</a> •
+<a href="#installation">Installation</a> •
+<a href="#features">Features</a> •
+<a href="#notes">Notes</a>
+</p>
+
 # Demo
 
 ## Hints Demo
@@ -20,7 +27,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/789155d9-f953-4193-915a-
 ## Mouse Movements Demo (2/2)
 https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-d905a8daba30
 
-# Getting Started
+# Installation
 
 1. Download [mousemaster.exe](https://github.com/petoncle/mousemaster/releases/tag/1.0.0) (a
 portable executable), or build it from source
