@@ -280,7 +280,6 @@ public class WindowsOverlay {
                 }
                 if (hintMeshWindow == null)
                     throw new IllegalStateException();
-                System.out.println("WindowsOverlay.hintMeshWindowCallback " + hwnd + " " + screen);
                 if (!showingHintMesh) {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
