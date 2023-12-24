@@ -1,13 +1,24 @@
-## mousemaster
+# mousemaster
 
 - A keyboard driven interface for mouse manipulation
 - Heavily inspired by [warpd](https://github.com/rvaiya/warpd)
   and [mouseable](https://github.com/wirekang/mouseable/)
 
-## Demo
-TODO
+# Demo
 
-## Getting Started
+## Hints Demo
+https://github.com/petoncle/mousemaster/assets/39304282/841216ac-08a9-408a-8cd7-6558941afd3c
+
+## Grid Demo
+https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
+
+## Mouse Movements Demo (1/2)
+https://github.com/petoncle/mousemaster/assets/39304282/789155d9-f953-4193-915a-0bc3b4175e5b
+
+## Mouse Movements Demo (2/2)
+https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-d905a8daba30
+
+# Getting Started
 
 1. Download [mousemaster.exe](https://github.com/petoncle/mousemaster/releases/tag/1.0.0) (a
 portable executable), or build it from source
@@ -20,7 +31,7 @@ portable executable), or build it from source
 4. Rename the configuration file to mousemaster.properties
 5. Run mousemaster.exe
 
-## Features
+# Features
 
 1. **Command-Line Only:** mousemaster operates solely through the command line, with
    configuration loaded from a file (mousemaster.properties).
@@ -74,7 +85,7 @@ portable executable), or build it from source
 14. **Position History Hints:** mousemaster incorporates position history hints (a warpd
     feature). Unlike warpd, the position history hints are not limited to a single screen.
 
-## Notes
+# Notes
 
 - Using mousemaster, I have been able to not use my mouse at all anymore. The only exception is
   when I am working on mousemaster (for obvious reasons).
