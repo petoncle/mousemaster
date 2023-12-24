@@ -1,5 +1,7 @@
 # mousemaster
 
+<a href="https://discord.gg/GSB6MaKb2R"><img src="https://img.shields.io/discord/854326924402622474?color=%235865F2&label=discord" alt="Join Discord Chat"></a>
+
 - A keyboard driven interface for mouse manipulation
 - Heavily inspired by [warpd](https://github.com/rvaiya/warpd)
   and [mouseable](https://github.com/wirekang/mouseable/)
