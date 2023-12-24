@@ -1,0 +1,49 @@
+name: native-executable
+on:
+  push:
+    tags:
+      - '*'
+permissions:
+  contents: write
+jobs:
+  build:
+    name: mousemaster on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+    steps:
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Build jar
+        run: mvnw clean package
+        shell: cmd
+      - name: Find JAR file
+        id: find_jar
+        run: |
+          $jarPath = Get-ChildItem -Recurse -Filter "mousemaster-*-jar-with-dependencies.jar" -Path .\target | Select-Object -First 1
+          echo "::set-output name=jar_path::$jarPath"
+      - name: Extract version from JAR file
+        id: extract_version
+        run: |
+          $jarPath = "${{ steps.find_jar.outputs.jar_path }}"
+          $version = [regex]::match($jarPath, 'mousemaster-(.*?)-jar-with-dependencies\.jar').Groups[1].Value
+          echo "::set-output name=version::$version"
+      - name: Build GraalVM native executable
+        run: mvnw -Pnative -Dagent package
+        shell: cmd
+      - name: Rename GraalVM executable
+        run: ren target\mousemaster.exe mousemaster-without-vcruntime140.exe
+      - name: Embed VCRUNTIME140.dll
+        run: pefrmdllembed\pefrmdllembed.exe -impinj target/mousemaster-without-vcruntime140.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster.exe
+        shell: cmd
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/warpd.properties" --notes "See the [Installation](https://github.com/petoncle/mousemaster/tree/main#installation) section of the README." --title "v${{ steps.extract_version.outputs.version }}"

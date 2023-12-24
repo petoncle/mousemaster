@@ -29,11 +29,12 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 
 # Installation
 
-1. Download [mousemaster.exe](https://github.com/petoncle/mousemaster/releases/tag/1.0.0) (a
-portable executable), or build it from source
-2. Choose then download one of the existing configuration files:
-    - [warpd.properties](configuration/warpd.properties): warpd-style configuration
-    - [mouseable.properties](configuration/mouseable.properties): mouseable-style configuration
+1. Download mousemaster.exe (a portable executable) from
+   the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build
+   it from source
+2. In the same Release page, choose then download one of the existing configuration files:
+   - [warpd.properties](configuration/warpd.properties): warpd-style configuration
+   - [mouseable.properties](configuration/mouseable.properties): mouseable-style configuration
    - [author.properties](configuration/author.properties): the author's configuration
      which suits the author's specific needs, it can be used as a reference and
      showcase of mousemaster's features
