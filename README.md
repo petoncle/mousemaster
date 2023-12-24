@@ -22,7 +22,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/841216ac-08a9-408a-8cd7-
 https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
 
 ## Mouse Movements Demo (1/2)
-https://github.com/petoncle/mousemaster/assets/39304282/789155d9-f953-4193-915a-0bc3b4175e5b
+https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
 
 ## Mouse Movements Demo (2/2)
 https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-d905a8daba30
