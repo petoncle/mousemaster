@@ -34,8 +34,9 @@ portable executable), or build it from source
 2. Choose then download one of the existing configuration files:
     - [warpd.properties](configuration/warpd.properties): warpd-style configuration
     - [mouseable.properties](configuration/mouseable.properties): mouseable-style configuration
-    - [author.properties](configuration/author.properties): my own configuration which will not suit everyone, but is a good
-      showcase of mousemaster's features
+   - [author.properties](configuration/author.properties): the author's configuration
+     which suits the author's specific needs, it can be used as a reference and
+     showcase of mousemaster's features
 3. Place the executable and the configuration file of your choice in the same directory
 4. Rename the configuration file to mousemaster.properties
 5. Run mousemaster.exe
@@ -96,8 +97,9 @@ portable executable), or build it from source
 
 # Notes
 
-- Using mousemaster, I have been able to not use my mouse at all anymore. The only exception is
-  when I am working on mousemaster (for obvious reasons).
+- By using mousemaster along with [PowerToys](https://github.com/microsoft/PowerToys)
+  and the Vimium-like [Tridactyl](https://github.com/tridactyl/tridactyl) extension for
+  Firefox, I am able to not touch my mouse at all anymore. 
 - The two major differences between mousemaster and the existing alternatives (warpd and
   mouseable), are the way key combos are defined (key presses and key releases instead
   of "just keys"), and the "create your own modes" approach.
@@ -109,4 +111,4 @@ portable executable), or build it from source
   simply because all my desktops are Windows based. Besides, I believe the Linux and macOS
   APIs offer less control than the Windows API when it comes to handling mouse and
   keyboard events, and for that reason some of the features of mousemaster may not
-  currently be implementable in Linux and macOS.
+  currently be implementable on Linux and macOS.
