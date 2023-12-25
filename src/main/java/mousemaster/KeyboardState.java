@@ -9,8 +9,11 @@ public class KeyboardState {
         this.keyboardManager = keyboardManager;
     }
 
+    public boolean pressingUnhandledKeysOnly() {
+        return keyboardManager.pressingUnhandledKeysOnly();
+    }
+
     public boolean pressingUnhandledKey() {
         return keyboardManager.pressingUnhandledKey();
     }
-
 }

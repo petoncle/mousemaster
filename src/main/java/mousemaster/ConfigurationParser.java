@@ -37,7 +37,7 @@ public class ConfigurationParser {
 
     private static Map<String, Property<?>> defaultPropertyByName() {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
-        AtomicReference<String> modeAfterUnhandledKeyPress = new AtomicReference<>();
+        AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
         MouseBuilder mouse = new MouseBuilder().initialVelocity(200).maxVelocity(750).acceleration(1000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         GridConfigurationBuilder grid =
@@ -91,7 +91,7 @@ public class ConfigurationParser {
         // @formatter:off
         return Stream.of( //
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
-                new Property<>("mode-after-unhandled-key-press", modeAfterUnhandledKeyPress),
+                new Property<>("mode-after-pressing-unhandled-keys-only", modeAfterPressingUnhandledKeysOnly),
                 new Property<>("mouse", mouse),
                 new Property<>("wheel", wheel), 
                 new Property<>("grid", grid), 
@@ -198,15 +198,15 @@ public class ConfigurationParser {
                                         Boolean.parseBoolean(propertyValue)),
                                 childPropertiesByParentProperty,
                                 nonRootPropertyKeys);
-                case "mode-after-unhandled-key-press" -> {
-                    String modeAfterUnhandledKeyPress =
+                case "mode-after-pressing-unhandled-keys-only" -> {
+                    String modeAfterPressingUnhandledKeysOnly =
                             checkModeReference(propertyValue);
-                    mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
-                            modeAfterUnhandledKeyPress, builder -> {
-                                builder.set(modeAfterUnhandledKeyPress);
+                    mode.modeAfterPressingUnhandledKeysOnly.parseReferenceOr(propertyKey,
+                            modeAfterPressingUnhandledKeysOnly, builder -> {
+                                builder.set(modeAfterPressingUnhandledKeysOnly);
                                 referencedModesByReferencerMode.computeIfAbsent(modeName,
                                                                        modeName_ -> new HashSet<>())
-                                                               .add(modeAfterUnhandledKeyPress);
+                                                               .add(modeAfterPressingUnhandledKeysOnly);
                             }, childPropertiesByParentProperty, nonRootPropertyKeys);
                 }
                 case "mouse" -> {
@@ -1016,7 +1016,7 @@ public class ConfigurationParser {
     private static final class ModeBuilder {
         final String modeName;
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
-        Property<AtomicReference<String>> modeAfterUnhandledKeyPress;
+        Property<AtomicReference<String>> modeAfterPressingUnhandledKeysOnly;
         ComboMapConfigurationBuilder comboMap;
         Property<MouseBuilder> mouse;
         Property<WheelBuilder> wheel;
@@ -1039,7 +1039,7 @@ public class ConfigurationParser {
                         builder.set(parent.get());
                 }
             };
-            modeAfterUnhandledKeyPress = new Property<>("mode-after-unhandled-key-press", modeName,
+            modeAfterPressingUnhandledKeysOnly = new Property<>("mode-after-pressing-unhandled-keys-only", modeName,
                     propertyByKey, new AtomicReference<>()) {
                 @Override
                 void extend(Object parent_) {
@@ -1191,7 +1191,7 @@ public class ConfigurationParser {
 
         public Mode build() {
             return new Mode(modeName, pushModeToHistoryStack.builder.get(),
-                    modeAfterUnhandledKeyPress.builder.get(), comboMap.build(),
+                    modeAfterPressingUnhandledKeysOnly.builder.get(), comboMap.build(),
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build());

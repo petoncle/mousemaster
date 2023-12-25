@@ -13,7 +13,6 @@ public class KeyboardManager {
     private final ComboWatcher comboWatcher;
     private final HintManager hintManager;
     private final Map<Key, PressKeyEventProcessing> currentlyPressedKeys = new HashMap<>();
-    private boolean pressingUnhandledKey; // Handled means part of combo or part of hint.
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager) {
         this.comboWatcher = comboWatcher;
@@ -32,7 +31,6 @@ public class KeyboardManager {
 
     public void reset() {
         currentlyPressedKeys.clear();
-        pressingUnhandledKey = false;
         comboWatcher.reset();
     }
 
@@ -41,12 +39,11 @@ public class KeyboardManager {
         if (keyEvent.isPress()) {
             PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
             if (processing == null) {
-                if (!pressingUnhandledKey) {
+                if (!pressingUnhandledKey()) {
                     if (hintManager.keyPressed(keyEvent.key()))
                         processing = PressKeyEventProcessing.partOfHint();
                     else
                         processing = comboWatcher.keyEvent(keyEvent);
-                    pressingUnhandledKey = !processing.handled();
                 }
                 else {
                     processing = PressKeyEventProcessing.unhandled();
@@ -58,7 +55,6 @@ public class KeyboardManager {
         else {
             PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
             if (processing != null) {
-                pressingUnhandledKey = !allCurrentlyPressedKeysAreHandled();
                 if (processing.handled()) {
                     if (processing.isPartOfCombo())
                         comboWatcher.keyEvent(keyEvent); // Returns null.
@@ -73,15 +69,25 @@ public class KeyboardManager {
         }
     }
 
-    private boolean allCurrentlyPressedKeysAreHandled() {
-        return currentlyPressedKeys.values()
-                                   .stream()
-                                   .allMatch(
-                                           PressKeyEventProcessing::handled);
+    /**
+     * Handled means part of combo or part of hint.
+     */
+    public boolean pressingUnhandledKeysOnly() {
+        if (currentlyPressedKeys.isEmpty())
+            return false;
+        for (PressKeyEventProcessing pressKeyEventProcessing : currentlyPressedKeys.values()) {
+            if (pressKeyEventProcessing.handled())
+                return false;
+        }
+        return true;
     }
 
     public boolean pressingUnhandledKey() {
-        return pressingUnhandledKey;
+        for (PressKeyEventProcessing pressKeyEventProcessing : currentlyPressedKeys.values()) {
+            if (!pressKeyEventProcessing.handled())
+                return true;
+        }
+        return false;
     }
 
 }
