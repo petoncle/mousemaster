@@ -31,7 +31,8 @@ public record Key(String staticName, String character) {
     public static final Key del = new Key("del", null);
     public static final Key break_ = new Key("break", null);
     public static final Key backspace = new Key("backspace", null);
-    public static final Key win = new Key("win", null);
+    public static final Key leftwin = new Key("leftwin", null);
+    public static final Key rightwin = new Key("rightwin", null);
     public static final Key menu = new Key("menu", null);
     public static final Key numpad0 = new Key("numpad0", null);
     public static final Key numpad1 = new Key("numpad1", null);
@@ -95,7 +96,8 @@ public record Key(String staticName, String character) {
             insert,
             del,
             backspace,
-            win,
+            leftwin,
+            rightwin,
             menu,
             numpad0,
             numpad1,
