@@ -33,10 +33,10 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build
    it from source.
 2. In the same Release page, choose then download one of the existing configuration files:
-   - [warpd-style configuration](configuration/warpd.md) for mousemaster
-   - [mouseable-style configuration](configuration/mouseable.properties) for mousemaster
-   - [author's configuration](configuration/author.properties): the author's configuration
-     which suits the author's specific needs, it can be used as a reference and
+   - [warpd.properties](configuration/warpd.properties): warpd-style configuration (documentation: [warpd-style configuration for mousemaster](configuration/warpd.md))
+   - [mouseable.properties](configuration/mouseable.properties): mouseable-style configuration
+   - [author.properties](configuration/author.properties): the author's configuration
+     which suits the author's specific needs; it can be used as a reference and
      showcase of mousemaster's features
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to mousemaster.properties.
