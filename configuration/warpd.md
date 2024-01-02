@@ -1,11 +1,11 @@
 # warpd-style configuration for mousemaster (warpd.properties)
 
-# Overview
+## Overview
 
 - 3 main modes: normal, hint, and grid mode.
 - Normal mode uses vi-like bindings for local mouse movement.
 - Hint and grid modes assist in larger screen movements and are used with normal mode for comprehensive navigation.
-- See [warpd.properties](configuration/warpd.properties)
+- See [warpd.properties](warpd.properties)
 
 ## Normal Mode (_leftalt + c_)
 
