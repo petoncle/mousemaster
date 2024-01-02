@@ -11,7 +11,7 @@
 
 - Designed for short-distance mouse manipulation.
 - Useful for manipulating menus and selecting text.
-- Vi-like behavior with directional keys for continuous mouse movement.
+- Vi-like behavior with directional keys (_h_, _j_, _k_, _l_) for continuous mouse movement.
 - Warps to screen edges with top (_leftshift + h_), middle (_leftshift + m_), bottom (_leftshift + l_), left (_0_), and right (_leftshift + 4_) combos.
 - Scrolls (wheel) vertically with _r_ and _e_.
 - Scrolls (wheel) horizontally with _w_ and _t_.
@@ -50,7 +50,7 @@
 - Provides hints for moving the mouse to the center of a monitor.
 - Suitable for multi-screen setups.
 
-## Drag mode
+## Drag Mode
 
 - Activated by pressing _v_ in normal mode.
 - Allows for dragging text or objects around the screen.
