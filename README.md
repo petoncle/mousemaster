@@ -33,11 +33,9 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build
    it from source.
 2. In the same Release page, choose then download one of the existing configuration files:
-   - [warpd.properties](configuration/warpd.properties): warpd-style configuration (documentation: [warpd-style configuration for mousemaster](configuration/warpd.md))
-   - [mouseable.properties](configuration/mouseable.properties): mouseable-style configuration (documentation: [mouseable-style configuration for mousemaster](configuration/mouseable.md))
-   - [author.properties](configuration/author.properties): the author's configuration
-     which suits the author's specific needs; it can be used as a reference and
-     showcase of mousemaster's features
+   - [warpd.properties](configuration/warpd.properties): a vi-like configuration (documentation: [warpd-style configuration for mousemaster](configuration/warpd.md)).
+   - [mouseable.properties](configuration/mouseable.properties): another vi-like configuration (documentation: [mouseable-style configuration for mousemaster](configuration/mouseable.md)).
+   - [author.properties](configuration/author.properties): the author's configuration, which uses arrow keys instead of vi-like bindings (documentation: [author's configuration of mousemaster](configuration/author.md)).
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to mousemaster.properties.
 5. Run mousemaster.exe.
@@ -47,45 +45,45 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 
 # Features
 
-1. **Command-Line Only:** mousemaster operates solely through the command line, with
+1. **Command-line only:** mousemaster operates solely through the command line, with
    configuration loaded from a file (mousemaster.properties).
 
-2. **Dynamic Configuration:** The configuration file is live, automatically reloading upon
+2. **Dynamic configuration:** The configuration file is live, automatically reloading upon
    any saved changes.
 
-3. **Adaptive Mouse Indicator:** The optional and customizable mouse indicator (a
+3. **Adaptive mouse indicator:** The optional and customizable mouse indicator (a
    plain-color square drawn next to the mouse cursor) changes colors based on mouse
    activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
    visible when the mouse is near screen edges.
 
-4. **Seamless Multi-Screen Navigation:** Like mouseable, it allows for seamless mouse
+4. **Seamless multi-screen navigation:** Like mouseable, it allows for seamless mouse
    movement across multiple screens.
 
-5. **(Very) Advanced Key Combinations (Key Combos):** mousemaster offers an advanced level
+5. **Advanced key combinations (key combos):** mousemaster offers an advanced level
    of customization for key combinations. It allows for intricate key combos like "hold
    alt for 1 second" or "press then release alt, twice in a row".
 
-6. **Left/Right Key Distinction:** mousemaster distinguishes between left and right
+6. **Left/right key distinction:** mousemaster distinguishes between left and right
    alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
    different commands.
 
-7. **No Key Is Special:** All keys are treated the same way, meaning that for example, you
-   can implement a "hold Z then press X" combo or "hold capslock then press enter" combo
+7. **No key is special:** All keys are treated the same way, meaning that for example, you
+   can implement a "hold capslock then press enter" combo
    just like you would implement a "hold alt then press X" combo.
 
-8. **Does Not Conflict With Other Applications:** mousemaster tries not to clash with
+8. **Does not conflict with other aapplications:** mousemaster tries not to clash with
    other apps using shortcuts. Key events that are not part of any combos are seamlessly
    passed onto other apps.
 
-9. **Many-to-Many Key Combo-to-Command Mapping:** The same key combo can be used to
+9. **Many-to-many key combo -> command mapping:** The same key combo can be used to
    trigger multiple commands. Multiple key combos can be used to trigger the same command.
 
-10. **Custom Modes:** Users have to define their own modes, with each mode
+10. **Custom modes:** Users have to define their own modes, with each mode
     having its own key combo-to-command map and mouse settings. There is only one
     predefined mode, the "idle-mode", which has no key combos predefined (this is the
     "mousemaster is disabled mode").
 
-11. **Mode Timeout:** A timeout can be set on a mode to switch to another mode after some
+11. **Mode timeout:** A timeout can be set on a mode to switch to another mode after some
     idle time. This can be used for automatically disabling mousemaster after a while.
 
 12. **Grids:** mousemaster incorporates a warpd-like grid feature. A grid can cover the
@@ -96,14 +94,14 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
     screens (that last one can be used for screen selection hints). A mouse button click
     can be automatically triggered after a hint is selected.
 
-14. **Position History Hints:** mousemaster incorporates position history hints (a warpd
+14. **Position history hints:** mousemaster incorporates position history hints (a warpd
     feature). Unlike warpd, the position history hints are not limited to a single screen.
 
 # Notes
 
 - By using mousemaster along with [PowerToys](https://github.com/microsoft/PowerToys)
   and the Vimium-like [Tridactyl](https://github.com/tridactyl/tridactyl) extension for
-  Firefox, I am able to not touch my mouse at all anymore. 
+  Firefox, I have been able to not use my mouse (at all) anymore. 
 - The two major differences between mousemaster and the existing alternatives (warpd and
   mouseable), are the way key combos are defined (key presses and key releases instead
   of "just keys"), and the "create your own modes" approach.

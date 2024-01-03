@@ -1,0 +1,46 @@
+# Author's configuration of mousemaster ([author.properties](author.properties))
+
+## Overview
+
+- Designed for controlling the mouse with a single hand (right hand).
+- 3 main modes: normal, hint, and grid mode.
+- Normal mode uses arrow keys for local mouse movement.
+- Normal mode and grid mode can be used (almost) entirely with a single hand.
+- Normal mode automatically exits (to idle mode) after 5s of inactivity.
+- Normal mode automatically exits when any non-normal mode key is pressed.
+
+## Normal Mode (_rightctrl_)
+
+- Move mouse with arrow keys.
+- Press mouse buttons with _rightshift_ (left button), _._ (middle button), _/_ (right button).
+- Snap to screen edges by holding _rightctrl_, then quickly pressing an arrow key.
+- Snap to screen center by holding _rightctrl_ for 250ms.
+- Scroll (wheel) by double pressing the arrow keys.
+- Jump forward by pressing _rightctrl_ while moving the mouse.
+- Slow down mouse movement (surgical mode) by holding _leftshift_ while moving the mouse.
+- Exit with _rightctrl_ or _esc_.
+
+## Hint Mode (_leftshift_)
+
+- Display labels on the screen for direct mouse warping.
+- Similar to Vimium-like browser extensions, but applicable to the entire screen.
+- Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
+- Trigger a left button click by holding _leftshift_ while selecting a hint.
+- Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _leftctrl_ while selecting a hint.
+- Only the characters _s, d, f, g, h, j, k, l_ are used for hint labels because these keys are easy to locate without looking at the keyboard.
+- Exit with _leftshift_, _esc_ or _backspace_.
+
+## Position History Mode (_leftalt_)
+
+- Similar to hint mode, but shows hints over previous mouse positions.
+- Clear the position history by holding _leftalt_ for 1000ms (1s).
+- Exit with _leftalt_, _esc_ or _backspace_.
+
+## Grid Mode (hold _rightctrl_ in normal mode)
+
+- Divide screen into a 2x2 grid, refining target area with each key press.
+- Switch between screen grid and window grid by pressing _rightshift_.
+- Shrink the grid in one direction with the arrow keys.
+- Move the grid in one direction with _leftshift + \<arrow key>_.
+- Snap to the grid edges with _leftctrl + \<arrow key>_.
+- Switch to normal mode by releasing _rightctrl_.

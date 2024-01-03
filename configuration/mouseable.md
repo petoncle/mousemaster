@@ -17,14 +17,14 @@
 - Warp to screen center with _leftshift + m_.
 - Scroll (wheel) with _y_, _u_, _i_, _o_.
 - Jump forward (teleport) by holding _f_ while moving the mouse.
-- Slow mouse movement by holding _space_ (sniper mode).
+- Slow down mouse movement by holding _space_ while moving the mouse (sniper mode).
 - Exit with _;_ or _esc_.
 
 ## Hint Mode (_leftalt, leftalt_)
 
 - Display labels on the screen for direct mouse warping.
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
-- Switch back to the previous mode (idle mode or normal mode) after hint selection.
+- Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a left button click by holding _leftshift_ while selecting a hint.
 - Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _leftctrl_ while selecting a hint.
 - A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [mouseable.properties](configuration/mouseable.properties).
