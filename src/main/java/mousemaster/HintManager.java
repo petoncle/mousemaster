@@ -85,21 +85,21 @@ public class HintManager implements ModeListener, MousePositionListener {
                         hintMeshConfiguration.selectedPrefixFontHexColor())
                 .boxHexColor(hintMeshConfiguration.boxHexColor());
         HintMeshType type = hintMeshConfiguration.type();
-        if (type instanceof HintMeshType.HintGrid hintGrid) {
-            if (currentMode != null) {
-                HintMeshConfiguration oldHintMeshConfiguration = currentMode.hintMesh();
-                if (oldHintMeshConfiguration.enabled() &&
-                    oldHintMeshConfiguration.type().equals(hintMeshConfiguration.type()) &&
-                    oldHintMeshConfiguration.selectionKeys()
-                                            .equals(hintMeshConfiguration.selectionKeys())) {
-                    // Keep the old focusedKeySequence.
-                    // This is useful for hint-then-click-mode that extends hint-mode.
-                    // Note: changes to hint mesh center are ignored here.
-                    hintMesh.hints(this.hintMesh.hints())
-                            .focusedKeySequence(this.hintMesh.focusedKeySequence());
-                    return hintMesh.build();
-                }
+        if (currentMode != null) {
+            HintMeshConfiguration oldHintMeshConfiguration = currentMode.hintMesh();
+            if (oldHintMeshConfiguration.enabled() &&
+                oldHintMeshConfiguration.type().equals(hintMeshConfiguration.type()) &&
+                oldHintMeshConfiguration.selectionKeys()
+                                        .equals(hintMeshConfiguration.selectionKeys())) {
+                // Keep the old focusedKeySequence.
+                // This is useful for hint-then-click-mode that extends hint-mode.
+                // Note: changes to hint mesh center are ignored here.
+                hintMesh.hints(this.hintMesh.hints())
+                        .focusedKeySequence(this.hintMesh.focusedKeySequence());
+                return hintMesh.build();
             }
+        }
+        if (type instanceof HintMeshType.HintGrid hintGrid) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
             if (hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea) {
                 Screen gridScreen = screenManager.activeScreen();
