@@ -5,7 +5,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Mousemaster {
 
@@ -87,7 +91,18 @@ public class Mousemaster {
                         screenManager, mouseController);
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager,
                 hintManager);
-        ComboWatcher comboWatcher = new ComboWatcher(commandRunner);
+        Set<Key> comboPreconditionKeys = configuration.modeMap()
+                                                      .modes()
+                                                      .stream()
+                                                      .map(Mode::comboMap)
+                                                      .map(ComboMap::commandsByCombo)
+                                                      .map(Map::keySet)
+                                                      .flatMap(Collection::stream)
+                                                      .map(Combo::precondition)
+                                                      .map(ComboPrecondition::preconditionKeys)
+                                                      .flatMap(Collection::stream)
+                                                      .collect(Collectors.toSet());
+        ComboWatcher comboWatcher = new ComboWatcher(commandRunner, comboPreconditionKeys);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);

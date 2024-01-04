@@ -1,5 +1,6 @@
 package mousemaster;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,12 +25,14 @@ public record ComboPrecondition(Set<Set<Key>> mustRemainUnpressedKeySets,
         return false;
     }
 
-    public boolean isMustRemainPressedKey(Key key) {
+    public Set<Key> preconditionKeys() {
+        Set<Key> preconditionKeys = new HashSet<>();
+        for (Set<Key> mustRemainUnpressedKeySet : mustRemainUnpressedKeySets)
+            preconditionKeys.addAll(mustRemainUnpressedKeySet);
         for (Set<Key> mustRemainPressedKeySet : mustRemainPressedKeySets) {
-            if (mustRemainPressedKeySet.contains(key))
-                return true;
+            preconditionKeys.addAll(mustRemainPressedKeySet);
         }
-        return false;
+        return preconditionKeys;
     }
 
     @Override
