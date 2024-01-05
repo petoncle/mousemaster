@@ -9,6 +9,7 @@ import com.sun.jna.platform.win32.COM.Unknown;
 import com.sun.jna.platform.win32.Guid;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinNT;
+import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import com.sun.jna.win32.StdCallLibrary;
 import org.slf4j.Logger;
@@ -20,8 +21,8 @@ import java.util.List;
 /**
  * See:
  * com.sun.jna.platform.win32.COM.Wbemcli.IWbemLocator
- * https://github.com/roman380/DuplicationAndMediaFoundation/tree/master
  * https://github.com/diederickh/screen_capture/blob/master/src/test/test_win_api_directx_research.cpp (contains useful comments)
+ * https://github.com/roman380/DuplicationAndMediaFoundation/tree/master
  */
 public interface Dxgi extends StdCallLibrary {
 
@@ -36,11 +37,11 @@ public interface Dxgi extends StdCallLibrary {
 
     static IDXGIFactory factory() {
         COMUtils.comIsInitialized();
-        PointerByReference pFactoryRef = new PointerByReference();
+        PointerByReference pFactory = new PointerByReference();
         WinNT.HRESULT hr = Dxgi.INSTANCE.CreateDXGIFactory(
-                new Guid.REFIID(IDXGIFactory.IID_IDXGIFactory), pFactoryRef);
+                new Guid.REFIID(IDXGIFactory.IID_IDXGIFactory), pFactory);
         COMUtils.checkRC(hr);
-        return new IDXGIFactory(pFactoryRef.getValue());
+        return new IDXGIFactory(pFactory.getValue());
     }
 
     class IDXGIFactory extends Unknown {
@@ -79,6 +80,39 @@ public interface Dxgi extends StdCallLibrary {
                                  String.valueOf(outputDesc.DeviceName) +
                                  ", attached to desktop: " +
                                  outputDesc.AttachedToDesktop);
+                    if (!outputDesc.AttachedToDesktop.booleanValue())
+                        continue;
+                    PointerByReference pD3dDevice = new PointerByReference();
+                    int D3D_DRIVER_TYPE_UNKNOWN = 0;
+                    // You use D3D_DRIVER_TYPE_UNKNOWN when you are creating a Direct3D device and
+                    // you already have a DXGI adapter (IDXGIAdapter) that you want to use for that device.
+                    // In this scenario, you pass D3D_DRIVER_TYPE_UNKNOWN as the driver type and provide a non-null IDXGIAdapter
+                    // pointer as the first argument to D3D11CreateDevice.
+                    // The function will then create a device using the provided adapter, which represents a specific GPU
+                    // or hardware device.
+                    IntByReference pFeatureLevel = new IntByReference();
+                    PointerByReference pContext = new PointerByReference();
+                    WinNT.HRESULT createDeviceHr =
+                            D3d11.INSTANCE.D3D11CreateDevice(adapter.getPointer(),
+                                    D3D_DRIVER_TYPE_UNKNOWN, null, new WinDef.UINT(0),
+                                    null, new WinDef.UINT(0), D3d11.D3D11_SDK_VERSION,
+                                    pD3dDevice, pFeatureLevel, pContext);
+                    COMUtils.checkRC(createDeviceHr);
+                    ID3D11Device device = new ID3D11Device(pD3dDevice.getValue());
+                    WinDef.UINT featureLevel = device.GetFeatureLevel(); // This works, so it means the device is correct.
+                    PointerByReference pOutput1 = new PointerByReference();
+                    COMUtils.checkRC(output.QueryInterface(
+                            new Guid.REFIID(IDXGIOutput1.IID_IDXGIOutput1), pOutput1));
+                    IDXGIOutput1 output1 = new IDXGIOutput1(pOutput1.getValue());
+                    DXGI_OUTPUT_DESC output1Desc = new DXGI_OUTPUT_DESC();
+                    COMUtils.checkRC(output1.GetDesc(output1Desc)); // This works, can be removed.
+                    System.out.println("IDXGIFactory.adapters");
+                    PointerByReference pOutputDuplication = new PointerByReference();
+//                    WinNT.HRESULT hr =
+//                            output1.DuplicateOutput(device, pOutputDuplication);
+//                    COMUtils.checkRC(hr);
+//                    IDXGIOutputDuplication outputDuplication =
+//                            new IDXGIOutputDuplication(pOutputDuplication.getValue());
                 }
             }
             return adapters;
@@ -144,6 +178,33 @@ public interface Dxgi extends StdCallLibrary {
 
     }
 
+    /**
+     * Output1 has the DuplicateOutput method.
+     */
+    class IDXGIOutput1 extends Unknown {
+
+        // https://github.com/apitrace/dxsdk/blob/master/Include/dxgi1_2.h
+        public static final Guid.IID IID_IDXGIOutput1 =
+                new Guid.IID("00cddea8-939b-4b83-a340-a685226666cc");
+
+        public IDXGIOutput1(Pointer pvInstance) {
+            super(pvInstance);
+        }
+
+        public WinNT.HRESULT GetDesc(DXGI_OUTPUT_DESC desc) {
+            // 7-th method in dxgi.h
+            return (WinNT.HRESULT) _invokeNativeObject(7,
+                    new Object[]{getPointer(), desc}, WinNT.HRESULT.class);
+        }
+
+        public WinNT.HRESULT DuplicateOutput(ID3D11Device device, PointerByReference ppOutputDuplication) {
+            return (WinNT.HRESULT) _invokeNativeObject(22,
+                    new Object[]{getPointer(), device, ppOutputDuplication},
+                    WinNT.HRESULT.class);
+        }
+
+    }
+
     class DXGI_OUTPUT_DESC extends Structure {
         public char[] DeviceName = new char[32];
         public WinDef.RECT DesktopCoordinates;
@@ -158,12 +219,31 @@ public interface Dxgi extends StdCallLibrary {
 
     }
 
+    // https://github.com/apitrace/dxsdk/blob/master/Include/d3d11.h
+    class ID3D11Device extends Unknown {
+
+        public ID3D11Device() {
+        }
+
+        public ID3D11Device(Pointer pvInstance) {
+            super(pvInstance);
+        }
+
+        public WinDef.UINT GetFeatureLevel() {
+            return (WinDef.UINT) _invokeNativeObject(37,
+                    new Object[]{getPointer()},
+                    WinDef.UINT.class);
+        }
+
+    }
+
     class IDXGIOutputDuplication extends Unknown {
 
         // https://github.com/apitrace/dxsdk/blob/master/Include/dxgi1_2.h
-        public static final Guid.IID IID_IDXGIOutputDuplication =
-                new Guid.IID("191cfac3-a341-470d-b26e-a864f428319c");
 
+        public IDXGIOutputDuplication(Pointer pvInstance) {
+            super(pvInstance);
+        }
     }
 
 }
