@@ -45,7 +45,7 @@ public class WindowsPlatform implements Platform {
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
         installHooks();
-        Dxgi.IDXGIFactory factory = Dxgi.factory();
+        Dxgi.IDXGIFactory1 factory = Dxgi.factory();
         List<Dxgi.IDXGIAdapter> adapters = factory.adapters();
         System.out.println("WindowsPlatform.WindowsPlatform");
     }

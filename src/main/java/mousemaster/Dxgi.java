@@ -33,24 +33,24 @@ public interface Dxgi extends StdCallLibrary {
     // https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-error
     int DXGI_ERROR_NOT_FOUND = 0x887A0002;
 
-    WinNT.HRESULT CreateDXGIFactory(Guid.REFIID riid, PointerByReference ppFactory);
+    WinNT.HRESULT CreateDXGIFactory1(Guid.REFIID riid, PointerByReference ppFactory);
 
-    static IDXGIFactory factory() {
+    static IDXGIFactory1 factory() {
         COMUtils.comIsInitialized();
         PointerByReference pFactory = new PointerByReference();
-        WinNT.HRESULT hr = Dxgi.INSTANCE.CreateDXGIFactory(
-                new Guid.REFIID(IDXGIFactory.IID_IDXGIFactory), pFactory);
+        WinNT.HRESULT hr = Dxgi.INSTANCE.CreateDXGIFactory1(
+                new Guid.REFIID(IDXGIFactory1.IID_IDXGIFactory1), pFactory);
         COMUtils.checkRC(hr);
-        return new IDXGIFactory(pFactory.getValue());
+        return new IDXGIFactory1(pFactory.getValue());
     }
 
-    class IDXGIFactory extends Unknown {
+    class IDXGIFactory1 extends Unknown {
 
         // https://github.com/apitrace/dxsdk/blob/master/Include/dxgi.h
-        public static final Guid.IID IID_IDXGIFactory =
-                new Guid.IID("7b7166ec-21c7-44ae-b21a-c9ae321ae369");
+        public static final Guid.IID IID_IDXGIFactory1 =
+                new Guid.IID("770aae78-f26f-4dba-a829-253c83d1b387");
 
-        public IDXGIFactory(Pointer pvInstance) {
+        public IDXGIFactory1(Pointer pvInstance) {
             super(pvInstance);
         }
 
@@ -58,7 +58,7 @@ public interface Dxgi extends StdCallLibrary {
             List<IDXGIAdapter> adapters = new ArrayList<>();
             for (int adapterIndex = 0; ; adapterIndex++) {
                 PointerByReference pAdapter = new PointerByReference();
-                WinNT.HRESULT adapterHr = EnumAdapters(adapterIndex, pAdapter);
+                WinNT.HRESULT adapterHr = EnumAdapters1(adapterIndex, pAdapter);
                 if (adapterHr.intValue() == DXGI_ERROR_NOT_FOUND)
                     break;
                 COMUtils.checkRC(adapterHr);
@@ -106,20 +106,17 @@ public interface Dxgi extends StdCallLibrary {
                     IDXGIOutput1 output1 = new IDXGIOutput1(pOutput1.getValue());
                     DXGI_OUTPUT_DESC output1Desc = new DXGI_OUTPUT_DESC();
                     COMUtils.checkRC(output1.GetDesc(output1Desc)); // This works, can be removed.
-                    System.out.println("IDXGIFactory.adapters");
                     PointerByReference pOutputDuplication = new PointerByReference();
-//                    WinNT.HRESULT hr =
-//                            output1.DuplicateOutput(device, pOutputDuplication);
-//                    COMUtils.checkRC(hr);
-//                    IDXGIOutputDuplication outputDuplication =
-//                            new IDXGIOutputDuplication(pOutputDuplication.getValue());
+                    COMUtils.checkRC(output1.DuplicateOutput(device, pOutputDuplication));
+                    IDXGIOutputDuplication outputDuplication =
+                            new IDXGIOutputDuplication(pOutputDuplication.getValue());
                 }
             }
             return adapters;
         }
 
-        private WinNT.HRESULT EnumAdapters(int Adapter, PointerByReference ppAdapter) {
-            // 7-th method of IDXGIFactory in dxgi.h
+        private WinNT.HRESULT EnumAdapters1(int Adapter, PointerByReference ppAdapter) {
+            // 12-th method of IDXGIFactory1 in dxgi.h
             return (WinNT.HRESULT) _invokeNativeObject(7,
                     new Object[]{getPointer(), Adapter, ppAdapter}, WinNT.HRESULT.class);
         }
