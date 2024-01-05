@@ -5,9 +5,10 @@
 - Designed for controlling the mouse with a single hand (right hand).
 - 3 main modes: normal, hint, and grid mode.
 - Normal mode uses arrow keys for local mouse movement.
-- Normal mode and grid mode can be used (almost) entirely with a single hand.
+- Normal mode, grid mode, and hint mode can be used (almost) entirely with a single hand.
 - Normal mode automatically exits (to idle mode) after 5s of inactivity.
 - Normal mode automatically exits when any non-normal mode key is pressed.
+- The author is using this configuration with a small QWERTY keyboard and one 1080p screen with a 125% display scale.
 
 ## Normal Mode (_rightctrl_)
 
@@ -20,15 +21,16 @@
 - Slow down mouse movement (surgical mode) by holding _leftshift_ while moving the mouse.
 - Exit with _rightctrl_ or _esc_.
 
-## Hint Mode (_leftshift_)
+## Hint Mode (_rightalt_)
 
 - Display labels on the screen for direct mouse warping.
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
-- Trigger a left button click by holding _leftshift_ while selecting a hint.
-- Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _leftctrl_ while selecting a hint.
-- Only the characters _s, d, f, g, h, j, k, l_ are used for hint labels because these keys are easy to locate without looking at the keyboard.
-- Exit with _leftshift_, _esc_ or _backspace_.
+- Trigger a left button click by holding _space_ while selecting a hint.
+- Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _rightalt_ while selecting a hint. 
+Release _rightalt_ during the second hint pass to not trigger a click after hint selection.  
+- Only the characters _u, i, j, k, m_ are used for hint labels to be able to select hints with one hand.
+- Exit with _rightalt_, _esc_ or _backspace_.
 
 ## Position History Mode (_leftalt_)
 
