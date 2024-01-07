@@ -14,6 +14,10 @@ public interface D3d11 extends StdCallLibrary {
     D3d11 INSTANCE = Native.load("d3d11", D3d11.class);
 
     WinDef.UINT D3D11_SDK_VERSION = new WinDef.UINT(7);
+    int D3D11_USAGE_DEFAULT = 0;
+    int D3D11_BIND_VERTEX_BUFFER = 0x1;
+    int D3D11_USAGE_DYNAMIC = 2;
+    int D3D11_BIND_RENDER_TARGET = 0x20;
 
     HRESULT D3D11CreateDevice(
         Pointer pAdapter, // IDXGIAdapter* is represented as Pointer
