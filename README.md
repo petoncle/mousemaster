@@ -56,7 +56,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
    visible when the mouse is near screen edges.
 
-4. **Seamless multi-screen navigation:** Like mouseable, it allows for seamless mouse
+4. **Multi-screen navigation:** mousemaster allows for seamless mouse
    movement across multiple screens.
 
 5. **Advanced key combinations (key combos):** mousemaster offers an advanced level
@@ -71,7 +71,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    can implement a "hold capslock then press enter" combo
    just like you would implement a "hold alt then press X" combo.
 
-8. **Does not conflict with other aapplications:** mousemaster tries not to clash with
+8. **Does not conflict with other applications:** mousemaster tries not to clash with
    other apps using shortcuts. Key events that are not part of any combos are seamlessly
    passed onto other apps.
 
@@ -86,7 +86,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 11. **Mode timeout:** A timeout can be set on a mode to switch to another mode after some
     idle time. This can be used for automatically disabling mousemaster after a while.
 
-12. **Grids:** mousemaster incorporates a warpd-like grid feature. A grid can cover the
+12. **Grids:** mousemaster incorporates a grid-based navigation system. A grid can cover the
     active screen or the active window.
 
 13. **Hints:** mousemaster incorporates a hint-based navigation system similar
@@ -94,8 +94,8 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
     screens (that last one can be used for screen selection hints). A mouse button click
     can be automatically triggered after a hint is selected.
 
-14. **Position history hints:** mousemaster incorporates position history hints (a warpd
-    feature). Unlike warpd, the position history hints are not limited to a single screen.
+14. **Position history hints:** mousemaster incorporates position history hints. The
+    position history hints are not limited to a single screen (unlike warpd).
 
 # Notes
 
@@ -110,7 +110,4 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
   conscious trade-off for greater flexibility. Detailed debug logs are provided in the
   console to assist in configuration and troubleshooting.
 - Currently, mousemaster is Windows-only. I have not looked at making it cross-platform
-  simply because all my desktops are Windows based. Besides, I believe the Linux and macOS
-  APIs offer less control than the Windows API when it comes to handling mouse and
-  keyboard events, and for that reason some of the features of mousemaster may not
-  currently be implementable on Linux and macOS.
+  simply because all my desktops are Windows based.
