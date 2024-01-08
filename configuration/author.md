@@ -35,7 +35,9 @@ Release _rightalt_ during the second hint pass to not trigger a click after hint
 ## Position History Mode (_leftalt_)
 
 - Similar to hint mode, but shows hints over previous mouse positions.
+- Only the last two positions are saved (it seems I do not need more).
 - Clear the position history by holding _leftalt_ for 1000ms (1s).
+- Cycle through the position history with _rightalt + left/right_.
 - Exit with _leftalt_, _esc_ or _backspace_.
 
 ## Grid Mode (hold _rightctrl_ in normal mode)
