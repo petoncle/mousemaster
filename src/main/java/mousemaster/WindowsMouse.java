@@ -13,7 +13,7 @@ import java.util.stream.LongStream;
 public class WindowsMouse {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsMouse.class);
-    private static final Executor mouseExecutor = Executors.newSingleThreadExecutor();
+    private static final Executor mouseExecutor = Runnable::run; //Executors.newSingleThreadExecutor();
 
     public static void moveBy(boolean xForward, double deltaX, boolean yForward,
                               double deltaY) {
@@ -24,7 +24,7 @@ public class WindowsMouse {
     }
 
     public static void moveTo(int x, int y) {
-        setMousePosition(new WinDef.POINT(x, y));
+       mouseExecutor.execute(() -> setMousePosition(new WinDef.POINT(x, y)));
     }
 
     public static void pressLeft() {
