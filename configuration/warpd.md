@@ -15,7 +15,7 @@
 - Press mouse buttons with _m_ (left button), _,_ (middle button), _._ (right button).
 - Press mouse buttons then exit ("oneshot" clicks) with _n_ (left button), _-_ (middle button), _/_ (right button).
 - Warp to screen edges with _leftshift + h_, _leftshift + j_, _leftshift + k_, _leftshift + l_.
-- Scroll (wheel) with _w_, _e_, _r_, _t_.
+- Scroll vertically or horizontally (wheel) with _w_, _e_, _r_, _t_.
 - Slow down mouse movement (decelerate) by holding _d_ while moving the mouse.
 - Accelerate mouse movement by holding _a_ while moving the mouse.
 - Exit with _esc_.

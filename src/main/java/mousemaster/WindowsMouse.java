@@ -13,7 +13,7 @@ import java.util.stream.LongStream;
 public class WindowsMouse {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsMouse.class);
-    private static final Executor mouseExecutor = Runnable::run; //Executors.newSingleThreadExecutor();
+    private static final Executor mouseExecutor = Executors.newSingleThreadExecutor();
 
     public static void moveBy(boolean xForward, double deltaX, boolean yForward,
                               double deltaY) {

@@ -16,9 +16,9 @@
 - Press mouse buttons with _rightshift_ (left button), _._ (middle button), _/_ (right button).
 - Snap to screen edges by holding _rightctrl_, then quickly pressing an arrow key.
 - Snap to screen center by holding _rightctrl_ for 250ms.
-- Scroll (wheel) by double pressing the arrow keys.
+- Scroll vertically or horizontally (wheel) by double pressing the arrow keys.
 - Jump forward by pressing _rightctrl_ while moving the mouse.
-- Slow down mouse movement (surgical mode) by holding _leftshift_ while moving the mouse.
+- Slow down mouse movement (surgical mode) by holding _leftshift_ or _enter_ while moving the mouse or while scrolling.
 - Exit with _rightctrl_ or _esc_.
 
 ## Hint Mode (_rightalt_)

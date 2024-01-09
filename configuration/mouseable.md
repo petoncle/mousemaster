@@ -15,7 +15,7 @@
 - Press mouse buttons with _a_ (left button), _s_ (middle button), _d_ (right button).
 - Warp to screen edges with _leftalt + h_, _leftalt + j_, _leftalt + k_, _leftalt + l_.
 - Warp to screen center with _leftshift + m_.
-- Scroll (wheel) with _y_, _u_, _i_, _o_.
+- Scroll vertically or horizontally (wheel) with _y_, _u_, _i_, _o_.
 - Jump forward (teleport) by holding _f_ while moving the mouse.
 - Slow down mouse movement by holding _space_ while moving the mouse (sniper mode).
 - Exit with _;_ or _esc_.
