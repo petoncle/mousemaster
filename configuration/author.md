@@ -8,7 +8,7 @@
 - Normal mode, grid mode, and hint mode can be used (almost) entirely with a single hand.
 - Normal mode automatically exits (to idle mode) after 5s of inactivity.
 - Normal mode automatically exits when any non-normal mode key is pressed.
-- The author is using this configuration with a small QWERTY keyboard and one 1080p screen with a 125% display scale.
+- The author is using this configuration with a small QWERTY keyboard and one 1920x1080 screen with a 125% display scale.
 
 ## Normal Mode (_rightctrl_)
 
@@ -18,7 +18,7 @@
 - Snap to screen center by holding _rightctrl_ for 250ms.
 - Scroll vertically or horizontally (wheel) by double pressing the arrow keys.
 - Jump forward by pressing _rightctrl_ while moving the mouse.
-- Slow down mouse movement (surgical mode) by holding _leftshift_ or _enter_ while moving the mouse or while scrolling.
+- Slow down mouse movement (surgical mode) by holding _leftshift_ or _rightalt_ while moving the mouse or while scrolling.
 - Exit with _rightctrl_ or _esc_.
 
 ## Hint Mode (_rightalt_)
