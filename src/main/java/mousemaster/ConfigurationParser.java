@@ -77,7 +77,8 @@ public class ConfigurationParser {
         hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
                            .activeScreenHintGridAreaCenter(
                                    ActiveScreenHintGridAreaCenter.SCREEN_CENTER);
-        ModeTimeoutBuilder timeout = new ModeTimeoutBuilder().enabled(false);
+        ModeTimeoutBuilder timeout =
+                new ModeTimeoutBuilder().enabled(false).buttonPressCountsAsActivity(true);
         IndicatorConfigurationBuilder indicator =
                 new IndicatorConfigurationBuilder();
         indicator.enabled(false)
@@ -425,6 +426,9 @@ public class ConfigurationParser {
                                                                            modeName_ -> new HashSet<>())
                                                                    .add(timeoutModeName);
                             }
+                            case "button-press-counts-as-activity" ->
+                                    mode.timeout.builder.buttonPressCountsAsActivity(
+                                            Boolean.parseBoolean(propertyValue));
                             default -> throw new IllegalArgumentException(
                                     "Invalid timeout property key: " + propertyKey);
                         }
@@ -732,11 +736,12 @@ public class ConfigurationParser {
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() &&
             (mode.timeout.builder.idleDuration() == null ||
-             mode.timeout.builder.modeName() == null))
+             mode.timeout.builder.modeName() == null ||
+             mode.timeout.builder.buttonPressCountsAsActivity() == null))
             throw new IllegalArgumentException(
                     "Definition of timeout for " + mode.modeName +
                     " is incomplete: expected " +
-                    List.of("enabled", "idle-duration", "mode"));
+                    List.of("enabled", "idle-duration", "mode", "button-press-counts-as-activity"));
         if (mode.hideCursor.builder.enabled() &&
             mode.hideCursor.builder.idleDuration() == null)
             throw new IllegalArgumentException(
@@ -1152,6 +1157,8 @@ public class ConfigurationParser {
                         builder.idleDuration(parent.idleDuration());
                     if (builder.modeName() == null)
                         builder.modeName(parent.modeName());
+                    if (builder.buttonPressCountsAsActivity() == null)
+                        builder.buttonPressCountsAsActivity(parent.buttonPressCountsAsActivity());
                 }
             };
             indicator = new Property<>("indicator", modeName, propertyByKey,

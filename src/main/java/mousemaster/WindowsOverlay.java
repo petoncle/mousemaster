@@ -520,7 +520,6 @@ public class WindowsOverlay {
                                 oldGrid.height())))
                     clearGridWindowThenResize = true;
                 else {
-                    System.out.println("WindowsOverlay.setGrid shares edge with old");
                     User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(),
                             grid.y(), grid.width() + 1, grid.height() + 1,
                             User32.SWP_NOZORDER);

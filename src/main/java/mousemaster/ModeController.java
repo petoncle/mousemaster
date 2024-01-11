@@ -44,7 +44,9 @@ public class ModeController implements GridListener, PositionHistoryListener {
                 return;
             }
         }
-        boolean mouseIdling = !mouseState.moving() &&
+        boolean pressingActivity = currentMode.timeout().buttonPressCountsAsActivity() &&
+                                   mouseState.pressing();
+        boolean mouseIdling = !mouseState.moving() && !pressingActivity &&
                               !mouseState.wheeling() && !justSnappedToGrid &&
                               !justCycledPosition;
         justSnappedToGrid = false;
