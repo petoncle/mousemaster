@@ -159,31 +159,40 @@ public class MouseController implements ModeListener {
     }
 
     public void clickLeft() {
-        WindowsMouse.pressLeft();
+        if (!leftPressing)
+            WindowsMouse.pressLeft();
         WindowsMouse.releaseLeft();
     }
 
     public void clickMiddle() {
-        WindowsMouse.pressMiddle();
+        if (!middlePressing)
+            WindowsMouse.pressMiddle();
         WindowsMouse.releaseMiddle();
     }
 
     public void clickRight() {
-        WindowsMouse.pressRight();
+        if (!rightPressing)
+            WindowsMouse.pressRight();
         WindowsMouse.releaseRight();
     }
 
     public void pressLeft() {
+        if (leftPressing)
+            return;
         leftPressing = true;
         WindowsMouse.pressLeft();
     }
 
     public void pressMiddle() {
+        if (middlePressing)
+            return;
         middlePressing = true;
         WindowsMouse.pressMiddle();
     }
 
     public void pressRight() {
+        if (rightPressing)
+            return;
         rightPressing = true;
         WindowsMouse.pressRight();
     }
