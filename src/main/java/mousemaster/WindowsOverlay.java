@@ -16,6 +16,7 @@ public class WindowsOverlay {
     private static Indicator currentIndicator;
     private static GridWindow gridWindow;
     private static boolean showingGrid;
+    private static boolean clearGridWindowThenResize;
     private static Grid currentGrid;
     private static final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
@@ -230,11 +231,18 @@ public class WindowsOverlay {
         switch (uMsg) {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-                if (!showingGrid) {
+                if (!showingGrid || clearGridWindowThenResize) {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
                     clearWindow(hdc, ps.rcPaint);
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
+                    if (clearGridWindowThenResize) {
+                        User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null,
+                                currentGrid.x(), currentGrid.y(), currentGrid.width() + 1,
+                                currentGrid.height() + 1, User32.SWP_NOZORDER);
+                        clearGridWindowThenResize = false;
+                        requestWindowRepaint(hwnd);
+                    }
                     break;
                 }
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
@@ -501,8 +509,22 @@ public class WindowsOverlay {
         else {
             if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
                 grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
-                User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(), grid.y(),
-                        grid.width() + 1, grid.height() + 1, User32.SWP_NOZORDER);
+                // When going from a window grid to a screen grid, we don't want to:
+                // 1. Resize. 2. Draw old grid in resized window. 3. Draw new grid. Instead, we want to:
+                // 1. Clear old grid. 2. Resize. 3. Draw new grid.
+                // However, clearing then resizing introduces a "blank" frame,
+                // we want to avoid that when shrinking/moving a grid (the old and new grid share an edge in that case).
+                if (!new Rectangle(grid.x(), grid.y(), grid.width(),
+                        grid.height()).sharesEdgeWith(
+                        new Rectangle(oldGrid.x(), oldGrid.y(), oldGrid.width(),
+                                oldGrid.height())))
+                    clearGridWindowThenResize = true;
+                else {
+                    System.out.println("WindowsOverlay.setGrid shares edge with old");
+                    User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(),
+                            grid.y(), grid.width() + 1, grid.height() + 1,
+                            User32.SWP_NOZORDER);
+                }
             }
         }
         showingGrid = true;

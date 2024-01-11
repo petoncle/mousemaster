@@ -22,4 +22,32 @@ public record Rectangle(int x, int y, int width, int height) {
         return new Point(centerX, centerY);
     }
 
+    public boolean sharesEdgeWith(Rectangle other) {
+        // Check for shared top/bottom edge.
+        if ((this.y == other.y + other.height) || (this.y + this.height == other.y)) {
+            if ((this.x < other.x + other.width) && (other.x < this.x + this.width)) {
+                return true;
+            }
+        }
+        // Check for shared left/right edge.
+        if ((this.x == other.x + other.width) || (this.x + this.width == other.x)) {
+            if ((this.y < other.y + other.height) && (other.y < this.y + this.height)) {
+                return true;
+            }
+        }
+        // Check if the right edges align.
+        if (this.x + this.width == other.x + other.width) {
+            if ((this.y < other.y + other.height) && (other.y < this.y + this.height)) {
+                return true;
+            }
+        }
+        // Check if the bottom edges align.
+        if (this.y + this.height == other.y + other.height) {
+            if ((this.x < other.x + other.width) && (other.x < this.x + this.width)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
