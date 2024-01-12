@@ -191,6 +191,12 @@ public class ComboWatcher implements ModeListener {
         return PressKeyEventProcessing.unhandled();
     }
 
+    private static final List<? extends Class<? extends Command>> commandOrder =
+            List.of(Command.ReleaseLeft.class, Command.ReleaseMiddle.class,
+                    Command.ReleaseRight.class, Command.PressLeft.class,
+                    Command.PressMiddle.class, Command.PressRight.class,
+                    Command.SwitchMode.class);
+
     /**
      * Assuming the following configuration:
      * - +up: start move up
@@ -204,7 +210,8 @@ public class ComboWatcher implements ModeListener {
      * Longest combos "have the last word".
      * Also deduplicate commands: if start-move-up is +up|#rightctrl +up: holding rightctrl
      * then up should not trigger two commands.
-     * Also move the Switch commands last: useful for saving a mouse position then switching to position-history mode
+     * - Move the Switch commands last: useful for saving a mouse position then switching to position-history mode
+     * - Move Release commands before Press commands: when left button is toggled, a right button press also releases left.
      */
     private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
         return commandsToRun.stream()
@@ -216,9 +223,8 @@ public class ComboWatcher implements ModeListener {
                             .map(ComboAndCommands::commands)
                             .flatMap(Collection::stream)
                             .distinct()
-                            .sorted(Comparator.comparingInt(
-                                    command -> command instanceof Command.SwitchMode ? 1 :
-                                            0))
+                            .sorted(Comparator.comparingInt(command ->
+                                    commandOrder.indexOf(command.getClass())))
                             .toList();
     }
 
