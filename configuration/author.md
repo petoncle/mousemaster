@@ -29,7 +29,7 @@
 - Trigger a left button click by holding _space_ while selecting a hint.
 - Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _rightalt_ while selecting a hint. 
 Release _rightalt_ during the second hint pass to not trigger a click after hint selection.  
-- Only the characters _u, i, j, k, m_ are used for hint labels to be able to select hints with one hand.
+- Only the characters _u, i, h, j, k, n, m_ are used for hint labels to be able to select hints with one hand.
 - Exit with _rightalt_, _esc_ or _backspace_.
 
 ## Position History Mode (_leftalt_)
