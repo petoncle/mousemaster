@@ -248,6 +248,24 @@ public class GridManager implements MousePositionListener, ModeListener {
                                  .lineVisible(gridConfiguration.lineVisible())
                                  .lineHexColor(gridConfiguration.lineHexColor())
                                  .lineThickness(gridConfiguration.lineThickness());
+        if (currentMode != null) {
+            GridConfiguration oldGridConfiguration = currentMode.grid();
+            if (oldGridConfiguration.area().equals(gridConfiguration.area()) &&
+                oldGridConfiguration.synchronization()
+                                    .equals(gridConfiguration.synchronization()) &&
+                oldGridConfiguration.rowCount() == gridConfiguration.rowCount() &&
+                oldGridConfiguration.columnCount() == gridConfiguration.columnCount()) {
+                // Keep the position and size of the old grid.
+                gridBuilder.x(this.grid.x())
+                           .y(this.grid.y())
+                           .width(this.grid.width())
+                           .height(this.grid.height());
+                currentMode = newMode;
+                grid = gridBuilder.build();
+                gridChanged();
+                return;
+            }
+        }
         switch (gridConfiguration.area()) {
             case GridArea.ActiveScreenGridArea activeScreenGridArea -> {
                 Screen screen = screenManager.activeScreen();
@@ -272,7 +290,6 @@ public class GridManager implements MousePositionListener, ModeListener {
                            .height(activeWindowRectangle.height());
             }
         }
-        ;
         if (gridConfiguration.synchronization() ==
             Synchronization.GRID_CENTER_FOLLOWS_MOUSE)
             gridCenteredAroundMouse(gridBuilder);

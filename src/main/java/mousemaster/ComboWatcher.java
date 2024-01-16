@@ -14,6 +14,7 @@ public class ComboWatcher implements ModeListener {
     private final CommandRunner commandRunner;
     private final Set<Key> comboPreconditionKeys;
     private Mode currentMode;
+    private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
     private ComboMoveDuration previousComboMoveDuration;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
@@ -42,11 +43,25 @@ public class ComboWatcher implements ModeListener {
         List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
                                                                                            .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
                                                                                            .toList());
+        if (!commandsToRun.isEmpty()) {
+            logger.debug(
+                    "Completed combos that were waiting for last move to complete, currentMode = " +
+                    currentMode.name() + ", completeCombos = " + completeCombos.stream()
+                                                                               .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
+                                                                               .map(ComboAndCommands::combo)
+                                                                               .toList() +
+                    ", commandsToRun = " + commandsToRun);
+        }
+        Mode beforeMode = currentMode;
         commandsToRun.forEach(commandRunner::run);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
+        if (currentMode != beforeMode) {
+            processKeyEventForCurrentMode(null, true);
+        }
     }
 
     public PressKeyEventProcessing keyEvent(KeyEvent event) {
+        modeJustTimedOut = false;
         boolean isComboPreconditionKey = comboPreconditionKeys.contains(event.key());
         if (event.isRelease()) {
             // The corresponding press event was either part of a combo sequence or part of a combo precondition,
@@ -182,7 +197,7 @@ public class ComboWatcher implements ModeListener {
         if (!partOfComboSequence) {
             comboPreparation = ComboPreparation.empty();
         }
-        if (event.isPress()) {
+        if (event != null && event.isPress()) {
             if (partOfComboSequence)
                 currentlyPressedComboSequenceKeys.add(event.key());
         }
@@ -246,10 +261,15 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
+        if (modeJustTimedOut) {
+            modeJustTimedOut = false;
+            processKeyEventForCurrentMode(null, false);
+        }
     }
 
     @Override
     public void modeTimedOut() {
+        modeJustTimedOut = true;
         breakComboPreparation();
     }
 
