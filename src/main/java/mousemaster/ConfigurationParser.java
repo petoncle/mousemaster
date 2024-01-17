@@ -78,7 +78,7 @@ public class ConfigurationParser {
                            .activeScreenHintGridAreaCenter(
                                    ActiveScreenHintGridAreaCenter.SCREEN_CENTER);
         ModeTimeoutBuilder timeout =
-                new ModeTimeoutBuilder().enabled(false).buttonPressCountsAsActivity(true);
+                new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
                 new IndicatorConfigurationBuilder();
         indicator.enabled(false)
@@ -414,9 +414,8 @@ public class ConfigurationParser {
                         switch (keyMatcher.group(4)) {
                             case "enabled" -> mode.timeout.builder.enabled(
                                     Boolean.parseBoolean(propertyValue));
-                            case "idle-duration-millis" ->
-                                    mode.timeout.builder.idleDuration(
-                                            parseDuration(propertyValue));
+                            case "duration-millis" -> mode.timeout.builder.duration(
+                                    parseDuration(propertyValue));
                             case "mode" -> {
                                 String timeoutModeName = propertyValue;
                                 mode.timeout.builder.modeName(timeoutModeName);
@@ -426,9 +425,8 @@ public class ConfigurationParser {
                                                                            modeName_ -> new HashSet<>())
                                                                    .add(timeoutModeName);
                             }
-                            case "button-press-counts-as-activity" ->
-                                    mode.timeout.builder.buttonPressCountsAsActivity(
-                                            Boolean.parseBoolean(propertyValue));
+                            case "only-if-idle" -> mode.timeout.builder.onlyIfIdle(
+                                    Boolean.parseBoolean(propertyValue));
                             default -> throw new IllegalArgumentException(
                                     "Invalid timeout property key: " + propertyKey);
                         }
@@ -735,18 +733,18 @@ public class ConfigurationParser {
 
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() &&
-            (mode.timeout.builder.idleDuration() == null ||
+            (mode.timeout.builder.duration() == null ||
              mode.timeout.builder.modeName() == null ||
-             mode.timeout.builder.buttonPressCountsAsActivity() == null))
+             mode.timeout.builder.onlyIfIdle() == null))
             throw new IllegalArgumentException(
                     "Definition of timeout for " + mode.modeName +
                     " is incomplete: expected " +
-                    List.of("enabled", "idle-duration", "mode", "button-press-counts-as-activity"));
+                    List.of("enabled", "duration", "mode", "only-if-idle"));
         if (mode.hideCursor.builder.enabled() &&
             mode.hideCursor.builder.idleDuration() == null)
             throw new IllegalArgumentException(
                     "Definition of hide-cursor for " + mode.modeName +
-                    " is incomplete: expected " + List.of("enabled", "idle-duration"));
+                    " is incomplete: expected " + List.of("enabled", "duration"));
         GridArea.GridAreaBuilder gridArea = mode.grid.builder.area();
         if (gridArea.widthPercent() == null || gridArea.heightPercent() == null)
             throw new IllegalArgumentException(
@@ -1153,12 +1151,12 @@ public class ConfigurationParser {
                     ModeTimeoutBuilder parent = (ModeTimeoutBuilder) parent_;
                     if (builder.enabled() == null)
                         builder.enabled(parent.enabled());
-                    if (builder.idleDuration() == null)
-                        builder.idleDuration(parent.idleDuration());
+                    if (builder.duration() == null)
+                        builder.duration(parent.duration());
                     if (builder.modeName() == null)
                         builder.modeName(parent.modeName());
-                    if (builder.buttonPressCountsAsActivity() == null)
-                        builder.buttonPressCountsAsActivity(parent.buttonPressCountsAsActivity());
+                    if (builder.onlyIfIdle() == null)
+                        builder.onlyIfIdle(parent.onlyIfIdle());
                 }
             };
             indicator = new Property<>("indicator", modeName, propertyByKey,

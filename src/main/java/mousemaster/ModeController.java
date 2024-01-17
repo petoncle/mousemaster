@@ -20,7 +20,7 @@ public class ModeController implements GridListener, PositionHistoryListener {
     private boolean currentModeCursorHidden;
     private Mode currentMode;
     private final Deque<Mode> modeHistoryStack = new ArrayDeque<>();
-    private double timeoutIdleTimer;
+    private double modeTimeoutTimer;
     private double hideCursorIdleTimer;
     private boolean justSnappedToGrid;
     private boolean justCycledPosition;
@@ -44,28 +44,18 @@ public class ModeController implements GridListener, PositionHistoryListener {
                 return;
             }
         }
-        boolean pressingActivity = currentMode.timeout().buttonPressCountsAsActivity() &&
-                                   mouseState.pressing();
-        boolean mouseIdling = !mouseState.moving() && !pressingActivity &&
+        boolean mouseIdling = !mouseState.moving() && !mouseState.pressing() &&
                               !mouseState.wheeling() && !justSnappedToGrid &&
                               !justCycledPosition;
+        boolean mustResetHideCursorTimeout = !mouseIdling;
+        boolean mustResetModeTimeout = currentMode.timeout().onlyIfIdle() && !mouseIdling;
         justSnappedToGrid = false;
         justCycledPosition = false;
-        if (!mouseIdling) {
-            resetIdleTimers();
+        if (mustResetHideCursorTimeout) {
+            resetHideCursorTimer();
             resetCurrentModeCursorHidden();
         }
         else {
-            boolean currentModeTimedOut = false;
-            if (currentMode.timeout().enabled()) {
-                timeoutIdleTimer -= delta;
-                if (timeoutIdleTimer <= 0) {
-                    logger.debug("Current " + currentMode.name() +
-                                 " has timed out, switching to " +
-                                 currentMode.timeout().modeName());
-                    currentModeTimedOut = true;
-                }
-            }
             if (currentMode.hideCursor().enabled() && !currentModeCursorHidden) {
                 hideCursorIdleTimer -= delta;
                 if (hideCursorIdleTimer <= 0) {
@@ -75,9 +65,20 @@ public class ModeController implements GridListener, PositionHistoryListener {
                     mouseController.hideCursor();
                 }
             }
-            if (currentModeTimedOut) {
-                listeners.forEach(ModeListener::modeTimedOut);
-                switchMode(currentMode.timeout().modeName());
+        }
+        if (mustResetModeTimeout) {
+            resetModeTimeoutTimer();
+        }
+        else {
+            if (currentMode.timeout().enabled()) {
+                modeTimeoutTimer -= delta;
+                if (modeTimeoutTimer <= 0) {
+                    logger.debug("Current " + currentMode.name() +
+                                 " has timed out, switching to " +
+                                 currentMode.timeout().modeName());
+                    listeners.forEach(ModeListener::modeTimedOut);
+                    switchMode(currentMode.timeout().modeName());
+                }
             }
         }
     }
@@ -103,7 +104,8 @@ public class ModeController implements GridListener, PositionHistoryListener {
             modeHistoryStack.push(currentMode);
         currentMode = newMode;
         resetCurrentModeCursorHidden();
-        resetIdleTimers();
+        resetHideCursorTimer();
+        resetModeTimeoutTimer();
         listeners.forEach(listener -> listener.modeChanged(newMode));
     }
 
@@ -124,9 +126,12 @@ public class ModeController implements GridListener, PositionHistoryListener {
         }
     }
 
-    private void resetIdleTimers() {
+    private void resetModeTimeoutTimer() {
         if (currentMode.timeout().enabled())
-            timeoutIdleTimer = currentMode.timeout().idleDuration().toNanos() / 1e9d;
+            modeTimeoutTimer = currentMode.timeout().duration().toNanos() / 1e9d;
+    }
+
+    private void resetHideCursorTimer() {
         if (currentMode.hideCursor().enabled())
             hideCursorIdleTimer =
                     currentMode.hideCursor().idleDuration().toNanos() / 1e9d;
