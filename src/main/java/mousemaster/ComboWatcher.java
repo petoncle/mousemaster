@@ -12,7 +12,7 @@ public class ComboWatcher implements ModeListener {
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
     private final CommandRunner commandRunner;
-    private final Set<Key> comboPreconditionKeys;
+    private final Map<String, Set<Key>> comboPreconditionKeysByMode;
     private Mode currentMode;
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
@@ -22,9 +22,10 @@ public class ComboWatcher implements ModeListener {
     private Set<Key> currentlyPressedComboSequenceKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboPreconditionKeys = new HashSet<>();
 
-    public ComboWatcher(CommandRunner commandRunner, Set<Key> comboPreconditionKeys) {
+    public ComboWatcher(CommandRunner commandRunner,
+                        Map<String, Set<Key>> comboPreconditionKeysByMode) {
         this.commandRunner = commandRunner;
-        this.comboPreconditionKeys = comboPreconditionKeys;
+        this.comboPreconditionKeysByMode = comboPreconditionKeysByMode;
         this.comboPreparation = ComboPreparation.empty();
     }
 
@@ -62,7 +63,8 @@ public class ComboWatcher implements ModeListener {
 
     public PressKeyEventProcessing keyEvent(KeyEvent event) {
         modeJustTimedOut = false;
-        boolean isComboPreconditionKey = comboPreconditionKeys.contains(event.key());
+        boolean isComboPreconditionKey =
+                comboPreconditionKeysByMode.get(currentMode.name()).contains(event.key());
         if (event.isRelease()) {
             // The corresponding press event was either part of a combo sequence or part of a combo precondition,
             // otherwise this method would not have been called.
