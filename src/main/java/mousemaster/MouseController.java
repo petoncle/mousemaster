@@ -224,6 +224,27 @@ public class MouseController implements ModeListener {
         releaseRight();
     }
 
+    public void toggleLeft() {
+        if (leftPressing)
+            releaseLeft();
+        else
+            pressLeft();
+    }
+
+    public void toggleMiddle() {
+        if (middlePressing)
+            releaseMiddle();
+        else
+            pressMiddle();
+    }
+
+    public void toggleRight() {
+        if (rightPressing)
+            releaseRight();
+        else
+            pressRight();
+    }
+
     public void startWheelUp() {
         if (!yWheelForwardStack.isEmpty() && yWheelForwardStack.peek() == false)
             return;

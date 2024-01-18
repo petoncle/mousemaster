@@ -43,6 +43,10 @@ public class CommandRunner {
             case ReleaseMiddle releaseMiddle -> mouseController.releaseMiddle();
             case ReleaseRight releaseRight -> mouseController.releaseRight();
 
+            case ToggleLeft toggleLeft -> mouseController.toggleLeft();
+            case ToggleMiddle toggleMiddle -> mouseController.toggleMiddle();
+            case ToggleRight toggleRight -> mouseController.toggleRight();
+
             case StartWheelUp startWheelUp -> mouseController.startWheelUp();
             case StartWheelDown startWheelDown -> mouseController.startWheelDown();
             case StartWheelLeft startWheelLeft -> mouseController.startWheelLeft();

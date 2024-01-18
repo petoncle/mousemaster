@@ -14,6 +14,7 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
         private Map<Combo, List<Command>> stopMove = new HashMap<>();
         private Map<Combo, List<Command>> press = new HashMap<>();
         private Map<Combo, List<Command>> release = new HashMap<>();
+        private Map<Combo, List<Command>> toggle = new HashMap<>();
         private Map<Combo, List<Command>> startWheel = new HashMap<>();
         private Map<Combo, List<Command>> stopWheel = new HashMap<>();
         private Map<Combo, List<Command>> snap = new HashMap<>();
@@ -47,6 +48,10 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
                 case Command.ReleaseLeft releaseLeft -> release;
                 case Command.ReleaseMiddle releaseMiddle -> release;
                 case Command.ReleaseRight releaseRight -> release;
+
+                case Command.ToggleLeft toggleLeft -> toggle;
+                case Command.ToggleMiddle toggleMiddle -> toggle;
+                case Command.ToggleRight toggleRight -> toggle;
 
                 case Command.StartWheelUp startWheelUp -> startWheel;
                 case Command.StartWheelDown startWheelDown -> startWheel;

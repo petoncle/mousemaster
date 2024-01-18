@@ -105,6 +105,7 @@ public class ConfigurationParser {
                 new Property<>("stop-move", Map.of()),
                 new Property<>("press", Map.of()),
                 new Property<>("release", Map.of()),
+                new Property<>("toggle", Map.of()),
                 new Property<>("start-wheel", Map.of()),
                 new Property<>("stop-wheel", Map.of()),
                 new Property<>("snap", Map.of()),
@@ -555,6 +556,24 @@ public class ConfigurationParser {
                             case "left" -> setCommand(mode.comboMap.release.builder, propertyValue, new ReleaseLeft(), defaultComboMoveDuration);
                             case "middle" -> setCommand(mode.comboMap.release.builder, propertyValue, new ReleaseMiddle(), defaultComboMoveDuration);
                             case "right" -> setCommand(mode.comboMap.release.builder, propertyValue, new ReleaseRight(), defaultComboMoveDuration);
+                            // @formatter:on
+                        }
+                    }
+                }
+                case "toggle" -> {
+                    if (keyMatcher.group(3) == null)
+                        mode.comboMap.toggle.parsePropertyReference(propertyKey, propertyValue,
+                                childPropertiesByParentProperty,
+                                nonRootPropertyKeys);
+                    else if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid toggle property key: " + propertyKey);
+                    else {
+                        switch (keyMatcher.group(4)) {
+                            // @formatter:off
+                            case "left" -> setCommand(mode.comboMap.toggle.builder, propertyValue, new ToggleLeft(), defaultComboMoveDuration);
+                            case "middle" -> setCommand(mode.comboMap.toggle.builder, propertyValue, new ToggleMiddle(), defaultComboMoveDuration);
+                            case "right" -> setCommand(mode.comboMap.toggle.builder, propertyValue, new ToggleRight(), defaultComboMoveDuration);
                             // @formatter:on
                         }
                     }
@@ -1211,6 +1230,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> stopMove;
         Property<Map<Combo, List<Command>>> press;
         Property<Map<Combo, List<Command>>> release;
+        Property<Map<Combo, List<Command>>> toggle;
         Property<Map<Combo, List<Command>>> startWheel;
         Property<Map<Combo, List<Command>>> stopWheel;
         Property<Map<Combo, List<Command>>> snap;
@@ -1229,6 +1249,7 @@ public class ConfigurationParser {
             stopMove = new ComboMapProperty("stop-move", modeName, propertyByKey);
             press = new ComboMapProperty("press", modeName, propertyByKey);
             release = new ComboMapProperty("release", modeName, propertyByKey);
+            toggle = new ComboMapProperty("toggle", modeName, propertyByKey);
             startWheel = new ComboMapProperty("start-wheel", modeName, propertyByKey);
             stopWheel = new ComboMapProperty("stop-wheel", modeName, propertyByKey);
             snap = new ComboMapProperty("snap", modeName, propertyByKey);
@@ -1263,6 +1284,7 @@ public class ConfigurationParser {
             add(commandsByCombo, stopMove.builder);
             add(commandsByCombo, press.builder);
             add(commandsByCombo, release.builder);
+            add(commandsByCombo, toggle.builder);
             add(commandsByCombo, startWheel.builder);
             add(commandsByCombo, stopWheel.builder);
             add(commandsByCombo, snap.builder);
