@@ -271,12 +271,14 @@ public class ConfigurationParser {
                                                                           .widthPercent(
                                                                                   parseNonZeroPercent(
                                                                                           propertyKey,
-                                                                                          propertyValue));
+                                                                                          propertyValue,
+                                                                                          2));
                             case "area-height-percent" -> mode.grid.builder.area()
                                                                            .heightPercent(
                                                                                    parseNonZeroPercent(
                                                                                            propertyKey,
-                                                                                           propertyValue));
+                                                                                           propertyValue,
+                                                                                           2));
                             case "synchronization" -> mode.grid.builder.synchronization(
                                     parseSynchronization(propertyKey, propertyValue));
                             case "row-count" -> mode.grid.builder.rowCount(
@@ -894,16 +896,17 @@ public class ConfigurationParser {
         return integer;
     }
 
-    private static double parseNonZeroPercent(String propertyKey, String propertyValue) {
+    private static double parseNonZeroPercent(String propertyKey, String propertyValue,
+                                              double max) {
         double percent = Double.parseDouble(propertyValue);
         if (percent <= 0)
             throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey +
                     ": percent must greater than 0.0");
-        if (percent > 1)
+        if (percent > max)
             throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey +
-                    ": percent must be less than or equal to 1.0");
+                    ": percent must be less than or equal to " + max);
         return percent;
     }
 
