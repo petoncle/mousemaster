@@ -145,82 +145,60 @@ public class GridManager implements MousePositionListener, ModeListener {
         boolean mouseIsInsideGrid =
                 Rectangle.rectangleContains(grid.x(), grid.y(), grid.width(),
                         grid.height(), mouseX, mouseY);
-        int x, y;
         int cellWidth = Math.max(1, grid.width() / grid.columnCount());
         int cellHeight = Math.max(1, grid.height() / grid.rowCount());
+        int mouseColumn = (mouseX - grid.x()) / cellWidth;
+        int mouseRow = (mouseY - grid.y()) / cellHeight;
+        int x = mouseX, y = mouseY;
         if (mouseIsInsideGrid) {
-            int mouseColumn = (mouseX - grid.x()) / cellWidth;
-            int mouseRow = (mouseY - grid.y()) / cellHeight;
-            if (horizontal) {
-                int newMouseColumn =
-                        forward ? Math.min(grid.columnCount(), mouseColumn + 1) :
-                                Math.max(0, mouseColumn -
-                                            ((mouseX - grid.x()) % cellWidth <= 1 ? 1 :
-                                                    0));
-                if (newMouseColumn == 0)
-                    x = grid.x();
-                else if (newMouseColumn == grid.columnCount())
-                    x = grid.x() + grid.width();
-                else
-                    x = grid.x() + newMouseColumn * cellWidth;
-                y = mouseY;
-            }
-            else {
-                x = mouseX;
-                int newMouseRow =
-                        forward ? Math.min(grid.rowCount(), mouseRow + 1) :
-                                Math.max(0, mouseRow -
-                                            ((mouseY - grid.y()) % cellHeight <= 1 ? 1 :
-                                                    0));
-                if (newMouseRow == 0)
-                    y = grid.y();
-                else if (newMouseRow == grid.rowCount())
-                    y = grid.y() + grid.height();
-                else
-                    y = grid.y() + newMouseRow * cellHeight;
-            }
-            if (screenManager.screenContaining(x, y) == null) {
-                Screen activeScreen = screenManager.activeScreen();
-                x = Math.max(activeScreen.rectangle().x(), Math.min(
-                        activeScreen.rectangle().x() + activeScreen.rectangle().width(),
-                        x));
-                y = Math.max(activeScreen.rectangle().y(), Math.min(
-                        activeScreen.rectangle().y() + activeScreen.rectangle().height(),
-                        y));
-            }
-            moveMouseTo(x, y);
-        }
-        // If mouse is not in grid, snap it to the grid edges...
-        else if (mouseX >= grid.x() && mouseX <= grid.x() + grid.width()) {
-            if (!horizontal && forward && mouseY < grid.y())
-                moveMouseTo(mouseX, grid.y());
-            else if (!horizontal && !forward && mouseY > grid.y())
-                moveMouseTo(mouseX, grid.y() + grid.height());
-        }
-        else if (mouseY >= grid.y() && mouseY <= grid.y() + grid.height()) {
-            if (horizontal && forward && mouseX < grid.x())
-                moveMouseTo(grid.x(), mouseY);
-            else if (horizontal && !forward && mouseX > grid.x())
-                moveMouseTo(grid.x() + grid.width(), mouseY);
-        }
-        // ...or to the grid corners.
-        else if (mouseX < grid.x() && mouseY < grid.y()) {
-            if (horizontal && forward || !horizontal && forward)
-                moveMouseTo(grid.x(), grid.y());
-        }
-        else if (mouseX > grid.x() + grid.width() && mouseY < grid.y()) {
-            if (horizontal && !forward || !horizontal && forward)
-                moveMouseTo(grid.x() + grid.width(), grid.y());
-        }
-        else if (mouseX < grid.x() && mouseY > grid.y() + grid.height()) {
-            if (horizontal && forward || !horizontal && !forward)
-                moveMouseTo(grid.x(), grid.y() + grid.height());
+            int nextMouseColumn = forward ? Math.min(grid.columnCount(), mouseColumn + 1) :
+                    Math.max(0, mouseColumn - ((mouseX - grid.x()) % cellWidth <= 1 ? 1 : 0));
+            int nextMouseRow = forward ? Math.min(grid.rowCount(), mouseRow + 1) :
+                    Math.max(0, mouseRow - ((mouseY - grid.y()) % cellHeight <= 1 ? 1 : 0));
+            if (horizontal)
+                x = mouseColumnX(nextMouseColumn, cellWidth);
+            else
+                y = mouseRowY(nextMouseRow, cellHeight);
         }
         else {
-            if (horizontal && !forward || !horizontal && !forward)
-                moveMouseTo(grid.x() + grid.width(), grid.y() + grid.height());
+            if (horizontal)
+                x = mouseColumnX(mouseColumn + (forward ? 1 : -1), cellWidth);
+            else
+                y = mouseRowY(mouseRow + (forward ? 1 : -1), cellHeight);
         }
+        if (screenManager.screenContaining(x, y) == null) {
+            Screen activeScreen = screenManager.activeScreen();
+            x = Math.max(activeScreen.rectangle().x(), Math.min(
+                    activeScreen.rectangle().x() + activeScreen.rectangle().width(),
+                    x));
+            y = Math.max(activeScreen.rectangle().y(), Math.min(
+                    activeScreen.rectangle().y() + activeScreen.rectangle().height(),
+                    y));
+        }
+        moveMouseTo(x, y);
         listeners.forEach(GridListener::snappedToGrid);
+    }
+
+    private int mouseColumnX(int mouseColumn, int cellWidth) {
+        int x;
+        if (mouseColumn <= 0)
+            x = grid.x();
+        else if (mouseColumn >= grid.columnCount())
+            x = grid.x() + grid.width();
+        else
+            x = grid.x() + mouseColumn * cellWidth;
+        return x;
+    }
+
+    private int mouseRowY(int mouseRow, int cellHeight) {
+        int y;
+        if (mouseRow <= 0)
+            y = grid.y();
+        else if (mouseRow >= grid.rowCount())
+            y = grid.y() + grid.height();
+        else
+            y = grid.y() + mouseRow * cellHeight;
+        return y;
     }
 
     private void moveMouseTo(int x, int y) {
