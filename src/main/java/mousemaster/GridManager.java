@@ -240,7 +240,8 @@ public class GridManager implements MousePositionListener, ModeListener {
                            .height(this.grid.height());
                 currentMode = newMode;
                 grid = gridBuilder.build();
-                gridChanged();
+                setOverlay();
+                // Do not call gridChanged() to avoid repositioning the mouse.
                 return;
             }
         }
@@ -281,13 +282,17 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     private void gridChanged() {
+        setOverlay();
+        Synchronization synchronization = currentMode.grid().synchronization();
+        if (synchronization == Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
+            moveMouseTo(grid.x() + grid.width() / 2, grid.y() + grid.height() / 2);
+    }
+
+    private void setOverlay() {
         if (grid.lineVisible())
             WindowsOverlay.setGrid(grid);
         else
             WindowsOverlay.hideGrid();
-        Synchronization synchronization = currentMode.grid().synchronization();
-        if (synchronization == Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
-            moveMouseTo(grid.x() + grid.width() / 2, grid.y() + grid.height() / 2);
     }
 
     @Override
