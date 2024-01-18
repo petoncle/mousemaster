@@ -63,20 +63,13 @@ public class ComboWatcher implements ModeListener {
 
     public PressKeyEventProcessing keyEvent(KeyEvent event) {
         modeJustTimedOut = false;
-        boolean isComboPreconditionKey = false;
-        for (Set<Key> comboPreconditionKeys : comboPreconditionKeysByMode.values()) {
-            if (comboPreconditionKeys.contains(event.key())) {
-                isComboPreconditionKey = true;
-                break;
-            }
-        }
+        boolean isComboPreconditionKey =
+                comboPreconditionKeysByMode.get(currentMode.name()).contains(event.key());
         if (event.isRelease()) {
             // The corresponding press event was either part of a combo sequence or part of a combo precondition,
             // otherwise this method would not have been called.
             boolean isPartOfComboSequence = currentlyPressedComboSequenceKeys.remove(event.key());
-            if (currentlyPressedComboPreconditionKeys.remove(event.key()) &&
-                !isPartOfComboSequence)
-                return null;
+            currentlyPressedComboPreconditionKeys.remove(event.key());
         }
         else {
             if (isComboPreconditionKey) {
@@ -105,9 +98,7 @@ public class ComboWatcher implements ModeListener {
             return null;
         if (partOfComboSequence)
             return PressKeyEventProcessing.partOfComboSequence(mustBeEaten);
-        boolean isComboPreconditionKeyOfCurrentMode =
-                comboPreconditionKeysByMode.get(currentMode.name()).contains(event.key());
-        boolean partOfComboPreconditionOnly = isComboPreconditionKeyOfCurrentMode;
+        boolean partOfComboPreconditionOnly = isComboPreconditionKey;
         return partOfComboPreconditionOnly ?
                 PressKeyEventProcessing.partOfComboPreconditionOnly() :
                 PressKeyEventProcessing.unhandled();
@@ -197,8 +188,9 @@ public class ComboWatcher implements ModeListener {
             previousComboMoveDuration = newComboDuration;
         List<Command> commandsToRun =
                 longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
-        logger.debug("currentMode = " + currentMode.name() + ", comboPreparation = " +
-                     comboPreparation +
+        logger.debug("currentMode = " + currentMode.name() +
+                     ", currentlyPressedComboPreconditionKeys = " + currentlyPressedComboPreconditionKeys +
+                     ", comboPreparation = " + comboPreparation +
                      ", partOfComboSequence = " + partOfComboSequence +
                      ", mustBeEaten = " + mustBeEaten + ", commandsToRun = " +
                      commandsToRun);
