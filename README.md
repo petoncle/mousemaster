@@ -33,6 +33,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build
    it from source.
 2. In the same Release page, choose then download one of the existing configuration files:
+   - [neo-mousekeys.properties](configuration/neo-mousekeys.properties): a WASD configuration (documentation: [neo-mousekeys-style configuration for mousemaster](configuration/neo-mousekeys.md)).
    - [warpd.properties](configuration/warpd.properties): a vi-like configuration (documentation: [warpd-style configuration for mousemaster](configuration/warpd.md)).
    - [mouseable.properties](configuration/mouseable.properties): another vi-like configuration (documentation: [mouseable-style configuration for mousemaster](configuration/mouseable.md)).
    - [author.properties](configuration/author.properties): the author's configuration, which uses arrow keys instead of vi-like bindings (documentation: [author's configuration of mousemaster](configuration/author.md)).
