@@ -482,7 +482,7 @@ public class WindowsOverlay {
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(0, 0));
             int scaledIndicatorSize = scaledPixels(indicator.size(), screen.scale());
             User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, 0, 0,
-                    scaledIndicatorSize, scaledIndicatorSize,
+                    scaledIndicatorSize + 1, scaledIndicatorSize + 1,
                     User32.SWP_NOMOVE | User32.SWP_NOZORDER);
         }
         showingIndicator = true;
@@ -573,7 +573,7 @@ public class WindowsOverlay {
                         activeScreen.rectangle(), scaledIndicatorSize),
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
                         activeScreen.rectangle(), scaledIndicatorSize),
-                scaledIndicatorSize, scaledIndicatorSize, false);
+                scaledIndicatorSize + 1, scaledIndicatorSize + 1, false);
     }
 
     public static boolean doesFontExist(String fontName) {
