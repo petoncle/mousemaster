@@ -222,6 +222,17 @@ public class WindowsPlatform implements Platform {
                         (info.flags & 0b10000) == 0b10000) {
                         // 0b10000 means alt is pressed. This avoids getting two consecutive duplicate alt press,release events.
                     }
+                    else if (info.vkCode == WindowsVirtualKey.VK_LCONTROL.virtualKeyCode &&
+                             info.scanCode == 0x21d) {
+                        // Pressing altgr corresponds to the following sequence
+                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x20, wParam = WM_SYSKEYDOWN
+                        // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x21, wParam = WM_SYSKEYDOWN
+                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x80, wParam = WM_KEYUP
+                        // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x81, wParam = WM_KEYUP
+                        // Pressing leftctrl corresponds to:
+                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x80, wParam = WM_KEYUP
+                        // We ignore that leftctrl in altgr.
+                    }
                     else {
                         boolean release = wParam.intValue() == WinUser.WM_KEYUP ||
                                           wParam.intValue() == WinUser.WM_SYSKEYUP;
