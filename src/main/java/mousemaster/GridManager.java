@@ -201,7 +201,7 @@ public class GridManager implements MousePositionListener, ModeListener {
             if (horizontal && forward && mouseX < grid.x())
                 moveMouseTo(grid.x(), mouseY);
             else if (horizontal && !forward && mouseX > grid.x())
-                moveMouseTo(grid.x() + grid.height(), mouseY);
+                moveMouseTo(grid.x() + grid.width(), mouseY);
         }
         // ...or to the grid corners.
         else if (mouseX < grid.x() && mouseY < grid.y()) {
