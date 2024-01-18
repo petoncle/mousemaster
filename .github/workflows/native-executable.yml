@@ -46,4 +46,4 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/warpd.properties" --notes "See the [Installation](https://github.com/petoncle/mousemaster/tree/main#installation) section of the README." --title "v${{ steps.extract_version.outputs.version }}"
+        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys.properties" "configuration/warpd.properties" --notes "See the [Installation](https://github.com/petoncle/mousemaster/tree/main#installation) section of the README." --title "v${{ steps.extract_version.outputs.version }}"
