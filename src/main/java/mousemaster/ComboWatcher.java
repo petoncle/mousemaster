@@ -207,10 +207,9 @@ public class ComboWatcher implements ModeListener {
     }
 
     private static final List<? extends Class<? extends Command>> commandOrder =
-            List.of(Command.ReleaseLeft.class, Command.ReleaseMiddle.class,
-                    Command.ReleaseRight.class, Command.PressLeft.class,
-                    Command.PressMiddle.class, Command.PressRight.class,
-                    Command.SwitchMode.class);
+            List.of(
+                    Command.SwitchMode.class
+            );
 
     /**
      * Assuming the following configuration:
@@ -226,7 +225,6 @@ public class ComboWatcher implements ModeListener {
      * Also deduplicate commands: if start-move-up is +up|#rightctrl +up: holding rightctrl
      * then up should not trigger two commands.
      * - Move the Switch commands last: useful for saving a mouse position then switching to position-history mode
-     * - Move Release commands before Press commands: when left button is toggled, a right button press also releases left.
      */
     private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
         return commandsToRun.stream()

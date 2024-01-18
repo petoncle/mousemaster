@@ -179,6 +179,7 @@ public class MouseController implements ModeListener {
     public void pressLeft() {
         if (leftPressing)
             return;
+        releaseAll();
         leftPressing = true;
         WindowsMouse.pressLeft();
     }
@@ -186,6 +187,7 @@ public class MouseController implements ModeListener {
     public void pressMiddle() {
         if (middlePressing)
             return;
+        releaseAll();
         middlePressing = true;
         WindowsMouse.pressMiddle();
     }
@@ -193,6 +195,7 @@ public class MouseController implements ModeListener {
     public void pressRight() {
         if (rightPressing)
             return;
+        releaseAll();
         rightPressing = true;
         WindowsMouse.pressRight();
     }
@@ -213,6 +216,12 @@ public class MouseController implements ModeListener {
         if (rightPressing)
             WindowsMouse.releaseRight();
         rightPressing = false;
+    }
+
+    private void releaseAll() {
+        releaseLeft();
+        releaseMiddle();
+        releaseRight();
     }
 
     public void startWheelUp() {
