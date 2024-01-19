@@ -25,16 +25,6 @@ public record ComboPrecondition(Set<Set<Key>> mustRemainUnpressedKeySets,
         return false;
     }
 
-    public Set<Key> preconditionKeys() {
-        Set<Key> preconditionKeys = new HashSet<>();
-        for (Set<Key> mustRemainUnpressedKeySet : mustRemainUnpressedKeySets)
-            preconditionKeys.addAll(mustRemainUnpressedKeySet);
-        for (Set<Key> mustRemainPressedKeySet : mustRemainPressedKeySets) {
-            preconditionKeys.addAll(mustRemainPressedKeySet);
-        }
-        return preconditionKeys;
-    }
-
     @Override
     public String toString() {
         return String.join(" ", "^{" + keySetsToString(mustRemainUnpressedKeySets) + "}",

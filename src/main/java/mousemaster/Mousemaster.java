@@ -88,18 +88,19 @@ public class Mousemaster {
                         screenManager, mouseController);
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager,
                 hintManager);
-        Map<String, Set<Key>> comboPreconditionKeysByMode = new HashMap<>();
+        Set<Key> mustRemainPressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes())
-            comboPreconditionKeysByMode.put(mode.name(), mode.comboMap()
-                                                             .commandsByCombo()
-                                                             .keySet()
-                                                             .stream()
-                                                             .map(Combo::precondition)
-                                                             .map(ComboPrecondition::preconditionKeys)
-                                                             .flatMap(Collection::stream)
-                                                             .collect(
-                                                                     Collectors.toSet()));
-        ComboWatcher comboWatcher = new ComboWatcher(commandRunner, comboPreconditionKeysByMode);
+            mustRemainPressedComboPreconditionKeys.addAll(mode.comboMap()
+                                                              .commandsByCombo()
+                                                              .keySet()
+                                                              .stream()
+                                                              .map(Combo::precondition)
+                                                              .map(ComboPrecondition::mustRemainPressedKeySets)
+                                                              .flatMap(Collection::stream)
+                                                              .flatMap(Collection::stream)
+                                                              .collect(
+                                                                      Collectors.toSet()));
+        ComboWatcher comboWatcher = new ComboWatcher(commandRunner, mustRemainPressedComboPreconditionKeys);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
