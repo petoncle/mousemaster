@@ -222,23 +222,29 @@ public class WindowsPlatform implements Platform {
                         (info.flags & 0b10000) == 0b10000) {
                         // 0b10000 means alt is pressed. This avoids getting two consecutive duplicate alt press,release events.
                     }
-                    else if (info.vkCode == WindowsVirtualKey.VK_LCONTROL.virtualKeyCode &&
-                             info.scanCode == 0x21d) {
+                    else {
                         // Pressing altgr corresponds to the following sequence
                         // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x20, wParam = WM_SYSKEYDOWN
                         // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x21, wParam = WM_SYSKEYDOWN
                         // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x80, wParam = WM_KEYUP
                         // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x81, wParam = WM_KEYUP
                         // Pressing leftctrl corresponds to:
+                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x0, wParam = WM_KEYDOWN
                         // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x80, wParam = WM_KEYUP
                         // We ignore that leftctrl in altgr.
-                    }
-                    else {
+                        boolean altgrLeftctrl = info.vkCode ==
+                                                WindowsVirtualKey.VK_LCONTROL.virtualKeyCode &&
+                                                info.scanCode == 0x21d;
                         boolean release = wParam.intValue() == WinUser.WM_KEYUP ||
                                           wParam.intValue() == WinUser.WM_SYSKEYUP;
-                        Key key = WindowsVirtualKey.keyFromWindowsEvent(
-                                WindowsVirtualKey.values.get(info.vkCode), info.scanCode,
-                                info.flags);
+                        Key key;
+                        if (altgrLeftctrl)
+                            // Consider altgr's leftctrl and altgr's rightalt as the same key: Key.rightalt.
+                            key = Key.rightalt;
+                        else
+                            key = WindowsVirtualKey.keyFromWindowsEvent(
+                                    WindowsVirtualKey.values.get(info.vkCode),
+                                    info.scanCode, info.flags);
                         if (key != null) {
                             Instant time = systemStartTime.plusMillis(info.time);
                             KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
