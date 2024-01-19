@@ -47,8 +47,19 @@ jobs:
         id: get_commit_message
         run: |
           $commitMessage = git log -1 --pretty=%B ${{ github.ref_name }}
-          $releaseNotes = ($commitMessage -split '\r?\n' | Select-Object -Skip 2) -join "`n"
-          $releaseNotes += "`nSee the [Installation](https://github.com/petoncle/mousemaster/tree/main#installation) section of the README."
+          $releaseNotes += "### New features and improvements`n"
+          $releaseNotes += ($commitMessage -split '\r?\n' | Select-Object -Skip 2) -join "`n"
+          $releaseNotes += "`n"
+          $releaseNotes += "### Installation`n"
+          $releaseNotes += "1. Download mousemaster.exe (a portable executable).`n"
+          $releaseNotes += "2. Download one of the existing configuration files:`n"
+          $releaseNotes += "   - neo-mousekeys.properties (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys.md))`n"
+          $releaseNotes += "   - warpd.properties: an HKJL configuration ([see documentation](configuration/warpd.md))`n"
+          $releaseNotes += "   - mouseable.properties: another HKJL configuration ([see documentation](configuration/mouseable.md))`n"
+          $releaseNotes += "   - author.properties: an arrow key based configuration ([see documentation](configuration/author.md))`n"
+          $releaseNotes += "3. Place the executable and the configuration file in the same directory.`n"
+          $releaseNotes += "4. Rename the configuration file to mousemaster.properties.`n"
+          $releaseNotes += "5. Run mousemaster.exe.`n"
           Set-Content -Path ./release-notes.txt -Value $releaseNotes
       - name: Create release
         env:
