@@ -15,7 +15,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         String mustRemainUnpressedKeySetsString;
         if (mustRemainUnpressedKeySetsMatcher.find()) {
             mustRemainUnpressedKeySetsString = mustRemainUnpressedKeySetsMatcher.group(1);
-            mustRemainUnpressedKeySets = parseKeySets(mustRemainUnpressedKeySetsString);
+            mustRemainUnpressedKeySets = parseKeySets(mustRemainUnpressedKeySetsString, false);
             mustRemainPressedAndSequenceString =
                     string.substring(mustRemainUnpressedKeySetsMatcher.end());
         }
@@ -32,7 +32,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         String mustRemainPressedKeySetsString;
         if (mustRemainPressedKeySetsMatcher.find()) {
             mustRemainPressedKeySetsString = mustRemainPressedKeySetsMatcher.group(1);
-            mustRemainPressedKeySets = parseKeySets(mustRemainPressedKeySetsString);
+            mustRemainPressedKeySets = parseKeySets(mustRemainPressedKeySetsString, true);
             sequenceString = mustRemainPressedAndSequenceString.substring(
                     mustRemainPressedKeySetsMatcher.end());
         }
@@ -69,6 +69,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             throw new IllegalArgumentException(
                     "There cannot be an overlap between must remain pressed keys and combo sequence keys: " +
                     "_{" + mustRemainPressedKeySetsString + "} " + sequenceString);
+        if (mustRemainPressedKeySets.equals(Set.of(Set.of())))
+            mustRemainPressedKeySets = Set.of();
         ComboPrecondition precondition = new ComboPrecondition(mustRemainUnpressedKeySets,
                 mustRemainPressedKeySets);
         if (precondition.isEmpty() && sequence.moves().isEmpty())
@@ -76,10 +78,12 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         return new Combo(precondition, sequence);
     }
 
-    private static Set<Set<Key>> parseKeySets(String keySetsString) {
+    private static Set<Set<Key>> parseKeySets(String keySetsString, boolean acceptEmptyKeySet) {
         String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
         return Arrays.stream(keySetStrings)
-                     .map(Combo::parseKeySet)
+                     .map(keySetString ->
+                             acceptEmptyKeySet && keySetString.equals("none") ?
+                                     Set.<Key>of() : parseKeySet(keySetString))
                      .collect(Collectors.toSet());
     }
 

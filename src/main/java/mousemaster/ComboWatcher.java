@@ -13,6 +13,7 @@ public class ComboWatcher implements ModeListener {
 
     private final CommandRunner commandRunner;
     private final Set<Key> mustRemainPressedComboPreconditionKeys;
+    private final Set<Key> mustRemainUnpressedComboPreconditionKeys;
     private Mode currentMode;
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
@@ -22,8 +23,12 @@ public class ComboWatcher implements ModeListener {
     private Set<Key> currentlyPressedComboSequenceKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboPreconditionKeys = new HashSet<>();
 
-    public ComboWatcher(CommandRunner commandRunner, Set<Key> mustRemainPressedComboPreconditionKeys) {
+    public ComboWatcher(CommandRunner commandRunner,
+                        Set<Key> mustRemainUnpressedComboPreconditionKeys,
+                        Set<Key> mustRemainPressedComboPreconditionKeys) {
         this.commandRunner = commandRunner;
+        this.mustRemainUnpressedComboPreconditionKeys =
+                mustRemainUnpressedComboPreconditionKeys;
         this.mustRemainPressedComboPreconditionKeys =
                 mustRemainPressedComboPreconditionKeys;
         this.comboPreparation = ComboPreparation.empty();
@@ -61,8 +66,9 @@ public class ComboWatcher implements ModeListener {
 
     public PressKeyEventProcessing keyEvent(KeyEvent event) {
         modeJustTimedOut = false;
-        boolean isMustRemainPressedComboPreconditionKey = mustRemainPressedComboPreconditionKeys.contains(
-                event.key());
+        boolean isComboPreconditionKey =
+                mustRemainUnpressedComboPreconditionKeys.contains(event.key()) ||
+                mustRemainPressedComboPreconditionKeys.contains(event.key());
         if (event.isRelease()) {
             // The corresponding press event was either part of a combo sequence or part of a combo precondition,
             // otherwise this method would not have been called.
@@ -70,7 +76,7 @@ public class ComboWatcher implements ModeListener {
             currentlyPressedComboPreconditionKeys.remove(event.key());
         }
         else {
-            if (isMustRemainPressedComboPreconditionKey) {
+            if (isComboPreconditionKey) {
                 currentlyPressedComboPreconditionKeys.add(event.key());
             }
         }
@@ -96,7 +102,7 @@ public class ComboWatcher implements ModeListener {
             return null;
         if (partOfComboSequence)
             return PressKeyEventProcessing.partOfComboSequence(mustBeEaten);
-        boolean partOfComboPreconditionOnly = isMustRemainPressedComboPreconditionKey;
+        boolean partOfComboPreconditionOnly = isComboPreconditionKey;
         return partOfComboPreconditionOnly ?
                 PressKeyEventProcessing.partOfComboPreconditionOnly() :
                 PressKeyEventProcessing.unhandled();
@@ -107,10 +113,15 @@ public class ComboWatcher implements ModeListener {
         boolean mustBeEaten = false;
         boolean partOfComboSequence = false;
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
-        Set<Key> currentlyPressedComboPreconditionKeysNotAlreadyEaten =
+        Set<Key> currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten =
                 new HashSet<>(currentlyPressedComboPreconditionKeys);
-        currentlyPressedComboPreconditionKeysNotAlreadyEaten.removeAll(
+        currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.removeIf(
+                Predicate.not(mustRemainPressedComboPreconditionKeys::contains));
+        currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.removeAll(
                 currentlyPressedComboSequenceKeys);
+        if (event != null)
+            currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.remove(
+                    event.key());
         ComboMoveDuration newComboDuration = null;
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
@@ -122,22 +133,32 @@ public class ComboWatcher implements ModeListener {
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
             ComboMove currentMove = matchingMoveCount == 0 ? null :
                     combo.sequence().moves().get(matchingMoveCount - 1);
-
-            if (!currentlyPressedComboPreconditionKeysNotAlreadyEaten.isEmpty()
-                // If currentlyPressedComboPreconditionKeysNotAlreadyEaten is not part of the combo's mustRemainPressedKeySets...
+            // releaseCombo == the combo is not just a mustRemainUnpressed combo (it has a sequence or a mustRemainPressed precondition)
+            boolean releaseCombo =
+                    combo.precondition().mustRemainPressedKeySets().isEmpty() &&
+                    (combo.sequence().moves().isEmpty() || combo.sequence()
+                                                                .moves()
+                                                                .stream()
+                                                                .allMatch(
+                                                                        ComboMove::isRelease)); // This condition (check sequence is all releases)
+            // could be removed to not execute combos that have a sequence and whose mustRemainPress condition is not satisfied.
+            if (!currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.isEmpty()
+                // If currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten is not part of the combo's mustRemainPressedKeySets...
                 && combo.precondition()
                         .mustRemainPressedKeySets()
                         .stream()
                         .noneMatch(Predicate.isEqual(
-                                currentlyPressedComboPreconditionKeysNotAlreadyEaten)) &&
+                                currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten)) &&
+                // ...and the combo is not a release combo
+                !releaseCombo &&
                 // ...and the combo's current move is not a press of that currentlyPressedComboPreconditionKey...
                 (currentMove == null ||
-                 !currentlyPressedComboPreconditionKeysNotAlreadyEaten.equals(
+                 !currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.equals(
                          Set.of(currentMove.key())))) {
                 // Then it's as if the currently pressed precondition key is an unhandled key:
                 // other keys that are pressed should not even be considered but passed onto other apps.
-                // logger.info("currentlyPressedComboPreconditionKeysNotAlreadyEaten = " +
-                //             currentlyPressedComboPreconditionKeysNotAlreadyEaten +
+                // logger.info("currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten = " +
+                //             currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten +
                 //             ", skipping combo: " + combo);
                 continue;
             }
