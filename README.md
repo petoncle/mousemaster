@@ -29,17 +29,17 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 
 # Installation
 
-1. Download mousemaster.exe (a portable executable) from
+1. Download **mousemaster.exe** (a portable executable) from
    the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build
    it from source.
 2. In the same Release page, choose then download one of the existing configuration files:
-   - [neo-mousekeys.properties](configuration/neo-mousekeys.properties): a WASD configuration (documentation: [neo-mousekeys-style configuration for mousemaster](configuration/neo-mousekeys.md)).
-   - [warpd.properties](configuration/warpd.properties): a vi-like configuration (documentation: [warpd-style configuration for mousemaster](configuration/warpd.md)).
-   - [mouseable.properties](configuration/mouseable.properties): another vi-like configuration (documentation: [mouseable-style configuration for mousemaster](configuration/mouseable.md)).
-   - [author.properties](configuration/author.properties): the author's configuration, which uses arrow keys instead of vi-like bindings (documentation: [author's configuration of mousemaster](configuration/author.md)).
+    - **neo-mousekeys.properties** (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys.md))
+    - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))
+    - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))
+    - **author.properties**: an arrow key based configuration optimized for single hand usage ([see documentation](configuration/author.md))
 3. Place the executable and the configuration file of your choice in the same directory.
-4. Rename the configuration file to mousemaster.properties.
-5. Run mousemaster.exe.
+4. Rename the configuration file to **mousemaster.properties**.
+5. Run **mousemaster.exe**.
 6. Don't hesitate to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues)
    or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own
    configuration.
