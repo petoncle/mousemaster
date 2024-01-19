@@ -49,8 +49,8 @@ jobs:
           $commitMessage = git log -1 --pretty=%B ${{ github.ref_name }}
           $releaseNotes = ($commitMessage -split '\r?\n' | Select-Object -Skip 2) -join "`n"
           $releaseNotes += "`nSee the [Installation](https://github.com/petoncle/mousemaster/tree/main#installation) section of the README."
-          echo "::set-output name=release_notes::$releaseNotes"
+          Set-Content -Path ./release-notes.txt -Value $releaseNotes
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys.properties" "configuration/warpd.properties" --title "v${{ steps.extract_version.outputs.version }}" --notes "${{ steps.get_commit_message.outputs.release_notes }}"
+        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys.properties" "configuration/warpd.properties" --title "v${{ steps.extract_version.outputs.version }}" --notes-file ./release-notes.txt
