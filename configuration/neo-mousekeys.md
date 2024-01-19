@@ -1,4 +1,4 @@
-# neo-mousekeys-style configuration for mousemaster ([neo-mousekeys.properties](neo-mousekeys.properties))
+# neo-mousekeys configuration for mousemaster ([neo-mousekeys.properties](neo-mousekeys.properties))
 
 ## Overview
 

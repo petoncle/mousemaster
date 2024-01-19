@@ -1,4 +1,4 @@
-# mouseable-style configuration for mousemaster ([mouseable.properties](mouseable.properties))
+# mouseable configuration for mousemaster ([mouseable.properties](mouseable.properties))
 
 ## Overview
 

@@ -1,4 +1,4 @@
-# warpd-style configuration for mousemaster ([warpd.properties](warpd.properties))
+# warpd configuration for mousemaster ([warpd.properties](warpd.properties))
 
 ## Overview
 
