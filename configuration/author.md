@@ -7,13 +7,19 @@
 - Normal mode uses arrow keys for local mouse movement.
 - Normal mode, grid mode, and hint mode can be used (almost) entirely with a single hand.
 - Normal mode automatically exits (to idle mode) after 5s of inactivity.
-- Normal mode automatically exits when any non-normal mode key is pressed.
+- Normal mode automatically exits when any non-normal mode key is pressed. For example,
+  when starting to type text while normal mode is active, the normal mode will automatically exit.
 - The author is using this configuration with a small QWERTY keyboard and one 1920x1080 screen with a 125% display scale.
+- This single hand configuration works well only if the following keys are all within the
+  reach of the right hand: arrow keys, right shift, right ctrl, right alt.
 
 ## Normal Mode (_rightctrl_)
 
 - Move mouse with arrow keys.
-- Press mouse buttons with _rightshift_ (left button), _._ (middle button), _/_ (right button).
+- Press mouse buttons with _rightshift_ (left button), _._ (middle button), _/_ (right
+  button).
+- Left and right mouse buttons will be toggled (and remain pressed) if _rightshift_ (left
+  button) or _/_ (right button) are held for more than 250ms. 
 - Snap to screen edges by holding _rightctrl_, then quickly pressing an arrow key.
 - Snap to screen center by holding _rightctrl_ for 250ms.
 - Scroll vertically or horizontally (wheel) by double pressing the arrow keys.
@@ -40,7 +46,7 @@ Release _rightalt_ during the second hint pass to not trigger a click after hint
 - Cycle through the position history with _rightalt + left/right_.
 - Exit with _leftalt_, _esc_ or _backspace_.
 
-## Grid Mode (hold _rightctrl_ in normal mode)
+## Grid Mode (hold _rightctrl_)
 
 - Divide screen into a 2x2 grid, refining target area with each key press.
 - Switch between screen grid and window grid by pressing _rightshift_.

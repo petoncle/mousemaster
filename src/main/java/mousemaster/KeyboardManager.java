@@ -46,7 +46,13 @@ public class KeyboardManager {
                         processing = comboWatcher.keyEvent(keyEvent);
                 }
                 else {
-                    processing = PressKeyEventProcessing.unhandled();
+                    // Even if pressing unhandled key, give the hint manager a chance.
+                    // This is so the user can hold leftctrl (assuming it is unhandled), then
+                    // select a hint to perform a ctrl-click.
+                    if (hintManager.keyPressed(keyEvent.key()))
+                        processing = PressKeyEventProcessing.partOfHint();
+                    else
+                        processing = PressKeyEventProcessing.unhandled();
                 }
                 currentlyPressedKeys.put(key, processing);
             }
