@@ -98,6 +98,9 @@ public class ComboWatcher implements ModeListener {
             partOfComboSequence |= processing.isPartOfComboSequence();
             mustBeEaten |= processing.mustBeEaten();
         }
+        if (!partOfComboSequence) {
+            comboPreparation = ComboPreparation.empty();
+        }
         if (event.isRelease())
             return null;
         if (partOfComboSequence)
@@ -117,8 +120,6 @@ public class ComboWatcher implements ModeListener {
                 new HashSet<>(currentlyPressedComboPreconditionKeys);
         currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.removeIf(
                 Predicate.not(mustRemainPressedComboPreconditionKeys::contains));
-        currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.removeAll(
-                currentlyPressedComboSequenceKeys);
         if (event != null)
             currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.remove(
                     event.key());
@@ -156,11 +157,11 @@ public class ComboWatcher implements ModeListener {
                 (currentMove == null ||
                  !currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.equals(
                          Set.of(currentMove.key())))) {
-                // Then it's as if the currently pressed precondition key is an unhandled key:
+                // ...Then it's as if the currently pressed precondition key is an unhandled key:
                 // other keys that are pressed should not even be considered but passed onto other apps.
-                 logger.info("currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten = " +
-                             currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten +
-                             ", skipping combo: " + combo);
+                // logger.info("currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten = " +
+                //             currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten +
+                //             ", skipping combo: " + combo);
                 continue;
             }
             if (matchingMoveCount == 0) {
@@ -241,9 +242,6 @@ public class ComboWatcher implements ModeListener {
                      ", mustBeEaten = " + mustBeEaten + ", commandsToRun = " +
                      commandsToRun);
         commandsToRun.forEach(commandRunner::run);
-        if (!partOfComboSequence) {
-            comboPreparation = ComboPreparation.empty();
-        }
         if (event != null && event.isPress()) {
             if (partOfComboSequence)
                 currentlyPressedComboSequenceKeys.add(event.key());
