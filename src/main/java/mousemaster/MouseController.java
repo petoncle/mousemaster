@@ -93,25 +93,25 @@ public class MouseController implements ModeListener {
     }
 
     public void startMoveUp() {
-        if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.peek() == false)
+        if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.contains(false))
             return;
         yMoveForwardStack.push(false);
     }
 
     public void startMoveDown() {
-        if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.peek() == true)
+        if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.contains(true))
             return;
         yMoveForwardStack.push(true);
     }
 
     public void startMoveLeft() {
-        if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek() == false)
+        if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.contains(false))
             return;
         xMoveForwardStack.push(false);
     }
 
     public void startMoveRight() {
-        if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek() == true)
+        if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.contains(true))
             return;
         xMoveForwardStack.push(true);
     }
