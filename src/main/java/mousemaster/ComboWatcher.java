@@ -147,8 +147,9 @@ public class ComboWatcher implements ModeListener {
                 && combo.precondition()
                         .mustRemainPressedKeySets()
                         .stream()
-                        .noneMatch(Predicate.isEqual(
-                                currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten)) &&
+                        .noneMatch(
+                                comboMustRemainPressedKeySet -> comboMustRemainPressedKeySet.containsAll(
+                                        currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten)) &&
                 // ...and the combo is not a release combo
                 !releaseCombo &&
                 // ...and the combo's current move is not a press of that currentlyPressedComboPreconditionKey...
@@ -157,9 +158,9 @@ public class ComboWatcher implements ModeListener {
                          Set.of(currentMove.key())))) {
                 // Then it's as if the currently pressed precondition key is an unhandled key:
                 // other keys that are pressed should not even be considered but passed onto other apps.
-                // logger.info("currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten = " +
-                //             currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten +
-                //             ", skipping combo: " + combo);
+                 logger.info("currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten = " +
+                             currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten +
+                             ", skipping combo: " + combo);
                 continue;
             }
             if (matchingMoveCount == 0) {
