@@ -361,7 +361,7 @@ public class ConfigurationParser {
                                                                                              1,
                                                                                              10_000));
                             case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
-                                    parseHintKeys(propertyKey, propertyValue));
+                                    parseHintKeys(propertyKey, propertyValue, aliases));
                             case "undo" ->
                                     mode.hintMesh.builder.undoKey(Key.ofName(propertyValue));
                             case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
@@ -931,7 +931,11 @@ public class ConfigurationParser {
         };
     }
 
-    private static List<Key> parseHintKeys(String propertyKey, String propertyValue) {
+    private static List<Key> parseHintKeys(String propertyKey, String propertyValue,
+                                           Map<String, Alias> aliases) {
+        Alias alias = aliases.get(propertyValue);
+        if (alias != null)
+            return List.copyOf(alias.keys());
         String[] split = propertyValue.split("\\s+");
         if (split.length <= 1)
             // Even 1 key is not enough because we use fixed-length hints.
