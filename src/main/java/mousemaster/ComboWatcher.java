@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
 
-public class ComboWatcher implements ModeListener {
+public class ComboWatcher implements ModeListener, HintListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
@@ -16,6 +16,7 @@ public class ComboWatcher implements ModeListener {
     private final Set<Key> mustRemainUnpressedComboPreconditionKeys;
     private Mode currentMode;
     private boolean modeJustTimedOut;
+    private boolean hintJustSelected;
     private ComboPreparation comboPreparation;
     private ComboMoveDuration previousComboMoveDuration;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
@@ -306,8 +307,9 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
-        if (modeJustTimedOut) {
+        if (modeJustTimedOut || hintJustSelected) {
             modeJustTimedOut = false;
+            hintJustSelected = false;
             processKeyEventForCurrentMode(null, false);
         }
     }
@@ -318,7 +320,12 @@ public class ComboWatcher implements ModeListener {
         breakComboPreparation();
     }
 
-    private static final class ComboWaitingForLastMoveToComplete {
+    @Override
+    public void hintSelected() {
+        hintJustSelected = true;
+    }
+
+     private static final class ComboWaitingForLastMoveToComplete {
         private final ComboAndCommands comboAndCommands;
         private double remainingWait;
 

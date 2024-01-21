@@ -40,19 +40,17 @@ public class KeyboardManager {
             PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
             if (processing == null) {
                 if (!pressingUnhandledKey()) {
-                    if (hintManager.keyPressed(keyEvent.key()))
-                        processing = PressKeyEventProcessing.partOfHint();
-                    else
+                    processing = hintManager.keyPressed(keyEvent.key());
+                    if (!processing.handled())
                         processing = comboWatcher.keyEvent(keyEvent);
+                    else if (processing.isHintEnd())
+                        comboWatcher.keyEvent(keyEvent);
                 }
                 else {
                     // Even if pressing unhandled key, give the hint manager a chance.
                     // This is so the user can hold leftctrl (assuming it is unhandled), then
                     // select a hint to perform a ctrl-click.
-                    if (hintManager.keyPressed(keyEvent.key()))
-                        processing = PressKeyEventProcessing.partOfHint();
-                    else
-                        processing = PressKeyEventProcessing.unhandled();
+                    processing = hintManager.keyPressed(keyEvent.key());
                 }
                 currentlyPressedKeys.put(key, processing);
             }
@@ -62,7 +60,7 @@ public class KeyboardManager {
             PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
             if (processing != null) {
                 if (processing.handled()) {
-                    if (processing.isPartOfCombo())
+                    if (processing.isPartOfCombo() || processing.isHintEnd())
                         comboWatcher.keyEvent(keyEvent); // Returns null.
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.
                     return processing.mustBeEaten();

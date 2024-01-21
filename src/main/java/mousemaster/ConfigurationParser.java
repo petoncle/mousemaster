@@ -385,9 +385,6 @@ public class ConfigurationParser {
                                 mode.hintMesh.builder.modeAfterSelection(
                                         modeAfterSelection);
                             }
-                            case "click-button-after-selection" ->
-                                    mode.hintMesh.builder.clickButtonAfterSelection(
-                                            parseButton(propertyKey, propertyValue));
                             case "save-position-after-selection" ->
                                     mode.hintMesh.builder.savePositionAfterSelection(
                                             Boolean.parseBoolean(propertyValue));
@@ -920,17 +917,6 @@ public class ConfigurationParser {
         return percent;
     }
 
-    private static Button parseButton(String propertyKey, String string) {
-        return switch (string) {
-            case "left" -> Button.LEFT_BUTTON;
-            case "middle" -> Button.MIDDLE_BUTTON;
-            case "right" -> Button.RIGHT_BUTTON;
-            default -> throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + string + ": button must be one of " +
-                    List.of("left", "middle", "right"));
-        };
-    }
-
     private static List<Key> parseHintKeys(String propertyKey, String propertyValue,
                                            Map<String, Alias> aliases) {
         Alias alias = aliases.get(propertyValue);
@@ -1176,8 +1162,6 @@ public class ConfigurationParser {
                         builder.boxHexColor(parent.boxHexColor());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
-                    if (builder.clickButtonAfterSelection() == null)
-                        builder.clickButtonAfterSelection(parent.clickButtonAfterSelection());
                     if (builder.savePositionAfterSelection() == null)
                         builder.savePositionAfterSelection(parent.savePositionAfterSelection());
                 }

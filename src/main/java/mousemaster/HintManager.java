@@ -14,6 +14,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(HintManager.class);
 
+    private List<HintListener> listeners;
     private final ScreenManager screenManager;
     private final MouseController mouseController;
     private ModeController modeController;
@@ -48,6 +49,11 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.modeController = modeController;
     }
 
+    public HintManager setListeners(List<HintListener> listeners) {
+        this.listeners = listeners;
+        return this;
+    }
+
     @Override
     public void mouseMoved(int x, int y) {
         this.mouseX = x;
@@ -57,13 +63,6 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (hintMeshConfiguration.savePositionAfterSelection())
             savePosition();
-        if (hintMeshConfiguration.clickButtonAfterSelection() != null) {
-            switch (hintMeshConfiguration.clickButtonAfterSelection()) {
-                case LEFT_BUTTON -> mouseController.clickLeft();
-                case MIDDLE_BUTTON -> mouseController.clickMiddle();
-                case RIGHT_BUTTON -> mouseController.clickRight();
-            }
-        }
         if (hintMeshConfiguration.modeAfterSelection() != null) {
             logger.debug("Hint " + exactMatchHintJustSelected.keySequence()
                                                              .stream()
@@ -71,6 +70,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                              .toList() +
                          " selected, switching to " +
                          hintMeshConfiguration.modeAfterSelection());
+            listeners.forEach(HintListener::hintSelected);
             modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
         }
         else {
@@ -301,10 +301,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         // No op.
     }
 
-    public boolean keyPressed(Key key) {
+    public PressKeyEventProcessing keyPressed(Key key) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
-            return false;
+            return PressKeyEventProcessing.unhandled();
         if (key.equals(hintMeshConfiguration.undoKey())) {
             List<Key> focusedKeySequence = hintMesh.focusedKeySequence();
             if (!focusedKeySequence.isEmpty()) {
@@ -313,12 +313,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                                            focusedKeySequence.size() - 1))
                                    .build();
                 WindowsOverlay.setHintMesh(hintMesh);
-                return true;
+                return PressKeyEventProcessing.hintUndo();
             }
-            return false; // ComboWatcher can have a go at it.
+            return PressKeyEventProcessing.unhandled(); // ComboWatcher can have a go at it.
         }
         if (!selectionKeySubset.contains(key))
-            return false;
+            return PressKeyEventProcessing.unhandled();
         List<Key> newFocusedKeySequence = new ArrayList<>(hintMesh.focusedKeySequence());
         newFocusedKeySequence.add(key);
         Hint exactMatchHint = null;
@@ -335,17 +335,18 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
         }
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
-            return false;
+            return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
             mouseController.moveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
             exactMatchHintJustSelected = exactMatchHint;
+            return PressKeyEventProcessing.hintEnd();
         }
         else {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
             WindowsOverlay.setHintMesh(hintMesh);
+            return PressKeyEventProcessing.partOfHintPrefix();
         }
-        return true;
     }
 
     public void savePosition() {

@@ -9,7 +9,6 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
                                     int fontSize, String fontHexColor,
                                     String selectedPrefixFontHexColor, String boxHexColor,
                                     String modeAfterSelection,
-                                    Button clickButtonAfterSelection,
                                     boolean savePositionAfterSelection) {
 
     public static class HintMeshConfigurationBuilder {
@@ -23,7 +22,6 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         private String selectedPrefixFontHexColor;
         private String boxHexColor;
         private String modeAfterSelection;
-        private Button clickButtonAfterSelection;
         private Boolean savePositionAfterSelection;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
@@ -73,12 +71,6 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return this;
         }
 
-        public HintMeshConfigurationBuilder clickButtonAfterSelection(
-                Button clickButtonAfterSelection) {
-            this.clickButtonAfterSelection = clickButtonAfterSelection;
-            return this;
-        }
-
         public HintMeshConfigurationBuilder savePositionAfterSelection(
                 boolean savePositionAfterSelection) {
             this.savePositionAfterSelection = savePositionAfterSelection;
@@ -125,10 +117,6 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
             return modeAfterSelection;
         }
 
-        public Button clickButtonAfterSelection() {
-            return clickButtonAfterSelection;
-        }
-
         public Boolean savePositionAfterSelection() {
             return savePositionAfterSelection;
         }
@@ -136,8 +124,7 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, type.build(), selectionKeys,
                     undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
-                    boxHexColor, modeAfterSelection, clickButtonAfterSelection,
-                    savePositionAfterSelection);
+                    boxHexColor, modeAfterSelection, savePositionAfterSelection);
         }
 
     }

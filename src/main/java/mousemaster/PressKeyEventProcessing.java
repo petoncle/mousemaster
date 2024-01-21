@@ -6,16 +6,23 @@ public enum PressKeyEventProcessing {
     PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN,
     PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN,
     PART_OF_COMBO_PRECONDITION_ONLY, // "Only" means it is not part of a combo sequence (it is just part of a combo precondition).
-    PART_OF_HINT_MUST_BE_EATEN;
+    PART_OF_HINT_PREFIX_MUST_BE_EATEN,
+    HINT_UNDO_MUST_BE_EATEN,
+    HINT_END_MUST_BE_EATEN;
 
     public boolean mustBeEaten() {
-        return this == PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN || this == PART_OF_HINT_MUST_BE_EATEN;
+        return this == PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN ||
+               this == PART_OF_HINT_PREFIX_MUST_BE_EATEN ||
+               this == HINT_UNDO_MUST_BE_EATEN ||
+               this == HINT_END_MUST_BE_EATEN;
     }
 
     public boolean handled() {
         return this == PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN ||
                this == PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN ||
-               this == PART_OF_HINT_MUST_BE_EATEN ||
+               this == PART_OF_HINT_PREFIX_MUST_BE_EATEN ||
+               this == HINT_UNDO_MUST_BE_EATEN ||
+               this == HINT_END_MUST_BE_EATEN ||
                this == PART_OF_COMBO_PRECONDITION_ONLY;
     }
 
@@ -32,6 +39,10 @@ public enum PressKeyEventProcessing {
         return isPartOfComboSequence() || isPartOfComboPreconditionOnly();
     }
 
+    public boolean isHintEnd() {
+        return this == HINT_END_MUST_BE_EATEN;
+    }
+
     public static PressKeyEventProcessing unhandled() {
         return UNHANDLED;
     }
@@ -41,8 +52,16 @@ public enum PressKeyEventProcessing {
                 PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN;
     }
 
-    public static PressKeyEventProcessing partOfHint() {
-        return PART_OF_HINT_MUST_BE_EATEN;
+    public static PressKeyEventProcessing partOfHintPrefix() {
+        return PART_OF_HINT_PREFIX_MUST_BE_EATEN;
+    }
+
+    public static PressKeyEventProcessing hintUndo() {
+        return HINT_UNDO_MUST_BE_EATEN;
+    }
+
+    public static PressKeyEventProcessing hintEnd() {
+        return HINT_END_MUST_BE_EATEN;
     }
 
     public static PressKeyEventProcessing partOfComboPreconditionOnly() {
