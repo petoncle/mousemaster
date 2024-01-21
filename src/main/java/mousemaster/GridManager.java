@@ -33,7 +33,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .y(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.y() :
                            mouseY - grid.height() / 4)
-                   .height(Math.max(1, grid.height() / 2))
+                   .height(Math.max(1, grid.height() / 2 + grid.height() % 2))
                    .build();
         gridChanged();
     }
@@ -46,7 +46,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .y(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ?
                            grid.y() + grid.height() / 2 : mouseY - grid.height() / 4)
-                   .height(Math.max(1, grid.height() / 2))
+                   .height(Math.max(1, grid.height() / 2 + grid.height() % 2))
                    .build();
         gridChanged();
     }
@@ -59,7 +59,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .y(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.y() :
                            mouseY - grid.height() / 2)
-                   .width(Math.max(1, grid.width() / 2))
+                   .width(Math.max(1, grid.width() / 2 + grid.width() % 2))
                    .build();
         gridChanged();
     }
@@ -72,7 +72,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                    .y(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.y() :
                            mouseY - grid.height() / 2)
-                   .width(Math.max(1, grid.width() / 2))
+                   .width(Math.max(1, grid.width() / 2 + grid.width() % 2))
                    .build();
         gridChanged();
     }
