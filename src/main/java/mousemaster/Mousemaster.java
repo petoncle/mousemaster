@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Mousemaster {
 
@@ -93,10 +92,8 @@ public class Mousemaster {
         for (Mode mode : configuration.modeMap().modes()) {
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 mustRemainUnpressedComboPreconditionKeys.addAll(combo.precondition()
-                                                                     .mustRemainUnpressedKeySets()
+                                                                     .mustRemainUnpressedKeySet()
                                                                      .stream()
-                                                                     .flatMap(
-                                                                             Collection::stream)
                                                                      .toList());
                 mustRemainPressedComboPreconditionKeys.addAll(combo.precondition()
                                                                      .mustRemainPressedKeySets()

@@ -8,20 +8,20 @@ import java.util.stream.Collectors;
 public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     public static Combo of(String string, ComboMoveDuration defaultMoveDuration) {
-        Matcher mustRemainUnpressedKeySetsMatcher =
+        Matcher mustRemainUnpressedKeySetMatcher =
                 Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
-        Set<Set<Key>> mustRemainUnpressedKeySets;
+        Set<Key> mustRemainUnpressedKeySet;
         String mustRemainPressedAndSequenceString;
-        String mustRemainUnpressedKeySetsString;
-        if (mustRemainUnpressedKeySetsMatcher.find()) {
-            mustRemainUnpressedKeySetsString = mustRemainUnpressedKeySetsMatcher.group(1);
-            mustRemainUnpressedKeySets = parseKeySets(mustRemainUnpressedKeySetsString, false);
+        String mustRemainUnpressedKeySetString;
+        if (mustRemainUnpressedKeySetMatcher.find()) {
+            mustRemainUnpressedKeySetString = mustRemainUnpressedKeySetMatcher.group(1);
+            mustRemainUnpressedKeySet = parseMustRemainUnpressedKeySet(mustRemainUnpressedKeySetString);
             mustRemainPressedAndSequenceString =
-                    string.substring(mustRemainUnpressedKeySetsMatcher.end());
+                    string.substring(mustRemainUnpressedKeySetMatcher.end());
         }
         else {
-            mustRemainUnpressedKeySetsString = null;
-            mustRemainUnpressedKeySets = Set.of();
+            mustRemainUnpressedKeySetString = null;
+            mustRemainUnpressedKeySet = Set.of();
             mustRemainPressedAndSequenceString = string;
         }
         Matcher mustRemainPressedKeySetsMatcher = Pattern.compile("_\\{([^{}]+)\\}\\s*")
@@ -32,7 +32,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         String mustRemainPressedKeySetsString;
         if (mustRemainPressedKeySetsMatcher.find()) {
             mustRemainPressedKeySetsString = mustRemainPressedKeySetsMatcher.group(1);
-            mustRemainPressedKeySets = parseKeySets(mustRemainPressedKeySetsString, true);
+            mustRemainPressedKeySets = parseMustRemainPressedKeySets(mustRemainPressedKeySetsString);
             sequenceString = mustRemainPressedAndSequenceString.substring(
                     mustRemainPressedKeySetsMatcher.end());
         }
@@ -41,28 +41,25 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             mustRemainPressedKeySets = Set.of();
             sequenceString = mustRemainPressedAndSequenceString;
         }
-        if (mustRemainUnpressedKeySets.stream()
-                                      .flatMap(Collection::stream)
-                                      .anyMatch(mustRemainPressedKeySets.stream()
-                                                                        .flatMap(
-                                                                                Collection::stream)
-                                                                        .collect(
-                                                                                Collectors.toSet())::contains)) {
+        if (mustRemainUnpressedKeySet.stream()
+                                     .anyMatch(mustRemainPressedKeySets.stream()
+                                                                       .flatMap(
+                                                                               Collection::stream)
+                                                                       .collect(
+                                                                               Collectors.toSet())::contains)) {
             throw new IllegalArgumentException(
                     "There cannot be an overlap between must remain unpressed keys and must remain pressed keys: " +
-                    "^{" + mustRemainUnpressedKeySetsString + "} _{" +
+                    "^{" + mustRemainUnpressedKeySetString + "} _{" +
                     mustRemainPressedKeySetsString + "}");
         }
         ComboSequence sequence = sequenceString.isEmpty() ? new ComboSequence(List.of()) :
                 ComboSequence.parseSequence(sequenceString, defaultMoveDuration);
         Set<Key> sequenceKeys =
                 sequence.moves().stream().map(ComboMove::key).collect(Collectors.toSet());
-        if (mustRemainUnpressedKeySets.stream()
-                                      .flatMap(Collection::stream)
-                                      .anyMatch(sequenceKeys::contains))
+        if (mustRemainUnpressedKeySet.stream().anyMatch(sequenceKeys::contains))
             throw new IllegalArgumentException(
                     "There cannot be an overlap between must remain unpressed keys and combo sequence keys: " +
-                    "^{" + mustRemainUnpressedKeySetsString + "} " + sequenceString);
+                    "^{" + mustRemainUnpressedKeySetString + "} " + sequenceString);
         if (mustRemainPressedKeySets.stream()
                                     .flatMap(Collection::stream)
                                     .anyMatch(sequenceKeys::contains))
@@ -71,23 +68,27 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                     "_{" + mustRemainPressedKeySetsString + "} " + sequenceString);
         if (mustRemainPressedKeySets.equals(Set.of(Set.of())))
             mustRemainPressedKeySets = Set.of();
-        ComboPrecondition precondition = new ComboPrecondition(mustRemainUnpressedKeySets,
+        ComboPrecondition precondition = new ComboPrecondition(mustRemainUnpressedKeySet,
                 mustRemainPressedKeySets);
         if (precondition.isEmpty() && sequence.moves().isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
         return new Combo(precondition, sequence);
     }
 
-    private static Set<Set<Key>> parseKeySets(String keySetsString, boolean acceptEmptyKeySet) {
-        String[] complexKeySetStrings = keySetsString.split("\\s*\\|\\s*");
-        return Arrays.stream(complexKeySetStrings)
-                     .map(complexKeySetString -> parseComplexKeySet(complexKeySetString,
-                             acceptEmptyKeySet))
+    private static Set<Key> parseMustRemainUnpressedKeySet(String keySetString) {
+        String[] keyStrings = keySetString.split("\\s+");
+        return Arrays.stream(keyStrings).map(Key::ofName).collect(Collectors.toSet());
+    }
+
+    private static Set<Set<Key>> parseMustRemainPressedKeySets(String keySetsString) {
+        String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
+        return Arrays.stream(keySetStrings)
+                     .map(Combo::parseMustRemainPressedKeySet)
                      .flatMap(Collection::stream)
                      .collect(Collectors.toSet());
     }
 
-    private static Set<Set<Key>> parseComplexKeySet(String complexKeySetString, boolean acceptEmptyKeySet) {
+    private static Set<Set<Key>> parseMustRemainPressedKeySet(String complexKeySetString) {
         // rightctrl up*down -> (rightctrl, up), (rightctrl, down), (rightctrl, up, down)
         boolean containsAnyCombinationOf = false;
         boolean containsEmptyKeySet = false;
@@ -113,8 +114,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 Set<Key> keys = new HashSet<>();
                 boolean includeEmptySet = false;
                 for (String key : complexKeyString.split("\\*")) {
-                    if (key.equals("none"))
+                    if (key.equals("none")) {
                         includeEmptySet = true;
+                    }
                     else
                         keys.add(Key.ofName(key));
                 }
@@ -169,8 +171,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     public static List<Combo> multiCombo(String multiComboString,
                                          ComboMoveDuration defaultMoveDuration) {
-        // One combo is: ^{key|...} _{key|...} move ...
-        // Two combos: ^{key|...} _{key|...} move ... | ^{key|...} _{key|...} move ...
+        // One combo is: ^{key|...} _{key|...} move1 move2 ...
+        // Two combos: ^{key|...} _{key|...} move1 move2 ... | ^{key|...} _{key|...} move ...
         int comboBeginIndex = 0;
         boolean rightBraceExpected = false;
         List<Combo> combos = new ArrayList<>();

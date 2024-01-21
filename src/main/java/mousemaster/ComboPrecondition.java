@@ -1,19 +1,19 @@
 package mousemaster;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public record ComboPrecondition(Set<Set<Key>> mustRemainUnpressedKeySets,
+public record ComboPrecondition(Set<Key> mustRemainUnpressedKeySet,
                                 Set<Set<Key>> mustRemainPressedKeySets) {
 
     public boolean isEmpty() {
-        return mustRemainUnpressedKeySets.isEmpty() && mustRemainPressedKeySets.isEmpty();
+        return mustRemainUnpressedKeySet.isEmpty() && mustRemainPressedKeySets.isEmpty();
     }
 
     public boolean satisfied(Set<Key> currentlyPressedKeys) {
-        for (Set<Key> mustRemainUnpressedKeySet : mustRemainUnpressedKeySets) {
-            if (currentlyPressedKeys.containsAll(mustRemainUnpressedKeySet))
+        for (Key mustRemainUnpressedKey : mustRemainUnpressedKeySet) {
+            if (currentlyPressedKeys.contains(mustRemainUnpressedKey))
                 return false;
         }
         if (mustRemainPressedKeySets.isEmpty())
@@ -27,15 +27,17 @@ public record ComboPrecondition(Set<Set<Key>> mustRemainUnpressedKeySets,
 
     @Override
     public String toString() {
-        return String.join(" ", "^{" + keySetsToString(mustRemainUnpressedKeySets) + "}",
+        return String.join(" ", "^{" + keySetToString(mustRemainUnpressedKeySet) + "}",
                 "_{" + keySetsToString(mustRemainPressedKeySets) + "}");
     }
 
     private static String keySetsToString(Set<Set<Key>> keySets) {
         return keySets.stream()
-                      .map(keySet -> keySet.stream()
-                                           .map(Key::name)
-                                           .collect(Collectors.joining(" ")))
+                      .map(ComboPrecondition::keySetToString)
                       .collect(Collectors.joining("|"));
+    }
+
+    private static String keySetToString(Set<Key> keySet) {
+        return keySet.stream().map(Key::name).collect(Collectors.joining(" "));
     }
 }

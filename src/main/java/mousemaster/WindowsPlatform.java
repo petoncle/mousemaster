@@ -78,11 +78,7 @@ public class WindowsPlatform implements Platform {
                      .stream()
                      .flatMap(Collection::stream)
                      .forEach(allComboKeys::add);
-                combo.precondition()
-                     .mustRemainUnpressedKeySets()
-                     .stream()
-                     .flatMap(Collection::stream)
-                     .forEach(allComboKeys::add);
+                allComboKeys.addAll(combo.precondition().mustRemainUnpressedKeySet());
                 combo.sequence()
                      .moves()
                      .stream()
