@@ -20,6 +20,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private List<PositionHistoryListener> positionHistoryListeners;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
+    private Hint exactMatchHintJustSelected;
     private int mouseX, mouseY;
     private Mode currentMode;
     private final List<Point> positionHistory = new ArrayList<>();
@@ -51,6 +52,33 @@ public class HintManager implements ModeListener, MousePositionListener {
     public void mouseMoved(int x, int y) {
         this.mouseX = x;
         this.mouseY = y;
+        if (exactMatchHintJustSelected == null)
+            return;
+        HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
+        if (hintMeshConfiguration.savePositionAfterSelection())
+            savePosition();
+        if (hintMeshConfiguration.clickButtonAfterSelection() != null) {
+            switch (hintMeshConfiguration.clickButtonAfterSelection()) {
+                case LEFT_BUTTON -> mouseController.clickLeft();
+                case MIDDLE_BUTTON -> mouseController.clickMiddle();
+                case RIGHT_BUTTON -> mouseController.clickRight();
+            }
+        }
+        if (hintMeshConfiguration.modeAfterSelection() != null) {
+            logger.debug("Hint " + exactMatchHintJustSelected.keySequence()
+                                                             .stream()
+                                                             .map(Key::name)
+                                                             .toList() +
+                         " selected, switching to " +
+                         hintMeshConfiguration.modeAfterSelection());
+            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
+        }
+        else {
+            hintMesh =
+                    hintMesh.builder().focusedKeySequence(List.of()).build();
+            WindowsOverlay.setHintMesh(hintMesh);
+        }
+        exactMatchHintJustSelected = null;
     }
 
     @Override
@@ -310,34 +338,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return false;
         if (exactMatchHint != null) {
             mouseController.moveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
-            // Do not wait for the asynchronous mouse moved callback.
-            // The next mode may be hint stage 2 mode that needs the new mouse
-            // position before the mouse moved callback is called.
-            mouseX = exactMatchHint.centerX();
-            mouseY = exactMatchHint.centerY();
-            if (hintMeshConfiguration.savePositionAfterSelection())
-                savePosition();
-            if (hintMeshConfiguration.clickButtonAfterSelection() != null) {
-                switch (hintMeshConfiguration.clickButtonAfterSelection()) {
-                    case LEFT_BUTTON -> mouseController.clickLeft();
-                    case MIDDLE_BUTTON -> mouseController.clickMiddle();
-                    case RIGHT_BUTTON -> mouseController.clickRight();
-                }
-            }
-            if (hintMeshConfiguration.modeAfterSelection() != null) {
-                logger.debug("Hint " + exactMatchHint.keySequence()
-                                                     .stream()
-                                                     .map(Key::name)
-                                                     .toList() +
-                             " selected, switching to " +
-                             hintMeshConfiguration.modeAfterSelection());
-                modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
-            }
-            else {
-                hintMesh =
-                        hintMesh.builder().focusedKeySequence(List.of()).build();
-                WindowsOverlay.setHintMesh(hintMesh);
-            }
+            exactMatchHintJustSelected = exactMatchHint;
         }
         else {
             hintMesh =
