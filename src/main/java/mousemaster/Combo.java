@@ -7,7 +7,8 @@ import java.util.stream.Collectors;
 
 public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
-    public static Combo of(String string, ComboMoveDuration defaultMoveDuration) {
+    public static Combo of(String string, ComboMoveDuration defaultMoveDuration,
+                           Map<String, Alias> aliases) {
         Matcher mustRemainUnpressedKeySetMatcher =
                 Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
         Set<Key> mustRemainUnpressedKeySet;
@@ -15,7 +16,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         String mustRemainUnpressedKeySetString;
         if (mustRemainUnpressedKeySetMatcher.find()) {
             mustRemainUnpressedKeySetString = mustRemainUnpressedKeySetMatcher.group(1);
-            mustRemainUnpressedKeySet = parseMustRemainUnpressedKeySet(mustRemainUnpressedKeySetString);
+            mustRemainUnpressedKeySet = parseMustRemainUnpressedKeySet(mustRemainUnpressedKeySetString, aliases);
             mustRemainPressedAndSequenceString =
                     string.substring(mustRemainUnpressedKeySetMatcher.end());
         }
@@ -32,7 +33,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         String mustRemainPressedKeySetsString;
         if (mustRemainPressedKeySetsMatcher.find()) {
             mustRemainPressedKeySetsString = mustRemainPressedKeySetsMatcher.group(1);
-            mustRemainPressedKeySets = parseMustRemainPressedKeySets(mustRemainPressedKeySetsString);
+            mustRemainPressedKeySets =
+                    parseMustRemainPressedKeySets(mustRemainPressedKeySetsString,
+                            aliases);
             sequenceString = mustRemainPressedAndSequenceString.substring(
                     mustRemainPressedKeySetsMatcher.end());
         }
@@ -75,35 +78,57 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         return new Combo(precondition, sequence);
     }
 
-    private static Set<Key> parseMustRemainUnpressedKeySet(String keySetString) {
+    private static Set<Key> parseMustRemainUnpressedKeySet(String keySetString,
+                                                           Map<String, Alias> aliases) {
         String[] keyStrings = keySetString.split("\\s+");
-        return Arrays.stream(keyStrings).map(Key::ofName).collect(Collectors.toSet());
-    }
-
-    private static Set<Set<Key>> parseMustRemainPressedKeySets(String keySetsString) {
-        String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
-        return Arrays.stream(keySetStrings)
-                     .map(Combo::parseMustRemainPressedKeySet)
+        return Arrays.stream(keyStrings)
+                     .map(keyString -> expandAlias(keyString, aliases))
                      .flatMap(Collection::stream)
                      .collect(Collectors.toSet());
     }
 
-    private static Set<Set<Key>> parseMustRemainPressedKeySet(String complexKeySetString) {
+    private static Set<Key> expandAlias(String keyString, Map<String, Alias> aliases) {
+        Alias alias = aliases.get(keyString);
+        if (alias == null)
+            return Set.of(Key.ofName(keyString));
+        return alias.keys();
+    }
+
+    private static Set<Set<Key>> parseMustRemainPressedKeySets(String keySetsString,
+                                                               Map<String, Alias> aliases) {
+        String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
+        return Arrays.stream(keySetStrings)
+                     .map(complexKeySetString -> parseMustRemainPressedKeySet(
+                             complexKeySetString, aliases))
+                     .flatMap(Collection::stream)
+                     .collect(Collectors.toSet());
+    }
+
+    private static Set<Set<Key>> parseMustRemainPressedKeySet(String keySetString,
+                                                              Map<String, Alias> aliases) {
         // rightctrl up*down -> (rightctrl, up), (rightctrl, down), (rightctrl, up, down)
         boolean containsAnyCombinationOf = false;
         boolean containsEmptyKeySet = false;
+        boolean containsMultiKeyAlias = false;
         Set<Key> mustBeInSetKeys = new HashSet<>();
         Set<Set<Key>> combinationKeySets = new HashSet<>();
-        String[] split = complexKeySetString.split("\\s+");
+        String[] split = keySetString.split("\\s+");
         for (String complexKeyString : split) {
             if (complexKeyString.equals("none"))
                 containsEmptyKeySet = true;
             else if (!complexKeyString.contains("*")) {
-                if (containsAnyCombinationOf)
-                    throw new IllegalArgumentException(
-                            "any-combination-of should be placed at the end: " +
-                            complexKeyString);
-                mustBeInSetKeys.add(Key.ofName(complexKeyString));
+                Set<Key> expandedKeys = expandAlias(complexKeyString, aliases);
+                if (expandedKeys.size() > 1) {
+                    if (containsMultiKeyAlias)
+                        throw new IllegalArgumentException(
+                                "There cannot be more than one multi-key alias: " +
+                                complexKeyString);
+                    containsMultiKeyAlias = true;
+                    containsAnyCombinationOf = true;
+                    combinationKeySets = generateCombinations(expandedKeys);
+                }
+                else
+                    mustBeInSetKeys.addAll(expandedKeys); // Only one key.
             }
             else {
                 if (containsAnyCombinationOf)
@@ -112,22 +137,21 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                             complexKeyString);
                 containsAnyCombinationOf = true;
                 Set<Key> keys = new HashSet<>();
-                boolean includeEmptySet = false;
-                for (String key : complexKeyString.split("\\*")) {
-                    if (key.equals("none")) {
-                        includeEmptySet = true;
-                    }
-                    else
-                        keys.add(Key.ofName(key));
+                for (String keyName : complexKeyString.split("\\*")) {
+                    Set<Key> expandedKeys = expandAlias(keyName, aliases);
+                    if (expandedKeys.size() > 1)
+                        throw new IllegalArgumentException(
+                                "Multi-key aliases cannot be used in a any-combination-of: " +
+                                complexKeyString);
+                    keys.addAll(expandedKeys); // Only one key.
                 }
                 combinationKeySets = generateCombinations(keys);
-                if (includeEmptySet)
-                    combinationKeySets.add(new HashSet<>());
             }
         }
         if (containsEmptyKeySet && (!mustBeInSetKeys.isEmpty() || containsAnyCombinationOf))
-            // "none" should be alone.
-            throw new IllegalArgumentException("Invalid key set: " + complexKeySetString);
+            // "none rightctrl" is invalid
+            // "none up*down" is invalid
+            throw new IllegalArgumentException("Invalid key set: " + keySetString);
         if (!containsAnyCombinationOf) {
             return Set.of(mustBeInSetKeys);
         }
@@ -170,7 +194,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     public static List<Combo> multiCombo(String multiComboString,
-                                         ComboMoveDuration defaultMoveDuration) {
+                                         ComboMoveDuration defaultMoveDuration,
+                                         Map<String, Alias> aliases) {
         // One combo is: ^{key|...} _{key|...} move1 move2 ...
         // Two combos: ^{key|...} _{key|...} move1 move2 ... | ^{key|...} _{key|...} move ...
         int comboBeginIndex = 0;
@@ -193,12 +218,12 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             else if (character == '|' && !rightBraceExpected) {
                 combos.add(
                         of(multiComboString.substring(comboBeginIndex, charIndex).strip(),
-                                defaultMoveDuration));
+                                defaultMoveDuration, aliases));
                 comboBeginIndex = charIndex + 1;
             }
         }
         combos.add(of(multiComboString.substring(comboBeginIndex).strip(),
-                defaultMoveDuration));
+                defaultMoveDuration, aliases));
         return List.copyOf(combos);
     }
 
