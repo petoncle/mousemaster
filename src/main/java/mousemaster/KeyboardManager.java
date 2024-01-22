@@ -80,10 +80,15 @@ public class KeyboardManager {
         if (currentlyPressedKeys.isEmpty())
             return false;
         for (PressKeyEventProcessing pressKeyEventProcessing : currentlyPressedKeys.values()) {
-            if (pressKeyEventProcessing.handled())
+            if (pressKeyEventProcessing.isPartOfComboSequence() ||
+                pressKeyEventProcessing.isPartOfHintPrefix() ||
+                pressKeyEventProcessing.isHintUndo() ||
+                pressKeyEventProcessing.isHintEnd())
                 return false;
         }
-        return true;
+        // Pressed keys are either unhandled or part of combo precondition.
+        // Consider pressed keys unhandled if at least one is unhandled and the others are precondition keys.
+        return pressingUnhandledKey();
     }
 
     public boolean pressingUnhandledKey() {

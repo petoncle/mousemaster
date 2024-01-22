@@ -39,6 +39,14 @@ public enum PressKeyEventProcessing {
         return isPartOfComboSequence() || isPartOfComboPreconditionOnly();
     }
 
+    public boolean isPartOfHintPrefix() {
+        return this == PART_OF_HINT_PREFIX_MUST_BE_EATEN;
+    }
+
+    public boolean isHintUndo() {
+        return this == HINT_UNDO_MUST_BE_EATEN;
+    }
+
     public boolean isHintEnd() {
         return this == HINT_END_MUST_BE_EATEN;
     }
