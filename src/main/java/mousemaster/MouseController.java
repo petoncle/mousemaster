@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 
-public class MouseController implements ModeListener {
+public class MouseController implements ModeListener, MousePositionListener {
 
     private Mouse mouse;
     private Wheel wheel;
@@ -18,6 +18,13 @@ public class MouseController implements ModeListener {
     private final Deque<Boolean> xWheelForwardStack = new ArrayDeque<>();
     private final Deque<Boolean> yWheelForwardStack = new ArrayDeque<>();
 
+    private int mouseX, mouseY;
+    private boolean jumping;
+    private double jumpDuration;
+    private int jumpX, jumpY;
+    private int jumpBeginX, jumpBeginY;
+    private int jumpEndX, jumpEndY;
+
     public void reset() {
         moveDuration = 0;
         deltaDistanceX = deltaDistanceY = 0;
@@ -27,6 +34,8 @@ public class MouseController implements ModeListener {
         wheelDuration = 0;
         xWheelForwardStack.clear();
         yWheelForwardStack.clear();
+        jumping = false;
+        jumpDuration = 0;
     }
 
     public void setMouse(Mouse mouse) {
@@ -72,12 +81,43 @@ public class MouseController implements ModeListener {
                 deltaDistanceY += moveVelocity * delta;
                 deltaBigEnough = deltaDistanceY >= 1;
             }
-            if (deltaBigEnough) {
-                WindowsMouse.moveBy(!xMoveForwardStack.isEmpty() && xMoveForwardStack.peek(),
+            if (deltaBigEnough && !jumping) {
+                WindowsMouse.moveBy(
+                        !xMoveForwardStack.isEmpty() && xMoveForwardStack.peek(),
                         deltaDistanceX,
                         !yMoveForwardStack.isEmpty() && yMoveForwardStack.peek(),
                         deltaDistanceY);
                 deltaDistanceX = deltaDistanceY = 0;
+            }
+        }
+        if (jumping) {
+            jumpDuration += delta;
+            double jumpVelocity = mouse.smoothJumpVelocity(); // Pixels per second.
+            double jumpTotalDuration =
+                    Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY) /
+                    jumpVelocity;
+            double t = Math.min(1, jumpDuration / jumpTotalDuration);
+            // Smooth.
+            // t = t * t * (3 - 2 * t);
+            // Smoother (Ken Perlin).
+            t = t * t * t * (t * (t * 6 - 15) + 10);
+            int nextJumpX = (int) (jumpBeginX + (jumpEndX - jumpBeginX) * t);
+            int nextJumpY = (int) (jumpBeginY + (jumpEndY - jumpBeginY) * t);
+            // Merge the user movement in.
+            int movingDeltaX = xMoveForwardStack.isEmpty() ? 0 :
+                    (int) (deltaDistanceX * (xMoveForwardStack.peek() ? 1 : -1));
+            deltaDistanceX -= (int) deltaDistanceX;
+            nextJumpX += movingDeltaX;
+            jumpEndX += movingDeltaX;
+            int movingDeltaY = yMoveForwardStack.isEmpty() ? 0 :
+                    (int) (deltaDistanceY * (yMoveForwardStack.peek() ? 1 : -1));
+            deltaDistanceY -= (int) deltaDistanceY;
+            nextJumpY += movingDeltaY;
+            jumpEndY += movingDeltaY;
+            if (nextJumpX != jumpX || nextJumpY != jumpY) {
+                WindowsMouse.moveTo(nextJumpX, nextJumpY);
+                jumpX = nextJumpX;
+                jumpY = nextJumpY;
             }
         }
         if (wheeling()) {
@@ -302,17 +342,58 @@ public class MouseController implements ModeListener {
     }
 
     public void moveTo(int x, int y) {
-        WindowsMouse.moveTo(x, y);
+        if (x == mouseX && y == mouseY)
+            return;
+        if (!mouse.smoothJumpEnabled()) {
+            WindowsMouse.moveTo(x, y);
+            return;
+        }
+        if (jumping && x == jumpEndX && y == jumpEndY)
+            return;
+        jumpX = jumpBeginX = mouseX;
+        jumpY = jumpBeginY = mouseY;
+        jumping = true;
+        jumpEndX = x;
+        jumpEndY = y;
+        jumpDuration = 0;
+    }
+
+    public boolean jumping() {
+        return jumping;
+    }
+
+    public int jumpEndX() {
+        return jumpEndX;
+    }
+
+    public int jumpEndY() {
+        return jumpEndY;
     }
 
     @Override
     public void modeChanged(Mode newMode) {
         setMouse(newMode.mouse());
         setWheel(newMode.wheel());
+        if (jumping && !mouse.smoothJumpEnabled()) {
+            jumping = false;
+            jumpDuration = 0;
+            WindowsMouse.moveTo(jumpEndX, jumpEndY);
+        }
     }
 
     @Override
     public void modeTimedOut() {
         // No op.
     }
+
+    @Override
+    public void mouseMoved(int x, int y) {
+        mouseX = x;
+        mouseY = y;
+        if (mouseX == jumpEndX && mouseY == jumpEndY) {
+            jumping = false;
+            jumpDuration = 0;
+        }
+    }
+
 }

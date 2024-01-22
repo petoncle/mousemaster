@@ -38,7 +38,11 @@ public class ConfigurationParser {
     private static Map<String, Property<?>> defaultPropertyByName() {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
-        MouseBuilder mouse = new MouseBuilder().initialVelocity(200).maxVelocity(750).acceleration(1000);
+        MouseBuilder mouse = new MouseBuilder().initialVelocity(200)
+                                               .maxVelocity(750)
+                                               .acceleration(1000)
+                                               .smoothJumpEnabled(false)
+                                               .smoothJumpVelocity(10000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         GridConfigurationBuilder grid =
                 new GridConfigurationBuilder();
@@ -235,6 +239,10 @@ public class ConfigurationParser {
                             case "max-velocity" -> mode.mouse.builder.maxVelocity(
                                     Double.parseDouble(propertyValue));
                             case "acceleration" -> mode.mouse.builder.acceleration(
+                                    Double.parseDouble(propertyValue));
+                            case "smooth-jump-enabled" -> mode.mouse.builder.smoothJumpEnabled(
+                                    Boolean.parseBoolean(propertyValue));
+                            case "smooth-jump-velocity" -> mode.mouse.builder.smoothJumpVelocity(
                                     Double.parseDouble(propertyValue));
                             default -> throw new IllegalArgumentException(
                                     "Invalid mouse property key: " + propertyKey);
@@ -1085,6 +1093,10 @@ public class ConfigurationParser {
                         builder.maxVelocity(parent.maxVelocity());
                     if (builder.acceleration() == null)
                         builder.acceleration(parent.acceleration());
+                    if (builder.smoothJumpEnabled() == null)
+                        builder.smoothJumpEnabled(parent.smoothJumpEnabled());
+                    if (builder.smoothJumpVelocity() == null)
+                        builder.smoothJumpVelocity(parent.smoothJumpVelocity());
                 }
             };
             wheel = new Property<>("wheel", modeName, propertyByKey, new WheelBuilder()) {

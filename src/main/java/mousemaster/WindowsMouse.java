@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.LongStream;
 
 public class WindowsMouse {
@@ -23,8 +24,17 @@ public class WindowsMouse {
                 (long) deltaY * (yForward ? 1 : -1), 0, ExtendedUser32.MOUSEEVENTF_MOVE));
     }
 
+    private final static AtomicInteger latestX = new AtomicInteger();
+    private final static AtomicInteger latestY = new AtomicInteger();
+
     public static void moveTo(int x, int y) {
-       mouseExecutor.execute(() -> setMousePosition(new WinDef.POINT(x, y)));
+        latestX.set(x);
+        latestY.set(y);
+        mouseExecutor.execute(() -> {
+            if (x != latestX.get() || y != latestY.get())
+                return;
+            setMousePosition(new WinDef.POINT(x, y));
+        });
     }
 
     public static void pressLeft() {

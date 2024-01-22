@@ -208,8 +208,13 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     @Override
     public void mouseMoved(int x, int y) {
-        this.mouseX = x;
-        this.mouseY = y;
+        if (mouseController.jumping()) {
+            mouseX = mouseController.jumpEndX();
+            mouseY = mouseController.jumpEndY();
+            return;
+        }
+        mouseX = x;
+        mouseY = y;
         if (currentMode.grid().synchronization() ==
             Synchronization.GRID_CENTER_FOLLOWS_MOUSE) {
             grid = gridCenteredAroundMouse(grid.builder()).build();

@@ -56,8 +56,10 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     @Override
     public void mouseMoved(int x, int y) {
-        this.mouseX = x;
-        this.mouseY = y;
+        if (mouseController.jumping())
+            return;
+        mouseX = x;
+        mouseY = y;
         if (exactMatchHintJustSelected == null)
             return;
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();

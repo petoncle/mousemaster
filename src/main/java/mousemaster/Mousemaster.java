@@ -122,7 +122,7 @@ public class Mousemaster {
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(),
-                List.of(gridManager, hintManager, screenManager));
+                List.of(mouseController, gridManager, hintManager, screenManager));
     }
 
 }
