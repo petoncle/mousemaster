@@ -83,6 +83,7 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
             fixedKeyByAliasName.put(fixedAliasOrKeyName, fixedKey);
             recursivelyExpand(fixedKeyByAliasName, aliasOrKeyNames, sequences,
                     aliasByName);
+            fixedKeyByAliasName.remove(fixedAliasOrKeyName);
         }
     }
 

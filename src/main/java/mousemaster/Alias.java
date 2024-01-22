@@ -10,7 +10,7 @@ import java.util.Set;
  * _{alias} = _{key1*key2} (any combination)
  * _{rightshift alias} = _{rightshift key1*key2}. If alias is not single-key, then it counts as the "any combination of"
  * _{alias1*alias2} allowed only if single-key aliases
- * _{alias1 alias2} allowed only one of them is not a single-key alias
+ * _{alias1 alias2} one or more keys of alias1 must be pressed, and same for alias2
  */
 public record Alias(String name, Set<Key> keys) {
 }

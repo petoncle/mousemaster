@@ -132,59 +132,54 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     private static Set<Set<Key>> parseMustRemainPressedKeySet(String keySetString,
                                                               Map<String, Alias> aliases) {
         // rightctrl up*down -> (rightctrl, up), (rightctrl, down), (rightctrl, up, down)
-        boolean containsAnyCombinationOf = false;
         boolean containsEmptyKeySet = false;
-        boolean containsMultiKeyAlias = false;
-        Set<Key> mustBeInSetKeys = new HashSet<>();
-        Set<Set<Key>> combinationKeySets = new HashSet<>();
+        List<Set<Set<Key>>> combinations = new ArrayList<>();
         String[] split = keySetString.split("\\s+");
         for (String complexKeyString : split) {
             if (complexKeyString.equals("none"))
                 containsEmptyKeySet = true;
             else if (!complexKeyString.contains("*")) {
                 Set<Key> expandedKeys = expandAlias(complexKeyString, aliases);
-                if (expandedKeys.size() > 1) {
-                    if (containsMultiKeyAlias)
-                        throw new IllegalArgumentException(
-                                "There cannot be more than one multi-key alias: " +
-                                complexKeyString);
-                    containsMultiKeyAlias = true;
-                    containsAnyCombinationOf = true;
-                    combinationKeySets = generateCombinations(expandedKeys);
-                }
-                else
-                    mustBeInSetKeys.addAll(expandedKeys); // Only one key.
+                combinations.add(generateCombinations(expandedKeys));
             }
             else {
-                if (containsAnyCombinationOf)
-                    throw new IllegalArgumentException(
-                            "There cannot be more than one any-combination-of: " +
-                            complexKeyString);
-                containsAnyCombinationOf = true;
                 Set<Key> keys = new HashSet<>();
                 for (String keyName : complexKeyString.split("\\*")) {
                     Set<Key> expandedKeys = expandAlias(keyName, aliases);
-                    if (expandedKeys.size() > 1)
-                        throw new IllegalArgumentException(
-                                "Multi-key aliases cannot be used in a any-combination-of: " +
-                                complexKeyString);
-                    keys.addAll(expandedKeys); // Only one key.
+                    keys.addAll(expandedKeys);
                 }
-                combinationKeySets = generateCombinations(keys);
+                combinations.add(generateCombinations(keys));
             }
         }
-        if (containsEmptyKeySet && (!mustBeInSetKeys.isEmpty() || containsAnyCombinationOf))
+        if (containsEmptyKeySet && !combinations.isEmpty())
             // "none rightctrl" is invalid
             // "none up*down" is invalid
             throw new IllegalArgumentException("Invalid key set: " + keySetString);
-        if (!containsAnyCombinationOf) {
-            return Set.of(mustBeInSetKeys);
+        // leftctrl*leftshift up*down
+        // _{alias1 alias2}: one or more keys of alias1 must be pressed, and same for alias2
+        Set<Set<Key>> mustRemainPressedKeySet = new HashSet<>();
+        recursivelyExpandCombinations(new HashMap<>(), combinations,
+                mustRemainPressedKeySet);
+        return mustRemainPressedKeySet;
+    }
+
+    private static void recursivelyExpandCombinations(Map<Integer, Set<Key>> fixedCombinationBySetIndex,
+                                           List<Set<Set<Key>>> combinations,
+                                           Set<Set<Key>> result) {
+        if (fixedCombinationBySetIndex.size() == combinations.size()) {
+            Set<Key> mergedCombination = new HashSet<>();
+            for (Set<Key> fixedCombination : fixedCombinationBySetIndex.values())
+                mergedCombination.addAll(fixedCombination);
+            result.add(mergedCombination);
+            return;
         }
-        else {
-            for (Set<Key> combinationKeySet : combinationKeySets)
-                combinationKeySet.addAll(mustBeInSetKeys);
+        int fixedCombinationSetIndex = fixedCombinationBySetIndex.size();
+        Set<Set<Key>> fixedCombinationSet = combinations.get(fixedCombinationSetIndex);
+        for (Set<Key> fixedCombination : fixedCombinationSet) {
+            fixedCombinationBySetIndex.put(fixedCombinationSetIndex, fixedCombination);
+            recursivelyExpandCombinations(fixedCombinationBySetIndex, combinations, result);
+            fixedCombinationBySetIndex.remove(fixedCombinationSetIndex);
         }
-        return combinationKeySets;
     }
 
     /**
