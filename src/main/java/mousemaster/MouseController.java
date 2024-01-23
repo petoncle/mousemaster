@@ -383,6 +383,17 @@ public class MouseController implements ModeListener, MousePositionListener {
             jumpDuration = 0;
             WindowsMouse.moveTo(jumpEndX, jumpEndY);
         }
+        if (newMode.stopCommandsFromPreviousMode()) {
+            stopMoveDown();
+            stopMoveUp();
+            stopMoveLeft();
+            stopMoveRight();
+            stopWheelDown();
+            stopWheelUp();
+            stopWheelLeft();
+            stopWheelRight();
+            releaseAll();
+        }
     }
 
     @Override

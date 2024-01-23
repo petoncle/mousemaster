@@ -37,6 +37,7 @@ public class ConfigurationParser {
 
     private static Map<String, Property<?>> defaultPropertyByName() {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
+        AtomicReference<Boolean> stopCommandsFromPreviousMode = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
         MouseBuilder mouse = new MouseBuilder().initialVelocity(200)
                                                .maxVelocity(750)
@@ -96,6 +97,7 @@ public class ConfigurationParser {
         HideCursorBuilder hideCursor = new HideCursorBuilder().enabled(false);
         // @formatter:off
         return Stream.of( //
+                new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
                 new Property<>("mode-after-pressing-unhandled-keys-only", modeAfterPressingUnhandledKeysOnly),
                 new Property<>("mouse", mouse),
@@ -208,6 +210,12 @@ public class ConfigurationParser {
             String group2 = keyMatcher.group(2);
             ComboMoveDuration finalDefaultComboMoveDuration = defaultComboMoveDuration;
             switch (group2) {
+                case "stop-commands-from-previous-mode" ->
+                        mode.stopCommandsFromPreviousMode.parseReferenceOr(propertyKey,
+                                propertyValue, builder -> builder.set(
+                                        Boolean.parseBoolean(propertyValue)),
+                                childPropertiesByParentProperty,
+                                nonRootPropertyKeys);
                 case "push-mode-to-history-stack" ->
                         mode.pushModeToHistoryStack.parseReferenceOr(propertyKey,
                                 propertyValue, builder -> builder.set(
@@ -734,6 +742,10 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "Definition of mode " + modeNameReference + " is missing");
         }
+        ModeBuilder idleMode = modeByName.get(Mode.IDLE_MODE_NAME);
+        // Default stop-commands-from-previous-mode for idle mode is true.
+        if (idleMode.stopCommandsFromPreviousMode.builder.get() == null)
+            idleMode.stopCommandsFromPreviousMode.builder.set(true);
         Set<PropertyKey> rootPropertyKeys = propertyByKey.keySet()
                                                          .stream()
                                                          .filter(Predicate.not(
@@ -1054,6 +1066,7 @@ public class ConfigurationParser {
     @SuppressWarnings("unchecked")
     private static final class ModeBuilder {
         final String modeName;
+        Property<AtomicReference<Boolean>> stopCommandsFromPreviousMode;
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
         Property<AtomicReference<String>> modeAfterPressingUnhandledKeysOnly;
         ComboMapConfigurationBuilder comboMap;
@@ -1069,6 +1082,15 @@ public class ConfigurationParser {
                             Map<PropertyKey, Property<?>> propertyByKey) {
             this.modeName = modeName;
             comboMap = new ComboMapConfigurationBuilder(modeName, propertyByKey);
+            stopCommandsFromPreviousMode = new Property<>("stop-commands-from-previous-mode", modeName,
+                    propertyByKey, new AtomicReference<>()) {
+                @Override
+                void extend(Object parent_) {
+                    AtomicReference<Boolean> parent = (AtomicReference<Boolean>) parent_;
+                    if (builder.get() == null)
+                        builder.set(parent.get());
+                }
+            };
             pushModeToHistoryStack = new Property<>("push-mode-to-history-stack", modeName,
                     propertyByKey, new AtomicReference<>()) {
                 @Override
@@ -1235,7 +1257,8 @@ public class ConfigurationParser {
         }
 
         public Mode build() {
-            return new Mode(modeName, pushModeToHistoryStack.builder.get(),
+            return new Mode(modeName, stopCommandsFromPreviousMode.builder.get(),
+                    pushModeToHistoryStack.builder.get(),
                     modeAfterPressingUnhandledKeysOnly.builder.get(), comboMap.build(),
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
