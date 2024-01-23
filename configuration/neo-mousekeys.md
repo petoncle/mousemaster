@@ -25,7 +25,7 @@
 
 - Divide screen into a 2x2 grid, refining target area with each key press.
 - Move mouse to the middle of the targeted grid section.
-- Shrink the grid in one direction with _h_, _j_, _k_, _l_.
+- Shrink the grid in one direction with _w_, _a_, _s_, _d_.
 - Go back to normal mode with _g_ or _esc_.
 
 ## Hint Mode (_f_ in normal mode)
