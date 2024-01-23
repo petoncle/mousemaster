@@ -96,24 +96,30 @@ public class MouseController implements ModeListener, MousePositionListener {
             double jumpTotalDuration =
                     Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY) /
                     jumpVelocity;
-            double t = Math.min(1, jumpDuration / jumpTotalDuration);
+            double percent = Math.min(1, jumpDuration / jumpTotalDuration);
             // Smooth.
-            // t = t * t * (3 - 2 * t);
+            // percent = percent * percent * (3 - 2 * percent);
             // Smoother (Ken Perlin).
-            t = t * t * t * (t * (t * 6 - 15) + 10);
-            int nextJumpX = (int) (jumpBeginX + (jumpEndX - jumpBeginX) * t);
-            int nextJumpY = (int) (jumpBeginY + (jumpEndY - jumpBeginY) * t);
+            percent = percent * percent * percent * (percent * (percent * 6 - 15) + 10);
+            int nextJumpX = (int) (jumpBeginX + (jumpEndX - jumpBeginX) * percent);
+            int nextJumpY = (int) (jumpBeginY + (jumpEndY - jumpBeginY) * percent);
             // Merge the user movement in.
-            int movingDeltaX = xMoveForwardStack.isEmpty() ? 0 :
-                    (int) (deltaDistanceX * (xMoveForwardStack.peek() ? 1 : -1));
-            deltaDistanceX -= (int) deltaDistanceX;
-            nextJumpX += movingDeltaX;
-            jumpEndX += movingDeltaX;
-            int movingDeltaY = yMoveForwardStack.isEmpty() ? 0 :
-                    (int) (deltaDistanceY * (yMoveForwardStack.peek() ? 1 : -1));
-            deltaDistanceY -= (int) deltaDistanceY;
-            nextJumpY += movingDeltaY;
-            jumpEndY += movingDeltaY;
+            if (percent != 1) {
+                if (jumpX == jumpEndX) {
+                    int movingDeltaX = xMoveForwardStack.isEmpty() ? 0 :
+                            (int) (deltaDistanceX * (xMoveForwardStack.peek() ? 1 : -1));
+                    deltaDistanceX -= (int) deltaDistanceX;
+                    nextJumpX += movingDeltaX;
+                    jumpEndX += movingDeltaX;
+                }
+                if (jumpY == jumpEndY) {
+                    int movingDeltaY = yMoveForwardStack.isEmpty() ? 0 :
+                            (int) (deltaDistanceY * (yMoveForwardStack.peek() ? 1 : -1));
+                    deltaDistanceY -= (int) deltaDistanceY;
+                    nextJumpY += movingDeltaY;
+                    jumpEndY += movingDeltaY;
+                }
+            }
             if (nextJumpX != jumpX || nextJumpY != jumpY) {
                 WindowsMouse.moveTo(nextJumpX, nextJumpY);
                 jumpX = nextJumpX;
@@ -354,16 +360,31 @@ public class MouseController implements ModeListener, MousePositionListener {
         }
         if (jumping && x == jumpEndX && y == jumpEndY)
             return;
-        jumpX = jumpBeginX = mouseX;
-        jumpY = jumpBeginY = mouseY;
+        // If already jumping but one direction changes, then reset velocity.
+        if (jumping(true, true) && x < jumpEndX || jumping(true, false) && x > jumpEndX ||
+            jumping(false, true) && y < jumpEndY ||
+            jumping(false, false) && y > jumpEndY) {
+            jumpDuration = 0;
+        }
+        jumpBeginX = mouseX;
+        jumpBeginY = mouseY;
+        jumpX = mouseX;
+        jumpY = mouseY;
         jumping = true;
         jumpEndX = x;
         jumpEndY = y;
-        jumpDuration = 0;
     }
 
     public boolean jumping() {
         return jumping;
+    }
+
+    public boolean jumping(boolean horizontal, boolean forward) {
+        if (!jumping)
+            return false;
+        if (horizontal)
+            return forward ? jumpX < jumpEndX : jumpX > jumpEndX;
+        return forward ? jumpY < jumpEndY : jumpY > jumpEndY;
     }
 
     public int jumpEndX() {

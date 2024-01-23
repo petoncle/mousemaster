@@ -26,6 +26,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void shrinkGridUp() {
+        if (mouseController.jumping(false, false) &&
+            currentMode.grid().synchronization() ==
+            Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
+            return;
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
@@ -39,6 +43,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void shrinkGridDown() {
+        if (mouseController.jumping(false, true) &&
+            currentMode.grid().synchronization() ==
+            Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
+            return;
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
@@ -52,6 +60,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void shrinkGridLeft() {
+        if (mouseController.jumping(true, false) &&
+            currentMode.grid().synchronization() ==
+            Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
+            return;
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ? grid.x() :
@@ -65,6 +77,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void shrinkGridRight() {
+        if (mouseController.jumping(true, true) &&
+            currentMode.grid().synchronization() ==
+            Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
+            return;
         grid = grid.builder()
                    .x(currentMode.grid().synchronization() !=
                       Synchronization.GRID_CENTER_FOLLOWS_MOUSE ?
@@ -82,6 +98,10 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     private void moveGrid(int deltaX, int deltaY) {
+        if (mouseController.jumping(deltaX != 0, deltaX > 0 || deltaY > 0) &&
+            currentMode.grid().synchronization() ==
+            Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
+            return;
         int x = grid.x() + deltaX;
         int y = grid.y() + deltaY;
         int gridCenterX = x + grid.width() / 2;
@@ -142,6 +162,8 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     private void snap(boolean horizontal, boolean forward) {
+        if (mouseController.jumping(horizontal, forward))
+            return;
         boolean mouseIsInsideGrid =
                 Rectangle.rectangleContains(grid.x(), grid.y(), grid.width(),
                         grid.height(), mouseX, mouseY);
