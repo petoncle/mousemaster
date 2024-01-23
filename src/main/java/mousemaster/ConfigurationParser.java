@@ -68,6 +68,7 @@ public class ConfigurationParser {
                 .fontHexColor("#FFFFFF")
                 .selectedPrefixFontHexColor("#8FA6C4")
                 .boxHexColor("#204E8A")
+                .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
@@ -393,6 +394,9 @@ public class ConfigurationParser {
                                 mode.hintMesh.builder.modeAfterSelection(
                                         modeAfterSelection);
                             }
+                            case "swallow-hint-end-key-press" ->
+                                    mode.hintMesh.builder.swallowHintEndKeyPress(
+                                            Boolean.parseBoolean(propertyValue));
                             case "save-position-after-selection" ->
                                     mode.hintMesh.builder.savePositionAfterSelection(
                                             Boolean.parseBoolean(propertyValue));
@@ -1174,6 +1178,8 @@ public class ConfigurationParser {
                         builder.boxHexColor(parent.boxHexColor());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
+                    if (builder.swallowHintEndKeyPress() == null)
+                        builder.swallowHintEndKeyPress(parent.swallowHintEndKeyPress());
                     if (builder.savePositionAfterSelection() == null)
                         builder.savePositionAfterSelection(parent.savePositionAfterSelection());
                 }

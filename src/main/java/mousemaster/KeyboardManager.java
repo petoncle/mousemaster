@@ -43,7 +43,7 @@ public class KeyboardManager {
                     processing = hintManager.keyPressed(keyEvent.key());
                     if (!processing.handled())
                         processing = comboWatcher.keyEvent(keyEvent);
-                    else if (processing.isHintEnd())
+                    else if (processing.isUnswallowedHintEnd())
                         comboWatcher.keyEvent(keyEvent);
                 }
                 else {
@@ -60,7 +60,7 @@ public class KeyboardManager {
             PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
             if (processing != null) {
                 if (processing.handled()) {
-                    if (processing.isPartOfCombo() || processing.isHintEnd())
+                    if (processing.isPartOfCombo() || processing.isUnswallowedHintEnd())
                         comboWatcher.keyEvent(keyEvent); // Returns null.
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.
                     return processing.mustBeEaten();
@@ -83,7 +83,7 @@ public class KeyboardManager {
             if (pressKeyEventProcessing.isPartOfComboSequence() ||
                 pressKeyEventProcessing.isPartOfHintPrefix() ||
                 pressKeyEventProcessing.isHintUndo() ||
-                pressKeyEventProcessing.isHintEnd())
+                pressKeyEventProcessing.isUnswallowedHintEnd())
                 return false;
         }
         // Pressed keys are either unhandled or part of combo precondition.

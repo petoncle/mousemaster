@@ -24,7 +24,15 @@ public class WindowsMouse {
                 (long) deltaY * (yForward ? 1 : -1), 0, ExtendedUser32.MOUSEEVENTF_MOVE));
     }
 
+    /**
+     * Moves now, in the current thread.
+     */
+    public static void synchronousMoveTo(int x, int y) {
+        setMousePosition(new WinDef.POINT(x, y));
+    }
+
     private final static AtomicInteger latestX = new AtomicInteger();
+
     private final static AtomicInteger latestY = new AtomicInteger();
 
     public static void moveTo(int x, int y) {

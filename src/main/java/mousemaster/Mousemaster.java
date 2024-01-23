@@ -118,7 +118,6 @@ public class Mousemaster {
         hintManager.setModeController(modeController);
         gridManager.setListeners(List.of(modeController));
         hintManager.setPositionHistoryListener(List.of(modeController));
-        hintManager.setListeners(List.of(comboWatcher));
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(),

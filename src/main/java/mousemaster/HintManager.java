@@ -14,14 +14,12 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private static final Logger logger = LoggerFactory.getLogger(HintManager.class);
 
-    private List<HintListener> listeners;
     private final ScreenManager screenManager;
     private final MouseController mouseController;
     private ModeController modeController;
     private List<PositionHistoryListener> positionHistoryListeners;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
-    private Hint exactMatchHintJustSelected;
     private int mouseX, mouseY;
     private Mode currentMode;
     private final List<Point> positionHistory = new ArrayList<>();
@@ -49,38 +47,12 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.modeController = modeController;
     }
 
-    public HintManager setListeners(List<HintListener> listeners) {
-        this.listeners = listeners;
-        return this;
-    }
-
     @Override
     public void mouseMoved(int x, int y) {
         if (mouseController.jumping())
             return;
         mouseX = x;
         mouseY = y;
-        if (exactMatchHintJustSelected == null)
-            return;
-        HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
-        if (hintMeshConfiguration.savePositionAfterSelection())
-            savePosition();
-        if (hintMeshConfiguration.modeAfterSelection() != null) {
-            logger.debug("Hint " + exactMatchHintJustSelected.keySequence()
-                                                             .stream()
-                                                             .map(Key::name)
-                                                             .toList() +
-                         " selected, switching to " +
-                         hintMeshConfiguration.modeAfterSelection());
-            listeners.forEach(HintListener::hintSelected);
-            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
-        }
-        else {
-            hintMesh =
-                    hintMesh.builder().focusedKeySequence(List.of()).build();
-            WindowsOverlay.setHintMesh(hintMesh);
-        }
-        exactMatchHintJustSelected = null;
     }
 
     @Override
@@ -339,9 +311,28 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            mouseController.moveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
-            exactMatchHintJustSelected = exactMatchHint;
-            return PressKeyEventProcessing.hintEnd();
+            // Move synchronously. After this moveTo call, we know the move was executed
+            // and a click can be performed at the new position.
+            mouseController.synchronousMoveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
+            if (hintMeshConfiguration.savePositionAfterSelection())
+                savePosition();
+            if (hintMeshConfiguration.modeAfterSelection() != null) {
+                logger.debug("Hint " + exactMatchHint.keySequence()
+                                                                 .stream()
+                                                                 .map(Key::name)
+                                                                 .toList() +
+                             " selected, switching to " +
+                             hintMeshConfiguration.modeAfterSelection());
+                modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
+            }
+            else {
+                hintMesh =
+                        hintMesh.builder().focusedKeySequence(List.of()).build();
+                WindowsOverlay.setHintMesh(hintMesh);
+            }
+            return hintMeshConfiguration.swallowHintEndKeyPress() ?
+                    PressKeyEventProcessing.swallowedHintEnd() :
+                    PressKeyEventProcessing.unswallowedHintEnd();
         }
         else {
             hintMesh =

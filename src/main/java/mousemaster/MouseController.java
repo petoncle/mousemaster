@@ -341,6 +341,10 @@ public class MouseController implements ModeListener, MousePositionListener {
         WindowsMouse.hideCursor();
     }
 
+    public void synchronousMoveTo(int x, int y) {
+        WindowsMouse.synchronousMoveTo(x, y);
+    }
+
     public void moveTo(int x, int y) {
         if (x == mouseX && y == mouseY)
             return;
