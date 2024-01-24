@@ -126,7 +126,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle =
-                        WindowsOverlay.activeWindowRectangle(1, 1);
+                        WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                 Point gridCenter = activeWindowRectangle.center();
                 int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
                 Screen activeScreen = screenManager.activeScreen();

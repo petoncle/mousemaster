@@ -56,7 +56,11 @@ public class ConfigurationParser {
         GridArea.GridAreaBuilder gridAreaBuilder = grid.area();
         gridAreaBuilder.type(GridAreaType.ACTIVE_SCREEN)
                        .widthPercent(1)
-                       .heightPercent(1);
+                       .heightPercent(1)
+                       .topInset(0)
+                       .bottomInset(0)
+                       .leftInset(0)
+                       .rightInset(0);
         HintMeshConfigurationBuilder hintMesh =
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
@@ -305,6 +309,34 @@ public class ConfigurationParser {
                                                                                            propertyKey,
                                                                                            propertyValue,
                                                                                            2));
+                            case "area-top-inset" -> mode.grid.builder.area()
+                                                                      .topInset(
+                                                                              parseUnsignedInteger(
+                                                                                      propertyKey,
+                                                                                      propertyValue,
+                                                                                      0,
+                                                                                      10_000));
+                            case "area-bottom-inset" -> mode.grid.builder.area()
+                                                                      .bottomInset(
+                                                                              parseUnsignedInteger(
+                                                                                      propertyKey,
+                                                                                      propertyValue,
+                                                                                      0,
+                                                                                      10_000));
+                            case "area-left-inset" -> mode.grid.builder.area()
+                                                                      .leftInset(
+                                                                              parseUnsignedInteger(
+                                                                                      propertyKey,
+                                                                                      propertyValue,
+                                                                                      0,
+                                                                                      10_000));
+                            case "area-right-inset" -> mode.grid.builder.area()
+                                                                      .rightInset(
+                                                                              parseUnsignedInteger(
+                                                                                      propertyKey,
+                                                                                      propertyValue,
+                                                                                      0,
+                                                                                      10_000));
                             case "synchronization" -> mode.grid.builder.synchronization(
                                     parseSynchronization(propertyKey, propertyValue));
                             case "row-count" -> mode.grid.builder.rowCount(
@@ -1148,6 +1180,14 @@ public class ConfigurationParser {
                         builder.area().widthPercent(parent.area().widthPercent());
                     if (builder.area().heightPercent() == null)
                         builder.area().heightPercent(parent.area().heightPercent());
+                    if (builder.area().topInset() == null)
+                        builder.area().topInset(parent.area().topInset());
+                    if (builder.area().bottomInset() == null)
+                        builder.area().bottomInset(parent.area().bottomInset());
+                    if (builder.area().leftInset() == null)
+                        builder.area().leftInset(parent.area().leftInset());
+                    if (builder.area().rightInset() == null)
+                        builder.area().rightInset(parent.area().rightInset());
                     if (builder.synchronization() == null)
                         builder.synchronization(parent.synchronization());
                     if (builder.rowCount() == null)

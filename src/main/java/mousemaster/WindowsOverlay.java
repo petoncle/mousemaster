@@ -24,17 +24,27 @@ public class WindowsOverlay {
     private static HintMesh currentHintMesh;
 
     public static Rectangle activeWindowRectangle(double windowWidthPercent,
-                                                  double windowHeightPercent) {
+                                                  double windowHeightPercent,
+                                                  int scaledTopInset,
+                                                  int scaledBottomInset,
+                                                  int scaledLeftInset,
+                                                  int scaledRightInset) {
         WinDef.HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
         // https://stackoverflow.com/a/65605845
         WinDef.RECT excludeShadow = windowRectExcludingShadow(foregroundWindow);
         int windowWidth = excludeShadow.right - excludeShadow.left;
         int windowHeight = excludeShadow.bottom - excludeShadow.top;
-        int gridWidth = (int) (windowWidth * windowWidthPercent);
-        int gridHeight = (int) (windowHeight * windowHeightPercent);
-        return new Rectangle(excludeShadow.left + (windowWidth - gridWidth) / 2,
-                excludeShadow.top + (windowHeight - gridHeight) / 2, gridWidth,
-                gridHeight);
+        int noInsetGridWidth = Math.max(1, (int) (windowWidth * windowWidthPercent));
+        int gridWidth =
+                Math.max(1, noInsetGridWidth - scaledLeftInset - scaledRightInset);
+        int noInsetGridHeight = Math.max(1, (int) (windowHeight * windowHeightPercent));
+        int gridHeight =
+                Math.max(1, noInsetGridHeight - scaledTopInset - scaledBottomInset);
+        return new Rectangle(Math.min(excludeShadow.right,
+                excludeShadow.left + scaledLeftInset +
+                (windowWidth - noInsetGridWidth) / 2), Math.min(excludeShadow.bottom,
+                excludeShadow.top + scaledTopInset +
+                (windowHeight - noInsetGridHeight) / 2), gridWidth, gridHeight);
     }
 
     private static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {

@@ -272,24 +272,40 @@ public class GridManager implements MousePositionListener, ModeListener {
                 return;
             }
         }
+        Screen screen = screenManager.activeScreen();
+        int scaledTopInset = (int) (gridConfiguration.area().topInset() * screen.scale());
+        int scaledBottomInset =
+                (int) (gridConfiguration.area().bottomInset() * screen.scale());
+        int scaledLeftInset =
+                (int) (gridConfiguration.area().leftInset() * screen.scale());
+        int scaledRightInset =
+                (int) (gridConfiguration.area().rightInset() * screen.scale());
         switch (gridConfiguration.area()) {
             case GridArea.ActiveScreenGridArea activeScreenGridArea -> {
-                Screen screen = screenManager.activeScreen();
-                int gridWidth = (int) (screen.rectangle().width() *
-                                       activeScreenGridArea.widthPercent());
-                int gridHeight = (int) (screen.rectangle().height() *
-                                        activeScreenGridArea.heightPercent());
-                gridBuilder.x(screen.rectangle().x() +
-                              (screen.rectangle().width() - gridWidth) / 2)
-                           .y(screen.rectangle().y() +
-                              (screen.rectangle().height() - gridHeight) / 2)
+                int noInsetGridWidth = Math.max(1, (int) (screen.rectangle().width() *
+                                                          activeScreenGridArea.widthPercent()));
+                int gridWidth = Math.max(1,
+                        noInsetGridWidth - scaledLeftInset - scaledRightInset);
+                int noInsetGridHeight = Math.max(1, (int) (screen.rectangle().height() *
+                                                           activeScreenGridArea.heightPercent()));
+                int gridHeight = Math.max(1,
+                        noInsetGridHeight - scaledTopInset - scaledBottomInset);
+                gridBuilder.x(
+                                   Math.min(screen.rectangle().x() + screen.rectangle().width(),
+                                           screen.rectangle().x() + scaledLeftInset +
+                                           (screen.rectangle().width() - noInsetGridWidth) / 2))
+                           .y(Math.min(
+                                   screen.rectangle().y() + screen.rectangle().height(),
+                                   screen.rectangle().y() + scaledTopInset +
+                                   (screen.rectangle().height() - noInsetGridHeight) / 2))
                            .width(gridWidth)
                            .height(gridHeight);
             }
             case GridArea.ActiveWindowGridArea activeWindowGridArea -> {
                 Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
                         activeWindowGridArea.widthPercent(),
-                        activeWindowGridArea.heightPercent());
+                        activeWindowGridArea.heightPercent(), scaledTopInset,
+                        scaledBottomInset, scaledLeftInset, scaledRightInset);
                 gridBuilder.x(activeWindowRectangle.x())
                            .y(activeWindowRectangle.y())
                            .width(activeWindowRectangle.width())
