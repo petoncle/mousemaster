@@ -252,11 +252,6 @@ public class WindowsOverlay {
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                     break;
                 }
-                // Stand-by grid can be hidden right after the new grid is visible (drawn at least once).
-                if (standByGridWindow != null && !standByGridCanBeHidden) {
-                    standByGridCanBeHidden = true;
-                    requestWindowRepaint(standByGridWindow.hwnd); // Drawings will be cleared.
-                }
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 WinDef.HDC memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
                 // We may want to use the window's full dimension (GetClientRect) instead of rcPaint?
@@ -274,6 +269,11 @@ public class WindowsOverlay {
                 GDI32.INSTANCE.DeleteObject(hBitmap);
                 GDI32.INSTANCE.DeleteDC(memDC);
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
+                // Stand-by grid can be hidden right after the new grid is visible (drawn at least once).
+                if (standByGridWindow != null && !standByGridCanBeHidden) {
+                    standByGridCanBeHidden = true;
+                    requestWindowRepaint(standByGridWindow.hwnd); // Drawings will be cleared.
+                }
                 break;
         }
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
