@@ -14,9 +14,9 @@ public class WindowsOverlay {
     private static IndicatorWindow indicatorWindow;
     private static boolean showingIndicator;
     private static Indicator currentIndicator;
-    private static GridWindow gridWindow;
+    private static GridWindow gridWindow, standByGridWindow;
+    private static boolean standByGridCanBeHidden;
     private static boolean showingGrid;
-    private static boolean clearGridWindowThenResize;
     private static Grid currentGrid;
     private static final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
@@ -151,7 +151,9 @@ public class WindowsOverlay {
 
     private static void createGridWindow(int x, int y, int width, int height) {
         WinUser.WindowProc callback = WindowsOverlay::gridWindowCallback;
-        WinDef.HWND hwnd = createWindow("Grid", x, y, width, height, callback);
+        WinDef.HWND hwnd =
+                createWindow("Grid" + (gridWindow == null ? 1 : 2), x, y, width, height,
+                        callback);
         gridWindow = new GridWindow(hwnd, callback);
     }
 
@@ -240,20 +242,20 @@ public class WindowsOverlay {
                                                      WinDef.LPARAM lParam) {
         switch (uMsg) {
             case WinUser.WM_PAINT:
+                boolean isStandByGridWindow = standByGridWindow != null &&
+                                              hwnd.equals(standByGridWindow.hwnd());
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-                if (!showingGrid || clearGridWindowThenResize) {
+                if (!showingGrid || (isStandByGridWindow && standByGridCanBeHidden)) {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
                     clearWindow(hdc, ps.rcPaint);
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
-                    if (clearGridWindowThenResize) {
-                        User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null,
-                                currentGrid.x(), currentGrid.y(), currentGrid.width() + 1,
-                                currentGrid.height() + 1, User32.SWP_NOZORDER);
-                        clearGridWindowThenResize = false;
-                        requestWindowRepaint(hwnd);
-                    }
                     break;
+                }
+                // Stand-by grid can be hidden right after the new grid is visible (drawn at least once).
+                if (standByGridWindow != null && !standByGridCanBeHidden) {
+                    standByGridCanBeHidden = true;
+                    requestWindowRepaint(standByGridWindow.hwnd); // Drawings will be cleared.
                 }
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 WinDef.HDC memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
@@ -523,16 +525,20 @@ public class WindowsOverlay {
                 // 1. Resize. 2. Draw old grid in resized window. 3. Draw new grid. Instead, we want to:
                 // 1. Clear old grid. 2. Resize. 3. Draw new grid.
                 // However, clearing then resizing introduces a "blank" frame,
-                // we want to avoid that when shrinking/moving a grid (the old and new grid share an edge in that case).
-                if (!new Rectangle(grid.x(), grid.y(), grid.width(),
-                        grid.height()).sharesEdgeWith(
-                        new Rectangle(oldGrid.x(), oldGrid.y(), oldGrid.width(),
-                                oldGrid.height())))
-                    clearGridWindowThenResize = true;
+                // that is why we use 2 grid windows.
+                if (standByGridWindow == null) {
+                    standByGridWindow = gridWindow;
+                    createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width() + 1,
+                            currentGrid.height() + 1);
+                    standByGridCanBeHidden = false;
+                }
                 else {
-                    User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(),
-                            grid.y(), grid.width() + 1, grid.height() + 1,
-                            User32.SWP_NOZORDER);
+                    GridWindow newStandByGridWindow = gridWindow;
+                    gridWindow = standByGridWindow;
+                    standByGridWindow = newStandByGridWindow;
+                    User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(), grid.y(),
+                            grid.width() + 1, grid.height() + 1, User32.SWP_NOZORDER);
+                    standByGridCanBeHidden = false;
                 }
             }
         }
