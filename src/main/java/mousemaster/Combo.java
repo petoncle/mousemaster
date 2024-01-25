@@ -113,7 +113,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         Alias alias = aliases.get(keyString);
         if (alias == null)
             return Set.of(Key.ofName(keyString));
-        return alias.keys();
+        return Set.copyOf(alias.keys());
     }
 
     private static Set<Set<Key>> parseMustRemainPressedKeySets(String keySetsString,

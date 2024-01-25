@@ -185,9 +185,10 @@ public class ConfigurationParser {
             else if (propertyKey.startsWith("key-alias.")) {
                 // For now, key-alias must be defined at the beginning of the file, before they are used.
                 String aliasName = propertyKey.substring("key-alias.".length());
-                Set<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
+                // List and not Set because hint.selection-keys=hintkeys needs ordering.
+                List<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
                                        .map(Key::ofName)
-                                       .collect(Collectors.toSet());
+                                       .toList();
                 aliases.put(aliasName, new Alias(aliasName, keys));
             }
             Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");

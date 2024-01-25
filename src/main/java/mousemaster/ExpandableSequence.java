@@ -77,8 +77,8 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
         }
         String fixedAliasOrKeyName = aliasOrKeyNames.get(fixedKeyByAliasName.size());
         Alias alias = aliasByName.get(fixedAliasOrKeyName);
-        Set<Key> aliasKeys =
-                alias == null ? Set.of(Key.ofName(fixedAliasOrKeyName)) : alias.keys();
+        List<Key> aliasKeys =
+                alias == null ? List.of(Key.ofName(fixedAliasOrKeyName)) : alias.keys();
         for (Key fixedKey : aliasKeys) {
             fixedKeyByAliasName.put(fixedAliasOrKeyName, fixedKey);
             recursivelyExpand(fixedKeyByAliasName, aliasOrKeyNames, sequences,
