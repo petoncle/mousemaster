@@ -16,8 +16,8 @@
 - Warp to screen edges with _leftalt + h_, _leftalt + j_, _leftalt + k_, _leftalt + l_.
 - Warp to screen center with _leftshift + m_.
 - Scroll vertically or horizontally (wheel) with _y_, _u_, _i_, _o_.
-- Jump forward (teleport) by holding _f_ while moving the mouse.
-- Slow down mouse movement by holding _space_ while moving the mouse (sniper mode).
+- Slow down mouse movement by holding _space_ while moving the mouse (slow mode, called sniper mode in original mouseable).
+- Accelerated mouse movement by holding _space_ while moving the mouse.
 - Exit with _;_ or _esc_.
 
 ## Hint Mode (_leftalt, leftalt_)
