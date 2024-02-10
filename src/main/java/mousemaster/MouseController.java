@@ -354,15 +354,18 @@ public class MouseController implements ModeListener, MousePositionListener {
     public void moveTo(int x, int y) {
         if (x == mouseX && y == mouseY)
             return;
+        if (jumping && x == jumpEndX && y == jumpEndY)
+            return;
         // Move a single pixel. Skype's titlebar does not like being dragged too quick too far.
-        WindowsMouse.synchronousMoveTo(mouseX + (int) Math.signum(x - mouseX),
-                mouseY + (int) Math.signum(y - mouseY));
+        mouseX = mouseX + (int) Math.signum(x - mouseX);
+        mouseY = mouseY + (int) Math.signum(y - mouseY);
+        WindowsMouse.synchronousMoveTo(mouseX, mouseY);
+        if (x == mouseX && y == mouseY)
+            return;
         if (!mouse.smoothJumpEnabled()) {
             WindowsMouse.moveTo(x, y);
             return;
         }
-        if (jumping && x == jumpEndX && y == jumpEndY)
-            return;
         // If already jumping but one direction changes, then reset velocity.
         if (jumping(true, true) && x < jumpEndX || jumping(true, false) && x > jumpEndX ||
             jumping(false, true) && y < jumpEndY ||
