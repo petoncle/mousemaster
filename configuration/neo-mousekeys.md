@@ -6,7 +6,7 @@
 - Press _w_, _a_, _s_, _d_ to move the mouse.
 - Press _q_ or _p_ to deactivate.
 
-<img src="https://raw.githubusercontent.com/vieuxtemps/neo-mousekeys/master/layout.png">
+![neo-mousekeys layout](https://github.com/petoncle/mousemaster/assets/39304282/c1648953-8acb-49e3-abb5-8106b7502105)
 
 ## Normal Mode (_leftctrl + e_)
 
@@ -35,3 +35,8 @@
 - Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _leftshift_ while selecting a hint.
 - A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys.properties](configuration/neo-mousekeys.properties).
 - Go back to normal mode with _esc_ or _backspace_.
+
+## Screen Selection Mode (_c_ in normal mode)
+
+- Display one large hint label on each screen for quickly moving from one screen to another.
+- Go back to normal mode with _c_, _esc_ or _backspace.
