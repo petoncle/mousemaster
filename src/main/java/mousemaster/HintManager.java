@@ -115,7 +115,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                         hintGrid.cellHeight()));
             }
             else if (hintGrid.area() instanceof AllScreensHintGridArea allScreensHintGridArea) {
-                for (Screen screen : screenManager.screens()) {
+                List<Screen> sortedScreens = //
+                        screenManager.screens()
+                                     .stream()
+                                     .sorted(Comparator.comparing(
+                                                               (Screen s) -> s.rectangle().x())
+                                                       .thenComparing(
+                                                               s -> s.rectangle().y()))
+                                     .toList();
+                for (Screen screen : sortedScreens) {
                     Point gridCenter = screen.rectangle().center();
                     fixedSizeHintGrids.add(
                             screenFixedSizeHintGrid(allScreensHintGridArea, screen,
