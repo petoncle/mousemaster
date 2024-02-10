@@ -4,7 +4,7 @@
 
 - Press _leftctrl + e_ to activate.
 - Press _w_, _a_, _s_, _d_ to move the mouse.
-- Press _p_ or _capslock_ to deactivate. Pressing _capslock_ will not toggle it when deactivating.
+- Press _q_ or _p_ to deactivate.
 
 <img src="https://raw.githubusercontent.com/vieuxtemps/neo-mousekeys/master/layout.png">
 
