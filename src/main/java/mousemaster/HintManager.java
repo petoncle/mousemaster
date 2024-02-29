@@ -20,6 +20,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     private List<PositionHistoryListener> positionHistoryListeners;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
+    private final Map<HintMeshTypeAndSelectionKeys, HintMesh>
+            previousHintMeshByTypeAndSelectionKeys = new HashMap<>();
     private int mouseX, mouseY;
     private Mode currentMode;
     private final List<Point> positionHistory = new ArrayList<>();
@@ -60,6 +62,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
+            previousHintMeshByTypeAndSelectionKeys.clear();
             WindowsOverlay.hideHintMesh();
             return;
         }
@@ -74,33 +77,21 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .collect(Collectors.toSet());
         currentMode = newMode;
         hintMesh = newHintMesh;
+        previousHintMeshByTypeAndSelectionKeys.put(
+                hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
         WindowsOverlay.setHintMesh(hintMesh);
     }
 
     private HintMesh buildHintMesh(HintMeshConfiguration hintMeshConfiguration) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
-        hintMesh.type(hintMeshConfiguration.type())
+        hintMesh.type(hintMeshConfiguration.typeAndSelectionKeys().type())
                 .fontName(hintMeshConfiguration.fontName())
                 .fontSize(hintMeshConfiguration.fontSize())
                 .fontHexColor(hintMeshConfiguration.fontHexColor())
                 .selectedPrefixFontHexColor(
                         hintMeshConfiguration.selectedPrefixFontHexColor())
                 .boxHexColor(hintMeshConfiguration.boxHexColor());
-        HintMeshType type = hintMeshConfiguration.type();
-        if (currentMode != null) {
-            HintMeshConfiguration oldHintMeshConfiguration = currentMode.hintMesh();
-            if (oldHintMeshConfiguration.enabled() &&
-                oldHintMeshConfiguration.type().equals(hintMeshConfiguration.type()) &&
-                oldHintMeshConfiguration.selectionKeys()
-                                        .equals(hintMeshConfiguration.selectionKeys())) {
-                // Keep the old focusedKeySequence.
-                // This is useful for hint-then-click-mode that extends hint-mode.
-                // Note: changes to hint mesh center are ignored here.
-                hintMesh.hints(this.hintMesh.hints())
-                        .focusedKeySequence(this.hintMesh.focusedKeySequence());
-                return hintMesh.build();
-            }
-        }
+        HintMeshType type = hintMeshConfiguration.typeAndSelectionKeys().type();
         if (type instanceof HintMeshType.HintGrid hintGrid) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
             if (hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea) {
@@ -158,7 +149,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             else
                 throw new IllegalStateException();
             List<Key> selectionKeySubset =
-                    gridSelectionKeySubset(hintMeshConfiguration.selectionKeys(),
+                    gridSelectionKeySubset(hintMeshConfiguration.typeAndSelectionKeys().selectionKeys(),
                             fixedSizeHintGrids.getFirst().rowCount *
                             fixedSizeHintGrids.size(),
                             fixedSizeHintGrids.getFirst().columnCount *
@@ -181,9 +172,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             int hintCount = positionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
             List<Key> selectionKeySubset = maxPositionHistorySize >=
-                                           hintMeshConfiguration.selectionKeys().size() ?
-                    hintMeshConfiguration.selectionKeys() :
-                    hintMeshConfiguration.selectionKeys()
+                                           hintMeshConfiguration.typeAndSelectionKeys()
+                                                                .selectionKeys()
+                                                                .size() ?
+                    hintMeshConfiguration.typeAndSelectionKeys().selectionKeys() :
+                    hintMeshConfiguration.typeAndSelectionKeys()
+                                         .selectionKeys()
                                          .subList(0, maxPositionHistorySize);
             int hintLength = (int) Math.ceil(Math.log(maxPositionHistorySize) /
                                              Math.log(selectionKeySubset.size()));
@@ -193,6 +187,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                 hints.add(new Hint(point.x(), point.y(), keySequence));
             }
             hintMesh.hints(hints);
+        }
+        HintMesh previousHintMesh = previousHintMeshByTypeAndSelectionKeys.get(
+                hintMeshConfiguration.typeAndSelectionKeys());
+        if (previousHintMesh != null &&
+            previousHintMesh.hints().equals(hintMesh.hints())) {
+            // Keep the old focusedKeySequence.
+            // This is useful for hint-then-click-mode that extends hint-mode.
+            hintMesh.focusedKeySequence(previousHintMesh.focusedKeySequence());
         }
         return hintMesh.build();
     }
@@ -294,6 +296,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    .focusedKeySequence(focusedKeySequence.subList(0,
                                            focusedKeySequence.size() - 1))
                                    .build();
+                previousHintMeshByTypeAndSelectionKeys.put(
+                        hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
                 WindowsOverlay.setHintMesh(hintMesh);
                 return PressKeyEventProcessing.hintUndo();
             }
@@ -336,6 +340,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             else {
                 hintMesh =
                         hintMesh.builder().focusedKeySequence(List.of()).build();
+                previousHintMeshByTypeAndSelectionKeys.put(
+                        hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
                 WindowsOverlay.setHintMesh(hintMesh);
             }
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
@@ -345,6 +351,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         else {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
+            previousHintMeshByTypeAndSelectionKeys.put(
+                    hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
             WindowsOverlay.setHintMesh(hintMesh);
             return PressKeyEventProcessing.partOfHintPrefix();
         }

@@ -4,8 +4,8 @@ import mousemaster.HintMeshType.HintMeshTypeBuilder;
 
 import java.util.List;
 
-public record HintMeshConfiguration(boolean enabled, HintMeshType type,
-                                    List<Key> selectionKeys, Key undoKey, String fontName,
+public record HintMeshConfiguration(boolean enabled,
+                                    HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
                                     String selectedPrefixFontHexColor, String boxHexColor,
                                     String modeAfterSelection,
@@ -134,7 +134,8 @@ public record HintMeshConfiguration(boolean enabled, HintMeshType type,
         }
 
         public HintMeshConfiguration build() {
-            return new HintMeshConfiguration(enabled, type.build(), selectionKeys,
+            return new HintMeshConfiguration(enabled,
+                    new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
                     undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
                     boxHexColor, modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
