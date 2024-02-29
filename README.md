@@ -18,8 +18,11 @@
 ## Hints Demo
 https://github.com/petoncle/mousemaster/assets/39304282/841216ac-08a9-408a-8cd7-6558941afd3c
 
-## Grid Demo
+## Grid Demo (1/2)
 https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
+
+## Grid Demo (2/2)
+https://github.com/petoncle/mousemaster/assets/39304282/105c6a2d-2849-4d23-b706-1fc9410ae680
 
 ## Mouse Movements Demo (1/2)
 https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
@@ -46,56 +49,53 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 
 # Features
 
-1. **Command-line only:** mousemaster operates solely through the command line, with
-   configuration loaded from a file (mousemaster.properties).
-
-2. **Dynamic configuration:** The configuration file is live, automatically reloading upon
+1. **Dynamic configuration:** The configuration file is live, automatically reloading upon
    any saved changes.
 
-3. **Adaptive mouse indicator:** The optional and customizable mouse indicator (a
+2. **Adaptive mouse indicator:** The optional and customizable mouse indicator (a
    plain-color square drawn next to the mouse cursor) changes colors based on mouse
    activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
    visible when the mouse is near screen edges.
 
-4. **Multi-screen navigation:** mousemaster allows for seamless mouse
+3. **Multi-screen navigation:** mousemaster allows for mouse
    movement across multiple screens.
 
-5. **Advanced key combinations (key combos):** mousemaster offers an advanced level
-   of customization for key combinations. It allows for intricate key combos like "hold
+4. **Advanced key combinations (key combos):** mousemaster offers an advanced level
+   of customization for key combinations. It allows for advanced key combos like "hold
    alt for 1 second" or "press then release alt, twice in a row".
 
-6. **Left/right key distinction:** mousemaster distinguishes between left and right
+5. **Left/right key distinction:** mousemaster distinguishes between left and right
    alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
    different commands.
 
-7. **No key is special:** All keys are treated the same way, meaning that for example, you
+6. **No key is special:** All keys are treated the same way, meaning that for example, you
    can implement a "hold capslock then press enter" combo
    just like you would implement a "hold alt then press X" combo.
 
-8. **Does not conflict with other applications:** mousemaster tries not to clash with
-   other apps using shortcuts. Key events that are not part of any combos are seamlessly
+7. **Does not conflict with other applications:** mousemaster tries not to clash with
+   other apps using shortcuts. Key events that are not part of any combos are 
    passed onto other apps.
 
-9. **Many-to-many key combo -> command mapping:** The same key combo can be used to
+8. **Many-to-many key combo -> command mapping:** The same key combo can be used to
    trigger multiple commands. Multiple key combos can be used to trigger the same command.
 
-10. **Custom modes:** Users have to define their own modes, with each mode
-    having its own key combo-to-command map and mouse settings. There is only one
-    predefined mode, the "idle-mode", which has no key combos predefined (this is the
-    "mousemaster is disabled mode").
+9. **Custom modes:** Users have to define their own modes, with each mode
+   having its own key combo-to-command map and mouse settings. There is only one
+   predefined mode, the "idle-mode", which has no key combos predefined (this is the
+   "mousemaster is disabled mode").
 
-11. **Mode timeout:** A timeout can be set on a mode to switch to another mode after some
+10. **Mode timeout:** A timeout can be set on a mode to switch to another mode after some
     idle time. This can be used for automatically disabling mousemaster after a while.
 
-12. **Grids:** mousemaster incorporates a grid-based navigation system. A grid can cover the
+11. **Grids:** mousemaster incorporates a grid-based navigation system. A grid can cover the
     active screen or the active window.
 
-13. **Hints:** mousemaster incorporates a hint-based navigation system similar
+12. **Hints:** mousemaster incorporates a hint-based navigation system similar
     to Vimium's. A hint grid can cover the active screen, the active window, or all
     screens (that last one can be used for screen selection hints). A mouse button click
     can be automatically triggered after a hint is selected.
 
-14. **Position history hints:** mousemaster incorporates position history hints. The
+13. **Position history hints:** mousemaster incorporates position history hints. The
     position history hints are not limited to a single screen (unlike warpd).
 
 # Notes
