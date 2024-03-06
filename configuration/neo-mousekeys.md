@@ -28,6 +28,12 @@
 - Shrink the grid in one direction with _w_, _a_, _s_, _d_.
 - Go back to normal mode with _g_ or _esc_.
 
+## Window Mode (hold _leftshift_ then press _g_ in normal mode)
+
+- Move mouse to the active window's edges with direction keys.
+- Move mouse to the center of the active window with _g_.
+- Go back to normal mode by releasing _leftshift_.
+
 ## Hint Mode (_f_ in normal mode)
 
 - Display labels on the screen for direct mouse warping.
