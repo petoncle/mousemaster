@@ -26,7 +26,7 @@
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a second hint pass with a smaller hint grid centered around the mouse with _leftalt + leftshift + x_ (or _leftshift + x_ in normal mode).
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [warpd.properties](configuration/warpd.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [warpd.properties](warpd.properties).
 - Exit with _esc_.
 
 ## History Mode (_;_ in normal mode)
