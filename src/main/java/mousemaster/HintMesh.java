@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
-public record HintMesh(HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
+public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
                        String fontName, int fontSize, String fontHexColor,
                        String selectedPrefixFontHexColor, String boxHexColor) {
 
@@ -14,6 +14,7 @@ public record HintMesh(HintMeshType type, List<Hint> hints, List<Key> focusedKey
     }
 
     public static class HintMeshBuilder {
+        private boolean visible;
         private HintMeshType type;
         private List<Hint> hints;
         private List<Key> focusedKeySequence = List.of();
@@ -27,6 +28,7 @@ public record HintMesh(HintMeshType type, List<Hint> hints, List<Key> focusedKey
         }
 
         public HintMeshBuilder(HintMesh hintMesh) {
+            this.visible = hintMesh.visible;
             this.type = hintMesh.type;
             this.hints = hintMesh.hints;
             this.focusedKeySequence = hintMesh.focusedKeySequence;
@@ -39,6 +41,10 @@ public record HintMesh(HintMeshType type, List<Hint> hints, List<Key> focusedKey
 
         public HintMeshType type() {
             return type;
+        }
+
+        public boolean visible() {
+            return visible;
         }
 
         public List<Hint> hints() {
@@ -71,6 +77,11 @@ public record HintMesh(HintMeshType type, List<Hint> hints, List<Key> focusedKey
 
         public HintMeshBuilder type(HintMeshType type) {
             this.type = type;
+            return this;
+        }
+
+        public HintMeshBuilder visible(boolean visible) {
+            this.visible = visible;
             return this;
         }
 
@@ -111,7 +122,7 @@ public record HintMesh(HintMeshType type, List<Hint> hints, List<Key> focusedKey
         }
 
         public HintMesh build() {
-            return new HintMesh(type, hints, focusedKeySequence, fontName, fontSize,
+            return new HintMesh(visible, type, hints, focusedKeySequence, fontName, fontSize,
                     fontHexColor, selectedPrefixFontHexColor, boxHexColor);
         }
     }

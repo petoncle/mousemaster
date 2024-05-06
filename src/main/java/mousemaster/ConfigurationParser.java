@@ -64,6 +64,7 @@ public class ConfigurationParser {
         HintMeshConfigurationBuilder hintMesh =
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
+                .visible(true)
                 .selectionKeys(IntStream.rangeClosed('a', 'z')
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
@@ -367,6 +368,8 @@ public class ConfigurationParser {
                         mode.hintMesh.builder.enabled(true);
                         switch (keyMatcher.group(4)) {
                             case "enabled" -> mode.hintMesh.builder.enabled(
+                                    Boolean.parseBoolean(propertyValue));
+                            case "visible" -> mode.hintMesh.builder.visible(
                                     Boolean.parseBoolean(propertyValue));
                             case "type" -> mode.hintMesh.builder.type()
                                                                 .type(parseHintMeshTypeType(
@@ -1211,6 +1214,8 @@ public class ConfigurationParser {
                             (HintMeshConfigurationBuilder) parent_;
                     if (builder.enabled() == null)
                         builder.enabled(parent.enabled());
+                    if (builder.visible() == null)
+                        builder.visible(parent.visible());
                     if (builder.type().type() == null)
                         builder.type().type(parent.type().type());
                     if (builder.type().gridArea().type() == null)

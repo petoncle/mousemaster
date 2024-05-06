@@ -548,6 +548,10 @@ public class WindowsOverlay {
 
     public static void setHintMesh(HintMesh hintMesh) {
         Objects.requireNonNull(hintMesh);
+        if (!hintMesh.visible()) {
+            hideHintMesh();
+            return;
+        }
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return;
         currentHintMesh = hintMesh;

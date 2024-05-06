@@ -66,6 +66,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             WindowsOverlay.hideHintMesh();
             return;
         }
+        if (!hintMeshConfiguration.visible()) {
+            // This makes the behavior of the hint different depending on whether it is visible.
+            // An alternative would be a setting like hint.reset-focused-key-sequence-history=true.
+            previousHintMeshByTypeAndSelectionKeys.clear();
+            WindowsOverlay.hideHintMesh();
+        }
         HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration);
         if (currentMode != null && newMode.hintMesh().equals(currentMode.hintMesh()) &&
             newHintMesh.equals(hintMesh))
@@ -84,7 +90,8 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private HintMesh buildHintMesh(HintMeshConfiguration hintMeshConfiguration) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
-        hintMesh.type(hintMeshConfiguration.typeAndSelectionKeys().type())
+        hintMesh.visible(hintMeshConfiguration.visible())
+                .type(hintMeshConfiguration.typeAndSelectionKeys().type())
                 .fontName(hintMeshConfiguration.fontName())
                 .fontSize(hintMeshConfiguration.fontSize())
                 .fontHexColor(hintMeshConfiguration.fontHexColor())
