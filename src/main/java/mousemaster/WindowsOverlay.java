@@ -426,8 +426,7 @@ public class WindowsOverlay {
             WinUser.SIZE textSize = new WinUser.SIZE();
             String text = hint.keySequence()
                               .stream()
-                              .map(Key::name)
-                              .map(String::toUpperCase) // This could be problematic since it uses Locale.default().
+                              .map(Key::hintLabel)
                               .collect(Collectors.joining());
             ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(),
                     textSize);
@@ -449,10 +448,9 @@ public class WindowsOverlay {
             ExtendedUser32.INSTANCE.FillRect(hdc, boxRect, boxBrush);
             drawHintText(hdc, fontHexColor, textRect, text);
             if (!focusedHintKeySequence.isEmpty()) {
-                String selectedPrefixText = //
+                String selectedPrefixText =
                         focusedHintKeySequence.stream()
-                                              .map(Key::name)
-                                              .map(String::toUpperCase)
+                                              .map(Key::hintLabel)
                                               .collect(Collectors.joining());
                 drawHintText(hdc, selectedPrefixFontHexColor, textRect,
                         selectedPrefixText);
