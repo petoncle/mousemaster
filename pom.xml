@@ -111,6 +111,7 @@
                                 <classpath/>
                                 <argument>${mainClass}</argument>
                                 <argument>--graalvm-agent-run</argument>
+                                <argument>--configuration-file=configuration/author.properties</argument>
                             </arguments>
                         </configuration>
                     </execution>
