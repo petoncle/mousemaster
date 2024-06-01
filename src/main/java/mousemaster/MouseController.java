@@ -6,6 +6,7 @@ import java.util.Iterator;
 
 public class MouseController implements ModeListener, MousePositionListener {
 
+    private final ScreenManager screenManager;
     private Mouse mouse;
     private Wheel wheel;
     private double moveDuration;
@@ -21,9 +22,14 @@ public class MouseController implements ModeListener, MousePositionListener {
     private int mouseX, mouseY;
     private boolean jumping;
     private double jumpDuration;
+    private double jumpScale;
     private int jumpX, jumpY;
     private int jumpBeginX, jumpBeginY;
     private int jumpEndX, jumpEndY;
+
+    public MouseController(ScreenManager screenManager) {
+        this.screenManager = screenManager;
+    }
 
     public void reset() {
         moveDuration = 0;
@@ -92,7 +98,8 @@ public class MouseController implements ModeListener, MousePositionListener {
         }
         if (jumping) {
             jumpDuration += delta;
-            double jumpVelocity = mouse.smoothJumpVelocity(); // Pixels per second.
+            double jumpVelocity =
+                    mouse.smoothJumpVelocity() * jumpScale; // Scaled pixels per second.
             double jumpTotalDuration =
                     Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY) /
                     jumpVelocity;
@@ -379,6 +386,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         jumping = true;
         jumpEndX = x;
         jumpEndY = y;
+        jumpScale = screenManager.activeScreen().scale();
     }
 
     public boolean jumping() {

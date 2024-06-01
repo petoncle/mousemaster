@@ -78,9 +78,9 @@ public class Mousemaster {
         configuration = ConfigurationParser.parse(configurationPath);
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
                     configurationPath);
-        mouseController = new MouseController();
-        MouseState mouseState = new MouseState(mouseController);
         ScreenManager screenManager = new ScreenManager();
+        mouseController = new MouseController(screenManager);
+        MouseState mouseState = new MouseState(mouseController);
         GridManager gridManager = new GridManager(screenManager, mouseController);
         HintManager hintManager =
                 new HintManager(configuration.maxPositionHistorySize(),
