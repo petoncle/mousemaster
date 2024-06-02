@@ -402,8 +402,8 @@ public class WindowsOverlay {
         String selectedPrefixFontHexColor = currentHintMesh.selectedPrefixFontHexColor();
         String boxHexColor = currentHintMesh.boxHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
+        int scaledDpi = (int) (screen.dpi() * screen.scale());
         // Convert point size to logical units.
-        int scaledDpi = GDI32.INSTANCE.GetDeviceCaps(hdc, ExtendedGDI32.LOGPIXELSY);
         // 1 point = 1/72 inch. So, multiply by scaledDpi and divide by 72 to convert to pixels.
         int fontHeight = -fontSize * scaledDpi / 72;
         // In Windows API, negative font size means "point size" (as opposed to pixels).
