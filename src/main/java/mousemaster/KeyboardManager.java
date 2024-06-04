@@ -59,7 +59,8 @@ public class KeyboardManager {
         else {
             PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
             if (processing != null) {
-                if (processing.handled()) {
+                if (processing.handled() ||
+                    processing.isPartOfMustRemainUnpressedComboPreconditionOnly()) {
                     if (processing.isPartOfCombo() || processing.isUnswallowedHintEnd())
                         comboWatcher.keyEvent(keyEvent); // Returns null.
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.

@@ -66,9 +66,13 @@ public class ComboWatcher implements ModeListener {
 
     public PressKeyEventProcessing keyEvent(KeyEvent event) {
         modeJustTimedOut = false;
-        boolean isComboPreconditionKey =
-                mustRemainUnpressedComboPreconditionKeys.contains(event.key()) ||
+        boolean isMustRemainUnpressedComboPreconditionKey =
+                mustRemainUnpressedComboPreconditionKeys.contains(event.key());
+        boolean isMustRemainPressedComboPreconditionKey =
                 mustRemainPressedComboPreconditionKeys.contains(event.key());
+        boolean isComboPreconditionKey =
+                isMustRemainUnpressedComboPreconditionKey ||
+                isMustRemainPressedComboPreconditionKey;
         if (event.isRelease()) {
             // The corresponding press event was either part of a combo sequence or part of a combo precondition,
             // otherwise this method would not have been called.
@@ -106,9 +110,11 @@ public class ComboWatcher implements ModeListener {
         if (partOfComboSequence)
             return PressKeyEventProcessing.partOfComboSequence(mustBeEaten);
         boolean partOfComboPreconditionOnly = isComboPreconditionKey;
-        return partOfComboPreconditionOnly ?
-                PressKeyEventProcessing.partOfComboPreconditionOnly() :
-                PressKeyEventProcessing.unhandled();
+        if (partOfComboPreconditionOnly)
+            return isMustRemainPressedComboPreconditionKey ?
+                    PressKeyEventProcessing.partOfMustRemainPressedComboPreconditionOnly() :
+                    PressKeyEventProcessing.partOfMustRemainUnpressedComboPreconditionOnly();
+        return PressKeyEventProcessing.unhandled();
     }
 
     private PressKeyEventProcessing processKeyEventForCurrentMode(KeyEvent event,
