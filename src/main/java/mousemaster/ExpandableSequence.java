@@ -9,7 +9,7 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
 
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
-                                            Map<String, Alias> aliases) {
+                                            Map<String, KeyAlias> aliases) {
         String[] moveStrings = movesString.split("\\s+");
         List<ComboAliasMove> moves = new ArrayList<>();
         for (String moveString : moveStrings) {
@@ -43,7 +43,7 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
         return new ExpandableSequence(moves);
     }
 
-    public List<ComboSequence> expand(Map<String, Alias> aliases) {
+    public List<ComboSequence> expand(Map<String, KeyAlias> aliases) {
         // alias1=key11 key12
         // alias2=key21 key22
         // +alias1 -alias1 +alias2 = +key11 -key11 +key21 | +key11 -key11 +key22 | +key12 ...
@@ -57,7 +57,7 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
     private void recursivelyExpand(Map<String, Key> fixedKeyByAliasName,
                                    List<String> aliasOrKeyNames,
                                    List<ComboSequence> sequences,
-                                   Map<String, Alias> aliasByName) {
+                                   Map<String, KeyAlias> aliasByName) {
         if (fixedKeyByAliasName.size() == aliasOrKeyNames.size()) {
             List<ComboMove> moves = new ArrayList<>();
             for (ComboAliasMove aliasMove : this.moves) {
@@ -76,7 +76,7 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
             return;
         }
         String fixedAliasOrKeyName = aliasOrKeyNames.get(fixedKeyByAliasName.size());
-        Alias alias = aliasByName.get(fixedAliasOrKeyName);
+        KeyAlias alias = aliasByName.get(fixedAliasOrKeyName);
         List<Key> aliasKeys =
                 alias == null ? List.of(Key.ofName(fixedAliasOrKeyName)) : alias.keys();
         for (Key fixedKey : aliasKeys) {

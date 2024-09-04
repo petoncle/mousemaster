@@ -11,7 +11,8 @@ import java.util.stream.Collectors;
 public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     public static List<Combo> of(String string, ComboMoveDuration defaultMoveDuration,
-                           Map<String, Alias> aliases) {
+                                 Map<String, KeyAlias> keyAliases,
+                                 Map<String, AppAlias> appAliases) {
         Matcher mustNotMatcher = Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
         String mustNotBeActiveAppsString = null;
         Set<App> mustNotBeActiveApps = Set.of();
@@ -20,16 +21,17 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         String mustString = string;
         while (mustNotMatcher.find()) {
             String mustNotSetString = mustNotMatcher.group(1);
-            if (mustNotSetString.contains(".exe")) {
+            if (isAppSetString(mustNotSetString, appAliases)) {
                 // ^{firefox.exe chrome.exe}
                 mustNotBeActiveAppsString = mustNotSetString;
-                mustNotBeActiveApps = parseMustNotBeActiveApps(mustNotBeActiveAppsString);
+                mustNotBeActiveApps =
+                        parseMustNotBeActiveApps(mustNotBeActiveAppsString, appAliases);
             }
             else {
                 mustRemainUnpressedKeySetString = mustNotSetString;
                 mustRemainUnpressedKeySet =
                         parseMustRemainUnpressedKeySet(mustRemainUnpressedKeySetString,
-                                aliases);
+                                keyAliases);
             }
             mustString = string.substring(mustNotMatcher.end());
         }
@@ -41,16 +43,16 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         String sequenceString = mustString;
         while (mustMatcher.find()) {
             String mustSetsString = mustMatcher.group(1);
-            if (mustSetsString.contains(".exe")) {
+            if (isAppSetString(mustSetsString, appAliases)) {
                 // _{firefox.exe | chrome.exe}
                 mustBeActiveAppsString = mustSetsString;
-                mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString);
+                mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString, appAliases);
             }
             else {
                 mustRemainPressedKeySetsString = mustSetsString;
                 mustRemainPressedKeySets =
                         parseMustRemainPressedKeySets(mustRemainPressedKeySetsString,
-                                aliases);
+                                keyAliases);
             }
             sequenceString = mustString.substring(mustMatcher.end());
         }
@@ -80,8 +82,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         else {
             ExpandableSequence expandableSequence =
                     ExpandableSequence.parseSequence(sequenceString, defaultMoveDuration,
-                            aliases);
-            List<ComboSequence> expandedSequences = expandableSequence.expand(aliases);
+                            keyAliases);
+            List<ComboSequence> expandedSequences = expandableSequence.expand(keyAliases);
             return ofExpandedSequences(string, expandedSequences,
                     mustRemainUnpressedKeySet,
                     mustRemainUnpressedKeySetString, sequenceString,
@@ -110,21 +112,21 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                 .toList();
     }
 
-    private static Set<App> parseMustNotBeActiveApps(String appSetString) {
+    private static Set<App> parseMustNotBeActiveApps(String appSetString,
+                                                     Map<String, AppAlias> appAliases) {
         String[] appStrings = appSetString.split("\\s+");
         return Arrays.stream(appStrings)
-//                     .map(keyString -> expandAlias(keyString, aliases))
-//                     .flatMap(Collection::stream)
-                     .map(App::new)
+                     .map(keyString -> expandAppAlias(keyString, appAliases))
+                     .flatMap(Collection::stream)
                      .collect(Collectors.toSet());
     }
 
-    private static Set<App> parseMustBeActiveApps(String appSetString) {
+    private static Set<App> parseMustBeActiveApps(String appSetString,
+                                                  Map<String, AppAlias> appAliases) {
         String[] appStrings = appSetString.split("\\s*\\|\\s*");
         return Arrays.stream(appStrings)
-//                     .map(keyString -> expandAlias(keyString, aliases))
-//                     .flatMap(Collection::stream)
-                     .map(App::new)
+                     .map(keyString -> expandAppAlias(keyString, appAliases))
+                     .flatMap(Collection::stream)
                      .collect(Collectors.toSet());
     }
 
@@ -158,23 +160,38 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static Set<Key> parseMustRemainUnpressedKeySet(String keySetString,
-                                                           Map<String, Alias> aliases) {
+                                                           Map<String, KeyAlias> aliases) {
         String[] keyStrings = keySetString.split("\\s+");
         return Arrays.stream(keyStrings)
-                     .map(keyString -> expandAlias(keyString, aliases))
+                     .map(keyString -> expandKeyAlias(keyString, aliases))
                      .flatMap(Collection::stream)
                      .collect(Collectors.toSet());
     }
 
-    private static Set<Key> expandAlias(String keyString, Map<String, Alias> aliases) {
-        Alias alias = aliases.get(keyString);
+    private static Set<Key> expandKeyAlias(String keyString, Map<String, KeyAlias> aliases) {
+        KeyAlias alias = aliases.get(keyString);
         if (alias == null)
             return Set.of(Key.ofName(keyString));
         return Set.copyOf(alias.keys());
     }
 
+    private static Set<App> expandAppAlias(String appString, Map<String, AppAlias> aliases) {
+        AppAlias alias = aliases.get(appString);
+        if (alias == null)
+            return Set.of(new App(appString));
+        return alias.apps();
+    }
+
+    private static boolean isAppSetString(String string, Map<String, AppAlias> appAliases) {
+        if (string.contains(".exe"))
+            // firefox.exe chrome.exe
+            return true;
+        List<String> appStrings = List.of(string.split("\\s+|(\\s*\\|\\s*)"));
+        return appStrings.stream().allMatch(appAliases::containsKey);
+    }
+
     private static Set<Set<Key>> parseMustRemainPressedKeySets(String keySetsString,
-                                                               Map<String, Alias> aliases) {
+                                                               Map<String, KeyAlias> aliases) {
         String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
         Set<Set<Key>> mustRemainPressedKeySets = Arrays.stream(keySetStrings)
                                       .map(complexKeySetString -> parseMustRemainPressedKeySet(
@@ -187,7 +204,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static Set<Set<Key>> parseMustRemainPressedKeySet(String keySetString,
-                                                              Map<String, Alias> aliases) {
+                                                              Map<String, KeyAlias> aliases) {
         // rightctrl up*down -> (rightctrl, up), (rightctrl, down), (rightctrl, up, down)
         boolean containsEmptyKeySet = false;
         List<Set<Set<Key>>> combinations = new ArrayList<>();
@@ -196,13 +213,13 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             if (complexKeyString.equals("none"))
                 containsEmptyKeySet = true;
             else if (!complexKeyString.contains("*")) {
-                Set<Key> expandedKeys = expandAlias(complexKeyString, aliases);
+                Set<Key> expandedKeys = expandKeyAlias(complexKeyString, aliases);
                 combinations.add(generateCombinations(expandedKeys));
             }
             else {
                 Set<Key> keys = new HashSet<>();
                 for (String keyName : complexKeyString.split("\\*")) {
-                    Set<Key> expandedKeys = expandAlias(keyName, aliases);
+                    Set<Key> expandedKeys = expandKeyAlias(keyName, aliases);
                     keys.addAll(expandedKeys);
                 }
                 combinations.add(generateCombinations(keys));
@@ -272,7 +289,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     public static List<Combo> multiCombo(String multiComboString,
                                          ComboMoveDuration defaultMoveDuration,
-                                         Map<String, Alias> aliases) {
+                                         Map<String, KeyAlias> keyAliases,
+                                         Map<String, AppAlias> appAliases) {
         // One combo is: ^{key|...} _{key|...} move1 move2 ...
         // Two combos: ^{key|...} _{key|...} move1 move2 ... | ^{key|...} _{key|...} move ...
         // Combo with mustBeActiveApps: _{firefox.exe|chrome.exe} ^{key|...} _{key|...} move1 move2 ...
@@ -297,12 +315,12 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             else if (character == '|' && !rightBraceExpected) {
                 combos.addAll(
                         of(multiComboString.substring(comboBeginIndex, charIndex).strip(),
-                                defaultMoveDuration, aliases));
+                                defaultMoveDuration, keyAliases, appAliases));
                 comboBeginIndex = charIndex + 1;
             }
         }
         combos.addAll(of(multiComboString.substring(comboBeginIndex).strip(),
-                defaultMoveDuration, aliases));
+                defaultMoveDuration, keyAliases, appAliases));
         return List.copyOf(combos);
     }
 

@@ -12,5 +12,5 @@ import java.util.List;
  * _{alias1*alias2} allowed only if single-key aliases
  * _{alias1 alias2} one or more keys of alias1 must be pressed, and same for alias2
  */
-public record Alias(String name, List<Key> keys) {
+public record KeyAlias(String name, List<Key> keys) {
 }
