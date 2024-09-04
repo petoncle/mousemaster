@@ -22,5 +22,8 @@
   },
   {
     "interfaces":["mousemaster.Shcore"]
+  },
+  {
+    "interfaces":["mousemaster.ExtendedPsapi"]
   }
 ]

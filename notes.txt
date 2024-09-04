@@ -217,3 +217,10 @@ _shift,^shift = press shift, release shift?
 - It's Windows only, I have not looked at making it cross-platform simply because I don't have an incentive for doing so
   (all my desktops are Windows based). Besides, it is possible that the Linux and macOS APIs offer less control than the Windows API when it
   comes to handling mouse and keyboard events, and for that reason some of the features of mousemaster may not currently be implementable in Linux and macOS.
+
++ idle-mode.to.hibernate-mode=_{firefox.exe | chrome.exe}
+ hibernate-mode.to.idle-mode=^{firefox.exe chrome.exe}
+ or
+ app-alias.hibernateapp=firefox.exe chrome.exe
+ idle-mode.to.hibernate-mode=_{hibernateapp}
+ hibernate-mode.to.idle-mode=^{hibernateapp}

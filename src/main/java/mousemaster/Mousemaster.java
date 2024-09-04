@@ -92,19 +92,22 @@ public class Mousemaster {
         for (Mode mode : configuration.modeMap().modes()) {
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 mustRemainUnpressedComboPreconditionKeys.addAll(combo.precondition()
+                                                                     .keyPrecondition()
                                                                      .mustRemainUnpressedKeySet()
                                                                      .stream()
                                                                      .toList());
                 mustRemainPressedComboPreconditionKeys.addAll(combo.precondition()
-                                                                     .mustRemainPressedKeySets()
-                                                                     .stream()
-                                                                     .flatMap(
-                                                                             Collection::stream)
-                                                                     .toList());
+                                                                   .keyPrecondition()
+                                                                   .mustRemainPressedKeySets()
+                                                                   .stream()
+                                                                   .flatMap(
+                                                                           Collection::stream)
+                                                                   .toList());
             }
         }
         ComboWatcher comboWatcher =
-                new ComboWatcher(commandRunner, mustRemainUnpressedComboPreconditionKeys,
+                new ComboWatcher(commandRunner, new ActiveAppFinder(),
+                        mustRemainUnpressedComboPreconditionKeys,
                         mustRemainPressedComboPreconditionKeys);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);

@@ -1,5 +1,8 @@
 package mousemaster;
 
+import mousemaster.ComboPrecondition.ComboAppPrecondition;
+import mousemaster.ComboPrecondition.ComboKeyPrecondition;
+
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,40 +12,53 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
     public static List<Combo> of(String string, ComboMoveDuration defaultMoveDuration,
                            Map<String, Alias> aliases) {
-        Matcher mustRemainUnpressedKeySetMatcher =
-                Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
-        Set<Key> mustRemainUnpressedKeySet;
-        String mustRemainPressedAndSequenceString;
-        String mustRemainUnpressedKeySetString;
-        if (mustRemainUnpressedKeySetMatcher.find()) {
-            mustRemainUnpressedKeySetString = mustRemainUnpressedKeySetMatcher.group(1);
-            mustRemainUnpressedKeySet = parseMustRemainUnpressedKeySet(mustRemainUnpressedKeySetString, aliases);
-            mustRemainPressedAndSequenceString =
-                    string.substring(mustRemainUnpressedKeySetMatcher.end());
+        Matcher mustNotMatcher = Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
+        String mustNotBeActiveAppsString = null;
+        Set<App> mustNotBeActiveApps = Set.of();
+        String mustRemainUnpressedKeySetString = null;
+        Set<Key> mustRemainUnpressedKeySet = Set.of();
+        String mustString = string;
+        while (mustNotMatcher.find()) {
+            String mustNotSetString = mustNotMatcher.group(1);
+            if (mustNotSetString.contains(".exe")) {
+                // ^{firefox.exe chrome.exe}
+                mustNotBeActiveAppsString = mustNotSetString;
+                mustNotBeActiveApps = parseMustNotBeActiveApps(mustNotBeActiveAppsString);
+            }
+            else {
+                mustRemainUnpressedKeySetString = mustNotSetString;
+                mustRemainUnpressedKeySet =
+                        parseMustRemainUnpressedKeySet(mustRemainUnpressedKeySetString,
+                                aliases);
+            }
+            mustString = string.substring(mustNotMatcher.end());
         }
-        else {
-            mustRemainUnpressedKeySetString = null;
-            mustRemainUnpressedKeySet = Set.of();
-            mustRemainPressedAndSequenceString = string;
+        Matcher mustMatcher = Pattern.compile("_\\{([^{}]+)\\}\\s*").matcher(mustString);
+        String mustBeActiveAppsString = null;
+        Set<App> mustBeActiveApps = Set.of();
+        String mustRemainPressedKeySetsString = null;
+        Set<Set<Key>> mustRemainPressedKeySets = Set.of();
+        String sequenceString = mustString;
+        while (mustMatcher.find()) {
+            String mustSetsString = mustMatcher.group(1);
+            if (mustSetsString.contains(".exe")) {
+                // _{firefox.exe | chrome.exe}
+                mustBeActiveAppsString = mustSetsString;
+                mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString);
+            }
+            else {
+                mustRemainPressedKeySetsString = mustSetsString;
+                mustRemainPressedKeySets =
+                        parseMustRemainPressedKeySets(mustRemainPressedKeySetsString,
+                                aliases);
+            }
+            sequenceString = mustString.substring(mustMatcher.end());
         }
-        Matcher mustRemainPressedKeySetsMatcher = Pattern.compile("_\\{([^{}]+)\\}\\s*")
-                                                         .matcher(
-                                                                 mustRemainPressedAndSequenceString);
-        Set<Set<Key>> mustRemainPressedKeySets;
-        String sequenceString;
-        String mustRemainPressedKeySetsString;
-        if (mustRemainPressedKeySetsMatcher.find()) {
-            mustRemainPressedKeySetsString = mustRemainPressedKeySetsMatcher.group(1);
-            mustRemainPressedKeySets =
-                    parseMustRemainPressedKeySets(mustRemainPressedKeySetsString,
-                            aliases);
-            sequenceString = mustRemainPressedAndSequenceString.substring(
-                    mustRemainPressedKeySetsMatcher.end());
-        }
-        else {
-            mustRemainPressedKeySetsString = null;
-            mustRemainPressedKeySets = Set.of();
-            sequenceString = mustRemainPressedAndSequenceString;
+        if (mustNotBeActiveApps.stream().anyMatch(mustBeActiveApps::contains)) {
+            throw new IllegalArgumentException(
+                    "There cannot be an overlap between must not be active apps and must be active apps: " +
+                    "^{" + mustNotBeActiveAppsString + "} _{" +
+                    mustBeActiveAppsString + "}");
         }
         if (mustRemainUnpressedKeySet.stream()
                                      .anyMatch(mustRemainPressedKeySets.stream()
@@ -59,28 +75,67 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             return List.of(
                     of(string, new ComboSequence(List.of()), mustRemainUnpressedKeySet,
                             mustRemainUnpressedKeySetString, sequenceString,
-                            mustRemainPressedKeySets, mustRemainPressedKeySetsString));
+                            mustRemainPressedKeySets, mustRemainPressedKeySetsString,
+                            mustNotBeActiveApps, mustBeActiveApps));
         else {
             ExpandableSequence expandableSequence =
                     ExpandableSequence.parseSequence(sequenceString, defaultMoveDuration,
                             aliases);
             List<ComboSequence> expandedSequences = expandableSequence.expand(aliases);
-            return expandedSequences.stream()
-                                    .map(sequence -> of(string, sequence,
-                                            mustRemainUnpressedKeySet,
-                                            mustRemainUnpressedKeySetString,
-                                            sequenceString, mustRemainPressedKeySets,
-                                            mustRemainPressedKeySetsString))
-                                    .toList();
+            return ofExpandedSequences(string, expandedSequences,
+                    mustRemainUnpressedKeySet,
+                    mustRemainUnpressedKeySetString, sequenceString,
+                    mustRemainPressedKeySets, mustRemainPressedKeySetsString,
+                    mustNotBeActiveApps, mustBeActiveApps);
         }
     }
 
+    private static List<Combo> ofExpandedSequences(String string,
+                                                   List<ComboSequence> expandedSequences,
+                                                   Set<Key> mustRemainUnpressedKeySet,
+                                                   String mustRemainUnpressedKeySetString,
+                                                   String sequenceString,
+                                                   Set<Set<Key>> mustRemainPressedKeySets,
+                                                   String mustRemainPressedKeySetsString,
+                                                   Set<App> mustNotBeActiveApps,
+                                                   Set<App> mustBeActiveApps) {
+        return expandedSequences.stream()
+                                .map(sequence -> of(string, sequence,
+                                        mustRemainUnpressedKeySet,
+                                        mustRemainUnpressedKeySetString,
+                                        sequenceString,
+                                        mustRemainPressedKeySets,
+                                        mustRemainPressedKeySetsString,
+                                        mustNotBeActiveApps, mustBeActiveApps))
+                                .toList();
+    }
+
+    private static Set<App> parseMustNotBeActiveApps(String appSetString) {
+        String[] appStrings = appSetString.split("\\s+");
+        return Arrays.stream(appStrings)
+//                     .map(keyString -> expandAlias(keyString, aliases))
+//                     .flatMap(Collection::stream)
+                     .map(App::new)
+                     .collect(Collectors.toSet());
+    }
+
+    private static Set<App> parseMustBeActiveApps(String appSetString) {
+        String[] appStrings = appSetString.split("\\s*\\|\\s*");
+        return Arrays.stream(appStrings)
+//                     .map(keyString -> expandAlias(keyString, aliases))
+//                     .flatMap(Collection::stream)
+                     .map(App::new)
+                     .collect(Collectors.toSet());
+    }
+
     private static Combo of(String string, ComboSequence sequence,
-                                      Set<Key> mustRemainUnpressedKeySet,
-                                      String mustRemainUnpressedKeySetString,
-                                      String sequenceString,
-                                      Set<Set<Key>> mustRemainPressedKeySets,
-                                      String mustRemainPressedKeySetsString) {
+                            Set<Key> mustRemainUnpressedKeySet,
+                            String mustRemainUnpressedKeySetString,
+                            String sequenceString,
+                            Set<Set<Key>> mustRemainPressedKeySets,
+                            String mustRemainPressedKeySetsString,
+                            Set<App> mustNotBeActiveApps,
+                            Set<App> mustBeActiveApps) {
         Set<Key> sequenceKeys =
                 sequence.moves().stream().map(ComboMove::key).collect(Collectors.toSet());
         if (mustRemainUnpressedKeySet.stream().anyMatch(sequenceKeys::contains))
@@ -93,8 +148,10 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             throw new IllegalArgumentException(
                     "There cannot be an overlap between must remain pressed keys and combo sequence keys: " +
                     "_{" + mustRemainPressedKeySetsString + "} " + sequenceString);
-        ComboPrecondition precondition = new ComboPrecondition(mustRemainUnpressedKeySet,
-                mustRemainPressedKeySets);
+        ComboPrecondition precondition = new ComboPrecondition(
+                new ComboKeyPrecondition(mustRemainUnpressedKeySet,
+                        mustRemainPressedKeySets),
+                new ComboAppPrecondition(mustNotBeActiveApps, mustBeActiveApps));
         if (precondition.isEmpty() && sequence.moves().isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
         return new Combo(precondition, sequence);
@@ -218,6 +275,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                          Map<String, Alias> aliases) {
         // One combo is: ^{key|...} _{key|...} move1 move2 ...
         // Two combos: ^{key|...} _{key|...} move1 move2 ... | ^{key|...} _{key|...} move ...
+        // Combo with mustBeActiveApps: _{firefox.exe|chrome.exe} ^{key|...} _{key|...} move1 move2 ...
+        // Combo with mustNotBeActiveApps: ^{firefox.exe chrome.exe} ^{key|...} _{key|...} move1 move2 ...
         int comboBeginIndex = 0;
         boolean rightBraceExpected = false;
         List<Combo> combos = new ArrayList<>();

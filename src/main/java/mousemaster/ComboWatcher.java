@@ -12,6 +12,7 @@ public class ComboWatcher implements ModeListener {
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
     private final CommandRunner commandRunner;
+    private final ActiveAppFinder activeAppFinder;
     private final Set<Key> mustRemainPressedComboPreconditionKeys;
     private final Set<Key> mustRemainUnpressedComboPreconditionKeys;
     private Mode currentMode;
@@ -23,10 +24,11 @@ public class ComboWatcher implements ModeListener {
     private Set<Key> currentlyPressedComboSequenceKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboPreconditionKeys = new HashSet<>();
 
-    public ComboWatcher(CommandRunner commandRunner,
+    public ComboWatcher(CommandRunner commandRunner, ActiveAppFinder activeAppFinder,
                         Set<Key> mustRemainUnpressedComboPreconditionKeys,
                         Set<Key> mustRemainPressedComboPreconditionKeys) {
         this.commandRunner = commandRunner;
+        this.activeAppFinder = activeAppFinder;
         this.mustRemainUnpressedComboPreconditionKeys =
                 mustRemainUnpressedComboPreconditionKeys;
         this.mustRemainPressedComboPreconditionKeys =
@@ -139,12 +141,19 @@ public class ComboWatcher implements ModeListener {
             // that other key should be processed only for combos that
             // contains the pressed precondition key.
             Combo combo = entry.getKey();
+            if (!combo.precondition()
+                      .appPrecondition()
+                      .satisfied(activeAppFinder.activeApp()))
+                continue;
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
             ComboMove currentMove = matchingMoveCount == 0 ? null :
                     combo.sequence().moves().get(matchingMoveCount - 1);
             // releaseCombo == the combo is not just a mustRemainUnpressed combo (it has a sequence or a mustRemainPressed precondition)
             boolean releaseCombo =
-                    combo.precondition().mustRemainPressedKeySets().isEmpty() &&
+                    combo.precondition()
+                         .keyPrecondition()
+                         .mustRemainPressedKeySets()
+                         .isEmpty() &&
                     (combo.sequence().moves().isEmpty() || combo.sequence()
                                                                 .moves()
                                                                 .stream()
@@ -153,7 +162,7 @@ public class ComboWatcher implements ModeListener {
             // could be removed to not execute combos that have a sequence and whose mustRemainPress condition is not satisfied.
             if (!currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten.isEmpty()
                 // If currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten is not part of the combo's mustRemainPressedKeySets...
-                && combo.precondition()
+                && combo.precondition().keyPrecondition()
                         .mustRemainPressedKeySets()
                         .stream()
                         .noneMatch(
@@ -175,7 +184,7 @@ public class ComboWatcher implements ModeListener {
             if (matchingMoveCount == 0) {
                 if (combo.sequence().moves().isEmpty() &&
                     !combo.precondition().isEmpty()) {
-                    if (!combo.precondition().satisfied(
+                    if (!combo.precondition().keyPrecondition().satisfied(
                             currentlyPressedComboPreconditionKeys)) {
                         continue;
                     }
@@ -183,7 +192,7 @@ public class ComboWatcher implements ModeListener {
             }
             else {
                 if (!combo.precondition().isEmpty()) {
-                    if (!combo.precondition().satisfied(
+                    if (!combo.precondition().keyPrecondition().satisfied(
                             currentlyPressedComboPreconditionKeys))
                         continue;
                 }

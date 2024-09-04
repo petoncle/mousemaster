@@ -74,11 +74,14 @@ public class WindowsPlatform implements Platform {
         for (Mode mode : modeMap.modes()) {
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 combo.precondition()
+                     .keyPrecondition()
                      .mustRemainPressedKeySets()
                      .stream()
                      .flatMap(Collection::stream)
                      .forEach(allComboKeys::add);
-                allComboKeys.addAll(combo.precondition().mustRemainUnpressedKeySet());
+                allComboKeys.addAll(combo.precondition()
+                                         .keyPrecondition()
+                                         .mustRemainUnpressedKeySet());
                 combo.sequence()
                      .moves()
                      .stream()
