@@ -2,11 +2,14 @@ package mousemaster;
 
 public enum PressKeyEventProcessing {
 
-    UNHANDLED,
+    UNHANDLED_MUST_NOT_BE_EATEN,
+    UNHANDLED_MUST_BE_EATEN,
     PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN,
     PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN,
-    PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY, // "Only" means it is not part of a combo sequence (it is just part of a combo precondition).
-    PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY,
+    PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_NOT_BE_EATEN, // "Only" means it is not part of a combo sequence (it is just part of a combo precondition).
+    PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN,
+    PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY_MUST_NOT_BE_EATEN,
+    PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN,
     PART_OF_HINT_PREFIX_MUST_BE_EATEN,
     HINT_UNDO_MUST_BE_EATEN, UNSWALLOWED_HINT_END_MUST_BE_EATEN, SWALLOWED_HINT_END_MUST_BE_EATEN;
 
@@ -15,7 +18,10 @@ public enum PressKeyEventProcessing {
                this == PART_OF_HINT_PREFIX_MUST_BE_EATEN ||
                this == HINT_UNDO_MUST_BE_EATEN ||
                this == UNSWALLOWED_HINT_END_MUST_BE_EATEN ||
-               this == SWALLOWED_HINT_END_MUST_BE_EATEN;
+               this == SWALLOWED_HINT_END_MUST_BE_EATEN ||
+               this == UNHANDLED_MUST_BE_EATEN ||
+               this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN ||
+               this == PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
     }
 
     public boolean handled() {
@@ -25,7 +31,8 @@ public enum PressKeyEventProcessing {
                this == HINT_UNDO_MUST_BE_EATEN ||
                this == UNSWALLOWED_HINT_END_MUST_BE_EATEN ||
                this == SWALLOWED_HINT_END_MUST_BE_EATEN ||
-               this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY;
+               this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_NOT_BE_EATEN ||
+               this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
     }
 
     public boolean isPartOfComboSequence() {
@@ -34,11 +41,15 @@ public enum PressKeyEventProcessing {
     }
 
     public boolean isPartOfMustRemainPressedComboPreconditionOnly() {
-        return this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY;
+        return this ==
+               PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_NOT_BE_EATEN ||
+               this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
     }
 
     public boolean isPartOfMustRemainUnpressedComboPreconditionOnly() {
-        return this == PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY;
+        return this ==
+               PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY_MUST_NOT_BE_EATEN ||
+               this == PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
     }
 
     public boolean isPartOfCombo() {
@@ -59,8 +70,12 @@ public enum PressKeyEventProcessing {
         return this == UNSWALLOWED_HINT_END_MUST_BE_EATEN;
     }
 
-    public static PressKeyEventProcessing unhandled() {
-        return UNHANDLED;
+    public static PressKeyEventProcessing unhandledMustNotBeEaten() {
+        return UNHANDLED_MUST_NOT_BE_EATEN;
+    }
+
+    public static PressKeyEventProcessing unhandledMustBeEaten() {
+        return UNHANDLED_MUST_BE_EATEN;
     }
 
     public static PressKeyEventProcessing partOfComboSequence(boolean mustBeEaten) {
@@ -84,12 +99,20 @@ public enum PressKeyEventProcessing {
         return SWALLOWED_HINT_END_MUST_BE_EATEN;
     }
 
-    public static PressKeyEventProcessing partOfMustRemainPressedComboPreconditionOnly() {
-        return PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY;
+    public static PressKeyEventProcessing partOfMustRemainPressedComboPreconditionOnlyMustNotBeEaten() {
+        return PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_NOT_BE_EATEN;
     }
 
-    public static PressKeyEventProcessing partOfMustRemainUnpressedComboPreconditionOnly() {
-        return PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY;
+    public static PressKeyEventProcessing partOfMustRemainPressedComboPreconditionOnlyMustBeEaten() {
+        return PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
+    }
+
+    public static PressKeyEventProcessing partOfMustRemainUnpressedComboPreconditionOnlyMustNotBeEaten() {
+        return PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY_MUST_NOT_BE_EATEN;
+    }
+
+    public static PressKeyEventProcessing partOfMustRemainUnpressedComboPreconditionOnlyMustBeEaten() {
+        return PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
     }
 
 }

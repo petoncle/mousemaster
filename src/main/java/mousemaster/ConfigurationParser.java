@@ -39,6 +39,7 @@ public class ConfigurationParser {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
         AtomicReference<Boolean> stopCommandsFromPreviousMode = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
+        AtomicReference<Boolean> eatUnhandledKeyPresses = new AtomicReference<>(false);
         MouseBuilder mouse = new MouseBuilder().initialVelocity(200)
                                                .maxVelocity(750)
                                                .acceleration(1000)
@@ -105,6 +106,7 @@ public class ConfigurationParser {
                 new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
                 new Property<>("mode-after-pressing-unhandled-keys-only", modeAfterPressingUnhandledKeysOnly),
+                new Property<>("eat-unhandled-key-presses", eatUnhandledKeyPresses),
                 new Property<>("mouse", mouse),
                 new Property<>("wheel", wheel), 
                 new Property<>("grid", grid), 
@@ -247,6 +249,12 @@ public class ConfigurationParser {
                                                                .add(modeAfterPressingUnhandledKeysOnly);
                             }, childPropertiesByParentProperty, nonRootPropertyKeys);
                 }
+                case "eat-unhandled-key-presses" ->
+                        mode.eatUnhandledKeyPresses.parseReferenceOr(propertyKey,
+                                propertyValue, builder -> builder.set(
+                                        Boolean.parseBoolean(propertyValue)),
+                                childPropertiesByParentProperty,
+                                nonRootPropertyKeys);
                 case "mouse" -> {
                     if (keyMatcher.group(3) == null)
                         mode.mouse.parsePropertyReference(propertyKey, propertyValue,
@@ -1119,6 +1127,7 @@ public class ConfigurationParser {
         Property<AtomicReference<Boolean>> stopCommandsFromPreviousMode;
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
         Property<AtomicReference<String>> modeAfterPressingUnhandledKeysOnly;
+        Property<AtomicReference<Boolean>> eatUnhandledKeyPresses;
         ComboMapConfigurationBuilder comboMap;
         Property<MouseBuilder> mouse;
         Property<WheelBuilder> wheel;
@@ -1155,6 +1164,15 @@ public class ConfigurationParser {
                 @Override
                 void extend(Object parent_) {
                     AtomicReference<String> parent = (AtomicReference<String>) parent_;
+                    if (builder.get() == null)
+                        builder.set(parent.get());
+                }
+            };
+            eatUnhandledKeyPresses = new Property<>("eat-unhandled-key-presses", modeName,
+                    propertyByKey, new AtomicReference<>()) {
+                @Override
+                void extend(Object parent_) {
+                    AtomicReference<Boolean> parent = (AtomicReference<Boolean>) parent_;
                     if (builder.get() == null)
                         builder.set(parent.get());
                 }
@@ -1319,7 +1337,9 @@ public class ConfigurationParser {
         public Mode build() {
             return new Mode(modeName, stopCommandsFromPreviousMode.builder.get(),
                     pushModeToHistoryStack.builder.get(),
-                    modeAfterPressingUnhandledKeysOnly.builder.get(), comboMap.build(),
+                    modeAfterPressingUnhandledKeysOnly.builder.get(),
+                    eatUnhandledKeyPresses.builder.get(),
+                    comboMap.build(),
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build());

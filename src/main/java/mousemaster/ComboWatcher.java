@@ -112,11 +112,20 @@ public class ComboWatcher implements ModeListener {
         if (partOfComboSequence)
             return PressKeyEventProcessing.partOfComboSequence(mustBeEaten);
         boolean partOfComboPreconditionOnly = isComboPreconditionKey;
-        if (partOfComboPreconditionOnly)
-            return isMustRemainPressedComboPreconditionKey ?
-                    PressKeyEventProcessing.partOfMustRemainPressedComboPreconditionOnly() :
-                    PressKeyEventProcessing.partOfMustRemainUnpressedComboPreconditionOnly();
-        return PressKeyEventProcessing.unhandled();
+        if (partOfComboPreconditionOnly) {
+            if (isMustRemainPressedComboPreconditionKey)
+                return currentMode.eatUnhandledKeyPresses() ?
+                        PressKeyEventProcessing.partOfMustRemainPressedComboPreconditionOnlyMustBeEaten() :
+                        PressKeyEventProcessing.partOfMustRemainPressedComboPreconditionOnlyMustNotBeEaten();
+            else
+                return currentMode.eatUnhandledKeyPresses() ?
+                        PressKeyEventProcessing.partOfMustRemainUnpressedComboPreconditionOnlyMustBeEaten() :
+                        PressKeyEventProcessing.partOfMustRemainUnpressedComboPreconditionOnlyMustNotBeEaten();
+        }
+        if (currentMode.eatUnhandledKeyPresses())
+            return PressKeyEventProcessing.unhandledMustBeEaten();
+        else
+            return PressKeyEventProcessing.unhandledMustNotBeEaten();
     }
 
     private PressKeyEventProcessing processKeyEventForCurrentMode(KeyEvent event,
@@ -265,7 +274,7 @@ public class ComboWatcher implements ModeListener {
         }
         if (partOfComboSequence)
             return PressKeyEventProcessing.partOfComboSequence(mustBeEaten);
-        return PressKeyEventProcessing.unhandled();
+        return PressKeyEventProcessing.unhandledMustNotBeEaten();
     }
 
     private static final List<? extends Class<? extends Command>> commandOrder =
