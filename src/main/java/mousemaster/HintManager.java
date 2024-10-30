@@ -7,9 +7,7 @@ import mousemaster.HintMesh.HintMeshBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class HintManager implements ModeListener, MousePositionListener {
@@ -297,7 +295,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     public PressKeyEventProcessing keyPressed(Key key) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
-            return PressKeyEventProcessing.unhandledMustNotBeEaten();
+            return PressKeyEventProcessing.unhandled();
         if (key.equals(hintMeshConfiguration.undoKey())) {
             List<Key> focusedKeySequence = hintMesh.focusedKeySequence();
             if (!focusedKeySequence.isEmpty()) {
@@ -310,10 +308,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                 WindowsOverlay.setHintMesh(hintMesh);
                 return PressKeyEventProcessing.hintUndo();
             }
-            return PressKeyEventProcessing.unhandledMustNotBeEaten(); // ComboWatcher can have a go at it.
+            return PressKeyEventProcessing.unhandled(); // ComboWatcher can have a go at it.
         }
         if (!selectionKeySubset.contains(key))
-            return PressKeyEventProcessing.unhandledMustNotBeEaten();
+            return PressKeyEventProcessing.unhandled();
         List<Key> newFocusedKeySequence = new ArrayList<>(hintMesh.focusedKeySequence());
         newFocusedKeySequence.add(key);
         Hint exactMatchHint = null;
@@ -330,7 +328,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
         }
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
-            return PressKeyEventProcessing.unhandledMustNotBeEaten();
+            return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
             // Move synchronously. After this moveTo call, we know the move was executed
             // and a click can be performed at the new position.
