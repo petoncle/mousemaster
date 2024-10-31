@@ -437,9 +437,9 @@ public class WindowsOverlay {
             textRect.top = textY;
             textRect.right = textX + textSize.cx;
             textRect.bottom = textY + textSize.cy;
-            // For Arial 10, cx is 26 and cy is 24. I want a padding of 4, 0 in that case.
-            int xPadding = (int) ((double) textSize.cx / 26 * 4);
-            int yPadding = (int) ((double) textSize.cy / 24 * 0);
+            // Try to minimize the size of the box. Looks good with Arial 10.
+            int xPadding = (int) (screen.scale() * 1);
+            int yPadding = (int) (screen.scale() * -2);
             WinDef.RECT boxRect = new WinDef.RECT();
             boxRect.left = textX - xPadding;
             boxRect.top = textY - yPadding;
