@@ -38,6 +38,8 @@ public class WindowsPlatform implements Platform {
     private WinNT.HANDLE singleInstanceMutex;
     private final WinUser.MSG msg = new WinUser.MSG();
     private double enforceWindowsTopmostTimer;
+    private boolean mustForceReleaseLeftctrl = false;
+    private Set<Key> extendedKeys = new HashSet<>();
 
     public WindowsPlatform() {
         WindowsMouse.windowsPlatform = this; // TODO Get rid of this.
@@ -265,12 +267,53 @@ public class WindowsPlatform implements Platform {
                              String wParamString) {
         if (!keyEvent.isPress())
             currentlyPressedNotEatenKeys.remove(keyEvent.key());
-        boolean mustBeEaten = keyboardManager.keyEvent(keyEvent);
-        if (keyEvent.isPress() && !mustBeEaten) {
+        KeyboardManager.EatAndRegurgitates eatAndRegurgitates = keyboardManager.keyEvent(keyEvent);
+        if (keyEvent.isPress() && !eatAndRegurgitates.mustBeEaten()) {
             currentlyPressedNotEatenKeys.computeIfAbsent(keyEvent.key(),
                     key -> new AtomicReference<>(0d)).set(0d);
         }
-        return mustBeEaten;
+        boolean keyEventIsExtendedKey = (info.flags & 1) == 1;
+        if (keyEventIsExtendedKey)
+            // The Windows callback tells us if a key is an extended key.
+            // This is a simple way to keep that knowledge, which we might need later (regurgitation).
+            // Another way could be to hardcode the virtual codes corresponding extended keys.
+            extendedKeys.add(keyEvent.key());
+        if (!eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
+            for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
+                // Send a press event for the key to regurgitate.
+                WinUser.INPUT[] pInputs;
+                pInputs = (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
+                pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+                pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
+                // Some keys are extended keys and need dwFlag:
+                // https://stackoverflow.com/questions/44924962/sendinput-on-c-doesnt-take-ctrl-and-shift-in-account
+                pInputs[0].input.ki.wVk = new WinDef.WORD(WindowsVirtualKey.windowsVirtualKeyFromKey(keyToRegurgitate).virtualKeyCode);
+                // If KEYEVENTF_EXTENDEDKEY dwFlag is not set,
+                // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
+                if (extendedKeys.contains(keyToRegurgitate)) {
+                    pInputs[0].input.ki.dwFlags = new WinDef.DWORD(0x1);
+                }
+                logger.info("Regurgitating " + eatAndRegurgitates.keysToRegurgitate());
+                User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs, pInputs[0].size());
+                if (keyToRegurgitate == Key.rightalt && keyEventIsExtendedKey) // extended key, e.g. left
+                    // In Intellij, rightalt + left. For some reason, leftctrl would not be released.
+                    // This forces the release of leftctrl once left is released.
+                    // I think this not only affects arrow keys (which are extended keys), but all extended keys (not tested).
+                    mustForceReleaseLeftctrl = true;
+            }
+        }
+        if (mustForceReleaseLeftctrl && keyEvent.isRelease() && keyEventIsExtendedKey) {
+            WinUser.INPUT[] pInputs;
+            pInputs = (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
+            pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+            pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
+            pInputs[0].input.ki.wVk = new WinDef.WORD(WindowsVirtualKey.windowsVirtualKeyFromKey(Key.leftctrl).virtualKeyCode);
+            pInputs[0].input.ki.dwFlags = new WinDef.DWORD(0x2);
+            logger.info("Force-releasing leftctrl");
+            User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs, pInputs[0].size());
+            mustForceReleaseLeftctrl = false;
+        }
+        return eatAndRegurgitates.mustBeEaten();
     }
 
     private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,

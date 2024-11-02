@@ -4,7 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class KeyboardManager {
 
@@ -34,10 +36,20 @@ public class KeyboardManager {
         comboWatcher.reset();
     }
 
-    public boolean keyEvent(KeyEvent keyEvent) {
+    record EatAndRegurgitates(boolean mustBeEaten, Set<Key> keysToRegurgitate) {
+
+    }
+
+    private static final EatAndRegurgitates
+            mustNotBeEatenOnly = new EatAndRegurgitates(false, Set.of());
+    private static final EatAndRegurgitates
+            mustBeEatenOnly = new EatAndRegurgitates(true, Set.of());
+
+    public EatAndRegurgitates keyEvent(KeyEvent keyEvent) {
         Key key = keyEvent.key();
         if (keyEvent.isPress()) {
             PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
+            Set<Key> keysToRegurgitate = Set.of();
             if (processing == null) {
                 if (!pressingUnhandledKey()) {
                     processing = hintManager.keyPressed(keyEvent.key());
@@ -52,9 +64,26 @@ public class KeyboardManager {
                     // select a hint to perform a ctrl-click.
                     processing = hintManager.keyPressed(keyEvent.key());
                 }
+                if (!processing.mustBeEaten()) {
+                    keysToRegurgitate = new HashSet<>();
+                    for (Map.Entry<Key, PressKeyEventProcessing> entry : currentlyPressedKeys.entrySet()) {
+                        if (entry.getValue().mustBeEaten()) {
+                            Key eatenKey = entry.getKey();
+                            keysToRegurgitate.add(eatenKey);
+                            // Change the key's processing to must not be eaten
+                            // so that it cannot be regurgitated a second time.
+                            currentlyPressedKeys.put(key, switch (entry.getValue()) {
+                                case PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN -> PressKeyEventProcessing.PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN;
+                                default -> entry.getValue();
+                            });
+                        }
+                    }
+                    if (!processing.handled())
+                        reset();
+                }
                 currentlyPressedKeys.put(key, processing);
             }
-            return processing.mustBeEaten();
+            return eatAndRegurgitates(processing.mustBeEaten(), keysToRegurgitate);
         }
         else {
             PressKeyEventProcessing processing = currentlyPressedKeys.remove(key);
@@ -64,14 +93,21 @@ public class KeyboardManager {
                     if (processing.isPartOfCombo() || processing.isUnswallowedHintEnd())
                         comboWatcher.keyEvent(keyEvent); // Returns null.
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.
-                    return processing.mustBeEaten();
+                    return eatAndRegurgitates(processing.mustBeEaten(), Set.of());
                 }
                 else
-                    return false;
+                    return eatAndRegurgitates(false, Set.of());
             }
             else
-                return false;
+                return eatAndRegurgitates(false, Set.of());
         }
+    }
+
+    private static EatAndRegurgitates eatAndRegurgitates(boolean mustBeEaten,
+                                                         Set<Key> keysToRegurgitate) {
+        if (keysToRegurgitate.isEmpty())
+            return mustBeEaten ? mustBeEatenOnly : mustNotBeEatenOnly;
+        return new EatAndRegurgitates(mustBeEaten, keysToRegurgitate);
     }
 
     /**
