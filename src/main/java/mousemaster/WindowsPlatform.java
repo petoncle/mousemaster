@@ -295,14 +295,14 @@ public class WindowsPlatform implements Platform {
                 }
                 logger.info("Regurgitating " + eatAndRegurgitates.keysToRegurgitate());
                 User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs, pInputs[0].size());
-                if (keyToRegurgitate == Key.rightalt && keyEventIsExtendedKey) // extended key, e.g. left
+                if (keyToRegurgitate == Key.rightalt)
                     // In Intellij, rightalt + left. For some reason, leftctrl would not be released.
                     // This forces the release of leftctrl once left is released.
                     // I think this not only affects arrow keys (which are extended keys), but all extended keys (not tested).
                     mustForceReleaseLeftctrl = true;
             }
         }
-        if (mustForceReleaseLeftctrl && keyEvent.isRelease() && keyEventIsExtendedKey) {
+        if (mustForceReleaseLeftctrl && keyEvent.isRelease()) {
             WinUser.INPUT[] pInputs;
             pInputs = (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
             pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);

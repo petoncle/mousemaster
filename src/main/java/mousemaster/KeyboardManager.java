@@ -78,8 +78,6 @@ public class KeyboardManager {
                             });
                         }
                     }
-                    if (!processing.handled())
-                        reset();
                 }
                 currentlyPressedKeys.put(key, processing);
             }
