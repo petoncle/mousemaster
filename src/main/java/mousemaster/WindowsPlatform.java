@@ -22,6 +22,8 @@ public class WindowsPlatform implements Platform {
         systemStartTime = now.minusMillis(uptimeMillis);
     }
 
+    private final boolean keyRegurgitationEnabled;
+
     private MouseController mouseController;
     private KeyboardManager keyboardManager;
     private List<MousePositionListener> mousePositionListeners;
@@ -41,7 +43,8 @@ public class WindowsPlatform implements Platform {
     private boolean mustForceReleaseLeftctrl = false;
     private Set<Key> extendedKeys = new HashSet<>();
 
-    public WindowsPlatform() {
+    public WindowsPlatform(boolean keyRegurgitationEnabled) {
+        this.keyRegurgitationEnabled = keyRegurgitationEnabled;
         WindowsMouse.windowsPlatform = this; // TODO Get rid of this.
         if (!acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
@@ -278,29 +281,17 @@ public class WindowsPlatform implements Platform {
             // This is a simple way to keep that knowledge, which we might need later (regurgitation).
             // Another way could be to hardcode the virtual codes corresponding extended keys.
             extendedKeys.add(keyEvent.key());
-        if (!eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
+        if (keyRegurgitationEnabled && !eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
-                // Send a press event for the key to regurgitate.
-                WinUser.INPUT[] pInputs;
-                pInputs = (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
-                pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
-                pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
-                // Some keys are extended keys and need dwFlag:
-                // https://stackoverflow.com/questions/44924962/sendinput-on-c-doesnt-take-ctrl-and-shift-in-account
-                pInputs[0].input.ki.wVk = new WinDef.WORD(WindowsVirtualKey.windowsVirtualKeyFromKey(keyToRegurgitate).virtualKeyCode);
-                // If KEYEVENTF_EXTENDEDKEY dwFlag is not set,
-                // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
-                if (extendedKeys.contains(keyToRegurgitate)) {
-                    pInputs[0].input.ki.dwFlags = new WinDef.DWORD(0x1);
-                }
-                logger.info("Regurgitating " + eatAndRegurgitates.keysToRegurgitate());
-                User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs, pInputs[0].size());
+                regurgitate(keyToRegurgitate, extendedKeys.contains(keyToRegurgitate));
                 if (keyToRegurgitate == Key.rightalt)
                     // In Intellij, rightalt + left. For some reason, leftctrl would not be released.
                     // This forces the release of leftctrl once left is released.
                     // I think this not only affects arrow keys (which are extended keys), but all extended keys (not tested).
+                    // Or maybe it is WM_SYSKEYDOWN keys (which, for rightalt, are VK_LCONTROL and VK_RMENU)?
                     mustForceReleaseLeftctrl = true;
             }
+            logger.info("Regurgitating " + eatAndRegurgitates.keysToRegurgitate());
         }
         if (mustForceReleaseLeftctrl && keyEvent.isRelease()) {
             WinUser.INPUT[] pInputs;
@@ -311,9 +302,34 @@ public class WindowsPlatform implements Platform {
             pInputs[0].input.ki.dwFlags = new WinDef.DWORD(0x2);
             logger.info("Force-releasing leftctrl");
             User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs, pInputs[0].size());
+            pInputs = (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
+            pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+            pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
+            pInputs[0].input.ki.wVk = new WinDef.WORD(WindowsVirtualKey.windowsVirtualKeyFromKey(Key.rightalt).virtualKeyCode);
+            pInputs[0].input.ki.dwFlags = new WinDef.DWORD(0x2);
+            logger.info("Force-releasing rightalt");
+            User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs, pInputs[0].size());
             mustForceReleaseLeftctrl = false;
         }
         return eatAndRegurgitates.mustBeEaten();
+    }
+
+    private void regurgitate(Key keyToRegurgitate, boolean isExtendedKey) {
+        // Send a press event for the key to regurgitate.
+        WinUser.INPUT[] pInputs;
+        pInputs = (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
+        pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+        pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
+        // Some keys are extended keys and need dwFlag:
+        // https://stackoverflow.com/questions/44924962/sendinput-on-c-doesnt-take-ctrl-and-shift-in-account
+        pInputs[0].input.ki.wVk = new WinDef.WORD(WindowsVirtualKey.windowsVirtualKeyFromKey(
+                keyToRegurgitate).virtualKeyCode);
+        // If KEYEVENTF_EXTENDEDKEY dwFlag is not set,
+        // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
+        if (isExtendedKey) {
+            pInputs[0].input.ki.dwFlags = new WinDef.DWORD(0x1);
+        }
+        User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs, pInputs[0].size());
     }
 
     private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,

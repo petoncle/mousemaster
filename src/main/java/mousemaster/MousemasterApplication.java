@@ -28,6 +28,13 @@ public class MousemasterApplication {
                                        .findFirst()
                                        .map(Paths::get)
                                        .orElse(Paths.get("mousemaster.properties"));
+        boolean keyRegurgitationEnabled = // Feature flag.
+                Stream.of(args)
+                      .filter(arg -> arg.startsWith("--key-regurgitation-enabled="))
+                      .map(arg -> arg.split("=")[1])
+                      .findFirst()
+                      .map(Boolean::parseBoolean)
+                      .orElse(false);
         if (Stream.of(args).anyMatch(Predicate.isEqual(("--graalvm-agent-run")))) {
             logger.info("--graalvm-agent-run flag found, exiting in 20s");
             new Thread(() -> {
@@ -39,7 +46,7 @@ public class MousemasterApplication {
                 System.exit(0);
             }).start();
         }
-        new Mousemaster(configurationPath, new WindowsPlatform()).run();
+        new Mousemaster(configurationPath, new WindowsPlatform(keyRegurgitationEnabled)).run();
     }
 
     private static void setLogLevel(String level) {
