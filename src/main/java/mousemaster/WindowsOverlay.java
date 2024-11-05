@@ -439,7 +439,7 @@ public class WindowsOverlay {
             textRect.bottom = textY + textSize.cy;
             // Try to minimize the size of the box. Looks good with Arial 10.
             int xPadding = (int) (screen.scale() * 1);
-            int yPadding = (int) (screen.scale() * -2);
+            int yPadding = (int) (screen.scale() * -1);
             WinDef.RECT boxRect = new WinDef.RECT();
             boxRect.left = textX - xPadding;
             boxRect.top = textY - yPadding;
