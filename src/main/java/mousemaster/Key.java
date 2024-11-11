@@ -15,6 +15,7 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key rightctrl = new Key("rightctrl", null, null);
     public static final Key rightalt = new Key("rightalt", null, null);
     public static final Key pause = new Key("pause", null, null);
+    public static final Key scrolllock = new Key("scrolllock", null, null);
     public static final Key capslock = new Key("capslock", null, null);
     public static final Key esc = new Key("esc", null, null);
     public static final Key space = new Key("space", null, null);
@@ -82,6 +83,7 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
             rightctrl,
             rightalt,
             pause,
+            scrolllock,
             capslock,
             esc,
             space,
