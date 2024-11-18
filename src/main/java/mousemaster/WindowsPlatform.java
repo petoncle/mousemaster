@@ -279,7 +279,7 @@ public class WindowsPlatform implements Platform {
         if (keyEventIsExtendedKey)
             // The Windows callback tells us if a key is an extended key.
             // This is a simple way to keep that knowledge, which we might need later (regurgitation).
-            // Another way could be to hardcode the virtual codes corresponding extended keys.
+            // Another way could be to hardcode the virtual codes corresponding to extended keys.
             extendedKeys.add(keyEvent.key());
         if (keyRegurgitationEnabled && !eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {

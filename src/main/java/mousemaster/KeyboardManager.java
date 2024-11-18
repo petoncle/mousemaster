@@ -66,7 +66,8 @@ public class KeyboardManager {
                 }
                 if (!processing.mustBeEaten()) {
                     keysToRegurgitate = new HashSet<>();
-                    for (Map.Entry<Key, PressKeyEventProcessing> entry : currentlyPressedKeys.entrySet()) {
+                    for (Map.Entry<Key, PressKeyEventProcessing> entry : Set.copyOf(
+                            currentlyPressedKeys.entrySet())) {
                         if (entry.getValue().mustBeEaten()) {
                             Key eatenKey = entry.getKey();
                             keysToRegurgitate.add(eatenKey);
