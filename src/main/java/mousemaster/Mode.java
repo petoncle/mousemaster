@@ -2,7 +2,7 @@ package mousemaster;
 
 public record Mode(String name, boolean stopCommandsFromPreviousMode,
                    boolean pushModeToHistoryStack,
-                   String modeAfterPressingUnhandledKeysOnly, ComboMap comboMap, Mouse mouse,
+                   String modeAfterUnhandledKeyPress, ComboMap comboMap, Mouse mouse,
                    Wheel wheel, GridConfiguration grid, HintMeshConfiguration hintMesh,
                    ModeTimeout timeout, IndicatorConfiguration indicator,
                    HideCursor hideCursor) {

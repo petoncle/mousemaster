@@ -104,7 +104,7 @@ public class ConfigurationParser {
         return Stream.of( //
                 new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
                 new Property<>("push-mode-to-history-stack", pushModeToHistoryStack),
-                new Property<>("mode-after-pressing-unhandled-keys-only", modeAfterPressingUnhandledKeysOnly),
+                new Property<>("mode-after-unhandled-key-press", modeAfterPressingUnhandledKeysOnly),
                 new Property<>("mouse", mouse),
                 new Property<>("wheel", wheel), 
                 new Property<>("grid", grid), 
@@ -236,10 +236,10 @@ public class ConfigurationParser {
                                         Boolean.parseBoolean(propertyValue)),
                                 childPropertiesByParentProperty,
                                 nonRootPropertyKeys);
-                case "mode-after-pressing-unhandled-keys-only" -> {
+                case "mode-after-unhandled-key-press" -> {
                     String modeAfterPressingUnhandledKeysOnly =
                             checkModeReference(propertyValue);
-                    mode.modeAfterPressingUnhandledKeysOnly.parseReferenceOr(propertyKey,
+                    mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
                             modeAfterPressingUnhandledKeysOnly, builder -> {
                                 builder.set(modeAfterPressingUnhandledKeysOnly);
                                 referencedModesByReferencerMode.computeIfAbsent(modeName,
@@ -1118,7 +1118,7 @@ public class ConfigurationParser {
         final String modeName;
         Property<AtomicReference<Boolean>> stopCommandsFromPreviousMode;
         Property<AtomicReference<Boolean>> pushModeToHistoryStack;
-        Property<AtomicReference<String>> modeAfterPressingUnhandledKeysOnly;
+        Property<AtomicReference<String>> modeAfterUnhandledKeyPress;
         ComboMapConfigurationBuilder comboMap;
         Property<MouseBuilder> mouse;
         Property<WheelBuilder> wheel;
@@ -1150,7 +1150,7 @@ public class ConfigurationParser {
                         builder.set(parent.get());
                 }
             };
-            modeAfterPressingUnhandledKeysOnly = new Property<>("mode-after-pressing-unhandled-keys-only", modeName,
+            modeAfterUnhandledKeyPress = new Property<>("mode-after-unhandled-key-press", modeName,
                     propertyByKey, new AtomicReference<>()) {
                 @Override
                 void extend(Object parent_) {
@@ -1319,7 +1319,7 @@ public class ConfigurationParser {
         public Mode build() {
             return new Mode(modeName, stopCommandsFromPreviousMode.builder.get(),
                     pushModeToHistoryStack.builder.get(),
-                    modeAfterPressingUnhandledKeysOnly.builder.get(), comboMap.build(),
+                    modeAfterUnhandledKeyPress.builder.get(), comboMap.build(),
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
                     indicator.builder.build(), hideCursor.builder.build());

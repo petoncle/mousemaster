@@ -109,24 +109,6 @@ public class KeyboardManager {
         return new EatAndRegurgitates(mustBeEaten, keysToRegurgitate);
     }
 
-    /**
-     * Handled means part of combo or part of hint.
-     */
-    public boolean pressingUnhandledKeysOnly() {
-        if (currentlyPressedKeys.isEmpty())
-            return false;
-        for (PressKeyEventProcessing pressKeyEventProcessing : currentlyPressedKeys.values()) {
-            if (pressKeyEventProcessing.isPartOfComboSequence() ||
-                pressKeyEventProcessing.isPartOfHintPrefix() ||
-                pressKeyEventProcessing.isHintUndo() ||
-                pressKeyEventProcessing.isUnswallowedHintEnd())
-                return false;
-        }
-        // Pressed keys are either unhandled or part of combo precondition.
-        // Consider pressed keys unhandled if at least one is unhandled and the others are precondition keys.
-        return pressingUnhandledKey();
-    }
-
     public boolean pressingUnhandledKey() {
         for (PressKeyEventProcessing pressKeyEventProcessing : currentlyPressedKeys.values()) {
             if (!pressKeyEventProcessing.handled())
