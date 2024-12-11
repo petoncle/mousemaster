@@ -89,9 +89,14 @@ public interface ExtendedUser32 extends User32 {
 
     boolean SetSystemCursor(HANDLE hcur, UINT id);
 
-    boolean SystemParametersInfoA(UINT uiAction, UINT uiParam, Pointer pvParam, UINT fWinIni);
+    boolean SystemParametersInfoA(UINT uiAction, UINT uiParam, WinDef.DWORD[] pvParam, UINT fWinIni);
 
     int SPI_SETCURSORS = 0x0057;
+    int SPI_GETMOUSESPEED = 0x0070;
+    int SPI_SETMOUSESPEED = 0x0071;
+    // Constants for mouse thresholds and acceleration.
+    int SPI_GETMOUSE = 0x0003;
+    int SPI_SETMOUSE = 0x0004;
 
     HWND HWND_TOPMOST = new HWND(new Pointer(-1));
 

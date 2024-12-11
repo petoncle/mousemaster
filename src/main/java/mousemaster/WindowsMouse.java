@@ -8,71 +8,136 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.LongStream;
 
 public class WindowsMouse {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsMouse.class);
-    private static final Executor mouseExecutor = Executors.newSingleThreadExecutor();
 
     public static void moveBy(boolean xForward, double deltaX, boolean yForward,
                               double deltaY) {
         if (((long) deltaX) == 0 && ((long) deltaY) == 0)
             return;
-        mouseExecutor.execute(() -> sendInput((long) deltaX * (xForward ? 1 : -1),
-                (long) deltaY * (yForward ? 1 : -1), 0, ExtendedUser32.MOUSEEVENTF_MOVE));
+        sendInput((long) deltaX * (xForward ? 1 : -1),
+                (long) deltaY * (yForward ? 1 : -1), 0,
+                ExtendedUser32.MOUSEEVENTF_MOVE);
     }
 
+    // Mutable field that will contain the user's mouse settings
+    // (Control panel > Mouse settings > Pointer options tab).
+    private static final WinDef.DWORD[] originalMouseThresholdsAndAcceleration =
+            new WinDef.DWORD[]{
+                    new WinDef.DWORD(0), // Threshold1.
+                    new WinDef.DWORD(0), // Threshold2.
+                    new WinDef.DWORD(0)  // Acceleration.
+            };
+    private static final WinDef.DWORD[] originalMouseSpeed = new WinDef.DWORD[] { new WinDef.DWORD(0) };
+    // Following is a "no enhanced pointer precision" mouse setting that we use to be
+    // able to predict where the mouse will end up when moving the mouse to a target
+    // position using SendInput.
+    private static final WinDef.DWORD[] zeroMouseThresholdsAndAcceleration =
+            new WinDef.DWORD[]{
+                    new WinDef.DWORD(0),
+                    new WinDef.DWORD(0),
+                    new WinDef.DWORD(0)
+            };
+    private static final WinDef.DWORD[] tenMouseSpeed = new WinDef.DWORD[] { new WinDef.DWORD(10) };
+
     /**
-     * Moves now, in the current thread.
+     * On my computer, with enhanced pointer precision enabled,
+     * the values returned by SPI_GETMOUSE are:
+     * Threshold 1: 6
+     * Threshold 2: 10
+     * Acceleration: 1
+     * If enhanced pointer precision is disabled, then the values are all 0.
+     * On my computer, SPI_GETMOUSESPEED is 10 (that's the default).
      */
+    private static void findMouseThresholdsAndAccelerationAndSpeed(
+            WinDef.DWORD[] mouseThresholdsAndAcceleration,
+            WinDef.DWORD[] originalMouseSpeed) {
+        boolean getMouseSuccess = ExtendedUser32.INSTANCE.SystemParametersInfoA(
+                new WinDef.UINT(ExtendedUser32.SPI_GETMOUSE),
+                new WinDef.UINT(0),
+                mouseThresholdsAndAcceleration,
+                new WinDef.UINT(0)
+        );
+        boolean getMousespeedSuccess = ExtendedUser32.INSTANCE.SystemParametersInfoA(
+                new WinDef.UINT(ExtendedUser32.SPI_GETMOUSESPEED),
+                new WinDef.UINT(0),
+                originalMouseSpeed,
+                new WinDef.UINT(0)
+        );
+        if (getMouseSuccess && getMousespeedSuccess) {
+            if (logger.isTraceEnabled())
+                logger.trace("SPI_GETMOUSE Threshold 1 = " + mouseThresholdsAndAcceleration[0].intValue()
+                             + ", Threshold 2 = " + mouseThresholdsAndAcceleration[1].intValue()
+                             + ", Acceleration: " + mouseThresholdsAndAcceleration[2].intValue()
+                             + ", SPI_GETMOUSESPEED = " + originalMouseSpeed[0]);
+        } else {
+            logger.error("Unable to call get mouse thresholds, acceleration and speed");
+        }
+    }
+
+    private static void setMouseThresholdsAndAccelerationAndSpeed(
+            WinDef.DWORD[] mouseThresholdsAndAcceleration, WinDef.DWORD[] mouseSpeed) {
+        int SPIF_SENDCHANGE = 0x02;
+        boolean setMouseSuccess = ExtendedUser32.INSTANCE.SystemParametersInfoA(
+                new WinDef.UINT(ExtendedUser32.SPI_SETMOUSE),
+                new WinDef.UINT(0),
+                mouseThresholdsAndAcceleration,
+                new WinDef.UINT(SPIF_SENDCHANGE)
+        );
+        boolean setMousespeedSuccess = mouseSpeed[0].intValue() == 10 || ExtendedUser32.INSTANCE.SystemParametersInfoA(
+                new WinDef.UINT(ExtendedUser32.SPI_SETMOUSESPEED),
+                new WinDef.UINT(0),
+                mouseSpeed,
+                new WinDef.UINT(SPIF_SENDCHANGE)
+        );
+        if (!setMouseSuccess && !setMousespeedSuccess) {
+            logger.error("Unable to set mouse thresholds, acceleration and speed");
+        }
+    }
+
     public static void synchronousMoveTo(int x, int y) {
+        WinDef.POINT mousePosition = findMousePosition();
+        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+        // TODO What if the move is across multiple screens?
+        double scaledDeltaX = Math.abs(x - mousePosition.x) / activeScreen.scale();
+        double scaledDeltaY = Math.abs(y - mousePosition.y) / activeScreen.scale();
+        findMouseThresholdsAndAccelerationAndSpeed(originalMouseThresholdsAndAcceleration,
+                originalMouseSpeed);
+        setMouseThresholdsAndAccelerationAndSpeed(zeroMouseThresholdsAndAcceleration,
+                tenMouseSpeed);
+        moveBy(x > mousePosition.x, scaledDeltaX, y > mousePosition.y, scaledDeltaY);
+        setMouseThresholdsAndAccelerationAndSpeed(originalMouseThresholdsAndAcceleration,
+                originalMouseSpeed);
+        // Absolute positioning necessary to be pixel perfect (Or is there another way?).
+        // I think this is only a problem if the screen scale is not 1?
         setMousePosition(new WinDef.POINT(x, y));
     }
 
-    private final static AtomicInteger latestX = new AtomicInteger();
-
-    private final static AtomicInteger latestY = new AtomicInteger();
-
-    public static void moveTo(int x, int y) {
-        latestX.set(x);
-        latestY.set(y);
-        mouseExecutor.execute(() -> {
-            if (x != latestX.get() || y != latestY.get())
-                return;
-            setMousePosition(new WinDef.POINT(x, y));
-        });
-    }
-
     public static void pressLeft() {
-        mouseExecutor.execute(
-                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN));
+        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN);
     }
 
     public static void pressMiddle() {
-        mouseExecutor.execute(
-                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN));
+        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN);
     }
 
     public static void pressRight() {
-        mouseExecutor.execute(
-                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTDOWN));
+        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTDOWN);
     }
 
     public static void releaseLeft() {
-        mouseExecutor.execute(
-                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTUP));
+        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTUP);
     }
 
     public static void releaseMiddle() {
-        mouseExecutor.execute(
-                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEUP));
+        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEUP);
     }
 
     public static void releaseRight() {
-        mouseExecutor.execute(
-                () -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTUP));
+        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTUP);
     }
 
     /**

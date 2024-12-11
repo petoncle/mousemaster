@@ -128,7 +128,7 @@ public class MouseController implements ModeListener, MousePositionListener {
                 }
             }
             if (nextJumpX != jumpX || nextJumpY != jumpY) {
-                WindowsMouse.moveTo(nextJumpX, nextJumpY);
+                WindowsMouse.synchronousMoveTo(nextJumpX, nextJumpY);
                 jumpX = nextJumpX;
                 jumpY = nextJumpY;
             }
@@ -364,13 +364,8 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (jumping && x == jumpEndX && y == jumpEndY)
             return;
         // Move a single pixel. Skype's titlebar does not like being dragged too quick too far.
-        mouseX = mouseX + (int) Math.signum(x - mouseX);
-        mouseY = mouseY + (int) Math.signum(y - mouseY);
-        WindowsMouse.synchronousMoveTo(mouseX, mouseY);
-        if (x == mouseX && y == mouseY)
-            return;
         if (!mouse.smoothJumpEnabled()) {
-            WindowsMouse.moveTo(x, y);
+            WindowsMouse.synchronousMoveTo(x, y);
             return;
         }
         // If already jumping but one direction changes, then reset velocity.
@@ -416,7 +411,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (jumping && !mouse.smoothJumpEnabled()) {
             jumping = false;
             jumpDuration = 0;
-            WindowsMouse.moveTo(jumpEndX, jumpEndY);
+            WindowsMouse.synchronousMoveTo(jumpEndX, jumpEndY);
         }
         if (newMode.stopCommandsFromPreviousMode()) {
             stopMoveDown();
@@ -440,6 +435,8 @@ public class MouseController implements ModeListener, MousePositionListener {
     public void mouseMoved(int x, int y) {
         mouseX = x;
         mouseY = y;
+        jumpX = x;
+        jumpY = y;
         if (mouseX == jumpEndX && mouseY == jumpEndY) {
             jumping = false;
             jumpDuration = 0;
