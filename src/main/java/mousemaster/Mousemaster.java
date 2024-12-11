@@ -16,6 +16,7 @@ public class Mousemaster {
     private final WatchService watchService;
     private Configuration configuration;
     private MouseController mouseController;
+    private HintManager hintManager;
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
     private ModeController modeController;
@@ -41,6 +42,7 @@ public class Mousemaster {
             platform.update(delta);
             modeController.update(delta);
             mouseController.update(delta);
+            hintManager.update(delta);
             keyboardManager.update(delta);
             indicatorManager.update(delta);
             Thread.sleep(10L);
@@ -82,7 +84,7 @@ public class Mousemaster {
         mouseController = new MouseController(screenManager);
         MouseState mouseState = new MouseState(mouseController);
         GridManager gridManager = new GridManager(screenManager, mouseController);
-        HintManager hintManager =
+        hintManager =
                 new HintManager(configuration.maxPositionHistorySize(),
                         screenManager, mouseController);
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager,

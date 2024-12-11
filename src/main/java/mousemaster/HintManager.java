@@ -32,6 +32,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int positionIdCount = 0;
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int positionCycleIndex = 0;
+    private Hint selectedHintToFinalize;
 
     public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
                        MouseController mouseController) {
@@ -49,12 +50,32 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.modeController = modeController;
     }
 
+    public void update(double delta) {
+        // Relying on mouseMoved() callbacks is not enough because the mouse may not move
+        // when a hint is selected (and no there is no callback).
+        tryFinalizeHintSelection();
+    }
+
     @Override
     public void mouseMoved(int x, int y) {
         if (mouseController.jumping())
             return;
         mouseX = x;
         mouseY = y;
+        tryFinalizeHintSelection();
+    }
+
+    private void tryFinalizeHintSelection() {
+        if (selectedHintToFinalize != null) {
+            if (!mouseController.jumping()) {
+                finalizeHintSelection(selectedHintToFinalize);
+                selectedHintToFinalize = null;
+            }
+        }
+    }
+
+    public boolean finalizingHintSelection() {
+        return selectedHintToFinalize != null;
     }
 
     @Override
@@ -330,27 +351,11 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            // Move synchronously. After this moveTo call, we know the move was executed
-            // and a click can be performed at the new position.
-            mouseController.synchronousMoveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
-            if (hintMeshConfiguration.savePositionAfterSelection())
-                savePosition();
-            if (hintMeshConfiguration.modeAfterSelection() != null) {
-                logger.debug("Hint " + exactMatchHint.keySequence()
-                                                                 .stream()
-                                                                 .map(Key::name)
-                                                                 .toList() +
-                             " selected, switching to " +
-                             hintMeshConfiguration.modeAfterSelection());
-                modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
-            }
-            else {
-                hintMesh =
-                        hintMesh.builder().focusedKeySequence(List.of()).build();
-                previousHintMeshByTypeAndSelectionKeys.put(
-                        hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
-                WindowsOverlay.setHintMesh(hintMesh);
-            }
+            // After this moveTo call, the move is not fully completed.
+            // We need to wait until the jump completes before a click can be performed at
+            // the new position.
+            mouseController.moveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
+            this.selectedHintToFinalize = exactMatchHint;
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
                     PressKeyEventProcessing.swallowedHintEnd() :
                     PressKeyEventProcessing.unswallowedHintEnd();
@@ -362,6 +367,28 @@ public class HintManager implements ModeListener, MousePositionListener {
                     hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
             WindowsOverlay.setHintMesh(hintMesh);
             return PressKeyEventProcessing.partOfHintPrefix();
+        }
+    }
+
+    private void finalizeHintSelection(Hint hint) {
+        HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
+        if (hintMeshConfiguration.savePositionAfterSelection())
+            savePosition();
+        if (hintMeshConfiguration.modeAfterSelection() != null) {
+            logger.debug("Hint " + hint.keySequence()
+                                       .stream()
+                                       .map(Key::name)
+                                       .toList() +
+                         " selected, switching to " +
+                         hintMeshConfiguration.modeAfterSelection());
+            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
+        }
+        else {
+            hintMesh =
+                    hintMesh.builder().focusedKeySequence(List.of()).build();
+            previousHintMeshByTypeAndSelectionKeys.put(
+                    hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
+            WindowsOverlay.setHintMesh(hintMesh);
         }
     }
 
