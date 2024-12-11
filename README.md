@@ -43,72 +43,62 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to **mousemaster.properties**.
 5. Run **mousemaster.exe**.
-6. Don't hesitate to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues)
+6. Feel free to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues)
    or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own
-   configuration.
+   configuration. If you have ideas for a better configuration that
+   you would like to share, I'd love to hear from you.
 
 # Features
 
-1. **Dynamic configuration:** The configuration file is live, automatically reloading upon
-   any saved changes.
-
-2. **Adaptive mouse indicator:** The optional and customizable mouse indicator (a
-   plain-color square drawn next to the mouse cursor) changes colors based on mouse
-   activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
-   visible when the mouse is near screen edges.
-
-3. **Multi-screen navigation:** mousemaster allows for mouse
-   movement across multiple screens.
-
-4. **Advanced key combinations (key combos):** mousemaster offers an advanced level
+1. **Advanced key combinations (key combos):** mousemaster offers a high level
    of customization for key combinations. It allows for advanced key combos like "hold
    alt for 1 second" or "press then release alt, twice in a row".
 
-5. **Left/right key distinction:** mousemaster distinguishes between left and right
-   alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
-   different commands.
-
-6. **No key is special:** All keys are treated the same way, meaning that for example, you
-   can implement a "hold capslock then press enter" combo
-   just like you would implement a "hold alt then press X" combo.
-
-7. **Does not conflict with other applications:** mousemaster tries not to clash with
-   other apps using shortcuts. Key events that are not part of any combos are 
-   passed onto other apps.
-
-8. **Many-to-many key combo -> command mapping:** The same key combo can be used to
-   trigger multiple commands. Multiple key combos can be used to trigger the same command.
-
-9. **Custom modes:** Users have to define their own modes, with each mode
+2. **Custom modes:** Users have to define their own modes, with each mode
    having its own key combo-to-command map and mouse settings. There is only one
    predefined mode, the "idle-mode", which has no key combos predefined (this is the
    "mousemaster is disabled mode").
 
-10. **Mode timeout:** A timeout can be set on a mode to switch to another mode after some
-    idle time. This can be used for automatically disabling mousemaster after a while.
+3. **Flexible key combo to command mappings:** The same key combo can be used to
+   trigger multiple commands. Multiple key combos can be used to trigger the same command.
 
-11. **Grids:** mousemaster incorporates a grid-based navigation system. A grid can cover the
-    active screen or the active window.
+4. **Multi-screen navigation:** mousemaster allows for mouse movement across multiple screens.
 
-12. **Hints:** mousemaster incorporates a hint-based navigation system similar
-    to Vimium's. A hint grid can cover the active screen, the active window, or all
-    screens (that last one can be used for screen selection hints). A mouse button click
-    can be automatically triggered after a hint is selected.
+5. **Grids:** mousemaster includes a grid-based navigation system. A grid can cover the
+   active screen or the active window.
 
-13. **Position history hints:** mousemaster incorporates position history hints. The
-    position history hints are not limited to a single screen (unlike warpd).
+6. **Hints:** mousemaster includes a hint-based navigation system similar
+   to Vimium's. A hint grid can cover the active screen, the active window, or all
+   screens (which can be used for screen selection hints). A mouse button click
+   can be automatically triggered after a hint is selected.
+
+7. **Dynamic configuration:** The configuration file is live, mousemaster automatically
+   reloads it whenever the file is saved.
+
+8. **Visual mouse indicator:** The optional and customizable mouse indicator (a
+   plain-color square drawn next to the mouse cursor) changes colors based on mouse
+   activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
+   visible when the mouse is near screen edges.
+
+9. **Left/right key distinction:** mousemaster distinguishes between left and right
+   alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
+   different commands.
+
+10. **Position history hints:** absolute positions can be saved on the fly to be able 
+    to make the mouse jump to them later.
 
 # Notes
 
-- By using mousemaster along with [PowerToys](https://github.com/microsoft/PowerToys)
-  and the Vimium-like [Tridactyl](https://github.com/tridactyl/tridactyl) extension for
-  Firefox, I have been able to not use my mouse (at all) anymore. 
+- I use mousemaster on a daily basis, along with [PowerToys](https://github.com/microsoft/PowerToys)
+  and the [Tridactyl](https://github.com/tridactyl/tridactyl) extension for
+  Firefox. I no longer use my physical mouse except for some certain tasks like drawing. 
 - The two major differences between mousemaster and the existing alternatives (warpd and
-  mouseable), are the way key combos are defined (key presses and key releases instead
-  of "just keys"), and the "create your own modes" approach.
+  mouseable), are the way key combos are defined (i.e. the distinction between key
+  presses and key releases), and the "create your own modes" approach.
 - The configuration of mousemaster is significantly more complex than warpd and mouseable,
   mostly because you have to think in terms of key presses and key releases. This is a
-  conscious trade-off for greater flexibility. Detailed debug logs are provided in the
-  console to assist in configuration and troubleshooting.
+  conscious trade-off for greater flexibility.
 - Currently, mousemaster is Windows-only. I have not looked at making it cross-platform
-  simply because all my desktops are Windows based.
+  only because my desktops are Windows based.
+- If you need help, have questions, or suggestions, 
+  don't hesitate to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues) or join the [Discord](https://discord.gg/GSB6MaKb2R).
