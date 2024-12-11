@@ -16,7 +16,7 @@
 # Demo
 
 ## Hints Demo
-https://github.com/petoncle/mousemaster/assets/39304282/841216ac-08a9-408a-8cd7-6558941afd3c
+https://github.com/user-attachments/assets/7118afae-688a-450a-b9ad-fbe5806fc890
 
 ## Grid Demo (1/2)
 https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
