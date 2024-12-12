@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WindowsPlatform implements Platform {
@@ -28,8 +27,6 @@ public class WindowsPlatform implements Platform {
     private MouseController mouseController;
     private KeyboardManager keyboardManager;
     private List<MousePositionListener> mousePositionListeners;
-    private CopyOnWriteArrayList<WinDef.POINT> mousePositionSetEvents =
-            new CopyOnWriteArrayList<>();
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -67,12 +64,6 @@ public class WindowsPlatform implements Platform {
             // Every 200ms.
             enforceWindowsTopmostTimer = 0.2;
             WindowsOverlay.setTopmost();
-        }
-        while (!mousePositionSetEvents.isEmpty()) {
-            WinDef.POINT mousePosition = mousePositionSetEvents.removeFirst();
-            WindowsOverlay.mouseMoved(mousePosition);
-            mousePositionListeners.forEach(
-                    listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
         }
     }
 
@@ -363,12 +354,10 @@ public class WindowsPlatform implements Platform {
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }
 
-    /**
-     * mouseHookCallback is not called when we call the SetMousePos() API.
-     */
     public void mousePositionSet(WinDef.POINT mousePosition) {
-        // Event added to a queue which will be consumed in the main thread.
-        mousePositionSetEvents.add(mousePosition);
+        WindowsOverlay.mouseMoved(mousePosition);
+        mousePositionListeners.forEach(
+                listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
     }
 
 }
