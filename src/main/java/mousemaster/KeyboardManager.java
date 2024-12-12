@@ -27,7 +27,7 @@ public class KeyboardManager {
             if (!hintManager.finalizingHintSelection()) {
                 while (!eventsWaitingForHintSelectionFinalization.isEmpty()) {
                     logger.trace(
-                            "Processing event from hint selection finalization queue: " +
+                            "Update processing event from hint selection finalization queue: " +
                             eventsWaitingForHintSelectionFinalization.getFirst());
                     singleKeyEvent(eventsWaitingForHintSelectionFinalization.removeFirst());
                     nextEventIsUnswallowedHintEnd = false;
@@ -61,6 +61,9 @@ public class KeyboardManager {
             return eatAndRegurgitates(true, Set.of());
         }
         while (!eventsWaitingForHintSelectionFinalization.isEmpty()) {
+            logger.trace(
+                    "keyEvent processing event from hint selection finalization queue: " +
+                    eventsWaitingForHintSelectionFinalization.getFirst());
             singleKeyEvent(eventsWaitingForHintSelectionFinalization.removeFirst());
             nextEventIsUnswallowedHintEnd = false;
         }
@@ -125,8 +128,9 @@ public class KeyboardManager {
                 else
                     return eatAndRegurgitates(false, Set.of());
             }
-            else
+            else {
                 return eatAndRegurgitates(false, Set.of());
+            }
         }
     }
 

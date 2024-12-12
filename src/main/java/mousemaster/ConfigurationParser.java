@@ -69,7 +69,7 @@ public class ConfigurationParser {
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
                                         .toList())
-                .fontName("Arial")
+                .fontName("Consolas")
                 .fontSize(10)
                 .fontHexColor("#FFFFFF")
                 .selectedPrefixFontHexColor("#8FA6C4")

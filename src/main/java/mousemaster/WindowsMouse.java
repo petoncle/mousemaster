@@ -116,28 +116,54 @@ public class WindowsMouse {
         setMousePosition(new WinDef.POINT(x, y));
     }
 
+    /**
+     * Windows keyboard events can be called when we call SendInput()
+     * (JNA uses our call to SendInput() as an opportunity to run callbacks?).
+     * That is why we execute some SendInput() in a thread other than the main thread.
+     * That seems to be enough to prevent the unwanted behavior.
+     * java.lang.IllegalStateException: singleKeyEventInProgress = true
+     * 	at mousemaster.KeyboardManager.singleKeyEvent(KeyboardManager.java:83)
+     * 	at mousemaster.KeyboardManager.keyEvent(KeyboardManager.java:76)
+     * 	at mousemaster.WindowsPlatform.keyEvent(WindowsPlatform.java:282)
+     * 	at mousemaster.WindowsPlatform.keyboardHookCallback(WindowsPlatform.java:265)
+     * 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+     * 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+     * 	at com.sun.jna.CallbackReference$DefaultCallbackProxy.invokeCallback(CallbackReference.java:585)
+     * 	at com.sun.jna.CallbackReference$DefaultCallbackProxy.callback(CallbackReference.java:616)
+     * 	at com.sun.jna.Native.invokeInt(Native Method)
+     * 	at com.sun.jna.Function.invoke(Function.java:426)
+     * 	at com.sun.jna.Function.invoke(Function.java:361)
+     * 	at com.sun.jna.Library$Handler.invoke(Library.java:270)
+     * 	at jdk.proxy2/jdk.proxy2.$Proxy6.SendInput(Unknown Source)
+     * 	at mousemaster.WindowsMouse.sendInput(WindowsMouse.java:175)
+     * 	at mousemaster.WindowsMouse.pressLeft(WindowsMouse.java:120)
+     * 	at mousemaster.MouseController.pressLeft(MouseController.java:237)
+     * 	at mousemaster.CommandRunner.run(CommandRunner.java:38)
+     */
+    private static final Executor buttonExecutor = Executors.newSingleThreadExecutor();
+
     public static void pressLeft() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN);
+        buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN));
     }
 
     public static void pressMiddle() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN);
+        buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN));
     }
 
     public static void pressRight() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTDOWN);
+        buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTDOWN));
     }
 
     public static void releaseLeft() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTUP);
+        buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTUP));
     }
 
     public static void releaseMiddle() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEUP);
+        buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEUP));
     }
 
     public static void releaseRight() {
-        sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTUP);
+        buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTUP));
     }
 
     /**
