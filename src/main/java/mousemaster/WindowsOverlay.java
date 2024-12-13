@@ -1,7 +1,9 @@
 package mousemaster;
 
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.ptr.PointerByReference;
 import mousemaster.WindowsMouse.MouseSize;
 
 import java.util.*;
@@ -57,8 +59,11 @@ public class WindowsOverlay {
 
     public static void setTopmost() {
         List<WinDef.HWND> hwnds = new ArrayList<>();
-        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+        // First in the hwnds list means drawn on top.
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
             hwnds.add(hintMeshWindow.hwnd);
+            hwnds.add(hintMeshWindow.transparentHwnd);
+        }
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
         if (gridWindow != null)
@@ -99,7 +104,9 @@ public class WindowsOverlay {
 
     }
 
-    private record HintMeshWindow(WinDef.HWND hwnd, WinUser.WindowProc callback, List<Hint> hints) {
+    private record HintMeshWindow(WinDef.HWND hwnd,
+                                  WinDef.HWND transparentHwnd,
+                                  WinUser.WindowProc callback, List<Hint> hints) {
 
     }
 
@@ -186,12 +193,27 @@ public class WindowsOverlay {
                 WinDef.HWND hwnd = createWindow("HintMesh", screen.rectangle().x(),
                         screen.rectangle().y(), screen.rectangle().width() + 1,
                         screen.rectangle().height() + 1, callback);
+
+                WinDef.HWND transparentHwnd = User32.INSTANCE.CreateWindowEx(
+                        User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
+                        ExtendedUser32.WS_EX_NOACTIVATE
+                        | ExtendedUser32.WS_EX_LAYERED
+                        | ExtendedUser32.WS_EX_TRANSPARENT,
+                        "Mousemaster" + "HintMesh" + "ClassName",
+                        "Mousemaster" + "TransparentHintMesh" + "WindowName",
+                        WinUser.WS_POPUP, screen.rectangle().x(),
+                        screen.rectangle().y(), screen.rectangle().width() + 1,
+                        screen.rectangle().height() + 1,
+                        null, null,
+                        null, null);
+                User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
                 hintMeshWindows.put(screen,
-                        new HintMeshWindow(hwnd, callback, hintsInScreen));
+                        new HintMeshWindow(hwnd, transparentHwnd, callback, hintsInScreen));
             }
             else {
                 hintMeshWindows.put(screen,
-                        new HintMeshWindow(existingWindow.hwnd, existingWindow.callback,
+                        new HintMeshWindow(existingWindow.hwnd,
+                                existingWindow.transparentHwnd, existingWindow.callback,
                                 hintsInScreen));
             }
         }
@@ -304,29 +326,93 @@ public class WindowsOverlay {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
                     clearWindow(hdc, ps.rcPaint);
+
+                    // Clear layered window.
+                    int width = ps.rcPaint.right - ps.rcPaint.left;
+                    int height = ps.rcPaint.bottom - ps.rcPaint.top;
+                    WinDef.HDC hdcTemp = GDI32.INSTANCE.CreateCompatibleDC(hdc);
+                    WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
+                    GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
+
+                    WinDef.HBITMAP hDIBitmap = createDibSection(width, height, hdcTemp,
+                            List.of(), null);
+                    // Select the DIB section into the memory DC.
+                    WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hDIBitmap);
+                    updateLayeredWindow(ps.rcPaint, hintMeshWindow, hdcTemp);
+
+                    GDI32.INSTANCE.SelectObject(hdcTemp, oldDIBitmap);
+                    GDI32.INSTANCE.DeleteObject(hbm);
+                    GDI32.INSTANCE.DeleteObject(hDIBitmap);
+                    GDI32.INSTANCE.DeleteDC(hdcTemp);
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                     break;
                 }
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                WinDef.HDC memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
-                // We may want to use the window's full dimension (GetClientRect) instead of rcPaint?
-                int width = ps.rcPaint.right - ps.rcPaint.left;
-                int height = ps.rcPaint.bottom - ps.rcPaint.top;
-                WinDef.HBITMAP hBitmap =
-                        GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
-                WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
-                clearWindow(memDC, ps.rcPaint);
-                drawHints(memDC, hBitmap, ps.rcPaint, screen, hintMeshWindow.hints);
-                // Copy (blit) the off-screen buffer to the screen.
-                GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
-                        GDI32.SRCCOPY);
-                GDI32.INSTANCE.SelectObject(memDC, oldBitmap);
-                GDI32.INSTANCE.DeleteObject(hBitmap);
-                GDI32.INSTANCE.DeleteDC(memDC);
+
+                drawHints(hdc, ps.rcPaint, screen, hintMeshWindow, hintMeshWindow.hints);
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
         }
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
+
+    private static void updateLayeredWindow(WinDef.RECT windowRect,
+                                            HintMeshWindow hintMeshWindow, WinDef.HDC hdcTemp) {
+        int width = windowRect.right - windowRect.left;
+        int height = windowRect.bottom - windowRect.top;
+        WinUser.BLENDFUNCTION blend = new WinUser.BLENDFUNCTION();
+        blend.BlendOp = WinUser.AC_SRC_OVER;
+        blend.SourceConstantAlpha = (byte) 255;// (byte) (0.7 * 255);
+        blend.AlphaFormat = WinUser.AC_SRC_ALPHA;
+
+        WinDef.POINT ptSrc = new WinDef.POINT(0, 0);
+        WinDef.POINT ptDst = new WinDef.POINT(windowRect.left, windowRect.top);
+        WinUser.SIZE psize = new WinUser.SIZE(width, height);
+        boolean updateLayeredWindow = User32.INSTANCE.UpdateLayeredWindow(
+                hintMeshWindow.transparentHwnd, null, ptDst,
+                psize, hdcTemp, ptSrc, 0, blend,
+                WinUser.ULW_ALPHA);
+        System.out.println("updateLayeredWindow = " + updateLayeredWindow + " " +
+                           Integer.toHexString(Native.getLastError()));
+    }
+
+    private static WinDef.HBITMAP createDibSection(int width, int height, WinDef.HDC hdcTemp,
+                                                   List<WinDef.RECT> boxRects, String hexColor) {
+        // Create a DIB section to allow drawing with transparency
+        WinGDI.BITMAPINFO bmi = new WinGDI.BITMAPINFO();
+        bmi.bmiHeader.biWidth = width;//100; // Rectangle width
+        bmi.bmiHeader.biHeight = -height;//-100; // Rectangle height (top-down)
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32; // 32-bit color depth
+        bmi.bmiHeader.biCompression = WinGDI.BI_RGB;
+
+        PointerByReference pBits = new PointerByReference();
+        WinDef.HBITMAP hDIBitmap = GDI32.INSTANCE.CreateDIBSection(hdcTemp, bmi, WinGDI.DIB_RGB_COLORS, pBits, null, 0);
+        if (hDIBitmap == null)
+            throw new RuntimeException("Unable to create DIB section: " +
+                                       Integer.toHexString(
+                                               Native.getLastError()));
+
+
+        Pointer pixelPointer = pBits.getValue();
+        if (pixelPointer != null) {
+            int[] pixelData = new int[width * height];
+//                    for (int i = 0; i < pixelData.length; i++) {
+//                        pixelData[i] = 0x80FF0000; // 50% transparent red (ARGB: 0xAARRGGBB)
+//                    }
+            int alpha = (int) (0.3d * 255);
+            if (hexColor != null) hexColor = "000000";
+            int color = hexColor == null ? -1 : hexColorStringToRgb(hexColor) | (alpha << 24);
+            for (WinDef.RECT boxRect : boxRects) {
+                for (int x = boxRect.left; x < boxRect.right; x++) {
+                    for (int y = boxRect.top; y < boxRect.bottom; y++) {
+                        pixelData[y * width + x] = color;
+                    }
+                }
+            }
+            pixelPointer.write(0, pixelData, 0, pixelData.length);
+         }
+        return hDIBitmap;
     }
 
     private static void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect) {
@@ -402,9 +488,12 @@ public class WindowsOverlay {
 
     }
 
-    private static void drawHints(WinDef.HDC hdc, WinDef.HBITMAP hbm,
+    private static void drawHints(WinDef.HDC hdc,
                                   WinDef.RECT windowRect, Screen screen,
+                                  HintMeshWindow hintMeshWindow,
                                   List<Hint> windowHints) {
+        WinDef.HDC hdcTemp = GDI32.INSTANCE.CreateCompatibleDC(hdc);
+
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
         String fontHexColor = currentHintMesh.fontHexColor();
@@ -423,7 +512,7 @@ public class WindowsOverlay {
                         new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
                         new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
                         new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
+                        new WinDef.DWORD(ExtendedGDI32.ANTIALIASED_QUALITY),
                         new WinDef.DWORD(
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
         WinDef.HFONT largeFont =
@@ -432,11 +521,9 @@ public class WindowsOverlay {
                         new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
                         new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
                         new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
+                        new WinDef.DWORD(ExtendedGDI32.ANTIALIASED_QUALITY),
                         new WinDef.DWORD(
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
-        WinDef.HBRUSH boxBrush =
-                ExtendedGDI32.INSTANCE.CreateSolidBrush(hexColorStringToInt(boxHexColor));
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<HintText> hintTexts = new ArrayList<>();
         for (Hint hint : windowHints) {
@@ -458,37 +545,37 @@ public class WindowsOverlay {
                     text.substring(prefixText.length() + highlightText.length());
             // Measure text size.
             WinNT.HANDLE largeFont0 = text.length() == 1 ? normalFont : largeFont;
-            GDI32.INSTANCE.SelectObject(hdc, largeFont0);
+            GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
             WinUser.SIZE largeTextSize = new WinUser.SIZE();
-            ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(),
+            ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, text, text.length(),
                     largeTextSize);
             int largeTextX = hint.centerX() - screen.rectangle().x() - largeTextSize.cx / 2;
             int largeTextY = hint.centerY() - screen.rectangle().y() - largeTextSize.cy / 2;
             WinUser.SIZE largePrefixTextSize = new WinUser.SIZE();
             if (!prefixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, prefixText,
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, prefixText,
                         prefixText.length(),
                         largePrefixTextSize);
             }
             WinUser.SIZE highlightTextSize = new WinUser.SIZE();
             if (!highlightText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, highlightText,
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, highlightText,
                         highlightText.length(),
                         highlightTextSize);
             }
-            GDI32.INSTANCE.SelectObject(hdc, normalFont);
+            GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
             WinUser.SIZE textSize = new WinUser.SIZE();
-            ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, text, text.length(),
+            ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, text, text.length(),
                     textSize);
             WinUser.SIZE prefixTextSize = new WinUser.SIZE();
             if (!prefixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, prefixText,
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, prefixText,
                         prefixText.length(),
                         prefixTextSize);
             }
             WinUser.SIZE suffixTextSize = new WinUser.SIZE();
             if (!suffixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdc, suffixText,
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, suffixText,
                         suffixText.length(),
                         suffixTextSize);
             }
@@ -528,32 +615,66 @@ public class WindowsOverlay {
                     highlightRect, highlightText,
                     suffixRect, suffixText));
         }
-        // Assume SelectObject(hdc, hbm) was called.
-        for (WinDef.RECT boxRect : boxRects) {
-            ExtendedUser32.INSTANCE.FillRect(hdc, boxRect, boxBrush);
-        }
+
+        int width = windowRect.right - windowRect.left;
+        int height = windowRect.bottom - windowRect.top;
+
+        WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
+        GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
+
+        WinDef.HBITMAP hDIBitmap = createDibSection(width, height, hdcTemp, boxRects,
+                boxHexColor);
+        // Select the DIB section into the memory DC.
+        WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hDIBitmap);
+        if (oldDIBitmap == null)
+            throw new RuntimeException("Unable to select bitmap into source DC.");
+
+//        for (WinDef.RECT boxRect : boxRects) {
+//            ExtendedUser32.INSTANCE.FillRect(hdcTemp, boxRect, boxBrush);
+//        }
+
+        updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
+
+        WinDef.HBITMAP hBitmap =
+                GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
+        WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hBitmap);
+        clearWindow(hdcTemp, windowRect);
+
+
         for (HintText hintText : hintTexts) {
             if (hintText.prefixRect != null) {
-                GDI32.INSTANCE.SelectObject(hdc, normalFont);
-                drawHintText(hdc, selectedPrefixFontHexColor, hintText.prefixRect,
+                GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
+                drawHintText(hdcTemp, selectedPrefixFontHexColor, hintText.prefixRect,
                         hintText.prefixText);
             }
             if (hintText.suffixRect != null) {
-                GDI32.INSTANCE.SelectObject(hdc, normalFont);
-                drawHintText(hdc, fontHexColor, hintText.suffixRect, hintText.suffixText);
+                GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
+                drawHintText(hdcTemp, fontHexColor, hintText.suffixRect, hintText.suffixText);
             }
             if (hintText.highlightRect != null) {
                 WinNT.HANDLE largeFont0 =
                         hintText.prefixRect == null && hintText.suffixRect == null ?
                                 normalFont : largeFont;
-                GDI32.INSTANCE.SelectObject(hdc, largeFont0);
-                drawHintText(hdc, fontHexColor, hintText.highlightRect,
+                GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
+                drawHintText(hdcTemp, fontHexColor, hintText.highlightRect,
                         hintText.highlightText);
             }
         }
+
+        // Copy (blit) the off-screen buffer to the screen.
+        GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, hdcTemp, 0, 0,
+                GDI32.SRCCOPY);
+
         GDI32.INSTANCE.DeleteObject(normalFont);
         GDI32.INSTANCE.DeleteObject(largeFont);
-        GDI32.INSTANCE.DeleteObject(boxBrush);
+
+        GDI32.INSTANCE.SelectObject(hdcTemp, oldBitmap);
+        GDI32.INSTANCE.DeleteObject(hBitmap);
+        GDI32.INSTANCE.SelectObject(hdcTemp, oldDIBitmap);
+        GDI32.INSTANCE.DeleteObject(hbm);
+        GDI32.INSTANCE.DeleteObject(hDIBitmap);
+        GDI32.INSTANCE.DeleteDC(hdcTemp);
+
     }
 
     private static WinDef.RECT textRect(int textX, int textY, WinUser.SIZE textSize) {
@@ -581,6 +702,17 @@ public class WindowsOverlay {
         int green = (colorInt >> 8) & 0xFF;
         int blue = colorInt & 0xFF;
         return (blue << 16) | (green << 8) | red;
+    }
+
+    private static int hexColorStringToRgb(String hexColor) {
+        if (hexColor.startsWith("#"))
+            hexColor = hexColor.substring(1);
+        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
+        // In COLORREF, the order is 0x00BBGGRR, so we need to reorder the components.
+        int red = (colorInt >> 16) & 0xFF;
+        int green = (colorInt >> 8) & 0xFF;
+        int blue = colorInt & 0xFF;
+        return (red << 16) | (green << 8) | blue;
     }
 
     public static void setIndicator(Indicator indicator) {

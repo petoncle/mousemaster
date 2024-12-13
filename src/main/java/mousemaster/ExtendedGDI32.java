@@ -27,6 +27,10 @@ public interface ExtendedGDI32 extends GDI32 {
     int OUT_DEFAULT_PRECIS = 0;
     int CLIP_DEFAULT_PRECIS = 0;
     int DEFAULT_QUALITY = 0;
+    int NONANTIALIASED_QUALITY = 3;
+    int ANTIALIASED_QUALITY = 4;
+    int CLEARTYPE_QUALITY = 5;
+    int CLEARTYPE_NATURAL_QUALITY = 6;
     int DEFAULT_PITCH = 0;
     int FF_SWISS = 0;
 
@@ -122,6 +126,5 @@ public interface ExtendedGDI32 extends GDI32 {
     }
 
     byte DEFAULT_CHARSET = 1;
-
 
 }
