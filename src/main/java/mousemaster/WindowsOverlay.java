@@ -96,17 +96,19 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
 
-    private record IndicatorWindow(WinDef.HWND hwnd, WinUser.WindowProc callback) {
+    private record IndicatorWindow(WinDef.HWND hwnd, WinUser.WindowProc callback, int transparentColor) {
 
     }
 
-    private record GridWindow(WinDef.HWND hwnd, WinUser.WindowProc callback) {
+    private record GridWindow(WinDef.HWND hwnd, WinUser.WindowProc callback, int transparentColor) {
 
     }
 
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   WinDef.HWND transparentHwnd,
-                                  WinUser.WindowProc callback, List<Hint> hints) {
+                                  WinUser.WindowProc callback,
+                                  int transparentColor,
+                                  List<Hint> hints) {
 
     }
 
@@ -149,7 +151,7 @@ public class WindowsOverlay {
                 bestIndicatorY(mousePosition.y, mouseSize.height(),
                         activeScreen.rectangle(), scaledIndicatorSize),
                 scaledIndicatorSize + 1, scaledIndicatorSize + 1, callback);
-        indicatorWindow = new IndicatorWindow(hwnd, callback);
+        indicatorWindow = new IndicatorWindow(hwnd, callback, 0);
     }
 
     private static int scaledPixels(int originalInPixels, double scale) {
@@ -161,7 +163,7 @@ public class WindowsOverlay {
         WinDef.HWND hwnd =
                 createWindow("Grid" + (gridWindow == null ? 1 : 2), x, y, width, height,
                         callback);
-        gridWindow = new GridWindow(hwnd, callback);
+        gridWindow = new GridWindow(hwnd, callback, 0);
     }
 
     private static void createOrUpdateHintMeshWindows(List<Hint> hints) {
@@ -208,12 +210,16 @@ public class WindowsOverlay {
                         null, null);
                 User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
                 hintMeshWindows.put(screen,
-                        new HintMeshWindow(hwnd, transparentHwnd, callback, hintsInScreen));
+                        new HintMeshWindow(hwnd, transparentHwnd, callback,
+                                hexColorStringToRgb(blendColorOverWhite(currentHintMesh.boxHexColor(), 0.5d)),
+                                hintsInScreen));
             }
             else {
                 hintMeshWindows.put(screen,
                         new HintMeshWindow(existingWindow.hwnd,
-                                existingWindow.transparentHwnd, existingWindow.callback,
+                                existingWindow.transparentHwnd,
+                                existingWindow.callback,
+                                existingWindow.transparentColor,
                                 hintsInScreen));
             }
         }
@@ -233,8 +239,8 @@ public class WindowsOverlay {
                 wClass.lpszClassName, "Mousemaster" + windowName + "WindowName",
                 WinUser.WS_POPUP, windowX, windowY, windowWidth, windowHeight, null, null,
                 wClass.hInstance, null);
-        User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 0,
-                WinUser.LWA_COLORKEY);
+        // Will be overwritten for hint mesh to something other than 0.
+        User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 0, WinUser.LWA_COLORKEY);
         User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOWNORMAL);
         return hwnd;
     }
@@ -246,12 +252,10 @@ public class WindowsOverlay {
             case WinUser.WM_PAINT:
                 ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                clearWindow(hdc, ps.rcPaint);
+                clearWindow(hdc, ps.rcPaint, 0);
                 if (showingIndicator) {
-                    WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(
+                    clearWindow(hdc, ps.rcPaint,
                             hexColorStringToInt(currentIndicator.hexColor()));
-                    ExtendedUser32.INSTANCE.FillRect(hdc, ps.rcPaint, hbrBackground);
-                    GDI32.INSTANCE.DeleteObject(hbrBackground);
                 }
                 ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                 break;
@@ -270,7 +274,7 @@ public class WindowsOverlay {
                 if (!showingGrid || (isStandByGridWindow && standByGridCanBeHidden)) {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
-                    clearWindow(hdc, ps.rcPaint);
+                    clearWindow(hdc, ps.rcPaint, 0);
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                     break;
                 }
@@ -282,7 +286,7 @@ public class WindowsOverlay {
                 WinDef.HBITMAP
                         hBitmap = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
                 WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
-                clearWindow(memDC, ps.rcPaint);
+                clearWindow(memDC, ps.rcPaint, 0);
                 drawGrid(memDC, ps.rcPaint);
                 // Copy (blit) the off-screen buffer to the screen.
                 GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
@@ -325,7 +329,7 @@ public class WindowsOverlay {
                 if (!showingHintMesh) {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
-                    clearWindow(hdc, ps.rcPaint);
+                    clearWindow(hdc, ps.rcPaint, hintMeshWindow.transparentColor);
 
                     // Clear layered window.
                     int width = ps.rcPaint.right - ps.rcPaint.left;
@@ -347,6 +351,8 @@ public class WindowsOverlay {
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                     break;
                 }
+                User32.INSTANCE.SetLayeredWindowAttributes(hwnd,
+                        hintMeshWindow.transparentColor, (byte) 0, WinUser.LWA_COLORKEY);
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
 
                 drawHints(hdc, ps.rcPaint, screen, hintMeshWindow, hintMeshWindow.hints);
@@ -400,13 +406,14 @@ public class WindowsOverlay {
 //                    for (int i = 0; i < pixelData.length; i++) {
 //                        pixelData[i] = 0x80FF0000; // 50% transparent red (ARGB: 0xAARRGGBB)
 //                    }
-            int alpha = (int) (0.3d * 255);
-            if (hexColor != null) hexColor = "000000";
+            int alpha = (int) (0.5d * 255);
+//            if (hexColor != null) hexColor = "000000";
             int color = hexColor == null ? -1 : hexColorStringToRgb(hexColor) | (alpha << 24);
             for (WinDef.RECT boxRect : boxRects) {
                 for (int x = boxRect.left; x < boxRect.right; x++) {
                     for (int y = boxRect.top; y < boxRect.bottom; y++) {
-                        pixelData[y * width + x] = color;
+                        // The box may go past the screen dimensions.
+                        pixelData[Math.min(pixelData.length - 1, y * width + x)] = color;
                     }
                 }
             }
@@ -415,8 +422,8 @@ public class WindowsOverlay {
         return hDIBitmap;
     }
 
-    private static void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect) {
-        WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(0);
+    private static void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect, int color) {
+        WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(color);
         ExtendedUser32.INSTANCE.FillRect(hdc, windowRect, hbrBackground);
         GDI32.INSTANCE.DeleteObject(hbrBackground);
     }
@@ -480,6 +487,31 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(gridPen);
     }
 
+    /**
+     * Returns the color that is drawn when a transparent color (the input color
+     * with the opacity applied) is drawn on top of a white background.
+     * This helps for improving the text antialiasing. Text antialiasing combines the
+     * window's background color (which is ARGB transparent, but the antialiasing takes the
+     * RGB non-transparent component).
+     * We want the hint text to be antialiased with the effective color of the hint box
+     * when the (transparent) hint box is above a white background.
+     */
+    public static String blendColorOverWhite(String hexColor, double opacity) {
+        if (hexColor.startsWith("#"))
+            hexColor = hexColor.substring(1);
+        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
+        int inputRed = (colorInt >> 16) & 0xFF;
+        int inputGreen = (colorInt >> 8) & 0xFF;
+        int inputBlue = colorInt & 0xFF;
+        int whiteRed = 255;
+        int whiteGreen = 255;
+        int whiteBlue = 255;
+        int blendedRed = (int) Math.round((inputRed * opacity) + (whiteRed * (1 - opacity)));
+        int blendedGreen = (int) Math.round((inputGreen * opacity) + (whiteGreen * (1 - opacity)));
+        int blendedBlue = (int) Math.round((inputBlue * opacity) + (whiteBlue * (1 - opacity)));
+        return String.format("%02X%02X%02X", blendedRed, blendedGreen, blendedBlue);
+    }
+
     private record HintText(
             WinDef.RECT prefixRect, String prefixText,
             WinDef.RECT highlightRect, String highlightText,
@@ -512,7 +544,7 @@ public class WindowsOverlay {
                         new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
                         new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
                         new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.ANTIALIASED_QUALITY),
+                        new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
                         new WinDef.DWORD(
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
         WinDef.HFONT largeFont =
@@ -521,7 +553,7 @@ public class WindowsOverlay {
                         new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
                         new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
                         new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.ANTIALIASED_QUALITY),
+                        new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
                         new WinDef.DWORD(
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
         List<WinDef.RECT> boxRects = new ArrayList<>();
@@ -638,8 +670,7 @@ public class WindowsOverlay {
         WinDef.HBITMAP hBitmap =
                 GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
         WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hBitmap);
-        clearWindow(hdcTemp, windowRect);
-
+        clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor);
 
         for (HintText hintText : hintTexts) {
             if (hintText.prefixRect != null) {
