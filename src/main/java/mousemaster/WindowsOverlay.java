@@ -211,7 +211,7 @@ public class WindowsOverlay {
                 User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
                 hintMeshWindows.put(screen,
                         new HintMeshWindow(hwnd, transparentHwnd, callback,
-                                hexColorStringToRgb(blendColorOverWhite(currentHintMesh.boxHexColor(), 0.5d)),
+                                hexColorStringToRgb(blendColorOverWhite(currentHintMesh.boxHexColor(), 0.4d)),
                                 hintsInScreen));
             }
             else {
@@ -391,34 +391,28 @@ public class WindowsOverlay {
         bmi.bmiHeader.biPlanes = 1;
         bmi.bmiHeader.biBitCount = 32; // 32-bit color depth
         bmi.bmiHeader.biCompression = WinGDI.BI_RGB;
-
         PointerByReference pBits = new PointerByReference();
         WinDef.HBITMAP hDIBitmap = GDI32.INSTANCE.CreateDIBSection(hdcTemp, bmi, WinGDI.DIB_RGB_COLORS, pBits, null, 0);
         if (hDIBitmap == null)
             throw new RuntimeException("Unable to create DIB section: " +
-                                       Integer.toHexString(
-                                               Native.getLastError()));
-
-
+                                       Integer.toHexString(Native.getLastError()));
         Pointer pixelPointer = pBits.getValue();
-        if (pixelPointer != null) {
-            int[] pixelData = new int[width * height];
+        int[] pixelData = new int[width * height];
 //                    for (int i = 0; i < pixelData.length; i++) {
 //                        pixelData[i] = 0x80FF0000; // 50% transparent red (ARGB: 0xAARRGGBB)
 //                    }
-            int alpha = (int) (0.5d * 255);
+        int alpha = (int) (0.4d * 255); // TODO
 //            if (hexColor != null) hexColor = "000000";
-            int color = hexColor == null ? -1 : hexColorStringToRgb(hexColor) | (alpha << 24);
-            for (WinDef.RECT boxRect : boxRects) {
-                for (int x = boxRect.left; x < boxRect.right; x++) {
-                    for (int y = boxRect.top; y < boxRect.bottom; y++) {
-                        // The box may go past the screen dimensions.
-                        pixelData[Math.min(pixelData.length - 1, y * width + x)] = color;
-                    }
+        int color = hexColor == null ? -1 : hexColorStringToRgb(hexColor) | (alpha << 24);
+        for (WinDef.RECT boxRect : boxRects) {
+            for (int x = Math.max(0, boxRect.left); x < Math.min(width, boxRect.right); x++) {
+                for (int y = Math.max(0, boxRect.top); y < Math.min(height, boxRect.bottom); y++) {
+                    // The box may go past the screen dimensions.
+                    pixelData[y * width + x] = color;
                 }
             }
-            pixelPointer.write(0, pixelData, 0, pixelData.length);
-         }
+        }
+        pixelPointer.write(0, pixelData, 0, pixelData.length);
         return hDIBitmap;
     }
 
@@ -520,6 +514,12 @@ public class WindowsOverlay {
 
     }
 
+    private record HintMeshDraw(List<WinDef.RECT> boxRects,
+                                List<HintText> hintTexts) {
+    }
+
+    private static final Map<HintMesh, HintMeshDraw> hintMeshDrawCache = new HashMap<>();
+
     private static void drawHints(WinDef.HDC hdc,
                                   WinDef.RECT windowRect, Screen screen,
                                   HintMeshWindow hintMeshWindow,
@@ -528,6 +528,8 @@ public class WindowsOverlay {
 
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
+//        double highlightFontScale = 1.33d;
+        double highlightFontScale = 1d; // TODO
         String fontHexColor = currentHintMesh.fontHexColor();
         String selectedPrefixFontHexColor = currentHintMesh.selectedPrefixFontHexColor();
         String boxHexColor = currentHintMesh.boxHexColor();
@@ -536,10 +538,10 @@ public class WindowsOverlay {
         // Convert point size to logical units.
         // 1 point = 1/72 inch. So, multiply by scaledDpi and divide by 72 to convert to pixels.
         int fontHeight = -fontSize * scaledDpi / 72;
-        int largeFontHeight = -(int) (fontSize * 1.5d) * scaledDpi / 72;
+        int largeFontHeight = -(int) (fontSize * highlightFontScale) * scaledDpi / 72;
         // In Windows API, negative font size means "point size" (as opposed to pixels).
         WinDef.HFONT normalFont =
-                ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0, ExtendedGDI32.FW_BOLD,
+                ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0, ExtendedGDI32.FW_NORMAL,
                         new WinDef.DWORD(0), new WinDef.DWORD(0), new WinDef.DWORD(0),
                         new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
                         new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
@@ -547,8 +549,8 @@ public class WindowsOverlay {
                         new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
                         new WinDef.DWORD(
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
-        WinDef.HFONT largeFont =
-                ExtendedGDI32.INSTANCE.CreateFontA(largeFontHeight, 0, 0, 0, ExtendedGDI32.FW_BOLD,
+        WinDef.HFONT largeFont = highlightFontScale == 1 ? normalFont :
+                ExtendedGDI32.INSTANCE.CreateFontA(largeFontHeight, 0, 0, 0, ExtendedGDI32.FW_NORMAL,
                         new WinDef.DWORD(0), new WinDef.DWORD(0), new WinDef.DWORD(0),
                         new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
                         new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
@@ -556,105 +558,18 @@ public class WindowsOverlay {
                         new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
                         new WinDef.DWORD(
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
-        List<WinDef.RECT> boxRects = new ArrayList<>();
-        List<HintText> hintTexts = new ArrayList<>();
-        for (Hint hint : windowHints) {
-            if (!hint.startsWith(focusedHintKeySequence))
-                continue;
-            String text = hint.keySequence()
-                              .stream()
-                              .map(Key::hintLabel)
-                              .collect(Collectors.joining());
-            String prefixText;
-            prefixText = focusedHintKeySequence.isEmpty() ? "" :
-                    focusedHintKeySequence.stream()
-                                          .map(Key::hintLabel)
-                                          .collect(Collectors.joining());
-            String highlightText;
-            highlightText = prefixText.length() == text.length() ? "" :
-                    text.substring(prefixText.length(), prefixText.length() + 1);
-            String suffixText = prefixText.length() == text.length() ? "" :
-                    text.substring(prefixText.length() + highlightText.length());
-            // Measure text size.
-            WinNT.HANDLE largeFont0 = text.length() == 1 ? normalFont : largeFont;
-            GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
-            WinUser.SIZE largeTextSize = new WinUser.SIZE();
-            ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, text, text.length(),
-                    largeTextSize);
-            int largeTextX = hint.centerX() - screen.rectangle().x() - largeTextSize.cx / 2;
-            int largeTextY = hint.centerY() - screen.rectangle().y() - largeTextSize.cy / 2;
-            WinUser.SIZE largePrefixTextSize = new WinUser.SIZE();
-            if (!prefixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, prefixText,
-                        prefixText.length(),
-                        largePrefixTextSize);
-            }
-            WinUser.SIZE highlightTextSize = new WinUser.SIZE();
-            if (!highlightText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, highlightText,
-                        highlightText.length(),
-                        highlightTextSize);
-            }
-            GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
-            WinUser.SIZE textSize = new WinUser.SIZE();
-            ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, text, text.length(),
-                    textSize);
-            WinUser.SIZE prefixTextSize = new WinUser.SIZE();
-            if (!prefixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, prefixText,
-                        prefixText.length(),
-                        prefixTextSize);
-            }
-            WinUser.SIZE suffixTextSize = new WinUser.SIZE();
-            if (!suffixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, suffixText,
-                        suffixText.length(),
-                        suffixTextSize);
-            }
-//            int textX = hint.centerX() - screen.rectangle().x() - textSize.cx / 2;
-            int textX = largeTextX;
-            int textY = hint.centerY() - screen.rectangle().y() - textSize.cy / 2;
-//            int textY = largeTextY + (largeTextSize.cy/2 - textSize.cy/2 + (largeTextSize.cy-textSize.cy)/4);
-            // Try to minimize the size of the box. Looks good with Consolas 10.
-            int xPadding = (int) (screen.scale() * 1);
-            int yPadding = (int) (screen.scale() * -1) * 4;
-            WinDef.RECT boxRect = new WinDef.RECT();
-            boxRect.left = largeTextX - xPadding;
-            boxRect.top = largeTextY - yPadding;
-            boxRect.right = largeTextX + prefixTextSize.cx + highlightTextSize.cx +
-                            suffixTextSize.cx + xPadding;
-            boxRect.bottom = largeTextY + largeTextSize.cy + yPadding; // Note: use textSize instead of largeTextSize, it looks better?
-            boxRects.add(boxRect);
-            WinDef.RECT prefixRect;
-            if (prefixText.isEmpty())
-                prefixRect = null;
-            else
-                prefixRect = textRect(textX, textY, textSize);
-            WinDef.RECT highlightRect;
-            if (highlightText.isEmpty())
-                highlightRect = null;
-            else
-                highlightRect = textRect(largeTextX + prefixTextSize.cx, largeTextY,
-                        highlightTextSize);
-            WinDef.RECT suffixRect;
-            if (suffixText.isEmpty())
-                suffixRect = null;
-            else
-                suffixRect =
-                        textRect(textX + prefixTextSize.cx + highlightTextSize.cx, textY,
-                                suffixTextSize);
-            hintTexts.add(new HintText(prefixRect, prefixText,
-                    highlightRect, highlightText,
-                    suffixRect, suffixText));
-        }
-
+        HintMeshDraw hintMeshDraw = hintMeshDrawCache.computeIfAbsent(currentHintMesh,
+                hintMesh -> hintMeshDraw(screen, windowHints, focusedHintKeySequence,
+                        highlightFontScale,
+                        normalFont, largeFont, hdcTemp));
         int width = windowRect.right - windowRect.left;
         int height = windowRect.bottom - windowRect.top;
 
         WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
         GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
 
-        WinDef.HBITMAP hDIBitmap = createDibSection(width, height, hdcTemp, boxRects,
+        WinDef.HBITMAP hDIBitmap = createDibSection(width, height, hdcTemp,
+                hintMeshDraw.boxRects(),
                 boxHexColor);
         // Select the DIB section into the memory DC.
         WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hDIBitmap);
@@ -665,14 +580,14 @@ public class WindowsOverlay {
 //            ExtendedUser32.INSTANCE.FillRect(hdcTemp, boxRect, boxBrush);
 //        }
 
-        updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
+        updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp); // This draws transparent rectangles and calls UpdateLayeredWindow().
 
         WinDef.HBITMAP hBitmap =
                 GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
         WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hBitmap);
         clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor);
 
-        for (HintText hintText : hintTexts) {
+        for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
                 GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
                 drawHintText(hdcTemp, selectedPrefixFontHexColor, hintText.prefixRect,
@@ -706,6 +621,120 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(hDIBitmap);
         GDI32.INSTANCE.DeleteDC(hdcTemp);
 
+    }
+
+    private static HintMeshDraw hintMeshDraw(Screen screen, List<Hint> windowHints,
+                                             List<Key> focusedHintKeySequence,
+                                             double highlightFontScale,
+                                             WinDef.HFONT normalFont,
+                                             WinDef.HFONT largeFont, WinDef.HDC hdcTemp) {
+        List<WinDef.RECT> boxRects = new ArrayList<>();
+        List<HintText> hintTexts = new ArrayList<>();
+        for (Hint hint : windowHints) {
+            if (!hint.startsWith(focusedHintKeySequence))
+                continue;
+            String text = hint.keySequence()
+                              .stream()
+                              .map(Key::hintLabel)
+                              .collect(Collectors.joining());
+            String prefixText;
+            prefixText = focusedHintKeySequence.isEmpty() ? "" :
+                    focusedHintKeySequence.stream()
+                                          .map(Key::hintLabel)
+                                          .collect(Collectors.joining());
+            String highlightText;
+            if (highlightFontScale == 1)
+                highlightText = "";
+            else
+                highlightText = prefixText.length() == text.length() ? "" :
+                        text.substring(prefixText.length(), prefixText.length() + 1);
+            String suffixText = prefixText.length() == text.length() ? "" :
+                    text.substring(prefixText.length() + highlightText.length());
+            // Measure text size.
+            WinNT.HANDLE largeFont0 = text.length() == 1 ? normalFont : largeFont;
+            GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
+            WinUser.SIZE highlightTextSize = new WinUser.SIZE();
+            if (!highlightText.isEmpty()) {
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, highlightText,
+                        highlightText.length(),
+                        highlightTextSize);
+            }
+            GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
+            WinUser.SIZE prefixTextSize = new WinUser.SIZE();
+            if (!prefixText.isEmpty()) {
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, prefixText,
+                        prefixText.length(),
+                        prefixTextSize);
+            }
+            WinUser.SIZE suffixTextSize = new WinUser.SIZE();
+            if (!suffixText.isEmpty()) {
+                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, suffixText,
+                        suffixText.length(),
+                        suffixTextSize);
+            }
+            int textWidth = prefixTextSize.cx + highlightTextSize.cx + suffixTextSize.cx;
+            int largeTextHeight = highlightTextSize.cy;
+            int normalTextHeight = !prefixText.isEmpty() ? prefixTextSize.cy :
+                    suffixTextSize.cy;
+            int textX = hint.centerX() - screen.rectangle().x() - textWidth / 2;
+            int largeTextY =
+                    hint.centerY() - screen.rectangle().y() - largeTextHeight / 2;
+            int normalTextY =
+                    hint.centerY() - screen.rectangle().y() - normalTextHeight / 2;
+//            int textY = largeTextY + (largeTextSize.cy/2 - textSize.cy/2 + (largeTextSize.cy-textSize.cy)/4);
+            // Try to minimize the size of the box. Looks good with Consolas 10.
+            int xPadding = (int) (screen.scale() * 1);
+            int yPadding = (int) (screen.scale() * -1) * 4;
+            WinDef.RECT boxRect = new WinDef.RECT();
+            boxRect.left = textX - xPadding;
+            boxRect.top = largeTextY - yPadding;
+            boxRect.right = textX + prefixTextSize.cx + highlightTextSize.cx +
+                            suffixTextSize.cx + xPadding;
+            boxRect.bottom = largeTextY + largeTextHeight + yPadding;
+            if (hint.cellWidth() != -1) {
+                double boxGrowWidthPercent = 0.99d;// 0.9d;
+                double boxGrowHeightPercent = 0.99d;//0.85d;
+                int cellWidth = (int) (boxGrowWidthPercent * hint.cellWidth());
+                int halfCellWidth = cellWidth / 2;
+                int cellHeight = (int) (boxGrowHeightPercent * hint.cellHeight());
+                int halfCellHeight = cellHeight / 2;
+                boxRect.left = hint.centerX() - screen.rectangle().x() - halfCellWidth;
+                boxRect.top = hint.centerY() - screen.rectangle().y() - halfCellHeight;
+                boxRect.right =
+                        hint.centerX() - screen.rectangle().x() + halfCellWidth + (
+                                cellWidth % 2);
+                boxRect.bottom =
+                        hint.centerY() - screen.rectangle().y() + halfCellHeight +
+                        (cellHeight % 2);
+            }
+            boxRects.add(boxRect);
+            WinDef.RECT prefixRect;
+            if (prefixText.isEmpty())
+                prefixRect = null;
+            else
+                prefixRect = textRect(textX, normalTextY, prefixTextSize);
+            WinDef.RECT highlightRect;
+            if (highlightText.isEmpty())
+                highlightRect = null;
+            else
+                highlightRect = textRect(textX + prefixTextSize.cx, largeTextY,
+                        highlightTextSize);
+            WinDef.RECT suffixRect;
+            if (suffixText.isEmpty())
+                suffixRect = null;
+            else
+                suffixRect =
+                        textRect(textX + prefixTextSize.cx + highlightTextSize.cx,
+                                normalTextY,
+                                suffixTextSize);
+            hintTexts.add(new HintText(prefixRect, prefixText,
+                    highlightRect, highlightText,
+                    suffixRect, suffixText));
+        }
+        return new HintMeshDraw(boxRects, hintTexts);
+    }
+
+    private record Result(List<WinDef.RECT> boxRects, List<HintText> hintTexts) {
     }
 
     private static WinDef.RECT textRect(int textX, int textY, WinUser.SIZE textSize) {

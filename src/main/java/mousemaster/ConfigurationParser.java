@@ -70,19 +70,18 @@ public class ConfigurationParser {
                                         .map(Key::ofName)
                                         .toList())
                 .fontName("Consolas")
-                .fontSize(10)
+                .fontSize(16)
                 .fontHexColor("#FFFFFF")
-                .selectedPrefixFontHexColor("#8FA6C4")
-                .boxHexColor("#204E8A")
+                .selectedPrefixFontHexColor("#A3A3A3")
+                .boxHexColor("#000000")
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
                            .gridMaxRowCount(26)
                            .gridMaxColumnCount(26)
-                           // 72 is the right value for getting AA -> ZZ hints in a 1920x1080 screen.
-                           .gridCellWidth(72)
-                           .gridCellHeight(40);
+                           .gridCellWidth(73)
+                           .gridCellHeight(41);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
         hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
