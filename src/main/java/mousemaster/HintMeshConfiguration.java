@@ -8,7 +8,9 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
-                                    String prefixFontHexColor, String boxHexColor,
+                                    String prefixFontHexColor,
+                                    double highlightFontScale,
+                                    String boxHexColor,
                                     double boxOpacity,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
@@ -24,6 +26,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Integer fontSize;
         private String fontHexColor;
         private String prefixFontHexColor;
+        private Double highlightFontScale;
         private String boxHexColor;
         private Double boxOpacity;
         private String modeAfterSelection;
@@ -68,6 +71,12 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfigurationBuilder prefixFontHexColor(
                 String prefixFontHexColor) {
             this.prefixFontHexColor = prefixFontHexColor;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder highlightFontScale(
+                Double highlightFontScale) {
+            this.highlightFontScale = highlightFontScale;
             return this;
         }
 
@@ -135,6 +144,10 @@ public record HintMeshConfiguration(boolean enabled,
             return prefixFontHexColor;
         }
 
+        public Double highlightFontScale() {
+            return highlightFontScale;
+        }
+
         public String boxHexColor() {
             return boxHexColor;
         }
@@ -159,6 +172,7 @@ public record HintMeshConfiguration(boolean enabled,
             return new HintMeshConfiguration(enabled, visible,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
                     undoKey, fontName, fontSize, fontHexColor, prefixFontHexColor,
+                    highlightFontScale,
                     boxHexColor, boxOpacity, modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }

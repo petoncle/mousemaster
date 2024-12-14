@@ -531,8 +531,7 @@ public class WindowsOverlay {
 
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
-//        double highlightFontScale = 1.33d;
-        double highlightFontScale = 1d; // TODO
+        double highlightFontScale = currentHintMesh.highlightFontScale();
         String fontHexColor = currentHintMesh.fontHexColor();
         String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
