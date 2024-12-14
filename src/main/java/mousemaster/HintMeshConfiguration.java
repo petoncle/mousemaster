@@ -9,6 +9,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
                                     String selectedPrefixFontHexColor, String boxHexColor,
+                                    double boxOpacity,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
@@ -24,6 +25,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String fontHexColor;
         private String selectedPrefixFontHexColor;
         private String boxHexColor;
+        private Double boxOpacity;
         private String modeAfterSelection;
         private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
@@ -71,6 +73,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder boxHexColor(String boxHexColor) {
             this.boxHexColor = boxHexColor;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder boxOpacity(double boxOpacity) {
+            this.boxOpacity = boxOpacity;
             return this;
         }
 
@@ -132,6 +139,10 @@ public record HintMeshConfiguration(boolean enabled,
             return boxHexColor;
         }
 
+        public Double boxOpacity() {
+            return boxOpacity;
+        }
+
         public String modeAfterSelection() {
             return modeAfterSelection;
         }
@@ -148,7 +159,7 @@ public record HintMeshConfiguration(boolean enabled,
             return new HintMeshConfiguration(enabled, visible,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
                     undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
-                    boxHexColor, modeAfterSelection, swallowHintEndKeyPress,
+                    boxHexColor, boxOpacity, modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }
 

@@ -7,7 +7,8 @@ import java.util.List;
  */
 public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
                        String fontName, int fontSize, String fontHexColor,
-                       String selectedPrefixFontHexColor, String boxHexColor) {
+                       String selectedPrefixFontHexColor, String boxHexColor,
+                       double boxOpacity) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -23,6 +24,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private String fontHexColor;
         private String selectedPrefixFontHexColor;
         private String boxHexColor;
+        private double boxOpacity;
 
         public HintMeshBuilder() {
         }
@@ -37,6 +39,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.fontHexColor = hintMesh.fontHexColor;
             this.selectedPrefixFontHexColor = hintMesh.selectedPrefixFontHexColor;
             this.boxHexColor = hintMesh.boxHexColor;
+            this.boxOpacity = hintMesh.boxOpacity;
         }
 
         public HintMeshType type() {
@@ -73,6 +76,10 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public String boxHexColor() {
             return boxHexColor;
+        }
+
+        public double boxOpacity() {
+            return boxOpacity;
         }
 
         public HintMeshBuilder type(HintMeshType type) {
@@ -121,9 +128,15 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder boxOpacity(double boxOpacity) {
+            this.boxOpacity = boxOpacity;
+            return this;
+        }
+
         public HintMesh build() {
-            return new HintMesh(visible, type, hints, focusedKeySequence, fontName, fontSize,
-                    fontHexColor, selectedPrefixFontHexColor, boxHexColor);
+            return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
+                    fontSize,
+                    fontHexColor, selectedPrefixFontHexColor, boxHexColor, boxOpacity);
         }
     }
 

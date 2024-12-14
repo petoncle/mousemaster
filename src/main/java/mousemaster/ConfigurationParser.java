@@ -74,6 +74,7 @@ public class ConfigurationParser {
                 .fontHexColor("#FFFFFF")
                 .selectedPrefixFontHexColor("#A3A3A3")
                 .boxHexColor("#000000")
+                .boxOpacity(0.4d)
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -436,6 +437,8 @@ public class ConfigurationParser {
                                             checkColorFormat(propertyKey, propertyValue));
                             case "box-color" -> mode.hintMesh.builder.boxHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
+                            case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
+                                    parseNonZeroPercent(propertyKey, propertyValue, 1));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -1257,6 +1260,8 @@ public class ConfigurationParser {
                         builder.selectedPrefixFontHexColor(parent.selectedPrefixFontHexColor());
                     if (builder.boxHexColor() == null)
                         builder.boxHexColor(parent.boxHexColor());
+                    if (builder.boxOpacity() == null)
+                        builder.boxOpacity(parent.boxOpacity());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

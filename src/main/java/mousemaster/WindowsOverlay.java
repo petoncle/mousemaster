@@ -211,7 +211,9 @@ public class WindowsOverlay {
                 User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
                 hintMeshWindows.put(screen,
                         new HintMeshWindow(hwnd, transparentHwnd, callback,
-                                hexColorStringToRgb(blendColorOverWhite(currentHintMesh.boxHexColor(), 0.4d)),
+                                hexColorStringToRgb(
+                                        blendColorOverWhite(currentHintMesh.boxHexColor(),
+                                                currentHintMesh.boxOpacity())),
                                 hintsInScreen));
             }
             else {
@@ -339,7 +341,7 @@ public class WindowsOverlay {
                     GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
 
                     WinDef.HBITMAP hDIBitmap = createDibSection(width, height, hdcTemp,
-                            List.of(), null);
+                            List.of(), null, -1d);
                     // Select the DIB section into the memory DC.
                     WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hDIBitmap);
                     updateLayeredWindow(ps.rcPaint, hintMeshWindow, hdcTemp);
@@ -383,7 +385,8 @@ public class WindowsOverlay {
     }
 
     private static WinDef.HBITMAP createDibSection(int width, int height, WinDef.HDC hdcTemp,
-                                                   List<WinDef.RECT> boxRects, String hexColor) {
+                                                   List<WinDef.RECT> boxRects, String hexColor,
+                                                   double boxOpacity) {
         // Create a DIB section to allow drawing with transparency
         WinGDI.BITMAPINFO bmi = new WinGDI.BITMAPINFO();
         bmi.bmiHeader.biWidth = width;//100; // Rectangle width
@@ -401,7 +404,7 @@ public class WindowsOverlay {
 //                    for (int i = 0; i < pixelData.length; i++) {
 //                        pixelData[i] = 0x80FF0000; // 50% transparent red (ARGB: 0xAARRGGBB)
 //                    }
-        int alpha = (int) (0.4d * 255); // TODO
+        int alpha = (int) (boxOpacity * 255);
 //            if (hexColor != null) hexColor = "000000";
         int color = hexColor == null ? -1 : hexColorStringToRgb(hexColor) | (alpha << 24);
         for (WinDef.RECT boxRect : boxRects) {
@@ -532,7 +535,6 @@ public class WindowsOverlay {
         double highlightFontScale = 1d; // TODO
         String fontHexColor = currentHintMesh.fontHexColor();
         String selectedPrefixFontHexColor = currentHintMesh.selectedPrefixFontHexColor();
-        String boxHexColor = currentHintMesh.boxHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
         int scaledDpi = (int) (screen.dpi() * screen.scale());
         // Convert point size to logical units.
@@ -570,7 +572,7 @@ public class WindowsOverlay {
 
         WinDef.HBITMAP hDIBitmap = createDibSection(width, height, hdcTemp,
                 hintMeshDraw.boxRects(),
-                boxHexColor);
+                currentHintMesh.boxHexColor(), currentHintMesh.boxOpacity());
         // Select the DIB section into the memory DC.
         WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hDIBitmap);
         if (oldDIBitmap == null)
