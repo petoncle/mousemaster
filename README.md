@@ -15,13 +15,8 @@
 
 # Demo
 
-## Hints Demo (1/2)
-https://github.com/user-attachments/assets/7118afae-688a-450a-b9ad-fbe5806fc890
-
-## Hints Demo (2/2)
-Note: This demo uses the author's configuration which is designed to control everything, including hints, with the right hand only.
-
-https://github.com/user-attachments/assets/a58ac260-c371-4d45-8427-215c5157f059
+## Hints Demo
+https://github.com/user-attachments/assets/2dcd6939-dc58-4d61-bd8a-9d7f93480491
 
 ## Grid Demo (1/2)
 https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
