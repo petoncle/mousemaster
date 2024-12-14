@@ -6,6 +6,7 @@ import java.util.List;
 
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
+                                    boolean moveMouse,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
                                     String prefixFontHexColor,
@@ -21,6 +22,7 @@ public record HintMeshConfiguration(boolean enabled,
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
         private Boolean visible;
+        private Boolean moveMouse;
         private HintMeshTypeBuilder type = new HintMeshTypeBuilder();
         private List<Key> selectionKeys;
         private Key undoKey;
@@ -44,6 +46,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder visible(boolean visible) {
             this.visible = visible;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder moveMouse(boolean moveMouse) {
+            this.moveMouse = moveMouse;
             return this;
         }
 
@@ -134,6 +141,10 @@ public record HintMeshConfiguration(boolean enabled,
             return visible;
         }
 
+        public Boolean moveMouse() {
+            return moveMouse;
+        }
+
         public List<Key> selectionKeys() {
             return selectionKeys;
         }
@@ -191,7 +202,7 @@ public record HintMeshConfiguration(boolean enabled,
         }
 
         public HintMeshConfiguration build() {
-            return new HintMeshConfiguration(enabled, visible,
+            return new HintMeshConfiguration(enabled, visible, moveMouse,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
                     undoKey, fontName, fontSize, fontHexColor, prefixFontHexColor,
                     highlightFontScale,

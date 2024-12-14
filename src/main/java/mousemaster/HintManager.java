@@ -26,6 +26,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private Mode currentMode;
     private final List<Point> positionHistory = new ArrayList<>();
     private final int maxPositionHistorySize;
+    private Point lastSelectedHintPoint;
     /**
      * Used for deterministic hint key sequences.
      */
@@ -131,6 +132,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Point gridCenter = switch (activeScreenHintGridArea.center()) {
                     case SCREEN_CENTER -> gridScreen.rectangle().center();
                     case MOUSE -> new Point(mouseX, mouseY);
+                    case LAST_SELECTED_HINT ->
+                            lastSelectedHintPoint == null ? new Point(mouseX, mouseY) :
+                                    lastSelectedHintPoint;
                 };
                 fixedSizeHintGrids.add(screenFixedSizeHintGrid(activeScreenHintGridArea,
                         screenManager.activeScreen(), gridCenter, hintGrid.maxRowCount(),
@@ -397,11 +401,18 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            // After this moveTo call, the move is not fully completed.
-            // We need to wait until the jump completes before a click can be performed at
-            // the new position.
-            mouseController.moveTo(exactMatchHint.centerX(), exactMatchHint.centerY());
-            this.selectedHintToFinalize = exactMatchHint;
+            lastSelectedHintPoint = new Point(exactMatchHint.centerX(), exactMatchHint.centerY());
+             if (hintMeshConfiguration.moveMouse()) {
+                 // After this moveTo call, the move is not fully completed.
+                 // We need to wait until the jump completes before a click can be performed at
+                 // the new position.
+                 mouseController.moveTo(exactMatchHint.centerX(),
+                         exactMatchHint.centerY());
+                selectedHintToFinalize = exactMatchHint;
+             }
+             else {
+                finalizeHintSelection(exactMatchHint);
+             }
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
                     PressKeyEventProcessing.swallowedHintEnd() :
                     PressKeyEventProcessing.unswallowedHintEnd();
@@ -419,7 +430,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void finalizeHintSelection(Hint hint) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (hintMeshConfiguration.savePositionAfterSelection())
-            savePosition();
+            savePosition(new Point(hint.centerX(), hint.centerY()));
         if (hintMeshConfiguration.modeAfterSelection() != null) {
             logger.debug("Hint " + hint.keySequence()
                                        .stream()
@@ -438,8 +449,11 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
-    public void savePosition() {
-        Point point = new Point(mouseX, mouseY);
+    public void saveCurrentPosition() {
+        savePosition(new Point(mouseX, mouseY));
+    }
+
+    public void savePosition(Point point) {
         if (positionHistory.contains(point))
             return;
         idByPosition.put(point, positionIdCount);
@@ -452,7 +466,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         positionHistory.add(point);
         positionCycleIndex = positionHistory.size() - 1;
         logger.debug(
-                "Saved mouse position " + point.x() + "," + point.y() + " to history");
+                "Saved position " + point.x() + "," + point.y() + " to history");
     }
 
     public void clearPositionHistory() {

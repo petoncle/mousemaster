@@ -65,6 +65,7 @@ public class ConfigurationParser {
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
                 .visible(true)
+                .moveMouse(true)
                 .selectionKeys(IntStream.rangeClosed('a', 'z')
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
@@ -382,6 +383,8 @@ public class ConfigurationParser {
                             case "enabled" -> mode.hintMesh.builder.enabled(
                                     Boolean.parseBoolean(propertyValue));
                             case "visible" -> mode.hintMesh.builder.visible(
+                                    Boolean.parseBoolean(propertyValue));
+                            case "move-mouse" -> mode.hintMesh.builder.moveMouse(
                                     Boolean.parseBoolean(propertyValue));
                             case "type" -> mode.hintMesh.builder.type()
                                                                 .type(parseHintMeshTypeType(
@@ -1048,9 +1051,10 @@ public class ConfigurationParser {
         return switch (propertyValue) {
             case "screen-center" -> ActiveScreenHintGridAreaCenter.SCREEN_CENTER;
             case "mouse" -> ActiveScreenHintGridAreaCenter.MOUSE;
+            case "last-selected-hint" -> ActiveScreenHintGridAreaCenter.LAST_SELECTED_HINT;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " + List.of("screen-center", "mouse"));
+                    ": expected one of " + List.of("screen-center", "mouse", "last-selected-hint"));
         };
     }
 
@@ -1245,6 +1249,8 @@ public class ConfigurationParser {
                         builder.enabled(parent.enabled());
                     if (builder.visible() == null)
                         builder.visible(parent.visible());
+                    if (builder.moveMouse() == null)
+                        builder.moveMouse(parent.moveMouse());
                     if (builder.type().type() == null)
                         builder.type().type(parent.type().type());
                     if (builder.type().gridArea().type() == null)
