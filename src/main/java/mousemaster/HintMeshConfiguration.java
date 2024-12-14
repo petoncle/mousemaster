@@ -12,6 +12,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     double highlightFontScale,
                                     String boxHexColor,
                                     double boxOpacity,
+                                    double boxGrowWidthPercent,
+                                    double boxGrowHeightPercent,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
@@ -29,6 +31,8 @@ public record HintMeshConfiguration(boolean enabled,
         private Double highlightFontScale;
         private String boxHexColor;
         private Double boxOpacity;
+        private Double boxGrowWidthPercent;
+        private Double boxGrowHeightPercent;
         private String modeAfterSelection;
         private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
@@ -87,6 +91,16 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder boxOpacity(double boxOpacity) {
             this.boxOpacity = boxOpacity;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder boxGrowWidthPercent(double boxGrowWidthPercent) {
+            this.boxGrowWidthPercent = boxGrowWidthPercent;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder boxGrowHeightPercent(double boxGrowHeightPercent) {
+            this.boxGrowHeightPercent = boxGrowHeightPercent;
             return this;
         }
 
@@ -156,6 +170,14 @@ public record HintMeshConfiguration(boolean enabled,
             return boxOpacity;
         }
 
+        public Double boxGrowWidthPercent() {
+            return boxGrowWidthPercent;
+        }
+
+        public Double boxGrowHeightPercent() {
+            return boxGrowHeightPercent;
+        }
+
         public String modeAfterSelection() {
             return modeAfterSelection;
         }
@@ -173,7 +195,8 @@ public record HintMeshConfiguration(boolean enabled,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
                     undoKey, fontName, fontSize, fontHexColor, prefixFontHexColor,
                     highlightFontScale,
-                    boxHexColor, boxOpacity, modeAfterSelection, swallowHintEndKeyPress,
+                    boxHexColor, boxOpacity, boxGrowWidthPercent, boxGrowHeightPercent,
+                    modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }
 

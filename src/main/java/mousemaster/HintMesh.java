@@ -9,7 +9,9 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        String fontName, int fontSize, String fontHexColor,
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor,
-                       double boxOpacity) {
+                       double boxOpacity,
+                       double boxGrowWidthPercent,
+                       double boxGrowHeightPercent) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -27,6 +29,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double highlightFontScale;
         private String boxHexColor;
         private double boxOpacity;
+        private double boxGrowWidthPercent;
+        private double boxGrowHeightPercent;
 
         public HintMeshBuilder() {
         }
@@ -43,6 +47,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.highlightFontScale = hintMesh.highlightFontScale;
             this.boxHexColor = hintMesh.boxHexColor;
             this.boxOpacity = hintMesh.boxOpacity;
+            this.boxGrowWidthPercent = hintMesh.boxGrowWidthPercent;
+            this.boxGrowHeightPercent = hintMesh.boxGrowHeightPercent;
         }
 
         public HintMeshType type() {
@@ -87,6 +93,14 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public double boxOpacity() {
             return boxOpacity;
+        }
+
+        public double boxGrowWidthPercent() {
+            return boxGrowWidthPercent;
+        }
+
+        public double boxGrowHeightPercent() {
+            return boxGrowHeightPercent;
         }
 
         public HintMeshBuilder type(HintMeshType type) {
@@ -146,11 +160,21 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder boxGrowWidthPercent(double boxGrowWidthPercent) {
+            this.boxGrowWidthPercent = boxGrowWidthPercent;
+            return this;
+        }
+
+        public HintMeshBuilder boxGrowHeightPercent(double boxGrowHeightPercent) {
+            this.boxGrowHeightPercent = boxGrowHeightPercent;
+            return this;
+        }
+
         public HintMesh build() {
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
                     fontSize,
                     fontHexColor, prefixFontHexColor, highlightFontScale,
-                    boxHexColor, boxOpacity);
+                    boxHexColor, boxOpacity, boxGrowWidthPercent, boxGrowHeightPercent);
         }
     }
 

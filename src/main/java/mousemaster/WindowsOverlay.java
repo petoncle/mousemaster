@@ -5,11 +5,15 @@ import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.PointerByReference;
 import mousemaster.WindowsMouse.MouseSize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class WindowsOverlay {
+
+    private static final Logger logger = LoggerFactory.getLogger(WindowsOverlay.class);
 
     private static final int indicatorEdgeThreshold = 100; // in pixels
 
@@ -326,8 +330,13 @@ public class WindowsOverlay {
                         break;
                     }
                 }
-                if (hintMeshWindow == null)
-                    throw new IllegalStateException();
+                if (hintMeshWindow == null) {
+                    // The transparent (layered) window HWND would be the hwnd.
+                    // It happens when I open PowerToys Run.
+                    // Not sure why.
+                    logger.debug("HintMeshWindow hwnd match not found: " + hwnd);
+                    return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
+                }
                 if (!showingHintMesh) {
                     WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                     // The area has to be cleared otherwise the previous drawings will be drawn.
@@ -380,8 +389,6 @@ public class WindowsOverlay {
                 hintMeshWindow.transparentHwnd, null, ptDst,
                 psize, hdcTemp, ptSrc, 0, blend,
                 WinUser.ULW_ALPHA);
-        System.out.println("updateLayeredWindow = " + updateLayeredWindow + " " +
-                           Integer.toHexString(Native.getLastError()));
     }
 
     private static WinDef.HBITMAP createDibSection(int width, int height, WinDef.HDC hdcTemp,
@@ -532,6 +539,8 @@ public class WindowsOverlay {
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
         double highlightFontScale = currentHintMesh.highlightFontScale();
+        double boxGrowWidthPercent = currentHintMesh.boxGrowWidthPercent();
+        double boxGrowHeightPercent = currentHintMesh.boxGrowHeightPercent();
         String fontHexColor = currentHintMesh.fontHexColor();
         String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
@@ -561,7 +570,7 @@ public class WindowsOverlay {
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
         HintMeshDraw hintMeshDraw = hintMeshDrawCache.computeIfAbsent(currentHintMesh,
                 hintMesh -> hintMeshDraw(screen, windowHints, focusedHintKeySequence,
-                        highlightFontScale,
+                        highlightFontScale, boxGrowWidthPercent, boxGrowHeightPercent,
                         normalFont, largeFont, hdcTemp));
         int width = windowRect.right - windowRect.left;
         int height = windowRect.bottom - windowRect.top;
@@ -627,7 +636,8 @@ public class WindowsOverlay {
     private static HintMeshDraw hintMeshDraw(Screen screen, List<Hint> windowHints,
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
-                                             WinDef.HFONT normalFont,
+                                             double boxGrowWidthPercent,
+                                             double boxGrowHeightPercent, WinDef.HFONT normalFont,
                                              WinDef.HFONT largeFont, WinDef.HDC hdcTemp) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<HintText> hintTexts = new ArrayList<>();
@@ -693,8 +703,6 @@ public class WindowsOverlay {
                             suffixTextSize.cx + xPadding;
             boxRect.bottom = largeTextY + largeTextHeight + yPadding;
             if (hint.cellWidth() != -1) {
-                double boxGrowWidthPercent = 0.99d;// 0.9d;
-                double boxGrowHeightPercent = 0.99d;//0.85d;
                 int cellWidth = (int) (boxGrowWidthPercent * hint.cellWidth());
                 int halfCellWidth = cellWidth / 2;
                 int cellHeight = (int) (boxGrowHeightPercent * hint.cellHeight());
