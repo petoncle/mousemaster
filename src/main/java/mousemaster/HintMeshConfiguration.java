@@ -8,7 +8,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
                                     int fontSize, String fontHexColor,
-                                    String selectedPrefixFontHexColor, String boxHexColor,
+                                    String prefixFontHexColor, String boxHexColor,
                                     double boxOpacity,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
@@ -23,7 +23,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String fontName;
         private Integer fontSize;
         private String fontHexColor;
-        private String selectedPrefixFontHexColor;
+        private String prefixFontHexColor;
         private String boxHexColor;
         private Double boxOpacity;
         private String modeAfterSelection;
@@ -65,9 +65,9 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder selectedPrefixFontHexColor(
-                String selectedPrefixFontHexColor) {
-            this.selectedPrefixFontHexColor = selectedPrefixFontHexColor;
+        public HintMeshConfigurationBuilder prefixFontHexColor(
+                String prefixFontHexColor) {
+            this.prefixFontHexColor = prefixFontHexColor;
             return this;
         }
 
@@ -131,8 +131,8 @@ public record HintMeshConfiguration(boolean enabled,
             return fontHexColor;
         }
 
-        public String selectedPrefixFontHexColor() {
-            return selectedPrefixFontHexColor;
+        public String prefixFontHexColor() {
+            return prefixFontHexColor;
         }
 
         public String boxHexColor() {
@@ -158,7 +158,7 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
-                    undoKey, fontName, fontSize, fontHexColor, selectedPrefixFontHexColor,
+                    undoKey, fontName, fontSize, fontHexColor, prefixFontHexColor,
                     boxHexColor, boxOpacity, modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }

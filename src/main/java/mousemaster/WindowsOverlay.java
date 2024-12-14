@@ -534,7 +534,7 @@ public class WindowsOverlay {
 //        double highlightFontScale = 1.33d;
         double highlightFontScale = 1d; // TODO
         String fontHexColor = currentHintMesh.fontHexColor();
-        String selectedPrefixFontHexColor = currentHintMesh.selectedPrefixFontHexColor();
+        String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
         int scaledDpi = (int) (screen.dpi() * screen.scale());
         // Convert point size to logical units.
@@ -592,7 +592,7 @@ public class WindowsOverlay {
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
                 GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
-                drawHintText(hdcTemp, selectedPrefixFontHexColor, hintText.prefixRect,
+                drawHintText(hdcTemp, prefixFontHexColor, hintText.prefixRect,
                         hintText.prefixText);
             }
             if (hintText.suffixRect != null) {
