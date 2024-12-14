@@ -510,7 +510,7 @@ public class WindowsOverlay {
     }
 
     private record HintMeshDraw(List<WinDef.RECT> boxRects,
-                                List<HintText> hintTexts) {
+                                List<HintText> hintTexts, int[] pixelData) {
     }
 
     private static final Map<HintMesh, HintMeshDraw> hintMeshDrawCache = new HashMap<>();
@@ -553,17 +553,18 @@ public class WindowsOverlay {
                         new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
                         new WinDef.DWORD(
                                 ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
+        int windowWidth = windowRect.right - windowRect.left;
+        int windowHeight = windowRect.bottom - windowRect.top;
         HintMeshDraw hintMeshDraw = hintMeshDrawCache.computeIfAbsent(currentHintMesh,
-                hintMesh -> hintMeshDraw(screen, windowHints, focusedHintKeySequence,
+                hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
+                        focusedHintKeySequence,
                         highlightFontScale, boxGrowWidthPercent, boxGrowHeightPercent,
                         normalFont, largeFont, hdcTemp));
-        int width = windowRect.right - windowRect.left;
-        int height = windowRect.bottom - windowRect.top;
 
-        WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
+        WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, windowWidth, windowHeight);
         GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
 
-        DibSection dibSection = createDibSection(width, height, hdcTemp);
+        DibSection dibSection = createDibSection(windowWidth, windowHeight, hdcTemp);
         // Select the DIB section into the memory DC.
         WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, dibSection.hDIBitmap);
         if (oldDIBitmap == null)
@@ -575,12 +576,12 @@ public class WindowsOverlay {
             if (hintText.prefixRect != null) {
                 GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
                 drawHintText(hdcTemp, prefixFontHexColor, hintText.prefixRect,
-                        hintText.prefixText, dibSection, width);
+                        hintText.prefixText, dibSection, windowWidth);
             }
             if (hintText.suffixRect != null) {
                 GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
                 drawHintText(hdcTemp, fontHexColor, hintText.suffixRect, hintText.suffixText,
-                        dibSection, width);
+                        dibSection, windowWidth);
             }
             if (hintText.highlightRect != null) {
                 WinNT.HANDLE largeFont0 =
@@ -588,14 +589,14 @@ public class WindowsOverlay {
                                 normalFont : largeFont;
                 GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
                 drawHintText(hdcTemp, fontHexColor, hintText.highlightRect,
-                        hintText.highlightText, dibSection, width);
+                        hintText.highlightText, dibSection, windowWidth);
             }
         }
         String boxHexColor = currentHintMesh.boxHexColor();
         double boxOpacity = currentHintMesh.boxOpacity();
         int alpha = (int) (boxOpacity * 255);
         int boxColorInt = boxHexColor == null ? -1 : hexColorStringToRgb(boxHexColor) | (alpha << 24);
-        int[] pixelData = new int[width * height];
+        int[] pixelData = hintMeshDraw.pixelData;
         dibSection.pixelPointer.read(0, pixelData, 0, pixelData.length);
         for (int i = 0; i < pixelData.length; i++) {
             int pixel = pixelData[i];
@@ -613,11 +614,11 @@ public class WindowsOverlay {
             }
         }
         for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
-            for (int x = Math.max(0, boxRect.left); x < Math.min(width, boxRect.right); x++) {
-                for (int y = Math.max(0, boxRect.top); y < Math.min(height, boxRect.bottom); y++) {
+            for (int x = Math.max(0, boxRect.left); x < Math.min(windowWidth, boxRect.right); x++) {
+                for (int y = Math.max(0, boxRect.top); y < Math.min(windowHeight, boxRect.bottom); y++) {
                     // The box may go past the screen dimensions.
-                    if (pixelData[y * width + x] == 0)
-                        pixelData[y * width + x] = boxColorInt;
+                    if (pixelData[y * windowWidth + x] == 0)
+                        pixelData[y * windowWidth + x] = boxColorInt;
                 }
             }
         }
@@ -635,7 +636,8 @@ public class WindowsOverlay {
 
     }
 
-    private static HintMeshDraw hintMeshDraw(Screen screen, List<Hint> windowHints,
+    private static HintMeshDraw hintMeshDraw(Screen screen, int windowWidth,
+                                             int windowHeight, List<Hint> windowHints,
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
                                              double boxGrowWidthPercent,
@@ -742,7 +744,8 @@ public class WindowsOverlay {
                     highlightRect, highlightText,
                     suffixRect, suffixText));
         }
-        return new HintMeshDraw(boxRects, hintTexts);
+        int[] pixelData = new int[windowWidth * windowHeight];
+        return new HintMeshDraw(boxRects, hintTexts, pixelData);
     }
 
     private record Result(List<WinDef.RECT> boxRects, List<HintText> hintTexts) {
