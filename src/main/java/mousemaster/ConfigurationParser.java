@@ -42,7 +42,7 @@ public class ConfigurationParser {
         MouseBuilder mouse = new MouseBuilder().initialVelocity(200)
                                                .maxVelocity(750)
                                                .acceleration(1000)
-                                               .smoothJumpEnabled(false)
+                                               .smoothJumpEnabled(true)
                                                .smoothJumpVelocity(10000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         GridConfigurationBuilder grid =
