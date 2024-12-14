@@ -157,22 +157,29 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Point gridCenter = activeWindowRectangle.center();
                 int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight, rowCount, columnCount;
                 Screen activeScreen = screenManager.activeScreen();
+                int cellWidth = hintGrid.cellWidth();
+                int cellHeight = hintGrid.cellHeight();
                 rowCount = Math.max(1, Math.min(hintGrid.maxRowCount(),
                         (int) ((double) activeWindowRectangle.height() /
-                               hintGrid.cellHeight() / activeScreen.scale())));
+                               cellHeight / activeScreen.scale())));  // TODO remove scale?
                 columnCount = Math.max(1, Math.min(hintGrid.maxColumnCount(),
                         (int) ((double) activeWindowRectangle.width() /
-                               hintGrid.cellWidth() / activeScreen.scale())));
-                hintMeshWidth = Math.min(activeWindowRectangle.width(),
-                        (int) (columnCount * hintGrid.cellWidth() /
-                               activeScreen.scale()));
-                hintMeshHeight = Math.min(activeWindowRectangle.height(),
-                        (int) (rowCount * hintGrid.cellHeight() / activeScreen.scale()));
+                               cellWidth / activeScreen.scale())));
+                hintMeshWidth = columnCount * cellWidth;
+                if (activeWindowRectangle.width() - hintMeshWidth > 0
+                    && activeWindowRectangle.width() - hintMeshWidth < columnCount)
+                    hintMeshWidth = activeWindowRectangle.width();
+                hintMeshHeight = rowCount * cellHeight;
+                if (activeWindowRectangle.height() - hintMeshHeight > 0
+                    && activeWindowRectangle.height() - hintMeshHeight < rowCount)
+                    hintMeshHeight = activeWindowRectangle.height();
                 hintMeshX = gridCenter.x() - hintMeshWidth / 2;
                 hintMeshY = gridCenter.y() - hintMeshHeight / 2;
                 fixedSizeHintGrids.add(
                         new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth,
-                                hintMeshHeight, rowCount, columnCount));
+                                hintMeshHeight, rowCount, columnCount,
+                                cellWidth,
+                                cellHeight));
             }
             else
                 throw new IllegalStateException();
@@ -227,9 +234,6 @@ public class HintManager implements ModeListener, MousePositionListener {
         return hintMesh.build();
     }
 
-    // TODO if hintMeshWidth is 1898, spread the 22 px on the cells
-    //  (26 is columnCount) 22/26 <= 1 meaning we have to add 1 px to some cells.
-    //  22 cells will have the extra px, cell index 0, (maybe not 1)...,
     private static List<Hint> buildHints(FixedSizeHintGrid fixedSizeHintGrid,
                                          List<Key> selectionKeySubset, int hintLength,
                                          int beginHintIndex) {
@@ -239,21 +243,53 @@ public class HintManager implements ModeListener, MousePositionListener {
         int hintMeshHeight = fixedSizeHintGrid.hintMeshHeight();
         int hintMeshX = fixedSizeHintGrid.hintMeshX();
         int hintMeshY = fixedSizeHintGrid.hintMeshY();
-        int cellWidth = hintMeshWidth / columnCount;
-        int cellHeight = hintMeshHeight / rowCount;
+        int cellWidth = fixedSizeHintGrid.cellWidth;
+        int cellHeight = fixedSizeHintGrid.cellHeight;
+        int spareWidthPixelCount = hintMeshWidth - cellWidth * columnCount;
+        int spareHeightPixelCount = hintMeshHeight - cellHeight * rowCount;
+        boolean[] rowExtraPixelDistribution = distributeTrueUniformly(rowCount, spareHeightPixelCount);
+        boolean[] columnExtraPixelDistribution = distributeTrueUniformly(columnCount, spareWidthPixelCount);
         int gridHintCount = rowCount * columnCount;
         List<Hint> hints = new ArrayList<>(gridHintCount);
         int hintIndex = beginHintIndex;
+        int rowHeightOffset = 0;
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+            int cellHeightWithExtra =
+                    cellHeight + (rowExtraPixelDistribution[rowIndex] ? 1 : 0);
+            int columnWidthOffset = 0;
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 List<Key> keySequence = hintKeySequence(selectionKeySubset, hintLength, hintIndex);
+                int cellWidthWithExtra =
+                        cellWidth + (columnExtraPixelDistribution[columnIndex] ? 1 : 0);
+                int hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2;
+                int hintCenterY = hintMeshY + rowHeightOffset + cellHeight / 2;
+                hints.add(new Hint(hintCenterX, hintCenterY,
+                        cellWidthWithExtra,
+                        cellHeightWithExtra,
+                        keySequence));
                 hintIndex++;
-                int hintCenterX = hintMeshX + columnIndex * cellWidth + cellWidth / 2;
-                int hintCenterY = hintMeshY + rowIndex * cellHeight + cellHeight / 2;
-                hints.add(new Hint(hintCenterX, hintCenterY, cellWidth, cellHeight, keySequence));
+                columnWidthOffset += cellWidthWithExtra;
             }
+            rowHeightOffset += cellHeightWithExtra;
         }
         return hints;
+    }
+
+    /**
+     * If columnCount * cellWidth is 1898, spread the 1920 - 1898 = 22 pixels across the cells.
+     */
+    private static boolean[] distributeTrueUniformly(int arraySize, int trueCount) {
+        if (trueCount > arraySize)
+            throw new IllegalArgumentException();
+        boolean[] distribution = new boolean[arraySize];
+        double step = (double) arraySize / trueCount;
+        double position = 0.0;
+        for (int i = 0; i < trueCount; i++) {
+            int index = (int) position;
+            distribution[index] = true;
+            position += step;
+        }
+        return distribution;
     }
 
     private static List<Key> hintKeySequence(List<Key> selectionKeySubset, int hintLength,
@@ -284,18 +320,23 @@ public class HintManager implements ModeListener, MousePositionListener {
                 (int) ((double) screen.rectangle().height() / cellHeight)));
         int columnCount = Math.max(1, Math.min(maxColumnCount,
                 (int) ((double) screen.rectangle().width() / cellWidth)));
-        hintMeshWidth = Math.min(screen.rectangle().width(),
-                columnCount * cellWidth);
-        hintMeshHeight = Math.min(screen.rectangle().height(),
-                rowCount * cellHeight);
+        hintMeshWidth = columnCount * cellWidth;
+        if (screen.rectangle().width() - hintMeshWidth > 0
+            && screen.rectangle().width() - hintMeshWidth < columnCount)
+            hintMeshWidth = screen.rectangle().width();
+        hintMeshHeight = rowCount * cellHeight;
+        if (screen.rectangle().height() - hintMeshHeight > 0
+            && screen.rectangle().height() - hintMeshHeight < rowCount)
+            hintMeshHeight = screen.rectangle().height();
         hintMeshX = gridCenter.x() - hintMeshWidth / 2;
         hintMeshY = gridCenter.y() - hintMeshHeight / 2;
         return new FixedSizeHintGrid(hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight,
-                rowCount, columnCount);
+                rowCount, columnCount, cellWidth, cellHeight);
     }
 
     private record FixedSizeHintGrid(int hintMeshX, int hintMeshY, int hintMeshWidth,
-                                     int hintMeshHeight, int rowCount, int columnCount) {
+                                     int hintMeshHeight, int rowCount, int columnCount,
+                                     int cellWidth, int cellHeight) {
 
     }
 
