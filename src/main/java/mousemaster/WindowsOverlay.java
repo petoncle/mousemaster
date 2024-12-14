@@ -349,8 +349,7 @@ public class WindowsOverlay {
                     WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
                     GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
 
-                    DibSection dibSection = createDibSection(width, height, hdcTemp,
-                            List.of(), null, -1d);
+                    DibSection dibSection = createDibSection(width, height, hdcTemp);
                     // Select the DIB section into the memory DC.
                     WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, dibSection.hDIBitmap);
                     updateLayeredWindow(ps.rcPaint, hintMeshWindow, hdcTemp);
@@ -391,17 +390,15 @@ public class WindowsOverlay {
                 WinUser.ULW_ALPHA);
     }
 
-    private record DibSection(Pointer pixelPointer, int[] pixelData,
-                              WinDef.HBITMAP hDIBitmap, int boxColorInt) {
+    private record DibSection(Pointer pixelPointer,
+                              WinDef.HBITMAP hDIBitmap) {
     }
 
-    private static DibSection createDibSection(int width, int height, WinDef.HDC hdcTemp,
-                                               List<WinDef.RECT> boxRects, String hexColor,
-                                               double boxOpacity) {
-        // Create a DIB section to allow drawing with transparency
+    private static DibSection createDibSection(int width, int height, WinDef.HDC hdcTemp) {
+        // Create a DIB section to allow drawing with transparency.
         WinGDI.BITMAPINFO bmi = new WinGDI.BITMAPINFO();
-        bmi.bmiHeader.biWidth = width;//100; // Rectangle width
-        bmi.bmiHeader.biHeight = -height;//-100; // Rectangle height (top-down)
+        bmi.bmiHeader.biWidth = width;
+        bmi.bmiHeader.biHeight = -height;// Rectangle height (top-down).
         bmi.bmiHeader.biPlanes = 1;
         bmi.bmiHeader.biBitCount = 32; // 32-bit color depth
         bmi.bmiHeader.biCompression = WinGDI.BI_RGB;
@@ -411,19 +408,7 @@ public class WindowsOverlay {
             throw new RuntimeException("Unable to create DIB section: " +
                                        Integer.toHexString(Native.getLastError()));
         Pointer pixelPointer = pBits.getValue();
-        int[] pixelData = new int[width * height];
-        int alpha = (int) (boxOpacity * 255);
-        int boxColorInt = hexColor == null ? -1 : hexColorStringToRgb(hexColor) | (alpha << 24);
-        for (WinDef.RECT boxRect : boxRects) {
-            for (int x = Math.max(0, boxRect.left); x < Math.min(width, boxRect.right); x++) {
-                for (int y = Math.max(0, boxRect.top); y < Math.min(height, boxRect.bottom); y++) {
-                    // The box may go past the screen dimensions.
-                    pixelData[y * width + x] = boxColorInt;
-                }
-            }
-        }
-        pixelPointer.write(0, pixelData, 0, pixelData.length);
-        return new DibSection(pixelPointer, pixelData, hDIBitmap, boxColorInt);
+        return new DibSection(pixelPointer, hDIBitmap);
     }
 
     private static void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect, int color) {
@@ -575,21 +560,16 @@ public class WindowsOverlay {
         int width = windowRect.right - windowRect.left;
         int height = windowRect.bottom - windowRect.top;
 
-        clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor);
         WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
         GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
 
-        DibSection dibSection = createDibSection(width, height, hdcTemp,
-                hintMeshDraw.boxRects(),
-                currentHintMesh.boxHexColor(), currentHintMesh.boxOpacity());
+        DibSection dibSection = createDibSection(width, height, hdcTemp);
         // Select the DIB section into the memory DC.
         WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, dibSection.hDIBitmap);
         if (oldDIBitmap == null)
             throw new RuntimeException("Unable to select bitmap into source DC.");
 
-//        WinDef.HBITMAP hBitmap =
-//                GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
-//        WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, hBitmap);
+        clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor);
 
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
@@ -611,30 +591,43 @@ public class WindowsOverlay {
                         hintText.highlightText, dibSection, width);
             }
         }
-
-        // Reload dibSection.pixelData with the text pixels added.
-        int[] pixelDataWithoutText = dibSection.pixelData;
-        int[] pixelDataWithText = new int[pixelDataWithoutText.length];
-        dibSection.pixelPointer.read(0, pixelDataWithText, 0, pixelDataWithText.length);
-        for (int i = 0; i < pixelDataWithText.length; i++) {
-            int pixel = pixelDataWithText[i];
-            if (pixel != pixelDataWithoutText[i]) { //dibSection.boxColorInt && pixel != 0) {
-                int rgb = pixel & 0x00FFFFFF; // Keep RGB
-                pixelDataWithText[i] = rgb | (0xFF << 24);    // Set alpha to 255
+        String boxHexColor = currentHintMesh.boxHexColor();
+        double boxOpacity = currentHintMesh.boxOpacity();
+        int alpha = (int) (boxOpacity * 255);
+        int boxColorInt = boxHexColor == null ? -1 : hexColorStringToRgb(boxHexColor) | (alpha << 24);
+        int[] pixelData = new int[width * height];
+        dibSection.pixelPointer.read(0, pixelData, 0, pixelData.length);
+        for (int i = 0; i < pixelData.length; i++) {
+            int pixel = pixelData[i];
+            int rgb = pixel & 0x00FFFFFF; // Keep RGB
+            if (rgb == hintMeshWindow.transparentColor)
+                // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
+                // has filled everything with the grey color. That call was needed
+                // because the DrawText needs the grey color for the antialiasing.
+                // Now we remove the grey color, and we will put it back only for the boxes.
+                // (We need to clear the pixels that are not in boxes.)
+                pixelData[i] = 0;
+            else if (pixel != 0) {
+                // Make the text pixel fully opaque.
+                pixelData[i] = rgb | (0xFF << 24);
             }
         }
-        dibSection.pixelPointer.write(0, pixelDataWithText, 0, pixelDataWithText.length);
-        updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp); // This draws transparent rectangles and calls UpdateLayeredWindow().
+        for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
+            for (int x = Math.max(0, boxRect.left); x < Math.min(width, boxRect.right); x++) {
+                for (int y = Math.max(0, boxRect.top); y < Math.min(height, boxRect.bottom); y++) {
+                    // The box may go past the screen dimensions.
+                    if (pixelData[y * width + x] == 0)
+                        pixelData[y * width + x] = boxColorInt;
+                }
+            }
+        }
+        dibSection.pixelPointer.write(0, pixelData, 0, pixelData.length);
 
-        // Copy (blit) the off-screen buffer to the screen.
-//        GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, hdcTemp, 0, 0,
-//                GDI32.SRCCOPY);
+        updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
 
         GDI32.INSTANCE.DeleteObject(normalFont);
         GDI32.INSTANCE.DeleteObject(largeFont);
 
-//        GDI32.INSTANCE.SelectObject(hdcTemp, oldBitmap);
-//        GDI32.INSTANCE.DeleteObject(hBitmap);
         GDI32.INSTANCE.SelectObject(hdcTemp, oldDIBitmap);
         GDI32.INSTANCE.DeleteObject(hbm);
         GDI32.INSTANCE.DeleteObject(dibSection.hDIBitmap);
