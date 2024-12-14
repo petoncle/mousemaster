@@ -56,10 +56,11 @@ jobs:
           $releaseNotes += "   - **neo-mousekeys.properties** (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys.md))`n"
           $releaseNotes += "   - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))`n"
           $releaseNotes += "   - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))`n"
-          $releaseNotes += "   - **author.properties**: an arrow key based configuration optimized for single hand usage ([see documentation](configuration/author.md))`n"
+          $releaseNotes += "   - **author.properties**: an IJKL based configuration designed to control everything with the right hand only. ([see documentation](configuration/author.md))`n"
           $releaseNotes += "3. Place the executable and the configuration file in the same directory.`n"
           $releaseNotes += "4. Rename the configuration file to **mousemaster.properties**.`n"
           $releaseNotes += "5. Run **mousemaster.exe**.`n"
+          $releaseNotes += "6. Feel free to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues) or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own configuration. If you have ideas for a better configuration that you would like to share, I'd love to hear from you.`n"
           Set-Content -Path ./release-notes.txt -Value $releaseNotes
       - name: Create release
         env:
