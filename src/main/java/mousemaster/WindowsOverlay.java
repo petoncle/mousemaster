@@ -510,10 +510,11 @@ public class WindowsOverlay {
     }
 
     private record HintMeshDraw(List<WinDef.RECT> boxRects,
-                                List<HintText> hintTexts, int[] pixelData) {
+                                List<HintText> hintTexts, int pixelDataLength) {
     }
 
     private static final Map<HintMesh, HintMeshDraw> hintMeshDrawCache = new HashMap<>();
+    private static int[] cachedPixelData;
 
     private static void drawHints(WinDef.HDC hdc,
                                   WinDef.RECT windowRect, Screen screen,
@@ -596,10 +597,11 @@ public class WindowsOverlay {
         double boxOpacity = currentHintMesh.boxOpacity();
         int alpha = (int) (boxOpacity * 255);
         int boxColorInt = boxHexColor == null ? -1 : hexColorStringToRgb(boxHexColor) | (alpha << 24);
-        int[] pixelData = hintMeshDraw.pixelData;
-        dibSection.pixelPointer.read(0, pixelData, 0, pixelData.length);
-        for (int i = 0; i < pixelData.length; i++) {
-            int pixel = pixelData[i];
+        if (cachedPixelData == null || cachedPixelData.length < hintMeshDraw.pixelDataLength)
+            cachedPixelData = new int[hintMeshDraw.pixelDataLength];
+        dibSection.pixelPointer.read(0, cachedPixelData, 0, hintMeshDraw.pixelDataLength);
+        for (int i = 0; i < hintMeshDraw.pixelDataLength; i++) {
+            int pixel = cachedPixelData[i];
             int rgb = pixel & 0x00FFFFFF; // Keep RGB
             if (rgb == hintMeshWindow.transparentColor)
                 // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
@@ -607,22 +609,22 @@ public class WindowsOverlay {
                 // because the DrawText needs the grey color for the antialiasing.
                 // Now we remove the grey color, and we will put it back only for the boxes.
                 // (We need to clear the pixels that are not in boxes.)
-                pixelData[i] = 0;
+                cachedPixelData[i] = 0;
             else if (pixel != 0) {
                 // Make the text pixel fully opaque.
-                pixelData[i] = rgb | (0xFF << 24);
+                cachedPixelData[i] = rgb | (0xFF << 24);
             }
         }
         for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
             for (int x = Math.max(0, boxRect.left); x < Math.min(windowWidth, boxRect.right); x++) {
                 for (int y = Math.max(0, boxRect.top); y < Math.min(windowHeight, boxRect.bottom); y++) {
                     // The box may go past the screen dimensions.
-                    if (pixelData[y * windowWidth + x] == 0)
-                        pixelData[y * windowWidth + x] = boxColorInt;
+                    if (cachedPixelData[y * windowWidth + x] == 0)
+                        cachedPixelData[y * windowWidth + x] = boxColorInt;
                 }
             }
         }
-        dibSection.pixelPointer.write(0, pixelData, 0, pixelData.length);
+        dibSection.pixelPointer.write(0, cachedPixelData, 0, hintMeshDraw.pixelDataLength);
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
 
@@ -744,8 +746,7 @@ public class WindowsOverlay {
                     highlightRect, highlightText,
                     suffixRect, suffixText));
         }
-        int[] pixelData = new int[windowWidth * windowHeight];
-        return new HintMeshDraw(boxRects, hintTexts, pixelData);
+        return new HintMeshDraw(boxRects, hintTexts, windowWidth * windowHeight);
     }
 
     private record Result(List<WinDef.RECT> boxRects, List<HintText> hintTexts) {
