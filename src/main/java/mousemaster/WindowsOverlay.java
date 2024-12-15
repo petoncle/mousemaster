@@ -726,8 +726,8 @@ public class WindowsOverlay {
                                (cellWidth % 2);
                 int boxBottom = hint.centerY() - screen.rectangle().y() + halfCellHeight +
                                 (cellHeight % 2);
-                if (boxLeft < boxRect.left && boxTop < boxRect.top
-                    && boxRight > boxRect.right && boxBottom > boxRect.bottom) {
+                if (boxLeft < boxRect.left || boxTop < boxRect.top
+                    || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
                     boxRect.left = boxLeft;
                     boxRect.top = boxTop;
                     boxRect.right = boxRight;
