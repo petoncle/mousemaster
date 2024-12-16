@@ -61,6 +61,7 @@ jobs:
           $releaseNotes += "4. Rename the configuration file to **mousemaster.properties**.`n"
           $releaseNotes += "5. Run **mousemaster.exe**.`n"
           $releaseNotes += "6. Feel free to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues) or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own configuration. If you have ideas for a better configuration that you would like to share, I'd love to hear from you.`n"
+          $releaseNotes += "7. If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!`n"
           Set-Content -Path ./release-notes.txt -Value $releaseNotes
       - name: Create release
         env:

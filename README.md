@@ -47,6 +47,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own
    configuration. If you have ideas for a better configuration that
    you would like to share, I'd love to hear from you.
+7. If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support! 
 
 # Features
 
