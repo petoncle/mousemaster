@@ -54,39 +54,30 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 1. **Advanced key combinations (key combos):** mousemaster offers a high level
    of customization for key combinations. It allows for advanced key combos like "hold
    alt for 1 second" or "press then release alt, twice in a row".
-
 2. **Custom modes:** Users have to define their own modes, with each mode
    having its own key combo-to-command map and mouse settings. There is only one
    predefined mode, the "idle-mode", which has no key combos predefined (this is the
    "mousemaster is disabled mode").
-
 3. **Flexible key combo to command mappings:** The same key combo can be used to
    trigger multiple commands. Multiple key combos can be used to trigger the same command.
-
 4. **Multi-screen navigation:** mousemaster allows for mouse movement across multiple screens.
-
 5. **Grids:** mousemaster includes a grid-based navigation system. A grid can cover the
    active screen or the active window.
-
 6. **Hints:** mousemaster includes a hint-based navigation system similar
    to Vimium's. A hint grid can cover the active screen, the active window, or all
    screens (which can be used for screen selection hints). A mouse button click
    can be automatically triggered after a hint is selected.
-
 7. **Dynamic configuration:** The configuration file is live, mousemaster automatically
    reloads it whenever the file is saved.
-
 8. **Visual mouse indicator:** The optional and customizable mouse indicator (a
    plain-color square drawn next to the mouse cursor) changes colors based on mouse
    activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
    visible when the mouse is near screen edges.
-
 9. **Left/right key distinction:** mousemaster distinguishes between left and right
    alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
    different commands.
-
-10. **Position history hints:** absolute positions can be saved on the fly to be able 
-    to make the mouse jump to them later.
+10. **Position history hints:** absolute positions can be saved on the fly to make 
+   it possible to move the mouse to them later.
 
 # Notes
 
