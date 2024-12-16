@@ -66,6 +66,7 @@ public class MouseController implements ModeListener, MousePositionListener {
 
     public void update(double delta) {
         if (moving()) {
+            WindowsMouse.beginMove();
             moveDuration += delta;
             double moveVelocity = Math.min(mouse.maxVelocity(), mouse.initialVelocity() +
                                                                 mouse.acceleration() *
@@ -96,6 +97,8 @@ public class MouseController implements ModeListener, MousePositionListener {
                 deltaDistanceX = deltaDistanceY = 0;
             }
         }
+        else if (!jumping)
+            WindowsMouse.endMove();
         if (jumping) {
             jumpDuration += delta;
             double jumpVelocity =
@@ -354,10 +357,6 @@ public class MouseController implements ModeListener, MousePositionListener {
         WindowsMouse.hideCursor();
     }
 
-    public void synchronousMoveTo(int x, int y) {
-        WindowsMouse.synchronousMoveTo(x, y);
-    }
-
     public void moveTo(int x, int y) {
         if (x == mouseX && y == mouseY)
             return;
@@ -365,6 +364,7 @@ public class MouseController implements ModeListener, MousePositionListener {
             return;
         // Move a single pixel. Skype's titlebar does not like being dragged too quick too far.
         if (!mouse.smoothJumpEnabled()) {
+            WindowsMouse.beginMove();
             WindowsMouse.synchronousMoveTo(x, y);
             return;
         }
@@ -379,6 +379,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         jumpX = mouseX;
         jumpY = mouseY;
         jumping = true;
+        WindowsMouse.beginMove();
         jumpEndX = x;
         jumpEndY = y;
         jumpScale = screenManager.activeScreen().scale();
@@ -411,6 +412,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (jumping && !mouse.smoothJumpEnabled()) {
             jumping = false;
             jumpDuration = 0;
+            WindowsMouse.beginMove();
             WindowsMouse.synchronousMoveTo(jumpEndX, jumpEndY);
         }
         if (newMode.stopCommandsFromPreviousMode()) {

@@ -89,7 +89,7 @@ public interface ExtendedUser32 extends User32 {
 
     boolean SetSystemCursor(HANDLE hcur, UINT id);
 
-    boolean SystemParametersInfoA(UINT uiAction, UINT uiParam, WinDef.DWORD[] pvParam, UINT fWinIni);
+    boolean SystemParametersInfoA(UINT uiAction, UINT uiParam, Object pvParam, UINT fWinIni);
 
     int SPI_SETCURSORS = 0x0057;
     int SPI_GETMOUSESPEED = 0x0070;

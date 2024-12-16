@@ -41,7 +41,7 @@ public class WindowsMouse {
                     new WinDef.DWORD(0),
                     new WinDef.DWORD(0)
             };
-    private static final WinDef.DWORD[] tenMouseSpeed = new WinDef.DWORD[] { new WinDef.DWORD(10) };
+    private static final int tenMouseSpeed = 10;
 
     /**
      * On my computer, with enhanced pointer precision enabled,
@@ -79,7 +79,7 @@ public class WindowsMouse {
     }
 
     private static void setMouseThresholdsAndAccelerationAndSpeed(
-            WinDef.DWORD[] mouseThresholdsAndAcceleration, WinDef.DWORD[] mouseSpeed) {
+            WinDef.DWORD[] mouseThresholdsAndAcceleration, int mouseSpeed) {
         int SPIF_SENDCHANGE = 0x02;
         boolean setMouseSuccess = ExtendedUser32.INSTANCE.SystemParametersInfoA(
                 new WinDef.UINT(ExtendedUser32.SPI_SETMOUSE),
@@ -87,15 +87,35 @@ public class WindowsMouse {
                 mouseThresholdsAndAcceleration,
                 new WinDef.UINT(SPIF_SENDCHANGE)
         );
-        boolean setMousespeedSuccess = mouseSpeed[0].intValue() == 10 || ExtendedUser32.INSTANCE.SystemParametersInfoA(
+        boolean setMousespeedSuccess = ExtendedUser32.INSTANCE.SystemParametersInfoA(
                 new WinDef.UINT(ExtendedUser32.SPI_SETMOUSESPEED),
                 new WinDef.UINT(0),
                 mouseSpeed,
                 new WinDef.UINT(SPIF_SENDCHANGE)
         );
-        if (!setMouseSuccess && !setMousespeedSuccess) {
+        if (!setMouseSuccess || !setMousespeedSuccess) {
             logger.error("Unable to set mouse thresholds, acceleration and speed");
         }
+    }
+
+    private static boolean moving;
+
+    public static void beginMove() {
+        if (moving)
+            return;
+        findMouseThresholdsAndAccelerationAndSpeed(originalMouseThresholdsAndAcceleration,
+                originalMouseSpeed);
+        setMouseThresholdsAndAccelerationAndSpeed(zeroMouseThresholdsAndAcceleration,
+                tenMouseSpeed);
+        moving = true;
+    }
+
+    public static void endMove() {
+        if (!moving)
+            return;
+        moving = false;
+        setMouseThresholdsAndAccelerationAndSpeed(originalMouseThresholdsAndAcceleration,
+                originalMouseSpeed[0].intValue());
     }
 
     public static void synchronousMoveTo(int x, int y) {
@@ -104,13 +124,7 @@ public class WindowsMouse {
         // TODO What if the move is across multiple screens?
         double scaledDeltaX = Math.abs(x - mousePosition.x) / activeScreen.scale();
         double scaledDeltaY = Math.abs(y - mousePosition.y) / activeScreen.scale();
-        findMouseThresholdsAndAccelerationAndSpeed(originalMouseThresholdsAndAcceleration,
-                originalMouseSpeed);
-        setMouseThresholdsAndAccelerationAndSpeed(zeroMouseThresholdsAndAcceleration,
-                tenMouseSpeed);
         moveBy(x > mousePosition.x, scaledDeltaX, y > mousePosition.y, scaledDeltaY);
-        setMouseThresholdsAndAccelerationAndSpeed(originalMouseThresholdsAndAcceleration,
-                originalMouseSpeed);
         // Absolute positioning necessary to be pixel perfect (Or is there another way?).
         // I think this is only a problem if the screen scale is not 1?
         setMousePosition(new WinDef.POINT(x, y));
