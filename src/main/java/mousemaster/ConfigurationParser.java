@@ -82,9 +82,10 @@ public class ConfigurationParser {
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
+        // On a 1920x1080 screen 73x41 cell size can accommodate up to 26x26 hints.
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
-                           .gridMaxRowCount(26)
-                           .gridMaxColumnCount(26)
+                           .gridMaxRowCount(100)
+                           .gridMaxColumnCount(100)
                            .gridCellWidth(73)
                            .gridCellHeight(41);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
