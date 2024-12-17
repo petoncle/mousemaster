@@ -172,22 +172,15 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             else
                 throw new IllegalStateException();
-            List<Key> selectionKeySubset =
-                    gridSelectionKeySubset(hintMeshConfiguration.typeAndSelectionKeys().selectionKeys(),
-                            fixedSizeHintGrids.getFirst().rowCount *
-                            fixedSizeHintGrids.size(),
-                            fixedSizeHintGrids.getFirst().columnCount *
-                            fixedSizeHintGrids.size());
             int hintCount = fixedSizeHintGrids.getFirst().rowCount *
                             fixedSizeHintGrids.getFirst().columnCount *
                             fixedSizeHintGrids.size();
-            // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
-            int hintLength = hintCount == 1 ? 1 : (int) Math.ceil(
-                    Math.log(hintCount) / Math.log(selectionKeySubset.size()));
             List<Hint> hints = new ArrayList<>();
             for (FixedSizeHintGrid fixedSizeHintGrid : fixedSizeHintGrids) {
                 int beginHintIndex = hints.size();
-                hints.addAll(buildHints(fixedSizeHintGrid, selectionKeySubset, hintLength,
+                hints.addAll(buildHints(fixedSizeHintGrid,
+                        hintMeshConfiguration.typeAndSelectionKeys().selectionKeys(),
+                        hintCount,
                         beginHintIndex));
             }
             hintMesh.hints(hints);
@@ -195,19 +188,11 @@ public class HintManager implements ModeListener, MousePositionListener {
         else {
             int hintCount = positionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
-            List<Key> selectionKeySubset = maxPositionHistorySize >=
-                                           hintMeshConfiguration.typeAndSelectionKeys()
-                                                                .selectionKeys()
-                                                                .size() ?
-                    hintMeshConfiguration.typeAndSelectionKeys().selectionKeys() :
-                    hintMeshConfiguration.typeAndSelectionKeys()
-                                         .selectionKeys()
-                                         .subList(0, maxPositionHistorySize);
-            int hintLength = (int) Math.ceil(Math.log(maxPositionHistorySize) /
-                                             Math.log(selectionKeySubset.size()));
             for (Point point : positionHistory) {
-                List<Key> keySequence = hintKeySequence(selectionKeySubset, hintLength,
-                        idByPosition.get(point) % maxPositionHistorySize);
+                List<Key> keySequence = hintKeySequence(
+                        hintMeshConfiguration.typeAndSelectionKeys().selectionKeys(), hintCount,
+                        idByPosition.get(point) % maxPositionHistorySize, -1, -1, -1,
+                        -1);
                 hints.add(new Hint(point.x(), point.y(), -1, -1, keySequence));
             }
             hintMesh.hints(hints);
@@ -224,7 +209,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static List<Hint> buildHints(FixedSizeHintGrid fixedSizeHintGrid,
-                                         List<Key> selectionKeySubset, int hintLength,
+                                         List<Key> selectionKeys, int hintCount,
                                          int beginHintIndex) {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
@@ -247,7 +232,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                     cellHeight + (rowExtraPixelDistribution[rowIndex] ? 1 : 0);
             int columnWidthOffset = 0;
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                List<Key> keySequence = hintKeySequence(selectionKeySubset, hintLength, hintIndex);
+                List<Key> keySequence = hintKeySequence(selectionKeys, hintCount, hintIndex,
+                        rowIndex, columnIndex, rowCount, columnCount);
                 int cellWidthWithExtra =
                         cellWidth + (columnExtraPixelDistribution[columnIndex] ? 1 : 0);
                 int hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2;
@@ -279,18 +265,67 @@ public class HintManager implements ModeListener, MousePositionListener {
         return distribution;
     }
 
-    private static List<Key> hintKeySequence(List<Key> selectionKeySubset, int hintLength,
-                                             int hintIndex) {
+    private static List<Key> hintKeySequence(List<Key> keys, int hintCount,
+                                             int hintIndex, int rowIndex, int columnIndex,
+                                             int rowCount, int columnCount) {
+        int keyCount = keys.size();
+        if (rowIndex != -1) {
+            if (rowCount * columnCount < keyCount) {
+                return List.of(keys.get(hintIndex));
+            }
+            // We want the hints to look like this:
+            // (column prefix)(row suffix)
+            // (aa)(aa), (ab)(aa), ..., (ba)(aa), ..., (zz)(aa)
+            // (aa)(ab), (ab)(ab), ..., (ba)(aa), ..., (zz)(ab)
+            // ...
+            // (aa)(ba), (ab)(ba), ..., (ba)(aa), ..., (zz)(ba)
+            // ...
+            // (aa)(zz), (ab)(zz), ..., (ba)(aa), ..., (zz)(zz)
+            // The ideal situation is when rowCount = columnCount = hintKeys.size().
+            if (rowCount <= keyCount && columnCount <= keyCount &&
+                rowCount * columnCount <= Math.pow(keyCount, 2)) {
+                return List.of(
+                        keys.get(columnIndex),
+                        keys.get(rowIndex)
+                );
+            }
+            else if (rowCount * columnCount >= 100 &&
+                     rowCount <= Math.pow(keyCount, 2) &&
+                     columnCount <= Math.pow(keyCount, 2) &&
+                     rowCount * columnCount < Math.pow(keyCount, 4)) {
+                // Length 3 if rowCount or columnCount <= keyCount.
+                if (columnCount <= keyCount)
+                    return List.of(
+                            keys.get(columnIndex),
+                            keys.get(rowIndex / keyCount),
+                            keys.get(rowIndex % keyCount)
+                    );
+                if (rowCount <= keyCount)
+                    return List.of(
+                            keys.get(columnIndex / keyCount),
+                            keys.get(columnIndex % keyCount),
+                            keys.get(rowIndex)
+                    );
+                // We don't do length 4 if keyCount too large because the hints would
+                // always start with A or B.
+                if (keyCount <= 6) // 6^4 = 1296 hints
+                    return List.of(
+                            keys.get(columnIndex / keyCount),
+                            keys.get(columnIndex % keyCount),
+                            keys.get(rowIndex / keyCount),
+                            keys.get(rowIndex % keyCount)
+                    );
+            }
+        }
+        // Give up trying to have (column prefix)(row suffix).
+        // Just try to minimize the hint length.
+        // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
+        int hintLength = (int) Math.ceil(
+                            Math.log(hintCount) / Math.log(keyCount));
         List<Key> keySequence = new ArrayList<>();
-        // We want the hints to look like this:
-        // aa, ba, ..., za
-        // ab, bb, ..., zb
-        // az, bz, ..., zz
-        // The ideal situation is when rowCount = columnCount = hintKeys.size().
         for (int i = 0; i < hintLength; i++) {
-            keySequence.add(selectionKeySubset.get(
-                    (int) (hintIndex / Math.pow(selectionKeySubset.size(), i) %
-                           selectionKeySubset.size())));
+            keySequence.add(
+                    keys.get((int) (hintIndex / Math.pow(keyCount, i) % keyCount)));
         }
         return keySequence;
     }
@@ -356,16 +391,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                                      int hintMeshHeight, int rowCount, int columnCount,
                                      int cellWidth, int cellHeight) {
 
-    }
-
-    private static List<Key> gridSelectionKeySubset(List<Key> keys, int rowCount,
-                                                    int columnCount) {
-        int hintCount = rowCount * columnCount;
-        if (hintCount < keys.size())
-            // Will be single-key hints.
-            return keys.subList(0, hintCount);
-        return rowCount == columnCount && rowCount < keys.size() ?
-                keys.subList(0, rowCount) : keys;
     }
 
     @Override
