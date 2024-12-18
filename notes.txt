@@ -224,3 +224,7 @@ _shift,^shift = press shift, release shift?
  app-alias.hibernateapp=firefox.exe chrome.exe
  idle-mode.to.hibernate-mode=_{hibernateapp}
  hibernate-mode.to.idle-mode=^{hibernateapp}
+
+ normal-mode.remap.goback.input=+h
+ # This would mean: press alt, wait 50ms, press left, wait 50ms, release left and alt at the same time
+ normal-mode.remap.goback.output=+leftalt wait-50 +left wait-50 -left -leftalt

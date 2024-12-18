@@ -120,10 +120,9 @@ public class WindowsPlatform implements Platform {
                         Pointer.createConstant(
                                 ExtendedUser32.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)));
         int dpiAwarenessErrorCode = Kernel32.INSTANCE.GetLastError();
-        logger.info("SetProcessDpiAwarenessContext returned " +
-                    setProcessDpiAwarenessContextResult +
-                    (setProcessDpiAwarenessContextResult ? "" :
-                            ", error code = " + dpiAwarenessErrorCode));
+        if (!setProcessDpiAwarenessContextResult)
+            logger.info("Unable to SetProcessDpiAwarenessContext: error code = " +
+                        dpiAwarenessErrorCode);
     }
 
     private void installHooks() {
@@ -139,17 +138,25 @@ public class WindowsPlatform implements Platform {
     }
 
     private void addJvmShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            WindowsMouse.showCursor(); // Just in case we are shutting down while cursor is hidden.
-            boolean keyboardHookUnhooked =
-                    User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
-            boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
-            logger.info(
-                    "Keyboard and mouse hooks uninstalled " + keyboardHookUnhooked + " " +
-                    (mouseHookUnhooked ? "successfully" : "unsuccessfully"));
-            releaseSingleInstanceMutex();
-            logger.info("Single instance mutex released");
-        }));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+    }
+
+    private static boolean shutdown = false;
+
+    @Override
+    public void shutdown() {
+        if (shutdown)
+            return;
+        shutdown = true;
+        WindowsMouse.showCursor(); // Just in case we are shutting down while cursor is hidden.
+        boolean keyboardHookUnhooked =
+                User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
+        boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
+        logger.info(
+                "Keyboard and mouse hooks uninstalled " +
+                (keyboardHookUnhooked && mouseHookUnhooked ? "successfully" : "unsuccessfully"));
+        releaseSingleInstanceMutex();
+        logger.trace("Single instance mutex released");
     }
 
     /**

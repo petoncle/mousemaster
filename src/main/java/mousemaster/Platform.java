@@ -10,4 +10,6 @@ public interface Platform {
                KeyboardLayout keyboardLayout, ModeMap modeMap,
                List<MousePositionListener> mousePositionListeners);
 
+    void shutdown();
+
 }
