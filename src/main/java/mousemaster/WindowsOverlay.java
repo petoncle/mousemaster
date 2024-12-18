@@ -545,6 +545,8 @@ public class WindowsOverlay {
         int fontSize = currentHintMesh.fontSize();
         double highlightFontScale = currentHintMesh.highlightFontScale();
         int boxInset = currentHintMesh.boxInset();
+        String boxOutlineHexColor = currentHintMesh.boxOutlineHexColor();
+        double boxOutlineOpacity = currentHintMesh.boxOutlineOpacity();
         String fontHexColor = currentHintMesh.fontHexColor();
         String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
@@ -627,10 +629,8 @@ public class WindowsOverlay {
         if (boxColorInt == 0)
             boxColorInt = 1;
         // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
-        String betweenBoxHexColor = "CCCCCC";
-        double betweenBoxOpacity = 1d;
-        int colorBetweenBoxesInt = hintMeshDraw.cellRects.isEmpty() ? 0 :
-                hexColorStringToRgb(betweenBoxHexColor, betweenBoxOpacity) | ((int) (255 * betweenBoxOpacity) << 24);
+        int colorBetweenBoxesInt =
+                hexColorStringToRgb(boxOutlineHexColor, boxOutlineOpacity) | ((int) (255 * boxOutlineOpacity) << 24);
         dibSection.pixelPointer.read(0, dibSection.pixelData, 0, dibSection.pixelData.length);
         for (int i = 0; i < dibSection.pixelData.length; i++) {
             int pixel = dibSection.pixelData[i];

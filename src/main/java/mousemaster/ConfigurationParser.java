@@ -78,6 +78,8 @@ public class ConfigurationParser {
                 .boxHexColor("#000000")
                 .boxOpacity(0.4d)
                 .boxInset(1)
+                .boxOutlineHexColor("#CCCCCC")
+                .boxOutlineOpacity(1d)
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -453,6 +455,10 @@ public class ConfigurationParser {
                             // See HintManager#distributeTrueUniformly.
                             case "box-inset" -> mode.hintMesh.builder.boxInset(
                                     Integer.parseUnsignedInt(propertyValue));
+                            case "box-outline-color" -> mode.hintMesh.builder.boxOutlineHexColor(
+                                    checkColorFormat(propertyKey, propertyValue));
+                            case "box-outline-opacity" -> mode.hintMesh.builder.boxOutlineOpacity(
+                                    parsePercent(propertyKey, propertyValue, true, 1));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -1288,6 +1294,10 @@ public class ConfigurationParser {
                         builder.boxOpacity(parent.boxOpacity());
                     if (builder.boxInset() == null)
                         builder.boxInset(parent.boxInset());
+                    if (builder.boxOutlineHexColor() == null)
+                        builder.boxOutlineHexColor(parent.boxOutlineHexColor());
+                    if (builder.boxOutlineOpacity() == null)
+                        builder.boxOutlineOpacity(parent.boxOutlineOpacity());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

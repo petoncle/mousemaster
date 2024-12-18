@@ -122,7 +122,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .highlightFontScale(hintMeshConfiguration.highlightFontScale())
                 .boxHexColor(hintMeshConfiguration.boxHexColor())
                 .boxOpacity(hintMeshConfiguration.boxOpacity())
-                .boxInset(hintMeshConfiguration.boxInset());
+                .boxInset(hintMeshConfiguration.boxInset())
+                .boxOutlineHexColor(hintMeshConfiguration.boxOutlineHexColor())
+                .boxOutlineOpacity(hintMeshConfiguration.boxOutlineOpacity())
+        ;
         HintMeshType type = hintMeshConfiguration.typeAndSelectionKeys().type();
         if (type instanceof HintMeshType.HintGrid hintGrid) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();

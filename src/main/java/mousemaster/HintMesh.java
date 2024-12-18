@@ -8,9 +8,9 @@ import java.util.List;
 public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
                        String fontName, int fontSize, String fontHexColor,
                        String prefixFontHexColor, double highlightFontScale,
-                       String boxHexColor,
-                       double boxOpacity,
-                       int boxInset) {
+                       String boxHexColor, double boxOpacity,
+                       int boxInset,
+                       String boxOutlineHexColor, double boxOutlineOpacity) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -29,6 +29,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private String boxHexColor;
         private double boxOpacity;
         private int boxInset;
+        private String boxOutlineHexColor;
+        private double boxOutlineOpacity;
 
         public HintMeshBuilder() {
         }
@@ -46,6 +48,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.boxHexColor = hintMesh.boxHexColor;
             this.boxOpacity = hintMesh.boxOpacity;
             this.boxInset = hintMesh.boxInset;
+            this.boxOutlineHexColor = hintMesh.boxOutlineHexColor;
+            this.boxOutlineOpacity = hintMesh.boxOutlineOpacity;
         }
 
         public HintMeshType type() {
@@ -94,6 +98,14 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public int boxInset() {
             return boxInset;
+        }
+
+        public String boxOutlineHexColor() {
+            return boxOutlineHexColor;
+        }
+
+        public double boxOutlineOpacity() {
+            return boxOutlineOpacity;
         }
 
         public HintMeshBuilder type(HintMeshType type) {
@@ -158,11 +170,23 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder boxOutlineHexColor(String boxOutlineHexColor) {
+            this.boxOutlineHexColor = boxOutlineHexColor;
+            return this;
+        }
+
+        public HintMeshBuilder boxOutlineOpacity(double boxOutlineOpacity) {
+            this.boxOutlineOpacity = boxOutlineOpacity;
+            return this;
+        }
+
         public HintMesh build() {
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
                     fontSize,
                     fontHexColor, prefixFontHexColor, highlightFontScale,
-                    boxHexColor, boxOpacity, boxInset);
+                    boxHexColor, boxOpacity,
+                    boxInset,
+                    boxOutlineHexColor, boxOutlineOpacity);
         }
     }
 
