@@ -447,12 +447,12 @@ public class ConfigurationParser {
                             case "box-color" -> mode.hintMesh.builder.boxHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
-                                    parseNonZeroPercent(propertyKey, propertyValue, 1));
+                                    parsePercent(propertyKey, propertyValue, true, 1));
                             // Allow for box grow percent > 1: even with 1, I would get empty pixels
                             // between the cells due to the way we distribute spare pixels.
                             // See HintManager#distributeTrueUniformly.
                             case "box-inset" -> mode.hintMesh.builder.boxInset(
-                                    Double.parseDouble(propertyValue));
+                                    Integer.parseUnsignedInt(propertyValue));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -993,8 +993,13 @@ public class ConfigurationParser {
 
     private static double parseNonZeroPercent(String propertyKey, String propertyValue,
                                               double max) {
+        return parsePercent(propertyKey, propertyValue, false, max);
+    }
+
+    private static double parsePercent(String propertyKey, String propertyValue, boolean zeroIncluded,
+                                              double max) {
         double percent = Double.parseDouble(propertyValue);
-        if (percent <= 0)
+        if (percent < 0 || percent == 0 && !zeroIncluded)
             throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey +
                     ": percent must greater than 0.0");

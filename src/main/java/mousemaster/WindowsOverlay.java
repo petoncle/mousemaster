@@ -111,7 +111,6 @@ public class WindowsOverlay {
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   WinDef.HWND transparentHwnd,
                                   WinUser.WindowProc callback,
-                                  int transparentColor,
                                   List<Hint> hints,
                                   Map<HintMesh, HintMeshDraw> hintMeshDrawCache) {
 
@@ -160,7 +159,7 @@ public class WindowsOverlay {
     }
 
     private static int scaledPixels(int originalInPixels, double scale) {
-        return (int) Math.ceil(originalInPixels * scale);
+        return (int) Math.floor(originalInPixels * scale);
     }
 
     private static void createGridWindow(int x, int y, int width, int height) {
@@ -217,9 +216,6 @@ public class WindowsOverlay {
                 User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
                 hintMeshWindows.put(screen,
                         new HintMeshWindow(hwnd, transparentHwnd, callback,
-                                hexColorStringToRgb(
-                                        blendColorOverWhite(currentHintMesh.boxHexColor(),
-                                                currentHintMesh.boxOpacity())),
                                 hintsInScreen, new HashMap<>()));
             }
             else {
@@ -227,7 +223,6 @@ public class WindowsOverlay {
                         new HintMeshWindow(existingWindow.hwnd,
                                 existingWindow.transparentHwnd,
                                 existingWindow.callback,
-                                existingWindow.transparentColor,
                                 hintsInScreen, new HashMap<>()));
             }
         }
@@ -345,8 +340,7 @@ public class WindowsOverlay {
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                     break;
                 }
-                User32.INSTANCE.SetLayeredWindowAttributes(hwnd,
-                        hintMeshWindow.transparentColor, (byte) 0, WinUser.LWA_COLORKEY);
+                User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 0, WinUser.LWA_ALPHA);
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 if (hintMeshWindow.hints.isEmpty())
                     clearLayeredWindow(hdc, ps, hintMeshWindow);
@@ -362,7 +356,7 @@ public class WindowsOverlay {
     private static void clearLayeredWindow(WinDef.HDC hdc, ExtendedUser32.PAINTSTRUCT ps,
                                   HintMeshWindow hintMeshWindow) {
         // The area has to be cleared otherwise the previous drawings will be drawn.
-        clearWindow(hdc, ps.rcPaint, hintMeshWindow.transparentColor);
+        clearWindow(hdc, ps.rcPaint, 0);
 
         // Clear layered window.
         int width = ps.rcPaint.right - ps.rcPaint.left;
@@ -514,6 +508,20 @@ public class WindowsOverlay {
         return String.format("%02X%02X%02X", blendedRed, blendedGreen, blendedBlue);
     }
 
+    // color1 is background, color2 is foreground
+    private static int blend(int color1, int color2, double color2Opacity) {
+        int red1 = (color1 >> 16) & 0xFF;
+        int green1 = (color1 >> 8) & 0xFF;
+        int blue1 = color1 & 0xFF;
+        int red2 = (color2 >> 16) & 0xFF;
+        int green2 = (color2 >> 8) & 0xFF;
+        int blue2 = color2 & 0xFF;
+        int blendedRed = (int) Math.round((red2 * color2Opacity) + (red1 * (1 - color2Opacity)));
+        int blendedGreen = (int) Math.round((green2 * color2Opacity) + (green1 * (1 - color2Opacity)));
+        int blendedBlue = (int) Math.round((blue2 * color2Opacity) + (blue1 * (1 - color2Opacity)));
+        return (blendedRed << 16) | (blendedGreen << 8) | blendedBlue;
+    }
+
     private record HintText(
             WinDef.RECT prefixRect, String prefixText,
             WinDef.RECT highlightRect, String highlightText,
@@ -536,7 +544,7 @@ public class WindowsOverlay {
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
         double highlightFontScale = currentHintMesh.highlightFontScale();
-        double boxInset = currentHintMesh.boxInset();
+        int boxInset = currentHintMesh.boxInset();
         String fontHexColor = currentHintMesh.fontHexColor();
         String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
@@ -581,40 +589,49 @@ public class WindowsOverlay {
         if (oldDIBitmap == null)
             throw new RuntimeException("Unable to select bitmap into source DC.");
 
-        clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor);
-
+        String boxHexColor = currentHintMesh.boxHexColor();
+        double boxOpacity = currentHintMesh.boxOpacity();
+        double textOpacity = 1;//0.8d;
+        double mergedOpacity = boxOpacity + textOpacity * (1 - boxOpacity);
+        int overWhiteBoxColor = hexColorStringToRgb(blendColorOverWhite(boxHexColor,
+                Math.min(boxOpacity, textOpacity)), 1);
+        clearWindow(hdcTemp, windowRect, overWhiteBoxColor);
+        int prefixFontColorInt = hexColorStringToInt(prefixFontHexColor);
+        int fontColorInt = hexColorStringToInt(fontHexColor);
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
                 GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
-                drawHintText(hdcTemp, prefixFontHexColor, hintText.prefixRect,
-                        hintText.prefixText, dibSection, windowWidth);
+                drawHintText(hdcTemp, hintText.prefixRect,
+                        hintText.prefixText, dibSection, windowWidth,
+                        prefixFontColorInt);
             }
             if (hintText.suffixRect != null) {
                 GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
-                drawHintText(hdcTemp, fontHexColor, hintText.suffixRect, hintText.suffixText,
-                        dibSection, windowWidth);
+                drawHintText(hdcTemp, hintText.suffixRect, hintText.suffixText,
+                        dibSection, windowWidth, fontColorInt);
             }
             if (hintText.highlightRect != null) {
                 WinNT.HANDLE largeFont0 =
                         hintText.prefixRect == null && hintText.suffixRect == null ?
                                 normalFont : largeFont;
                 GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
-                drawHintText(hdcTemp, fontHexColor, hintText.highlightRect,
-                        hintText.highlightText, dibSection, windowWidth);
+                drawHintText(hdcTemp, hintText.highlightRect,
+                        hintText.highlightText, dibSection, windowWidth,
+                        fontColorInt);
             }
         }
-        String boxHexColor = currentHintMesh.boxHexColor();
-        double boxOpacity = currentHintMesh.boxOpacity();
-        int alpha = (int) (boxOpacity * 255);
-        int boxColorInt = boxHexColor == null ? -1 : hexColorStringToRgb(boxHexColor) | (alpha << 24);
+        int boxColorInt = hexColorStringToRgb(boxHexColor, boxOpacity) |
+                          (int) (boxOpacity * 255) << 24;
         // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
+        String betweenBoxHexColor = "CCCCCC";
+        double betweenBoxOpacity = 1d;
         int colorBetweenBoxesInt = hintMeshDraw.cellRects.isEmpty() ? 0 :
-                hexColorStringToRgb("FFFFFF") | (255 << 24); // apply this color only if inside a cell
+                hexColorStringToRgb(betweenBoxHexColor, betweenBoxOpacity) | ((int) (255 * betweenBoxOpacity) << 24);
         dibSection.pixelPointer.read(0, dibSection.pixelData, 0, dibSection.pixelData.length);
         for (int i = 0; i < dibSection.pixelData.length; i++) {
             int pixel = dibSection.pixelData[i];
             int rgb = pixel & 0x00FFFFFF; // Keep RGB
-            if (rgb == hintMeshWindow.transparentColor)
+            if (rgb == overWhiteBoxColor)
                 // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
                 // has filled everything with the grey color. That call was needed
                 // because the DrawText needs the grey color for the antialiasing.
@@ -622,8 +639,17 @@ public class WindowsOverlay {
                 // (We need to clear the pixels that are not in boxes.)
                 dibSection.pixelData[i] = 0;
             else if (pixel != 0) {
-                // Make the text pixel fully opaque.
-                dibSection.pixelData[i] = rgb | (0xFF << 24);
+                int boxColor = boxColorInt & 0x00FFFFFF;
+                rgb = blend(boxColor, rgb, textOpacity);
+                dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
+//                // Make the text pixel fully opaque.
+//                double textOpacity = 0.1d;//0.4d;
+//                double mergedOpacity = boxOpacity + textOpacity * (1 - boxOpacity); // looks smoother
+////                mergedOpacity *= textOpacity;
+////                double mergedOpacity = textOpacity;
+//                rgb = blend(overWhiteBoxColor, rgb, mergedOpacity);
+////                double mergedOpacity = 1;
+//                dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
             }
         }
         for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
@@ -662,7 +688,7 @@ public class WindowsOverlay {
                                              int windowHeight, List<Hint> windowHints,
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
-                                             double boxInset,
+                                             int boxInset,
                                              WinDef.HFONT normalFont,
                                              WinDef.HFONT largeFont, WinDef.HDC hdcTemp) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
@@ -744,7 +770,7 @@ public class WindowsOverlay {
                 WinDef.RECT cellRect = new WinDef.RECT();
                 setBoxOrCellRect(cellRect, screen, 0, hint,
                         maxHintCenterX, maxHintCenterY);
-//                cellRects.add(cellRect); // TODO
+                cellRects.add(cellRect); // TODO only if between box is non transparent
             }
             boxRects.add(boxRect);
             WinDef.RECT prefixRect;
@@ -773,22 +799,23 @@ public class WindowsOverlay {
         return new HintMeshDraw(boxRects, cellRects, hintTexts);
     }
 
-    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, double boxInset,
+    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, int boxInset,
                                          Hint hint,
                                          double maxHintCenterX, double maxHintCenterY) {
+        double scaledBoxInset = scaledPixels(boxInset, screen.scale());
         double cellWidth = hint.cellWidth();
-        double halfCellWidth = cellWidth / 2  - boxInset;
+        double halfCellWidth = cellWidth / 2  - scaledBoxInset;
         double cellHeight = hint.cellHeight();
-        double halfCellHeight = cellHeight / 2 - boxInset;
+        double halfCellHeight = cellHeight / 2 - scaledBoxInset;
         int boxLeft = (int) (hint.centerX() - halfCellWidth) - screen.rectangle().x();
         int boxTop = (int) (hint.centerY() - halfCellHeight) - screen.rectangle().y();
         int boxRight = (int) (hint.centerX() + halfCellWidth) - screen.rectangle().x();
         // Put back the boxInset if there is a box above with shared edge to avoid double edge.
         if (hint.centerX() < maxHintCenterX)
-            boxRight += boxInset;
+            boxRight += scaledBoxInset;
         int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
         if (hint.centerY() + cellHeight / 2 < maxHintCenterY)
-            boxBottom += boxInset;
+            boxBottom += scaledBoxInset;
         if (boxLeft < boxRect.left || boxTop < boxRect.top
             || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
             boxRect.left = boxLeft;
@@ -807,37 +834,13 @@ public class WindowsOverlay {
         return textRect;
     }
 
-    private static void drawHintText(WinDef.HDC hdc, String fontHexColor, WinDef.RECT textRect, String text,
-                                     DibSection dibSection, int windowWidth) {
-        ExtendedGDI32.INSTANCE.SetTextColor(hdc, hexColorStringToInt(fontHexColor));
+    private static void drawHintText(WinDef.HDC hdc, WinDef.RECT textRect, String text,
+                                     DibSection dibSection, int windowWidth,
+                                     int fontColorInt) {
+        ExtendedGDI32.INSTANCE.SetTextColor(hdc, fontColorInt);
         ExtendedGDI32.INSTANCE.SetBkMode(hdc, ExtendedGDI32.TRANSPARENT);
         ExtendedUser32.INSTANCE.DrawText(hdc, text, -1, textRect,
                 new WinDef.UINT(ExtendedGDI32.DT_SINGLELINE | ExtendedGDI32.DT_LEFT | ExtendedGDI32.DT_TOP | ExtendedGDI32.DT_NOPREFIX));
-
-//        int textRectWidth = textRect.right - textRect.left;
-//        int textRectHeight = textRect.bottom - textRect.top;
-//        int[] pixelDataAfterTextDrawn = new int[textRectWidth * textRectHeight];
-//        // Compute the offset in the screen buffer for the text rectangle.
-//        int windowStartOffset = textRect.top * windowWidth + textRect.left;
-//        // Read only the pixel data for the text rectangle.
-//        dibSection.pixelPointer.read(windowStartOffset * 4L, pixelDataAfterTextDrawn, 0,
-//                pixelDataAfterTextDrawn.length);
-//
-//        // Update alpha values for pixels in the text rectangle
-//        for (int localY = 0; localY < textRectHeight; localY++) {
-//            for (int localX = 0; localX < textRectWidth; localX++) {
-//                int rectIndex = localY * textRectWidth + localX;
-//                int globalY = textRect.top + localY;
-//                int globalX = textRect.left + localX;
-//                int windowIndex = globalY * windowWidth + globalX;
-//                // Check if the pixel was modified and update its alpha to opaque.
-//                if (dibSection.pixelData[windowIndex] != dibSection.boxColorInt) {
-//                    int rgb = pixelDataAfterTextDrawn[rectIndex] & 0x00FFFFFF; // Keep RGB
-//                    dibSection.pixelData[windowIndex] = rgb | (0xFF << 24);    // Set alpha to 255
-//                }
-//            }
-//        }
-//        dibSection.pixelPointer.write(windowStartOffset * 4L, pixelDataAfterTextDrawn, 0, pixelDataAfterTextDrawn.length);
     }
 
     private static int hexColorStringToInt(String hexColor) {
@@ -851,15 +854,26 @@ public class WindowsOverlay {
         return (blue << 16) | (green << 8) | red;
     }
 
-    private static int hexColorStringToRgb(String hexColor) {
+    private static int hexColorStringToRgb(String hexColor, double opacity) {
+        // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-blendfunction
+        // Note that the APIs use premultiplied alpha, which means that the red, green
+        // and blue channel values in the bitmap must be premultiplied with the alpha channel value.
         if (hexColor.startsWith("#"))
             hexColor = hexColor.substring(1);
         int colorInt = Integer.parseUnsignedInt(hexColor, 16);
         // In COLORREF, the order is 0x00BBGGRR, so we need to reorder the components.
-        int red = (colorInt >> 16) & 0xFF;
-        int green = (colorInt >> 8) & 0xFF;
-        int blue = colorInt & 0xFF;
+        int red = (int) (((colorInt >> 16) & 0xFF) * opacity);
+        int green = (int) (((colorInt >> 8) & 0xFF) * opacity);
+        int blue = (int) ((colorInt & 0xFF) * opacity);
         return (red << 16) | (green << 8) | blue;
+    }
+
+    private static int alphaMultipliedChannelsColor(int color, double opacity) {
+        int red = (color >> 16) & 0xFF;
+        int green = (color >> 8) & 0xFF;
+        int blue = color & 0xFF;
+        return ((int) (red * opacity) << 16) | ((int) (green * opacity) << 8) |
+               (int) (blue * opacity);
     }
 
     public static void setIndicator(Indicator indicator) {

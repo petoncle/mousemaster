@@ -13,7 +13,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     double highlightFontScale,
                                     String boxHexColor,
                                     double boxOpacity,
-                                    double boxInset,
+                                    int boxInset,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
@@ -32,7 +32,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Double highlightFontScale;
         private String boxHexColor;
         private Double boxOpacity;
-        private Double boxInset;
+        private Integer boxInset;
         private String modeAfterSelection;
         private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
@@ -99,7 +99,7 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder boxInset(double boxInset) {
+        public HintMeshConfigurationBuilder boxInset(int boxInset) {
             this.boxInset = boxInset;
             return this;
         }
@@ -174,7 +174,7 @@ public record HintMeshConfiguration(boolean enabled,
             return boxOpacity;
         }
 
-        public Double boxInset() {
+        public Integer boxInset() {
             return boxInset;
         }
 

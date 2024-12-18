@@ -10,7 +10,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor,
                        double boxOpacity,
-                       double boxInset) {
+                       int boxInset) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -28,7 +28,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double highlightFontScale;
         private String boxHexColor;
         private double boxOpacity;
-        private double boxInset;
+        private int boxInset;
 
         public HintMeshBuilder() {
         }
@@ -92,7 +92,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return boxOpacity;
         }
 
-        public double boxInset() {
+        public int boxInset() {
             return boxInset;
         }
 
@@ -153,7 +153,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder boxInset(double boxInset) {
+        public HintMeshBuilder boxInset(int boxInset) {
             this.boxInset = boxInset;
             return this;
         }
