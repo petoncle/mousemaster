@@ -73,6 +73,7 @@ public class ConfigurationParser {
                 .fontName("Consolas")
                 .fontSize(16)
                 .fontHexColor("#FFFFFF")
+                .fontOpacity(1d)
                 .prefixFontHexColor("#A3A3A3")
                 .highlightFontScale(1d)
                 .boxHexColor("#000000")
@@ -440,6 +441,8 @@ public class ConfigurationParser {
                                             1000));
                             case "font-color" -> mode.hintMesh.builder.fontHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
+                            case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
+                                    parsePercent(propertyKey, propertyValue, true, 1));
                             case "prefix-font-color" ->
                                     mode.hintMesh.builder.prefixFontHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
@@ -1284,6 +1287,8 @@ public class ConfigurationParser {
                         builder.fontSize(parent.fontSize());
                     if (builder.fontHexColor() == null)
                         builder.fontHexColor(parent.fontHexColor());
+                    if (builder.fontOpacity() == null)
+                        builder.fontOpacity(parent.fontOpacity());
                     if (builder.prefixFontHexColor() == null)
                         builder.prefixFontHexColor(parent.prefixFontHexColor());
                     if (builder.highlightFontScale() == null)

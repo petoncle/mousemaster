@@ -6,7 +6,7 @@ import java.util.List;
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
 public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
-                       String fontName, int fontSize, String fontHexColor,
+                       String fontName, int fontSize, String fontHexColor, double fontOpacity,
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
                        int boxInset,
@@ -24,6 +24,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private String fontName;
         private int fontSize;
         private String fontHexColor;
+        private double fontOpacity;
         private String prefixFontHexColor;
         private double highlightFontScale;
         private String boxHexColor;
@@ -43,6 +44,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.fontName = hintMesh.fontName;
             this.fontSize = hintMesh.fontSize;
             this.fontHexColor = hintMesh.fontHexColor;
+            this.fontOpacity = hintMesh.fontOpacity;
             this.prefixFontHexColor = hintMesh.prefixFontHexColor;
             this.highlightFontScale = hintMesh.highlightFontScale;
             this.boxHexColor = hintMesh.boxHexColor;
@@ -78,6 +80,10 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public String fontHexColor() {
             return fontHexColor;
+        }
+
+        public double fontOpacity() {
+            return fontOpacity;
         }
 
         public String prefixFontHexColor() {
@@ -143,6 +149,11 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder fontOpacity(double fontOpacity) {
+            this.fontOpacity = fontOpacity;
+            return this;
+        }
+
         public HintMeshBuilder prefixFontHexColor(
                 String prefixFontHexColor) {
             this.prefixFontHexColor = prefixFontHexColor;
@@ -183,7 +194,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         public HintMesh build() {
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
                     fontSize,
-                    fontHexColor, prefixFontHexColor, highlightFontScale,
+                    fontHexColor, fontOpacity,
+                    prefixFontHexColor, highlightFontScale,
                     boxHexColor, boxOpacity,
                     boxInset,
                     boxOutlineHexColor, boxOutlineOpacity);

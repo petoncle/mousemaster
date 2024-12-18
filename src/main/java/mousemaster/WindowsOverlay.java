@@ -543,7 +543,10 @@ public class WindowsOverlay {
 
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
+        double fontOpacity = currentHintMesh.fontOpacity();
         double highlightFontScale = currentHintMesh.highlightFontScale();
+        String boxHexColor = currentHintMesh.boxHexColor();
+        double boxOpacity = currentHintMesh.boxOpacity();
         int boxInset = currentHintMesh.boxInset();
         String boxOutlineHexColor = currentHintMesh.boxOutlineHexColor();
         double boxOutlineOpacity = currentHintMesh.boxOutlineOpacity();
@@ -591,12 +594,9 @@ public class WindowsOverlay {
         if (oldDIBitmap == null)
             throw new RuntimeException("Unable to select bitmap into source DC.");
 
-        String boxHexColor = currentHintMesh.boxHexColor();
-        double boxOpacity = currentHintMesh.boxOpacity();
-        double textOpacity = 1;//0.8d;
-        double mergedOpacity = boxOpacity + textOpacity * (1 - boxOpacity);
+        double mergedOpacity = boxOpacity + fontOpacity * (1 - boxOpacity);
         int overWhiteBoxColor = hexColorStringToRgb(blendColorOverWhite(boxHexColor,
-                Math.min(boxOpacity, textOpacity)), 1);
+                Math.min(boxOpacity, fontOpacity)), 1);
         if (overWhiteBoxColor == 0xFFFFFF)
             overWhiteBoxColor = 0; // Not sure why this and boxColorInt must be overwritten. If this is not done, background is opaque.
         clearWindow(hdcTemp, windowRect, overWhiteBoxColor);
@@ -644,13 +644,13 @@ public class WindowsOverlay {
                 dibSection.pixelData[i] = 0;
             else if (pixel != 0) {
                 int boxColor = boxColorInt & 0x00FFFFFF;
-                rgb = blend(boxColor, rgb, textOpacity);
+                rgb = blend(boxColor, rgb, fontOpacity);
                 dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
 //                // Make the text pixel fully opaque.
-//                double textOpacity = 0.1d;//0.4d;
-//                double mergedOpacity = boxOpacity + textOpacity * (1 - boxOpacity); // looks smoother
-////                mergedOpacity *= textOpacity;
-////                double mergedOpacity = textOpacity;
+//                double fontOpacity = 0.1d;//0.4d;
+//                double mergedOpacity = boxOpacity + fontOpacity * (1 - boxOpacity); // looks smoother
+////                mergedOpacity *= fontOpacity;
+////                double mergedOpacity = fontOpacity;
 //                rgb = blend(overWhiteBoxColor, rgb, mergedOpacity);
 ////                double mergedOpacity = 1;
 //                dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);

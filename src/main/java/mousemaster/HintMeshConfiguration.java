@@ -8,7 +8,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean moveMouse,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
-                                    int fontSize, String fontHexColor,
+                                    int fontSize, String fontHexColor, double fontOpacity,
                                     String prefixFontHexColor,
                                     double highlightFontScale,
                                     String boxHexColor,
@@ -30,6 +30,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String fontName;
         private Integer fontSize;
         private String fontHexColor;
+        private Double fontOpacity;
         private String prefixFontHexColor;
         private Double highlightFontScale;
         private String boxHexColor;
@@ -78,6 +79,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder fontHexColor(String fontHexColor) {
             this.fontHexColor = fontHexColor;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder fontOpacity(double fontOpacity) {
+            this.fontOpacity = fontOpacity;
             return this;
         }
 
@@ -172,6 +178,10 @@ public record HintMeshConfiguration(boolean enabled,
             return fontHexColor;
         }
 
+        public Double fontOpacity() {
+            return fontOpacity;
+        }
+
         public String prefixFontHexColor() {
             return prefixFontHexColor;
         }
@@ -215,7 +225,8 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
-                    undoKey, fontName, fontSize, fontHexColor, prefixFontHexColor,
+                    undoKey, fontName, fontSize, fontHexColor, fontOpacity,
+                    prefixFontHexColor,
                     highlightFontScale,
                     boxHexColor, boxOpacity, boxInset,
                     boxOutlineHexColor, boxOutlineOpacity,
