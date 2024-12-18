@@ -595,6 +595,8 @@ public class WindowsOverlay {
         double mergedOpacity = boxOpacity + textOpacity * (1 - boxOpacity);
         int overWhiteBoxColor = hexColorStringToRgb(blendColorOverWhite(boxHexColor,
                 Math.min(boxOpacity, textOpacity)), 1);
+        if (overWhiteBoxColor == 0xFFFFFF)
+            overWhiteBoxColor = 0; // Not sure why this and boxColorInt must be overwritten. If this is not done, background is opaque.
         clearWindow(hdcTemp, windowRect, overWhiteBoxColor);
         int prefixFontColorInt = hexColorStringToInt(prefixFontHexColor);
         int fontColorInt = hexColorStringToInt(fontHexColor);
@@ -622,6 +624,8 @@ public class WindowsOverlay {
         }
         int boxColorInt = hexColorStringToRgb(boxHexColor, boxOpacity) |
                           (int) (boxOpacity * 255) << 24;
+        if (boxColorInt == 0)
+            boxColorInt = 1;
         // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
         String betweenBoxHexColor = "CCCCCC";
         double betweenBoxOpacity = 1d;
@@ -816,13 +820,13 @@ public class WindowsOverlay {
         int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
         if (hint.centerY() + cellHeight / 2 < maxHintCenterY)
             boxBottom += scaledBoxInset;
-        if (boxLeft < boxRect.left || boxTop < boxRect.top
-            || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
+//        if (boxLeft < boxRect.left || boxTop < boxRect.top
+//            || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
             boxRect.left = boxLeft;
             boxRect.top = boxTop;
             boxRect.right = boxRight;
             boxRect.bottom = boxBottom;
-        }
+//        }
     }
 
     private static WinDef.RECT textRect(int textX, int textY, WinUser.SIZE textSize) {
