@@ -762,16 +762,22 @@ public class WindowsOverlay {
             int xPadding = (int) (screen.scale() * 1);
             int yPadding = (int) (screen.scale() * -1) * 4;
             WinDef.RECT boxRect = new WinDef.RECT();
-            boxRect.left = textX - xPadding;
-            boxRect.top = largeTextY - yPadding;
-            boxRect.right = textX + prefixTextSize.cx + highlightTextSize.cx +
-                            suffixTextSize.cx + xPadding;
-            boxRect.bottom = largeTextY + largeTextHeight + yPadding;
+            int scaledBoxInset = scaledPixels(boxInset, screen.scale());
+            boxRect.left = textX - xPadding + scaledBoxInset;
+            boxRect.top = largeTextY - yPadding + scaledBoxInset;
+            boxRect.right = textX + prefixTextSize.cx + highlightTextSize.cx + suffixTextSize.cx + xPadding
+                            - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxInset);
+            boxRect.bottom = largeTextY + largeTextHeight + yPadding
+                             - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxInset);
             if (hint.cellWidth() != -1) {
+                WinDef.RECT cellRect = new WinDef.RECT();
+                cellRect.left = boxRect.left - scaledBoxInset;
+                cellRect.top = boxRect.top - scaledBoxInset;
+                cellRect.right = boxRect.right + (hint.centerX() < maxHintCenterX ? 0 : scaledBoxInset);
+                cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxInset);
                 setBoxOrCellRect(boxRect, screen, boxInset,
                         hint,
                         maxHintCenterX, maxHintCenterY);
-                WinDef.RECT cellRect = new WinDef.RECT();
                 setBoxOrCellRect(cellRect, screen, 0, hint,
                         maxHintCenterX, maxHintCenterY);
                 cellRects.add(cellRect); // TODO only if between box is non transparent
@@ -818,15 +824,16 @@ public class WindowsOverlay {
         if (hint.centerX() < maxHintCenterX)
             boxRight += scaledBoxInset;
         int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
-        if (hint.centerY() + cellHeight / 2 < maxHintCenterY)
+        if (hint.centerY() < maxHintCenterY)
             boxBottom += scaledBoxInset;
-//        if (boxLeft < boxRect.left || boxTop < boxRect.top
-//            || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
+        if (boxLeft < boxRect.left || boxTop < boxRect.top
+            || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
+            // Screen selection hint are bigger.
             boxRect.left = boxLeft;
             boxRect.top = boxTop;
             boxRect.right = boxRight;
             boxRect.bottom = boxBottom;
-//        }
+        }
     }
 
     private static WinDef.RECT textRect(int textX, int textY, WinUser.SIZE textSize) {
