@@ -10,8 +10,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor,
                        double boxOpacity,
-                       double boxGrowWidthPercent,
-                       double boxGrowHeightPercent) {
+                       double boxInset) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -29,8 +28,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double highlightFontScale;
         private String boxHexColor;
         private double boxOpacity;
-        private double boxGrowWidthPercent;
-        private double boxGrowHeightPercent;
+        private double boxInset;
 
         public HintMeshBuilder() {
         }
@@ -47,8 +45,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.highlightFontScale = hintMesh.highlightFontScale;
             this.boxHexColor = hintMesh.boxHexColor;
             this.boxOpacity = hintMesh.boxOpacity;
-            this.boxGrowWidthPercent = hintMesh.boxGrowWidthPercent;
-            this.boxGrowHeightPercent = hintMesh.boxGrowHeightPercent;
+            this.boxInset = hintMesh.boxInset;
         }
 
         public HintMeshType type() {
@@ -95,12 +92,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return boxOpacity;
         }
 
-        public double boxGrowWidthPercent() {
-            return boxGrowWidthPercent;
-        }
-
-        public double boxGrowHeightPercent() {
-            return boxGrowHeightPercent;
+        public double boxInset() {
+            return boxInset;
         }
 
         public HintMeshBuilder type(HintMeshType type) {
@@ -160,13 +153,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder boxGrowWidthPercent(double boxGrowWidthPercent) {
-            this.boxGrowWidthPercent = boxGrowWidthPercent;
-            return this;
-        }
-
-        public HintMeshBuilder boxGrowHeightPercent(double boxGrowHeightPercent) {
-            this.boxGrowHeightPercent = boxGrowHeightPercent;
+        public HintMeshBuilder boxInset(double boxInset) {
+            this.boxInset = boxInset;
             return this;
         }
 
@@ -174,7 +162,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
                     fontSize,
                     fontHexColor, prefixFontHexColor, highlightFontScale,
-                    boxHexColor, boxOpacity, boxGrowWidthPercent, boxGrowHeightPercent);
+                    boxHexColor, boxOpacity, boxInset);
         }
     }
 

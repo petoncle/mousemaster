@@ -77,8 +77,7 @@ public class ConfigurationParser {
                 .highlightFontScale(1d)
                 .boxHexColor("#000000")
                 .boxOpacity(0.4d)
-                .boxGrowWidthPercent(0.99d)
-                .boxGrowHeightPercent(0.99d)
+                .boxInset(1)
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -452,10 +451,8 @@ public class ConfigurationParser {
                             // Allow for box grow percent > 1: even with 1, I would get empty pixels
                             // between the cells due to the way we distribute spare pixels.
                             // See HintManager#distributeTrueUniformly.
-                            case "box-grow-width-percent" -> mode.hintMesh.builder.boxGrowWidthPercent(
-                                    parseNonZeroPercent(propertyKey, propertyValue, 1.1d));
-                            case "box-grow-height-percent" -> mode.hintMesh.builder.boxGrowHeightPercent(
-                                    parseNonZeroPercent(propertyKey, propertyValue, 1.1d));
+                            case "box-inset" -> mode.hintMesh.builder.boxInset(
+                                    Double.parseDouble(propertyValue));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -1284,10 +1281,8 @@ public class ConfigurationParser {
                         builder.boxHexColor(parent.boxHexColor());
                     if (builder.boxOpacity() == null)
                         builder.boxOpacity(parent.boxOpacity());
-                    if (builder.boxGrowWidthPercent() == null)
-                        builder.boxGrowWidthPercent(parent.boxGrowWidthPercent());
-                    if (builder.boxGrowHeightPercent() == null)
-                        builder.boxGrowHeightPercent(parent.boxGrowHeightPercent());
+                    if (builder.boxInset() == null)
+                        builder.boxInset(parent.boxInset());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

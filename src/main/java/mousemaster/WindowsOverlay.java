@@ -178,7 +178,8 @@ public class WindowsOverlay {
             for (Screen screen : screens) {
                 if (!Rectangle.rectangleContains(screen.rectangle().x(),
                         screen.rectangle().y(), screen.rectangle().width(),
-                        screen.rectangle().height(), hint.centerX(), hint.centerY()))
+                        screen.rectangle().height(), (int) hint.centerX(),
+                        (int) hint.centerY()))
                     continue;
                 hintsByScreen.computeIfAbsent(screen, monitor1 -> new ArrayList<>())
                               .add(hint);
@@ -198,8 +199,8 @@ public class WindowsOverlay {
             if (existingWindow == null) {
                 WinUser.WindowProc callback = WindowsOverlay::hintMeshWindowCallback;
                 WinDef.HWND hwnd = createWindow("HintMesh", screen.rectangle().x(),
-                        screen.rectangle().y(), screen.rectangle().width() + 1,
-                        screen.rectangle().height() + 1, callback);
+                        screen.rectangle().y(), screen.rectangle().width() + 0,
+                        screen.rectangle().height() + 0, callback);
 
                 WinDef.HWND transparentHwnd = User32.INSTANCE.CreateWindowEx(
                         User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
@@ -209,8 +210,8 @@ public class WindowsOverlay {
                         "Mousemaster" + "HintMesh" + "ClassName",
                         "Mousemaster" + "TransparentHintMesh" + "WindowName",
                         WinUser.WS_POPUP, screen.rectangle().x(),
-                        screen.rectangle().y(), screen.rectangle().width() + 1,
-                        screen.rectangle().height() + 1,
+                        screen.rectangle().y(), screen.rectangle().width() + 0,
+                        screen.rectangle().height() + 0,
                         null, null,
                         null, null);
                 User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
@@ -522,6 +523,7 @@ public class WindowsOverlay {
     }
 
     private record HintMeshDraw(List<WinDef.RECT> boxRects,
+                                List<WinDef.RECT> cellRects,
                                 List<HintText> hintTexts) {
     }
 
@@ -534,8 +536,7 @@ public class WindowsOverlay {
         String fontName = currentHintMesh.fontName();
         int fontSize = currentHintMesh.fontSize();
         double highlightFontScale = currentHintMesh.highlightFontScale();
-        double boxGrowWidthPercent = currentHintMesh.boxGrowWidthPercent();
-        double boxGrowHeightPercent = currentHintMesh.boxGrowHeightPercent();
+        double boxInset = currentHintMesh.boxInset();
         String fontHexColor = currentHintMesh.fontHexColor();
         String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
@@ -568,7 +569,7 @@ public class WindowsOverlay {
         HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(currentHintMesh,
                 hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
                         focusedHintKeySequence,
-                        highlightFontScale, boxGrowWidthPercent, boxGrowHeightPercent,
+                        highlightFontScale, boxInset,
                         normalFont, largeFont, hdcTemp));
 
         WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, windowWidth, windowHeight);
@@ -606,6 +607,9 @@ public class WindowsOverlay {
         double boxOpacity = currentHintMesh.boxOpacity();
         int alpha = (int) (boxOpacity * 255);
         int boxColorInt = boxHexColor == null ? -1 : hexColorStringToRgb(boxHexColor) | (alpha << 24);
+        // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
+        int colorBetweenBoxesInt = hintMeshDraw.cellRects.isEmpty() ? 0 :
+                hexColorStringToRgb("FFFFFF") | (255 << 24); // apply this color only if inside a cell
         dibSection.pixelPointer.read(0, dibSection.pixelData, 0, dibSection.pixelData.length);
         for (int i = 0; i < dibSection.pixelData.length; i++) {
             int pixel = dibSection.pixelData[i];
@@ -631,6 +635,15 @@ public class WindowsOverlay {
                 }
             }
         }
+        for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
+            for (int x = Math.max(0, cellRect.left); x < Math.min(windowWidth, cellRect.right); x++) {
+                for (int y = Math.max(0, cellRect.top); y < Math.min(windowHeight, cellRect.bottom); y++) {
+                    // The cell may go past the screen dimensions.
+                    if (dibSection.pixelData[y * windowWidth + x] == 0)
+                        dibSection.pixelData[y * windowWidth + x] = colorBetweenBoxesInt;
+                }
+            }
+        }
         dibSection.pixelPointer.write(0, dibSection.pixelData, 0, dibSection.pixelData.length);
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
@@ -649,11 +662,20 @@ public class WindowsOverlay {
                                              int windowHeight, List<Hint> windowHints,
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
-                                             double boxGrowWidthPercent,
-                                             double boxGrowHeightPercent, WinDef.HFONT normalFont,
+                                             double boxInset,
+                                             WinDef.HFONT normalFont,
                                              WinDef.HFONT largeFont, WinDef.HDC hdcTemp) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
+        List<WinDef.RECT> cellRects = new ArrayList<>();
         List<HintText> hintTexts = new ArrayList<>();
+        double maxHintCenterX = Double.MIN_VALUE;
+        double maxHintCenterY = Double.MIN_VALUE;
+        for (Hint hint : windowHints) {
+            if (!hint.startsWith(focusedHintKeySequence))
+                continue;
+            maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
+            maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
+        }
         for (Hint hint : windowHints) {
             if (!hint.startsWith(focusedHintKeySequence))
                 continue;
@@ -700,11 +722,11 @@ public class WindowsOverlay {
             int normalTextHeight = !prefixText.isEmpty() ? prefixTextSize.cy :
                     suffixTextSize.cy;
             int largeTextHeight = !highlightText.isEmpty() ? highlightTextSize.cy : normalTextHeight;
-            int textX = hint.centerX() - screen.rectangle().x() - textWidth / 2;
+            int textX = (int) hint.centerX() - screen.rectangle().x() - textWidth / 2;
             int largeTextY =
-                    hint.centerY() - screen.rectangle().y() - largeTextHeight / 2;
+                    (int) hint.centerY() - screen.rectangle().y() - largeTextHeight / 2;
             int normalTextY =
-                    hint.centerY() - screen.rectangle().y() - normalTextHeight / 2;
+                    (int) hint.centerY() - screen.rectangle().y() - normalTextHeight / 2;
 //            int textY = largeTextY + (largeTextSize.cy/2 - textSize.cy/2 + (largeTextSize.cy-textSize.cy)/4);
             // Try to minimize the size of the box. Looks good with Consolas 10.
             int xPadding = (int) (screen.scale() * 1);
@@ -716,23 +738,13 @@ public class WindowsOverlay {
                             suffixTextSize.cx + xPadding;
             boxRect.bottom = largeTextY + largeTextHeight + yPadding;
             if (hint.cellWidth() != -1) {
-                int cellWidth = (int) (boxGrowWidthPercent * hint.cellWidth());
-                int halfCellWidth = cellWidth / 2;
-                int cellHeight = (int) (boxGrowHeightPercent * hint.cellHeight());
-                int halfCellHeight = cellHeight / 2;
-                int boxLeft = hint.centerX() - screen.rectangle().x() - halfCellWidth;
-                int boxTop = hint.centerY() - screen.rectangle().y() - halfCellHeight;
-                int boxRight = hint.centerX() - screen.rectangle().x() + halfCellWidth +
-                               (cellWidth % 2);
-                int boxBottom = hint.centerY() - screen.rectangle().y() + halfCellHeight +
-                                (cellHeight % 2);
-                if (boxLeft < boxRect.left || boxTop < boxRect.top
-                    || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
-                    boxRect.left = boxLeft;
-                    boxRect.top = boxTop;
-                    boxRect.right = boxRight;
-                    boxRect.bottom = boxBottom;
-                }
+                setBoxOrCellRect(boxRect, screen, boxInset,
+                        hint,
+                        maxHintCenterX, maxHintCenterY);
+                WinDef.RECT cellRect = new WinDef.RECT();
+                setBoxOrCellRect(cellRect, screen, 0, hint,
+                        maxHintCenterX, maxHintCenterY);
+//                cellRects.add(cellRect); // TODO
             }
             boxRects.add(boxRect);
             WinDef.RECT prefixRect;
@@ -758,7 +770,32 @@ public class WindowsOverlay {
                     highlightRect, highlightText,
                     suffixRect, suffixText));
         }
-        return new HintMeshDraw(boxRects, hintTexts);
+        return new HintMeshDraw(boxRects, cellRects, hintTexts);
+    }
+
+    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, double boxInset,
+                                         Hint hint,
+                                         double maxHintCenterX, double maxHintCenterY) {
+        double cellWidth = hint.cellWidth();
+        double halfCellWidth = cellWidth / 2  - boxInset;
+        double cellHeight = hint.cellHeight();
+        double halfCellHeight = cellHeight / 2 - boxInset;
+        int boxLeft = (int) (hint.centerX() - halfCellWidth) - screen.rectangle().x();
+        int boxTop = (int) (hint.centerY() - halfCellHeight) - screen.rectangle().y();
+        int boxRight = (int) (hint.centerX() + halfCellWidth) - screen.rectangle().x();
+        // Put back the boxInset if there is a box above with shared edge to avoid double edge.
+        if (hint.centerX() < maxHintCenterX)
+            boxRight += boxInset;
+        int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
+        if (hint.centerY() + cellHeight / 2 < maxHintCenterY)
+            boxBottom += boxInset;
+        if (boxLeft < boxRect.left || boxTop < boxRect.top
+            || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
+            boxRect.left = boxLeft;
+            boxRect.top = boxTop;
+            boxRect.right = boxRight;
+            boxRect.bottom = boxBottom;
+        }
     }
 
     private static WinDef.RECT textRect(int textX, int textY, WinUser.SIZE textSize) {

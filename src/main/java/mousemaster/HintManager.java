@@ -122,8 +122,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .highlightFontScale(hintMeshConfiguration.highlightFontScale())
                 .boxHexColor(hintMeshConfiguration.boxHexColor())
                 .boxOpacity(hintMeshConfiguration.boxOpacity())
-                .boxGrowWidthPercent(hintMeshConfiguration.boxGrowWidthPercent())
-                .boxGrowHeightPercent(hintMeshConfiguration.boxGrowHeightPercent());
+                .boxInset(hintMeshConfiguration.boxInset());
         HintMeshType type = hintMeshConfiguration.typeAndSelectionKeys().type();
         if (type instanceof HintMeshType.HintGrid hintGrid) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
@@ -236,8 +235,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         rowIndex, columnIndex, rowCount, columnCount);
                 int cellWidthWithExtra =
                         cellWidth + (columnExtraPixelDistribution[columnIndex] ? 1 : 0);
-                int hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2;
-                int hintCenterY = hintMeshY + rowHeightOffset + cellHeight / 2;
+                double hintCenterX = hintMeshX + columnWidthOffset + cellWidthWithExtra / 2d;
+                double hintCenterY = hintMeshY + rowHeightOffset + cellHeightWithExtra / 2d;
                 hints.add(new Hint(hintCenterX, hintCenterY,
                         cellWidthWithExtra,
                         cellHeightWithExtra,
@@ -254,6 +253,8 @@ public class HintManager implements ModeListener, MousePositionListener {
      * If columnCount * cellWidth is 1898, spread the 1920 - 1898 = 22 pixels across the cells.
      */
     private static boolean[] distributeTrueUniformly(int arraySize, int trueCount) {
+        if (trueCount > arraySize)
+            throw new IllegalArgumentException();
         boolean[] distribution = new boolean[arraySize];
         double step = (double) arraySize / trueCount;
         double position = 0.0;
@@ -436,13 +437,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            lastSelectedHintPoint = new Point(exactMatchHint.centerX(), exactMatchHint.centerY());
+            lastSelectedHintPoint = new Point((int) exactMatchHint.centerX(),
+                    (int) exactMatchHint.centerY());
              if (hintMeshConfiguration.moveMouse()) {
                  // After this moveTo call, the move is not fully completed.
                  // We need to wait until the jump completes before a click can be performed at
                  // the new position.
-                 mouseController.moveTo(exactMatchHint.centerX(),
-                         exactMatchHint.centerY());
+                 mouseController.moveTo((int) exactMatchHint.centerX(),
+                         (int) exactMatchHint.centerY());
                 selectedHintToFinalize = exactMatchHint;
              }
              else {
@@ -465,7 +467,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void finalizeHintSelection(Hint hint) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (hintMeshConfiguration.savePositionAfterSelection())
-            savePosition(new Point(hint.centerX(), hint.centerY()));
+            savePosition(new Point((int) hint.centerX(), (int) hint.centerY()));
         if (hintMeshConfiguration.modeAfterSelection() != null) {
             logger.debug("Hint " + hint.keySequence()
                                        .stream()
