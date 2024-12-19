@@ -39,6 +39,7 @@
 - Display labels on the screen for direct mouse warping.
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _leftshift_ while selecting a hint.
+- Undo an accidental key press with _backspace_.
 - A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys.properties](neo-mousekeys.properties).
 - Go back to normal mode with _esc_ or _backspace_.
 
