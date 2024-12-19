@@ -561,23 +561,9 @@ public class WindowsOverlay {
         int largeFontHeight = -(int) (fontSize * highlightFontScale) * dpi / 72;
         // In Windows API, negative font size means "point size" (as opposed to pixels).
         WinDef.HFONT normalFont =
-                ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0, ExtendedGDI32.FW_NORMAL,
-                        new WinDef.DWORD(0), new WinDef.DWORD(0), new WinDef.DWORD(0),
-                        new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
-                        new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
-                        new WinDef.DWORD(
-                                ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
+                createFont(fontHeight, fontName);
         WinDef.HFONT largeFont = highlightFontScale == 1 ? normalFont :
-                ExtendedGDI32.INSTANCE.CreateFontA(largeFontHeight, 0, 0, 0, ExtendedGDI32.FW_NORMAL,
-                        new WinDef.DWORD(0), new WinDef.DWORD(0), new WinDef.DWORD(0),
-                        new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
-                        new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
-                        new WinDef.DWORD(ExtendedGDI32.DEFAULT_QUALITY),
-                        new WinDef.DWORD(
-                                ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
+                createFont(largeFontHeight, fontName);
         int windowWidth = windowRect.right - windowRect.left;
         int windowHeight = windowRect.bottom - windowRect.top;
         HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(currentHintMesh,
@@ -687,6 +673,19 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(dibSection.hDIBitmap);
         GDI32.INSTANCE.DeleteDC(hdcTemp);
 
+    }
+
+    private static WinDef.HFONT createFont(int fontHeight, String fontName) {
+        boolean antialiased = true;
+        return ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0,
+                ExtendedGDI32.FW_NORMAL,
+                new WinDef.DWORD(0), new WinDef.DWORD(0), new WinDef.DWORD(0),
+                new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
+                new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
+                new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
+                new WinDef.DWORD(antialiased ? ExtendedGDI32.DEFAULT_QUALITY : ExtendedGDI32.NONANTIALIASED_QUALITY),
+                new WinDef.DWORD(
+                        ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
     }
 
     private static HintMeshDraw hintMeshDraw(Screen screen, int windowWidth,

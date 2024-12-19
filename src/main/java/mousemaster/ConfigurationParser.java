@@ -88,8 +88,8 @@ public class ConfigurationParser {
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
                            .gridMaxRowCount(100)
                            .gridMaxColumnCount(100)
-                           .gridCellWidth(73)
-                           .gridCellHeight(41);
+                           .gridCellWidth(73d)
+                           .gridCellHeight(41d);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
         hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
@@ -418,18 +418,18 @@ public class ConfigurationParser {
                                                                                                  1,
                                                                                                  100));
                             case "grid-cell-width" -> mode.hintMesh.builder.type()
-                                                                          .gridCellWidth(
-                                                                                  parseUnsignedInteger(
-                                                                                          propertyKey,
-                                                                                          propertyValue,
-                                                                                          1,
-                                                                                          10_000));
+                                                                           .gridCellWidth(
+                                                                                   parseUnsignedDouble(
+                                                                                           propertyKey,
+                                                                                           propertyValue,
+                                                                                           false,
+                                                                                           10_000));
                             case "grid-cell-height" -> mode.hintMesh.builder.type()
                                                                              .gridCellHeight(
-                                                                                     parseUnsignedInteger(
+                                                                                     parseUnsignedDouble(
                                                                                              propertyKey,
                                                                                              propertyValue,
-                                                                                             1,
+                                                                                             false,
                                                                                              10_000));
                             case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                     parseHintKeys(propertyKey, propertyValue, keyAliases));
@@ -442,7 +442,7 @@ public class ConfigurationParser {
                             case "font-color" -> mode.hintMesh.builder.fontHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
-                                    parsePercent(propertyKey, propertyValue, true, 1));
+                                    parseUnsignedDouble(propertyKey, propertyValue, true, 1));
                             case "prefix-font-color" ->
                                     mode.hintMesh.builder.prefixFontHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
@@ -452,7 +452,7 @@ public class ConfigurationParser {
                             case "box-color" -> mode.hintMesh.builder.boxHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
-                                    parsePercent(propertyKey, propertyValue, true, 1));
+                                    parseUnsignedDouble(propertyKey, propertyValue, true, 1));
                             // Allow for box grow percent > 1: even with 1, I would get empty pixels
                             // between the cells due to the way we distribute spare pixels.
                             // See HintManager#distributeTrueUniformly.
@@ -461,7 +461,7 @@ public class ConfigurationParser {
                             case "box-outline-color" -> mode.hintMesh.builder.boxOutlineHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "box-outline-opacity" -> mode.hintMesh.builder.boxOutlineOpacity(
-                                    parsePercent(propertyKey, propertyValue, true, 1));
+                                    parseUnsignedDouble(propertyKey, propertyValue, true, 1));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -1002,10 +1002,10 @@ public class ConfigurationParser {
 
     private static double parseNonZeroPercent(String propertyKey, String propertyValue,
                                               double max) {
-        return parsePercent(propertyKey, propertyValue, false, max);
+        return parseUnsignedDouble(propertyKey, propertyValue, false, max);
     }
 
-    private static double parsePercent(String propertyKey, String propertyValue, boolean zeroIncluded,
+    private static double parseUnsignedDouble(String propertyKey, String propertyValue, boolean zeroIncluded,
                                               double max) {
         double percent = Double.parseDouble(propertyValue);
         if (percent < 0 || percent == 0 && !zeroIncluded)

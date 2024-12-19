@@ -2,8 +2,8 @@ package mousemaster;
 
 public sealed interface HintMeshType {
 
-    record HintGrid(HintGridArea area, int maxRowCount, int maxColumnCount, int cellWidth,
-                    int cellHeight) implements HintMeshType {
+    record HintGrid(HintGridArea area, int maxRowCount, int maxColumnCount, double cellWidth,
+                    double cellHeight) implements HintMeshType {
     }
 
     record HintPositionHistory() implements HintMeshType {
@@ -23,8 +23,8 @@ public sealed interface HintMeshType {
                 gridArea = new HintGridArea.HintGridAreaBuilder();
         private Integer gridMaxRowCount;
         private Integer gridMaxColumnCount;
-        private Integer gridCellWidth;
-        private Integer gridCellHeight;
+        private Double gridCellWidth;
+        private Double gridCellHeight;
 
         public HintMeshTypeBuilder() {
 
@@ -60,11 +60,11 @@ public sealed interface HintMeshType {
             return gridMaxColumnCount;
         }
 
-        public Integer gridCellWidth() {
+        public Double gridCellWidth() {
             return gridCellWidth;
         }
 
-        public Integer gridCellHeight() {
+        public Double gridCellHeight() {
             return gridCellHeight;
         }
 
@@ -83,12 +83,12 @@ public sealed interface HintMeshType {
             return this;
         }
 
-        public HintMeshTypeBuilder gridCellWidth(Integer gridCellWidth) {
+        public HintMeshTypeBuilder gridCellWidth(Double gridCellWidth) {
             this.gridCellWidth = gridCellWidth;
             return this;
         }
 
-        public HintMeshTypeBuilder gridCellHeight(Integer gridCellHeight) {
+        public HintMeshTypeBuilder gridCellHeight(Double gridCellHeight) {
             this.gridCellHeight = gridCellHeight;
             return this;
         }

@@ -220,24 +220,24 @@ public class HintManager implements ModeListener, MousePositionListener {
         int hintMeshHeight = fixedSizeHintGrid.hintMeshHeight();
         int hintMeshX = fixedSizeHintGrid.hintMeshX();
         int hintMeshY = fixedSizeHintGrid.hintMeshY();
-        int cellWidth = fixedSizeHintGrid.cellWidth;
-        int cellHeight = fixedSizeHintGrid.cellHeight;
-        int spareWidthPixelCount = hintMeshWidth - cellWidth * columnCount;
-        int spareHeightPixelCount = hintMeshHeight - cellHeight * rowCount;
+        double cellWidth = fixedSizeHintGrid.cellWidth;
+        double cellHeight = fixedSizeHintGrid.cellHeight;
+        int spareWidthPixelCount = (int) (hintMeshWidth - cellWidth * columnCount);
+        int spareHeightPixelCount = (int) (hintMeshHeight - cellHeight * rowCount);
         boolean[] rowExtraPixelDistribution = distributeTrueUniformly(rowCount, spareHeightPixelCount);
         boolean[] columnExtraPixelDistribution = distributeTrueUniformly(columnCount, spareWidthPixelCount);
         int gridHintCount = rowCount * columnCount;
         List<Hint> hints = new ArrayList<>(gridHintCount);
         int hintIndex = beginHintIndex;
-        int rowHeightOffset = 0;
+        double rowHeightOffset = 0;
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            int cellHeightWithExtra =
+            double cellHeightWithExtra =
                     cellHeight + (rowExtraPixelDistribution[rowIndex] ? 1 : 0);
-            int columnWidthOffset = 0;
+            double columnWidthOffset = 0;
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 List<Key> keySequence = hintKeySequence(selectionKeys, hintCount, hintIndex,
                         rowIndex, columnIndex, rowCount, columnCount);
-                int cellWidthWithExtra =
+                double cellWidthWithExtra =
                         cellWidth + (columnExtraPixelDistribution[columnIndex] ? 1 : 0);
                 double hintCenterX = hintMeshX + columnWidthOffset + cellWidthWithExtra / 2d;
                 double hintCenterY = hintMeshY + rowHeightOffset + cellHeightWithExtra / 2d;
@@ -337,14 +337,14 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private FixedSizeHintGrid fixedSizeHintGrid(Rectangle areaRectangle,
                                                 Point gridCenter, int maxRowCount,
-                                                int maxColumnCount, int cellWidth,
-                                                int cellHeight) {
+                                                int maxColumnCount, double cellWidth,
+                                                double cellHeight) {
         int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight;
         int rowCount = Math.max(1, Math.min(maxRowCount,
                 (int) ((double) areaRectangle.height() / cellHeight)));
         int columnCount = Math.max(1, Math.min(maxColumnCount,
                 (int) ((double) areaRectangle.width() / cellWidth)));
-        hintMeshWidth = columnCount * cellWidth;
+        hintMeshWidth = (int) Math.ceil(columnCount * cellWidth);
         // If there is space left around the edges, and the max cell count (in one direction) is reached,
         // we want to increase the cell size only if the space left is smaller than
         // the user-defined max size of a cell. Otherwise, it is a 2-pass hint scenario,
@@ -359,28 +359,28 @@ public class HintManager implements ModeListener, MousePositionListener {
             if (maxColumnCountReached) {
                 if (spareWidth < cellWidth) {
                     hintMeshWidth = areaRectangle.width();
-                    cellWidth = areaRectangle.width() / columnCount;
+                    cellWidth = (double) areaRectangle.width() / columnCount;
                 }
             }
             else {
                 // (Imagine the max column count is infinite.)
                 hintMeshWidth = areaRectangle.width();
-                cellWidth = areaRectangle.width() / columnCount;
+                cellWidth = (double) areaRectangle.width() / columnCount;
             }
         }
-        hintMeshHeight = rowCount * cellHeight;
+        hintMeshHeight = (int) Math.ceil(rowCount * cellHeight);
         boolean maxRowCountReached = rowCount == maxRowCount;
         int spareHeight = areaRectangle.height() - hintMeshHeight;
         if (spareHeight > 0) {
             if (maxRowCountReached) {
                 if (spareHeight < cellHeight) {
                     hintMeshHeight = areaRectangle.height();
-                    cellHeight = areaRectangle.height() / rowCount;
+                    cellHeight = (double) areaRectangle.height() / rowCount;
                 }
             }
             else {
                 hintMeshHeight = areaRectangle.height();
-                cellHeight = areaRectangle.height() / rowCount;
+                cellHeight = (double) areaRectangle.height() / rowCount;
             }
         }
         if (areaRectangle.height() - hintMeshHeight > 0
@@ -394,7 +394,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private record FixedSizeHintGrid(int hintMeshX, int hintMeshY, int hintMeshWidth,
                                      int hintMeshHeight, int rowCount, int columnCount,
-                                     int cellWidth, int cellHeight) {
+                                     double cellWidth, double cellHeight) {
 
     }
 
