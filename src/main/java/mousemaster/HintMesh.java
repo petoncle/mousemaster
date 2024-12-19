@@ -9,7 +9,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        String fontName, int fontSize, String fontHexColor, double fontOpacity,
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
-                       int boxInset,
+                       int boxBorderThickness,
                        String boxOutlineHexColor, double boxOutlineOpacity) {
 
     public HintMeshBuilder builder() {
@@ -29,7 +29,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double highlightFontScale;
         private String boxHexColor;
         private double boxOpacity;
-        private int boxInset;
+        private int boxBorderThickness;
         private String boxOutlineHexColor;
         private double boxOutlineOpacity;
 
@@ -49,7 +49,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.highlightFontScale = hintMesh.highlightFontScale;
             this.boxHexColor = hintMesh.boxHexColor;
             this.boxOpacity = hintMesh.boxOpacity;
-            this.boxInset = hintMesh.boxInset;
+            this.boxBorderThickness = hintMesh.boxBorderThickness;
             this.boxOutlineHexColor = hintMesh.boxOutlineHexColor;
             this.boxOutlineOpacity = hintMesh.boxOutlineOpacity;
         }
@@ -102,8 +102,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return boxOpacity;
         }
 
-        public int boxInset() {
-            return boxInset;
+        public int boxBorderThickness() {
+            return boxBorderThickness;
         }
 
         public String boxOutlineHexColor() {
@@ -176,8 +176,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder boxInset(int boxInset) {
-            this.boxInset = boxInset;
+        public HintMeshBuilder boxBorderThickness(int boxBorderThickness) {
+            this.boxBorderThickness = boxBorderThickness;
             return this;
         }
 
@@ -197,7 +197,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                     fontHexColor, fontOpacity,
                     prefixFontHexColor, highlightFontScale,
                     boxHexColor, boxOpacity,
-                    boxInset,
+                    boxBorderThickness,
                     boxOutlineHexColor, boxOutlineOpacity);
         }
     }

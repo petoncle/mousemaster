@@ -78,9 +78,9 @@ public class ConfigurationParser {
                 .highlightFontScale(1d)
                 .boxHexColor("#000000")
                 .boxOpacity(0.4d)
-                .boxInset(1)
-                .boxOutlineHexColor("#CCCCCC")
-                .boxOutlineOpacity(1d)
+                .boxBorderThickness(1)
+                .boxOutlineHexColor("#FFFFFF")
+                .boxOutlineOpacity(0.4d)
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -456,7 +456,7 @@ public class ConfigurationParser {
                             // Allow for box grow percent > 1: even with 1, I would get empty pixels
                             // between the cells due to the way we distribute spare pixels.
                             // See HintManager#distributeTrueUniformly.
-                            case "box-inset" -> mode.hintMesh.builder.boxInset(
+                            case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
                                     Integer.parseUnsignedInt(propertyValue));
                             case "box-outline-color" -> mode.hintMesh.builder.boxOutlineHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
@@ -1297,8 +1297,8 @@ public class ConfigurationParser {
                         builder.boxHexColor(parent.boxHexColor());
                     if (builder.boxOpacity() == null)
                         builder.boxOpacity(parent.boxOpacity());
-                    if (builder.boxInset() == null)
-                        builder.boxInset(parent.boxInset());
+                    if (builder.boxBorderThickness() == null)
+                        builder.boxBorderThickness(parent.boxBorderThickness());
                     if (builder.boxOutlineHexColor() == null)
                         builder.boxOutlineHexColor(parent.boxOutlineHexColor());
                     if (builder.boxOutlineOpacity() == null)

@@ -547,7 +547,7 @@ public class WindowsOverlay {
         double highlightFontScale = currentHintMesh.highlightFontScale();
         String boxHexColor = currentHintMesh.boxHexColor();
         double boxOpacity = currentHintMesh.boxOpacity();
-        int boxInset = currentHintMesh.boxInset();
+        int boxBorderThickness = currentHintMesh.boxBorderThickness();
         String boxOutlineHexColor = currentHintMesh.boxOutlineHexColor();
         double boxOutlineOpacity = currentHintMesh.boxOutlineOpacity();
         String fontHexColor = currentHintMesh.fontHexColor();
@@ -582,7 +582,7 @@ public class WindowsOverlay {
         HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(currentHintMesh,
                 hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
                         focusedHintKeySequence,
-                        highlightFontScale, boxInset,
+                        highlightFontScale, boxBorderThickness,
                         normalFont, largeFont, hdcTemp));
 
         WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, windowWidth, windowHeight);
@@ -692,7 +692,7 @@ public class WindowsOverlay {
                                              int windowHeight, List<Hint> windowHints,
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
-                                             int boxInset,
+                                             int boxBorderThickness,
                                              WinDef.HFONT normalFont,
                                              WinDef.HFONT largeFont, WinDef.HDC hdcTemp) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
@@ -762,20 +762,20 @@ public class WindowsOverlay {
             int xPadding = (int) (screen.scale() * 1);
             int yPadding = (int) (screen.scale() * -1) * 4;
             WinDef.RECT boxRect = new WinDef.RECT();
-            int scaledBoxInset = scaledPixels(boxInset, screen.scale());
-            boxRect.left = textX - xPadding + scaledBoxInset;
-            boxRect.top = largeTextY - yPadding + scaledBoxInset;
+            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
+            boxRect.left = textX - xPadding + scaledBoxBorderThickness;
+            boxRect.top = largeTextY - yPadding + scaledBoxBorderThickness;
             boxRect.right = textX + prefixTextSize.cx + highlightTextSize.cx + suffixTextSize.cx + xPadding
-                            - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxInset);
+                            - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
             boxRect.bottom = largeTextY + largeTextHeight + yPadding
-                             - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxInset);
+                             - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
             if (hint.cellWidth() != -1) {
                 WinDef.RECT cellRect = new WinDef.RECT();
-                cellRect.left = boxRect.left - scaledBoxInset;
-                cellRect.top = boxRect.top - scaledBoxInset;
-                cellRect.right = boxRect.right + (hint.centerX() < maxHintCenterX ? 0 : scaledBoxInset);
-                cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxInset);
-                setBoxOrCellRect(boxRect, screen, boxInset,
+                cellRect.left = boxRect.left - scaledBoxBorderThickness;
+                cellRect.top = boxRect.top - scaledBoxBorderThickness;
+                cellRect.right = boxRect.right + (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
+                cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
+                setBoxOrCellRect(boxRect, screen, boxBorderThickness,
                         hint,
                         maxHintCenterX, maxHintCenterY);
                 setBoxOrCellRect(cellRect, screen, 0, hint,
@@ -809,23 +809,23 @@ public class WindowsOverlay {
         return new HintMeshDraw(boxRects, cellRects, hintTexts);
     }
 
-    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, int boxInset,
+    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, int boxBorderThickness,
                                          Hint hint,
                                          double maxHintCenterX, double maxHintCenterY) {
-        double scaledBoxInset = scaledPixels(boxInset, screen.scale());
+        double scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
         double cellWidth = hint.cellWidth();
-        double halfCellWidth = cellWidth / 2  - scaledBoxInset;
+        double halfCellWidth = cellWidth / 2  - scaledBoxBorderThickness;
         double cellHeight = hint.cellHeight();
-        double halfCellHeight = cellHeight / 2 - scaledBoxInset;
+        double halfCellHeight = cellHeight / 2 - scaledBoxBorderThickness;
         int boxLeft = (int) (hint.centerX() - halfCellWidth) - screen.rectangle().x();
         int boxTop = (int) (hint.centerY() - halfCellHeight) - screen.rectangle().y();
         int boxRight = (int) (hint.centerX() + halfCellWidth) - screen.rectangle().x();
-        // Put back the boxInset if there is a box above with shared edge to avoid double edge.
+        // Put back the boxBorderThickness if there is a box above with shared edge to avoid double edge.
         if (hint.centerX() < maxHintCenterX)
-            boxRight += scaledBoxInset;
+            boxRight += scaledBoxBorderThickness;
         int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
         if (hint.centerY() < maxHintCenterY)
-            boxBottom += scaledBoxInset;
+            boxBottom += scaledBoxBorderThickness;
         if (boxLeft < boxRect.left || boxTop < boxRect.top
             || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
             // Screen selection hint are bigger.

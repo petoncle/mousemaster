@@ -13,7 +13,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     double highlightFontScale,
                                     String boxHexColor,
                                     double boxOpacity,
-                                    int boxInset,
+                                    int boxBorderThickness,
                                     String boxOutlineHexColor,
                                     double boxOutlineOpacity,
                                     String modeAfterSelection,
@@ -35,7 +35,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Double highlightFontScale;
         private String boxHexColor;
         private Double boxOpacity;
-        private Integer boxInset;
+        private Integer boxBorderThickness;
         private String boxOutlineHexColor;
         private Double boxOutlineOpacity;
         private String modeAfterSelection;
@@ -109,8 +109,8 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder boxInset(int boxInset) {
-            this.boxInset = boxInset;
+        public HintMeshConfigurationBuilder boxBorderThickness(int boxBorderThickness) {
+            this.boxBorderThickness = boxBorderThickness;
             return this;
         }
 
@@ -198,8 +198,8 @@ public record HintMeshConfiguration(boolean enabled,
             return boxOpacity;
         }
 
-        public Integer boxInset() {
-            return boxInset;
+        public Integer boxBorderThickness() {
+            return boxBorderThickness;
         }
 
         public String boxOutlineHexColor() {
@@ -228,7 +228,7 @@ public record HintMeshConfiguration(boolean enabled,
                     undoKey, fontName, fontSize, fontHexColor, fontOpacity,
                     prefixFontHexColor,
                     highlightFontScale,
-                    boxHexColor, boxOpacity, boxInset,
+                    boxHexColor, boxOpacity, boxBorderThickness,
                     boxOutlineHexColor, boxOutlineOpacity,
                     modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
