@@ -68,9 +68,12 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (moving()) {
             WindowsMouse.beginMove();
             moveDuration += delta;
-            double moveVelocity = Math.min(mouse.maxVelocity(), mouse.initialVelocity() +
-                                                                mouse.acceleration() *
-                                                                Math.pow(moveDuration,
+            double scaledMaxVelocity = mouse.maxVelocity() / screenManager.activeScreen().scale();
+            double scaledInitialVelocity = mouse.initialVelocity() / screenManager.activeScreen().scale();
+            double scaledAcceleration = mouse.acceleration() / screenManager.activeScreen().scale();
+            double moveVelocity = Math.min(scaledMaxVelocity, scaledInitialVelocity +
+                                                              scaledAcceleration *
+                                                              Math.pow(moveDuration,
                                                                         1));
             boolean deltaBigEnough;
             if (!xMoveForwardStack.isEmpty() && !yMoveForwardStack.isEmpty()) {
@@ -382,7 +385,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         WindowsMouse.beginMove();
         jumpEndX = x;
         jumpEndY = y;
-        jumpScale = screenManager.activeScreen().scale();
+        jumpScale = 1 / screenManager.activeScreen().scale();
     }
 
     public boolean jumping() {

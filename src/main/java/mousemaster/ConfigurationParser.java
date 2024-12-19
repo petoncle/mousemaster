@@ -39,11 +39,11 @@ public class ConfigurationParser {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
         AtomicReference<Boolean> stopCommandsFromPreviousMode = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
-        MouseBuilder mouse = new MouseBuilder().initialVelocity(200)
-                                               .maxVelocity(750)
-                                               .acceleration(1000)
+        MouseBuilder mouse = new MouseBuilder().initialVelocity(1600)
+                                               .maxVelocity(2200)
+                                               .acceleration(1500)
                                                .smoothJumpEnabled(true)
-                                               .smoothJumpVelocity(10000);
+                                               .smoothJumpVelocity(15000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         GridConfigurationBuilder grid =
                 new GridConfigurationBuilder();
@@ -71,7 +71,7 @@ public class ConfigurationParser {
                                         .map(Key::ofName)
                                         .toList())
                 .fontName("Consolas")
-                .fontSize(16)
+                .fontSize(18)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
                 .prefixFontHexColor("#A3A3A3")
