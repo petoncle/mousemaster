@@ -43,7 +43,7 @@ public class ConfigurationParser {
                                                .maxVelocity(2200)
                                                .acceleration(1500)
                                                .smoothJumpEnabled(true)
-                                               .smoothJumpVelocity(15000);
+                                               .smoothJumpVelocity(30000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
         GridConfigurationBuilder grid =
                 new GridConfigurationBuilder();
