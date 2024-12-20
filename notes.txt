@@ -12,4 +12,4 @@
 normal-mode.remap.goback.input=+h
 # This would mean: press alt, wait 50ms, press left, wait 50ms, release left and alt at the same time
 normal-mode.remap.goback.output=+leftalt wait-50 +left wait-50 -left -leftalt
-+ mouse speed depends on screen scale?
+normal-mode.remap.goback=+h -> +leftalt wait-50 +left wait-50 -left -leftalt
