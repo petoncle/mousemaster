@@ -20,6 +20,7 @@ public class Mousemaster {
     private Configuration configuration;
     private MouseController mouseController;
     private HintManager hintManager;
+    private Remapper remapper;
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
     private ModeController modeController;
@@ -48,6 +49,7 @@ public class Mousemaster {
             hintManager.update(delta);
             keyboardManager.update(delta);
             indicatorManager.update(delta);
+            remapper.update(delta);
             Thread.sleep(10L);
         }
     }
@@ -90,8 +92,9 @@ public class Mousemaster {
         hintManager =
                 new HintManager(configuration.maxPositionHistorySize(),
                         screenManager, mouseController);
+        remapper = new Remapper();
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager,
-                hintManager);
+                hintManager, remapper);
         Set<Key> mustRemainUnpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> mustRemainPressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes()) {

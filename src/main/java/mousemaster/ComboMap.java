@@ -25,6 +25,7 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
         private Map<Combo, List<Command>> clearPositionHistory = new HashMap<>();
         private Map<Combo, List<Command>> cycleNextPosition = new HashMap<>();
         private Map<Combo, List<Command>> cyclePreviousPosition = new HashMap<>();
+        private Map<Combo, List<Command>> remap = new HashMap<>();
 
         public ComboMapBuilder add(Combo combo, Command command) {
             Map<Combo, List<Command>> map = switch (command) {
@@ -84,6 +85,8 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
                 case Command.ClearPositionHistory clearPositionHistory_ -> clearPositionHistory;
                 case Command.CycleNextPosition cycleNextPosition_ -> cycleNextPosition;
                 case Command.CyclePreviousPosition cyclePreviousPosition_ -> cyclePreviousPosition;
+
+                case Command.RemapCommand remap_ -> remap;
                 // @formatter:on
             };
             map.computeIfAbsent(combo, combo1 -> new ArrayList<>()).add(command);
@@ -107,6 +110,7 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
             add(commandsByCombo, clearPositionHistory);
             add(commandsByCombo, cycleNextPosition);
             add(commandsByCombo, cyclePreviousPosition);
+            add(commandsByCombo, remap);
             return commandsByCombo;
         }
 

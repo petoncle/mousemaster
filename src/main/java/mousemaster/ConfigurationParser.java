@@ -134,7 +134,8 @@ public class ConfigurationParser {
                 new Property<>("save-position", Map.of()),
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
-                new Property<>("cycle-previous", Map.of())
+                new Property<>("cycle-previous", Map.of()),
+                new Property<>("remap", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
     }
@@ -848,6 +849,14 @@ public class ConfigurationParser {
                     rootPropertyNode, propertyByKey);
         for (ModeBuilder mode : modeByName.values())
             checkMissingProperties(mode);
+        RemappingParallel p1 = new RemappingParallel(List.of(new RemappingMove(Key.leftalt, true)), Duration.ofMillis(50));
+        RemappingParallel p2 = new RemappingParallel(List.of(new RemappingMove(Key.left, true)), Duration.ofMillis(50));
+        RemappingParallel p3 = new RemappingParallel(List.of(new RemappingMove(Key.left, false)), Duration.ofMillis(0));
+        RemappingParallel p4 = new RemappingParallel(List.of(new RemappingMove(Key.leftalt, false)), Duration.ofMillis(0));
+        modeByName.get("idle-mode").comboMap.remap.builder.put(
+                Combo.of("+h", defaultComboMoveDuration, Map.of(), Map.of()).getFirst(),
+                List.of(new RemapCommand(new Remapping(null,
+                        new RemappingSequence(List.of(p1, p2, p3, p4))))));
         Set<Mode> modes = modeByName.values()
                                     .stream()
                                     .map(ModeBuilder::build)
@@ -1390,6 +1399,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> clearPositionHistory;
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
+        Property<Map<Combo, List<Command>>> remap;
 
         public ComboMapConfigurationBuilder(String modeName,
                                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -1409,6 +1419,7 @@ public class ConfigurationParser {
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
+            remap = new ComboMapProperty("remap", modeName, propertyByKey);
         }
 
         private static class ComboMapProperty extends Property<Map<Combo, List<Command>>> {
@@ -1444,6 +1455,7 @@ public class ConfigurationParser {
             add(commandsByCombo, clearPositionHistory.builder);
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);
+            add(commandsByCombo, remap.builder);
             return commandsByCombo;
         }
 

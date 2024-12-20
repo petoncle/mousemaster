@@ -8,12 +8,14 @@ public class CommandRunner {
     private final MouseController mouseController;
     private final GridManager gridManager;
     private final HintManager hintManager;
+    private final Remapper remapper;
 
     public CommandRunner(MouseController mouseController, GridManager gridManager,
-                         HintManager hintManager) {
+                         HintManager hintManager, Remapper remapper) {
         this.mouseController = mouseController;
         this.gridManager = gridManager;
         this.hintManager = hintManager;
+        this.remapper = remapper;
     }
 
     public void setModeController(ModeController modeController) {
@@ -78,6 +80,8 @@ public class CommandRunner {
             case ClearPositionHistory clearPositionHistory -> hintManager.clearPositionHistory();
             case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
+
+            case RemapCommand remap -> remapper.submitRemapping(remap.remapping());
             // @formatter:on
         }
     }

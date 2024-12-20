@@ -58,4 +58,6 @@ public sealed interface Command {
     record CycleNextPosition() implements Command {}
     record CyclePreviousPosition() implements Command {}
 
+    record RemapCommand(Remapping remapping) implements Command {}
+
 }
