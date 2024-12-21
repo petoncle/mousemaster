@@ -51,8 +51,11 @@ public class Remapper {
             remappingInProgress.remainingWait =
                     remappingInProgress.currentParallel().duration().toNanos() / 10e9;
             // Execute moves of this parallel.
-            logger.info("Executing remapping parallel: " + remappingInProgress.currentParallel().moves());
-            WindowsKeyboard.sendInput(remappingInProgress.currentParallel().moves());
+            logger.info("Executing remapping parallel: " +
+                        remappingInProgress.currentParallel());
+            if (!remappingInProgress.currentParallel().moves().isEmpty())
+                WindowsKeyboard.sendInput(remappingInProgress.currentParallel().moves(),
+                        true);
         }
     }
 

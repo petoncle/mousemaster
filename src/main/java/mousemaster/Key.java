@@ -213,4 +213,9 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
                 name().toUpperCase();
     }
 
+    @Override
+    public String toString() {
+        return name();
+    }
+
 }

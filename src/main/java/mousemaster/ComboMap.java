@@ -86,7 +86,7 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
                 case Command.CycleNextPosition cycleNextPosition_ -> cycleNextPosition;
                 case Command.CyclePreviousPosition cyclePreviousPosition_ -> cyclePreviousPosition;
 
-                case Command.RemapCommand remap_ -> remap;
+                case Command.RemappingCommand remap_ -> remap;
                 // @formatter:on
             };
             map.computeIfAbsent(combo, combo1 -> new ArrayList<>()).add(command);

@@ -41,6 +41,7 @@ public class WindowsPlatform implements Platform {
     private final WinUser.MSG msg = new WinUser.MSG();
     private double enforceWindowsTopmostTimer;
     private boolean mustForceReleaseLeftctrl = false;
+    private boolean mustEatNextReleaseOfRightalt = false;
     private Set<Key> extendedKeys = new HashSet<>();
 
     public WindowsPlatform(boolean keyRegurgitationEnabled) {
@@ -74,24 +75,38 @@ public class WindowsPlatform implements Platform {
         this.mouseController = mouseController;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
-        Set<Key> allComboKeys = new HashSet<>();
+        Set<Key> allComboAndRemappingKeys = new HashSet<>();
         Set<String> hintFontNames = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
-            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+            for (Map.Entry<Combo, List<Command>> entry : mode.comboMap()
+                                                             .commandsByCombo()
+                                                             .entrySet()) {
+                Combo combo = entry.getKey();
+                List<Command> commands = entry.getValue();
                 combo.precondition()
                      .keyPrecondition()
                      .mustRemainPressedKeySets()
                      .stream()
                      .flatMap(Collection::stream)
-                     .forEach(allComboKeys::add);
-                allComboKeys.addAll(combo.precondition()
+                     .forEach(allComboAndRemappingKeys::add);
+                allComboAndRemappingKeys.addAll(combo.precondition()
                                          .keyPrecondition()
                                          .mustRemainUnpressedKeySet());
                 combo.sequence()
                      .moves()
                      .stream()
                      .map(ComboMove::key)
-                     .forEach(allComboKeys::add);
+                     .forEach(allComboAndRemappingKeys::add);
+                for (Command command : commands) {
+                    if (command instanceof Command.RemappingCommand(Remapping remapping)) {
+                        for (RemappingParallel parallel : remapping.output()
+                                                                   .parallels()) {
+                            for (RemappingMove move : parallel.moves()) {
+                                allComboAndRemappingKeys.add(move.key());
+                            }
+                        }
+                    }
+                }
             }
             hintFontNames.add(mode.hintMesh().fontName());
         }
@@ -99,7 +114,7 @@ public class WindowsPlatform implements Platform {
             if (!WindowsOverlay.doesFontExist(hintFontName))
                 throw new IllegalStateException("Unable to find hint font: " + hintFontName);
         }
-        WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboKeys, keyboardLayout);
+        WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboAndRemappingKeys, keyboardLayout);
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
@@ -261,6 +276,12 @@ public class WindowsPlatform implements Platform {
                             KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
                                     new PressKeyEvent(time, key);
                             boolean eventMustBeEaten = keyEvent(keyEvent, info, wParamString);
+                            if (release && eventMustBeEaten && altgrLeftctrl)
+                                mustEatNextReleaseOfRightalt = true;
+                            else if (release && key.equals(Key.rightalt) && mustEatNextReleaseOfRightalt) {
+                                eventMustBeEaten = true;
+                                mustEatNextReleaseOfRightalt = false;
+                            }
                             if (eventMustBeEaten)
                                 return new WinDef.LRESULT(1);
                         }
@@ -291,26 +312,29 @@ public class WindowsPlatform implements Platform {
         if (keyRegurgitationEnabled && !eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
                 regurgitate(keyToRegurgitate, extendedKeys.contains(keyToRegurgitate));
-                if (keyToRegurgitate == Key.rightalt)
+                if (keyToRegurgitate == Key.rightalt) {
                     // In Intellij, rightalt + left. For some reason, leftctrl would not be released.
                     // This forces the release of leftctrl once left is released.
                     // I think this not only affects arrow keys (which are extended keys), but all extended keys (not tested).
                     // Or maybe it is WM_SYSKEYDOWN keys (which, for rightalt, are VK_LCONTROL and VK_RMENU)?
-                    mustForceReleaseLeftctrl = true;
+                    // TODO: this is fixed now that we eat the release rightalt (following the release of altgr's rightctrl)
+//                    mustForceReleaseLeftctrl = true;
+                }
             }
             logger.info("Regurgitating " + eatAndRegurgitates.keysToRegurgitate());
         }
         if (mustForceReleaseLeftctrl && keyEvent.isRelease()) {
             logger.info("Force-releasing leftctrl and rightalt");
             WindowsKeyboard.sendInput(List.of(new RemappingMove(Key.leftctrl, false),
-                    new RemappingMove(Key.rightalt, false)));
+                    new RemappingMove(Key.rightalt, false)), true);
             mustForceReleaseLeftctrl = false;
         }
         return eatAndRegurgitates.mustBeEaten();
     }
 
     private void regurgitate(Key keyToRegurgitate, boolean isExtendedKey) {
-        WindowsKeyboard.sendInput(List.of(new RemappingMove(keyToRegurgitate, true)));
+        WindowsKeyboard.sendInput(List.of(new RemappingMove(keyToRegurgitate, true)),
+                true);
     }
 
     private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,

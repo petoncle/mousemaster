@@ -32,7 +32,20 @@ public class WindowsKeyboard {
             Key.enter // Only enter from numpad?
     );
 
-    public static void sendInput(List<RemappingMove> moves) {
+    /**
+     * For some reason, sending more than one input per SendInput call rarely work (?).
+     */
+    public static void sendInput(List<RemappingMove> moves, boolean oneInputPerCall) {
+        if (oneInputPerCall) {
+            for (RemappingMove move : moves) {
+                sendInput(List.of(move));
+            }
+        }
+        else
+            sendInput(moves);
+    }
+
+    private static void sendInput(List<RemappingMove> moves) {
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
@@ -50,9 +63,9 @@ public class WindowsKeyboard {
             // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
             pInputs[moveIndex].input.ki.dwFlags = new WinDef.DWORD(flag);
         }
-        User32.INSTANCE.SendInput(new WinDef.DWORD(moves.size()), pInputs,
-                pInputs[0].size() * moves.size());
-
+        WinDef.DWORD sendInput =
+                User32.INSTANCE.SendInput(new WinDef.DWORD(moves.size()), pInputs,
+                        pInputs[0].size() * moves.size());
     }
 
 }

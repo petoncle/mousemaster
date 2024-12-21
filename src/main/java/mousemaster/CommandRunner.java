@@ -81,7 +81,7 @@ public class CommandRunner {
             case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
 
-            case RemapCommand remap -> remapper.submitRemapping(remap.remapping());
+            case RemappingCommand remap -> remapper.submitRemapping(remap.remapping());
             // @formatter:on
         }
     }
