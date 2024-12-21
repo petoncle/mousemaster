@@ -20,10 +20,10 @@ This combo can be completed by either pressing q or p.
 
 1. The combo sequence `+leftctrl +e` means leftctrl must be pressed then e must be
    pressed.
-2. The `+` in `+leftctrl` and `+e` means that the key press should be eaten by
+2. The `+` in `+leftctrl` and `+e` corresponds to a key press. The press will be eaten by
    mousemaster: it will not be sent to the other applications.
 3. `+leftctrl` is the same as, and a shorter version of `+leftctrl-0-250` which means that
-   leftctrl must be pressed for a duration between 0 and 250 milliseconds. This means that
+   leftctrl must be pressed for a duration of 0 to 250 milliseconds. This means that
    mousemaster should not consider the combo as complete if you press leftctrl for longer
    than 250ms. The default combo move duration can be changed with:
     ```properties
