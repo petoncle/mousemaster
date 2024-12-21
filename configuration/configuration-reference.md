@@ -52,7 +52,7 @@ normal-mode.to.idle-mode=+exit | -clickthendisable
 ### Modes
 
 Most properties are defined per-mode. The exceptions are key aliases, app aliases and a
-few <a href="#mode-independent-properties">mode-independent properties</a>.  
+couple of mode-independent properties.  
 Modes can share properties. For example, let's assume the normal-mode has defined what the indicator should look like:
 ```properties
 normal-mode.indicator.enabled=true
@@ -215,7 +215,11 @@ hint1-mode.box-outline-opacity=0.4
 
 - `type` can either be `grid` or `position-history`.
 - `grid-area` can either be `active-screen`, `active-window` or `all-screens`.
-- `active-screen-grid-area-center` can either be `screen-center`, `mouse` or `last-selected-hint`.
+- `active-screen-grid-area-center` can either be `screen-center`, `mouse`
+  or `last-selected-hint`.
+- `move-mouse` can be set to false to not move the mouse once a hint is selected. This can
+  be used when the next mode is going to be a smaller hint grid, and the mouse should not
+  be moved yet (it should be moved only once a hint of the second, smaller hint grid is selected).
 - If `swallow-hint-end-key-press` is false, then the last key press of the selection of a
   hint (e.g. B in AB) will be passed to the next mode which can trigger a command.
 - `prefix-font-color` is the color of the letters of the hint that have already been selected.
