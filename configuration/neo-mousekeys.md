@@ -1,5 +1,7 @@
 # neo-mousekeys configuration for mousemaster ([neo-mousekeys.properties](neo-mousekeys.properties))
 
+(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
+
 ## Overview
 
 - Press _leftctrl + e_ to activate.

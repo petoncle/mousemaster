@@ -1,5 +1,7 @@
 # warpd configuration for mousemaster ([warpd.properties](warpd.properties))
 
+(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
+
 ## Overview
 
 - Designed to mimic the features of the [warpd](https://github.com/rvaiya/warpd) project.

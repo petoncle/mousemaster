@@ -1,5 +1,7 @@
 # Author's configuration of mousemaster ([author.properties](author.properties))
 
+(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
+
 ## Overview
 
 - Designed for controlling the mouse with the right hand only.
