@@ -23,10 +23,10 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key pagedown = new Key("pagedown", null, null);
     public static final Key end = new Key("end", null, null);
     public static final Key home = new Key("home", null, null);
-    public static final Key left = new Key("left", null, null);
-    public static final Key up = new Key("up", null, null);
-    public static final Key right = new Key("right", null, null);
-    public static final Key down = new Key("down", null, null);
+    public static final Key leftarrow = new Key("leftarrow", null, null);
+    public static final Key uparrow = new Key("uparrow", null, null);
+    public static final Key rightarrow = new Key("rightarrow", null, null);
+    public static final Key downarrow = new Key("downarrow", null, null);
     public static final Key printscreen = new Key("printscreen", null, null);
     public static final Key insert = new Key("insert", null, null);
     public static final Key del = new Key("del", null, null);
@@ -103,10 +103,10 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
             pagedown,
             end,
             home,
-            left,
-            up,
-            right,
-            down,
+            leftarrow,
+            uparrow,
+            rightarrow,
+            downarrow,
             printscreen,
             insert,
             del,
