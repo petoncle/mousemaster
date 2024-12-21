@@ -16,6 +16,8 @@
 # Demo
 
 ## Hints Demo
+(This video shows transparent hint grid lines. Now, the lines are opaque (white) by default.)
+
 https://github.com/user-attachments/assets/2c0765eb-5fa2-4604-a868-df7e9f25e32a
 
 ## Grid Demo (1/2)
