@@ -40,7 +40,6 @@ public class WindowsPlatform implements Platform {
     private WinNT.HANDLE singleInstanceMutex;
     private final WinUser.MSG msg = new WinUser.MSG();
     private double enforceWindowsTopmostTimer;
-    private boolean mustForceReleaseLeftctrl = false;
     private boolean mustEatNextReleaseOfRightalt = false;
     private Set<Key> extendedKeys = new HashSet<>();
 
@@ -312,22 +311,8 @@ public class WindowsPlatform implements Platform {
         if (keyRegurgitationEnabled && !eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
                 regurgitate(keyToRegurgitate, extendedKeys.contains(keyToRegurgitate));
-                if (keyToRegurgitate == Key.rightalt) {
-                    // In Intellij, rightalt + left. For some reason, leftctrl would not be released.
-                    // This forces the release of leftctrl once left is released.
-                    // I think this not only affects arrow keys (which are extended keys), but all extended keys (not tested).
-                    // Or maybe it is WM_SYSKEYDOWN keys (which, for rightalt, are VK_LCONTROL and VK_RMENU)?
-                    // TODO: this is fixed now that we eat the release rightalt (following the release of altgr's rightctrl)
-//                    mustForceReleaseLeftctrl = true;
-                }
             }
             logger.info("Regurgitating " + eatAndRegurgitates.keysToRegurgitate());
-        }
-        if (mustForceReleaseLeftctrl && keyEvent.isRelease()) {
-            logger.info("Force-releasing leftctrl and rightalt");
-            WindowsKeyboard.sendInput(List.of(new RemappingMove(Key.leftctrl, false),
-                    new RemappingMove(Key.rightalt, false)), true);
-            mustForceReleaseLeftctrl = false;
         }
         return eatAndRegurgitates.mustBeEaten();
     }
