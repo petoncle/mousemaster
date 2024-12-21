@@ -1,0 +1,44 @@
+- tab
+- enter
+- leftshift
+- leftctrl
+- leftalt
+- rightshift
+- rightctrl
+- rightalt
+- pause
+- scrolllock
+- capslock
+- esc
+- space
+- pageup
+- pagedown
+- end
+- home
+- leftarrow
+- uparrow
+- rightarrow
+- downarrow
+- printscreen
+- insert
+- del
+- break
+- backspace
+- leftwin
+- rightwin
+- menu
+- numpad0 to numpad9
+- numpadmultiply
+- numpadadd
+- numpadsubtract
+- numpaddecimal
+- numpaddivide
+- f1 to f24
+- leftcurlybrace (`{`)
+- rightcurlybrace (`}`)
+- caret (`^`)
+- pipe (`|`)
+- underscore (`_`)
+- plus (`+`)
+- minus (`-`)
+- hash (`#`)

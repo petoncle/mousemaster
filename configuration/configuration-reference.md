@@ -16,6 +16,8 @@ normal-mode.to.idle-mode=+exit
 
 This combo can be completed by either pressing q or p.
 
+The complete available key list can be found in [key-list.md](key-list.md). 
+
 ### Combos
 
 1. The combo sequence `+leftctrl +e` means leftctrl must be pressed then e must be
