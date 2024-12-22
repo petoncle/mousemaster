@@ -26,7 +26,7 @@ The complete available key list can be found in [key-list.md](key-list.md).
    mousemaster: it will not be sent to the other applications.
 3. `+leftctrl` is the same as, and a shorter version of `+leftctrl-0-250` which means that
    leftctrl must be pressed for a duration of 0 to 250 milliseconds. This means that
-   mousemaster should not consider the combo as complete if you press leftctrl for longer
+   mousemaster will not consider the combo as complete if you press leftctrl for longer
    than 250ms. The default combo move duration can be changed with:
     ```properties
     default-combo-move-duration-millis=0-250
@@ -257,18 +257,18 @@ screen-grid-mode.grid.line-thickness=1
 ### Grid commands
 
 ```properties
-screen-grid-mode.move-grid.up=^{leftctrl} _{leftshift} +up
-screen-grid-mode.move-grid.down=^{leftctrl} _{leftshift} +down
-screen-grid-mode.move-grid.left=^{leftctrl} _{leftshift} +left
-screen-grid-mode.move-grid.right=^{leftctrl} _{leftshift} +right
-screen-grid-mode.snap.up=^{leftshift} _{leftctrl} +up
-screen-grid-mode.snap.down=^{leftshift} _{leftctrl} +down
-screen-grid-mode.snap.left=^{leftshift} _{leftctrl} +left
-screen-grid-mode.snap.right=^{leftshift} _{leftctrl} +right
-screen-grid-mode.shrink-grid.up=^{leftshift leftctrl} +up
-screen-grid-mode.shrink-grid.down=^{leftshift leftctrl} +down
-screen-grid-mode.shrink-grid.left=^{leftshift leftctrl} +left
-screen-grid-mode.shrink-grid.right=^{leftshift leftctrl} +right
+screen-grid-mode.move-grid.up=_{leftshift} +up
+screen-grid-mode.move-grid.down=_{leftshift} +down
+screen-grid-mode.move-grid.left=_{leftshift} +left
+screen-grid-mode.move-grid.right=_{leftshift} +right
+screen-grid-mode.snap.up=_{leftctrl} +up
+screen-grid-mode.snap.down=_{leftctrl} +down
+screen-grid-mode.snap.left=_{leftctrl} +left
+screen-grid-mode.snap.right=_{leftctrl} +right
+screen-grid-mode.shrink-grid.up=+up
+screen-grid-mode.shrink-grid.down=+down
+screen-grid-mode.shrink-grid.left=+left
+screen-grid-mode.shrink-grid.right=+right
 screen-grid-mode.move-to-grid-center=+leftshift -leftshift
 ```
 - Grid move commands shift the position of the entire grid in one direction.
