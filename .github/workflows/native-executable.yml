@@ -56,7 +56,7 @@ jobs:
           $releaseNotes += "   - **neo-mousekeys.properties** (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys.md))`n"
           $releaseNotes += "   - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))`n"
           $releaseNotes += "   - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))`n"
-          $releaseNotes += "   - **author.properties**: an IJKL based configuration designed to control everything with the right hand only. ([see documentation](configuration/author.md))`n"
+          $releaseNotes += "   - **author.properties**: an IJKL configuration designed to control everything with the right hand only. ([see documentation](configuration/author.md))`n"
           $releaseNotes += "3. Place the executable and the configuration file in the same directory.`n"
           $releaseNotes += "4. Rename the configuration file to **mousemaster.properties**.`n"
           $releaseNotes += "5. Run **mousemaster.exe**.`n"

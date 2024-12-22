@@ -41,7 +41,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
     - **neo-mousekeys.properties** (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys.md))
     - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))
     - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))
-    - **author.properties**: an IJKL based configuration designed to control everything with the right hand only. ([see documentation](configuration/author.md))
+    - **author.properties**: an IJKL configuration designed to control everything with the right hand only. ([see documentation](configuration/author.md))
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to **mousemaster.properties**.
 5. Run **mousemaster.exe**.
