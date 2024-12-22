@@ -287,7 +287,8 @@ hibernate-mode.to.idle-mode=^{hibernateapp}
 
 This creates a mode called hibernate-mode that will be switched to whenever either Firefox
 or Chrome is the active application. Once neither is the active application, the mode is
-switched to idle-mode.
+switched to idle-mode. A typical use case is for telling mousemaster to not get in the way
+when playing a game.
 
 ### Position history
 
