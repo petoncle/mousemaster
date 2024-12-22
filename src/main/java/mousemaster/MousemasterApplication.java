@@ -16,8 +16,12 @@ import java.util.stream.Stream;
 
 public class MousemasterApplication {
 
-    private static final Logger logger =
-            (Logger) LoggerFactory.getLogger(MousemasterApplication.class);
+    private static final Logger logger;
+
+    static {
+        System.setProperty("slf4j.internal.verbosity", "WARN");
+        logger = (Logger) LoggerFactory.getLogger(MousemasterApplication.class);
+    }
 
     public static void main(String[] args) throws InterruptedException, IOException {
         Stream.of(args)
