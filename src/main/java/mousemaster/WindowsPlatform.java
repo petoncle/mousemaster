@@ -148,7 +148,7 @@ public class WindowsPlatform implements Platform {
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
                 mouseHookCallback, hMod, 0);
         addJvmShutdownHook();
-        logger.info("Keyboard and mouse hooks installed");
+        logger.info("Installed keyboard and mouse hooks successfully");
     }
 
     private void addJvmShutdownHook() {
@@ -167,10 +167,10 @@ public class WindowsPlatform implements Platform {
                 User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
         boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
         logger.info(
-                "Keyboard and mouse hooks uninstalled " +
+                "Uninstalled Keyboard and mouse hooks " +
                 (keyboardHookUnhooked && mouseHookUnhooked ? "successfully" : "unsuccessfully"));
         releaseSingleInstanceMutex();
-        logger.trace("Single instance mutex released");
+        logger.trace("Released single instance mutex");
     }
 
     /**
@@ -204,7 +204,7 @@ public class WindowsPlatform implements Platform {
         }
         if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
             logger.info(
-                    "Resetting KeyboardManager and MouseController since the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
+                    "Resetting KeyboardManager and MouseController because the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     keysThatDoNotSeemToBePressedAnymore);
             currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
