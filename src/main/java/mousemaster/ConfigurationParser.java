@@ -104,8 +104,7 @@ public class ConfigurationParser {
                  .idleHexColor("#FF0000")
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
-                 .mousePressHexColor("#00FF00")
-                 .unhandledKeyPressHexColor("#0000FF");
+                 .mousePressHexColor("#00FF00");
         HideCursorBuilder hideCursor = new HideCursorBuilder().enabled(false);
         // @formatter:off
         return Stream.of( //
