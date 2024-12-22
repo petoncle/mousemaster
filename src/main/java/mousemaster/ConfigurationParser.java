@@ -1047,12 +1047,13 @@ public class ConfigurationParser {
         if (alias != null)
             return List.copyOf(alias.keys());
         String[] split = propertyValue.split("\\s+");
-        if (split.length <= 1)
+        List<Key> hintKeys = Arrays.stream(split).map(Key::ofName).toList();
+        if (hintKeys.size() <= 1)
             // Even 1 key is not enough because we use fixed-length hints.
             throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": at least two keys are required");
-        return Arrays.stream(split).map(Key::ofName).toList();
+        return hintKeys;
     }
 
     private static HintMeshType.HintMeshTypeType parseHintMeshTypeType(String propertyKey,
