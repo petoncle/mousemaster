@@ -6,8 +6,10 @@ import com.sun.jna.Native;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -23,6 +25,13 @@ public class MousemasterApplication {
               .map(arg -> arg.split("=")[1])
               .findFirst()
               .ifPresent(MousemasterApplication::setLogLevel);
+        String version;
+        try (InputStream versionInputStream = MousemasterApplication.class.getClassLoader().getResourceAsStream("application.properties")) {
+            Properties versionProp = new Properties();
+            versionProp.load(versionInputStream);
+            version = versionProp.getProperty("version");
+        }
+        logger.info("mousemaster v" + version);
         Path configurationPath = Stream.of(args)
                                        .filter(arg -> arg.startsWith(
                                                "--configuration-file="))

@@ -20,6 +20,8 @@
     "pattern":"\\Qlogback.scmo\\E"
   }, {
     "pattern":"\\Qlogback.xml\\E"
+  }, {
+    "pattern":"\\Qapplication.properties\\E"
   }]},
   "bundles":[]
 }
