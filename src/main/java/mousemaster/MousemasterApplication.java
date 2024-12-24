@@ -48,7 +48,7 @@ public class MousemasterApplication {
                       .map(arg -> arg.split("=")[1])
                       .findFirst()
                       .map(Boolean::parseBoolean)
-                      .orElse(false);
+                      .orElse(true); // Remove this feature flag if confirmed working
         if (Stream.of(args).anyMatch(Predicate.isEqual(("--graalvm-agent-run")))) {
             logger.info("--graalvm-agent-run flag found, exiting in 20s");
             new Thread(() -> {
