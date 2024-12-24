@@ -35,7 +35,6 @@ public class MousemasterApplication {
             versionProp.load(versionInputStream);
             version = versionProp.getProperty("version");
         }
-        logger.info("mousemaster v" + version);
         Path configurationPath = Stream.of(args)
                                        .filter(arg -> arg.startsWith(
                                                "--configuration-file="))
@@ -62,6 +61,7 @@ public class MousemasterApplication {
             }).start();
         }
         WindowsPlatform platform = platform(keyRegurgitationEnabled);
+        logger.info("mousemaster v" + version);
         if (platform == null)
             return;
         try {

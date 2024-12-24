@@ -46,6 +46,7 @@ public class WindowsPlatform implements Platform {
     public WindowsPlatform(boolean keyRegurgitationEnabled) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
         WindowsMouse.windowsPlatform = this; // TODO Get rid of this.
+        WindowsUiAccess.checkAndTryToGetUiAccess(); // Done before acquiring the single instance mutex.
         if (!acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
@@ -148,7 +149,7 @@ public class WindowsPlatform implements Platform {
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
                 mouseHookCallback, hMod, 0);
         addJvmShutdownHook();
-        logger.info("Installed keyboard and mouse hooks successfully");
+        logger.trace("Installed keyboard and mouse hooks successfully");
     }
 
     private void addJvmShutdownHook() {
