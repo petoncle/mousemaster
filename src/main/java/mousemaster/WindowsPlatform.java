@@ -313,7 +313,7 @@ public class WindowsPlatform implements Platform {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
                 regurgitate(keyToRegurgitate, extendedKeys.contains(keyToRegurgitate));
             }
-            logger.info("Regurgitating " + eatAndRegurgitates.keysToRegurgitate());
+            logger.debug("Regurgitating keys: " + eatAndRegurgitates.keysToRegurgitate());
         }
         return eatAndRegurgitates.mustBeEaten();
     }
