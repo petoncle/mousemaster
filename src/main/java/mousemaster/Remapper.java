@@ -35,9 +35,15 @@ public class Remapper {
     }
 
     public void update(double delta) {
-        if (remappingInProgress == null && !remappingsToExecute.isEmpty())
+        if (remappingInProgress == null && !remappingsToExecute.isEmpty()) {
             remappingInProgress =
                     new RemappingInProgress(remappingsToExecute.removeFirst());
+            RemappingParallel firstParallel =
+                    remappingInProgress.remapping.output().parallels().getFirst();
+            if (firstParallel.moves().isEmpty())
+                remappingInProgress.remainingWait =
+                        firstParallel.duration().toNanos() / 1e9;
+        }
         if (remappingInProgress == null)
             return;
         remappingInProgress.remainingWait -= delta;
@@ -49,7 +55,7 @@ public class Remapper {
             }
             remappingInProgress.currentIndex++;
             remappingInProgress.remainingWait =
-                    remappingInProgress.currentParallel().duration().toNanos() / 10e9;
+                    remappingInProgress.currentParallel().duration().toNanos() / 1e9;
             // Execute moves of this parallel.
             logger.info("Executing remapping parallel: " +
                         remappingInProgress.currentParallel());
