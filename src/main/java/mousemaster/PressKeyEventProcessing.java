@@ -67,6 +67,18 @@ public enum PressKeyEventProcessing {
         return this == UNSWALLOWED_HINT_END_MUST_BE_EATEN;
     }
 
+    public boolean isSwallowedHintEnd() {
+        return this == SWALLOWED_HINT_END_MUST_BE_EATEN;
+    }
+
+    public boolean isPartOfHintPrefix() {
+        return this == PART_OF_HINT_PREFIX_MUST_BE_EATEN;
+    }
+
+    public boolean isHintEnd() {
+        return isUnswallowedHintEnd() || isSwallowedHintEnd();
+    }
+
     public static PressKeyEventProcessing unhandled() {
         return UNHANDLED;
     }
