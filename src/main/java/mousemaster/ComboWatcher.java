@@ -36,12 +36,12 @@ public class ComboWatcher implements ModeListener {
         this.comboPreparation = ComboPreparation.empty();
     }
 
-    public boolean update(double delta) {
+    public Set<Combo> update(double delta) {
         // For a given waiting combo, we know that its precondition has to be satisfied still, because otherwise it
         // would mean that currentlyPressedComboPreconditionKeys has changed. But when currentlyPressedComboPreconditionKeys is changed,
         // combosWaitingForLastMoveToComplete is always reset.
         List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
-        boolean waitingComboCompleted = false;
+        Set<Combo> completedCombos = new HashSet<>();
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
             comboWaitingForLastMoveToComplete.remainingWait -= delta;
             if (comboWaitingForLastMoveToComplete.remainingWait < 0) {
@@ -51,7 +51,7 @@ public class ComboWatcher implements ModeListener {
                 // We tell KeyboardManager that a combo was completed,
                 // and all the currently pressed keys are part of a completed combo,
                 // and they should not be regurgitated.
-                waitingComboCompleted = true;
+                completedCombos.add(combo);
             }
         }
         List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
@@ -70,12 +70,14 @@ public class ComboWatcher implements ModeListener {
         commandsToRun.forEach(commandRunner::run);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
         if (currentMode != beforeMode) {
-            processKeyEventForCurrentMode(null, true);
+            PressKeyEventProcessingSet processingSet =
+                    processKeyEventForCurrentMode(null, true);
+            completedCombos.addAll(processingSet.completedCombos());
         }
-        return waitingComboCompleted;
+        return completedCombos;
     }
 
-    public PressKeyEventProcessing keyEvent(KeyEvent event) {
+    public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
         modeJustTimedOut = false;
         boolean isMustRemainUnpressedComboPreconditionKey =
                 mustRemainUnpressedComboPreconditionKeys.contains(event.key());
@@ -104,42 +106,38 @@ public class ComboWatcher implements ModeListener {
             comboPreparation = ComboPreparation.empty();
         comboPreparation.events().add(event);
         Mode beforeMode = currentMode;
-        PressKeyEventProcessing processing = processKeyEventForCurrentMode(event, false);
-        boolean partOfComboSequence = processing.isPartOfComboSequence();
-        boolean mustBeEaten = processing.mustBeEaten();
-        boolean partOfCompletedComboSequence = processing.isPartOfCompletedComboSequence();
+        PressKeyEventProcessingSet processingSet =
+                processKeyEventForCurrentMode(event, false);
         if (currentMode != beforeMode) {
             // Second pass to give a chance to new mode's combos to run now.
-            processing = processKeyEventForCurrentMode(event, true);
-            partOfComboSequence |= processing.isPartOfComboSequence();
-            partOfCompletedComboSequence |= processing.isPartOfCompletedComboSequence();
-            mustBeEaten |= processing.mustBeEaten();
+            processingSet.processingByCombo().putAll(
+                    processKeyEventForCurrentMode(event, true).processingByCombo());
         }
-        if (!partOfComboSequence) {
+        if (!processingSet.isPartOfComboSequence()) {
             comboPreparation = ComboPreparation.empty();
+            if (event.isPress() && isComboPreconditionKey) {
+                // We don't really need to know which combo(s) this is for, that is why
+                // we use dummyCombo instead. But it would be cleaner if we knew the combos.
+                // If we are here, it means the key is used as a precondition key,
+                // possibly for a mode different from the current mode.
+                processingSet = new PressKeyEventProcessingSet(
+                        new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo,
+                                isMustRemainPressedComboPreconditionKey ?
+                                        PressKeyEventProcessing.partOfMustRemainPressedComboPreconditionOnly() :
+                                        PressKeyEventProcessing.partOfMustRemainUnpressedComboPreconditionOnly())));
+            }
         }
         else {
             if (event.isPress())
                 currentlyPressedComboPreconditionKeys.add(event.key());
         }
-        if (event.isRelease()) {
-            return partOfComboSequence ? PressKeyEventProcessing.PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN : null;
-        }
-        if (partOfComboSequence)
-            return PressKeyEventProcessing.partOfComboSequence(mustBeEaten,
-                    partOfCompletedComboSequence);
-        boolean partOfComboPreconditionOnly = isComboPreconditionKey;
-        if (partOfComboPreconditionOnly)
-            return isMustRemainPressedComboPreconditionKey ?
-                    PressKeyEventProcessing.partOfMustRemainPressedComboPreconditionOnly() :
-                    PressKeyEventProcessing.partOfMustRemainUnpressedComboPreconditionOnly();
-        return PressKeyEventProcessing.unhandled();
+        return processingSet;
     }
 
-    private PressKeyEventProcessing processKeyEventForCurrentMode(KeyEvent event,
-                                                                  boolean ignoreSwitchModeCommands) {
-        boolean mustBeEaten = false;
-        boolean partOfComboSequence = false;
+    private PressKeyEventProcessingSet processKeyEventForCurrentMode(
+            KeyEvent event,
+            boolean ignoreSwitchModeCommands) {
+        Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
         Set<Key> currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten =
                 new HashSet<>(currentlyPressedComboPreconditionKeys);
@@ -188,7 +186,7 @@ public class ComboWatcher implements ModeListener {
                 // ...and the combo is not a release combo
                 !releaseCombo &&
                 // ...and the combo's current move is not a press of that currentlyPressedComboPreconditionKey...
-                !keysPressedInComboPriorToMoveOfIndex(combo,
+                !combo.keysPressedInComboPriorToMoveOfIndex(
                         matchingMoveCount - 1).containsAll(
                         currentlyPressedMustRemainPressedComboPreconditionKeysNotAlreadyEaten)) {
                 // ...Then it's as if the currently pressed precondition key is an unhandled key:
@@ -198,6 +196,8 @@ public class ComboWatcher implements ModeListener {
                 //             ", skipping combo: " + combo);
                 continue;
             }
+            boolean mustBeEaten = false;
+            boolean partOfComboSequence = false;
             if (matchingMoveCount == 0) {
                 if (combo.sequence().moves().isEmpty() &&
                     !combo.precondition().isEmpty()) {
@@ -216,7 +216,7 @@ public class ComboWatcher implements ModeListener {
                 boolean currentMoveMustBeEaten =
                         currentMove instanceof ComboMove.PressComboMove pressComboMove &&
                         pressComboMove.eventMustBeEaten();
-                mustBeEaten |= currentMoveMustBeEaten;
+                mustBeEaten = currentMoveMustBeEaten;
                 partOfComboSequence = true;
                 if (newComboDuration == null) {
                     newComboDuration = currentMove.duration();
@@ -237,6 +237,20 @@ public class ComboWatcher implements ModeListener {
             }
             boolean preparationComplete =
                     matchingMoveCount == combo.sequence().moves().size();
+            ComboMove comboLastMove = combo.sequence().moves().isEmpty() ? null :
+                    combo.sequence().moves().getLast();
+            boolean lastMoveIsWaitingMove = comboLastMove != null &&
+                                        !comboLastMove.duration().min().equals(Duration.ZERO);
+            if (event != null) {
+                if (partOfComboSequence)
+                    // This processingByCombo does not need to have entries about
+                    // non-combo sequences (i.e. combo preconditions).
+                    // That is because preconditions are managed by the caller (keyEvent)
+                    // which checks across all modes, not just the current one. (isComboPreconditionKey)
+                    processingByCombo.put(combo,
+                            PressKeyEventProcessing.partOfComboSequence(mustBeEaten,
+                                    preparationComplete && !lastMoveIsWaitingMove));
+            }
             if (!preparationComplete)
                 continue;
             List<Command> commands = entry.getValue();
@@ -253,10 +267,7 @@ public class ComboWatcher implements ModeListener {
                                    .toList();
             }
             ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands);
-            ComboMove comboLastMove = combo.sequence().moves().isEmpty() ? null :
-                    combo.sequence().moves().getLast();
-            if (comboLastMove != null &&
-                !comboLastMove.duration().min().equals(Duration.ZERO)) {
+            if (lastMoveIsWaitingMove) {
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(comboAndCommands,
                                 comboLastMove.duration().min().toNanos() / 1e9d));
@@ -269,47 +280,33 @@ public class ComboWatcher implements ModeListener {
             previousComboMoveDuration = newComboDuration;
         List<Command> commandsToRun =
                 longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
+        PressKeyEventProcessingSet processingSet =
+                new PressKeyEventProcessingSet(processingByCombo);
         logger.debug("currentMode = " + currentMode.name() +
                      ", currentlyPressedComboPreconditionKeys = " + currentlyPressedComboPreconditionKeys +
                      ", comboPreparation = " + comboPreparation +
-                     ", partOfComboSequence = " + partOfComboSequence +
-                     ", mustBeEaten = " + mustBeEaten + ", commandsToRun = " +
+                     ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
+                     ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
                      commandsToRun);
         commandsToRun.forEach(commandRunner::run);
         if (event != null && event.isPress()) {
-            if (partOfComboSequence) {
+            if (processingSet.isPartOfComboSequence()) {
                 for (ComboAndCommands comboAndCommands : comboAndCommandsToRun) {
                     Combo combo = comboAndCommands.combo;
                     addCurrentlyPressedCompletedComboSequenceKeys(combo);
                 }
-                if (!comboAndCommandsToRun.isEmpty())
+                if (processingSet.isPartOfCompletedComboSequence())
                     currentlyPressedCompletedComboSequenceKeys.add(event.key());
             }
         }
-        if (partOfComboSequence)
-            return PressKeyEventProcessing.partOfComboSequence(mustBeEaten,
-                    !comboAndCommandsToRun.isEmpty());
-        return PressKeyEventProcessing.unhandled();
+        return processingSet;
     }
 
     private void addCurrentlyPressedCompletedComboSequenceKeys(Combo combo) {
-        Set<Key> keys = keysPressedInComboPriorToMoveOfIndex(combo,
+        Set<Key> keys = combo.keysPressedInComboPriorToMoveOfIndex(
                 combo.sequence().moves().size() - 1);
         // logger.info("Combo completed, pressed keys: " + keys);
         currentlyPressedCompletedComboSequenceKeys.addAll(keys);
-    }
-
-    private Set<Key> keysPressedInComboPriorToMoveOfIndex(Combo combo, int maxMoveIndex) {
-        Set<Key> pressedKeys = new HashSet<>();
-        for (int moveIndex = 0;
-             moveIndex <= maxMoveIndex; moveIndex++) {
-            ComboMove move = combo.sequence().moves().get(moveIndex);
-            if (move.isPress())
-                pressedKeys.add(move.key());
-            else
-                pressedKeys.remove(move.key());
-        }
-        return pressedKeys;
     }
 
     private static final List<? extends Class<? extends Command>> commandOrder =

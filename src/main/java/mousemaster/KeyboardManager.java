@@ -11,7 +11,7 @@ public class KeyboardManager {
 
     private final ComboWatcher comboWatcher;
     private final HintManager hintManager;
-    private final Map<Key, PressKeyEventProcessing> currentlyPressedKeys = new HashMap<>();
+    private final Map<Key, PressKeyEventProcessingSet> currentlyPressedKeys = new HashMap<>();
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager) {
         this.comboWatcher = comboWatcher;
@@ -33,9 +33,9 @@ public class KeyboardManager {
                     nextEventIsUnswallowedHintEnd = false;
                 }
             }
-            boolean waitingComboCompleted = comboWatcher.update(delta);
-            if (waitingComboCompleted)
-                markPressedKeyAsPartOfCompletedCombo();
+            Set<Combo> completedCombos = comboWatcher.update(delta);
+            if (!completedCombos.isEmpty())
+                markOtherKeysOfTheseCombosAsCompleted(completedCombos);
         }
     }
 
@@ -74,16 +74,19 @@ public class KeyboardManager {
 
     private EatAndRegurgitates singleKeyEvent(KeyEvent keyEvent) {
         Key key = keyEvent.key();
-        PressKeyEventProcessing processing = currentlyPressedKeys.get(key);
+        PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
         if (keyEvent.isPress()) {
             Set<Key> keysToRegurgitate = Set.of();
-            if (processing == null) {
+            if (processingSet == null) {
                 if (!pressingUnhandledKey()) {
                     if (!nextEventIsUnswallowedHintEnd)
-                        processing = hintManager.keyPressed(keyEvent.key());
-                    if (nextEventIsUnswallowedHintEnd || !processing.handled())
-                        processing = comboWatcher.keyEvent(keyEvent);
-                    else if (processing.isUnswallowedHintEnd()) {
+                        processingSet =
+                                new PressKeyEventProcessingSet(Map.of(
+                                        PressKeyEventProcessingSet.dummyCombo,
+                                        hintManager.keyPressed(keyEvent.key())));
+                    if (nextEventIsUnswallowedHintEnd || !processingSet.handled())
+                        processingSet = comboWatcher.keyEvent(keyEvent);
+                    else if (processingSet.isUnswallowedHintEnd()) {
                         logger.trace("Enqueuing unswallowed hint end keyEvent " + keyEvent);
                         eventsWaitingForHintSelectionFinalization.add(keyEvent);
                         nextEventIsUnswallowedHintEnd = true;
@@ -95,38 +98,54 @@ public class KeyboardManager {
                     // Even if pressing unhandled key, give the hint manager a chance.
                     // This is so the user can hold leftctrl (assuming it is unhandled), then
                     // select a hint to perform a ctrl-click.
-                    processing = hintManager.keyPressed(keyEvent.key());
+                    processingSet = new PressKeyEventProcessingSet(Map.of(
+                            PressKeyEventProcessingSet.dummyCombo,
+                            hintManager.keyPressed(keyEvent.key())));
                 }
-                if (!processing.mustBeEaten()) {
-                    keysToRegurgitate = regurgitatePressedKeys();
+                if (!processingSet.isPartOfComboSequence()) {
+                    keysToRegurgitate = regurgitatePressedKeys(null);
                 }
-                currentlyPressedKeys.put(key, processing);
-                if (processing.isPartOfCompletedComboSequence())
-                    markPressedKeyAsPartOfCompletedCombo();
+                currentlyPressedKeys.put(key, processingSet);
+                if (processingSet.isPartOfCompletedComboSequence()) {
+                    markOtherKeysOfTheseCombosAsCompleted(processingSet.completedCombos());
+                }
             }
-            return eatAndRegurgitates(processing.mustBeEaten(), keysToRegurgitate);
+            return eatAndRegurgitates(processingSet.mustBeEaten(), keysToRegurgitate);
         }
-        else {
-            if (processing != null) {
-                if (processing.handled() ||
-                    processing.isPartOfMustRemainUnpressedComboPreconditionOnly()) {
+        else { // Key release.
+            if (processingSet != null) {
+                if (processingSet.handled() ||
+                    processingSet.isPartOfMustRemainUnpressedComboPreconditionOnly()) {
                     Set<Key> keysToRegurgitate = Set.of();
-                    if (processing.isPartOfCombo() || processing.isUnswallowedHintEnd()) {
-                        if (comboWatcher.keyEvent(keyEvent) == null) {
-                            keysToRegurgitate = regurgitatePressedKeys();
-                            processing = PressKeyEventProcessing.UNHANDLED;
+                    if (processingSet.isPartOfCombo() || processingSet.isUnswallowedHintEnd()) {
+                        PressKeyEventProcessingSet releaseProcessingSet =
+                                comboWatcher.keyEvent(keyEvent);
+                        if (!releaseProcessingSet.handled()) {
+                            keysToRegurgitate = regurgitatePressedKeys(null);
                         }
-                        else {
-                            markPressedKeyAsPartOfCompletedCombo();
+                        else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
+                            for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
+                                                                                                .entrySet()) {
+                                // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
+                                processingSet.processingByCombo().compute(entry.getKey(), (combo, existingProcessing) -> {
+                                    return existingProcessing == null ? entry.getValue() :
+                                            PressKeyEventProcessing.partOfComboSequence(
+                                                    existingProcessing.mustBeEaten(),
+                                                    entry.getValue()
+                                                         .isPartOfCompletedComboSequence());
+                                });
+                            }
+                            markOtherKeysOfTheseCombosAsCompleted(releaseProcessingSet.completedCombos());
+                            keysToRegurgitate = regurgitatePressedKeys(key);
                         }
                     }
-                    currentlyPressedKeys.remove(key);
+                    PressKeyEventProcessingSet pressedProcessingSet = currentlyPressedKeys.remove(key);
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.
-                    return eatAndRegurgitates(processing.mustBeEaten(), keysToRegurgitate);
+                    return eatAndRegurgitates(pressedProcessingSet.mustBeEaten(), keysToRegurgitate);
                 }
                 else {
                     currentlyPressedKeys.remove(key);
-                    return eatAndRegurgitates(false, regurgitatePressedKeys());
+                    return eatAndRegurgitates(false, regurgitatePressedKeys(null));
                 }
             }
             else {
@@ -135,29 +154,57 @@ public class KeyboardManager {
         }
     }
 
-    private void markPressedKeyAsPartOfCompletedCombo() {
-        for (Map.Entry<Key, PressKeyEventProcessing> entry : Set.copyOf(
-                currentlyPressedKeys.entrySet())) {
-            if (entry.getValue().mustBeEaten() && entry.getValue().isPartOfComboSequence()) {
-                currentlyPressedKeys.put(entry.getKey(),
-                        PressKeyEventProcessing.partOfComboSequence(true, true));
+    private boolean markOtherKeysOfTheseCombosAsCompleted(Set<Combo> completedCombos) {
+        boolean completedCombosHavePressedKeys = false;
+        for (Combo combo : completedCombos) {
+            Set<Key> pressedKeysInCompletedCombo =
+                    combo.keysPressedInComboPriorToMoveOfIndex(
+                            combo.sequence().moves().size() - 1);
+            completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();
+
+            for (Key key : pressedKeysInCompletedCombo) {
+                Map<Combo, PressKeyEventProcessing> processingByCombo =
+                        currentlyPressedKeys.get(key).processingByCombo();
+                PressKeyEventProcessing processing = processingByCombo.get(combo);
+                // Can be null with (when going from temp-screen-snap-mode.to.idle-mode,
+                // , is pressed and idle-mode's alttab combo is not registered for +rightalt):
+                // idle-mode.remapping.alttab=+rightalt-0 +, | _{rightalt} +, -> +leftalt +tab -tab -leftalt
+                // temp-screen-snap-mode.remapping.alttab=_{rightalt} +, -> +leftalt +tab -tab -leftalt
+                // temp-screen-snap-mode.to.idle-mode=_{rightalt} +,
+                // Better solution could be to create the missing processing for that key.
+                if (processing != null)
+                    processingByCombo.put(combo,
+                            PressKeyEventProcessing.partOfComboSequence(
+                                    processing.mustBeEaten(), true));
             }
         }
+        return completedCombosHavePressedKeys;
     }
 
-    private Set<Key> regurgitatePressedKeys() {
+    private Set<Key> regurgitatePressedKeys(Key releasedKey) {
         Set<Key> keysToRegurgitate = new HashSet<>();
-        for (Map.Entry<Key, PressKeyEventProcessing> entry : Set.copyOf(
-                currentlyPressedKeys.entrySet())) {
-            if (entry.getValue().mustBeEaten() && !entry.getValue().isPartOfCompletedComboSequence()) {
-                Key eatenKey = entry.getKey();
+        for (Map.Entry<Key, PressKeyEventProcessingSet> setEntry : currentlyPressedKeys.entrySet()) {
+            Key eatenKey = setEntry.getKey();
+            if (releasedKey != null && !eatenKey.equals(releasedKey))
+                continue;
+            PressKeyEventProcessingSet processingSet = setEntry.getValue();
+            // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
+            if (processingSet.mustBeEaten() &&
+                !processingSet.isPartOfCompletedComboSequenceMustBeEaten()) {
                 keysToRegurgitate.add(eatenKey);
                 // Change the key's processing to must not be eaten
                 // so that it cannot be regurgitated a second time.
-                currentlyPressedKeys.put(entry.getKey(), switch (entry.getValue()) {
-                    case PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN -> PressKeyEventProcessing.PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN;
-                    default -> entry.getValue();
-                });
+                for (Map.Entry<Combo, PressKeyEventProcessing> entry : Set.copyOf(
+                        processingSet.processingByCombo().entrySet())) {
+                    Combo combo = entry.getKey();
+                    PressKeyEventProcessing processing = entry.getValue();
+                    if (processing.isPartOfComboSequence())
+                        processingSet.processingByCombo()
+                                     .put(combo,
+                                             PressKeyEventProcessing.partOfComboSequence(
+                                                     false,
+                                                     processing.isPartOfCompletedComboSequence()));
+                }
             }
         }
         return keysToRegurgitate;
@@ -171,8 +218,8 @@ public class KeyboardManager {
     }
 
     public boolean pressingUnhandledKey() {
-        for (PressKeyEventProcessing pressKeyEventProcessing : currentlyPressedKeys.values()) {
-            if (!pressKeyEventProcessing.handled())
+        for (PressKeyEventProcessingSet processingSet : currentlyPressedKeys.values()) {
+            if (!processingSet.handled())
                 return true;
         }
         return false;

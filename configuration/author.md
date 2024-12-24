@@ -12,13 +12,14 @@
 - Normal mode automatically exits when any non-normal mode key is pressed. For example,
   when starting to type text while normal mode is active, the normal mode will automatically exit.
 - The author is using this configuration with a small QWERTY keyboard and one 1920x1080 screen.
+- (The author uses rightalt + space as the PowerToys Run activation shortcut.)
 
 ## Normal Mode (_rightalt_)
 
 - Move mouse with _i_, _j_, _k_, _l_.
 - Press mouse buttons with _space_ (left button), _;_ or _\'_ or _#_ (middle button), _p_ or _\[_ or _\]_ (right
   button).
-- Left and right mouse buttons will be toggled (and remain pressed) if the left button key 
+- Left and right mouse buttons will be toggled (and will remain pressed) if the left button key 
   or the right button key are held for more than 250ms. 
 - Snap to screen edges by holding _rightalt_, then quickly pressing a direction key.
 - Snap to screen center by holding _rightalt_ for 250ms.
