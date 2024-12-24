@@ -174,7 +174,7 @@ public class WindowsUiAccess {
                 logger.error("Failed OpenProcess winlogon " +
                              Integer.toHexString(Native.getLastError()));
                 logger.info(
-                        "Run mousemaster as administrator if you want mousemaster to show on top of the Windows menus");
+                        "Run mousemaster as administrator if you want the mousemaster overlay to be displayed on top of everything else.");
                 return null;
             }
             if (!Advapi32.INSTANCE.OpenProcessToken(winlogonHandle,

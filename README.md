@@ -44,7 +44,8 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
     - **author.properties**: an IJKL configuration designed to control everything with the right hand only. ([see documentation](configuration/author.md))
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to **mousemaster.properties**.
-5. Run **mousemaster.exe**.
+5. Run **mousemaster.exe**: make sure to run it as administrator if you want the 
+   mousemaster overlay to be displayed on top of everything else. 
 6. Feel free to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues)
    or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own
    configuration. If you have ideas for a better configuration that
