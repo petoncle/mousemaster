@@ -777,9 +777,9 @@ public class WindowsOverlay {
                 cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
                 setBoxOrCellRect(boxRect, screen, boxBorderThickness,
                         hint,
-                        maxHintCenterX, maxHintCenterY);
+                        maxHintCenterX, maxHintCenterY, windowWidth, windowHeight);
                 setBoxOrCellRect(cellRect, screen, 0, hint,
-                        maxHintCenterX, maxHintCenterY);
+                        maxHintCenterX, maxHintCenterY, windowWidth, windowHeight);
                 cellRects.add(cellRect); // TODO only if between box is non transparent
             }
             boxRects.add(boxRect);
@@ -811,7 +811,8 @@ public class WindowsOverlay {
 
     private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, int boxBorderThickness,
                                          Hint hint,
-                                         double maxHintCenterX, double maxHintCenterY) {
+                                         double maxHintCenterX, double maxHintCenterY,
+                                         int windowWidth, int windowHeight) {
         double scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
         double cellWidth = hint.cellWidth();
         double halfCellWidth = cellWidth / 2  - scaledBoxBorderThickness;
@@ -826,6 +827,11 @@ public class WindowsOverlay {
         int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
         if (hint.centerY() < maxHintCenterY)
             boxBottom += scaledBoxBorderThickness;
+        if (windowWidth - (boxRight - screen.rectangle().x() + scaledBoxBorderThickness) == 1)
+            // This can happen because of the (int) rounding in boxLeft = (int) ... (?)
+            boxRight++;
+        if (windowHeight - (boxBottom - screen.rectangle().y() + scaledBoxBorderThickness) == 1)
+            boxBottom++;
         if (boxLeft < boxRect.left || boxTop < boxRect.top
             || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
             // Screen selection hint are bigger.
