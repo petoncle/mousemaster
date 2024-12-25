@@ -198,8 +198,8 @@ public class WindowsOverlay {
             if (existingWindow == null) {
                 WinUser.WindowProc callback = WindowsOverlay::hintMeshWindowCallback;
                 WinDef.HWND hwnd = createWindow("HintMesh", screen.rectangle().x(),
-                        screen.rectangle().y(), screen.rectangle().width() + 0,
-                        screen.rectangle().height() + 0, callback);
+                        screen.rectangle().y(), screen.rectangle().width(),
+                        screen.rectangle().height(), callback);
 
                 WinDef.HWND transparentHwnd = User32.INSTANCE.CreateWindowEx(
                         User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
@@ -209,8 +209,8 @@ public class WindowsOverlay {
                         "Mousemaster" + "HintMesh" + "ClassName",
                         "Mousemaster" + "TransparentHintMesh" + "WindowName",
                         WinUser.WS_POPUP, screen.rectangle().x(),
-                        screen.rectangle().y(), screen.rectangle().width() + 0,
-                        screen.rectangle().height() + 0,
+                        screen.rectangle().y(), screen.rectangle().width(),
+                        screen.rectangle().height(),
                         null, null,
                         null, null);
                 User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
@@ -928,8 +928,8 @@ public class WindowsOverlay {
         currentGrid = grid;
         // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         if (gridWindow == null)
-            createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width() + 1,
-                    currentGrid.height() + 1);
+            createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width(),
+                    currentGrid.height());
         else {
             if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
                 grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
@@ -940,8 +940,8 @@ public class WindowsOverlay {
                 // that is why we use 2 grid windows.
                 if (standByGridWindow == null) {
                     standByGridWindow = gridWindow;
-                    createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width() + 1,
-                            currentGrid.height() + 1);
+                    createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width(),
+                            currentGrid.height());
                     standByGridCanBeHidden = false;
                 }
                 else {
@@ -949,7 +949,7 @@ public class WindowsOverlay {
                     gridWindow = standByGridWindow;
                     standByGridWindow = newStandByGridWindow;
                     User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(), grid.y(),
-                            grid.width() + 1, grid.height() + 1, User32.SWP_NOZORDER);
+                            grid.width(), grid.height(), User32.SWP_NOZORDER);
                     standByGridCanBeHidden = false;
                 }
             }
