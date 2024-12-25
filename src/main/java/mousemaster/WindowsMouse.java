@@ -279,11 +279,11 @@ public class WindowsMouse {
         int cursorWidth, cursorHeight;
         if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) ||
             cursorInfo.hCursor == null)
-            throw new IllegalStateException("Unable to find mouse size"); // TODO
+            return mouseSizeFallback();
         WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
         if (!User32.INSTANCE.GetIconInfo(new WinDef.HICON(cursorInfo.hCursor),
                 iconInfo))
-            throw new IllegalStateException("Unable to find mouse size"); // TODO
+            return mouseSizeFallback();
         WinGDI.BITMAP bmp = new WinGDI.BITMAP();
         int sizeOfBitmap = bmp.size();
         if (iconInfo.hbmColor != null) {
@@ -308,6 +308,14 @@ public class WindowsMouse {
         MouseSize mouseSize = new MouseSize(cursorWidth, cursorHeight);
         WindowsMouse.mouseSize = mouseSize;
         return mouseSize;
+    }
+
+    private static MouseSize mouseSizeFallback() {
+        Screen activeScreen = WindowsScreen.findActiveScreen(findMousePosition());
+        double scale = activeScreen.scale();
+        logger.info("Unable to find mouse size, using 32x32 (multiplied by scale " +
+                    scale + ") as temporary fallback");
+        return new MouseSize((int) (scale * 32), (int) (scale * 32));
     }
 
     public record MouseSize(int width, int height) {
