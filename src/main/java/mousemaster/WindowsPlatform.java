@@ -25,6 +25,7 @@ public class WindowsPlatform implements Platform {
     }
 
     private final boolean keyRegurgitationEnabled;
+    private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator();
 
     private MouseController mouseController;
     private KeyboardManager keyboardManager;
@@ -62,6 +63,7 @@ public class WindowsPlatform implements Platform {
             User32.INSTANCE.TranslateMessage(msg);
             User32.INSTANCE.DispatchMessage(msg);
         }
+        WindowsKeyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         enforceWindowsTopmostTimer -= delta;
         if (enforceWindowsTopmostTimer < 0) {
@@ -216,6 +218,11 @@ public class WindowsPlatform implements Platform {
         logger.trace("Released single instance mutex");
     }
 
+    @Override
+    public KeyRegurgitator keyRegurgitator() {
+        return keyRegurgitator;
+    }
+
     /**
      * On the Windows lock screen, hit space then enter the pin. Space press is recorded by the app but the
      * corresponding release is never received. That is why we need to double-check if the key is still pressed
@@ -315,6 +322,10 @@ public class WindowsPlatform implements Platform {
                                     info.scanCode, info.flags);
                         if (key != null) {
                             Instant time = systemStartTime.plusMillis(info.time);
+                            if (release)
+                                WindowsKeyboard.keyReleasedByUser(key);
+                            else
+                                WindowsKeyboard.keyPressedByUser(key);
                             KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
                                     new PressKeyEvent(time, key);
                             boolean eventMustBeEaten = keyEvent(keyEvent, info, wParamString);
@@ -353,16 +364,10 @@ public class WindowsPlatform implements Platform {
             extendedKeys.add(keyEvent.key());
         if (keyRegurgitationEnabled && !eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
-                regurgitate(keyToRegurgitate, extendedKeys.contains(keyToRegurgitate));
+                keyRegurgitator.regurgitate(keyToRegurgitate, keyEvent.isRelease());
             }
-            logger.debug("Regurgitating keys: " + eatAndRegurgitates.keysToRegurgitate());
         }
         return eatAndRegurgitates.mustBeEaten();
-    }
-
-    private void regurgitate(Key keyToRegurgitate, boolean isExtendedKey) {
-        WindowsKeyboard.sendInput(List.of(new RemappingMove(keyToRegurgitate, true)),
-                true);
     }
 
     private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,

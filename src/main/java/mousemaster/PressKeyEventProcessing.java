@@ -40,6 +40,10 @@ public enum PressKeyEventProcessing {
                this == PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN;
     }
 
+    public boolean isPartOfComboSequenceMustBeEaten() {
+        return this == PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN;
+    }
+
     public boolean isPartOfCompletedComboSequenceMustBeEaten() {
         return this == PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN;
     }

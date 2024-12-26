@@ -13,5 +13,7 @@
  + If it is not, then it means a key is being pressed for longer than what the combo expects,
  + and the key can be regurgitated (just like it is regurgitated upon key release).
  + (Regurgitate only +key, not #key.)
-+ Regurgitate every x ms a key press until is release by user/remapper or another key is pressed.
-+ Mimics Windows repeat delay and repeat rate.
+- Regurgitate every x ms a key press until is release by user/remapper or another key is pressed.
+ - Not just regurgitate, but sendinputs from remapping too
+ + Mimics Windows repeat delay and repeat rate. No because apparently they are hardware-dependent.
++ Hint box border is broken for position history hints

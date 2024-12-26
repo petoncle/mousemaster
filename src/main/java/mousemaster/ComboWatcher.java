@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -18,6 +19,7 @@ public class ComboWatcher implements ModeListener {
     private Mode currentMode;
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
+    private PressKeyEventProcessingSet lastProcessingSet;
     private ComboMoveDuration previousComboMoveDuration;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
 
@@ -36,7 +38,41 @@ public class ComboWatcher implements ModeListener {
         this.comboPreparation = ComboPreparation.empty();
     }
 
-    public Set<Combo> update(double delta) {
+    public record ComboWatcherUpdateResult(Set<Combo> completedWaitingCombos, boolean preparationIsNotPrefixAnymore) {
+
+    }
+
+    public ComboWatcherUpdateResult update(double delta) {
+        boolean preparationIsNotPrefixAnymore = false;
+        if (lastProcessingSet != null) {
+            // Check if the preparation is still a prefix of at least one combo.
+            // If it is not, then it means a key is being pressed for longer than what the combo expects,
+            // and the key can be regurgitated (just like it is regurgitated upon key release).
+            // (Regurgitate only +key, not #key.)
+            boolean atLeastOneProcessingIsComboSequenceMustBeEaten = false;
+            boolean preparationIsStillPrefixOfAtLeastOneCombo = false;
+            Instant currentTime = Instant.now();
+            for (var entry : lastProcessingSet.processingByCombo().entrySet()) {
+                Combo combo = entry.getKey();
+                PressKeyEventProcessing processing = entry.getValue();
+                if (processing.isPartOfComboSequenceMustBeEaten()) {
+                    atLeastOneProcessingIsComboSequenceMustBeEaten = true;
+                    int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
+                    if (matchingMoveCount != 0) {
+                        ComboMove currentMove =
+                                combo.sequence().moves().get(matchingMoveCount - 1);
+                        KeyEvent currentKeyEvent = comboPreparation.events().getLast();
+                        if (!currentMove.duration()
+                                        .tooMuchTimeHasPassed(currentKeyEvent.time(),
+                                                currentTime))
+                            preparationIsStillPrefixOfAtLeastOneCombo = true;
+                    }
+                }
+            }
+            if (atLeastOneProcessingIsComboSequenceMustBeEaten && !preparationIsStillPrefixOfAtLeastOneCombo) {
+                preparationIsNotPrefixAnymore = true;
+            }
+        }
         // For a given waiting combo, we know that its precondition has to be satisfied still, because otherwise it
         // would mean that currentlyPressedComboPreconditionKeys has changed. But when currentlyPressedComboPreconditionKeys is changed,
         // combosWaitingForLastMoveToComplete is always reset.
@@ -74,7 +110,7 @@ public class ComboWatcher implements ModeListener {
                     processKeyEventForCurrentMode(null, true);
             completedCombos.addAll(processingSet.completedCombos());
         }
-        return completedCombos;
+        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
@@ -131,6 +167,7 @@ public class ComboWatcher implements ModeListener {
             if (event.isPress())
                 currentlyPressedComboPreconditionKeys.add(event.key());
         }
+        lastProcessingSet = processingSet;
         return processingSet;
     }
 

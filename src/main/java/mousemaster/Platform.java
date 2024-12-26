@@ -14,4 +14,6 @@ public interface Platform {
 
     void shutdown();
 
+    KeyRegurgitator keyRegurgitator();
+
 }

@@ -155,7 +155,8 @@ public class Mousemaster {
                 new ComboWatcher(commandRunner, new ActiveAppFinder(),
                         mustRemainUnpressedComboPreconditionKeys,
                         mustRemainPressedComboPreconditionKeys);
-        keyboardManager = new KeyboardManager(comboWatcher, hintManager);
+        keyboardManager = new KeyboardManager(comboWatcher, hintManager,
+                platform.keyRegurgitator());
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
         modeController =

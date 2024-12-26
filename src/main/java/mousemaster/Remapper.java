@@ -61,7 +61,7 @@ public class Remapper {
                         remappingInProgress.currentParallel());
             if (!remappingInProgress.currentParallel().moves().isEmpty())
                 WindowsKeyboard.sendInput(remappingInProgress.currentParallel().moves(),
-                        true);
+                        true, true);
         }
     }
 

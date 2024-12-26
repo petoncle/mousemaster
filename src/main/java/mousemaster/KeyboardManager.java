@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.ComboWatcher.ComboWatcherUpdateResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,11 +12,14 @@ public class KeyboardManager {
 
     private final ComboWatcher comboWatcher;
     private final HintManager hintManager;
+    private final KeyRegurgitator keyRegurgitator;
     private final Map<Key, PressKeyEventProcessingSet> currentlyPressedKeys = new HashMap<>();
 
-    public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager) {
+    public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager,
+                           KeyRegurgitator keyRegurgitator) {
         this.comboWatcher = comboWatcher;
         this.hintManager = hintManager;
+        this.keyRegurgitator = keyRegurgitator;
     }
 
     public void update(double delta) {
@@ -33,9 +37,15 @@ public class KeyboardManager {
                     nextEventIsUnswallowedHintEnd = false;
                 }
             }
-            Set<Combo> completedCombos = comboWatcher.update(delta);
-            if (!completedCombos.isEmpty())
-                markOtherKeysOfTheseCombosAsCompleted(completedCombos);
+            ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
+            if (!watcherUpdateResult.completedWaitingCombos().isEmpty())
+                markOtherKeysOfTheseCombosAsCompleted(
+                        watcherUpdateResult.completedWaitingCombos());
+            if (!pressingHintKey && watcherUpdateResult.preparationIsNotPrefixAnymore()) {
+                for (Key keyToRegurgitate : regurgitatePressedKeys(null)) {
+                    keyRegurgitator.regurgitate(keyToRegurgitate, false);
+                }
+            }
         }
     }
 
@@ -55,6 +65,7 @@ public class KeyboardManager {
 
     private List<KeyEvent> eventsWaitingForHintSelectionFinalization = new ArrayList<>();
     private boolean nextEventIsUnswallowedHintEnd;
+    private boolean pressingHintKey;
 
     public EatAndRegurgitates keyEvent(KeyEvent keyEvent) {
         if (hintManager.finalizingHintSelection()) {
@@ -75,15 +86,19 @@ public class KeyboardManager {
     private EatAndRegurgitates singleKeyEvent(KeyEvent keyEvent) {
         Key key = keyEvent.key();
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
+        pressingHintKey = false;
         if (keyEvent.isPress()) {
             Set<Key> keysToRegurgitate = Set.of();
             if (processingSet == null) {
                 if (!pressingUnhandledKey()) {
-                    if (!nextEventIsUnswallowedHintEnd)
+                    if (!nextEventIsUnswallowedHintEnd) {
                         processingSet =
                                 new PressKeyEventProcessingSet(Map.of(
                                         PressKeyEventProcessingSet.dummyCombo,
                                         hintManager.keyPressed(keyEvent.key())));
+                        if (processingSet.handled())
+                            pressingHintKey = true;
+                    }
                     if (nextEventIsUnswallowedHintEnd || !processingSet.handled())
                         processingSet = comboWatcher.keyEvent(keyEvent);
                     else if (processingSet.isUnswallowedHintEnd()) {

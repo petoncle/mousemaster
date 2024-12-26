@@ -3,11 +3,16 @@ package mousemaster;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class WindowsKeyboard {
+
+    private static final Logger logger = LoggerFactory.getLogger(WindowsKeyboard.class);
 
     /**
      * https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input
@@ -35,22 +40,61 @@ public class WindowsKeyboard {
     /**
      * For some reason, sending more than one input per SendInput call rarely work (?).
      */
-    public static void sendInput(List<RemappingMove> moves, boolean oneInputPerCall) {
+    public static void sendInput(List<RemappingMove> moves, boolean startRepeat, boolean oneInputPerCall) {
         if (oneInputPerCall) {
             for (RemappingMove move : moves) {
-                sendInput(List.of(move));
+                sendInput(List.of(move), startRepeat);
             }
         }
         else
-            sendInput(moves);
+            sendInput(moves, startRepeat);
     }
 
-    private static void sendInput(List<RemappingMove> moves) {
+    private static final Set<Key> pressedKeys = new HashSet<>();
+    private static Key pressedKeyToRepeat;
+    private static double durationUntilNextKeyPressRepeat;
+
+    public static void keyReleasedByUser(Key key) {
+        if (key == pressedKeyToRepeat)
+            pressedKeyToRepeat = null;
+        pressedKeys.remove(key);
+    }
+
+    public static void keyPressedByUser(Key key) {
+        if (pressedKeys.add(key)
+            // If user is holding key, no need to repeat is ourselves.
+            || key.equals(pressedKeyToRepeat))
+            pressedKeyToRepeat = null;
+    }
+
+    public static void update(double delta) {
+        if (pressedKeyToRepeat == null)
+            return;
+        durationUntilNextKeyPressRepeat -= delta;
+        if (durationUntilNextKeyPressRepeat <= 0) {
+            sendInput(List.of(new RemappingMove(pressedKeyToRepeat, true)), true);
+            durationUntilNextKeyPressRepeat = 0.025d;
+        }
+    }
+
+    private static void sendInput(List<RemappingMove> moves, boolean triggerKeyRepeating) {
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
             RemappingMove move = moves.get(moveIndex);
+            // Key already pressed.
+            if (move.press()) {
+                if (triggerKeyRepeating) {
+                    pressedKeyToRepeat = move.key();
+                    durationUntilNextKeyPressRepeat = 0.5d;
+                }
+                pressedKeys.add(move.key());
+            }
+            else if (pressedKeyToRepeat == move.key()) {
+                pressedKeyToRepeat = null;
+                pressedKeys.remove(move.key());
+            }
             pInputs[moveIndex].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
             pInputs[moveIndex].input.setType(WinUser.KEYBDINPUT.class);
             // Some keys are extended keys and need dwFlag:
