@@ -9,6 +9,9 @@
 + Improve error handling in config parser
  + Wrap all parseBoolean/... into try catch that log the error with the property key and value
 
-# This would mean: press alt, wait 50ms, press left, wait 50ms, release left and alt at the same time
-normal-mode.remap.goback=+h -> +leftalt wait-50 +left wait-50 -left -leftalt
-+ Bug when mousemaster started while cursor hidden
++ Check if the preparation is still a prefix of at least one combo.
+ + If it is not, then it means a key is being pressed for longer than what the combo expects,
+ + and the key can be regurgitated (just like it is regurgitated upon key release).
+ + (Regurgitate only +key, not #key.)
++ Regurgitate every x ms a key press until is release by user/remapper or another key is pressed.
++ Mimics Windows repeat delay and repeat rate.

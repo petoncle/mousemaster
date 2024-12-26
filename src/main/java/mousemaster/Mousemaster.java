@@ -36,21 +36,59 @@ public class Mousemaster {
     }
 
     public void run() throws InterruptedException {
-        long previousNanoTime = System.nanoTime();
+        long previousIterationBeginTime = System.nanoTime();
         while (true) {
-            long currentNanoTime = System.nanoTime();
-            long deltaNanos = currentNanoTime - previousNanoTime;
-            previousNanoTime = currentNanoTime;
+            long iterationBeginTime = System.nanoTime();
+            long deltaNanos = iterationBeginTime - previousIterationBeginTime;
+            previousIterationBeginTime = iterationBeginTime;
             double delta = deltaNanos / 1e9d;
+            long timeBeforeOp = iterationBeginTime;
             updateConfiguration();
+            long timeAfterOp = System.nanoTime();
+            long updateConfigurationDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             platform.update(delta);
+            timeAfterOp = System.nanoTime();
+            long platformDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             modeController.update(delta);
+            timeAfterOp = System.nanoTime();
+            long modeControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             mouseController.update(delta);
+            timeAfterOp = System.nanoTime();
+            long mouseControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             hintManager.update(delta);
+            timeAfterOp = System.nanoTime();
+            long hintManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             keyboardManager.update(delta);
+            timeAfterOp = System.nanoTime();
+            long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             indicatorManager.update(delta);
+            timeAfterOp = System.nanoTime();
+            long indicatorManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             remapper.update(delta);
-            Thread.sleep(10L);
+            timeAfterOp = System.nanoTime();
+            long remapperDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            long iterationEndTime = System.nanoTime();
+            long iterationDuration =
+                    (long) ((iterationEndTime - iterationBeginTime) / 1e6);
+            if (iterationDuration > 10L && logger.isTraceEnabled()) {
+                logger.trace("Iteration duration is long: " + iterationDuration + "ms, " +
+                             "updateConfigurationDuration = " + updateConfigurationDuration + "ms, " +
+                             "platformDuration = " + platformDuration + "ms, " +
+                             "modeControllerDuration = " + modeControllerDuration + "ms, " +
+                             "mouseControllerDuration = " + mouseControllerDuration + "ms, " +
+                             "hintManagerDuration = " + hintManagerDuration + "ms, " +
+                             "keyboardManagerDuration = " + keyboardManagerDuration + "ms, " +
+                             "indicatorManagerDuration = " + indicatorManagerDuration + "ms, " +
+                             "remapperDuration = " + remapperDuration + "ms");
+            }
+            platform.sleep();
         }
     }
 

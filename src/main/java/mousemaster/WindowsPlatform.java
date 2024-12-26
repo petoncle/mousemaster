@@ -1,5 +1,6 @@
 package mousemaster;
 
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import mousemaster.KeyEvent.PressKeyEvent;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WindowsPlatform implements Platform {
@@ -30,6 +32,7 @@ public class WindowsPlatform implements Platform {
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
+    private final BlockingQueue<WinDef.POINT> mousePositionQueue = new LinkedBlockingDeque<>();
     /**
      * Keep a reference of the Windows callback.
      * Without these references, they seem to be garbage collected and are not called
@@ -65,6 +68,23 @@ public class WindowsPlatform implements Platform {
             // Every 200ms.
             enforceWindowsTopmostTimer = 0.2;
             WindowsOverlay.setTopmost();
+        }
+    }
+
+    @Override
+    public void sleep() throws InterruptedException {
+        // At most one sleep of 10ms.
+        boolean first = true;
+        while (true) {
+            WinDef.POINT mousePosition =
+                    first ? mousePositionQueue.poll(10, TimeUnit.MILLISECONDS) :
+                            mousePositionQueue.poll();
+            if (mousePosition == null)
+                return;
+            first = false;
+            WindowsOverlay.mouseMoved(mousePosition);
+            mousePositionListeners.forEach(
+                    listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
         }
     }
 
@@ -145,11 +165,33 @@ public class WindowsPlatform implements Platform {
         keyboardHookCallback = WindowsPlatform.this::keyboardHookCallback;
         keyboardHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL,
                 keyboardHookCallback, hMod, 0);
+        if (keyboardHook == null)
+            throw new IllegalStateException(
+                    "Unable to install keyboard hook " + Native.getLastError());
+        logger.trace("Installed keyboard hook successfully");
+        // Run mouse hook in a separate thread to avoid lags:
+        // https://www.linkedin.com/pulse/windows-mouse-hook-lagging-simone-galleni
+        // https://stackoverflow.com/a/52201983
+        Thread mouseHookThread = new Thread(this::mouseHook);
+        mouseHookThread.setName("mouse-hook");
+        mouseHookThread.start();
+        addJvmShutdownHook();
+    }
+
+    private void mouseHook() {
+        WinDef.HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
         mouseHookCallback = WindowsPlatform.this::mouseHookCallback;
         mouseHook = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL,
                 mouseHookCallback, hMod, 0);
-        addJvmShutdownHook();
-        logger.trace("Installed keyboard and mouse hooks successfully");
+        if (mouseHook == null)
+            throw new IllegalStateException(
+                    "Unable to install mouse hook " + Native.getLastError());
+        logger.trace("Installed mouse hook successfully");
+        WinUser.MSG msg = new WinUser.MSG();
+        while (User32.INSTANCE.GetMessage(msg, null, 0, 0) > 0) {
+            User32.INSTANCE.TranslateMessage(msg);
+            User32.INSTANCE.DispatchMessage(msg);
+        }
     }
 
     private void addJvmShutdownHook() {
@@ -338,9 +380,7 @@ public class WindowsPlatform implements Platform {
                                              WinUser.MSLLHOOKSTRUCT info) {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
-            WindowsOverlay.mouseMoved(mousePosition);
-            mousePositionListeners.forEach(
-                    listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
+            mousePositionQueue.add(mousePosition);
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }
