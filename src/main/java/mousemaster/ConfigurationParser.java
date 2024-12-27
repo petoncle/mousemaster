@@ -105,7 +105,8 @@ public class ConfigurationParser {
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
                  .mousePressHexColor("#00FF00");
-        HideCursorBuilder hideCursor = new HideCursorBuilder().enabled(false);
+        HideCursorBuilder hideCursor =
+                new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         // @formatter:off
         return Stream.of( //
                 new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),

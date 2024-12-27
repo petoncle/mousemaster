@@ -779,19 +779,25 @@ public class WindowsOverlay {
                             - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
             boxRect.bottom = largeTextY + largeTextHeight + yPadding
                              - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
-            if (hint.cellWidth() != -1) {
-                WinDef.RECT cellRect = new WinDef.RECT();
-                cellRect.left = boxRect.left - scaledBoxBorderThickness;
-                cellRect.top = boxRect.top - scaledBoxBorderThickness;
-                cellRect.right = boxRect.right + (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
-                cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
-                setBoxOrCellRect(boxRect, screen, boxBorderThickness,
-                        hint,
-                        maxHintCenterX, maxHintCenterY, windowWidth, windowHeight);
-                setBoxOrCellRect(cellRect, screen, 0, hint,
-                        maxHintCenterX, maxHintCenterY, windowWidth, windowHeight);
-                cellRects.add(cellRect); // TODO only if between box is non transparent
+            boolean isHintPartOfGrid = hint.cellWidth() != -1;
+            if (!isHintPartOfGrid) {
+                // Position history hints have no cellWidth/cellHeight.
+                hint = new Hint(hint.centerX(), hint.centerY(),
+                        textWidth, largeTextHeight, hint.keySequence());
             }
+            WinDef.RECT cellRect = new WinDef.RECT();
+            cellRect.left = boxRect.left - scaledBoxBorderThickness;
+            cellRect.top = boxRect.top - scaledBoxBorderThickness;
+            cellRect.right = boxRect.right + (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
+            cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
+            setBoxOrCellRect(boxRect, screen, boxBorderThickness,
+                    hint,
+                    maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
+                    isHintPartOfGrid);
+            setBoxOrCellRect(cellRect, screen, 0, hint,
+                    maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
+                    isHintPartOfGrid);
+            cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
             WinDef.RECT prefixRect;
             if (prefixText.isEmpty())
@@ -822,7 +828,8 @@ public class WindowsOverlay {
     private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, int boxBorderThickness,
                                          Hint hint,
                                          double maxHintCenterX, double maxHintCenterY,
-                                         int windowWidth, int windowHeight) {
+                                         int windowWidth, int windowHeight,
+                                         boolean avoidDoubleEdge) {
         double scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
         double cellWidth = hint.cellWidth();
         double halfCellWidth = cellWidth / 2  - scaledBoxBorderThickness;
@@ -832,10 +839,10 @@ public class WindowsOverlay {
         int boxTop = (int) (hint.centerY() - halfCellHeight) - screen.rectangle().y();
         int boxRight = (int) (hint.centerX() + halfCellWidth) - screen.rectangle().x();
         // Put back the boxBorderThickness if there is a box above with shared edge to avoid double edge.
-        if (hint.centerX() < maxHintCenterX)
+        if (avoidDoubleEdge && hint.centerX() < maxHintCenterX)
             boxRight += scaledBoxBorderThickness;
         int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
-        if (hint.centerY() < maxHintCenterY)
+        if (avoidDoubleEdge && hint.centerY() < maxHintCenterY)
             boxBottom += scaledBoxBorderThickness;
         if (windowWidth - (boxRight - screen.rectangle().x() + scaledBoxBorderThickness) == 1)
             // This can happen because of the (int) rounding in boxLeft = (int) ... (?)
