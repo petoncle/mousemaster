@@ -175,11 +175,21 @@ public class WindowsOverlay {
         Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
         for (Hint hint : hints) {
             for (Screen screen : screens) {
-                if (!Rectangle.rectangleContains(screen.rectangle().x(),
-                        screen.rectangle().y(), screen.rectangle().width(),
-                        screen.rectangle().height(), (int) hint.centerX(),
-                        (int) hint.centerY()))
-                    continue;
+                if (hint.cellWidth() == -1) {
+                    if (!screen.rectangle().contains((int) hint.centerX(), (int) hint.centerY()))
+                        continue;
+                }
+                else {
+                    double left = hint.centerX() - hint.cellWidth() / 2;
+                    double right = hint.centerX() + hint.cellWidth() / 2;
+                    double top = hint.centerY() - hint.cellHeight() / 2;
+                    double bottom = hint.centerY() + hint.cellHeight() / 2;
+                    if (!screen.rectangle().contains(left, top) &&
+                        !screen.rectangle().contains(right, top) &&
+                        !screen.rectangle().contains(left, bottom) &&
+                        !screen.rectangle().contains(right, bottom))
+                        continue;
+                }
                 hintsByScreen.computeIfAbsent(screen, monitor1 -> new ArrayList<>())
                               .add(hint);
                 break;

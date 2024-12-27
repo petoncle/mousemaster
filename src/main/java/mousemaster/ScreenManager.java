@@ -17,9 +17,7 @@ public class ScreenManager implements MousePositionListener {
         if (screens.isEmpty())
             throw new IllegalStateException("No screens found");
         for (Screen screen : screens) {
-            if (Rectangle.rectangleContains(screen.rectangle().x(),
-                    screen.rectangle().y(), screen.rectangle().width(),
-                    screen.rectangle().height(), pointX, pointY))
+            if (screen.rectangle().contains(pointX, pointY))
                 return screen;
         }
         double minDistance = Double.MAX_VALUE;
@@ -42,9 +40,7 @@ public class ScreenManager implements MousePositionListener {
 
     public Screen screenContaining(int x, int y) {
         for (Screen screen : screens()) {
-            if (Rectangle.rectangleContains(screen.rectangle().x(),
-                    screen.rectangle().y(), screen.rectangle().width(),
-                    screen.rectangle().height(), x, y))
+            if (screen.rectangle().contains(x, y))
                 return screen;
         }
         return null;

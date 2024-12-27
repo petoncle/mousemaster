@@ -2,7 +2,7 @@ package mousemaster;
 
 public record Rectangle(int x, int y, int width, int height) {
     public static boolean rectangleContains(int rectX, int rectY, int rectWidth,
-                                            int rectHeight, int pointX, int pointY) {
+                                            int rectHeight, double pointX, double pointY) {
         return pointX >= rectX && pointX <= rectX + rectWidth && pointY >= rectY &&
                pointY <= rectY + rectHeight;
     }
@@ -20,6 +20,10 @@ public record Rectangle(int x, int y, int width, int height) {
         centerX = x() + width() / 2;
         centerY = y() + height() / 2;
         return new Point(centerX, centerY);
+    }
+
+    public boolean contains(double pointX, double pointY) {
+        return rectangleContains(x, y, width, height, pointX, pointY);
     }
 
     public boolean sharesEdgeWith(Rectangle other) {
