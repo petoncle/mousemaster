@@ -13,7 +13,7 @@ public class KeyRegurgitator {
     private static final Logger logger = LoggerFactory.getLogger(KeyRegurgitator.class);
 
     public void regurgitate(Key keyToRegurgitate, boolean keyAlreadyReleasedByUser) {
-        logger.info("Regurgitating " + keyToRegurgitate, new Exception()); // TODO trace
+        logger.trace("Regurgitating " + keyToRegurgitate);
         WindowsKeyboard.sendInput(List.of(new RemappingMove(keyToRegurgitate, true)),
                 !keyAlreadyReleasedByUser, true);
     }
