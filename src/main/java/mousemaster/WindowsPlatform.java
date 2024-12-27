@@ -59,10 +59,6 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void update(double delta) {
-        while (User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1)) {
-            User32.INSTANCE.TranslateMessage(msg);
-            User32.INSTANCE.DispatchMessage(msg);
-        }
         WindowsKeyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         enforceWindowsTopmostTimer -= delta;
@@ -74,19 +70,32 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
+    public void windowsMessagePump() {
+        while (User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1)) {
+            User32.INSTANCE.TranslateMessage(msg);
+            User32.INSTANCE.DispatchMessage(msg);
+        }
+    }
+
+    @Override
     public void sleep() throws InterruptedException {
-        // At most one sleep of 10ms.
-        boolean first = true;
+        windowsMessagePump();
         while (true) {
-            WinDef.POINT mousePosition =
-                    first ? mousePositionQueue.poll(10, TimeUnit.MILLISECONDS) :
-                            mousePositionQueue.poll();
+            WinDef.POINT mousePosition = mousePositionQueue.poll();
             if (mousePosition == null)
-                return;
-            first = false;
+                break;
             WindowsOverlay.mouseMoved(mousePosition);
             mousePositionListeners.forEach(
                     listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
+        }
+        windowsMessagePump();
+        long beforeTime = System.nanoTime();
+        while (true) {
+            long currentTime = System.nanoTime();
+            if ((currentTime - beforeTime) / 1e6 >= 10)
+                break;
+            Thread.sleep(1);
+            windowsMessagePump();
         }
     }
 

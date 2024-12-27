@@ -6,6 +6,8 @@ public interface Platform {
 
     void update(double delta);
 
+    void windowsMessagePump();
+
     void sleep() throws InterruptedException;
 
     void reset(MouseController mouseController, KeyboardManager keyboardManager,
