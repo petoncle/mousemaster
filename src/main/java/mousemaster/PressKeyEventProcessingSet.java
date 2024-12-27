@@ -92,4 +92,10 @@ public record PressKeyEventProcessingSet(
                                 .anyMatch(PressKeyEventProcessing::isUnswallowedHintEnd);
     }
 
+    public boolean isHint() {
+        return processingByCombo.values()
+                                .stream()
+                                .anyMatch(PressKeyEventProcessing::isHint);
+    }
+
 }

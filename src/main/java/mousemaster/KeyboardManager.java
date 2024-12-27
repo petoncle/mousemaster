@@ -41,7 +41,7 @@ public class KeyboardManager {
             if (!watcherUpdateResult.completedWaitingCombos().isEmpty())
                 markOtherKeysOfTheseCombosAsCompleted(
                         watcherUpdateResult.completedWaitingCombos());
-            if (!pressingHintKey && watcherUpdateResult.preparationIsNotPrefixAnymore()) {
+            if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 for (Key keyToRegurgitate : regurgitatePressedKeys(null)) {
                     keyRegurgitator.regurgitate(keyToRegurgitate, false);
                 }
@@ -65,7 +65,6 @@ public class KeyboardManager {
 
     private List<KeyEvent> eventsWaitingForHintSelectionFinalization = new ArrayList<>();
     private boolean nextEventIsUnswallowedHintEnd;
-    private boolean pressingHintKey;
 
     public EatAndRegurgitates keyEvent(KeyEvent keyEvent) {
         if (hintManager.finalizingHintSelection()) {
@@ -86,7 +85,6 @@ public class KeyboardManager {
     private EatAndRegurgitates singleKeyEvent(KeyEvent keyEvent) {
         Key key = keyEvent.key();
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
-        pressingHintKey = false;
         if (keyEvent.isPress()) {
             Set<Key> keysToRegurgitate = Set.of();
             if (processingSet == null) {
@@ -96,8 +94,6 @@ public class KeyboardManager {
                                 new PressKeyEventProcessingSet(Map.of(
                                         PressKeyEventProcessingSet.dummyCombo,
                                         hintManager.keyPressed(keyEvent.key())));
-                        if (processingSet.handled())
-                            pressingHintKey = true;
                     }
                     if (nextEventIsUnswallowedHintEnd || !processingSet.handled())
                         processingSet = comboWatcher.keyEvent(keyEvent);
@@ -206,7 +202,8 @@ public class KeyboardManager {
             PressKeyEventProcessingSet processingSet = setEntry.getValue();
             // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
             if (processingSet.mustBeEaten() &&
-                !processingSet.isPartOfCompletedComboSequenceMustBeEaten()) {
+                !processingSet.isPartOfCompletedComboSequenceMustBeEaten() &&
+                !processingSet.isHint()) {
                 keysToRegurgitate.add(eatenKey);
                 // Change the key's processing to must not be eaten
                 // so that it cannot be regurgitated a second time.

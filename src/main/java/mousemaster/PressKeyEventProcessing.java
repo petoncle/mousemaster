@@ -83,6 +83,10 @@ public enum PressKeyEventProcessing {
         return isUnswallowedHintEnd() || isSwallowedHintEnd();
     }
 
+    public boolean isHint() {
+        return isHintEnd() || isPartOfHintPrefix() || this == HINT_UNDO_MUST_BE_EATEN;
+    }
+
     public static PressKeyEventProcessing unhandled() {
         return UNHANDLED;
     }
