@@ -17,3 +17,6 @@
  - Not just regurgitate, but sendinputs from remapping too
  + Mimics Windows repeat delay and repeat rate. No because apparently they are hardware-dependent.
 + Hint box border is broken for position history hints
++ It is possible to re-implement a zoom without using the Windows Magnifier:
+ + https://stackoverflow.com/questions/63111438/implement-lens-magnification-to-magnify-the-windows-taskbar
+   (it requires UIAccess)
