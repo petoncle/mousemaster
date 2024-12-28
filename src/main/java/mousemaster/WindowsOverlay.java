@@ -835,17 +835,17 @@ public class WindowsOverlay {
         double halfCellWidth = cellWidth / 2  - scaledBoxBorderThickness;
         double cellHeight = hint.cellHeight();
         double halfCellHeight = cellHeight / 2 - scaledBoxBorderThickness;
-        int boxLeft = (int) (hint.centerX() - halfCellWidth) - screen.rectangle().x();
-        int boxTop = (int) (hint.centerY() - halfCellHeight) - screen.rectangle().y();
-        int boxRight = (int) (hint.centerX() + halfCellWidth) - screen.rectangle().x();
+        int boxLeft = (int) Math.round(hint.centerX() - halfCellWidth) - screen.rectangle().x();
+        int boxTop = (int) Math.round(hint.centerY() - halfCellHeight) - screen.rectangle().y();
+        int boxRight = (int) Math.round(hint.centerX() + halfCellWidth) - screen.rectangle().x();
         // Put back the boxBorderThickness if there is a box above with shared edge to avoid double edge.
         if (avoidDoubleEdge && hint.centerX() < maxHintCenterX)
             boxRight += scaledBoxBorderThickness;
-        int boxBottom = (int) (hint.centerY() + halfCellHeight) - screen.rectangle().y();
+        int boxBottom = (int) Math.round(hint.centerY() + halfCellHeight) - screen.rectangle().y();
         if (avoidDoubleEdge && hint.centerY() < maxHintCenterY)
             boxBottom += scaledBoxBorderThickness;
         if (windowWidth - (boxRight - screen.rectangle().x() + scaledBoxBorderThickness) == 1)
-            // This can happen because of the (int) rounding in boxLeft = (int) ... (?)
+            // This can happen because of the rounding in boxLeft = Math.round(...) (?)
             boxRight++;
         if (windowHeight - (boxBottom - screen.rectangle().y() + scaledBoxBorderThickness) == 1)
             boxBottom++;
