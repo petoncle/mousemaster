@@ -400,9 +400,7 @@ public class WindowsPlatform implements Platform {
     }
 
     public void mousePositionSet(WinDef.POINT mousePosition) {
-        WindowsOverlay.mouseMoved(mousePosition);
-        mousePositionListeners.forEach(
-                listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
+        mousePositionQueue.add(mousePosition);
     }
 
 }

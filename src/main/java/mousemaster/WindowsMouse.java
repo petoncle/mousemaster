@@ -127,6 +127,7 @@ public class WindowsMouse {
         moveBy(x > mousePosition.x, scaledDeltaX, y > mousePosition.y, scaledDeltaY);
         // Absolute positioning necessary to be pixel perfect (Or is there another way?).
         // I think this is only a problem if the screen scale is not 1?
+        // This moves only after received mouse hook event (from the moveBy).
         setMousePosition(new WinDef.POINT(x, y));
     }
 
