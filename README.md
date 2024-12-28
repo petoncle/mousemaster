@@ -70,23 +70,30 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    to Vimium's. A hint grid can cover the active screen, the active window, or all
    screens (which can be used for screen selection hints). A mouse button click
    can be automatically triggered after a hint is selected.
-7. **Dynamic configuration:** The configuration file is live, mousemaster automatically
+7. **Key remapping:** mousemaster includes a way to remap keys and activate the remapping
+   only in specific modes. For example, you can make it so pressing a single key is
+   equivalent to sending the combo _⊞ Win + down arrow_, which will minimize the current
+   window.
+8. **App-specific modes:** it is possible to create modes that are active only when a specific
+   app is in focus. For example, you can disable all mousemaster shortcuts while
+   playing a game.
+9. **Dynamic configuration:** The configuration file is live, mousemaster automatically
    reloads it whenever the file is saved.
-8. **Visual mouse indicator:** The optional and customizable mouse indicator (a
-   plain-color square drawn next to the mouse cursor) changes colors based on mouse
-   activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
-   visible when the mouse is near screen edges.
-9. **Left/right key distinction:** mousemaster distinguishes between left and right
-   alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
-   different commands.
-10. **Position history hints:** absolute positions can be saved on the fly to make 
+10. **Visual mouse indicator:** The optional and customizable mouse indicator (a
+    plain-color square drawn next to the mouse cursor) changes colors based on mouse
+    activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
+    visible when the mouse is near screen edges.
+11. **Left/right key distinction:** mousemaster distinguishes between left and right
+    alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
+    different commands.
+12. **Position history hints:** absolute positions can be saved on the fly to make 
    it possible to move the mouse to them later.
 
 # Notes
 
 - I use mousemaster on a daily basis, along with [PowerToys](https://github.com/microsoft/PowerToys)
   and the [Tridactyl](https://github.com/tridactyl/tridactyl) extension for
-  Firefox. I no longer use my physical mouse except for some certain tasks like drawing. 
+  Firefox. I no longer use my physical mouse except for certain tasks like drawing. 
 - The two major differences between mousemaster and the existing alternatives (warpd and
   mouseable), are the way key combos are defined (i.e. the distinction between key
   presses and key releases), and the "create your own modes" approach.
