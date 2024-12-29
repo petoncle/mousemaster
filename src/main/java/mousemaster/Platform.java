@@ -18,4 +18,6 @@ public interface Platform {
 
     KeyRegurgitator keyRegurgitator();
 
+    PlatformClock clock();
+
 }

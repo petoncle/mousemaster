@@ -160,6 +160,7 @@ public class Mousemaster {
         }
         ComboWatcher comboWatcher =
                 new ComboWatcher(commandRunner, new ActiveAppFinder(),
+                        platform.clock(),
                         unpressedComboPreconditionKeys,
                         pressedComboPreconditionKeys);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,

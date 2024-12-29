@@ -14,6 +14,7 @@ public class ComboWatcher implements ModeListener {
 
     private final CommandRunner commandRunner;
     private final ActiveAppFinder activeAppFinder;
+    private final PlatformClock clock;
     private final Set<Key> pressedComboPreconditionKeys;
     private final Set<Key> unpressedComboPreconditionKeys;
     private Mode currentMode;
@@ -27,10 +28,12 @@ public class ComboWatcher implements ModeListener {
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
 
     public ComboWatcher(CommandRunner commandRunner, ActiveAppFinder activeAppFinder,
+                        PlatformClock clock,
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys) {
         this.commandRunner = commandRunner;
         this.activeAppFinder = activeAppFinder;
+        this.clock = clock;
         this.unpressedComboPreconditionKeys =
                 unpressedComboPreconditionKeys;
         this.pressedComboPreconditionKeys =
@@ -51,7 +54,7 @@ public class ComboWatcher implements ModeListener {
             // (Regurgitate only +key, not #key.)
             boolean atLeastOneProcessingIsComboSequenceMustBeEaten = false;
             boolean preparationIsStillPrefixOfAtLeastOneCombo = false;
-            Instant currentTime = Instant.now();
+            Instant currentTime = clock.now();
             for (var entry : lastProcessingSet.processingByCombo().entrySet()) {
                 Combo combo = entry.getKey();
                 PressKeyEventProcessing processing = entry.getValue();
@@ -64,8 +67,9 @@ public class ComboWatcher implements ModeListener {
                         KeyEvent currentKeyEvent = comboPreparation.events().getLast();
                         if (!currentMove.duration()
                                         .tooMuchTimeHasPassed(currentKeyEvent.time(),
-                                                currentTime))
+                                                currentTime)) {
                             preparationIsStillPrefixOfAtLeastOneCombo = true;
+                        }
                     }
                 }
             }

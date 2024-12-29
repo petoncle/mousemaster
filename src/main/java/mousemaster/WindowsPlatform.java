@@ -16,16 +16,10 @@ import java.util.concurrent.atomic.AtomicReference;
 public class WindowsPlatform implements Platform {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
-    private static final Instant systemStartTime;
-
-    static {
-        long uptimeMillis = ExtendedKernel32.INSTANCE.GetTickCount64();
-        Instant now = Instant.now();
-        systemStartTime = now.minusMillis(uptimeMillis);
-    }
 
     private final boolean keyRegurgitationEnabled;
     private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator();
+    private final WindowsClock clock = new WindowsClock();
 
     private MouseController mouseController;
     private KeyboardManager keyboardManager;
@@ -232,6 +226,12 @@ public class WindowsPlatform implements Platform {
         return keyRegurgitator;
     }
 
+    @Override
+    public PlatformClock clock() {
+        return clock;
+    }
+
+
     /**
      * On the Windows lock screen, hit space then enter the pin. Space press is recorded by the app but the
      * corresponding release is never received. That is why we need to double-check if the key is still pressed
@@ -284,6 +284,7 @@ public class WindowsPlatform implements Platform {
 
     private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,
                                                 WinUser.KBDLLHOOKSTRUCT info) {
+        clock.setLastKeyboardHookEventRelativeTimeMillis(info.time);
         if (nCode >= 0) {
             switch (wParam.intValue()) {
                 case WinUser.WM_KEYUP:
@@ -330,7 +331,7 @@ public class WindowsPlatform implements Platform {
                                     WindowsVirtualKey.values.get(info.vkCode),
                                     info.scanCode, info.flags);
                         if (key != null) {
-                            Instant time = systemStartTime.plusMillis(info.time);
+                            Instant time = clock.now();
                             if (release)
                                 WindowsKeyboard.keyReleasedByUser(key);
                             else
