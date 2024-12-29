@@ -127,7 +127,7 @@ public class KeyboardManager {
         else { // Key release.
             if (processingSet != null) {
                 if (processingSet.handled() ||
-                    processingSet.isPartOfMustRemainUnpressedComboPreconditionOnly()) {
+                    processingSet.isPartOfUnpressedComboPreconditionOnly()) {
                     Set<Key> keysToRegurgitate = Set.of();
                     if (processingSet.isPartOfCombo() || processingSet.isUnswallowedHintEnd()) {
                         PressKeyEventProcessingSet releaseProcessingSet =

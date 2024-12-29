@@ -140,18 +140,18 @@ public class Mousemaster {
         remapper = new Remapper();
         CommandRunner commandRunner = new CommandRunner(mouseController, gridManager,
                 hintManager, remapper);
-        Set<Key> mustRemainUnpressedComboPreconditionKeys = new HashSet<>();
-        Set<Key> mustRemainPressedComboPreconditionKeys = new HashSet<>();
+        Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
+        Set<Key> pressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes()) {
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
-                mustRemainUnpressedComboPreconditionKeys.addAll(combo.precondition()
+                unpressedComboPreconditionKeys.addAll(combo.precondition()
                                                                      .keyPrecondition()
-                                                                     .mustRemainUnpressedKeySet()
+                                                                     .unpressedKeySet()
                                                                      .stream()
                                                                      .toList());
-                mustRemainPressedComboPreconditionKeys.addAll(combo.precondition()
+                pressedComboPreconditionKeys.addAll(combo.precondition()
                                                                    .keyPrecondition()
-                                                                   .mustRemainPressedKeySets()
+                                                                   .pressedKeySets()
                                                                    .stream()
                                                                    .flatMap(
                                                                            Collection::stream)
@@ -160,8 +160,8 @@ public class Mousemaster {
         }
         ComboWatcher comboWatcher =
                 new ComboWatcher(commandRunner, new ActiveAppFinder(),
-                        mustRemainUnpressedComboPreconditionKeys,
-                        mustRemainPressedComboPreconditionKeys);
+                        unpressedComboPreconditionKeys,
+                        pressedComboPreconditionKeys);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());
         KeyboardState keyboardState = new KeyboardState(keyboardManager);

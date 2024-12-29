@@ -39,11 +39,9 @@ The complete available key list can be found in [key-list.md](key-list.md).
    receive the event.
 7. The combo `_{leftctrl} +e` has two parts: a precondition (`_{leftctrl}`), and a
    sequence (`+e`). The precondition part means that (a) leftctrl must be pressed before
-   the combo sequence is performed, (b) leftctrl must remain pressed during the entire
-   combo sequence, and (c) leftctrl will not be eaten by mousemaster.
-8. There is another type of combo precondition, `^{leftctrl}`, which means that (a)
-   leftctrl must *not* be pressed before the combo sequence is performed and (b) leftctrl
-   must remain *un*pressed during the entire combo sequence.
+   the combo sequence is performed, and (b) leftctrl will not be eaten by mousemaster.
+8. There is another type of combo precondition, `^{leftctrl}`, which means that
+   leftctrl must *not* be pressed before the combo sequence is performed.
 
 ### Multi-combo
 One command can be assigned multiple combo. As soon as one of the combos is completed, then the command is executed. The combos must be separated by `|`:

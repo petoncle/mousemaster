@@ -7,8 +7,8 @@ public enum PressKeyEventProcessing {
     PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN,
     PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_NOT_BE_EATEN,
     PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN,
-    PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY, // "Only" means it is not part of a combo sequence (it is just part of a combo precondition).
-    PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY,
+    PART_OF_PRESSED_COMBO_PRECONDITION_ONLY, // "Only" means it is not part of a combo sequence (it is just part of a combo precondition).
+    PART_OF_UNPRESSED_COMBO_PRECONDITION_ONLY,
     PART_OF_HINT_PREFIX_MUST_BE_EATEN,
     HINT_UNDO_MUST_BE_EATEN, UNSWALLOWED_HINT_END_MUST_BE_EATEN, SWALLOWED_HINT_END_MUST_BE_EATEN;
 
@@ -30,7 +30,7 @@ public enum PressKeyEventProcessing {
                this == HINT_UNDO_MUST_BE_EATEN ||
                this == UNSWALLOWED_HINT_END_MUST_BE_EATEN ||
                this == SWALLOWED_HINT_END_MUST_BE_EATEN ||
-               this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY;
+               this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY;
     }
 
     public boolean isPartOfComboSequence() {
@@ -53,18 +53,18 @@ public enum PressKeyEventProcessing {
                this == PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_NOT_BE_EATEN;
     }
 
-    public boolean isPartOfMustRemainPressedComboPreconditionOnly() {
-        return this == PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY;
+    public boolean isPartOfPressedComboPreconditionOnly() {
+        return this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY;
     }
 
-    public boolean isPartOfMustRemainUnpressedComboPreconditionOnly() {
-        return this == PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY;
+    public boolean isPartOfUnpressedComboPreconditionOnly() {
+        return this == PART_OF_UNPRESSED_COMBO_PRECONDITION_ONLY;
     }
 
     public boolean isPartOfCombo() {
         return isPartOfComboSequence() ||
-               isPartOfMustRemainPressedComboPreconditionOnly() ||
-               isPartOfMustRemainUnpressedComboPreconditionOnly();
+               isPartOfPressedComboPreconditionOnly() ||
+               isPartOfUnpressedComboPreconditionOnly();
     }
 
     public boolean isUnswallowedHintEnd() {
@@ -116,12 +116,12 @@ public enum PressKeyEventProcessing {
         return SWALLOWED_HINT_END_MUST_BE_EATEN;
     }
 
-    public static PressKeyEventProcessing partOfMustRemainPressedComboPreconditionOnly() {
-        return PART_OF_MUST_REMAIN_PRESSED_COMBO_PRECONDITION_ONLY;
+    public static PressKeyEventProcessing partOfPressedComboPreconditionOnly() {
+        return PART_OF_PRESSED_COMBO_PRECONDITION_ONLY;
     }
 
-    public static PressKeyEventProcessing partOfMustRemainUnpressedComboPreconditionOnly() {
-        return PART_OF_MUST_REMAIN_UNPRESSED_COMBO_PRECONDITION_ONLY;
+    public static PressKeyEventProcessing partOfUnpressedComboPreconditionOnly() {
+        return PART_OF_UNPRESSED_COMBO_PRECONDITION_ONLY;
     }
 
 }

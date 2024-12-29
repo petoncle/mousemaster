@@ -10,23 +10,23 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
         return keyPrecondition.isEmpty() && appPrecondition.isEmpty();
     }
 
-    public record ComboKeyPrecondition(Set<Key> mustRemainUnpressedKeySet,
-                                       Set<Set<Key>> mustRemainPressedKeySets) {
+    public record ComboKeyPrecondition(Set<Key> unpressedKeySet,
+                                       Set<Set<Key>> pressedKeySets) {
 
         public boolean isEmpty() {
-            return mustRemainUnpressedKeySet.isEmpty() &&
-                   mustRemainPressedKeySets.isEmpty();
+            return unpressedKeySet.isEmpty() &&
+                   pressedKeySets.isEmpty();
         }
 
         public boolean satisfied(Set<Key> currentlyPressedKeys) {
-            for (Key mustRemainUnpressedKey : mustRemainUnpressedKeySet) {
-                if (currentlyPressedKeys.contains(mustRemainUnpressedKey))
+            for (Key unpressedKey : unpressedKeySet) {
+                if (currentlyPressedKeys.contains(unpressedKey))
                     return false;
             }
-            if (mustRemainPressedKeySets.isEmpty())
+            if (pressedKeySets.isEmpty())
                 return true;
-            for (Set<Key> mustRemainPressedKeySet : mustRemainPressedKeySets) {
-                if (currentlyPressedKeys.containsAll(mustRemainPressedKeySet))
+            for (Set<Key> pressedKeySet : pressedKeySets) {
+                if (currentlyPressedKeys.containsAll(pressedKeySet))
                     return true;
             }
             return false;
@@ -35,8 +35,8 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
         @Override
         public String toString() {
             return String.join(" ",
-                    "^{" + keySetToString(mustRemainUnpressedKeySet) + "}",
-                    "_{" + keySetsToString(mustRemainPressedKeySets) + "}");
+                    "^{" + keySetToString(unpressedKeySet) + "}",
+                    "_{" + keySetsToString(pressedKeySets) + "}");
         }
 
     }

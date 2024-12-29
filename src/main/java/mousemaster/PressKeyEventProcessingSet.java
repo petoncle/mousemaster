@@ -55,17 +55,17 @@ public record PressKeyEventProcessingSet(
         return completedCombos;
     }
 
-    public boolean isPartOfMustRemainPressedComboPreconditionOnly() {
+    public boolean isPartOfPressedComboPreconditionOnly() {
         return processingByCombo.values().stream()
                                 .anyMatch(
-                                        PressKeyEventProcessing::isPartOfMustRemainPressedComboPreconditionOnly);
+                                        PressKeyEventProcessing::isPartOfPressedComboPreconditionOnly);
     }
 
-    public boolean isPartOfMustRemainUnpressedComboPreconditionOnly() {
+    public boolean isPartOfUnpressedComboPreconditionOnly() {
         return processingByCombo.values()
                                 .stream()
                                 .anyMatch(
-                                        PressKeyEventProcessing::isPartOfMustRemainUnpressedComboPreconditionOnly);
+                                        PressKeyEventProcessing::isPartOfUnpressedComboPreconditionOnly);
     }
 
     public boolean isPartOfCombo() {

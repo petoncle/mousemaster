@@ -116,13 +116,13 @@ public class WindowsPlatform implements Platform {
                 List<Command> commands = entry.getValue();
                 combo.precondition()
                      .keyPrecondition()
-                     .mustRemainPressedKeySets()
+                     .pressedKeySets()
                      .stream()
                      .flatMap(Collection::stream)
                      .forEach(allComboAndRemappingKeys::add);
                 allComboAndRemappingKeys.addAll(combo.precondition()
                                          .keyPrecondition()
-                                         .mustRemainUnpressedKeySet());
+                                         .unpressedKeySet());
                 combo.sequence()
                      .moves()
                      .stream()

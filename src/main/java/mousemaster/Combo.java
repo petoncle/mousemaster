@@ -16,8 +16,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         Matcher mustNotMatcher = Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
         String mustNotBeActiveAppsString = null;
         Set<App> mustNotBeActiveApps = Set.of();
-        String mustRemainUnpressedKeySetString = null;
-        Set<Key> mustRemainUnpressedKeySet = Set.of();
+        String unpressedKeySetString = null;
+        Set<Key> unpressedKeySet = Set.of();
         String mustString = string;
         while (mustNotMatcher.find()) {
             String mustNotSetString = mustNotMatcher.group(1);
@@ -28,9 +28,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                         parseMustNotBeActiveApps(mustNotBeActiveAppsString, appAliases);
             }
             else {
-                mustRemainUnpressedKeySetString = mustNotSetString;
-                mustRemainUnpressedKeySet =
-                        parseMustRemainUnpressedKeySet(mustRemainUnpressedKeySetString,
+                unpressedKeySetString = mustNotSetString;
+                unpressedKeySet =
+                        parseUnpressedKeySet(unpressedKeySetString,
                                 keyAliases);
             }
             mustString = string.substring(mustNotMatcher.end());
@@ -38,8 +38,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         Matcher mustMatcher = Pattern.compile("_\\{([^{}]+)\\}\\s*").matcher(mustString);
         String mustBeActiveAppsString = null;
         Set<App> mustBeActiveApps = Set.of();
-        String mustRemainPressedKeySetsString = null;
-        Set<Set<Key>> mustRemainPressedKeySets = Set.of();
+        String pressedKeySetsString = null;
+        Set<Set<Key>> pressedKeySets = Set.of();
         String sequenceString = mustString;
         while (mustMatcher.find()) {
             String mustSetsString = mustMatcher.group(1);
@@ -49,9 +49,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString, appAliases);
             }
             else {
-                mustRemainPressedKeySetsString = mustSetsString;
-                mustRemainPressedKeySets =
-                        parseMustRemainPressedKeySets(mustRemainPressedKeySetsString,
+                pressedKeySetsString = mustSetsString;
+                pressedKeySets =
+                        parsePressedKeySets(pressedKeySetsString,
                                 keyAliases);
             }
             sequenceString = mustString.substring(mustMatcher.end());
@@ -62,22 +62,22 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                     "^{" + mustNotBeActiveAppsString + "} _{" +
                     mustBeActiveAppsString + "}");
         }
-        if (mustRemainUnpressedKeySet.stream()
-                                     .anyMatch(mustRemainPressedKeySets.stream()
+        if (unpressedKeySet.stream()
+                           .anyMatch(pressedKeySets.stream()
                                                                        .flatMap(
                                                                                Collection::stream)
                                                                        .collect(
                                                                                Collectors.toSet())::contains)) {
             throw new IllegalArgumentException(
-                    "There cannot be an overlap between must remain unpressed keys and must remain pressed keys: " +
-                    "^{" + mustRemainUnpressedKeySetString + "} _{" +
-                    mustRemainPressedKeySetsString + "}");
+                    "There cannot be an overlap between unpressed and pressed precondition keys: " +
+                    "^{" + unpressedKeySetString + "} _{" +
+                    pressedKeySetsString + "}");
         }
         if (sequenceString.isEmpty())
             return List.of(
-                    of(string, new ComboSequence(List.of()), mustRemainUnpressedKeySet,
-                            mustRemainUnpressedKeySetString, sequenceString,
-                            mustRemainPressedKeySets, mustRemainPressedKeySetsString,
+                    of(string, new ComboSequence(List.of()), unpressedKeySet,
+                            unpressedKeySetString, sequenceString,
+                            pressedKeySets, pressedKeySetsString,
                             mustNotBeActiveApps, mustBeActiveApps));
         else {
             ExpandableSequence expandableSequence =
@@ -85,29 +85,29 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                             keyAliases);
             List<ComboSequence> expandedSequences = expandableSequence.expand(keyAliases);
             return ofExpandedSequences(string, expandedSequences,
-                    mustRemainUnpressedKeySet,
-                    mustRemainUnpressedKeySetString, sequenceString,
-                    mustRemainPressedKeySets, mustRemainPressedKeySetsString,
+                    unpressedKeySet,
+                    unpressedKeySetString, sequenceString,
+                    pressedKeySets, pressedKeySetsString,
                     mustNotBeActiveApps, mustBeActiveApps);
         }
     }
 
     private static List<Combo> ofExpandedSequences(String string,
                                                    List<ComboSequence> expandedSequences,
-                                                   Set<Key> mustRemainUnpressedKeySet,
-                                                   String mustRemainUnpressedKeySetString,
+                                                   Set<Key> unpressedKeySet,
+                                                   String unpressedKeySetString,
                                                    String sequenceString,
-                                                   Set<Set<Key>> mustRemainPressedKeySets,
-                                                   String mustRemainPressedKeySetsString,
+                                                   Set<Set<Key>> pressedKeySets,
+                                                   String pressedKeySetsString,
                                                    Set<App> mustNotBeActiveApps,
                                                    Set<App> mustBeActiveApps) {
         return expandedSequences.stream()
                                 .map(sequence -> of(string, sequence,
-                                        mustRemainUnpressedKeySet,
-                                        mustRemainUnpressedKeySetString,
+                                        unpressedKeySet,
+                                        unpressedKeySetString,
                                         sequenceString,
-                                        mustRemainPressedKeySets,
-                                        mustRemainPressedKeySetsString,
+                                        pressedKeySets,
+                                        pressedKeySetsString,
                                         mustNotBeActiveApps, mustBeActiveApps))
                                 .toList();
     }
@@ -131,36 +131,26 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static Combo of(String string, ComboSequence sequence,
-                            Set<Key> mustRemainUnpressedKeySet,
-                            String mustRemainUnpressedKeySetString,
+                            Set<Key> unpressedKeySet,
+                            String unpressedKeySetString,
                             String sequenceString,
-                            Set<Set<Key>> mustRemainPressedKeySets,
-                            String mustRemainPressedKeySetsString,
+                            Set<Set<Key>> pressedKeySets,
+                            String pressedKeySetsString,
                             Set<App> mustNotBeActiveApps,
                             Set<App> mustBeActiveApps) {
         Set<Key> sequenceKeys =
                 sequence.moves().stream().map(ComboMove::key).collect(Collectors.toSet());
-        if (mustRemainUnpressedKeySet.stream().anyMatch(sequenceKeys::contains))
-            throw new IllegalArgumentException(
-                    "There cannot be an overlap between must remain unpressed keys and combo sequence keys: " +
-                    "^{" + mustRemainUnpressedKeySetString + "} " + sequenceString);
-        if (mustRemainPressedKeySets.stream()
-                                    .flatMap(Collection::stream)
-                                    .anyMatch(sequenceKeys::contains))
-            throw new IllegalArgumentException(
-                    "There cannot be an overlap between must remain pressed keys and combo sequence keys: " +
-                    "_{" + mustRemainPressedKeySetsString + "} " + sequenceString);
         ComboPrecondition precondition = new ComboPrecondition(
-                new ComboKeyPrecondition(mustRemainUnpressedKeySet,
-                        mustRemainPressedKeySets),
+                new ComboKeyPrecondition(unpressedKeySet,
+                        pressedKeySets),
                 new ComboAppPrecondition(mustNotBeActiveApps, mustBeActiveApps));
         if (precondition.isEmpty() && sequence.moves().isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
         return new Combo(precondition, sequence);
     }
 
-    private static Set<Key> parseMustRemainUnpressedKeySet(String keySetString,
-                                                           Map<String, KeyAlias> aliases) {
+    private static Set<Key> parseUnpressedKeySet(String keySetString,
+                                                 Map<String, KeyAlias> aliases) {
         String[] keyStrings = keySetString.split("\\s+");
         return Arrays.stream(keyStrings)
                      .map(keyString -> expandKeyAlias(keyString, aliases))
@@ -190,21 +180,21 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         return appStrings.stream().allMatch(appAliases::containsKey);
     }
 
-    private static Set<Set<Key>> parseMustRemainPressedKeySets(String keySetsString,
-                                                               Map<String, KeyAlias> aliases) {
+    private static Set<Set<Key>> parsePressedKeySets(String keySetsString,
+                                                     Map<String, KeyAlias> aliases) {
         String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
-        Set<Set<Key>> mustRemainPressedKeySets = Arrays.stream(keySetStrings)
-                                      .map(complexKeySetString -> parseMustRemainPressedKeySet(
+        Set<Set<Key>> pressedKeySets = Arrays.stream(keySetStrings)
+                                      .map(complexKeySetString -> parsePressedKeySet(
                                               complexKeySetString, aliases))
                                       .flatMap(Collection::stream)
                                       .collect(Collectors.toSet());
-        if (mustRemainPressedKeySets.equals(Set.of(Set.of())))
-            mustRemainPressedKeySets = Set.of();
-        return mustRemainPressedKeySets;
+        if (pressedKeySets.equals(Set.of(Set.of())))
+            pressedKeySets = Set.of();
+        return pressedKeySets;
     }
 
-    private static Set<Set<Key>> parseMustRemainPressedKeySet(String keySetString,
-                                                              Map<String, KeyAlias> aliases) {
+    private static Set<Set<Key>> parsePressedKeySet(String keySetString,
+                                                    Map<String, KeyAlias> aliases) {
         // rightctrl up*down -> (rightctrl, up), (rightctrl, down), (rightctrl, up, down)
         boolean containsEmptyKeySet = false;
         List<Set<Set<Key>>> combinations = new ArrayList<>();
@@ -231,10 +221,10 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             throw new IllegalArgumentException("Invalid key set: " + keySetString);
         // leftctrl*leftshift up*down
         // _{alias1 alias2}: one or more keys of alias1 must be pressed, and same for alias2
-        Set<Set<Key>> mustRemainPressedKeySet = new HashSet<>();
+        Set<Set<Key>> pressedKeySet = new HashSet<>();
         recursivelyExpandCombinations(new HashMap<>(), combinations,
-                mustRemainPressedKeySet);
-        return mustRemainPressedKeySet;
+                pressedKeySet);
+        return pressedKeySet;
     }
 
     private static void recursivelyExpandCombinations(Map<Integer, Set<Key>> fixedCombinationBySetIndex,
