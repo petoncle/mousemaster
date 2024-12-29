@@ -20,3 +20,8 @@
 + It is possible to re-implement a zoom without using the Windows Magnifier:
  + https://stackoverflow.com/questions/63111438/implement-lens-magnification-to-magnify-the-windows-taskbar
    (it requires UIAccess)
+
++ move-to-last-selected-hint command?
+- _{leftctrl} should be allowed release: _{leftctrl} +a -leftctrl +b
+ - _{leftctrl} should only mean that leftctrl has to be pressed beforehand
+ + Similarly ^{leftctrl}: ^{leftctrl} +a +leftctrl +b

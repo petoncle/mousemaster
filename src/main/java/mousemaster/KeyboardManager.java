@@ -170,7 +170,7 @@ public class KeyboardManager {
         boolean completedCombosHavePressedKeys = false;
         for (Combo combo : completedCombos) {
             Set<Key> pressedKeysInCompletedCombo =
-                    combo.keysPressedInComboPriorToMoveOfIndex(
+                    combo.keysPressedInComboPriorToMoveOfIndex(Set.of(),
                             combo.sequence().moves().size() - 1);
             completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();
 

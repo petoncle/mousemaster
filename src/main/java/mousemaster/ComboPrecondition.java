@@ -18,20 +18,6 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
                    pressedKeySets.isEmpty();
         }
 
-        public boolean satisfied(Set<Key> currentlyPressedKeys) {
-            for (Key unpressedKey : unpressedKeySet) {
-                if (currentlyPressedKeys.contains(unpressedKey))
-                    return false;
-            }
-            if (pressedKeySets.isEmpty())
-                return true;
-            for (Set<Key> pressedKeySet : pressedKeySets) {
-                if (currentlyPressedKeys.containsAll(pressedKeySet))
-                    return true;
-            }
-            return false;
-        }
-
         @Override
         public String toString() {
             return String.join(" ",

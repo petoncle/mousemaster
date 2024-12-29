@@ -319,8 +319,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         return (precondition.isEmpty() ? "" : precondition + " ") + sequence;
     }
 
-    public Set<Key> keysPressedInComboPriorToMoveOfIndex(int maxMoveIndex) {
-        Set<Key> pressedKeys = new HashSet<>();
+    public Set<Key> keysPressedInComboPriorToMoveOfIndex(
+            Set<Key> preconditionPressedKeySet, int maxMoveIndex) {
+        Set<Key> pressedKeys = new HashSet<>(preconditionPressedKeySet);
         for (int moveIndex = 0;
              moveIndex <= maxMoveIndex; moveIndex++) {
             ComboMove move = sequence().moves().get(moveIndex);
