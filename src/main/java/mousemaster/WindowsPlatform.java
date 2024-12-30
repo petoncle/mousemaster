@@ -374,7 +374,11 @@ public class WindowsPlatform implements Platform {
             extendedKeys.add(keyEvent.key());
         if (keyRegurgitationEnabled && !eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
-                keyRegurgitator.regurgitate(keyToRegurgitate, keyEvent.isRelease());
+                // If the following combo is defined: +leftwin-0 +e,
+                // Then, when pressing leftwin + v,
+                // And if non-eaten key (v) is pressed then regurgitation should not start repeating.
+                keyRegurgitator.regurgitate(keyToRegurgitate,
+                        !keyEvent.isRelease() && currentlyPressedNotEatenKeys.isEmpty());
             }
         }
         return eatAndRegurgitates.mustBeEaten();

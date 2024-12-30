@@ -12,10 +12,10 @@ public class KeyRegurgitator {
 
     private static final Logger logger = LoggerFactory.getLogger(KeyRegurgitator.class);
 
-    public void regurgitate(Key keyToRegurgitate, boolean keyAlreadyReleasedByUser) {
+    public void regurgitate(Key keyToRegurgitate, boolean startRepeat) {
         logger.trace("Regurgitating " + keyToRegurgitate);
         WindowsKeyboard.sendInput(List.of(new RemappingMove(keyToRegurgitate, true)),
-                !keyAlreadyReleasedByUser, true);
+                startRepeat, true);
     }
 
 }
