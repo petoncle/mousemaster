@@ -378,7 +378,8 @@ public class WindowsPlatform implements Platform {
                 // Then, when pressing leftwin + v,
                 // And if non-eaten key (v) is pressed then regurgitation should not start repeating.
                 keyRegurgitator.regurgitate(keyToRegurgitate,
-                        !keyEvent.isRelease() && currentlyPressedNotEatenKeys.isEmpty());
+                        !keyEvent.isRelease() && currentlyPressedNotEatenKeys.isEmpty(),
+                        keyEvent.isRelease() && keyEvent.key().equals(keyToRegurgitate));
             }
         }
         return eatAndRegurgitates.mustBeEaten();

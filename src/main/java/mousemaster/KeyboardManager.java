@@ -43,7 +43,7 @@ public class KeyboardManager {
                         watcherUpdateResult.completedWaitingCombos());
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 for (Key keyToRegurgitate : regurgitatePressedKeys(null)) {
-                    keyRegurgitator.regurgitate(keyToRegurgitate, true);
+                    keyRegurgitator.regurgitate(keyToRegurgitate, true, false);
                 }
             }
         }
