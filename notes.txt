@@ -40,3 +40,6 @@
  + smooth-zoom-enabled=true, smooth-zoom-velocity (like smooth-jump)
   + Expensive if hints need to be recomputed
    + Hide hints while animating and compute hints only once with the final zoom percent?
+ + ZoomSynchronization mouse-and-zoom-center-unsynchronized, zoom-center-follows-mouse
+  + Or: always follow mouse but only if it moves (otherwise stay on last-selected-hint)
+   + No because doesn't work with smooth jump

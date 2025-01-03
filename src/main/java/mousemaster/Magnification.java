@@ -17,6 +17,10 @@ public interface Magnification extends Library {
 
     boolean MagSetWindowSource(WinDef.HWND hwnd, WinDef.RECT rect);
 
+    boolean MagSetWindowFilterList(WinDef.HWND hwnd, int dwFilterMode, int count, WinDef.HWND[] pHWND);
+
+    int MW_FILTERMODE_EXCLUDE = 0;
+
     class MAGTRANSFORM extends Structure {
         public float[] v = new float[9]; // 3x3 transformation matrix
 

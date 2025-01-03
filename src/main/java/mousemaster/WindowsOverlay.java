@@ -28,6 +28,31 @@ public class WindowsOverlay {
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static boolean showingHintMesh;
     private static HintMesh currentHintMesh;
+    private static ZoomWindow zoomWindow;
+    private static Zoom currentZoom;
+
+    public static void update(double delta) {
+        updateZoomWindow();
+    }
+
+    private static void updateZoomWindow() {
+        if (currentZoom == null || currentZoom.percent() == 1)
+            return;
+        WinDef.RECT sourceRect = new WinDef.RECT();
+        Zoom zoom = currentZoom;
+        Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
+                zoom.center().y()));
+        sourceRect.left = (int) (zoom.center().x() - screen.rectangle().width() / zoom.percent() / 2);
+        sourceRect.top = (int) (zoom.center().y() - screen.rectangle().height() / zoom.percent() / 2);
+        sourceRect.right = (int) (zoom.center().x() + screen.rectangle().width() / zoom.percent() / 2);
+        sourceRect.bottom = (int) (zoom.center().y() + screen.rectangle().height() / zoom.percent() / 2);
+        if (!Magnification.INSTANCE.MagSetWindowSource(zoomWindow.hwnd(), sourceRect)) {
+            logger.error("Failed MagSetWindowSource: " +
+                         Integer.toHexString(Native.getLastError()));
+        }
+        User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
+        User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_SHOWNORMAL);
+    }
 
     public static Rectangle activeWindowRectangle(double windowWidthPercent,
                                                   double windowHeightPercent,
@@ -72,6 +97,8 @@ public class WindowsOverlay {
         }
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
+        if (zoomWindow != null)
+            hwnds.add(zoomWindow.hwnd);
         if (hwnds.isEmpty())
             return;
         setWindowTopmost(hwnds.getFirst(), ExtendedUser32.HWND_TOPMOST);
@@ -116,6 +143,10 @@ public class WindowsOverlay {
 
     }
 
+    private record ZoomWindow(WinDef.HWND hwnd, WinDef.HWND hostHwnd, WinUser.WindowProc callback) {
+
+    }
+
     private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle screenRectangle,
                                       int scaledIndicatorSize) {
         mouseX = Math.min(screenRectangle.x() + screenRectangle.width(),
@@ -156,6 +187,7 @@ public class WindowsOverlay {
                         activeScreen.rectangle(), scaledIndicatorSize),
                 scaledIndicatorSize + 1, scaledIndicatorSize + 1, callback);
         indicatorWindow = new IndicatorWindow(hwnd, callback, 0);
+        updateZoomExcludedWindows();
     }
 
     private static int scaledPixels(int originalInPixels, double scale) {
@@ -168,6 +200,7 @@ public class WindowsOverlay {
                 createWindow("Grid" + (gridWindow == null ? 1 : 2), x, y, width, height,
                         callback);
         gridWindow = new GridWindow(hwnd, callback, 0);
+        updateZoomExcludedWindows();
     }
 
     private static void createOrUpdateHintMeshWindows(List<Hint> hints) {
@@ -201,6 +234,7 @@ public class WindowsOverlay {
             if (!hintsByScreen.containsKey(screen))
                 window.hints.clear();
         }
+        boolean createdAtLeastOneWindow = false;
         for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
             Screen screen = entry.getKey();
             List<Hint> hintsInScreen = entry.getValue();
@@ -227,6 +261,7 @@ public class WindowsOverlay {
                 hintMeshWindows.put(screen,
                         new HintMeshWindow(hwnd, transparentHwnd, callback,
                                 hintsInScreen, new HashMap<>()));
+                createdAtLeastOneWindow = true;
             }
             else {
                 hintMeshWindows.put(screen,
@@ -235,7 +270,10 @@ public class WindowsOverlay {
                                 existingWindow.callback,
                                 hintsInScreen, new HashMap<>()));
             }
+            updateZoomExcludedWindows();
         }
+        if (createdAtLeastOneWindow)
+            updateZoomExcludedWindows();
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
@@ -258,51 +296,50 @@ public class WindowsOverlay {
         return hwnd;
     }
 
-    private static WinDef.HWND createMagnifierWindow(int windowX, int windowY,
-                                            int windowWidth, int windowHeight,
-                                            WinUser.WindowProc windowCallback) {
+    private static WinDef.HWND createZoomWindow() {
         if (!Magnification.INSTANCE.MagInitialize())
-            logger.error("Failed MagInitialize: " + Integer.toHexString(Native.getLastError()));
+            logger.error("Failed MagInitialize: " +
+                         Integer.toHexString(Native.getLastError()));
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
+        WinUser.WindowProc callback = WindowsOverlay::zoomWindowCallback;
         wClass.hbrBackground = null;
         String WC_MAGNIFIER = "Magnifier";
         wClass.lpszClassName = "MagnifierWindow";
-        wClass.lpfnWndProc = windowCallback;
+        wClass.lpfnWndProc = callback;
         WinDef.ATOM registerClassExResult = User32.INSTANCE.RegisterClassEx(wClass);
         logger.info(
-                "registerClassExResult = " + Integer.toHexString(registerClassExResult.intValue()));
+                "registerClassExResult = " +
+                Integer.toHexString(registerClassExResult.intValue()));
         int MS_SHOWMAGNIFIEDCURSOR = 0x0001;
         WinDef.HMODULE hInstance = Kernel32.INSTANCE.GetModuleHandle(null);
-        WinDef.HWND hwndHost = User32.INSTANCE.CreateWindowEx(
+        WinDef.HWND hostHwnd = User32.INSTANCE.CreateWindowEx(
                 User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_LAYERED |
-                ExtendedUser32.WS_EX_TOOLWINDOW | ExtendedUser32.WS_EX_NOACTIVATE | ExtendedUser32.WS_EX_TRANSPARENT,
+                ExtendedUser32.WS_EX_TOOLWINDOW | ExtendedUser32.WS_EX_NOACTIVATE |
+                ExtendedUser32.WS_EX_TRANSPARENT,
                 wClass.lpszClassName, "MousemasterMagnifierHostName",
                 WinUser.WS_POPUP,
-                windowX, windowY, windowWidth, windowHeight, null, null,
+                0, 0, 10, 10, null, null,
                 hInstance, null);
-        logger.info("CreateWindowEx host = " + Integer.toHexString(Native.getLastError()));
-        User32.INSTANCE.SetLayeredWindowAttributes(hwndHost, 0, (byte) 255,
+        logger.info(
+                "CreateWindowEx host = " + Integer.toHexString(Native.getLastError()));
+        User32.INSTANCE.SetLayeredWindowAttributes(hostHwnd, 0, (byte) 255,
                 WinUser.LWA_ALPHA);
-
         WinDef.HWND hwnd = User32.INSTANCE.CreateWindowEx(
                 0,
                 WC_MAGNIFIER, "MagnifierWindow",
                 User32.WS_CHILD | MS_SHOWMAGNIFIEDCURSOR | ExtendedUser32.WS_VISIBLE,
-                windowX, windowY, windowWidth, windowHeight, hwndHost, null,
+                0, 0, 10, 10,
+                hostHwnd, null,
                 hInstance, null);
         logger.info("CreateWindowEx = " + Integer.toHexString(Native.getLastError()));
 
         if (!Magnification.INSTANCE.MagSetWindowTransform(hwnd,
                 new Magnification.MAGTRANSFORM.ByReference(2f)))
-            logger.error("Failed MagSetWindowTransform: " + Integer.toHexString(Native.getLastError()));
-        WinDef.RECT sourceRect = new WinDef.RECT();
-        sourceRect.left = -100;
-        sourceRect.right = 500;
-        sourceRect.bottom = 500;
-        if (!Magnification.INSTANCE.MagSetWindowSource(hwnd, sourceRect))
-            logger.error("Failed MagSetWindowSource: " + Integer.toHexString(Native.getLastError()));
-        User32.INSTANCE.ShowWindow(hwndHost, WinUser.SW_SHOWNORMAL);
-        return hwndHost;
+            logger.error("Failed MagSetWindowTransform: " +
+                         Integer.toHexString(Native.getLastError()));
+        zoomWindow = new ZoomWindow(hwnd, hostHwnd, callback);
+        updateZoomExcludedWindows();
+        return hostHwnd;
     }
 
     private static WinDef.LRESULT indicatorWindowCallback(WinDef.HWND hwnd, int uMsg,
@@ -957,7 +994,6 @@ public class WindowsOverlay {
                (int) (blue * opacity);
     }
 
-    private static WinUser.WindowProc magnifierWindowC;
     public static void setIndicator(Indicator indicator) {
         Objects.requireNonNull(indicator);
         if (showingIndicator && currentIndicator != null &&
@@ -967,8 +1003,7 @@ public class WindowsOverlay {
         currentIndicator = indicator;
         if (indicatorWindow == null) {
             createIndicatorWindow(indicator.size());
-            magnifierWindowC = WindowsOverlay::magnifierWindowCallback;
-            createMagnifierWindow(0, 0, 1920, 1080, magnifierWindowC);
+            setZoom(new Zoom(2, new Point(0, 0)));
         }
         else if (indicator.size() != oldIndicator.size()) {
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(0, 0));
@@ -981,9 +1016,52 @@ public class WindowsOverlay {
         requestWindowRepaint(indicatorWindow.hwnd);
     }
 
-    private static WinDef.LRESULT magnifierWindowCallback(WinDef.HWND hwnd, int uMsg,
-                                                          WinDef.WPARAM wParam,
-                                                          WinDef.LPARAM lParam) {
+    public static void setZoom(Zoom zoom) {
+        Objects.requireNonNull(zoom);
+        if (currentZoom != null && currentZoom.equals(zoom))
+            return;
+        if (zoomWindow == null) {
+            createZoomWindow();
+        }
+        currentZoom = zoom;
+        if (currentZoom.percent() == 1)
+            User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_HIDE);
+        else {
+            Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
+                    zoom.center().y()));
+            User32.INSTANCE.SetWindowPos(zoomWindow.hostHwnd(), null,
+                    screen.rectangle().x(), screen.rectangle().y(),
+                    screen.rectangle().width(), screen.rectangle().height(),
+                    User32.SWP_NOMOVE | User32.SWP_NOZORDER);
+            User32.INSTANCE.SetWindowPos(zoomWindow.hwnd(), null,
+                    screen.rectangle().x(), screen.rectangle().y(),
+                    screen.rectangle().width(), screen.rectangle().height(),
+                    User32.SWP_NOMOVE | User32.SWP_NOZORDER);
+        }
+    }
+
+    private static void updateZoomExcludedWindows() {
+        if (zoomWindow == null)
+            return;
+        List<WinDef.HWND> hwnds = new ArrayList<>();
+        if (gridWindow != null)
+            hwnds.add(gridWindow.hwnd);
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+            hwnds.add(hintMeshWindow.hwnd);
+            hwnds.add(hintMeshWindow.transparentHwnd);
+        }
+        if (indicatorWindow != null)
+            hwnds.add(indicatorWindow.hwnd);
+        if (!Magnification.INSTANCE.MagSetWindowFilterList(zoomWindow.hwnd(),
+                Magnification.MW_FILTERMODE_EXCLUDE, hwnds.size(),
+                hwnds.toArray(new WinDef.HWND[0])))
+            logger.error("Failed to set the zoom excluded window list: " +
+                         Integer.toHexString(Native.getLastError()));
+    }
+
+    private static WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
+                                                     WinDef.WPARAM wParam,
+                                                     WinDef.LPARAM lParam) {
         switch (uMsg) {
             case WinUser.WM_PAINT:
 //                ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();

@@ -61,6 +61,7 @@ public class WindowsPlatform implements Platform {
             enforceWindowsTopmostTimer = 0.2;
             WindowsOverlay.setTopmost();
         }
+        WindowsOverlay.update(delta);
     }
 
     @Override
