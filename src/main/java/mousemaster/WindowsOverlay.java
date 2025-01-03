@@ -275,7 +275,7 @@ public class WindowsOverlay {
         WinDef.HMODULE hInstance = Kernel32.INSTANCE.GetModuleHandle(null);
         WinDef.HWND hwndHost = User32.INSTANCE.CreateWindowEx(
                 User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_LAYERED |
-                ExtendedUser32.WS_EX_TOOLWINDOW | ExtendedUser32.WS_EX_NOACTIVATE,
+                ExtendedUser32.WS_EX_TOOLWINDOW | ExtendedUser32.WS_EX_NOACTIVATE | ExtendedUser32.WS_EX_TRANSPARENT,
                 wClass.lpszClassName, "MousemasterMagnifierHostName",
                 WinUser.WS_POPUP,
                 windowX, windowY, windowWidth, windowHeight, null, null,
@@ -296,6 +296,7 @@ public class WindowsOverlay {
                 new Magnification.MAGTRANSFORM.ByReference(2f)))
             logger.error("Failed MagSetWindowTransform: " + Integer.toHexString(Native.getLastError()));
         WinDef.RECT sourceRect = new WinDef.RECT();
+        sourceRect.left = -100;
         sourceRect.right = 500;
         sourceRect.bottom = 500;
         if (!Magnification.INSTANCE.MagSetWindowSource(hwnd, sourceRect))
