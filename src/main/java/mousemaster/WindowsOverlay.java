@@ -258,6 +258,52 @@ public class WindowsOverlay {
         return hwnd;
     }
 
+    private static WinDef.HWND createMagnifierWindow(int windowX, int windowY,
+                                            int windowWidth, int windowHeight,
+                                            WinUser.WindowProc windowCallback) {
+        if (!Magnification.INSTANCE.MagInitialize())
+            logger.error("Failed MagInitialize: " + Integer.toHexString(Native.getLastError()));
+        WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
+        wClass.hbrBackground = null;
+        String WC_MAGNIFIER = "Magnifier";
+        wClass.lpszClassName = "MagnifierWindow";
+        wClass.lpfnWndProc = windowCallback;
+        WinDef.ATOM registerClassExResult = User32.INSTANCE.RegisterClassEx(wClass);
+        logger.info(
+                "registerClassExResult = " + Integer.toHexString(registerClassExResult.intValue()));
+        int MS_SHOWMAGNIFIEDCURSOR = 0x0001;
+        WinDef.HMODULE hInstance = Kernel32.INSTANCE.GetModuleHandle(null);
+        WinDef.HWND hwndHost = User32.INSTANCE.CreateWindowEx(
+                User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_LAYERED |
+                ExtendedUser32.WS_EX_TOOLWINDOW | ExtendedUser32.WS_EX_NOACTIVATE,
+                wClass.lpszClassName, "MousemasterMagnifierHostName",
+                WinUser.WS_POPUP,
+                windowX, windowY, windowWidth, windowHeight, null, null,
+                hInstance, null);
+        logger.info("CreateWindowEx host = " + Integer.toHexString(Native.getLastError()));
+        User32.INSTANCE.SetLayeredWindowAttributes(hwndHost, 0, (byte) 255,
+                WinUser.LWA_ALPHA);
+
+        WinDef.HWND hwnd = User32.INSTANCE.CreateWindowEx(
+                0,
+                WC_MAGNIFIER, "MagnifierWindow",
+                User32.WS_CHILD | MS_SHOWMAGNIFIEDCURSOR | ExtendedUser32.WS_VISIBLE,
+                windowX, windowY, windowWidth, windowHeight, hwndHost, null,
+                hInstance, null);
+        logger.info("CreateWindowEx = " + Integer.toHexString(Native.getLastError()));
+
+        if (!Magnification.INSTANCE.MagSetWindowTransform(hwnd,
+                new Magnification.MAGTRANSFORM.ByReference(2f)))
+            logger.error("Failed MagSetWindowTransform: " + Integer.toHexString(Native.getLastError()));
+        WinDef.RECT sourceRect = new WinDef.RECT();
+        sourceRect.right = 500;
+        sourceRect.bottom = 500;
+        if (!Magnification.INSTANCE.MagSetWindowSource(hwnd, sourceRect))
+            logger.error("Failed MagSetWindowSource: " + Integer.toHexString(Native.getLastError()));
+        User32.INSTANCE.ShowWindow(hwndHost, WinUser.SW_SHOWNORMAL);
+        return hwndHost;
+    }
+
     private static WinDef.LRESULT indicatorWindowCallback(WinDef.HWND hwnd, int uMsg,
                                                           WinDef.WPARAM wParam,
                                                           WinDef.LPARAM lParam) {
@@ -910,6 +956,7 @@ public class WindowsOverlay {
                (int) (blue * opacity);
     }
 
+    private static WinUser.WindowProc magnifierWindowC;
     public static void setIndicator(Indicator indicator) {
         Objects.requireNonNull(indicator);
         if (showingIndicator && currentIndicator != null &&
@@ -917,8 +964,11 @@ public class WindowsOverlay {
             return;
         Indicator oldIndicator = currentIndicator;
         currentIndicator = indicator;
-        if (indicatorWindow == null)
+        if (indicatorWindow == null) {
             createIndicatorWindow(indicator.size());
+            magnifierWindowC = WindowsOverlay::magnifierWindowCallback;
+            createMagnifierWindow(0, 0, 1920, 1080, magnifierWindowC);
+        }
         else if (indicator.size() != oldIndicator.size()) {
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(0, 0));
             int scaledIndicatorSize = scaledPixels(indicator.size(), screen.scale());
@@ -928,6 +978,24 @@ public class WindowsOverlay {
         }
         showingIndicator = true;
         requestWindowRepaint(indicatorWindow.hwnd);
+    }
+
+    private static WinDef.LRESULT magnifierWindowCallback(WinDef.HWND hwnd, int uMsg,
+                                                          WinDef.WPARAM wParam,
+                                                          WinDef.LPARAM lParam) {
+        switch (uMsg) {
+            case WinUser.WM_PAINT:
+//                ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
+//                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
+//                clearWindow(hdc, ps.rcPaint, 0);
+//                if (showingIndicator) {
+//                    clearWindow(hdc, ps.rcPaint,
+//                            hexColorStringToInt(currentIndicator.hexColor()));
+//                }
+//                ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
+                break;
+        }
+        return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
     public static void hideIndicator() {

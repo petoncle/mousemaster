@@ -18,6 +18,8 @@ public interface ExtendedUser32 extends User32 {
     int WS_EX_LAYERED = 0x00080000;
     int WS_EX_TRANSPARENT = 0x00000020;
 
+    int WS_EX_STATICEDGE = 0x00020000;
+
     int MOUSEEVENTF_MOVE = 0x0001;
     int MOUSEEVENTF_LEFTDOWN = 0x0002;
     int MOUSEEVENTF_LEFTUP = 0x0004;
