@@ -10,7 +10,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
                        int boxBorderThickness,
-                       String boxOutlineHexColor, double boxOutlineOpacity) {
+                       String boxBorderHexColor, double boxBorderOpacity) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -30,8 +30,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private String boxHexColor;
         private double boxOpacity;
         private int boxBorderThickness;
-        private String boxOutlineHexColor;
-        private double boxOutlineOpacity;
+        private String boxBorderHexColor;
+        private double boxBorderOpacity;
 
         public HintMeshBuilder() {
         }
@@ -50,8 +50,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.boxHexColor = hintMesh.boxHexColor;
             this.boxOpacity = hintMesh.boxOpacity;
             this.boxBorderThickness = hintMesh.boxBorderThickness;
-            this.boxOutlineHexColor = hintMesh.boxOutlineHexColor;
-            this.boxOutlineOpacity = hintMesh.boxOutlineOpacity;
+            this.boxBorderHexColor = hintMesh.boxBorderHexColor;
+            this.boxBorderOpacity = hintMesh.boxBorderOpacity;
         }
 
         public HintMeshType type() {
@@ -106,12 +106,12 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return boxBorderThickness;
         }
 
-        public String boxOutlineHexColor() {
-            return boxOutlineHexColor;
+        public String boxBorderHexColor() {
+            return boxBorderHexColor;
         }
 
-        public double boxOutlineOpacity() {
-            return boxOutlineOpacity;
+        public double boxBorderOpacity() {
+            return boxBorderOpacity;
         }
 
         public HintMeshBuilder type(HintMeshType type) {
@@ -181,13 +181,13 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder boxOutlineHexColor(String boxOutlineHexColor) {
-            this.boxOutlineHexColor = boxOutlineHexColor;
+        public HintMeshBuilder boxBorderHexColor(String boxBorderHexColor) {
+            this.boxBorderHexColor = boxBorderHexColor;
             return this;
         }
 
-        public HintMeshBuilder boxOutlineOpacity(double boxOutlineOpacity) {
-            this.boxOutlineOpacity = boxOutlineOpacity;
+        public HintMeshBuilder boxBorderOpacity(double boxBorderOpacity) {
+            this.boxBorderOpacity = boxBorderOpacity;
             return this;
         }
 
@@ -198,7 +198,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                     prefixFontHexColor, highlightFontScale,
                     boxHexColor, boxOpacity,
                     boxBorderThickness,
-                    boxOutlineHexColor, boxOutlineOpacity);
+                    boxBorderHexColor, boxBorderOpacity);
         }
     }
 

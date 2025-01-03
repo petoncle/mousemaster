@@ -79,8 +79,8 @@ public class ConfigurationParser {
                 .boxHexColor("#000000")
                 .boxOpacity(0.4d)
                 .boxBorderThickness(1)
-                .boxOutlineHexColor("#FFFFFF")
-                .boxOutlineOpacity(0.4d)
+                .boxBorderHexColor("#FFFFFF")
+                .boxBorderOpacity(0.4d)
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -459,9 +459,9 @@ public class ConfigurationParser {
                             // See HintManager#distributeTrueUniformly.
                             case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
                                     Integer.parseUnsignedInt(propertyValue));
-                            case "box-outline-color" -> mode.hintMesh.builder.boxOutlineHexColor(
+                            case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
-                            case "box-outline-opacity" -> mode.hintMesh.builder.boxOutlineOpacity(
+                            case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(
                                     parseUnsignedDouble(propertyKey, propertyValue, true, 1));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
@@ -1322,10 +1322,10 @@ public class ConfigurationParser {
                         builder.boxOpacity(parent.boxOpacity());
                     if (builder.boxBorderThickness() == null)
                         builder.boxBorderThickness(parent.boxBorderThickness());
-                    if (builder.boxOutlineHexColor() == null)
-                        builder.boxOutlineHexColor(parent.boxOutlineHexColor());
-                    if (builder.boxOutlineOpacity() == null)
-                        builder.boxOutlineOpacity(parent.boxOutlineOpacity());
+                    if (builder.boxBorderHexColor() == null)
+                        builder.boxBorderHexColor(parent.boxBorderHexColor());
+                    if (builder.boxBorderOpacity() == null)
+                        builder.boxBorderOpacity(parent.boxBorderOpacity());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

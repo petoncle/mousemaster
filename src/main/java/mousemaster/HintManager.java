@@ -124,8 +124,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .boxHexColor(hintMeshConfiguration.boxHexColor())
                 .boxOpacity(hintMeshConfiguration.boxOpacity())
                 .boxBorderThickness(hintMeshConfiguration.boxBorderThickness())
-                .boxOutlineHexColor(hintMeshConfiguration.boxOutlineHexColor())
-                .boxOutlineOpacity(hintMeshConfiguration.boxOutlineOpacity())
+                .boxBorderHexColor(hintMeshConfiguration.boxBorderHexColor())
+                .boxBorderOpacity(hintMeshConfiguration.boxBorderOpacity())
         ;
         HintMeshType type = hintMeshConfiguration.typeAndSelectionKeys().type();
         if (type instanceof HintMeshType.HintGrid hintGrid) {

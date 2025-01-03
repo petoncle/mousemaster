@@ -209,8 +209,8 @@ hint1-mode.highlight-font-scale=1
 hint1-mode.box-color=#000000
 hint1-mode.box-opacity=0.4
 hint1-mode.box-border-thickness=1
-hint1-mode.box-outline-color=#FFFFFF
-hint1-mode.box-outline-opacity=0.4
+hint1-mode.box-border-color=#FFFFFF
+hint1-mode.box-border-opacity=0.4
 ```
 
 - `type` can either be `grid` or `position-history`.

@@ -14,8 +14,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     String boxHexColor,
                                     double boxOpacity,
                                     int boxBorderThickness,
-                                    String boxOutlineHexColor,
-                                    double boxOutlineOpacity,
+                                    String boxBorderHexColor,
+                                    double boxBorderOpacity,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
@@ -36,8 +36,8 @@ public record HintMeshConfiguration(boolean enabled,
         private String boxHexColor;
         private Double boxOpacity;
         private Integer boxBorderThickness;
-        private String boxOutlineHexColor;
-        private Double boxOutlineOpacity;
+        private String boxBorderHexColor;
+        private Double boxBorderOpacity;
         private String modeAfterSelection;
         private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
@@ -114,13 +114,13 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder boxOutlineHexColor(String boxOutlineHexColor) {
-            this.boxOutlineHexColor = boxOutlineHexColor;
+        public HintMeshConfigurationBuilder boxBorderHexColor(String boxBorderHexColor) {
+            this.boxBorderHexColor = boxBorderHexColor;
             return this;
         }
 
-        public HintMeshConfigurationBuilder boxOutlineOpacity(double boxOutlineOpacity) {
-            this.boxOutlineOpacity = boxOutlineOpacity;
+        public HintMeshConfigurationBuilder boxBorderOpacity(double boxBorderOpacity) {
+            this.boxBorderOpacity = boxBorderOpacity;
             return this;
         }
 
@@ -202,12 +202,12 @@ public record HintMeshConfiguration(boolean enabled,
             return boxBorderThickness;
         }
 
-        public String boxOutlineHexColor() {
-            return boxOutlineHexColor;
+        public String boxBorderHexColor() {
+            return boxBorderHexColor;
         }
 
-        public Double boxOutlineOpacity() {
-            return boxOutlineOpacity;
+        public Double boxBorderOpacity() {
+            return boxBorderOpacity;
         }
 
         public String modeAfterSelection() {
@@ -229,7 +229,7 @@ public record HintMeshConfiguration(boolean enabled,
                     prefixFontHexColor,
                     highlightFontScale,
                     boxHexColor, boxOpacity, boxBorderThickness,
-                    boxOutlineHexColor, boxOutlineOpacity,
+                    boxBorderHexColor, boxBorderOpacity,
                     modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }
