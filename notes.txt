@@ -24,4 +24,19 @@
 + move-to-last-selected-hint command?
 - _{leftctrl} should be allowed release: _{leftctrl} +a -leftctrl +b
  - _{leftctrl} should only mean that leftctrl has to be pressed beforehand
- + Similarly ^{leftctrl}: ^{leftctrl} +a +leftctrl +b
+ - Similarly ^{leftctrl}: ^{leftctrl} +a +leftctrl +b
+
++ Hint box border: share (split 50/50) border only if there is another hint box next to it
+
++ Zoom
+ + zoom-in=+leftshift, zoom-out commands
+ + zoom.center=screen-center, mouse, last-selected-hint
+ + zoom.increment-percent=4.0
+ (+ zoom.max-percent, min-percent? min >= 1)
+ + Always full screen
+ + Show hints on top of zoomed window, with scaled coordinates and size
+  + zoomedPoint(point)
+  + Also scale grid and indicator
+ + smooth-zoom-enabled=true, smooth-zoom-velocity (like smooth-jump)
+  + Expensive if hints need to be recomputed
+   + Hide hints while animating and compute hints only once with the final zoom percent?
