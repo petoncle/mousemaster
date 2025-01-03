@@ -86,8 +86,8 @@ public class ConfigurationParser {
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         // On a 1920x1080 screen 73x41 cell size can accommodate up to 26x26 hints.
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
-                           .gridMaxRowCount(100)
-                           .gridMaxColumnCount(100)
+                           .gridMaxRowCount(200)
+                           .gridMaxColumnCount(200)
                            .gridCellWidth(73d)
                            .gridCellHeight(41d);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
@@ -410,14 +410,14 @@ public class ConfigurationParser {
                                                                                    .gridMaxRowCount(
                                                                                            parseUnsignedInteger(
                                                                                                    propertyKey,
-                                                                                                   propertyValue, 1, 100));
+                                                                                                   propertyValue, 1, 200));
                             case "grid-max-column-count" -> mode.hintMesh.builder.type()
                                                                                  .gridMaxColumnCount(
                                                                                          parseUnsignedInteger(
                                                                                                  propertyKey,
                                                                                                  propertyValue,
                                                                                                  1,
-                                                                                                 100));
+                                                                                                 200));
                             case "grid-cell-width" -> mode.hintMesh.builder.type()
                                                                            .gridCellWidth(
                                                                                    parseUnsignedDouble(
