@@ -375,8 +375,10 @@ public class WindowsOverlay {
                 hInstance, null);
         logger.info(
                 "CreateWindowEx host = " + Integer.toHexString(Native.getLastError()));
-        User32.INSTANCE.SetLayeredWindowAttributes(hostHwnd, 0, (byte) 255,
-                WinUser.LWA_ALPHA);
+        // When uncommenting this SetLayeredWindowAttributes call, a black frame is
+        // drawn the first time the zoom is used.
+//        User32.INSTANCE.SetLayeredWindowAttributes(hostHwnd, 0, (byte) 255,
+//                WinUser.LWA_ALPHA);
         WinDef.HWND hwnd = User32.INSTANCE.CreateWindowEx(
                 0,
                 WC_MAGNIFIER, "MagnifierWindow",
@@ -385,7 +387,6 @@ public class WindowsOverlay {
                 hostHwnd, null,
                 hInstance, null);
         logger.info("CreateWindowEx = " + Integer.toHexString(Native.getLastError()));
-
         zoomWindow = new ZoomWindow(hwnd, hostHwnd, callback);
         updateZoomExcludedWindows();
         return hostHwnd;
