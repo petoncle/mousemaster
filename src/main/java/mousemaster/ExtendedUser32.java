@@ -101,6 +101,7 @@ public interface ExtendedUser32 extends User32 {
     int SPI_SETMOUSE = 0x0004;
 
     HWND HWND_TOPMOST = new HWND(new Pointer(-1));
+    HWND HWND_NOTOPMOST = new HWND(new Pointer(-2));
 
     int DrawText(HDC hdc, String lpchText, int cchText, RECT lprc, UINT format);
 

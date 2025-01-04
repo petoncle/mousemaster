@@ -30,6 +30,7 @@ public class WindowsOverlay {
     private static HintMesh currentHintMesh;
     private static ZoomWindow zoomWindow;
     private static Zoom currentZoom;
+    private static Screen currentZoomScreen;
 
     public static void update(double delta) {
         updateZoomWindow();
@@ -40,8 +41,7 @@ public class WindowsOverlay {
             return;
         WinDef.RECT sourceRect = new WinDef.RECT();
         Zoom zoom = currentZoom;
-        Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
-                zoom.center().y()));
+        Screen screen = currentZoomScreen;
         double zoomPercent = zoom.percent();
         sourceRect.left = (int) (zoom.center().x() - screen.rectangle().width() / zoomPercent / 2);
         sourceRect.top = (int) (zoom.center().y() - screen.rectangle().height() / zoomPercent / 2);
@@ -53,6 +53,9 @@ public class WindowsOverlay {
         }
         User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
         User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_SHOWNORMAL);
+        // Without a setTopmost() call here, the Zoom window would be displayed on top
+        // of the indicator window for a single frame.
+        setTopmost();
     }
 
     public static Rectangle activeWindowRectangle(double windowWidthPercent,
@@ -98,8 +101,9 @@ public class WindowsOverlay {
         }
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
-        if (zoomWindow != null)
-            hwnds.add(zoomWindow.hwnd);
+        if (zoomWindow != null) {
+            hwnds.add(zoomWindow.hostHwnd);
+        }
         if (hwnds.isEmpty())
             return;
         setWindowTopmost(hwnds.getFirst(), ExtendedUser32.HWND_TOPMOST);
@@ -148,6 +152,44 @@ public class WindowsOverlay {
 
     }
 
+    private static int indicatorSize() {
+        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+        return scaledPixels(currentIndicator.size(), activeScreen.scale());
+    }
+
+    private static int bestIndicatorX() {
+        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+        MouseSize mouseSize = WindowsMouse.mouseSize();
+        return zoomedX(bestIndicatorX(mousePosition.x, mouseSize.width(),
+                activeScreen.rectangle(), indicatorSize()));
+    }
+
+    private static int zoomedX(int x) {
+        if (currentZoom == null)
+            return x;
+        return (int) (currentZoomScreen.rectangle().width() / 2d +
+                      (x - currentZoom.center().x()) *
+                      currentZoom.percent());
+    }
+
+    private static int zoomedY(int y) {
+        if (currentZoom == null)
+            return y;
+        return (int) (currentZoomScreen.rectangle().height() / 2d +
+                      (y - currentZoom.center().y()) *
+                      currentZoom.percent());
+    }
+
+    private static int bestIndicatorY() {
+        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+        MouseSize mouseSize = WindowsMouse.mouseSize();
+        return zoomedY(bestIndicatorY(mousePosition.y, mouseSize.height(),
+                activeScreen.rectangle(), indicatorSize()));
+    }
+
     private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle screenRectangle,
                                       int scaledIndicatorSize) {
         mouseX = Math.min(screenRectangle.x() + screenRectangle.width(),
@@ -174,25 +216,26 @@ public class WindowsOverlay {
         return mouseY + cursorHeight / 2;
     }
 
-    private static void createIndicatorWindow(int indicatorSize) {
-        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
-        MouseSize mouseSize = WindowsMouse.mouseSize();
-        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+    private static void createIndicatorWindow() {
         WinUser.WindowProc callback = WindowsOverlay::indicatorWindowCallback;
-        int scaledIndicatorSize = scaledPixels(indicatorSize, activeScreen.scale());
         // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         WinDef.HWND hwnd = createWindow("Indicator",
-                bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        activeScreen.rectangle(), scaledIndicatorSize),
-                bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        activeScreen.rectangle(), scaledIndicatorSize),
-                scaledIndicatorSize + 1, scaledIndicatorSize + 1, callback);
+                bestIndicatorX(),
+                bestIndicatorY(),
+                indicatorSize() + 1,
+                indicatorSize() + 1, callback);
         indicatorWindow = new IndicatorWindow(hwnd, callback, 0);
         updateZoomExcludedWindows();
     }
 
     private static int scaledPixels(int originalInPixels, double scale) {
-        return (int) Math.floor(originalInPixels * scale);
+        return (int) Math.floor(originalInPixels * scale * zoomPercent());
+    }
+
+    private static double zoomPercent() {
+        if (currentZoom == null)
+            return 1;
+        return currentZoom.percent();
     }
 
     private static void createGridWindow(int x, int y, int width, int height) {
@@ -991,22 +1034,22 @@ public class WindowsOverlay {
                (int) (blue * opacity);
     }
 
-    public static void setIndicator(Indicator indicator) {
+    public static void setIndicator(Indicator indicator, boolean zoomChanged) {
         Objects.requireNonNull(indicator);
         if (showingIndicator && currentIndicator != null &&
-            currentIndicator.equals(indicator))
+            currentIndicator.equals(indicator) && !zoomChanged)
             return;
         Indicator oldIndicator = currentIndicator;
         currentIndicator = indicator;
         if (indicatorWindow == null) {
-            createIndicatorWindow(indicator.size());
+            createIndicatorWindow();
         }
-        else if (indicator.size() != oldIndicator.size()) {
-            Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(0, 0));
-            int scaledIndicatorSize = scaledPixels(indicator.size(), screen.scale());
-            User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, 0, 0,
-                    scaledIndicatorSize + 1, scaledIndicatorSize + 1,
-                    User32.SWP_NOMOVE | User32.SWP_NOZORDER);
+        else if (indicator.size() != oldIndicator.size() || zoomChanged) {
+            User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, bestIndicatorX(),
+                    bestIndicatorY(),
+                    indicatorSize() + 1,
+                    indicatorSize() + 1,
+                    User32.SWP_NOZORDER);
         }
         showingIndicator = true;
         requestWindowRepaint(indicatorWindow.hwnd);
@@ -1019,24 +1062,35 @@ public class WindowsOverlay {
             createZoomWindow();
         }
         currentZoom = zoom;
-        if (currentZoom == null)
+        if (currentZoom == null) {
             User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_HIDE);
+//            User32.INSTANCE.SetWindowPos(
+//                    zoomWindow.hostHwnd(),
+//                    ExtendedUser32.HWND_NOTOPMOST,
+//                    0, 0,
+//                    0, 0,
+//                    User32.SWP_NOMOVE | User32.SWP_NOSIZE
+//            );
+        }
         else {
-            if (!Magnification.INSTANCE.MagSetWindowTransform(zoomWindow.hwnd(),
-                    new Magnification.MAGTRANSFORM.ByReference((float) currentZoom.percent())))
-                logger.error("Failed MagSetWindowTransform: " +
-                             Integer.toHexString(Native.getLastError()));
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
                     zoom.center().y()));
+            currentZoomScreen = screen;
+            if (!Magnification.INSTANCE.MagSetWindowTransform(zoomWindow.hwnd(),
+                    new Magnification.MAGTRANSFORM.ByReference((float) zoomPercent())))
+                logger.error("Failed MagSetWindowTransform: " +
+                             Integer.toHexString(Native.getLastError()));
             User32.INSTANCE.SetWindowPos(zoomWindow.hostHwnd(), null,
                     screen.rectangle().x(), screen.rectangle().y(),
                     screen.rectangle().width(), screen.rectangle().height(),
-                    User32.SWP_NOMOVE | User32.SWP_NOZORDER);
+                    User32.SWP_NOZORDER);
             User32.INSTANCE.SetWindowPos(zoomWindow.hwnd(), null,
                     screen.rectangle().x(), screen.rectangle().y(),
                     screen.rectangle().width(), screen.rectangle().height(),
-                    User32.SWP_NOMOVE | User32.SWP_NOZORDER);
+                    User32.SWP_NOZORDER);
         }
+        if (currentIndicator != null)
+            WindowsOverlay.setIndicator(currentIndicator, true);
     }
 
     private static void updateZoomExcludedWindows() {
@@ -1063,18 +1117,16 @@ public class WindowsOverlay {
     private static WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
                                                      WinDef.WPARAM wParam,
                                                      WinDef.LPARAM lParam) {
-        switch (uMsg) {
-            case WinUser.WM_PAINT:
-//                ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-//                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-//                clearWindow(hdc, ps.rcPaint, 0);
-//                if (showingIndicator) {
-//                    clearWindow(hdc, ps.rcPaint,
-//                            hexColorStringToInt(currentIndicator.hexColor()));
+//        switch (uMsg) {
+//            case WinUser.WM_PAINT:
+//                if (currentZoom == null) {
+//                    ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
+//                    WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
+//                    clearWindow(hdc, ps.rcPaint, 0);
+//                    ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
 //                }
-//                ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
-                break;
-        }
+//                break;
+//        }
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
@@ -1161,16 +1213,11 @@ public class WindowsOverlay {
     static void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
             return;
-        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-        int scaledIndicatorSize =
-                scaledPixels(currentIndicator.size(), activeScreen.scale());
-        MouseSize mouseSize = WindowsMouse.mouseSize();
         User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
-                bestIndicatorX(mousePosition.x, mouseSize.width(),
-                        activeScreen.rectangle(), scaledIndicatorSize),
-                bestIndicatorY(mousePosition.y, mouseSize.height(),
-                        activeScreen.rectangle(), scaledIndicatorSize),
-                scaledIndicatorSize + 1, scaledIndicatorSize + 1, false);
+                bestIndicatorX(),
+                bestIndicatorY(),
+                indicatorSize() + 1,
+                indicatorSize() + 1, false);
     }
 
     public static boolean doesFontExist(String fontName) {

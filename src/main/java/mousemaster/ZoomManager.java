@@ -21,9 +21,8 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         if (newMode.zoom().percent() == 1 && newMode.zoom().center() == ZoomCenter.SCREEN_CENTER)
             WindowsOverlay.setZoom(null);
         else
-            WindowsOverlay.setZoom(
-                    new Zoom(newMode.zoom().percent(),
-                            centerPoint(newMode.zoom().center())));
+            WindowsOverlay.setZoom(new Zoom(newMode.zoom().percent(),
+                    centerPoint(newMode.zoom().center())));
     }
 
     private Point centerPoint(ZoomCenter center) {
@@ -43,5 +42,9 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     public void mouseMoved(int x, int y) {
         mouseX = x;
         mouseY = y;
+        if (currentMode.zoom().center().equals(ZoomCenter.MOUSE)) {
+            WindowsOverlay.setZoom(new Zoom(currentMode.zoom().percent(),
+                    centerPoint(currentMode.zoom().center())));
+        }
     }
 }

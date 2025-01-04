@@ -505,6 +505,16 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.Magnification$MAGTRANSFORM",
+  "methods":[{"name":"<init>","parameterTypes":["float"] }],
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.Magnification$MAGTRANSFORM$ByReference",
+  "methods":[{"name":"<init>","parameterTypes":["float"] }],
+  "allDeclaredFields":true
+},
+{
   "name":"mousemaster.WindowsScreen$1",
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
 },

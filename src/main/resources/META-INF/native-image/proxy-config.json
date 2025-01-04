@@ -30,6 +30,9 @@
     "interfaces":["mousemaster.Shcore"]
   },
   {
+    "interfaces":["mousemaster.Magnification"]
+  },
+  {
     "interfaces": ["mousemaster.ExtendedPsapi"]
   }
 ]
