@@ -1107,12 +1107,14 @@ public class WindowsOverlay {
                     indicatorSize() + 1,
                     indicatorSize() + 1,
                     User32.SWP_NOZORDER);
-            if (showingIndicator)
-                requestWindowRepaint(indicatorWindow.hwnd);
+            if (showingIndicator) {
+                User32.INSTANCE.InvalidateRect(indicatorWindow.hwnd, null, true);
+            }
         }
         if (showingHintMesh) {
-            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
-                requestWindowRepaint(hintMeshWindow.hwnd);
+            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+                User32.INSTANCE.InvalidateRect(hintMeshWindow.hwnd, null, true);
+            }
         }
     }
 
