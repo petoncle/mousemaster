@@ -31,6 +31,7 @@ public class WindowsOverlay {
     private static ZoomWindow zoomWindow;
     private static Zoom currentZoom;
     private static Screen currentZoomScreen;
+    private static boolean mustUpdateMagnifierSource;
 
     public static void update(double delta) {
         updateZoomWindow();
@@ -39,17 +40,22 @@ public class WindowsOverlay {
     private static void updateZoomWindow() {
         if (currentZoom == null)
             return;
-        WinDef.RECT sourceRect = new WinDef.RECT();
-        Zoom zoom = currentZoom;
-        Screen screen = currentZoomScreen;
-        double zoomPercent = zoom.percent();
-        sourceRect.left = (int) (zoom.center().x() - screen.rectangle().width() / zoomPercent / 2);
-        sourceRect.top = (int) (zoom.center().y() - screen.rectangle().height() / zoomPercent / 2);
-        sourceRect.right = (int) (zoom.center().x() + screen.rectangle().width() / zoomPercent / 2);
-        sourceRect.bottom = (int) (zoom.center().y() + screen.rectangle().height() / zoomPercent / 2);
-        if (!Magnification.INSTANCE.MagSetWindowSource(zoomWindow.hwnd(), sourceRect)) {
-            logger.error("Failed MagSetWindowSource: " +
-                         Integer.toHexString(Native.getLastError()));
+        if (mustUpdateMagnifierSource) {
+            mustUpdateMagnifierSource = false;
+            WinDef.RECT sourceRect = new WinDef.RECT();
+            Zoom zoom = currentZoom;
+            Screen screen = currentZoomScreen;
+            double zoomPercent = zoom.percent();
+            sourceRect.left = (int) (zoom.center().x() - screen.rectangle().width() / zoomPercent / 2);
+            sourceRect.top = (int) (zoom.center().y() - screen.rectangle().height() / zoomPercent / 2);
+            sourceRect.right = (int) (zoom.center().x() + screen.rectangle().width() / zoomPercent / 2);
+            sourceRect.bottom = (int) (zoom.center().y() + screen.rectangle().height() / zoomPercent / 2);
+            // Calls to MagSetWindowSource are expensive and last about 10-20ms.
+            if (!Magnification.INSTANCE.MagSetWindowSource(zoomWindow.hwnd(),
+                    sourceRect)) {
+                logger.error("Failed MagSetWindowSource: " +
+                             Integer.toHexString(Native.getLastError()));
+            }
         }
         User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
         User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_SHOWNORMAL);
@@ -1062,15 +1068,9 @@ public class WindowsOverlay {
             createZoomWindow();
         }
         currentZoom = zoom;
+        mustUpdateMagnifierSource = true;
         if (currentZoom == null) {
             User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_HIDE);
-//            User32.INSTANCE.SetWindowPos(
-//                    zoomWindow.hostHwnd(),
-//                    ExtendedUser32.HWND_NOTOPMOST,
-//                    0, 0,
-//                    0, 0,
-//                    User32.SWP_NOMOVE | User32.SWP_NOSIZE
-//            );
         }
         else {
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
