@@ -1080,6 +1080,7 @@ public class WindowsOverlay {
         if (zoomWindow == null) {
             createZoomWindow();
         }
+        Zoom oldZoom = currentZoom;
         currentZoom = zoom;
         mustUpdateMagnifierSource = true;
         if (currentZoom == null) {
@@ -1089,10 +1090,14 @@ public class WindowsOverlay {
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
                     zoom.center().y()));
             currentZoomScreen = screen;
-            if (!Magnification.INSTANCE.MagSetWindowTransform(zoomWindow.hwnd(),
-                    new Magnification.MAGTRANSFORM.ByReference((float) zoomPercent())))
-                logger.error("Failed MagSetWindowTransform: " +
-                             Integer.toHexString(Native.getLastError()));
+            if (oldZoom == null || oldZoom.percent() != zoom.percent()) {
+                // MagSetWindowTransform() can take 10-20ms.
+                if (!Magnification.INSTANCE.MagSetWindowTransform(zoomWindow.hwnd(),
+                        new Magnification.MAGTRANSFORM.ByReference(
+                                (float) zoomPercent())))
+                    logger.error("Failed MagSetWindowTransform: " +
+                                 Integer.toHexString(Native.getLastError()));
+            }
             User32.INSTANCE.SetWindowPos(zoomWindow.hostHwnd(), null,
                     screen.rectangle().x(), screen.rectangle().y(),
                     screen.rectangle().width(), screen.rectangle().height(),
