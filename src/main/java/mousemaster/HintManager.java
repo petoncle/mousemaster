@@ -42,6 +42,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.mouseController = mouseController;
     }
 
+    public Point lastSelectedHintPoint() {
+        return lastSelectedHintPoint;
+    }
+
     public void setPositionHistoryListener(
             List<PositionHistoryListener> positionHistoryListeners) {
         this.positionHistoryListeners = positionHistoryListeners;

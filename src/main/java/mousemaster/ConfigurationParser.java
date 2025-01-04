@@ -9,6 +9,7 @@ import mousemaster.IndicatorConfiguration.IndicatorConfigurationBuilder;
 import mousemaster.ModeTimeout.ModeTimeoutBuilder;
 import mousemaster.Mouse.MouseBuilder;
 import mousemaster.Wheel.WheelBuilder;
+import mousemaster.ZoomConfiguration.ZoomConfigurationBuilder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -107,6 +108,9 @@ public class ConfigurationParser {
                  .mousePressHexColor("#00FF00");
         HideCursorBuilder hideCursor =
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
+        ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
+        zoom.percent(1.0)
+            .center(ZoomCenter.SCREEN_CENTER);
         // @formatter:off
         return Stream.of( //
                 new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
@@ -119,6 +123,7 @@ public class ConfigurationParser {
                 new Property<>("timeout", timeout), 
                 new Property<>("indicator", indicator), 
                 new Property<>("hide-cursor", hideCursor),
+                new Property<>("zoom", zoom),
                 new Property<>("to", Map.of()),
                 new Property<>("start-move", Map.of()),
                 new Property<>("stop-move", Map.of()),
@@ -420,18 +425,22 @@ public class ConfigurationParser {
                                                                                                  200));
                             case "grid-cell-width" -> mode.hintMesh.builder.type()
                                                                            .gridCellWidth(
-                                                                                   parseUnsignedDouble(
+                                                                                   parseDouble(
                                                                                            propertyKey,
                                                                                            propertyValue,
                                                                                            false,
-                                                                                           10_000));
+                                                                                           0,
+                                                                                           10_000
+                                                                                   ));
                             case "grid-cell-height" -> mode.hintMesh.builder.type()
                                                                              .gridCellHeight(
-                                                                                     parseUnsignedDouble(
+                                                                                     parseDouble(
                                                                                              propertyKey,
                                                                                              propertyValue,
                                                                                              false,
-                                                                                             10_000));
+                                                                                             0,
+                                                                                             10_000
+                                                                                     ));
                             case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                     parseHintKeys(propertyKey, propertyValue, keyAliases));
                             case "undo" ->
@@ -443,7 +452,9 @@ public class ConfigurationParser {
                             case "font-color" -> mode.hintMesh.builder.fontHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
-                                    parseUnsignedDouble(propertyKey, propertyValue, true, 1));
+                                    parseDouble(propertyKey, propertyValue, true,
+                                            0, 1
+                                    ));
                             case "prefix-font-color" ->
                                     mode.hintMesh.builder.prefixFontHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
@@ -453,7 +464,9 @@ public class ConfigurationParser {
                             case "box-color" -> mode.hintMesh.builder.boxHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
-                                    parseUnsignedDouble(propertyKey, propertyValue, true, 1));
+                                    parseDouble(propertyKey, propertyValue, true,
+                                            0, 1
+                                    ));
                             // Allow for box grow percent > 1: even with 1, I would get empty pixels
                             // between the cells due to the way we distribute spare pixels.
                             // See HintManager#distributeTrueUniformly.
@@ -462,7 +475,9 @@ public class ConfigurationParser {
                             case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(
-                                    parseUnsignedDouble(propertyKey, propertyValue, true, 1));
+                                    parseDouble(propertyKey, propertyValue, true,
+                                            0, 1
+                                    ));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -607,6 +622,26 @@ public class ConfigurationParser {
                                             parseDuration(propertyValue));
                             default -> throw new IllegalArgumentException(
                                     "Invalid hide-cursor configuration: " + propertyKey);
+                        }
+                    }
+                }
+                case "zoom" -> {
+                    if (keyMatcher.group(3) == null)
+                        mode.zoom.parsePropertyReference(propertyKey, propertyValue,
+                                childPropertiesByParentProperty,
+                                nonRootPropertyKeys);
+                    else if (keyMatcher.group(4) == null)
+                        throw new IllegalArgumentException(
+                                "Invalid zoom property key: " + propertyKey);
+                    else {
+                        switch (keyMatcher.group(4)) {
+                            case "percent" -> mode.zoom.builder.percent(
+                                    parseDouble(propertyKey, propertyValue, true, 1, 10));
+                            case "center" ->
+                                    mode.zoom.builder.center(
+                                            parseZoomCenter(propertyKey, propertyValue));
+                            default -> throw new IllegalArgumentException(
+                                    "Invalid zoom configuration: " + propertyKey);
                         }
                     }
                 }
@@ -1024,13 +1059,13 @@ public class ConfigurationParser {
 
     private static double parseNonZeroPercent(String propertyKey, String propertyValue,
                                               double max) {
-        return parseUnsignedDouble(propertyKey, propertyValue, false, max);
+        return parseDouble(propertyKey, propertyValue, false, 0, max);
     }
 
-    private static double parseUnsignedDouble(String propertyKey, String propertyValue, boolean zeroIncluded,
-                                              double max) {
+    private static double parseDouble(String propertyKey, String propertyValue, boolean minIncluded,
+                                      double min, double max) {
         double percent = Double.parseDouble(propertyValue);
-        if (percent < 0 || percent == 0 && !zeroIncluded)
+        if (percent < min || percent == min && !minIncluded)
             throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey +
                     ": percent must greater than 0.0");
@@ -1118,6 +1153,18 @@ public class ConfigurationParser {
         };
     }
 
+    private static ZoomCenter parseZoomCenter(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "screen-center" -> ZoomCenter.SCREEN_CENTER;
+            case "mouse" -> ZoomCenter.MOUSE;
+            case "last-selected-hint" -> ZoomCenter.LAST_SELECTED_HINT;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " +
+                    List.of("screen-center", "mouse", "last-selected-hint"));
+        };
+    }
+
     private static ComboMoveDuration parseComboMoveDuration(String propertyKey, String propertyValue) {
         String[] split = propertyValue.split("-");
         if (split.length != 2)
@@ -1181,6 +1228,7 @@ public class ConfigurationParser {
         Property<ModeTimeoutBuilder> timeout;
         Property<IndicatorConfigurationBuilder> indicator;
         Property<HideCursorBuilder> hideCursor;
+        Property<ZoomConfigurationBuilder> zoom;
 
         private ModeBuilder(String modeName,
                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -1382,6 +1430,17 @@ public class ConfigurationParser {
                         builder.idleDuration(parent.idleDuration());
                 }
             };
+            zoom = new Property<>("zoom", modeName, propertyByKey,
+                    new ZoomConfigurationBuilder()) {
+                @Override
+                void extend(Object parent_) {
+                    ZoomConfigurationBuilder parent = (ZoomConfigurationBuilder) parent_;
+                    if (builder.percent() == null)
+                        builder.percent(parent.percent());
+                    if (builder.center() == null)
+                        builder.center(parent.center());
+                }
+            };
         }
 
         public Mode build() {
@@ -1390,7 +1449,8 @@ public class ConfigurationParser {
                     modeAfterUnhandledKeyPress.builder.get(), comboMap.build(),
                     mouse.builder.build(), wheel.builder.build(), grid.builder.build(),
                     hintMesh.builder.build(), timeout.builder.build(),
-                    indicator.builder.build(), hideCursor.builder.build());
+                    indicator.builder.build(), hideCursor.builder.build(),
+                    zoom.builder.build());
         }
 
     }

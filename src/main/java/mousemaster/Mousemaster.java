@@ -167,11 +167,12 @@ public class Mousemaster {
                 platform.keyRegurgitator());
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
+        ZoomManager zoomManager = new ZoomManager(screenManager, hintManager);
         modeController =
                 new ModeController(configuration.modeMap(), mouseController, mouseState,
                         keyboardState,
                         List.of(comboWatcher, mouseController, indicatorManager,
-                                gridManager, hintManager));
+                                gridManager, hintManager, zoomManager));
         commandRunner.setModeController(modeController);
         hintManager.setModeController(modeController);
         gridManager.setListeners(List.of(modeController));
@@ -179,7 +180,8 @@ public class Mousemaster {
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
                 configuration.modeMap(),
-                List.of(mouseController, gridManager, hintManager, screenManager));
+                List.of(mouseController, gridManager, hintManager, screenManager,
+                        zoomManager));
     }
 
 }

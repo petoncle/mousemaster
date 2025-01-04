@@ -36,16 +36,17 @@ public class WindowsOverlay {
     }
 
     private static void updateZoomWindow() {
-        if (currentZoom == null || currentZoom.percent() == 1)
+        if (currentZoom == null)
             return;
         WinDef.RECT sourceRect = new WinDef.RECT();
         Zoom zoom = currentZoom;
         Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
                 zoom.center().y()));
-        sourceRect.left = (int) (zoom.center().x() - screen.rectangle().width() / zoom.percent() / 2);
-        sourceRect.top = (int) (zoom.center().y() - screen.rectangle().height() / zoom.percent() / 2);
-        sourceRect.right = (int) (zoom.center().x() + screen.rectangle().width() / zoom.percent() / 2);
-        sourceRect.bottom = (int) (zoom.center().y() + screen.rectangle().height() / zoom.percent() / 2);
+        double zoomPercent = zoom.percent();
+        sourceRect.left = (int) (zoom.center().x() - screen.rectangle().width() / zoomPercent / 2);
+        sourceRect.top = (int) (zoom.center().y() - screen.rectangle().height() / zoomPercent / 2);
+        sourceRect.right = (int) (zoom.center().x() + screen.rectangle().width() / zoomPercent / 2);
+        sourceRect.bottom = (int) (zoom.center().y() + screen.rectangle().height() / zoomPercent / 2);
         if (!Magnification.INSTANCE.MagSetWindowSource(zoomWindow.hwnd(), sourceRect)) {
             logger.error("Failed MagSetWindowSource: " +
                          Integer.toHexString(Native.getLastError()));
@@ -333,10 +334,6 @@ public class WindowsOverlay {
                 hInstance, null);
         logger.info("CreateWindowEx = " + Integer.toHexString(Native.getLastError()));
 
-        if (!Magnification.INSTANCE.MagSetWindowTransform(hwnd,
-                new Magnification.MAGTRANSFORM.ByReference(2f)))
-            logger.error("Failed MagSetWindowTransform: " +
-                         Integer.toHexString(Native.getLastError()));
         zoomWindow = new ZoomWindow(hwnd, hostHwnd, callback);
         updateZoomExcludedWindows();
         return hostHwnd;
@@ -1003,7 +1000,6 @@ public class WindowsOverlay {
         currentIndicator = indicator;
         if (indicatorWindow == null) {
             createIndicatorWindow(indicator.size());
-            setZoom(new Zoom(2, new Point(0, 0)));
         }
         else if (indicator.size() != oldIndicator.size()) {
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(0, 0));
@@ -1017,16 +1013,19 @@ public class WindowsOverlay {
     }
 
     public static void setZoom(Zoom zoom) {
-        Objects.requireNonNull(zoom);
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
         if (zoomWindow == null) {
             createZoomWindow();
         }
         currentZoom = zoom;
-        if (currentZoom.percent() == 1)
+        if (currentZoom == null)
             User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_HIDE);
         else {
+            if (!Magnification.INSTANCE.MagSetWindowTransform(zoomWindow.hwnd(),
+                    new Magnification.MAGTRANSFORM.ByReference((float) currentZoom.percent())))
+                logger.error("Failed MagSetWindowTransform: " +
+                             Integer.toHexString(Native.getLastError()));
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
                     zoom.center().y()));
             User32.INSTANCE.SetWindowPos(zoomWindow.hostHwnd(), null,
@@ -1052,6 +1051,8 @@ public class WindowsOverlay {
         }
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
+        if (hwnds.isEmpty())
+            return;
         if (!Magnification.INSTANCE.MagSetWindowFilterList(zoomWindow.hwnd(),
                 Magnification.MW_FILTERMODE_EXCLUDE, hwnds.size(),
                 hwnds.toArray(new WinDef.HWND[0])))

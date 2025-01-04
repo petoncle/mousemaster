@@ -30,12 +30,12 @@
 
 + Zoom
  + zoom-in=+leftshift, zoom-out commands
- + zoom.center=screen-center, mouse, last-selected-hint
- + zoom.increment-percent=4.0
+  + zoom.center=screen-center, mouse, last-selected-hint
+  + zoom.increment-percent=4.0
  (+ zoom.max-percent, min-percent? min >= 1)
+  + No zoom commands. Instead: hint2-2-mode.zoom.percent=5.0, .center=...
  + Always full screen
  + Show hints on top of zoomed window, with scaled coordinates and size
-  + zoomedPoint(point)
   + Also scale grid and indicator
  + smooth-zoom-enabled=true, smooth-zoom-velocity (like smooth-jump)
   + Expensive if hints need to be recomputed
