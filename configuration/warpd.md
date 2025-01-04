@@ -20,6 +20,7 @@
 - Scroll vertically or horizontally (wheel) with _w_, _e_, _r_, _t_.
 - Slow down mouse movement (decelerate) by holding _d_ while moving the mouse.
 - Accelerate mouse movement by holding _a_ while moving the mouse.
+- Copy and exit with _c_.
 - Exit with _esc_.
 
 ## Hint Mode (_leftalt + x_ or _x_ in normal mode)
@@ -67,4 +68,5 @@
 
 - Allow for selecting text and dragging objects around.
 - Switch to normal mode with _v_ or a mouse button click (_m_, _,_, _._).
+- Copy and exit with _c_.
 - Exit (to idle mode) with _esc_.
