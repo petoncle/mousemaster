@@ -8,12 +8,12 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean moveMouse,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
-                                    int fontSize, String fontHexColor, double fontOpacity,
+                                    double fontSize, String fontHexColor, double fontOpacity,
                                     String prefixFontHexColor,
                                     double highlightFontScale,
                                     String boxHexColor,
                                     double boxOpacity,
-                                    int boxBorderThickness,
+                                    double boxBorderThickness,
                                     String boxBorderHexColor,
                                     double boxBorderOpacity,
                                     String modeAfterSelection,
@@ -28,14 +28,14 @@ public record HintMeshConfiguration(boolean enabled,
         private List<Key> selectionKeys;
         private Key undoKey;
         private String fontName;
-        private Integer fontSize;
+        private Double fontSize;
         private String fontHexColor;
         private Double fontOpacity;
         private String prefixFontHexColor;
         private Double highlightFontScale;
         private String boxHexColor;
         private Double boxOpacity;
-        private Integer boxBorderThickness;
+        private Double boxBorderThickness;
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
         private String modeAfterSelection;
@@ -72,7 +72,7 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder fontSize(int fontSize) {
+        public HintMeshConfigurationBuilder fontSize(double fontSize) {
             this.fontSize = fontSize;
             return this;
         }
@@ -109,7 +109,7 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder boxBorderThickness(int boxBorderThickness) {
+        public HintMeshConfigurationBuilder boxBorderThickness(double boxBorderThickness) {
             this.boxBorderThickness = boxBorderThickness;
             return this;
         }
@@ -170,7 +170,7 @@ public record HintMeshConfiguration(boolean enabled,
             return fontName;
         }
 
-        public Integer fontSize() {
+        public Double fontSize() {
             return fontSize;
         }
 
@@ -198,7 +198,7 @@ public record HintMeshConfiguration(boolean enabled,
             return boxOpacity;
         }
 
-        public Integer boxBorderThickness() {
+        public Double boxBorderThickness() {
             return boxBorderThickness;
         }
 

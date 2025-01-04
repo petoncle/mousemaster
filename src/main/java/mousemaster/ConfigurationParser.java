@@ -447,7 +447,7 @@ public class ConfigurationParser {
                                     mode.hintMesh.builder.undoKey(Key.ofName(propertyValue));
                             case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
                             case "font-size" -> mode.hintMesh.builder.fontSize(
-                                    parseUnsignedInteger(propertyKey, propertyValue, 1,
+                                    parseDouble(propertyKey, propertyValue, false, 0,
                                             1000));
                             case "font-color" -> mode.hintMesh.builder.fontHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
@@ -471,7 +471,7 @@ public class ConfigurationParser {
                             // between the cells due to the way we distribute spare pixels.
                             // See HintManager#distributeTrueUniformly.
                             case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
-                                    Integer.parseUnsignedInt(propertyValue));
+                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
                             case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(

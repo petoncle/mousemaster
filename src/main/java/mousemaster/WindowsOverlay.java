@@ -238,7 +238,7 @@ public class WindowsOverlay {
         updateZoomExcludedWindows();
     }
 
-    private static int scaledPixels(int originalInPixels, double scale) {
+    private static int scaledPixels(double originalInPixels, double scale) {
         return (int) Math.floor(originalInPixels * scale * zoomPercent());
     }
 
@@ -686,12 +686,12 @@ public class WindowsOverlay {
         WinDef.HDC hdcTemp = GDI32.INSTANCE.CreateCompatibleDC(hdc);
 
         String fontName = currentHintMesh.fontName();
-        int fontSize = currentHintMesh.fontSize();
+        double fontSize = currentHintMesh.fontSize();
         double fontOpacity = currentHintMesh.fontOpacity();
         double highlightFontScale = currentHintMesh.highlightFontScale();
         String boxHexColor = currentHintMesh.boxHexColor();
         double boxOpacity = currentHintMesh.boxOpacity();
-        int boxBorderThickness = currentHintMesh.boxBorderThickness();
+        double boxBorderThickness = currentHintMesh.boxBorderThickness();
         String boxBorderHexColor = currentHintMesh.boxBorderHexColor();
         double boxBorderOpacity = currentHintMesh.boxBorderOpacity();
         String fontHexColor = currentHintMesh.fontHexColor();
@@ -837,7 +837,7 @@ public class WindowsOverlay {
                                              int windowHeight, List<Hint> windowHints,
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
-                                             int boxBorderThickness,
+                                             double boxBorderThickness,
                                              WinDef.HFONT normalFont,
                                              WinDef.HFONT largeFont, WinDef.HDC hdcTemp) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
@@ -915,6 +915,8 @@ public class WindowsOverlay {
             int yPadding = (int) (screen.scale() * -1) * 4;
             WinDef.RECT boxRect = new WinDef.RECT();
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
+            if (boxBorderThickness > 0 && scaledBoxBorderThickness == 0)
+                scaledBoxBorderThickness = 1;
             boxRect.left = textX - xPadding + scaledBoxBorderThickness;
             boxRect.top = largeTextY - yPadding + scaledBoxBorderThickness;
             boxRect.right = textX + prefixTextSize.cx + highlightTextSize.cx + suffixTextSize.cx + xPadding
@@ -932,7 +934,7 @@ public class WindowsOverlay {
             cellRect.top = boxRect.top - scaledBoxBorderThickness;
             cellRect.right = boxRect.right + (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
             cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
-            setBoxOrCellRect(boxRect, screen, boxBorderThickness,
+            setBoxOrCellRect(boxRect, screen, scaledBoxBorderThickness,
                     hint,
                     maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
                     isHintPartOfGrid);
@@ -967,12 +969,11 @@ public class WindowsOverlay {
         return new HintMeshDraw(boxRects, cellRects, hintTexts);
     }
 
-    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, int boxBorderThickness,
+    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, double scaledBoxBorderThickness,
                                          Hint hint,
                                          double maxHintCenterX, double maxHintCenterY,
                                          int windowWidth, int windowHeight,
                                          boolean avoidDoubleEdge) {
-        double scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
         double cellWidth = hint.cellWidth();
         double halfCellWidth = cellWidth / 2  - scaledBoxBorderThickness;
         double cellHeight = hint.cellHeight();

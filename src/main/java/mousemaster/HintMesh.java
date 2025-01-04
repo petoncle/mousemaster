@@ -6,10 +6,10 @@ import java.util.List;
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
 public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
-                       String fontName, int fontSize, String fontHexColor, double fontOpacity,
+                       String fontName, double fontSize, String fontHexColor, double fontOpacity,
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
-                       int boxBorderThickness,
+                       double boxBorderThickness,
                        String boxBorderHexColor, double boxBorderOpacity) {
 
     public HintMeshBuilder builder() {
@@ -22,14 +22,14 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private List<Hint> hints;
         private List<Key> focusedKeySequence = List.of();
         private String fontName;
-        private int fontSize;
+        private double fontSize;
         private String fontHexColor;
         private double fontOpacity;
         private String prefixFontHexColor;
         private double highlightFontScale;
         private String boxHexColor;
         private double boxOpacity;
-        private int boxBorderThickness;
+        private double boxBorderThickness;
         private String boxBorderHexColor;
         private double boxBorderOpacity;
 
@@ -74,7 +74,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return fontName;
         }
 
-        public int fontSize() {
+        public double fontSize() {
             return fontSize;
         }
 
@@ -102,7 +102,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return boxOpacity;
         }
 
-        public int boxBorderThickness() {
+        public double boxBorderThickness() {
             return boxBorderThickness;
         }
 
@@ -139,7 +139,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder fontSize(int fontSize) {
+        public HintMeshBuilder fontSize(double fontSize) {
             this.fontSize = fontSize;
             return this;
         }
@@ -176,7 +176,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder boxBorderThickness(int boxBorderThickness) {
+        public HintMeshBuilder boxBorderThickness(double boxBorderThickness) {
             this.boxBorderThickness = boxBorderThickness;
             return this;
         }
