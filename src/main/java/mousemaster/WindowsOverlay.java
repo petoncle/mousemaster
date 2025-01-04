@@ -146,11 +146,15 @@ public class WindowsOverlay {
 
     }
 
+    private record ZoomHintMesh(HintMesh hintMesh, Zoom zoom) {
+
+    }
+
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   WinDef.HWND transparentHwnd,
                                   WinUser.WindowProc callback,
                                   List<Hint> hints,
-                                  Map<HintMesh, HintMeshDraw> hintMeshDrawCache) {
+                                  Map<ZoomHintMesh, HintMeshDraw> hintMeshDrawCache) {
 
     }
 
@@ -168,31 +172,31 @@ public class WindowsOverlay {
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         MouseSize mouseSize = WindowsMouse.mouseSize();
-        return zoomedX(bestIndicatorX(mousePosition.x, mouseSize.width(),
+        return (int) zoomedX(bestIndicatorX(mousePosition.x, mouseSize.width(),
                 activeScreen.rectangle(), indicatorSize()));
     }
 
-    private static int zoomedX(int x) {
+    private static double zoomedX(double x) {
         if (currentZoom == null)
             return x;
-        return (int) (currentZoomScreen.rectangle().width() / 2d +
+        return currentZoomScreen.rectangle().width() / 2d +
                       (x - currentZoom.center().x()) *
-                      currentZoom.percent());
+                      currentZoom.percent();
     }
 
-    private static int zoomedY(int y) {
+    private static double zoomedY(double y) {
         if (currentZoom == null)
             return y;
-        return (int) (currentZoomScreen.rectangle().height() / 2d +
+        return currentZoomScreen.rectangle().height() / 2d +
                       (y - currentZoom.center().y()) *
-                      currentZoom.percent());
+                      currentZoom.percent();
     }
 
     private static int bestIndicatorY() {
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         MouseSize mouseSize = WindowsMouse.mouseSize();
-        return zoomedY(bestIndicatorY(mousePosition.y, mouseSize.height(),
+        return (int) zoomedY(bestIndicatorY(mousePosition.y, mouseSize.height(),
                 activeScreen.rectangle(), indicatorSize()));
     }
 
@@ -320,7 +324,6 @@ public class WindowsOverlay {
                                 existingWindow.callback,
                                 hintsInScreen, new HashMap<>()));
             }
-            updateZoomExcludedWindows();
         }
         if (createdAtLeastOneWindow)
             updateZoomExcludedWindows();
@@ -697,7 +700,7 @@ public class WindowsOverlay {
         int dpi = screen.dpi();
         // Convert point size to logical units.
         // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
-        int fontHeight = -fontSize * dpi / 72;
+        int fontHeight = (int) (-fontSize * dpi * zoomPercent() / 72);
         int largeFontHeight = -(int) (fontSize * highlightFontScale) * dpi / 72;
         // In Windows API, negative font size means "point size" (as opposed to pixels).
         WinDef.HFONT normalFont =
@@ -706,7 +709,8 @@ public class WindowsOverlay {
                 createFont(largeFontHeight, fontName);
         int windowWidth = windowRect.right - windowRect.left;
         int windowHeight = windowRect.bottom - windowRect.top;
-        HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(currentHintMesh,
+        HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(
+                new ZoomHintMesh(currentHintMesh, currentZoom),
                 hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
                         focusedHintKeySequence,
                         highlightFontScale, boxBorderThickness,
@@ -840,13 +844,20 @@ public class WindowsOverlay {
         List<HintText> hintTexts = new ArrayList<>();
         double maxHintCenterX = Double.MIN_VALUE;
         double maxHintCenterY = Double.MIN_VALUE;
+        List<Hint> zoomedWindowHints = currentZoom == null ? windowHints : new ArrayList<>();
         for (Hint hint : windowHints) {
             if (!hint.startsWith(focusedHintKeySequence))
                 continue;
+            if (currentZoom != null) {
+                hint = new Hint(zoomedX(hint.centerX()), zoomedY(hint.centerY()),
+                        zoomPercent() * hint.cellWidth(),
+                        zoomPercent() * hint.cellHeight(), hint.keySequence());
+                zoomedWindowHints.add(hint);
+            }
             maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
         }
-        for (Hint hint : windowHints) {
+        for (Hint hint : zoomedWindowHints) {
             if (!hint.startsWith(focusedHintKeySequence))
                 continue;
             String text = hint.keySequence()
@@ -1040,17 +1051,17 @@ public class WindowsOverlay {
                (int) (blue * opacity);
     }
 
-    public static void setIndicator(Indicator indicator, boolean zoomChanged) {
+    public static void setIndicator(Indicator indicator) {
         Objects.requireNonNull(indicator);
         if (showingIndicator && currentIndicator != null &&
-            currentIndicator.equals(indicator) && !zoomChanged)
+            currentIndicator.equals(indicator))
             return;
         Indicator oldIndicator = currentIndicator;
         currentIndicator = indicator;
         if (indicatorWindow == null) {
             createIndicatorWindow();
         }
-        else if (indicator.size() != oldIndicator.size() || zoomChanged) {
+        else if (indicator.size() != oldIndicator.size()) {
             User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, bestIndicatorX(),
                     bestIndicatorY(),
                     indicatorSize() + 1,
@@ -1089,8 +1100,19 @@ public class WindowsOverlay {
                     screen.rectangle().width(), screen.rectangle().height(),
                     User32.SWP_NOZORDER);
         }
-        if (currentIndicator != null)
-            WindowsOverlay.setIndicator(currentIndicator, true);
+        if (indicatorWindow != null) {
+            User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, bestIndicatorX(),
+                    bestIndicatorY(),
+                    indicatorSize() + 1,
+                    indicatorSize() + 1,
+                    User32.SWP_NOZORDER);
+            if (showingIndicator)
+                requestWindowRepaint(indicatorWindow.hwnd);
+        }
+        if (showingHintMesh) {
+            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+                requestWindowRepaint(hintMeshWindow.hwnd);
+        }
     }
 
     private static void updateZoomExcludedWindows() {

@@ -171,8 +171,8 @@ public class Mousemaster {
         modeController =
                 new ModeController(configuration.modeMap(), mouseController, mouseState,
                         keyboardState,
-                        List.of(comboWatcher, mouseController, indicatorManager,
-                                gridManager, hintManager, zoomManager));
+                        List.of(comboWatcher, mouseController, zoomManager,
+                                indicatorManager, gridManager, hintManager));
         commandRunner.setModeController(modeController);
         hintManager.setModeController(modeController);
         gridManager.setListeners(List.of(modeController));
