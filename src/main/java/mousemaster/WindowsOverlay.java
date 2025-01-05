@@ -57,8 +57,8 @@ public class WindowsOverlay {
                              Integer.toHexString(Native.getLastError()));
             }
         }
-        User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
         User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_SHOWNORMAL);
+        User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
         // Without a setTopmost() call here, the Zoom window would be displayed on top
         // of the indicator window for a single frame.
         setTopmost();
@@ -1122,6 +1122,7 @@ public class WindowsOverlay {
                 User32.INSTANCE.InvalidateRect(hintMeshWindow.hwnd, null, true);
             }
         }
+        updateZoomWindow();
     }
 
     private static void updateZoomExcludedWindows() {
