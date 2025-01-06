@@ -843,6 +843,8 @@ public class WindowsOverlay {
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<WinDef.RECT> cellRects = new ArrayList<>();
         List<HintText> hintTexts = new ArrayList<>();
+        double minHintCenterX = Double.MAX_VALUE;
+        double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = Double.MIN_VALUE;
         double maxHintCenterY = Double.MIN_VALUE;
         List<Hint> zoomedWindowHints = currentZoom == null ? windowHints : new ArrayList<>();
@@ -857,6 +859,8 @@ public class WindowsOverlay {
             }
             maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
+            minHintCenterX = Math.min(minHintCenterX, hint.centerX());
+            minHintCenterY = Math.min(minHintCenterY, hint.centerY());
         }
         for (Hint hint : zoomedWindowHints) {
             if (!hint.startsWith(focusedHintKeySequence))
@@ -936,10 +940,10 @@ public class WindowsOverlay {
             cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
             setBoxOrCellRect(boxRect, screen, scaledBoxBorderThickness,
                     hint,
-                    maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
+                    minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
                     isHintPartOfGrid);
             setBoxOrCellRect(cellRect, screen, 0, hint,
-                    maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
+                    minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
                     isHintPartOfGrid);
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
@@ -971,34 +975,47 @@ public class WindowsOverlay {
 
     private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, double scaledBoxBorderThickness,
                                          Hint hint,
+                                         double minHintCenterX, double minHintCenterY,
                                          double maxHintCenterX, double maxHintCenterY,
                                          int windowWidth, int windowHeight,
-                                         boolean avoidDoubleEdge) {
+                                         boolean partOfHintGrid) {
         double cellWidth = hint.cellWidth();
-        double halfCellWidth = cellWidth / 2  - scaledBoxBorderThickness;
+        double halfCellWidth = cellWidth / 2;
         double cellHeight = hint.cellHeight();
-        double halfCellHeight = cellHeight / 2 - scaledBoxBorderThickness;
-        int boxLeft = (int) Math.round(hint.centerX() - halfCellWidth) - screen.rectangle().x();
-        int boxTop = (int) Math.round(hint.centerY() - halfCellHeight) - screen.rectangle().y();
-        int boxRight = (int) Math.round(hint.centerX() + halfCellWidth) - screen.rectangle().x();
-        // Put back the boxBorderThickness if there is a box above with shared edge to avoid double edge.
-        if (avoidDoubleEdge && hint.centerX() < maxHintCenterX)
-            boxRight += scaledBoxBorderThickness;
-        int boxBottom = (int) Math.round(hint.centerY() + halfCellHeight) - screen.rectangle().y();
-        if (avoidDoubleEdge && hint.centerY() < maxHintCenterY)
-            boxBottom += scaledBoxBorderThickness;
-        if (windowWidth - (boxRight - screen.rectangle().x() + scaledBoxBorderThickness) == 1)
-            // This can happen because of the rounding in boxLeft = Math.round(...) (?)
-            boxRight++;
-        if (windowHeight - (boxBottom - screen.rectangle().y() + scaledBoxBorderThickness) == 1)
-            boxBottom++;
-        if (boxLeft < boxRect.left || boxTop < boxRect.top
-            || boxRight > boxRect.right || boxBottom > boxRect.bottom) {
+        double halfCellHeight = cellHeight / 2;
+        if (partOfHintGrid) {
+            halfCellWidth -= scaledBoxBorderThickness / 2;
+            halfCellHeight -= scaledBoxBorderThickness / 2;
+        }
+        else {
+            halfCellWidth -= scaledBoxBorderThickness;
+            halfCellHeight -= scaledBoxBorderThickness;
+        }
+        double boxLeft = hint.centerX() - halfCellWidth - screen.rectangle().x();
+        double boxTop = hint.centerY() - halfCellHeight - screen.rectangle().y();
+        double boxRight = hint.centerX() + halfCellWidth - screen.rectangle().x();
+        double boxBottom = hint.centerY() + halfCellHeight - screen.rectangle().y();
+        if (partOfHintGrid) {
+            if (hint.centerX() == minHintCenterX)
+                boxLeft += scaledBoxBorderThickness / 2;
+            if (hint.centerY() == minHintCenterY)
+                boxTop += scaledBoxBorderThickness / 2;
+            if (hint.centerX() == maxHintCenterX)
+                boxRight -= scaledBoxBorderThickness / 2;
+            if (hint.centerY() == maxHintCenterY)
+                boxBottom -= scaledBoxBorderThickness / 2;
+        }
+        int roundedBoxLeft = (int) Math.ceil(boxLeft);
+        int roundedBoxTop = (int) Math.ceil(boxTop);
+        int roundedBoxRight = (int) Math.ceil(boxRight);
+        int roundedBoxBottom = (int) Math.ceil(boxBottom);
+        if (roundedBoxLeft < boxRect.left || roundedBoxTop < boxRect.top
+            || roundedBoxRight > boxRect.right || roundedBoxBottom > boxRect.bottom) {
             // Screen selection hint are bigger.
-            boxRect.left = boxLeft;
-            boxRect.top = boxTop;
-            boxRect.right = boxRight;
-            boxRect.bottom = boxBottom;
+            boxRect.left = roundedBoxLeft;
+            boxRect.top = roundedBoxTop;
+            boxRect.right = roundedBoxRight;
+            boxRect.bottom = roundedBoxBottom;
         }
     }
 
