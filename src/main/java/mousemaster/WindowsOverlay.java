@@ -360,9 +360,6 @@ public class WindowsOverlay {
         wClass.lpszClassName = "MagnifierWindow";
         wClass.lpfnWndProc = callback;
         WinDef.ATOM registerClassExResult = User32.INSTANCE.RegisterClassEx(wClass);
-        logger.info(
-                "registerClassExResult = " +
-                Integer.toHexString(registerClassExResult.intValue()));
         int MS_SHOWMAGNIFIEDCURSOR = 0x0001;
         WinDef.HMODULE hInstance = Kernel32.INSTANCE.GetModuleHandle(null);
         WinDef.HWND hostHwnd = User32.INSTANCE.CreateWindowEx(
@@ -373,8 +370,6 @@ public class WindowsOverlay {
                 WinUser.WS_POPUP,
                 0, 0, 10, 10, null, null,
                 hInstance, null);
-        logger.info(
-                "CreateWindowEx host = " + Integer.toHexString(Native.getLastError()));
         // When uncommenting this SetLayeredWindowAttributes call, a black frame is
         // drawn the first time the zoom is used.
 //        User32.INSTANCE.SetLayeredWindowAttributes(hostHwnd, 0, (byte) 255,
@@ -386,7 +381,6 @@ public class WindowsOverlay {
                 0, 0, 10, 10,
                 hostHwnd, null,
                 hInstance, null);
-        logger.info("CreateWindowEx = " + Integer.toHexString(Native.getLastError()));
         zoomWindow = new ZoomWindow(hwnd, hostHwnd, callback);
         updateZoomExcludedWindows();
         return hostHwnd;
