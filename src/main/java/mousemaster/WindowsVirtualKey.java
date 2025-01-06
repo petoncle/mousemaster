@@ -343,7 +343,7 @@ public enum WindowsVirtualKey {
                 Map.entry(Key.uparrow, VK_UP),
                 Map.entry(Key.rightarrow, VK_RIGHT),
                 Map.entry(Key.downarrow, VK_DOWN),
-                Map.entry(Key.printscreen, VK_PRTSCN),
+                Map.entry(Key.printscreen, VK_SNAPSHOT),
                 Map.entry(Key.insert, VK_INSERT),
                 Map.entry(Key.del, VK_DELETE),
                 Map.entry(Key.leftwin, VK_LWIN),
