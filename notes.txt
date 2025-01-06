@@ -33,9 +33,9 @@
   + zoom.center=screen-center, mouse, last-selected-hint
   + zoom.increment-percent=4.0
  (+ zoom.max-percent, min-percent? min >= 1)
-  + No zoom commands. Instead: hint2-2-mode.zoom.percent=5.0, .center=...
- + Always full screen
- + Show hints on top of zoomed window, with scaled coordinates and size
+  - No zoom commands. Instead: hint2-2-mode.zoom.percent=5.0, .center=...
+ - Always full screen
+ - Show hints on top of zoomed window, with scaled coordinates and size
   + Also scale grid and indicator
  + smooth-zoom-enabled=true, smooth-zoom-velocity (like smooth-jump)
   + Expensive if hints need to be recomputed
@@ -43,6 +43,6 @@
  + ZoomSynchronization mouse-and-zoom-center-unsynchronized, zoom-center-follows-mouse
   + Or: always follow mouse but only if it moves (otherwise stay on last-selected-hint)
    + No because doesn't work with smooth jump
-   + Actually yes because MagSetWindowSource is expensive and if we can not call it when
+   + Actually maybe because MagSetWindowSource is expensive and if we can not call it when
      moving the mouse, that is better.
-+ Font size, etc. should be decimals (because scaled by zoom): border width of 0.2: 0.2 * zoom(5.0) = 1px
+- Font size, etc. should be decimals (because scaled by zoom): border width of 0.2: 0.2 * zoom(5.0) = 1px
