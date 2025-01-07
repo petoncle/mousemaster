@@ -75,7 +75,7 @@ public class ConfigurationParser {
                 .fontSize(18)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
-                .prefixFontHexColor("#A3A3A3")
+                .prefixFontHexColor("#CCCCCC")
                 .highlightFontScale(1d)
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
