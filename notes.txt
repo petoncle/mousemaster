@@ -26,7 +26,7 @@
  - _{leftctrl} should only mean that leftctrl has to be pressed beforehand
  - Similarly ^{leftctrl}: ^{leftctrl} +a +leftctrl +b
 
-+ Hint box border: share (split 50/50) border only if there is another hint box next to it
+- Hint box border: share (split 50/50) border only if there is another hint box next to it
 
 + Zoom
  + zoom-in=+leftshift, zoom-out commands

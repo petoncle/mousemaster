@@ -40,26 +40,6 @@ Release _rightalt_ during the second hint pass to not trigger a click after hint
 - Only the characters _i, j, k, l, m_ are used for hint labels to be able to select hints without moving the hand.
 - Exit with _rightalt_, _esc_ or _backspace_.
 
-### Auto-zoom in hint mode
-https://github.com/user-attachments/assets/c4caa091-dc1d-40d7-8ea5-f77318a9b1b3
-
-The Windows Magnifier is used to zoom in when the second hint pass is displayed. In order
-for this to work, the Magnifier settings must be changed. Go to Windows System 
-settings > Magnifier settings, and change the following:
-1. Zoom increment: 400%
-2. View: Full screen
-3. View > Have magnifier follow my: Mouse pointer
-4. View > Keep the mouse pointer: Centered on screen
-5. Reading shortcut: anything other than Ctrl + Alt which would interfere with _rightalt_ 
-(I set it to Insert and I never use it anyway) 
-6. Appearance: Smooth edges of images and text (optional)
-
-Finally, you need to run the Windows Magnifier, unzoom it (so the zoom is 100%)
-and minimize its window.  
-mousemaster will trigger zoom in and zoom out commands when the second hint pass is
-displayed and hidden. The Windows Magnifier must keep running in the
-background (minimized) for this to work.
-
 ## Grid Mode (hold _rightalt_)
 
 - Divide screen into a 2x2 grid, refining target area with each key press.
