@@ -148,6 +148,18 @@ hint1-mode.hide-cursor.enabled=true
 hint1-mode.hide-cursor.idle-duration-millis=0
 ```
 
+### Zoom properties
+
+Automatic zooming can be defined with:
+```properties
+hint2-2-mode.zoom.percent=5.0
+hint2-2-mode.zoom.center=last-selected-hint
+```
+
+- `zoom.percent` must be greater than or equal to 1.0 (100%).
+- `zoom.center` can either be `screen-center`, `mouse`
+  or `last-selected-hint`.
+
 ### Mouse move commands
 
 ```properties

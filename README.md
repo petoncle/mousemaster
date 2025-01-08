@@ -74,19 +74,21 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
    only in specific modes. For example, you can make it so pressing a single key is
    equivalent to sending the combo _⊞ Win + down arrow_, which will minimize the current
    window.
-8. **App-specific modes:** it is possible to create modes that are active only when a specific
+8. **Zoom:** it is possible to configure zoom behavior for a specific mode. For example, 
+   you can set it to zoom in when performing a slow and precise mouse movement.
+9. **App-specific modes:** it is possible to create modes that are active only when a specific
    app is in focus. For example, you can disable all mousemaster shortcuts while
    playing a game.
-9. **Dynamic configuration:** The configuration file is live, mousemaster automatically
-   reloads it whenever the file is saved.
-10. **Visual mouse indicator:** The optional and customizable mouse indicator (a
+10. **Dynamic configuration:** The configuration file is live, mousemaster automatically
+    reloads it whenever the file is saved.
+11. **Visual mouse indicator:** The optional and customizable mouse indicator (a
     plain-color square drawn next to the mouse cursor) changes colors based on mouse
     activity—idle, moving, button pressing, or scrolling. It repositions itself to stay
     visible when the mouse is near screen edges.
-11. **Left/right key distinction:** mousemaster distinguishes between left and right
+12. **Left/right key distinction:** mousemaster distinguishes between left and right
     alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger
     different commands.
-12. **Position history hints:** absolute positions can be saved on the fly to make 
+13. **Position history hints:** absolute positions can be saved on the fly to make 
    it possible to move the mouse to them later.
 
 # Notes
