@@ -7,7 +7,7 @@ import java.util.Set;
 public record Key(String staticName, String staticSingleCharacterName, String character) {
 
     public static final Key tab = new Key("tab", "⭾", null);
-    public static final Key enter = new Key("enter", "↵", null);
+    public static final Key enter = new Key("enter", "⏎", null);
     public static final Key leftshift = new Key("leftshift", "⇧", null);
     public static final Key leftctrl = new Key("leftctrl", "⌃", null);
     public static final Key leftalt = new Key("leftalt", "⎇", null);
