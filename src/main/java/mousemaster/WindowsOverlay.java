@@ -772,19 +772,17 @@ public class WindowsOverlay {
         }
 
         // Enable alpha blending in GDI+
-        int compositingModeStatus = Gdiplus.INSTANCE.GdipSetCompositingMode(graphics.getValue(), 0); // CompositingModeSourceOver
-        if (compositingModeStatus != 0) {
-            throw new RuntimeException("Failed to set CompositingMode. Status: " + compositingModeStatus);
-        }
+//        int compositingModeStatus = Gdiplus.INSTANCE.GdipSetCompositingMode(graphics.getValue(), 0); // CompositingModeSourceOverCopy (?)
+//        if (compositingModeStatus != 0) {
+//            throw new RuntimeException("Failed to set CompositingMode. Status: " + compositingModeStatus);
+//        }
 
-        double opac = 1d;
-//        int c = hexColorStringToRgb(boxHexColor, 1d) | ((int) (opac*255) << 24);
-        int c = overWhiteBoxColor | ((int) (boxOpacity*255) << 24);
+        int c = hexColorStringToRgb(boxHexColor, 1d) | ((int) (boxOpacity*255) << 24);
+//        int c = overWhiteBoxColor | ((int) (boxOpacity*255) << 24);
 //        int c = 0x0000FF | ((int) (255) << 24);
-        logger.info("c = " + Integer.toHexString(c));
         int clearStatus = Gdiplus.INSTANCE.GdipGraphicsClear(graphics.getValue(), c); // ARGB
         if (clearStatus != 0) {
-            throw new RuntimeException("Failed to clear graphics with transparent color. Status: " + clearStatus);
+            throw new RuntimeException("Failed to clear graphics with box color. Status: " + clearStatus);
         }
 //        clearWindow(hdcTemp, windowRect, 0x0);
 
@@ -811,13 +809,12 @@ public class WindowsOverlay {
 
         PointerByReference fontFamily = new PointerByReference();
         int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(new WString(fontName), null, fontFamily);
-        System.out.println("fontFamilyStatus = " +  fontFamilyStatus + ", " +
-                           Integer.toHexString(Native.getLastError()));
 
         PointerByReference font = new PointerByReference();
         int fontStyle = 1; // Regular style
-//        float gdipFontSize = 40f;
-        float gdipFontSize = 120f;
+//        float gdipFontSize = 80f;
+        float gdipFontSize = 20f;
+        gdipFontSize = gdipFontSize * dpi / 72;
         int unit = 2; // UnitPoint
         int fontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), gdipFontSize, fontStyle, unit, font);
         if (fontStatus != 0) {
@@ -840,7 +837,7 @@ public class WindowsOverlay {
                 -1, // Automatically calculate the length of the string
                 fontFamily.getValue(),
                 0, // FontStyle.Regular
-                gdipFontSize, // Font size
+                gdipFontSize,
                 rectPointer,
                 null // Use default string format
         );
@@ -848,29 +845,25 @@ public class WindowsOverlay {
             throw new RuntimeException("Failed to add string to GraphicsPath. Status: " + addStringStatus);
         }
 
-        int glowRadius;
-        PointerByReference pen = new PointerByReference();
-//        int penColor = 0xFFEA8906; // ARGB for Color.FromArgb(234, 137, 6)
-//        int penColor = 0xFFCCCCCC; // ARGB for Color.FromArgb(234, 137, 6)
-//        int penColor = 0xFF000000; // ARGB for Color.FromArgb(234, 137, 6)
-        int penColor = 0x800000FF; // ARGB for Color.FromArgb(234, 137, 6)
-//        int penColor = 0xFF0000FF; // ARGB for Color.FromArgb(234, 137, 6)
-        float penWidth = 15.0f;
-        int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth, 2, pen); // 2 = UnitPixel
-        if (penStatus != 0) {
-            throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
-        }
-
-
-        int setLineJoinStatus = Gdiplus.INSTANCE.GdipSetPenLineJoin(pen.getValue(), 2); // 2 = LineJoinRound
-        if (setLineJoinStatus != 0) {
-            throw new RuntimeException("Failed to set Pen LineJoin to Round. Status: " + setLineJoinStatus);
-        }
-
-        // Draw Path
-        int drawPathStatus = Gdiplus.INSTANCE.GdipDrawPath(graphics.getValue(), pen.getValue(), path.getValue());
-        if (drawPathStatus != 0) {
-            throw new RuntimeException("Failed to draw path. Status: " + drawPathStatus);
+        int glowRadius = 6;
+        List<PointerByReference> pens = new ArrayList<>();
+        for (int penWidth = 0; penWidth < glowRadius; penWidth++) {
+            PointerByReference pen = new PointerByReference();
+            pens.add(pen);
+            int penColor = 0x20111111; // ARGB for Color.FromArgb(234, 137, 6)
+            int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth, 2, pen); // 2 = UnitPixel
+            if (penStatus != 0) {
+                throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
+            }
+            int setLineJoinStatus = Gdiplus.INSTANCE.GdipSetPenLineJoin(pen.getValue(), 2); // 2 = LineJoinRound
+            if (setLineJoinStatus != 0) {
+                throw new RuntimeException("Failed to set Pen LineJoin to Round. Status: " + setLineJoinStatus);
+            }
+            // Draw Path
+            int drawPathStatus = Gdiplus.INSTANCE.GdipDrawPath(graphics.getValue(), pen.getValue(), path.getValue());
+            if (drawPathStatus != 0) {
+                throw new RuntimeException("Failed to draw path. Status: " + drawPathStatus);
+            }
         }
 
         PointerByReference brush = new PointerByReference();
@@ -886,8 +879,6 @@ public class WindowsOverlay {
             throw new RuntimeException("Failed to fill path. Status: " + fillPathStatus);
         }
 
-        // TODO delete pen, etc.
-
         int boxColorInt = hexColorStringToRgb(boxHexColor, boxOpacity) |
                           (int) (boxOpacity * 255) << 24;
         if (boxColorInt == 0)
@@ -899,13 +890,13 @@ public class WindowsOverlay {
         for (int i = 0; i < dibSection.pixelData.length; i++) {
             int pixel = dibSection.pixelData[i];
             int rgb = pixel & 0x00FFFFFF; // Keep RGB
-            if (rgb == overWhiteBoxColor)
+            if (pixel == c)
                 // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
                 // has filled everything with the grey color. That call was needed
                 // because the DrawText needs the grey color for the antialiasing.
                 // Now we remove the grey color, and we will put it back only for the boxes.
                 // (We need to clear the pixels that are not in boxes.)
-                ; //dibSection.pixelData[i] = 0;
+                dibSection.pixelData[i] = 0;
             else if (pixel != 0) {
                 int boxColor = boxColorInt & 0x00FFFFFF;
                 // This breaks gdi text antialias, but necessary for text transparency (?) // TODO
@@ -936,24 +927,24 @@ public class WindowsOverlay {
 //                dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
             }
         }
-//        for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
-//            for (int x = Math.max(0, boxRect.left); x < Math.min(windowWidth, boxRect.right); x++) {
-//                for (int y = Math.max(0, boxRect.top); y < Math.min(windowHeight, boxRect.bottom); y++) {
-//                    // The box may go past the screen dimensions.
-//                    if (dibSection.pixelData[y * windowWidth + x] == 0)
-//                        dibSection.pixelData[y * windowWidth + x] = boxColorInt;
-//                }
-//            }
-//        }
-//        for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
-//            for (int x = Math.max(0, cellRect.left); x < Math.min(windowWidth, cellRect.right); x++) {
-//                for (int y = Math.max(0, cellRect.top); y < Math.min(windowHeight, cellRect.bottom); y++) {
-//                    // The cell may go past the screen dimensions.
-//                    if (dibSection.pixelData[y * windowWidth + x] == 0)
-//                        dibSection.pixelData[y * windowWidth + x] = colorBetweenBoxesInt;
-//                }
-//            }
-//        }
+        for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
+            for (int x = Math.max(0, boxRect.left); x < Math.min(windowWidth, boxRect.right); x++) {
+                for (int y = Math.max(0, boxRect.top); y < Math.min(windowHeight, boxRect.bottom); y++) {
+                    // The box may go past the screen dimensions.
+                    if (dibSection.pixelData[y * windowWidth + x] == 0)
+                        dibSection.pixelData[y * windowWidth + x] = boxColorInt;
+                }
+            }
+        }
+        for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
+            for (int x = Math.max(0, cellRect.left); x < Math.min(windowWidth, cellRect.right); x++) {
+                for (int y = Math.max(0, cellRect.top); y < Math.min(windowHeight, cellRect.bottom); y++) {
+                    // The cell may go past the screen dimensions.
+                    if (dibSection.pixelData[y * windowWidth + x] == 0)
+                        dibSection.pixelData[y * windowWidth + x] = colorBetweenBoxesInt;
+                }
+            }
+        }
         dibSection.pixelPointer.write(0, dibSection.pixelData, 0, dibSection.pixelData.length);
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
@@ -964,6 +955,9 @@ public class WindowsOverlay {
         // Step 7: Cleanup
         Gdiplus.INSTANCE.GdipDeleteFont(font.getValue());
         Gdiplus.INSTANCE.GdipDeleteBrush(brush.getValue());
+        for (PointerByReference pen : pens)
+            Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
+        Gdiplus.INSTANCE.GdipDeletePath(path.getValue());
         Gdiplus.INSTANCE.GdipDeleteFontFamily(fontFamily.getValue());
         Gdiplus.INSTANCE.GdipDeleteGraphics(graphics.getValue());
 //        GDI32.INSTANCE.DeleteDC(gdiplusDC);

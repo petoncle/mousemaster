@@ -52,6 +52,8 @@ public interface Gdiplus extends StdCallLibrary {
     int GdipDeleteBrush(Pointer brush);
     int GdipAddPathString(Pointer path, WString text, int length, Pointer font, int fontStyle, float fontSize, Pointer layoutRect, Pointer format);
     int GdipCreatePen1(int argb, float width, int unit, PointerByReference pen);
+    int GdipDeletePen(Pointer pen);
+    int GdipDeletePath(Pointer path);
 
     class GdiplusStartupInput extends Structure {
         public int GdiplusVersion;       // GDI+ version, must be 1
