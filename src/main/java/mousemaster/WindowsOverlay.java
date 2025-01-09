@@ -662,9 +662,9 @@ public class WindowsOverlay {
     }
 
     private record HintText(
-            WinDef.RECT prefixRect, String prefixText,
-            WinDef.RECT highlightRect, String highlightText,
-            WinDef.RECT suffixRect, String suffixText
+            Gdiplus.GdiplusRectF prefixRect, String prefixText,
+            Gdiplus.GdiplusRectF highlightRect, String highlightText,
+            Gdiplus.GdiplusRectF suffixRect, String suffixText
             ) {
 
     }
@@ -779,27 +779,36 @@ public class WindowsOverlay {
 
         PointerByReference font = new PointerByReference();
         int fontStyle = 1; // Regular style
-//        float gdipFontSize = 80f;
-        float gdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
+        float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
+        float largeGdipFontSize = (float) (fontSize * highlightFontScale * dpi * zoomPercent() / 72);
         int unit = 2; // UnitPoint
-        int fontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), gdipFontSize, fontStyle, unit, font);
-        if (fontStatus != 0) {
-            throw new RuntimeException("Failed to create Font. Status: " + fontStatus);
+        int normalFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), normalGdipFontSize, fontStyle, unit, font);
+        if (normalFontStatus != 0) {
+            throw new RuntimeException("Failed to create Font. Status: " + normalFontStatus);
+        }
+        int largeFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), largeGdipFontSize, fontStyle, unit, font);
+        if (largeFontStatus != 0) {
+            throw new RuntimeException("Failed to create Font. Status: " + largeFontStatus);
         }
 
-        PointerByReference path = new PointerByReference();
-        int createPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, path); // 0 = FillModeAlternate
-        if (createPathStatus != 0) {
-            throw new RuntimeException("Failed to create GraphicsPath. Status: " + createPathStatus);
+        PointerByReference prefixPath = new PointerByReference();
+        int createPrefixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, prefixPath); // 0 = FillModeAlternate
+        if (createPrefixPathStatus != 0) {
+            throw new RuntimeException("Failed to create GraphicsPath. Status: " + createPrefixPathStatus);
         }
+        PointerByReference suffixPath = new PointerByReference();
+        int createSuffixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, suffixPath);
+        PointerByReference highlightPath = new PointerByReference();
+        int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
 
-        int glowRadius = 4;
+        int glowRadius = 0; //1
+        float penWidthMultiplier = 4;
         List<PointerByReference> outlinePens = new ArrayList<>();
-        for (int penWidth = 0; penWidth < glowRadius; penWidth++) {
+        for (int penWidth = 1; penWidth <= glowRadius; penWidth++) {
             PointerByReference pen = new PointerByReference();
             outlinePens.add(pen);
             int penColor = 0x30111111; // ARGB
-            int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth, 2, pen); // 2 = UnitPixel
+            int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth * penWidthMultiplier, 2, pen); // 2 = UnitPixel
             if (penStatus != 0) {
                 throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
             }
@@ -809,39 +818,39 @@ public class WindowsOverlay {
             }
         }
 
-        PointerByReference fontBrush = new PointerByReference();
-        int brushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
-        int brushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(brushColor, fontBrush);
-        if (brushStatus != 0) {
-            throw new RuntimeException("Failed to create Brush. Status: " + brushStatus);
+        PointerByReference prefixFontBrush = new PointerByReference();
+        int prefixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(prefixFontHexColor, 1d);
+        int prefixFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(prefixFontBrushColor, prefixFontBrush);
+        if (prefixFontBrushStatus != 0) {
+            throw new RuntimeException("Failed to create Brush. Status: " + prefixFontBrushStatus);
         }
+        PointerByReference suffixFontBrush = new PointerByReference();
+        int suffixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
+        int suffixFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(suffixFontBrushColor, suffixFontBrush);
+        PointerByReference highlightFontBrush = new PointerByReference();
+        int highlightFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
+        int highlightFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(highlightFontBrushColor, highlightFontBrush);
 
-        drawHintText2(graphics, path, outlinePens, fontBrush, fontFamily, gdipFontSize);
-
-/*
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
-                GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
-                drawHintText(hdcTemp, hintText.prefixRect,
-                        hintText.prefixText, dibSection, windowWidth,
-                        prefixFontColorInt);
+                // Color is defined in the brush.
+                drawHintText2(hintText.prefixText, prefixPath, fontFamily, normalGdipFontSize, hintText.prefixRect);
             }
             if (hintText.suffixRect != null) {
-                GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
-                drawHintText(hdcTemp, hintText.suffixRect, hintText.suffixText,
-                        dibSection, windowWidth, fontColorInt);
+                drawHintText2(hintText.suffixText, suffixPath, fontFamily, normalGdipFontSize, hintText.suffixRect);
             }
             if (hintText.highlightRect != null) {
-                WinNT.HANDLE largeFont0 =
+                float largeGdipFontSize0 =
                         hintText.prefixRect == null && hintText.suffixRect == null ?
-                                normalFont : largeFont;
-                GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
-                drawHintText(hdcTemp, hintText.highlightRect,
-                        hintText.highlightText, dibSection, windowWidth,
-                        fontColorInt);
+                                normalGdipFontSize : largeGdipFontSize;
+                drawHintText2(hintText.highlightText, prefixPath, fontFamily, largeGdipFontSize0, hintText.highlightRect);
             }
         }
-*/
+
+        drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
+        drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
+        drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
+
 
 //        if (boxColor == 0) // TODO?
 //            boxColor = 1;
@@ -887,10 +896,14 @@ public class WindowsOverlay {
 
         // Step 7: Cleanup
         Gdiplus.INSTANCE.GdipDeleteFont(font.getValue());
-        Gdiplus.INSTANCE.GdipDeleteBrush(fontBrush.getValue());
+        Gdiplus.INSTANCE.GdipDeleteBrush(prefixFontBrush.getValue());
+        Gdiplus.INSTANCE.GdipDeleteBrush(suffixFontBrush.getValue());
+        Gdiplus.INSTANCE.GdipDeleteBrush(highlightFontBrush.getValue());
         for (PointerByReference pen : outlinePens)
             Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
-        Gdiplus.INSTANCE.GdipDeletePath(path.getValue());
+        Gdiplus.INSTANCE.GdipDeletePath(prefixPath.getValue());
+        Gdiplus.INSTANCE.GdipDeletePath(suffixPath.getValue());
+        Gdiplus.INSTANCE.GdipDeletePath(highlightPath.getValue());
         Gdiplus.INSTANCE.GdipDeleteFontFamily(fontFamily.getValue());
         Gdiplus.INSTANCE.GdipDeleteGraphics(graphics.getValue());
 //        GDI32.INSTANCE.DeleteDC(gdiplusDC);
@@ -902,28 +915,9 @@ public class WindowsOverlay {
 
     }
 
-    private static void drawHintText2(PointerByReference graphics, PointerByReference path,
-                                      List<PointerByReference> outlinePens,
-                                      PointerByReference fontBrush, PointerByReference fontFamily,
-                                      float gdipFontSize) {
-        Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(700, 400, 600, 500);
-        Pointer rectPointer = layoutRect.getPointer();
-        layoutRect.write(); // Ensure the RECT structure is written to memory
-
-        int addPathStringStatus = Gdiplus.INSTANCE.GdipAddPathString(
-                path.getValue(),
-                new WString("HELLO MJI! ABC"),
-                -1, // Automatically calculate the length of the string.
-                fontFamily.getValue(),
-                0, // FontStyle.Regular
-                gdipFontSize,
-                rectPointer,
-                null // Use default string format.
-        );
-        if (addPathStringStatus != 0) {
-            throw new RuntimeException("Failed to add path string to GraphicsPath. Status: " + addPathStringStatus);
-        }
-
+    private static void drawAndFillPath(List<PointerByReference> outlinePens,
+                                  PointerByReference graphics, PointerByReference path,
+                                  PointerByReference fontBrush) {
         for (PointerByReference pen : outlinePens) {
             // Draw Path
             int drawPathStatus = Gdiplus.INSTANCE.GdipDrawPath(graphics.getValue(), pen.getValue(), path.getValue());
@@ -934,6 +928,28 @@ public class WindowsOverlay {
         int fillPathStatus = Gdiplus.INSTANCE.GdipFillPath(graphics.getValue(), fontBrush.getValue(), path.getValue());
         if (fillPathStatus != 0) {
             throw new RuntimeException("Failed to fill path. Status: " + fillPathStatus);
+        }
+    }
+
+    private static void drawHintText2(String text, PointerByReference path,
+                                      PointerByReference fontFamily,
+                                      float gdipFontSize, Gdiplus.GdiplusRectF textRect) {
+        Gdiplus.GdiplusRectF layoutRect = textRect;
+        gdipFontSize = (float) Math.floor(gdipFontSize);
+        textRect.width += 50;
+
+        int addPathStringStatus = Gdiplus.INSTANCE.GdipAddPathString(
+                path.getValue(),
+                new WString(text),
+                -1, // Automatically calculate the length of the string.
+                fontFamily.getValue(),
+                0, // FontStyle.Regular
+                gdipFontSize,
+                layoutRect,
+                null // Use default string format.
+        );
+        if (addPathStringStatus != 0) {
+            throw new RuntimeException("Failed to add path string to GraphicsPath. Status: " + addPathStringStatus);
         }
     }
 
@@ -1064,18 +1080,18 @@ public class WindowsOverlay {
                     isHintPartOfGrid);
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
-            WinDef.RECT prefixRect;
+            Gdiplus.GdiplusRectF prefixRect;
             if (prefixText.isEmpty())
                 prefixRect = null;
             else
                 prefixRect = textRect(textX, normalTextY, prefixTextSize);
-            WinDef.RECT highlightRect;
+            Gdiplus.GdiplusRectF highlightRect;
             if (highlightText.isEmpty())
                 highlightRect = null;
             else
                 highlightRect = textRect(textX + prefixTextSize.cx, largeTextY,
                         highlightTextSize);
-            WinDef.RECT suffixRect;
+            Gdiplus.GdiplusRectF suffixRect;
             if (suffixText.isEmpty())
                 suffixRect = null;
             else
@@ -1136,13 +1152,8 @@ public class WindowsOverlay {
         }
     }
 
-    private static WinDef.RECT textRect(int textX, int textY, WinUser.SIZE textSize) {
-        WinDef.RECT textRect = new WinDef.RECT();
-        textRect.left = textX;
-        textRect.top = textY;
-        textRect.right = textRect.left + textSize.cx;
-        textRect.bottom = textRect.top + textSize.cy;
-        return textRect;
+    private static Gdiplus.GdiplusRectF textRect(int textX, int textY, WinUser.SIZE textSize) {
+        return new Gdiplus.GdiplusRectF(textX, textY, textSize.cx, textSize.cy);
     }
 
     private static void drawHintText(WinDef.HDC hdc, WinDef.RECT textRect, String text,

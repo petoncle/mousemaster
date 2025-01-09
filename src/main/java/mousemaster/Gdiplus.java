@@ -50,7 +50,7 @@ public interface Gdiplus extends StdCallLibrary {
     int GdipDrawString(Pointer graphics, WString text, int length, Pointer font, Pointer layoutRect, Pointer format, Pointer brush);
     int GdipDeleteFont(Pointer font);
     int GdipDeleteBrush(Pointer brush);
-    int GdipAddPathString(Pointer path, WString text, int length, Pointer font, int fontStyle, float fontSize, Pointer layoutRect, Pointer format);
+    int GdipAddPathString(Pointer path, WString text, int length, Pointer font, int fontStyle, float fontSize, Gdiplus.GdiplusRectF layoutRect, Pointer format);
     int GdipCreatePen1(int argb, float width, int unit, PointerByReference pen);
     int GdipDeletePen(Pointer pen);
     int GdipDeletePath(Pointer path);
