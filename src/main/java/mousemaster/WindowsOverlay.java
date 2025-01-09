@@ -479,7 +479,7 @@ public class WindowsOverlay {
                     ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
                     break;
                 }
-                User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 0, WinUser.LWA_ALPHA);
+                //User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 0, WinUser.LWA_ALPHA);
                 WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
                 if (hintMeshWindow.hints.isEmpty())
                     clearLayeredWindow(hdc, ps, hintMeshWindow);
@@ -763,7 +763,6 @@ public class WindowsOverlay {
         }
 */
 
-//        clearWindow(hdcTemp, windowRect, 0x0);
         PointerByReference graphics = new PointerByReference();
 //        WinDef.HDC gdiplusDC = GDI32.INSTANCE.CreateCompatibleDC(null);
 //        int graphicsStatus = Gdiplus.INSTANCE.GdipCreateFromHDC(gdiplusDC, graphics);
@@ -773,17 +772,21 @@ public class WindowsOverlay {
         }
 
         // Enable alpha blending in GDI+
-        int compositingModeStatus = Gdiplus.INSTANCE.GdipSetCompositingMode(graphics.getValue(), 1); // CompositingModeSourceOver
+        int compositingModeStatus = Gdiplus.INSTANCE.GdipSetCompositingMode(graphics.getValue(), 0); // CompositingModeSourceOver
         if (compositingModeStatus != 0) {
             throw new RuntimeException("Failed to set CompositingMode. Status: " + compositingModeStatus);
         }
 
-//        double opac = 0.4d; // Doesn't work. GDI+ still makes this an opaque color.
-//        int c = alphaMultipliedChannelsColor(0xFF0000, opac) | ((int) (255 * opac) << 24);;
-//        int clearStatus = Gdiplus.INSTANCE.GdipGraphicsClear(graphics.getValue(), c); // ARGB Fully Transparent
-//        if (clearStatus != 0) {
-//            throw new RuntimeException("Failed to clear graphics with transparent color. Status: " + clearStatus);
-//        }
+        double opac = 1d;
+//        int c = hexColorStringToRgb(boxHexColor, 1d) | ((int) (opac*255) << 24);
+        int c = overWhiteBoxColor | ((int) (boxOpacity*255) << 24);
+//        int c = 0x0000FF | ((int) (255) << 24);
+        logger.info("c = " + Integer.toHexString(c));
+        int clearStatus = Gdiplus.INSTANCE.GdipGraphicsClear(graphics.getValue(), c); // ARGB
+        if (clearStatus != 0) {
+            throw new RuntimeException("Failed to clear graphics with transparent color. Status: " + clearStatus);
+        }
+//        clearWindow(hdcTemp, windowRect, 0x0);
 
 //        int compositingStatus = Gdiplus.INSTANCE.GdipSetCompositingQuality(graphics.getValue(), 3); // HighQuality
 //        if (compositingStatus != 0) {
@@ -850,8 +853,8 @@ public class WindowsOverlay {
 //        int penColor = 0xFFEA8906; // ARGB for Color.FromArgb(234, 137, 6)
 //        int penColor = 0xFFCCCCCC; // ARGB for Color.FromArgb(234, 137, 6)
 //        int penColor = 0xFF000000; // ARGB for Color.FromArgb(234, 137, 6)
-//        int penColor = 0x800000FF; // ARGB for Color.FromArgb(234, 137, 6)
-        int penColor = 0x300000FF; // ARGB for Color.FromArgb(234, 137, 6)
+        int penColor = 0x800000FF; // ARGB for Color.FromArgb(234, 137, 6)
+//        int penColor = 0xFF0000FF; // ARGB for Color.FromArgb(234, 137, 6)
         float penWidth = 15.0f;
         int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth, 2, pen); // 2 = UnitPixel
         if (penStatus != 0) {
@@ -902,11 +905,15 @@ public class WindowsOverlay {
                 // because the DrawText needs the grey color for the antialiasing.
                 // Now we remove the grey color, and we will put it back only for the boxes.
                 // (We need to clear the pixels that are not in boxes.)
-                dibSection.pixelData[i] = 0;
+                ; //dibSection.pixelData[i] = 0;
             else if (pixel != 0) {
                 int boxColor = boxColorInt & 0x00FFFFFF;
                 // This breaks gdi text antialias, but necessary for text transparency (?) // TODO
                 int existingAlpha = (pixel & 0xFF000000) >> 24;
+//                if (existingAlpha < 10) {
+//                    logger.info("existingAlpha = " + Integer.toHexString(existingAlpha));
+//                    dibSection.pixelData[i] = pixel | (0xff << 24);
+//                }
 //                if (existingAlpha != 0) {
 //                    if (rgb < 0xF00000) // if not white
 //                    existingAlpha = (int) (0.5d * 0xFF);
@@ -929,24 +936,24 @@ public class WindowsOverlay {
 //                dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
             }
         }
-        for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
-            for (int x = Math.max(0, boxRect.left); x < Math.min(windowWidth, boxRect.right); x++) {
-                for (int y = Math.max(0, boxRect.top); y < Math.min(windowHeight, boxRect.bottom); y++) {
-                    // The box may go past the screen dimensions.
-                    if (dibSection.pixelData[y * windowWidth + x] == 0)
-                        dibSection.pixelData[y * windowWidth + x] = boxColorInt;
-                }
-            }
-        }
-        for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
-            for (int x = Math.max(0, cellRect.left); x < Math.min(windowWidth, cellRect.right); x++) {
-                for (int y = Math.max(0, cellRect.top); y < Math.min(windowHeight, cellRect.bottom); y++) {
-                    // The cell may go past the screen dimensions.
-                    if (dibSection.pixelData[y * windowWidth + x] == 0)
-                        dibSection.pixelData[y * windowWidth + x] = colorBetweenBoxesInt;
-                }
-            }
-        }
+//        for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
+//            for (int x = Math.max(0, boxRect.left); x < Math.min(windowWidth, boxRect.right); x++) {
+//                for (int y = Math.max(0, boxRect.top); y < Math.min(windowHeight, boxRect.bottom); y++) {
+//                    // The box may go past the screen dimensions.
+//                    if (dibSection.pixelData[y * windowWidth + x] == 0)
+//                        dibSection.pixelData[y * windowWidth + x] = boxColorInt;
+//                }
+//            }
+//        }
+//        for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
+//            for (int x = Math.max(0, cellRect.left); x < Math.min(windowWidth, cellRect.right); x++) {
+//                for (int y = Math.max(0, cellRect.top); y < Math.min(windowHeight, cellRect.bottom); y++) {
+//                    // The cell may go past the screen dimensions.
+//                    if (dibSection.pixelData[y * windowWidth + x] == 0)
+//                        dibSection.pixelData[y * windowWidth + x] = colorBetweenBoxesInt;
+//                }
+//            }
+//        }
         dibSection.pixelPointer.write(0, dibSection.pixelData, 0, dibSection.pixelData.length);
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
