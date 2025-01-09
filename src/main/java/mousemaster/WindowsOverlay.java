@@ -2,6 +2,7 @@ package mousemaster;
 
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
+import com.sun.jna.WString;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.PointerByReference;
 import mousemaster.WindowsMouse.MouseSize;
@@ -673,6 +674,15 @@ public class WindowsOverlay {
                                 List<HintText> hintTexts) {
     }
 
+    static {
+        PointerByReference gdiplusToken = new PointerByReference();
+        int status = Gdiplus.INSTANCE.GdiplusStartup(gdiplusToken,
+                new Gdiplus.GdiplusStartupInput(), null);
+        if (status != 0) {
+            throw new RuntimeException("GDI+ initialization failed with status: " + status);
+        }
+    }
+
     private static void drawHints(WinDef.HDC hdc,
                                   WinDef.RECT windowRect, Screen screen,
                                   HintMeshWindow hintMeshWindow,
@@ -750,6 +760,97 @@ public class WindowsOverlay {
                         fontColorInt);
             }
         }
+
+        PointerByReference graphics = new PointerByReference();
+//        WinDef.HDC gdiplusDC = GDI32.INSTANCE.CreateCompatibleDC(null);
+//        int graphicsStatus = Gdiplus.INSTANCE.GdipCreateFromHDC(gdiplusDC, graphics);
+        int graphicsStatus = Gdiplus.INSTANCE.GdipCreateFromHDC(hdcTemp, graphics);
+        if (graphicsStatus != 0) {
+            throw new RuntimeException("Failed to create Graphics object. Status: " + graphicsStatus);
+        }
+
+        int compositingStatus = Gdiplus.INSTANCE.GdipSetCompositingQuality(graphics.getValue(), 3); // HighQuality
+        if (compositingStatus != 0) {
+            throw new RuntimeException("Failed to set CompositingQuality. Status: " + compositingStatus);
+        }
+
+        // Set TextRenderingHint to AntiAliasGridFit
+        int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 4); // AntiAliasGridFit
+        if (textRenderingStatus != 0) {
+            throw new RuntimeException("Failed to set TextRenderingHint. Status: " + textRenderingStatus);
+        }
+
+        PointerByReference fontFamily = new PointerByReference();
+        int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(new WString(fontName), null, fontFamily);
+        System.out.println("fontFamilyStatus = " +  fontFamilyStatus + ", " +
+                           Integer.toHexString(Native.getLastError()));
+
+        PointerByReference font = new PointerByReference();
+        int fontStyle = 1; // Regular style
+//        float gdipFontSize = 22f;
+        float gdipFontSize = 96f;
+        int unit = 2; // UnitPoint
+        int fontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), gdipFontSize, fontStyle, unit, font);
+        if (fontStatus != 0) {
+            throw new RuntimeException("Failed to create Font. Status: " + fontStatus);
+        }
+
+        PointerByReference brush = new PointerByReference();
+        int brushColor = 0xFFFFFFFF; // ARGB White
+        int brushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(brushColor, brush);
+        if (brushStatus != 0) {
+            throw new RuntimeException("Failed to create Brush. Status: " + brushStatus);
+        }
+
+        Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(700, 400, 600, 500);
+        Pointer rectPointer = layoutRect.getPointer();
+        layoutRect.write(); // Ensure the RECT structure is written to memory
+
+        PointerByReference shadowBrush = new PointerByReference();
+        int shadowBrushColor = 0x80000000; // ARGB Black with 50% opacity
+        int shadowBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowBrushColor, shadowBrush);
+        if (shadowBrushStatus != 0) {
+            throw new RuntimeException("Failed to create Shadow Brush. Status: " + shadowBrushStatus);
+        }
+
+// Draw shadow text with an offset
+        Gdiplus.GdiplusRectF shadowLayoutRect = new Gdiplus.GdiplusRectF(
+                layoutRect.x + 5, // X offset for shadow
+                layoutRect.y + 5, // Y offset for shadow
+                layoutRect.width,
+                layoutRect.height
+        );
+        Pointer shadowRectPointer = shadowLayoutRect.getPointer();
+        shadowLayoutRect.write(); // Ensure the shadow RECT structure is written to memory
+
+        int shadowDrawStatus = Gdiplus.INSTANCE.GdipDrawString(
+                graphics.getValue(),
+                new WString("Hello, MJI!"),
+                -1, // Length (-1 to calculate automatically)
+                font.getValue(),
+                shadowRectPointer,
+                null, // Use default string format
+                shadowBrush.getValue()
+        );
+        if (shadowDrawStatus != 0) {
+            throw new RuntimeException("Failed to draw shadow text. Status: " + shadowDrawStatus);
+        }
+
+
+        // Step 6: Draw the Text
+        int drawStatus = Gdiplus.INSTANCE.GdipDrawString(
+                graphics.getValue(),
+                new WString("Hello, MJI!"),
+                -1, // Length (-1 to calculate automatically)
+                font.getValue(),
+                rectPointer,
+                null, // Use default string format
+                brush.getValue()
+        );
+        if (drawStatus != 0) {
+            throw new RuntimeException("Failed to draw string. Status: " + drawStatus);
+        }
+
         int boxColorInt = hexColorStringToRgb(boxHexColor, boxOpacity) |
                           (int) (boxOpacity * 255) << 24;
         if (boxColorInt == 0)
@@ -806,6 +907,13 @@ public class WindowsOverlay {
 
         GDI32.INSTANCE.DeleteObject(normalFont);
         GDI32.INSTANCE.DeleteObject(largeFont);
+
+        // Step 7: Cleanup
+        Gdiplus.INSTANCE.GdipDeleteFont(font.getValue());
+        Gdiplus.INSTANCE.GdipDeleteBrush(brush.getValue());
+        Gdiplus.INSTANCE.GdipDeleteFontFamily(fontFamily.getValue());
+        Gdiplus.INSTANCE.GdipDeleteGraphics(graphics.getValue());
+//        GDI32.INSTANCE.DeleteDC(gdiplusDC);
 
         GDI32.INSTANCE.SelectObject(hdcTemp, oldDIBitmap);
         GDI32.INSTANCE.DeleteObject(hbm);

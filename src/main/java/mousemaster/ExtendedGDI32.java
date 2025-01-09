@@ -127,4 +127,6 @@ public interface ExtendedGDI32 extends GDI32 {
 
     byte DEFAULT_CHARSET = 1;
 
+    boolean TextOutA(WinDef.HDC hdc, int nXStart, int nYStart, String lpString, int cbString);
+
 }
