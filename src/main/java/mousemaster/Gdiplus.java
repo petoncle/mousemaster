@@ -35,6 +35,8 @@ public interface Gdiplus extends StdCallLibrary {
     int GdipSetCompositingQuality(Pointer graphics, int quality);
     int GdipSetTextRenderingHint(Pointer graphics, int hint);
 
+    int GdipGraphicsClear(Pointer graphics, int argb);
+
     int GdipCreateSolidFill(int color, PointerByReference brush);
     int GdipDrawString(Pointer graphics, WString text, int length, Pointer font, Pointer layoutRect, Pointer format, Pointer brush);
     int GdipDeleteFont(Pointer font);

@@ -738,6 +738,7 @@ public class WindowsOverlay {
         clearWindow(hdcTemp, windowRect, overWhiteBoxColor);
         int prefixFontColorInt = hexColorStringToInt(prefixFontHexColor);
         int fontColorInt = hexColorStringToInt(fontHexColor);
+/*
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
                 GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
@@ -760,6 +761,7 @@ public class WindowsOverlay {
                         fontColorInt);
             }
         }
+*/
 
         PointerByReference graphics = new PointerByReference();
 //        WinDef.HDC gdiplusDC = GDI32.INSTANCE.CreateCompatibleDC(null);
@@ -768,6 +770,13 @@ public class WindowsOverlay {
         if (graphicsStatus != 0) {
             throw new RuntimeException("Failed to create Graphics object. Status: " + graphicsStatus);
         }
+
+//        double opac = 0.4d; // Doesn't work. GDI+ still makes this an opaque color.
+//        int c = alphaMultipliedChannelsColor(0xFF0000, opac) | ((int) (255 * opac) << 24);;
+//        int clearStatus = Gdiplus.INSTANCE.GdipGraphicsClear(graphics.getValue(), c); // ARGB Fully Transparent
+//        if (clearStatus != 0) {
+//            throw new RuntimeException("Failed to clear graphics with transparent color. Status: " + clearStatus);
+//        }
 
         int compositingStatus = Gdiplus.INSTANCE.GdipSetCompositingQuality(graphics.getValue(), 3); // HighQuality
         if (compositingStatus != 0) {
@@ -807,7 +816,7 @@ public class WindowsOverlay {
         layoutRect.write(); // Ensure the RECT structure is written to memory
 
         PointerByReference shadowBrush = new PointerByReference();
-        int shadowBrushColor = 0x80000000; // ARGB Black with 50% opacity
+        int shadowBrushColor = 0x80FFFFFF; // ARGB Black with 50% opacity
         int shadowBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowBrushColor, shadowBrush);
         if (shadowBrushStatus != 0) {
             throw new RuntimeException("Failed to create Shadow Brush. Status: " + shadowBrushStatus);
@@ -815,8 +824,8 @@ public class WindowsOverlay {
 
 // Draw shadow text with an offset
         Gdiplus.GdiplusRectF shadowLayoutRect = new Gdiplus.GdiplusRectF(
-                layoutRect.x + 5, // X offset for shadow
-                layoutRect.y + 5, // Y offset for shadow
+                layoutRect.x + 1, // X offset for shadow
+                layoutRect.y + 1, // Y offset for shadow
                 layoutRect.width,
                 layoutRect.height
         );
@@ -825,7 +834,7 @@ public class WindowsOverlay {
 
         int shadowDrawStatus = Gdiplus.INSTANCE.GdipDrawString(
                 graphics.getValue(),
-                new WString("Hello, MJI!"),
+                new WString("HELLO MJI!"),
                 -1, // Length (-1 to calculate automatically)
                 font.getValue(),
                 shadowRectPointer,
@@ -838,9 +847,10 @@ public class WindowsOverlay {
 
 
         // Step 6: Draw the Text
+/*
         int drawStatus = Gdiplus.INSTANCE.GdipDrawString(
                 graphics.getValue(),
-                new WString("Hello, MJI!"),
+                new WString("HELLO MJI!"),
                 -1, // Length (-1 to calculate automatically)
                 font.getValue(),
                 rectPointer,
@@ -850,6 +860,7 @@ public class WindowsOverlay {
         if (drawStatus != 0) {
             throw new RuntimeException("Failed to draw string. Status: " + drawStatus);
         }
+*/
 
         int boxColorInt = hexColorStringToRgb(boxHexColor, boxOpacity) |
                           (int) (boxOpacity * 255) << 24;
@@ -872,6 +883,13 @@ public class WindowsOverlay {
             else if (pixel != 0) {
                 int boxColor = boxColorInt & 0x00FFFFFF;
                 rgb = blend(boxColor, rgb, fontOpacity);
+                int existingAlpha = (pixel & 0xFF000000) >> 24;
+                if (existingAlpha != 0) {
+                    // GDI+ text does not multiply the channels by the alpha
+                    logger.info("existingAlpha = " + existingAlpha);
+                    dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, existingAlpha/255d) | (existingAlpha << 24);
+                }
+                else
                 dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
 //                // Make the text pixel fully opaque.
 //                double fontOpacity = 0.1d;//0.4d;
