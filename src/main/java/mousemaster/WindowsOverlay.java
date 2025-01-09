@@ -763,12 +763,19 @@ public class WindowsOverlay {
         }
 */
 
+//        clearWindow(hdcTemp, windowRect, 0x0);
         PointerByReference graphics = new PointerByReference();
 //        WinDef.HDC gdiplusDC = GDI32.INSTANCE.CreateCompatibleDC(null);
 //        int graphicsStatus = Gdiplus.INSTANCE.GdipCreateFromHDC(gdiplusDC, graphics);
         int graphicsStatus = Gdiplus.INSTANCE.GdipCreateFromHDC(hdcTemp, graphics);
         if (graphicsStatus != 0) {
             throw new RuntimeException("Failed to create Graphics object. Status: " + graphicsStatus);
+        }
+
+        // Enable alpha blending in GDI+
+        int compositingModeStatus = Gdiplus.INSTANCE.GdipSetCompositingMode(graphics.getValue(), 1); // CompositingModeSourceOver
+        if (compositingModeStatus != 0) {
+            throw new RuntimeException("Failed to set CompositingMode. Status: " + compositingModeStatus);
         }
 
 //        double opac = 0.4d; // Doesn't work. GDI+ still makes this an opaque color.
@@ -778,15 +785,25 @@ public class WindowsOverlay {
 //            throw new RuntimeException("Failed to clear graphics with transparent color. Status: " + clearStatus);
 //        }
 
-        int compositingStatus = Gdiplus.INSTANCE.GdipSetCompositingQuality(graphics.getValue(), 3); // HighQuality
-        if (compositingStatus != 0) {
-            throw new RuntimeException("Failed to set CompositingQuality. Status: " + compositingStatus);
+//        int compositingStatus = Gdiplus.INSTANCE.GdipSetCompositingQuality(graphics.getValue(), 3); // HighQuality
+//        if (compositingStatus != 0) {
+//            throw new RuntimeException("Failed to set CompositingQuality. Status: " + compositingStatus);
+//        }
+//
+//        // Set TextRenderingHint to AntiAliasGridFit
+//        int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 4); // AntiAliasGridFit
+//        if (textRenderingStatus != 0) {
+//            throw new RuntimeException("Failed to set TextRenderingHint. Status: " + textRenderingStatus);
+//        }
+
+        int smoothingModeStatus = Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(), 2); // 2= SmoothingModeAntiAlias
+        if (smoothingModeStatus != 0) {
+            throw new RuntimeException("Failed to set SmoothingMode. Status: " + smoothingModeStatus);
         }
 
-        // Set TextRenderingHint to AntiAliasGridFit
-        int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 4); // AntiAliasGridFit
-        if (textRenderingStatus != 0) {
-            throw new RuntimeException("Failed to set TextRenderingHint. Status: " + textRenderingStatus);
+        int interpolationModeStatus = Gdiplus.INSTANCE.GdipSetInterpolationMode(graphics.getValue(), 7); // InterpolationModeHighQualityBicubic
+        if (interpolationModeStatus != 0) {
+            throw new RuntimeException("Failed to set SmoothingMode. Status: " + interpolationModeStatus);
         }
 
         PointerByReference fontFamily = new PointerByReference();
@@ -796,71 +813,77 @@ public class WindowsOverlay {
 
         PointerByReference font = new PointerByReference();
         int fontStyle = 1; // Regular style
-//        float gdipFontSize = 22f;
-        float gdipFontSize = 96f;
+//        float gdipFontSize = 40f;
+        float gdipFontSize = 120f;
         int unit = 2; // UnitPoint
         int fontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), gdipFontSize, fontStyle, unit, font);
         if (fontStatus != 0) {
             throw new RuntimeException("Failed to create Font. Status: " + fontStatus);
         }
 
+        Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(700, 400, 600, 500);
+        Pointer rectPointer = layoutRect.getPointer();
+        layoutRect.write(); // Ensure the RECT structure is written to memory
+
+        PointerByReference path = new PointerByReference();
+        int createPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, path); // 0 = FillModeAlternate
+        if (createPathStatus != 0) {
+            throw new RuntimeException("Failed to create GraphicsPath. Status: " + createPathStatus);
+        }
+
+        int addStringStatus = Gdiplus.INSTANCE.GdipAddPathString(
+                path.getValue(),
+                new WString("HELLO MJI! ABC"),
+                -1, // Automatically calculate the length of the string
+                fontFamily.getValue(),
+                0, // FontStyle.Regular
+                gdipFontSize, // Font size
+                rectPointer,
+                null // Use default string format
+        );
+        if (addStringStatus != 0) {
+            throw new RuntimeException("Failed to add string to GraphicsPath. Status: " + addStringStatus);
+        }
+
+        int glowRadius;
+        PointerByReference pen = new PointerByReference();
+//        int penColor = 0xFFEA8906; // ARGB for Color.FromArgb(234, 137, 6)
+//        int penColor = 0xFFCCCCCC; // ARGB for Color.FromArgb(234, 137, 6)
+//        int penColor = 0xFF000000; // ARGB for Color.FromArgb(234, 137, 6)
+//        int penColor = 0x800000FF; // ARGB for Color.FromArgb(234, 137, 6)
+        int penColor = 0x300000FF; // ARGB for Color.FromArgb(234, 137, 6)
+        float penWidth = 15.0f;
+        int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth, 2, pen); // 2 = UnitPixel
+        if (penStatus != 0) {
+            throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
+        }
+
+
+        int setLineJoinStatus = Gdiplus.INSTANCE.GdipSetPenLineJoin(pen.getValue(), 2); // 2 = LineJoinRound
+        if (setLineJoinStatus != 0) {
+            throw new RuntimeException("Failed to set Pen LineJoin to Round. Status: " + setLineJoinStatus);
+        }
+
+        // Draw Path
+        int drawPathStatus = Gdiplus.INSTANCE.GdipDrawPath(graphics.getValue(), pen.getValue(), path.getValue());
+        if (drawPathStatus != 0) {
+            throw new RuntimeException("Failed to draw path. Status: " + drawPathStatus);
+        }
+
         PointerByReference brush = new PointerByReference();
         int brushColor = 0xFFFFFFFF; // ARGB White
+//        int brushColor = 0xFF000000;
         int brushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(brushColor, brush);
         if (brushStatus != 0) {
             throw new RuntimeException("Failed to create Brush. Status: " + brushStatus);
         }
 
-        Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(700, 400, 600, 500);
-        Pointer rectPointer = layoutRect.getPointer();
-        layoutRect.write(); // Ensure the RECT structure is written to memory
-
-        PointerByReference shadowBrush = new PointerByReference();
-        int shadowBrushColor = 0x80FFFFFF; // ARGB Black with 50% opacity
-        int shadowBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowBrushColor, shadowBrush);
-        if (shadowBrushStatus != 0) {
-            throw new RuntimeException("Failed to create Shadow Brush. Status: " + shadowBrushStatus);
+        int fillPathStatus = Gdiplus.INSTANCE.GdipFillPath(graphics.getValue(), brush.getValue(), path.getValue());
+        if (fillPathStatus != 0) {
+            throw new RuntimeException("Failed to fill path. Status: " + fillPathStatus);
         }
 
-// Draw shadow text with an offset
-        Gdiplus.GdiplusRectF shadowLayoutRect = new Gdiplus.GdiplusRectF(
-                layoutRect.x + 1, // X offset for shadow
-                layoutRect.y + 1, // Y offset for shadow
-                layoutRect.width,
-                layoutRect.height
-        );
-        Pointer shadowRectPointer = shadowLayoutRect.getPointer();
-        shadowLayoutRect.write(); // Ensure the shadow RECT structure is written to memory
-
-        int shadowDrawStatus = Gdiplus.INSTANCE.GdipDrawString(
-                graphics.getValue(),
-                new WString("HELLO MJI!"),
-                -1, // Length (-1 to calculate automatically)
-                font.getValue(),
-                shadowRectPointer,
-                null, // Use default string format
-                shadowBrush.getValue()
-        );
-        if (shadowDrawStatus != 0) {
-            throw new RuntimeException("Failed to draw shadow text. Status: " + shadowDrawStatus);
-        }
-
-
-        // Step 6: Draw the Text
-/*
-        int drawStatus = Gdiplus.INSTANCE.GdipDrawString(
-                graphics.getValue(),
-                new WString("HELLO MJI!"),
-                -1, // Length (-1 to calculate automatically)
-                font.getValue(),
-                rectPointer,
-                null, // Use default string format
-                brush.getValue()
-        );
-        if (drawStatus != 0) {
-            throw new RuntimeException("Failed to draw string. Status: " + drawStatus);
-        }
-*/
+        // TODO delete pen, etc.
 
         int boxColorInt = hexColorStringToRgb(boxHexColor, boxOpacity) |
                           (int) (boxOpacity * 255) << 24;
@@ -882,15 +905,20 @@ public class WindowsOverlay {
                 dibSection.pixelData[i] = 0;
             else if (pixel != 0) {
                 int boxColor = boxColorInt & 0x00FFFFFF;
-                rgb = blend(boxColor, rgb, fontOpacity);
+                // This breaks gdi text antialias, but necessary for text transparency (?) // TODO
                 int existingAlpha = (pixel & 0xFF000000) >> 24;
-                if (existingAlpha != 0) {
-                    // GDI+ text does not multiply the channels by the alpha
-                    logger.info("existingAlpha = " + existingAlpha);
-                    dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, existingAlpha/255d) | (existingAlpha << 24);
-                }
-                else
-                dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
+//                if (existingAlpha != 0) {
+//                    if (rgb < 0xF00000) // if not white
+//                    existingAlpha = (int) (0.5d * 0xFF);
+//                    // GDI+ text does not multiply the channels by the alpha
+//                    dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, existingAlpha/255d) | (existingAlpha << 24);
+//                }
+//                else {
+//                    fontOpacity = existingAlpha / 255d;
+//                    rgb = blend(boxColor, rgb, fontOpacity);
+//                    mergedOpacity = boxOpacity + fontOpacity * (1 - boxOpacity);
+//                    dibSection.pixelData[i] = alphaMultipliedChannelsColor(rgb, mergedOpacity) | ((int) (255 * mergedOpacity) << 24);
+//                }
 //                // Make the text pixel fully opaque.
 //                double fontOpacity = 0.1d;//0.4d;
 //                double mergedOpacity = boxOpacity + fontOpacity * (1 - boxOpacity); // looks smoother

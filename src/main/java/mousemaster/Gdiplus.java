@@ -32,8 +32,17 @@ public interface Gdiplus extends StdCallLibrary {
 
     int GdipCreateFont(Pointer family, float size, int style, int unit, PointerByReference font);
 
+    int GdipSetCompositingMode(Pointer graphics, int mode);
     int GdipSetCompositingQuality(Pointer graphics, int quality);
     int GdipSetTextRenderingHint(Pointer graphics, int hint);
+
+    int GdipSetSmoothingMode(Pointer graphics, int smoothingMode); // https://learn.microsoft.com/en-us/windows/win32/api/gdiplusenums/ne-gdiplusenums-smoothingmode
+    int GdipSetInterpolationMode(Pointer graphics, int interpolationMode); // https://learn.microsoft.com/en-us/windows/win32/api/gdiplusenums/ne-gdiplusenums-interpolationmode
+
+    int GdipCreatePath(int brushMode, PointerByReference path);
+    int GdipDrawPath(Pointer graphics, Pointer pen, Pointer path);
+    int GdipFillPath(Pointer graphics, Pointer brush, Pointer path);
+    int GdipSetPenLineJoin(Pointer pen, int lineJoin);
 
     int GdipGraphicsClear(Pointer graphics, int argb);
 
@@ -41,6 +50,8 @@ public interface Gdiplus extends StdCallLibrary {
     int GdipDrawString(Pointer graphics, WString text, int length, Pointer font, Pointer layoutRect, Pointer format, Pointer brush);
     int GdipDeleteFont(Pointer font);
     int GdipDeleteBrush(Pointer brush);
+    int GdipAddPathString(Pointer path, WString text, int length, Pointer font, int fontStyle, float fontSize, Pointer layoutRect, Pointer format);
+    int GdipCreatePen1(int argb, float width, int unit, PointerByReference pen);
 
     class GdiplusStartupInput extends Structure {
         public int GdiplusVersion;       // GDI+ version, must be 1
