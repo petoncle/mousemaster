@@ -705,33 +705,16 @@ public class WindowsOverlay {
         int dpi = screen.dpi();
         // Convert point size to logical units.
         // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
-        int fontHeight = (int) (-fontSize * dpi * zoomPercent() / 72);
-        int largeFontHeight = -(int) (fontSize * highlightFontScale) * dpi / 72;
-        // In Windows API, negative font size means "point size" (as opposed to pixels).
-        WinDef.HFONT normalFont =
-                createFont(fontHeight, fontName);
-        WinDef.HFONT largeFont = highlightFontScale == 1 ? normalFont :
-                createFont(largeFontHeight, fontName);
         int windowWidth = windowRect.right - windowRect.left;
         int windowHeight = windowRect.bottom - windowRect.top;
-        HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(
-                new ZoomHintMesh(currentHintMesh, currentZoom),
-                hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
-                        focusedHintKeySequence,
-                        highlightFontScale, boxBorderThickness,
-                        normalFont, largeFont, hdcTemp));
 
         WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, windowWidth, windowHeight);
         GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
-
         DibSection dibSection = createDibSection(windowWidth, windowHeight, hdcTemp);
         // Select the DIB section into the memory DC.
         WinNT.HANDLE oldDIBitmap = GDI32.INSTANCE.SelectObject(hdcTemp, dibSection.hDIBitmap);
         if (oldDIBitmap == null)
             throw new RuntimeException("Unable to select bitmap into source DC.");
-
-        double mergedOpacity = boxOpacity + fontOpacity * (1 - boxOpacity);
-        int prefixFontColorInt = hexColorStringToInt(prefixFontHexColor);
 
         PointerByReference graphics = new PointerByReference();
         int graphicsStatus = Gdiplus.INSTANCE.GdipCreateFromHDC(hdcTemp, graphics);
@@ -739,30 +722,12 @@ public class WindowsOverlay {
             throw new RuntimeException("Failed to create Graphics object. Status: " + graphicsStatus);
         }
 
-        // Enable alpha blending in GDI+
-//        int compositingModeStatus = Gdiplus.INSTANCE.GdipSetCompositingMode(graphics.getValue(), 0); // CompositingModeSourceOverCopy (?)
-//        if (compositingModeStatus != 0) {
-//            throw new RuntimeException("Failed to set CompositingMode. Status: " + compositingModeStatus);
-//        }
-
         int boxColor =
                 hexColorStringToRgb(boxHexColor, 1d) | ((int) (boxOpacity * 255) << 24);
         int clearStatus = Gdiplus.INSTANCE.GdipGraphicsClear(graphics.getValue(), boxColor); // ARGB
         if (clearStatus != 0) {
             throw new RuntimeException("Failed to clear graphics with box color. Status: " + clearStatus);
         }
-//        clearWindow(hdcTemp, windowRect, 0x0);
-
-//        int compositingStatus = Gdiplus.INSTANCE.GdipSetCompositingQuality(graphics.getValue(), 3); // HighQuality
-//        if (compositingStatus != 0) {
-//            throw new RuntimeException("Failed to set CompositingQuality. Status: " + compositingStatus);
-//        }
-//
-//        // Set TextRenderingHint to AntiAliasGridFit
-//        int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 4); // AntiAliasGridFit
-//        if (textRenderingStatus != 0) {
-//            throw new RuntimeException("Failed to set TextRenderingHint. Status: " + textRenderingStatus);
-//        }
 
         int smoothingModeStatus = Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(), 2); // 2= SmoothingModeAntiAlias
         if (smoothingModeStatus != 0) {
@@ -777,10 +742,10 @@ public class WindowsOverlay {
         PointerByReference fontFamily = new PointerByReference();
         int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(new WString(fontName), null, fontFamily);
 
-//        float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
-//        float largeGdipFontSize = (float) (fontSize * highlightFontScale * dpi * zoomPercent() / 72);
-        float normalGdipFontSize = (float) (-fontHeight / zoomPercent());
-        float largeGdipFontSize = (float) (-largeFontHeight / zoomPercent());
+        float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
+        float largeGdipFontSize = (float) (fontSize * highlightFontScale * dpi * zoomPercent() / 72);
+//        float normalGdipFontSize = (float) (-fontHeight / zoomPercent());
+//        float largeGdipFontSize = (float) (-largeFontHeight / zoomPercent());
 
         PointerByReference prefixPath = new PointerByReference();
         int createPrefixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, prefixPath); // 0 = FillModeAlternate
@@ -822,19 +787,60 @@ public class WindowsOverlay {
         int highlightFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
         int highlightFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(highlightFontBrushColor, highlightFontBrush);
 
+        // Create StringFormat
+        PointerByReference stringFormat = new PointerByReference();
+        int stringFormatStatus = Gdiplus.INSTANCE.GdipCreateStringFormat(0, null, stringFormat);
+        if (stringFormatStatus != 0) {
+            throw new RuntimeException("Failed to create StringFormat. Status: " + stringFormatStatus);
+        }
+
+        // Set Horizontal Alignment (DT_LEFT -> StringAlignmentNear)
+        int setAlignStatus = Gdiplus.INSTANCE.GdipSetStringFormatAlign(stringFormat.getValue(), 0); // 0 = StringAlignmentNear
+        if (setAlignStatus != 0) {
+            throw new RuntimeException("Failed to set StringFormat alignment. Status: " + setAlignStatus);
+        }
+
+        // Set Vertical Alignment (DT_TOP -> StringAlignmentNear)
+        int setLineAlignStatus = Gdiplus.INSTANCE.GdipSetStringFormatLineAlign(stringFormat.getValue(), 0); // 0 = StringAlignmentNear
+        if (setLineAlignStatus != 0) {
+            throw new RuntimeException("Failed to set StringFormat line alignment. Status: " + setLineAlignStatus);
+        }
+
+        PointerByReference normalFont = new PointerByReference();
+        int fontStyle = 1; // Regular style
+        int unit = 2; // UnitPoint
+        int normalFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), normalGdipFontSize, fontStyle, unit, normalFont);
+        if (normalFontStatus != 0) {
+            throw new RuntimeException("Failed to create Font. Status: " + normalFontStatus);
+        }
+        PointerByReference largeFont = new PointerByReference();
+        int largeFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), largeGdipFontSize, fontStyle, unit, largeFont);
+        if (largeFontStatus != 0) {
+            throw new RuntimeException("Failed to create Font. Status: " + largeFontStatus);
+        }
+
+        HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(
+                new ZoomHintMesh(currentHintMesh, currentZoom),
+                hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
+                        focusedHintKeySequence,
+                        highlightFontScale, boxBorderThickness,
+                        graphics, normalFont, largeFont, stringFormat));
+
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
                 // Color is defined in the brush.
-                drawHintText2(hintText.prefixText, prefixPath, fontFamily, normalGdipFontSize, hintText.prefixRect);
+                drawHintText2(hintText.prefixText, prefixPath, fontFamily, normalGdipFontSize, hintText.prefixRect, stringFormat);
             }
             if (hintText.suffixRect != null) {
-                drawHintText2(hintText.suffixText, suffixPath, fontFamily, normalGdipFontSize, hintText.suffixRect);
+                drawHintText2(hintText.suffixText, suffixPath, fontFamily, normalGdipFontSize, hintText.suffixRect,
+                        stringFormat);
             }
             if (hintText.highlightRect != null) {
                 float largeGdipFontSize0 =
                         hintText.prefixRect == null && hintText.suffixRect == null ?
                                 normalGdipFontSize : largeGdipFontSize;
-                drawHintText2(hintText.highlightText, prefixPath, fontFamily, largeGdipFontSize0, hintText.highlightRect);
+                drawHintText2(hintText.highlightText, prefixPath, fontFamily, largeGdipFontSize0, hintText.highlightRect,
+                        stringFormat);
             }
         }
 
@@ -882,13 +888,12 @@ public class WindowsOverlay {
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
 
-        GDI32.INSTANCE.DeleteObject(normalFont);
-        GDI32.INSTANCE.DeleteObject(largeFont);
-
         // Step 7: Cleanup
         Gdiplus.INSTANCE.GdipDeleteBrush(prefixFontBrush.getValue());
         Gdiplus.INSTANCE.GdipDeleteBrush(suffixFontBrush.getValue());
         Gdiplus.INSTANCE.GdipDeleteBrush(highlightFontBrush.getValue());
+        Gdiplus.INSTANCE.GdipDeleteFont(normalFont.getValue());
+        Gdiplus.INSTANCE.GdipDeleteFont(largeFont.getValue());
         for (PointerByReference pen : outlinePens)
             Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
         Gdiplus.INSTANCE.GdipDeletePath(prefixPath.getValue());
@@ -923,11 +928,9 @@ public class WindowsOverlay {
 
     private static void drawHintText2(String text, PointerByReference path,
                                       PointerByReference fontFamily,
-                                      float gdipFontSize, Gdiplus.GdiplusRectF textRect) {
+                                      float gdipFontSize, Gdiplus.GdiplusRectF textRect,
+                                      PointerByReference stringFormat) {
         Gdiplus.GdiplusRectF layoutRect = textRect;
-//        gdipFontSize = (float) Math.floor(gdipFontSize);
-        textRect.width += 100;
-
         int addPathStringStatus = Gdiplus.INSTANCE.GdipAddPathString(
                 path.getValue(),
                 new WString(text),
@@ -936,7 +939,7 @@ public class WindowsOverlay {
                 0, // FontStyle.Regular
                 gdipFontSize,
                 layoutRect,
-                null // Use default string format.
+                stringFormat.getValue() // Use default string format.
         );
         if (addPathStringStatus != 0) {
             throw new RuntimeException("Failed to add path string to GraphicsPath. Status: " + addPathStringStatus);
@@ -961,8 +964,10 @@ public class WindowsOverlay {
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
                                              double boxBorderThickness,
-                                             WinDef.HFONT normalFont,
-                                             WinDef.HFONT largeFont, WinDef.HDC hdcTemp) {
+                                             PointerByReference graphics,
+                                             PointerByReference normalFont,
+                                             PointerByReference largeFont,
+                                             PointerByReference stringFormat) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<WinDef.RECT> cellRects = new ArrayList<>();
         List<HintText> hintTexts = new ArrayList<>();
@@ -1006,37 +1011,33 @@ public class WindowsOverlay {
             String suffixText = prefixText.length() == text.length() ? "" :
                     text.substring(prefixText.length() + highlightText.length());
             // Measure text size.
-            WinNT.HANDLE largeFont0 = text.length() == 1 ? normalFont : largeFont;
-            GDI32.INSTANCE.SelectObject(hdcTemp, largeFont0);
-            WinUser.SIZE highlightTextSize = new WinUser.SIZE();
+            PointerByReference largeFont0 = text.length() == 1 ? normalFont : largeFont;
+            Gdiplus.GdiplusRectF highlightTextSize = new Gdiplus.GdiplusRectF();
+            Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(0, 0, Float.MAX_VALUE, Float.MAX_VALUE);
             if (!highlightText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, highlightText,
-                        highlightText.length(),
-                        highlightTextSize);
+                measureString(text, largeFont0, graphics, layoutRect, highlightTextSize,
+                        stringFormat);
             }
-            GDI32.INSTANCE.SelectObject(hdcTemp, normalFont);
-            WinUser.SIZE prefixTextSize = new WinUser.SIZE();
+            Gdiplus.GdiplusRectF prefixTextSize = new Gdiplus.GdiplusRectF();
             if (!prefixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, prefixText,
-                        prefixText.length(),
-                        prefixTextSize);
+                measureString(prefixText, normalFont, graphics, layoutRect, prefixTextSize,
+                        stringFormat);
             }
-            WinUser.SIZE suffixTextSize = new WinUser.SIZE();
+            Gdiplus.GdiplusRectF suffixTextSize = new Gdiplus.GdiplusRectF();
             if (!suffixText.isEmpty()) {
-                ExtendedGDI32.INSTANCE.GetTextExtentPoint32A(hdcTemp, suffixText,
-                        suffixText.length(),
-                        suffixTextSize);
+                measureString(suffixText, normalFont, graphics, layoutRect, suffixTextSize,
+                        stringFormat);
             }
-            int textWidth = prefixTextSize.cx + highlightTextSize.cx + suffixTextSize.cx;
-            int normalTextHeight = !prefixText.isEmpty() ? prefixTextSize.cy :
-                    suffixTextSize.cy;
-            int largeTextHeight = !highlightText.isEmpty() ? highlightTextSize.cy : normalTextHeight;
-            int textX = (int) hint.centerX() - screen.rectangle().x() - textWidth / 2;
+            float textWidth = prefixTextSize.width + highlightTextSize.width + suffixTextSize.width;
+            float normalTextHeight = !prefixText.isEmpty() ? prefixTextSize.height :
+                    suffixTextSize.height;
+            float largeTextHeight = !highlightText.isEmpty() ? highlightTextSize.height : normalTextHeight;
+            int textX = (int) (hint.centerX() - screen.rectangle().x() - textWidth / 2);
             int largeTextY =
-                    (int) hint.centerY() - screen.rectangle().y() - largeTextHeight / 2;
+                    (int) (hint.centerY() - screen.rectangle().y() - largeTextHeight / 2);
             int normalTextY =
-                    (int) hint.centerY() - screen.rectangle().y() - normalTextHeight / 2;
-//            int textY = largeTextY + (largeTextSize.cy/2 - textSize.cy/2 + (largeTextSize.cy-textSize.cy)/4);
+                    (int) (hint.centerY() - screen.rectangle().y() - normalTextHeight / 2);
+//            int textY = largeTextY + (largeTextSize.height/2 - textSize.height/2 + (largeTextSize.height-textSize.height)/4);
             // Try to minimize the size of the box. Looks good with Consolas 10.
             int xPadding = (int) (screen.scale() * 1);
             int yPadding = (int) (screen.scale() * -1) * 4;
@@ -1046,10 +1047,11 @@ public class WindowsOverlay {
                 scaledBoxBorderThickness = 1;
             boxRect.left = textX - xPadding + scaledBoxBorderThickness;
             boxRect.top = largeTextY - yPadding + scaledBoxBorderThickness;
-            boxRect.right = textX + prefixTextSize.cx + highlightTextSize.cx + suffixTextSize.cx + xPadding
-                            - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
-            boxRect.bottom = largeTextY + largeTextHeight + yPadding
-                             - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
+            boxRect.right =
+                    (int) (textX + prefixTextSize.width + highlightTextSize.width + suffixTextSize.width + xPadding
+                                               - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness));
+            boxRect.bottom = (int) (largeTextY + largeTextHeight + yPadding
+                                                - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness));
             boolean isHintPartOfGrid = hint.cellWidth() != -1;
             if (!isHintPartOfGrid) {
                 // Position history hints have no cellWidth/cellHeight.
@@ -1079,14 +1081,14 @@ public class WindowsOverlay {
             if (highlightText.isEmpty())
                 highlightRect = null;
             else
-                highlightRect = textRect(textX + prefixTextSize.cx, largeTextY,
+                highlightRect = textRect(textX + prefixTextSize.width, largeTextY,
                         highlightTextSize);
             Gdiplus.GdiplusRectF suffixRect;
             if (suffixText.isEmpty())
                 suffixRect = null;
             else
                 suffixRect =
-                        textRect(textX + prefixTextSize.cx + highlightTextSize.cx,
+                        textRect(textX + prefixTextSize.width + highlightTextSize.width,
                                 normalTextY,
                                 suffixTextSize);
             hintTexts.add(new HintText(prefixRect, prefixText,
@@ -1094,6 +1096,27 @@ public class WindowsOverlay {
                     suffixRect, suffixText));
         }
         return new HintMeshDraw(boxRects, cellRects, hintTexts);
+    }
+
+    private static void measureString(String text, PointerByReference font,
+                                      PointerByReference graphics,
+                                      Gdiplus.GdiplusRectF layoutRect,
+                                      Gdiplus.GdiplusRectF boundingBox,
+                                      PointerByReference stringFormat) {
+        int measureStatus = Gdiplus.INSTANCE.GdipMeasureString(
+                graphics.getValue(),
+                new WString(text),
+                text.length(),
+                font.getValue(),
+                layoutRect, // Layout rectangle
+                stringFormat.getValue(), // Default string format
+                boundingBox, // Output bounding rectangle
+                null,
+                null
+        );
+        if (measureStatus != 0) {
+            throw new RuntimeException("Failed to measure string. Status: " + measureStatus);
+        }
     }
 
     private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, double scaledBoxBorderThickness,
@@ -1142,8 +1165,8 @@ public class WindowsOverlay {
         }
     }
 
-    private static Gdiplus.GdiplusRectF textRect(int textX, int textY, WinUser.SIZE textSize) {
-        return new Gdiplus.GdiplusRectF(textX, textY, textSize.cx, textSize.cy);
+    private static Gdiplus.GdiplusRectF textRect(float textX, float textY, Gdiplus.GdiplusRectF textSize) {
+        return new Gdiplus.GdiplusRectF(textX, textY, textSize.width, textSize.height);
     }
 
     private static void drawHintText(WinDef.HDC hdc, WinDef.RECT textRect, String text,

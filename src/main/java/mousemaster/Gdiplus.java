@@ -31,6 +31,11 @@ public interface Gdiplus extends StdCallLibrary {
     int GdipDeleteFontFamily(Pointer fontFamily);
 
     int GdipCreateFont(Pointer family, float size, int style, int unit, PointerByReference font);
+    int GdipMeasureString(Pointer graphics, WString string, int length, Pointer font, GdiplusRectF layoutRect, Pointer stringFormat, GdiplusRectF boundingBox, IntByReference codepointsFitted, IntByReference linesFilled);
+
+    int GdipCreateStringFormat(int format, Pointer lang, PointerByReference stringFormat);
+    int GdipSetStringFormatAlign(Pointer stringFormat, int alignment);
+    int GdipSetStringFormatLineAlign(Pointer stringFormat, int alignment);
 
     int GdipSetCompositingMode(Pointer graphics, int mode);
     int GdipSetCompositingQuality(Pointer graphics, int quality);
@@ -79,6 +84,10 @@ public interface Gdiplus extends StdCallLibrary {
     class GdiplusRectF extends Structure {
         public float x, y, width, height;
 
+        public GdiplusRectF() {
+            this(0, 0, 0, 0);
+        }
+
         public GdiplusRectF(float x, float y, float width, float height) {
             this.x = x;
             this.y = y;
@@ -90,6 +99,15 @@ public interface Gdiplus extends StdCallLibrary {
         protected List<String> getFieldOrder() {
             return Arrays.asList("x", "y", "width", "height");
         }
+
+        public static class ByReference extends Gdiplus.GdiplusRectF
+                implements Structure.ByReference {
+
+            public ByReference() {
+                super(0, 0, 0, 0);
+            }
+        }
+
     }
 
 
