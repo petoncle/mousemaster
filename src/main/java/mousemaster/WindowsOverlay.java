@@ -777,19 +777,10 @@ public class WindowsOverlay {
         PointerByReference fontFamily = new PointerByReference();
         int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(new WString(fontName), null, fontFamily);
 
-        PointerByReference font = new PointerByReference();
-        int fontStyle = 1; // Regular style
-        float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
-        float largeGdipFontSize = (float) (fontSize * highlightFontScale * dpi * zoomPercent() / 72);
-        int unit = 2; // UnitPoint
-        int normalFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), normalGdipFontSize, fontStyle, unit, font);
-        if (normalFontStatus != 0) {
-            throw new RuntimeException("Failed to create Font. Status: " + normalFontStatus);
-        }
-        int largeFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), largeGdipFontSize, fontStyle, unit, font);
-        if (largeFontStatus != 0) {
-            throw new RuntimeException("Failed to create Font. Status: " + largeFontStatus);
-        }
+//        float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
+//        float largeGdipFontSize = (float) (fontSize * highlightFontScale * dpi * zoomPercent() / 72);
+        float normalGdipFontSize = (float) (-fontHeight / zoomPercent());
+        float largeGdipFontSize = (float) (-largeFontHeight / zoomPercent());
 
         PointerByReference prefixPath = new PointerByReference();
         int createPrefixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, prefixPath); // 0 = FillModeAlternate
@@ -801,7 +792,7 @@ public class WindowsOverlay {
         PointerByReference highlightPath = new PointerByReference();
         int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
 
-        int glowRadius = 0; //1
+        int glowRadius = 1;
         float penWidthMultiplier = 4;
         List<PointerByReference> outlinePens = new ArrayList<>();
         for (int penWidth = 1; penWidth <= glowRadius; penWidth++) {
@@ -895,7 +886,6 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(largeFont);
 
         // Step 7: Cleanup
-        Gdiplus.INSTANCE.GdipDeleteFont(font.getValue());
         Gdiplus.INSTANCE.GdipDeleteBrush(prefixFontBrush.getValue());
         Gdiplus.INSTANCE.GdipDeleteBrush(suffixFontBrush.getValue());
         Gdiplus.INSTANCE.GdipDeleteBrush(highlightFontBrush.getValue());
@@ -935,8 +925,8 @@ public class WindowsOverlay {
                                       PointerByReference fontFamily,
                                       float gdipFontSize, Gdiplus.GdiplusRectF textRect) {
         Gdiplus.GdiplusRectF layoutRect = textRect;
-        gdipFontSize = (float) Math.floor(gdipFontSize);
-        textRect.width += 50;
+//        gdipFontSize = (float) Math.floor(gdipFontSize);
+        textRect.width += 100;
 
         int addPathStringStatus = Gdiplus.INSTANCE.GdipAddPathString(
                 path.getValue(),
