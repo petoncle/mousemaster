@@ -766,12 +766,12 @@ public class WindowsOverlay {
         int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
 
         int glowRadius = 1;
-        float penWidthMultiplier = 3;
+        float penWidthMultiplier = 2;
         List<PointerByReference> outlinePens = new ArrayList<>();
         for (int penWidth = 1; penWidth <= glowRadius; penWidth++) {
             PointerByReference pen = new PointerByReference();
             outlinePens.add(pen);
-            int penColor = 0x60000000; // ARGB
+            int penColor = 0x80000000; // ARGB
             int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth * penWidthMultiplier, 2, pen); // 2 = UnitPixel
             if (penStatus != 0) {
                 throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
@@ -815,7 +815,7 @@ public class WindowsOverlay {
                 hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
                         focusedHintKeySequence,
                         highlightFontScale, boxBorderThickness,
-                        graphics, normalFont, fontSize, largeFont, stringFormat));
+                        graphics, normalFont, fontSize, largeFont));
 
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
@@ -840,8 +840,6 @@ public class WindowsOverlay {
         drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
 
 
-//        if (boxColor == 0) // TODO?
-//            boxColor = 1;
         // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
         int colorBetweenBoxes =
                 hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) | ((int) (255 * boxBorderOpacity) << 24);
@@ -887,12 +885,12 @@ public class WindowsOverlay {
         Gdiplus.INSTANCE.GdipDeleteFont(largeFont.getValue());
         for (PointerByReference pen : outlinePens)
             Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
+        Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
         Gdiplus.INSTANCE.GdipDeletePath(prefixPath.getValue());
         Gdiplus.INSTANCE.GdipDeletePath(suffixPath.getValue());
         Gdiplus.INSTANCE.GdipDeletePath(highlightPath.getValue());
         Gdiplus.INSTANCE.GdipDeleteFontFamily(fontFamily.getValue());
         Gdiplus.INSTANCE.GdipDeleteGraphics(graphics.getValue());
-//        GDI32.INSTANCE.DeleteDC(gdiplusDC);
 
         GDI32.INSTANCE.SelectObject(hdcTemp, oldDIBitmap);
         GDI32.INSTANCE.DeleteObject(hbm);
@@ -991,8 +989,7 @@ public class WindowsOverlay {
                                              double boxBorderThickness,
                                              PointerByReference graphics,
                                              PointerByReference normalFont,
-                                             double fontSize, PointerByReference largeFont,
-                                             PointerByReference stringFormat) {
+                                             double fontSize, PointerByReference largeFont) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<WinDef.RECT> cellRects = new ArrayList<>();
         List<HintText> hintTexts = new ArrayList<>();
@@ -1004,8 +1001,8 @@ public class WindowsOverlay {
 
 //        stringFormat = new PointerByReference();
 //        Gdiplus.INSTANCE.GdipCreateStringFormat(0, null, stringFormat);
-        stringFormat = stringFormat(); // TODO dispose
-        PointerByReference region = new PointerByReference(); // TODO dispose
+        PointerByReference stringFormat = stringFormat();
+        PointerByReference region = new PointerByReference();
         Gdiplus.INSTANCE.GdipCreateRegion(region);
 
         for (Hint hint : windowHints) {
@@ -1126,6 +1123,8 @@ public class WindowsOverlay {
                     highlightRect, highlightText,
                     suffixRect, suffixText));
         }
+        Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
+        Gdiplus.INSTANCE.GdipDeleteRegion(region.getValue());
         return new HintMeshDraw(boxRects, cellRects, hintTexts);
     }
 
@@ -1169,7 +1168,6 @@ public class WindowsOverlay {
 //        System.out.println(text + ": GdipSetStringFormatMeasurableCharacterRanges width = " + boundingBox.width + ", GdipMeasureString width = " + GdipMeasureStringWidth);
 //        boundingBox.x = 0;
 //        boundingBox.width -= 3*16/6f;
-        // TODO delete Region Gdiplus.INSTANCE.GdipDeleteRegion(region.getValue());
 //        ExtendedGDI32.ABC[] abcWidths = (ExtendedGDI32.ABC[]) new ExtendedGDI32.ABC().toArray(1);
     }
 
