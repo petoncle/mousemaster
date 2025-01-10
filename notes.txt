@@ -46,3 +46,9 @@
    + Actually maybe because MagSetWindowSource is expensive and if we can not call it when
      moving the mouse, that is better.
 - Font size, etc. should be decimals (because scaled by zoom): border width of 0.2: 0.2 * zoom(5.0) = 1px
+- https://www.codeproject.com/Articles/42529/Outline-Text
+ - https://www.codeproject.com/KB/GDI/Glow_and_Shadow_effects.aspx
+- font-outline-thickness, outline-color, outline-blur=true, (offset x/y?)
++ Space each hint key, font-box-width-percent=1.0 means spaced evenly across the whole cell
+++ logging.redact-keys=true
+++ Empty position history problem: add current position if empty

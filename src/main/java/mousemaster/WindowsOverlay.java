@@ -323,7 +323,7 @@ public class WindowsOverlay {
                         new HintMeshWindow(existingWindow.hwnd,
                                 existingWindow.transparentHwnd,
                                 existingWindow.callback,
-                                hintsInScreen, new HashMap<>()));
+                                hintsInScreen, existingWindow.hintMeshDrawCache));
             }
         }
         if (createdAtLeastOneWindow)
@@ -536,7 +536,7 @@ public class WindowsOverlay {
     }
 
     private record DibSection(Pointer pixelPointer,
-                              WinDef.HBITMAP hDIBitmap, int[] pixelData) {
+                              WinDef.HBITMAP hDIBitmap) {
     }
 
     private static DibSection createDibSection(int width, int height, WinDef.HDC hdcTemp) {
@@ -553,8 +553,7 @@ public class WindowsOverlay {
             throw new RuntimeException("Unable to create DIB section: " +
                                        Integer.toHexString(Native.getLastError()));
         Pointer pixelPointer = pBits.getValue();
-        int[] pixelData = new int[width * height];
-        return new DibSection(pixelPointer, hDIBitmap, pixelData);
+        return new DibSection(pixelPointer, hDIBitmap);
     }
 
     private static void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect, int color) {
@@ -671,7 +670,8 @@ public class WindowsOverlay {
 
     private record HintMeshDraw(List<WinDef.RECT> boxRects,
                                 List<WinDef.RECT> cellRects,
-                                List<HintText> hintTexts) {
+                                List<HintText> hintTexts,
+                                int[] pixelData) {
     }
 
     static {
@@ -711,6 +711,7 @@ public class WindowsOverlay {
         int windowWidth = windowRect.right - windowRect.left;
         int windowHeight = windowRect.bottom - windowRect.top;
 
+        ZoomHintMesh zoomHintMesh = new ZoomHintMesh(currentHintMesh, currentZoom);
         WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, windowWidth, windowHeight);
         GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
         DibSection dibSection = createDibSection(windowWidth, windowHeight, hdcTemp);
@@ -816,77 +817,101 @@ public class WindowsOverlay {
             throw new RuntimeException("Failed to create Font. Status: " + largeFontStatus);
         }
 
-        HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.computeIfAbsent(
-                new ZoomHintMesh(currentHintMesh, currentZoom),
-                hintMesh -> hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
-                        focusedHintKeySequence,
-                        highlightFontScale, boxBorderThickness,
-                        graphics, normalFont, fontSize, largeFont));
-        boolean mustDrawPrefix = false;
-        boolean mustDrawSuffix = false;
-        boolean mustDrawHighlight = false;
-        for (HintText hintText : hintMeshDraw.hintTexts()) {
-            if (hintText.prefixRect != null) {
-                // Color is defined in the brush.
-                drawHintText2(hintText.prefixText, prefixPath, fontFamily, normalGdipFontSize, hintText.prefixRect, stringFormat);
-                mustDrawPrefix = true;
+        HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.get(
+                zoomHintMesh);
+        boolean hintMeshDrawIsCached = hintMeshDraw != null;
+        if (hintMeshDrawIsCached)
+            logger.debug("hintMeshDraw is cached");
+        else {
+            // Without caching, a full screen of hints drawn with GDI+ takes some time
+            // to compute, even when there is no outline.
+            int[] pixelData = new int[windowWidth * windowHeight];
+            hintMeshDraw = hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
+                    focusedHintKeySequence,
+                    highlightFontScale, boxBorderThickness,
+                    graphics, normalFont, fontSize, largeFont, pixelData);
+            if (hintMeshDraw.hintTexts.size() > 200) {
+                // The pixelData is a full screen int[][]. We don't want to cache too many
+                // of them.
+                logger.debug("Caching new hintMeshDraw with " +
+                            hintMeshDraw.hintTexts.size() + " visible hints");
+                hintMeshWindow.hintMeshDrawCache.put(zoomHintMesh, hintMeshDraw);
             }
-            if (hintText.suffixRect != null) {
-                drawHintText2(hintText.suffixText, suffixPath, fontFamily, normalGdipFontSize, hintText.suffixRect,
-                        stringFormat);
-                mustDrawSuffix = true;
+            boolean mustDrawPrefix = false;
+            boolean mustDrawSuffix = false;
+            boolean mustDrawHighlight = false;
+            for (HintText hintText : hintMeshDraw.hintTexts()) {
+                if (hintText.prefixRect != null) {
+                    // Color is defined in the brush.
+                    drawHintText2(hintText.prefixText, prefixPath, fontFamily,
+                            normalGdipFontSize, hintText.prefixRect, stringFormat);
+                    mustDrawPrefix = true;
+                }
+                if (hintText.suffixRect != null) {
+                    drawHintText2(hintText.suffixText, suffixPath, fontFamily,
+                            normalGdipFontSize, hintText.suffixRect,
+                            stringFormat);
+                    mustDrawSuffix = true;
+                }
+                if (hintText.highlightRect != null) {
+                    float largeGdipFontSize0 =
+                            hintText.prefixRect == null && hintText.suffixRect == null ?
+                                    normalGdipFontSize : largeGdipFontSize;
+                    drawHintText2(hintText.highlightText, prefixPath, fontFamily,
+                            largeGdipFontSize0, hintText.highlightRect,
+                            stringFormat);
+                    mustDrawHighlight = true;
+                }
             }
-            if (hintText.highlightRect != null) {
-                float largeGdipFontSize0 =
-                        hintText.prefixRect == null && hintText.suffixRect == null ?
-                                normalGdipFontSize : largeGdipFontSize;
-                drawHintText2(hintText.highlightText, prefixPath, fontFamily, largeGdipFontSize0, hintText.highlightRect,
-                        stringFormat);
-                mustDrawHighlight = true;
-            }
-        }
 
-        if (mustDrawPrefix)
-            drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
-        if (mustDrawSuffix)
-            drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
-        if (mustDrawHighlight)
-            drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
+            if (mustDrawPrefix)
+                drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
+            if (mustDrawSuffix)
+                drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
+            if (mustDrawHighlight)
+                drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
 
-        // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
-        int colorBetweenBoxes =
-                hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) | ((int) (255 * boxBorderOpacity) << 24);
-        dibSection.pixelPointer.read(0, dibSection.pixelData, 0, dibSection.pixelData.length);
-        for (int i = 0; i < dibSection.pixelData.length; i++) {
-            int pixel = dibSection.pixelData[i];
-            int rgb = pixel & 0x00FFFFFF; // Keep RGB
-            if (pixel == boxColor)
-                // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
-                // has filled everything with the grey color. That call was needed
-                // because the DrawText needs the grey color for the antialiasing.
-                // Now we remove the grey color, and we will put it back only for the boxes.
-                // (We need to clear the pixels that are not in boxes.)
-                dibSection.pixelData[i] = 0;
-        }
-        for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
-            for (int x = Math.max(0, boxRect.left); x < Math.min(windowWidth, boxRect.right); x++) {
-                for (int y = Math.max(0, boxRect.top); y < Math.min(windowHeight, boxRect.bottom); y++) {
-                    // The box may go past the screen dimensions.
-                    if (dibSection.pixelData[y * windowWidth + x] == 0)
-                        dibSection.pixelData[y * windowWidth + x] = boxColor;
+            // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
+            int colorBetweenBoxes =
+                    hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) |
+                    ((int) (255 * boxBorderOpacity) << 24);
+            dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
+                    hintMeshDraw.pixelData.length);
+            for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
+                int pixel = hintMeshDraw.pixelData[i];
+                int rgb = pixel & 0x00FFFFFF; // Keep RGB
+                if (pixel == boxColor)
+                    // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
+                    // has filled everything with the grey color. That call was needed
+                    // because the DrawText needs the grey color for the antialiasing.
+                    // Now we remove the grey color, and we will put it back only for the boxes.
+                    // (We need to clear the pixels that are not in boxes.)
+                    hintMeshDraw.pixelData[i] = 0;
+            }
+            for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
+                for (int x = Math.max(0, boxRect.left);
+                     x < Math.min(windowWidth, boxRect.right); x++) {
+                    for (int y = Math.max(0, boxRect.top);
+                         y < Math.min(windowHeight, boxRect.bottom); y++) {
+                        // The box may go past the screen dimensions.
+                        if (hintMeshDraw.pixelData[y * windowWidth + x] == 0)
+                            hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
+                    }
+                }
+            }
+            for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
+                for (int x = Math.max(0, cellRect.left);
+                     x < Math.min(windowWidth, cellRect.right); x++) {
+                    for (int y = Math.max(0, cellRect.top);
+                         y < Math.min(windowHeight, cellRect.bottom); y++) {
+                        // The cell may go past the screen dimensions.
+                        if (hintMeshDraw.pixelData[y * windowWidth + x] == 0)
+                            hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenBoxes;
+                    }
                 }
             }
         }
-        for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
-            for (int x = Math.max(0, cellRect.left); x < Math.min(windowWidth, cellRect.right); x++) {
-                for (int y = Math.max(0, cellRect.top); y < Math.min(windowHeight, cellRect.bottom); y++) {
-                    // The cell may go past the screen dimensions.
-                    if (dibSection.pixelData[y * windowWidth + x] == 0)
-                        dibSection.pixelData[y * windowWidth + x] = colorBetweenBoxes;
-                }
-            }
-        }
-        dibSection.pixelPointer.write(0, dibSection.pixelData, 0, dibSection.pixelData.length);
+        dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
 
@@ -1002,7 +1027,8 @@ public class WindowsOverlay {
                                              double boxBorderThickness,
                                              PointerByReference graphics,
                                              PointerByReference normalFont,
-                                             double fontSize, PointerByReference largeFont) {
+                                             double fontSize, PointerByReference largeFont,
+                                             int[] pixelData) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<WinDef.RECT> cellRects = new ArrayList<>();
         List<HintText> hintTexts = new ArrayList<>();
@@ -1138,7 +1164,7 @@ public class WindowsOverlay {
         }
         Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
         Gdiplus.INSTANCE.GdipDeleteRegion(region.getValue());
-        return new HintMeshDraw(boxRects, cellRects, hintTexts);
+        return new HintMeshDraw(boxRects, cellRects, hintTexts, pixelData);
     }
 
     private static void measureString(String text, PointerByReference font,
@@ -1232,15 +1258,6 @@ public class WindowsOverlay {
 
     private static Gdiplus.GdiplusRectF textRect(float textX, float textY, Gdiplus.GdiplusRectF textSize) {
         return new Gdiplus.GdiplusRectF(textX, textY, textSize.width, textSize.height);
-    }
-
-    private static void drawHintText(WinDef.HDC hdc, WinDef.RECT textRect, String text,
-                                     DibSection dibSection, int windowWidth,
-                                     int fontColorInt) {
-        ExtendedGDI32.INSTANCE.SetTextColor(hdc, fontColorInt);
-        ExtendedGDI32.INSTANCE.SetBkMode(hdc, ExtendedGDI32.TRANSPARENT);
-        ExtendedUser32.INSTANCE.DrawText(hdc, text, -1, textRect,
-                new WinDef.UINT(ExtendedGDI32.DT_SINGLELINE | ExtendedGDI32.DT_LEFT | ExtendedGDI32.DT_TOP | ExtendedGDI32.DT_NOPREFIX));
     }
 
     private static int hexColorStringToInt(String hexColor) {
