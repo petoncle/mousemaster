@@ -701,6 +701,7 @@ public class WindowsOverlay {
         double boxBorderThickness = currentHintMesh.boxBorderThickness();
         String boxBorderHexColor = currentHintMesh.boxBorderHexColor();
         double boxBorderOpacity = currentHintMesh.boxBorderOpacity();
+        boolean expandBoxes = currentHintMesh.expandBoxes();
         String fontHexColor = currentHintMesh.fontHexColor();
         String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
@@ -732,6 +733,7 @@ public class WindowsOverlay {
         if (clearStatus != 0) {
             throw new RuntimeException("Failed to clear graphics with box color. Status: " + clearStatus);
         }
+//        clearWindow(hdcTemp, windowRect, 0);
 
 
         // https://stackoverflow.com/questions/1203087/why-is-graphics-measurestring-returning-a-higher-than-expected-number
@@ -828,7 +830,7 @@ public class WindowsOverlay {
             int[] pixelData = new int[windowWidth * windowHeight];
             hintMeshDraw = hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
                     focusedHintKeySequence,
-                    highlightFontScale, boxBorderThickness,
+                    highlightFontScale, boxBorderThickness, expandBoxes,
                     graphics, normalFont, fontSize, largeFont, pixelData);
             if (hintMeshDraw.hintTexts.size() > 200) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
@@ -877,10 +879,14 @@ public class WindowsOverlay {
                     ((int) (255 * boxBorderOpacity) << 24);
             dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
                     hintMeshDraw.pixelData.length);
+            int alphaChannelMultipliedBoxColor =
+                    alphaMultipliedChannelsColor(boxColor, boxOpacity) |
+                    ((int) (boxOpacity * 255) << 24);
             for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
                 int pixel = hintMeshDraw.pixelData[i];
-                int rgb = pixel & 0x00FFFFFF; // Keep RGB
-                if (pixel == boxColor)
+//                logger.info("pixel = " + Integer.toHexString(pixel) + ", boxColor = " + Integer.toHexString(boxColor) + ", alphaMul = " +
+//                            Integer.toHexString(alphaChannelMultipliedBoxColor));
+                if (pixel == alphaChannelMultipliedBoxColor)
                     // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
                     // has filled everything with the grey color. That call was needed
                     // because the DrawText needs the grey color for the antialiasing.
@@ -997,7 +1003,7 @@ public class WindowsOverlay {
                 new WString(text),
                 -1, // Automatically calculate the length of the string.
                 fontFamily.getValue(),
-                0, // FontStyle.Regular
+                1, // FontStyle.Regular
                 gdipFontSize,
                 layoutRect,
                 stringFormat.getValue() // Use default string format.
@@ -1025,7 +1031,7 @@ public class WindowsOverlay {
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
                                              double boxBorderThickness,
-                                             PointerByReference graphics,
+                                             boolean expandBoxes, PointerByReference graphics,
                                              PointerByReference normalFont,
                                              double fontSize, PointerByReference largeFont,
                                              int[] pixelData) {
@@ -1135,15 +1141,15 @@ public class WindowsOverlay {
             setBoxOrCellRect(cellRect, screen, 0, hint,
                     minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
                     isHintPartOfGrid);
-            if (boxRect.right - boxRect.left < textWidth || boxRect.bottom - boxRect.top < largeTextHeight) {
+            if (!expandBoxes) {
                 boxRect.left = (int) Math.round(simpleBoxLeft);
                 boxRect.top = (int) Math.round(simpleBoxTop);
                 boxRect.right = (int) Math.round(simpleBoxRight);
                 boxRect.bottom = (int) Math.round(simpleBoxBottom);
-                cellRect.left = boxRect.left;
-                cellRect.top = boxRect.top;
-                cellRect.right = boxRect.right;
-                cellRect.bottom = boxRect.bottom;
+                cellRect.left = boxRect.left - scaledBoxBorderThickness;
+                cellRect.top = boxRect.top - scaledBoxBorderThickness;
+                cellRect.right = boxRect.right + scaledBoxBorderThickness;
+                cellRect.bottom = boxRect.bottom + scaledBoxBorderThickness;
             }
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
@@ -1297,8 +1303,8 @@ public class WindowsOverlay {
         int red = (color >> 16) & 0xFF;
         int green = (color >> 8) & 0xFF;
         int blue = color & 0xFF;
-        return ((int) (red * opacity) << 16) | ((int) (green * opacity) << 8) |
-               (int) (blue * opacity);
+        return ((int) Math.round(red * opacity) << 16) | ((int) Math.round(green * opacity) << 8) |
+               (int) Math.round(blue * opacity);
     }
 
     public static void setIndicator(Indicator indicator) {

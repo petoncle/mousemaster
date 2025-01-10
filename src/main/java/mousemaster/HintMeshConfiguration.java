@@ -17,6 +17,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     double boxBorderThickness,
                                     String boxBorderHexColor,
                                     double boxBorderOpacity,
+                                    boolean expandBoxes,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
@@ -42,6 +43,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Double boxBorderThickness;
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
+        private Boolean expandBoxes;
         private String modeAfterSelection;
         private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
@@ -143,6 +145,11 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
+        public HintMeshConfigurationBuilder expandBoxes(boolean expandBoxes) {
+            this.expandBoxes = expandBoxes;
+            return this;
+        }
+
         public HintMeshConfigurationBuilder modeAfterSelection(
                 String modeAfterSelection) {
             this.modeAfterSelection = modeAfterSelection;
@@ -241,6 +248,10 @@ public record HintMeshConfiguration(boolean enabled,
             return boxBorderOpacity;
         }
 
+        public Boolean expandBoxes() {
+            return expandBoxes;
+        }
+
         public String modeAfterSelection() {
             return modeAfterSelection;
         }
@@ -263,6 +274,7 @@ public record HintMeshConfiguration(boolean enabled,
                     highlightFontScale,
                     boxHexColor, boxOpacity, boxBorderThickness,
                     boxBorderHexColor, boxBorderOpacity,
+                    expandBoxes,
                     modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }

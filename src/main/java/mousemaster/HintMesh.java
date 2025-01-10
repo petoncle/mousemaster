@@ -12,7 +12,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
                        double boxBorderThickness,
-                       String boxBorderHexColor, double boxBorderOpacity) {
+                       String boxBorderHexColor, double boxBorderOpacity,
+                       boolean expandBoxes) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -37,6 +38,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double boxBorderThickness;
         private String boxBorderHexColor;
         private double boxBorderOpacity;
+        private boolean expandBoxes;
 
         public HintMeshBuilder() {
         }
@@ -60,7 +62,10 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.boxBorderThickness = hintMesh.boxBorderThickness;
             this.boxBorderHexColor = hintMesh.boxBorderHexColor;
             this.boxBorderOpacity = hintMesh.boxBorderOpacity;
+            this.expandBoxes = hintMesh.expandBoxes;
+            this.expandBoxes = hintMesh.expandBoxes;
         }
+
 
         public HintMeshType type() {
             return type;
@@ -132,6 +137,10 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public double boxBorderOpacity() {
             return boxBorderOpacity;
+        }
+
+        public boolean expandBoxes() {
+            return expandBoxes;
         }
 
         public HintMeshBuilder type(HintMeshType type) {
@@ -226,6 +235,11 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder expandBoxes(boolean expandBoxes) {
+            this.expandBoxes = expandBoxes;
+            return this;
+        }
+
         public HintMesh build() {
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
                     fontSize, fontHexColor, fontOpacity,
@@ -233,7 +247,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                     prefixFontHexColor, highlightFontScale,
                     boxHexColor, boxOpacity,
                     boxBorderThickness,
-                    boxBorderHexColor, boxBorderOpacity);
+                    boxBorderHexColor, boxBorderOpacity,
+                    expandBoxes);
         }
     }
 

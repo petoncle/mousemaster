@@ -85,6 +85,7 @@ public class ConfigurationParser {
                 .boxBorderThickness(1)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
+                .expandBoxes(true)
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -490,6 +491,8 @@ public class ConfigurationParser {
                                     parseDouble(propertyKey, propertyValue, true,
                                             0, 1
                                     ));
+                            case "expand-boxes" -> mode.hintMesh.builder.expandBoxes(
+                                    Boolean.parseBoolean(propertyValue));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -1392,6 +1395,8 @@ public class ConfigurationParser {
                         builder.boxBorderHexColor(parent.boxBorderHexColor());
                     if (builder.boxBorderOpacity() == null)
                         builder.boxBorderOpacity(parent.boxBorderOpacity());
+                    if (builder.expandBoxes() == null)
+                        builder.expandBoxes(parent.expandBoxes());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

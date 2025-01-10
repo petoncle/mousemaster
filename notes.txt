@@ -52,3 +52,4 @@
 + Space each hint key, font-box-width-percent=1.0 means spaced evenly across the whole cell
 ++ logging.redact-keys=true
 ++ Empty position history problem: add current position if empty
+++ hint.box-border-length=1 means one dot (of size box.thickness) as the border?
