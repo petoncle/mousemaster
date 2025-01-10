@@ -822,15 +822,19 @@ public class WindowsOverlay {
                         focusedHintKeySequence,
                         highlightFontScale, boxBorderThickness,
                         graphics, normalFont, fontSize, largeFont));
-
+        boolean mustDrawPrefix = false;
+        boolean mustDrawSuffix = false;
+        boolean mustDrawHighlight = false;
         for (HintText hintText : hintMeshDraw.hintTexts()) {
             if (hintText.prefixRect != null) {
                 // Color is defined in the brush.
                 drawHintText2(hintText.prefixText, prefixPath, fontFamily, normalGdipFontSize, hintText.prefixRect, stringFormat);
+                mustDrawPrefix = true;
             }
             if (hintText.suffixRect != null) {
                 drawHintText2(hintText.suffixText, suffixPath, fontFamily, normalGdipFontSize, hintText.suffixRect,
                         stringFormat);
+                mustDrawSuffix = true;
             }
             if (hintText.highlightRect != null) {
                 float largeGdipFontSize0 =
@@ -838,13 +842,16 @@ public class WindowsOverlay {
                                 normalGdipFontSize : largeGdipFontSize;
                 drawHintText2(hintText.highlightText, prefixPath, fontFamily, largeGdipFontSize0, hintText.highlightRect,
                         stringFormat);
+                mustDrawHighlight = true;
             }
         }
 
-        drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
-        drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
-        drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
-
+        if (mustDrawPrefix)
+            drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
+        if (mustDrawSuffix)
+            drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
+        if (mustDrawHighlight)
+            drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
 
         // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
         int colorBetweenBoxes =
