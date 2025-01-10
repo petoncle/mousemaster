@@ -875,7 +875,7 @@ public class WindowsOverlay {
 
             // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
             int colorBetweenBoxes =
-                    hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) |
+                            hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) |
                     ((int) (255 * boxBorderOpacity) << 24);
             dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
                     hintMeshDraw.pixelData.length);
@@ -905,14 +905,24 @@ public class WindowsOverlay {
                     }
                 }
             }
+            int borderLength = (int) Math.round(1000 * boxBorderThickness);
             for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
-                for (int x = Math.max(0, cellRect.left);
-                     x < Math.min(windowWidth, cellRect.right); x++) {
-                    for (int y = Math.max(0, cellRect.top);
-                         y < Math.min(windowHeight, cellRect.bottom); y++) {
+                int minX = Math.max(0, cellRect.left);
+                int maxX = Math.min(windowWidth, cellRect.right);
+                int minY = Math.max(0, cellRect.top);
+                int maxY = Math.min(windowHeight, cellRect.bottom);
+                for (int x = minX; x < maxX; x++) {
+                    for (int y = minY; y < maxY; y++) {
                         // The cell may go past the screen dimensions.
-                        if (hintMeshDraw.pixelData[y * windowWidth + x] == 0)
-                            hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenBoxes;
+                        if (hintMeshDraw.pixelData[y * windowWidth + x] == 0) {
+                            if ((x - minX < borderLength || maxX - 1 - x < borderLength)
+                                && (y - minY < borderLength || maxY - 1 - y < borderLength)) {
+                                hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenBoxes;
+                            }
+                            else {
+                                hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
+                            }
+                        }
                     }
                 }
             }
