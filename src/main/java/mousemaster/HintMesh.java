@@ -6,7 +6,9 @@ import java.util.List;
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
 public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
-                       String fontName, double fontSize, String fontHexColor, double fontOpacity,
+                       String fontName,
+                       double fontSize, String fontHexColor, double fontOpacity,
+                       double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
                        double boxBorderThickness,
@@ -25,6 +27,9 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double fontSize;
         private String fontHexColor;
         private double fontOpacity;
+        private double fontOutlineThickness;
+        private String fontOutlineHexColor;
+        private double fontOutlineOpacity;
         private String prefixFontHexColor;
         private double highlightFontScale;
         private String boxHexColor;
@@ -45,6 +50,9 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.fontSize = hintMesh.fontSize;
             this.fontHexColor = hintMesh.fontHexColor;
             this.fontOpacity = hintMesh.fontOpacity;
+            this.fontOutlineThickness = hintMesh.fontOutlineThickness;
+            this.fontOutlineHexColor = hintMesh.fontOutlineHexColor;
+            this.fontOutlineOpacity = hintMesh.fontOutlineOpacity;
             this.prefixFontHexColor = hintMesh.prefixFontHexColor;
             this.highlightFontScale = hintMesh.highlightFontScale;
             this.boxHexColor = hintMesh.boxHexColor;
@@ -84,6 +92,18 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public double fontOpacity() {
             return fontOpacity;
+        }
+
+        public double fontOutlineThickness() {
+            return fontOutlineThickness;
+        }
+
+        public String fontOutlineHexColor() {
+            return fontOutlineHexColor;
+        }
+
+        public double fontOutlineOpacity() {
+            return fontOutlineOpacity;
         }
 
         public String prefixFontHexColor() {
@@ -154,6 +174,21 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder fontOutlineThickness(double fontOutlineThickness) {
+            this.fontOutlineThickness = fontOutlineThickness;
+            return this;
+        }
+
+        public HintMeshBuilder fontOutlineHexColor(String fontOutlineHexColor) {
+            this.fontOutlineHexColor = fontOutlineHexColor;
+            return this;
+        }
+
+        public HintMeshBuilder fontOutlineOpacity(double fontOutlineOpacity) {
+            this.fontOutlineOpacity = fontOutlineOpacity;
+            return this;
+        }
+
         public HintMeshBuilder prefixFontHexColor(
                 String prefixFontHexColor) {
             this.prefixFontHexColor = prefixFontHexColor;
@@ -193,8 +228,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public HintMesh build() {
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
-                    fontSize,
-                    fontHexColor, fontOpacity,
+                    fontSize, fontHexColor, fontOpacity,
+                    fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     prefixFontHexColor, highlightFontScale,
                     boxHexColor, boxOpacity,
                     boxBorderThickness,

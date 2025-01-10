@@ -9,6 +9,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean moveMouse,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
                                     double fontSize, String fontHexColor, double fontOpacity,
+                                    double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                                     String prefixFontHexColor,
                                     double highlightFontScale,
                                     String boxHexColor,
@@ -31,6 +32,9 @@ public record HintMeshConfiguration(boolean enabled,
         private Double fontSize;
         private String fontHexColor;
         private Double fontOpacity;
+        private Double fontOutlineThickness;
+        private String fontOutlineHexColor;
+        private Double fontOutlineOpacity;
         private String prefixFontHexColor;
         private Double highlightFontScale;
         private String boxHexColor;
@@ -84,6 +88,21 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder fontOpacity(double fontOpacity) {
             this.fontOpacity = fontOpacity;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder fontOutlineThickness(double fontOutlineThickness) {
+            this.fontOutlineThickness = fontOutlineThickness;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder fontOutlineHexColor(String fontOutlineHexColor) {
+            this.fontOutlineHexColor = fontOutlineHexColor;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder fontOutlineOpacity(double fontOutlineOpacity) {
+            this.fontOutlineOpacity = fontOutlineOpacity;
             return this;
         }
 
@@ -182,6 +201,18 @@ public record HintMeshConfiguration(boolean enabled,
             return fontOpacity;
         }
 
+        public Double fontOutlineThickness() {
+            return fontOutlineThickness;
+        }
+
+        public String fontOutlineHexColor() {
+            return fontOutlineHexColor;
+        }
+
+        public Double fontOutlineOpacity() {
+            return fontOutlineOpacity;
+        }
+
         public String prefixFontHexColor() {
             return prefixFontHexColor;
         }
@@ -225,7 +256,9 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
-                    undoKey, fontName, fontSize, fontHexColor, fontOpacity,
+                    undoKey, fontName,
+                    fontSize, fontHexColor, fontOpacity,
+                    fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     prefixFontHexColor,
                     highlightFontScale,
                     boxHexColor, boxOpacity, boxBorderThickness,

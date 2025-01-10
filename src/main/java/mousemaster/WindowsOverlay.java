@@ -692,6 +692,9 @@ public class WindowsOverlay {
         String fontName = currentHintMesh.fontName();
         double fontSize = currentHintMesh.fontSize();
         double fontOpacity = currentHintMesh.fontOpacity();
+        double fontOutlineThickness = currentHintMesh.fontOutlineThickness();
+        String fontOutlineHexColor = currentHintMesh.fontOutlineHexColor();
+        double fontOutlineOpacity = currentHintMesh.fontOutlineOpacity();
         double highlightFontScale = currentHintMesh.highlightFontScale();
         String boxHexColor = currentHintMesh.boxHexColor();
         double boxOpacity = currentHintMesh.boxOpacity();
@@ -732,7 +735,7 @@ public class WindowsOverlay {
 
         // https://stackoverflow.com/questions/1203087/why-is-graphics-measurestring-returning-a-higher-than-expected-number
         // Does not look like it is useful when used with GdipAddPathString (it is useful with GdipDrawString)
-        int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 4); // 3 = AntiAliasGridFit, 4 = TextRenderingHintAntiAlias
+        int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 3); // 3 = AntiAliasGridFit, 4 = TextRenderingHintAntiAlias
         if (textRenderingStatus != 0) {
             throw new RuntimeException("Failed to set TextRenderingHint. Status: " + textRenderingStatus);
         }
@@ -765,14 +768,17 @@ public class WindowsOverlay {
         PointerByReference highlightPath = new PointerByReference();
         int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
 
-        int glowRadius = 1;
-        float penWidthMultiplier = 2;
+        double outlineThickness = fontOutlineThickness;
+        int glowRadius = outlineThickness == 0 ? 0 : 1;
+        float penWidthMultiplier = (float) outlineThickness;
+        double outlineOpacity = fontOutlineOpacity;
+        int outlineColorRgb = hexColorStringToRgb(fontOutlineHexColor, 1d);
+        int penColor = (int) (outlineOpacity * 0xFF) << 24 | outlineColorRgb; //0x80000000; // ARGB
         List<PointerByReference> outlinePens = new ArrayList<>();
-        for (int penWidth = 1; penWidth <= glowRadius; penWidth++) {
+        for (int radius = 1; radius <= glowRadius; radius++) {
             PointerByReference pen = new PointerByReference();
             outlinePens.add(pen);
-            int penColor = 0x80000000; // ARGB
-            int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, penWidth * penWidthMultiplier, 2, pen); // 2 = UnitPixel
+            int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, radius * penWidthMultiplier, 2, pen); // 2 = UnitPixel
             if (penStatus != 0) {
                 throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
             }

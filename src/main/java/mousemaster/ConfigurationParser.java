@@ -75,6 +75,9 @@ public class ConfigurationParser {
                 .fontSize(18)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
+                .fontOutlineThickness(2)
+                .fontOutlineHexColor("#000000")
+                .fontOutlineOpacity(0.5d)
                 .prefixFontHexColor("#CCCCCC")
                 .highlightFontScale(1d)
                 .boxHexColor("#000000")
@@ -452,6 +455,15 @@ public class ConfigurationParser {
                             case "font-color" -> mode.hintMesh.builder.fontHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
                             case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
+                                    parseDouble(propertyKey, propertyValue, true,
+                                            0, 1
+                                    ));
+                            case "font-outline-thickness" -> mode.hintMesh.builder.fontOutlineThickness(
+                                    parseDouble(propertyKey, propertyValue, true, 0,
+                                            1000));
+                            case "font-outline-color" -> mode.hintMesh.builder.fontOutlineHexColor(
+                                    checkColorFormat(propertyKey, propertyValue));
+                            case "font-outline-opacity" -> mode.hintMesh.builder.fontOutlineOpacity(
                                     parseDouble(propertyKey, propertyValue, true,
                                             0, 1
                                     ));
@@ -1360,6 +1372,12 @@ public class ConfigurationParser {
                         builder.fontHexColor(parent.fontHexColor());
                     if (builder.fontOpacity() == null)
                         builder.fontOpacity(parent.fontOpacity());
+                    if (builder.fontOutlineThickness() == null)
+                        builder.fontOutlineThickness(parent.fontOutlineThickness());
+                    if (builder.fontOutlineHexColor() == null)
+                        builder.fontOutlineHexColor(parent.fontOutlineHexColor());
+                    if (builder.fontOutlineOpacity() == null)
+                        builder.fontOutlineOpacity(parent.fontOutlineOpacity());
                     if (builder.prefixFontHexColor() == null)
                         builder.prefixFontHexColor(parent.prefixFontHexColor());
                     if (builder.highlightFontScale() == null)
