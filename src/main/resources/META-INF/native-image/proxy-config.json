@@ -1,9 +1,9 @@
 [
   {
-    "interfaces":["com.sun.jna.platform.win32.GDI32"]
+    "interfaces":["com.sun.jna.platform.win32.Advapi32"]
   },
   {
-    "interfaces":["com.sun.jna.platform.win32.Advapi32"]
+    "interfaces":["com.sun.jna.platform.win32.GDI32"]
   },
   {
     "interfaces":["com.sun.jna.platform.win32.Kernel32"]
@@ -24,15 +24,18 @@
     "interfaces":["mousemaster.ExtendedKernel32"]
   },
   {
+    "interfaces":["mousemaster.ExtendedPsapi"]
+  },
+  {
     "interfaces":["mousemaster.ExtendedUser32"]
   },
   {
-    "interfaces":["mousemaster.Shcore"]
+    "interfaces":["mousemaster.Gdiplus"]
   },
   {
     "interfaces":["mousemaster.Magnification"]
   },
   {
-    "interfaces": ["mousemaster.ExtendedPsapi"]
+    "interfaces":["mousemaster.Shcore"]
   }
 ]

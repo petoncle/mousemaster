@@ -6,6 +6,9 @@
   "name":"[Lcom.sun.jna.platform.win32.WinDef$POINT;"
 },
 {
+  "name":"[Lcom.sun.jna.platform.win32.WinGDI$RGBQUAD;"
+},
+{
   "name":"ch.qos.logback.classic.encoder.PatternLayoutEncoder",
   "queryAllPublicMethods":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
@@ -501,6 +504,18 @@
   "allDeclaredFields":true
 },
 {
+  "name":"mousemaster.Gdiplus$CharacterRange",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.Gdiplus$GdiplusRectF",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.Gdiplus$GdiplusStartupInput",
+  "allDeclaredFields":true
+},
+{
   "name":"mousemaster.Shcore$MONITOR_DPI_TYPE",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -513,6 +528,10 @@
   "name":"mousemaster.Magnification$MAGTRANSFORM$ByReference",
   "methods":[{"name":"<init>","parameterTypes":["float"] }],
   "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.Shcore$MONITOR_DPI_TYPE",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.WindowsScreen$1",
