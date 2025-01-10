@@ -1104,21 +1104,19 @@ public class WindowsOverlay {
                     (int) (hint.centerY() - screen.rectangle().y() - largeTextHeight / 2);
             int normalTextY =
                     (int) (hint.centerY() - screen.rectangle().y() - normalTextHeight / 2);
-//            int textY = largeTextY + (largeTextSize.height/2 - textSize.height/2 + (largeTextSize.height-textSize.height)/4);
-            // Try to minimize the size of the box. Looks good with Consolas 10.
-            int xPadding = (int) (screen.scale() * 1);
-            int yPadding = (int) (screen.scale() * -1) * 4;
             WinDef.RECT boxRect = new WinDef.RECT();
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
             if (boxBorderThickness > 0 && scaledBoxBorderThickness == 0)
                 scaledBoxBorderThickness = 1;
-            boxRect.left = textX - xPadding + scaledBoxBorderThickness;
-            boxRect.top = largeTextY - yPadding + scaledBoxBorderThickness;
-            boxRect.right =
-                    (int) (textX + prefixTextSize.width + highlightTextSize.width + suffixTextSize.width + xPadding
-                                               - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness));
-            boxRect.bottom = (int) (largeTextY + largeTextHeight + yPadding
-                                                - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness));
+            double simpleBoxLeft = hint.centerX() - screen.rectangle().x() - textWidth / 2 +
+                                -suffixTextSize.x;
+            double simpleBoxTop = hint.centerY() - screen.rectangle().y() - largeTextHeight / 2; // largeTextY
+            boxRect.left = (int) (simpleBoxLeft + scaledBoxBorderThickness);
+            boxRect.top = (int) (simpleBoxTop + scaledBoxBorderThickness);
+            double simpleBoxRight =  suffixTextSize.x*2 + simpleBoxLeft + prefixTextSize.width + highlightTextSize.width + suffixTextSize.width;
+            boxRect.right = (int) (simpleBoxRight - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness));
+            double simpleBoxBottom = simpleBoxTop + largeTextHeight;
+            boxRect.bottom = (int) (simpleBoxBottom - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness));
             boolean isHintPartOfGrid = hint.cellWidth() != -1;
             if (!isHintPartOfGrid) {
                 // Position history hints have no cellWidth/cellHeight.
@@ -1137,6 +1135,16 @@ public class WindowsOverlay {
             setBoxOrCellRect(cellRect, screen, 0, hint,
                     minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
                     isHintPartOfGrid);
+            if (boxRect.right - boxRect.left < textWidth || boxRect.bottom - boxRect.top < largeTextHeight) {
+                boxRect.left = (int) Math.round(simpleBoxLeft);
+                boxRect.top = (int) Math.round(simpleBoxTop);
+                boxRect.right = (int) Math.round(simpleBoxRight);
+                boxRect.bottom = (int) Math.round(simpleBoxBottom);
+                cellRect.left = boxRect.left;
+                cellRect.top = boxRect.top;
+                cellRect.right = boxRect.right;
+                cellRect.bottom = boxRect.bottom;
+            }
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
             Gdiplus.GdiplusRectF prefixRect;
