@@ -127,6 +127,23 @@ public interface ExtendedGDI32 extends GDI32 {
 
     byte DEFAULT_CHARSET = 1;
 
-    boolean TextOutA(WinDef.HDC hdc, int nXStart, int nYStart, String lpString, int cbString);
+    class ABC extends Structure {
+        public int abcA; // The A spacing
+        public int abcB; // The B spacing (width of the glyph)
+        public int abcC; // The C spacing
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("abcA", "abcB", "abcC");
+        }
+    }
+
+    boolean GetCharABCWidths(
+            WinDef.HDC hdc,
+            int uFirstChar, // First character in the range
+            int uLastChar, // Last character in the range
+            ABC[] lpabc // Array to receive widths
+    );
+
 
 }

@@ -34,8 +34,20 @@ public interface Gdiplus extends StdCallLibrary {
     int GdipMeasureString(Pointer graphics, WString string, int length, Pointer font, GdiplusRectF layoutRect, Pointer stringFormat, GdiplusRectF boundingBox, IntByReference codepointsFitted, IntByReference linesFilled);
 
     int GdipCreateStringFormat(int format, Pointer lang, PointerByReference stringFormat);
+    int GdipSetStringFormatFlags(Pointer stringFormat, int flags);
     int GdipSetStringFormatAlign(Pointer stringFormat, int alignment);
     int GdipSetStringFormatLineAlign(Pointer stringFormat, int alignment);
+
+    int GdipSetStringFormatMeasurableCharacterRanges(Pointer stringFormat, int rangeCount, CharacterRange[] ranges);
+
+    int GdipGetRegionBounds(Pointer region, Pointer graphics, GdiplusRectF rect);
+
+    int GdipCreateRegion(PointerByReference region);
+
+    int GdipMeasureCharacterRanges(Pointer graphics, WString string, int length,
+                                   Pointer font, GdiplusRectF layoutRect,
+                                   Pointer stringFormat, int regionCount,
+                                   Pointer[] regions);
 
     int GdipSetCompositingMode(Pointer graphics, int mode);
     int GdipSetCompositingQuality(Pointer graphics, int quality);
@@ -105,6 +117,29 @@ public interface Gdiplus extends StdCallLibrary {
 
             public ByReference() {
                 super(0, 0, 0, 0);
+            }
+        }
+
+    }
+
+    class CharacterRange extends Structure {
+        public int first, length;
+
+        public CharacterRange(int first, int length) {
+            this.first = first;
+            this.length = length;
+        }
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return Arrays.asList("first", "length");
+        }
+
+        public static class ByReference extends CharacterRange
+                implements Structure.ByReference {
+
+            public ByReference() {
+                super(0, 0);
             }
         }
 
