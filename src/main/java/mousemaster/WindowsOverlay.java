@@ -1151,7 +1151,7 @@ public class WindowsOverlay {
             setBoxOrCellRect(cellRect, screen, 0, hint,
                     minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
                     isHintPartOfGrid);
-            if (!expandBoxes) {
+            if (!expandBoxes || !isHintPartOfGrid) {
                 boxRect.left = (int) Math.round(simpleBoxLeft);
                 boxRect.top = (int) Math.round(simpleBoxTop);
                 boxRect.right = (int) Math.round(simpleBoxRight);
