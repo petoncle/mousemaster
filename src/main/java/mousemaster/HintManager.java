@@ -197,6 +197,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints);
         }
         else {
+            if (positionHistory.isEmpty())
+                saveCurrentPosition();
             int hintCount = positionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
             for (Point point : positionHistory) {
