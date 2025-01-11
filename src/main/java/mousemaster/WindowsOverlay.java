@@ -699,6 +699,7 @@ public class WindowsOverlay {
         String boxHexColor = currentHintMesh.boxHexColor();
         double boxOpacity = currentHintMesh.boxOpacity();
         double boxBorderThickness = currentHintMesh.boxBorderThickness();
+        double boxBorderLength = currentHintMesh.boxBorderLength();
         String boxBorderHexColor = currentHintMesh.boxBorderHexColor();
         double boxBorderOpacity = currentHintMesh.boxBorderOpacity();
         boolean expandBoxes = currentHintMesh.expandBoxes();
@@ -905,7 +906,10 @@ public class WindowsOverlay {
                     }
                 }
             }
-            int borderLength = (int) Math.round(1000 * boxBorderThickness);
+            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
+            int borderLengthPixels =
+                    Math.max((int) Math.floor(boxBorderLength * screen.scale()), scaledBoxBorderThickness);
+            logger.info("borderLengthPixels = " + borderLengthPixels);
             for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
                 int minX = Math.max(0, cellRect.left);
                 int maxX = Math.min(windowWidth, cellRect.right);
@@ -915,8 +919,8 @@ public class WindowsOverlay {
                     for (int y = minY; y < maxY; y++) {
                         // The cell may go past the screen dimensions.
                         if (hintMeshDraw.pixelData[y * windowWidth + x] == 0) {
-                            if ((x - minX < borderLength || maxX - 1 - x < borderLength)
-                                && (y - minY < borderLength || maxY - 1 - y < borderLength)) {
+                            if ((x - minX < borderLengthPixels || maxX - 1 - x < borderLengthPixels)
+                                && (y - minY < borderLengthPixels || maxY - 1 - y < borderLengthPixels)) {
                                 hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenBoxes;
                             }
                             else {
@@ -1148,19 +1152,16 @@ public class WindowsOverlay {
                     hint,
                     minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
                     isHintPartOfGrid);
-            setBoxOrCellRect(cellRect, screen, 0, hint,
-                    minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
-                    isHintPartOfGrid);
             if (!expandBoxes || !isHintPartOfGrid) {
                 boxRect.left = (int) Math.round(simpleBoxLeft);
                 boxRect.top = (int) Math.round(simpleBoxTop);
                 boxRect.right = (int) Math.round(simpleBoxRight);
                 boxRect.bottom = (int) Math.round(simpleBoxBottom);
-                cellRect.left = boxRect.left - scaledBoxBorderThickness;
-                cellRect.top = boxRect.top - scaledBoxBorderThickness;
-                cellRect.right = boxRect.right + scaledBoxBorderThickness;
-                cellRect.bottom = boxRect.bottom + scaledBoxBorderThickness;
             }
+            cellRect.left = boxRect.left - scaledBoxBorderThickness;
+            cellRect.top = boxRect.top - scaledBoxBorderThickness;
+            cellRect.right = boxRect.right + scaledBoxBorderThickness;
+            cellRect.bottom = boxRect.bottom + scaledBoxBorderThickness;
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
             Gdiplus.GdiplusRectF prefixRect;
@@ -1256,20 +1257,24 @@ public class WindowsOverlay {
         double boxTop = hint.centerY() - halfCellHeight - screen.rectangle().y();
         double boxRight = hint.centerX() + halfCellWidth - screen.rectangle().x();
         double boxBottom = hint.centerY() + halfCellHeight - screen.rectangle().y();
-        if (partOfHintGrid) {
-            if (hint.centerX() == minHintCenterX)
-                boxLeft += scaledBoxBorderThickness / 2;
-            if (hint.centerY() == minHintCenterY)
-                boxTop += scaledBoxBorderThickness / 2;
-            if (hint.centerX() == maxHintCenterX)
-                boxRight -= scaledBoxBorderThickness / 2;
-            if (hint.centerY() == maxHintCenterY)
-                boxBottom -= scaledBoxBorderThickness / 2;
-        }
         int roundedBoxLeft = (int) Math.ceil(boxLeft);
         int roundedBoxTop = (int) Math.ceil(boxTop);
         int roundedBoxRight = (int) Math.ceil(boxRight);
         int roundedBoxBottom = (int) Math.ceil(boxBottom);
+        if (partOfHintGrid) {
+            if (roundedBoxLeft == 0)
+                boxLeft += scaledBoxBorderThickness / 2;
+            if (roundedBoxTop == 0)
+                boxTop += scaledBoxBorderThickness / 2;
+            if (roundedBoxRight == screen.rectangle().width())
+                boxRight -= scaledBoxBorderThickness / 2;
+            if (roundedBoxBottom == screen.rectangle().height())
+                boxBottom -= scaledBoxBorderThickness / 2;
+        }
+        roundedBoxLeft = (int) Math.ceil(boxLeft);
+        roundedBoxTop = (int) Math.ceil(boxTop);
+        roundedBoxRight = (int) Math.ceil(boxRight);
+        roundedBoxBottom = (int) Math.ceil(boxBottom);
         if (roundedBoxLeft < boxRect.left || roundedBoxTop < boxRect.top
             || roundedBoxRight > boxRect.right || roundedBoxBottom > boxRect.bottom) {
             // Screen selection hint are bigger.

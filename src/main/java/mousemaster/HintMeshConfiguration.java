@@ -15,6 +15,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     String boxHexColor,
                                     double boxOpacity,
                                     double boxBorderThickness,
+                                    double boxBorderLength,
                                     String boxBorderHexColor,
                                     double boxBorderOpacity,
                                     boolean expandBoxes,
@@ -41,6 +42,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String boxHexColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
+        private Double boxBorderLength;
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
         private Boolean expandBoxes;
@@ -132,6 +134,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder boxBorderThickness(double boxBorderThickness) {
             this.boxBorderThickness = boxBorderThickness;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder boxBorderLength(double boxBorderLength) {
+            this.boxBorderLength = boxBorderLength;
             return this;
         }
 
@@ -240,6 +247,10 @@ public record HintMeshConfiguration(boolean enabled,
             return boxBorderThickness;
         }
 
+        public Double boxBorderLength() {
+            return boxBorderLength;
+        }
+
         public String boxBorderHexColor() {
             return boxBorderHexColor;
         }
@@ -273,6 +284,7 @@ public record HintMeshConfiguration(boolean enabled,
                     prefixFontHexColor,
                     highlightFontScale,
                     boxHexColor, boxOpacity, boxBorderThickness,
+                    boxBorderLength,
                     boxBorderHexColor, boxBorderOpacity,
                     expandBoxes,
                     modeAfterSelection, swallowHintEndKeyPress,

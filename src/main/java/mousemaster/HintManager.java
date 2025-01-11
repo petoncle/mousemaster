@@ -131,6 +131,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .boxHexColor(hintMeshConfiguration.boxHexColor())
                 .boxOpacity(hintMeshConfiguration.boxOpacity())
                 .boxBorderThickness(hintMeshConfiguration.boxBorderThickness())
+                .boxBorderLength(hintMeshConfiguration.boxBorderLength())
                 .boxBorderHexColor(hintMeshConfiguration.boxBorderHexColor())
                 .boxBorderOpacity(hintMeshConfiguration.boxBorderOpacity())
                 .expandBoxes(hintMeshConfiguration.expandBoxes())

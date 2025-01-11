@@ -83,6 +83,7 @@ public class ConfigurationParser {
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
                 .boxBorderThickness(1)
+                .boxBorderLength(10_000)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
                 .expandBoxes(true)
@@ -484,6 +485,8 @@ public class ConfigurationParser {
                             // between the cells due to the way we distribute spare pixels.
                             // See HintManager#distributeTrueUniformly.
                             case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
+                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
+                            case "box-border-length" -> mode.hintMesh.builder.boxBorderLength(
                                     parseDouble(propertyKey, propertyValue, true, 0, 10_000));
                             case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
@@ -1391,6 +1394,8 @@ public class ConfigurationParser {
                         builder.boxOpacity(parent.boxOpacity());
                     if (builder.boxBorderThickness() == null)
                         builder.boxBorderThickness(parent.boxBorderThickness());
+                    if (builder.boxBorderLength() == null)
+                        builder.boxBorderLength(parent.boxBorderLength());
                     if (builder.boxBorderHexColor() == null)
                         builder.boxBorderHexColor(parent.boxBorderHexColor());
                     if (builder.boxBorderOpacity() == null)
