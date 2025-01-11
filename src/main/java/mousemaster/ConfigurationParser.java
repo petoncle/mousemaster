@@ -153,6 +153,8 @@ public class ConfigurationParser {
 
     public static Configuration parse(Path path) throws IOException {
         List<String> lines = Files.readAllLines(path);
+        String logLevel = null;
+        boolean logRedactKeys = false;
         ComboMoveDuration defaultComboMoveDuration =
                 new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
         KeyboardLayout keyboardLayout = null;
@@ -185,7 +187,15 @@ public class ConfigurationParser {
             if (!visitedPropertyKeys.add(propertyKey))
                 throw new IllegalArgumentException(
                         "Property " + propertyKey + " is defined twice");
-            if (propertyKey.equals("default-combo-move-duration-millis")) {
+            if (propertyKey.equals("logging.level")) {
+                logLevel = propertyValue;
+                continue;
+            }
+            else if (propertyKey.equals("logging.redact-keys")) {
+                logRedactKeys = Boolean.parseBoolean(propertyValue);
+                continue;
+            }
+            else if (propertyKey.equals("default-combo-move-duration-millis")) {
                 defaultComboMoveDuration = parseComboMoveDuration(propertyKey, propertyValue);
                 continue;
             }
@@ -931,7 +941,7 @@ public class ConfigurationParser {
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
         return new Configuration(keyboardLayout, maxPositionHistorySize,
-                new ModeMap(modes));
+                new ModeMap(modes), logLevel, logRedactKeys);
     }
 
     private static void checkMissingProperties(ModeBuilder mode) {

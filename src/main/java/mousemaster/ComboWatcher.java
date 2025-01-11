@@ -16,6 +16,7 @@ public class ComboWatcher implements ModeListener {
     private final ActiveAppFinder activeAppFinder;
     private final PlatformClock clock;
     private final Set<Key> pressedComboPreconditionKeys;
+    private final boolean logRedactKeys;
     private final Set<Key> unpressedComboPreconditionKeys;
     private Mode currentMode;
     private boolean modeJustTimedOut;
@@ -30,7 +31,7 @@ public class ComboWatcher implements ModeListener {
     public ComboWatcher(CommandRunner commandRunner, ActiveAppFinder activeAppFinder,
                         PlatformClock clock,
                         Set<Key> unpressedComboPreconditionKeys,
-                        Set<Key> pressedComboPreconditionKeys) {
+                        Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys) {
         this.commandRunner = commandRunner;
         this.activeAppFinder = activeAppFinder;
         this.clock = clock;
@@ -38,6 +39,7 @@ public class ComboWatcher implements ModeListener {
                 unpressedComboPreconditionKeys;
         this.pressedComboPreconditionKeys =
                 pressedComboPreconditionKeys;
+        this.logRedactKeys = logRedactKeys;
         this.comboPreparation = ComboPreparation.empty();
     }
 
@@ -297,8 +299,9 @@ public class ComboWatcher implements ModeListener {
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo);
         logger.debug("currentMode = " + currentMode.name() +
-                     ", currentlyPressedComboKeys = " + currentlyPressedComboKeys +
-                     ", comboPreparation = " + comboPreparation +
+                     ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
+                     ", comboPreparation = " +
+                     (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
                      ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
                      ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
                      commandsToRun);
@@ -401,7 +404,8 @@ public class ComboWatcher implements ModeListener {
     }
 
     public void breakComboPreparation() {
-        logger.debug("Breaking combos, comboPreparation = " + comboPreparation +
+        logger.debug("Breaking combos, comboPreparation = " +
+                     (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
                      ", combosWaitingForLastMoveToComplete = " +
                      combosWaitingForLastMoveToComplete);
         comboPreparation = ComboPreparation.empty();

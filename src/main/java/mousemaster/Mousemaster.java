@@ -128,6 +128,8 @@ public class Mousemaster {
     private void loadConfiguration() throws IOException {
         boolean reload = configuration != null;
         configuration = ConfigurationParser.parse(configurationPath);
+        if (configuration.logLevel() != null)
+            MousemasterApplication.setLogLevel(configuration.logLevel());
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
                     configurationPath);
         ScreenManager screenManager = new ScreenManager();
@@ -162,7 +164,7 @@ public class Mousemaster {
                 new ComboWatcher(commandRunner, new ActiveAppFinder(),
                         platform.clock(),
                         unpressedComboPreconditionKeys,
-                        pressedComboPreconditionKeys);
+                        pressedComboPreconditionKeys, configuration.logRedactKeys());
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());
         KeyboardState keyboardState = new KeyboardState(keyboardManager);

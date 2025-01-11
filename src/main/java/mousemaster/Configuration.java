@@ -1,6 +1,7 @@
 package mousemaster;
 
 public record Configuration(KeyboardLayout keyboardLayout,
-                            int maxPositionHistorySize, ModeMap modeMap) {
+                            int maxPositionHistorySize, ModeMap modeMap,
+                            String logLevel, boolean logRedactKeys) {
 
 }

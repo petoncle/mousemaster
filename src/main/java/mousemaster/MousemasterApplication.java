@@ -91,7 +91,7 @@ public class MousemasterApplication {
         System.exit(1);
     }
 
-    private static void setLogLevel(String level) {
+    public static void setLogLevel(String level) {
        Logger logger = (Logger) LoggerFactory.getLogger("mousemaster");
        logger.setLevel(Level.valueOf(level));
     }
