@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class WindowsOverlay {
 
@@ -660,17 +659,17 @@ public class WindowsOverlay {
         return (blendedRed << 16) | (blendedGreen << 8) | blendedBlue;
     }
 
-    private record HintText(
-            Gdiplus.GdiplusRectF prefixRect, String prefixText,
-            Gdiplus.GdiplusRectF highlightRect, String highlightText,
-            Gdiplus.GdiplusRectF suffixRect, String suffixText
-            ) {
+    private record HintSequenceText(List<HintKeyText> keyTexts) {
 
+    }
+
+    private record HintKeyText(String keyText, double left, double top, boolean isPrefix,
+                               boolean isHighlight, boolean isSuffix) {
     }
 
     private record HintMeshDraw(List<WinDef.RECT> boxRects,
                                 List<WinDef.RECT> cellRects,
-                                List<HintText> hintTexts,
+                                List<HintSequenceText> hintSequenceTexts,
                                 int[] pixelData) {
     }
 
@@ -691,6 +690,7 @@ public class WindowsOverlay {
 
         String fontName = currentHintMesh.fontName();
         double fontSize = currentHintMesh.fontSize();
+        double fontBoxWidthPercent = currentHintMesh.fontBoxWidthPercent();
         double fontOpacity = currentHintMesh.fontOpacity();
         double fontOutlineThickness = currentHintMesh.fontOutlineThickness();
         String fontOutlineHexColor = currentHintMesh.fontOutlineHexColor();
@@ -832,38 +832,30 @@ public class WindowsOverlay {
             hintMeshDraw = hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
                     focusedHintKeySequence,
                     highlightFontScale, boxBorderThickness, expandBoxes,
-                    graphics, normalFont, fontSize, largeFont, pixelData);
-            if (hintMeshDraw.hintTexts.size() > 200) {
+                    graphics, normalFont, fontSize, fontBoxWidthPercent, largeFont, pixelData);
+            if (hintMeshDraw.hintSequenceTexts.size() > 200) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
                 logger.debug("Caching new hintMeshDraw with " +
-                            hintMeshDraw.hintTexts.size() + " visible hints");
+                             hintMeshDraw.hintSequenceTexts.size() + " visible hints");
                 hintMeshWindow.hintMeshDrawCache.put(zoomHintMesh, hintMeshDraw);
             }
             boolean mustDrawPrefix = false;
             boolean mustDrawSuffix = false;
             boolean mustDrawHighlight = false;
-            for (HintText hintText : hintMeshDraw.hintTexts()) {
-                if (hintText.prefixRect != null) {
+            for (HintSequenceText hintSequenceText : hintMeshDraw.hintSequenceTexts()) {
+                for (HintKeyText keyText : hintSequenceText.keyTexts) {
+                    PointerByReference path = keyText.isPrefix ? prefixPath :
+                            (keyText.isHighlight ? highlightPath : suffixPath);
+                    float gdipFontSize = keyText.isPrefix ? normalGdipFontSize :
+                            (keyText.isHighlight ? largeGdipFontSize :
+                                    normalGdipFontSize);
+                    mustDrawPrefix |= keyText.isPrefix;
+                    mustDrawHighlight |= keyText.isHighlight;
+                    mustDrawSuffix |= keyText.isSuffix;
                     // Color is defined in the brush.
-                    drawHintText2(hintText.prefixText, prefixPath, fontFamily,
-                            normalGdipFontSize, hintText.prefixRect, stringFormat);
-                    mustDrawPrefix = true;
-                }
-                if (hintText.suffixRect != null) {
-                    drawHintText2(hintText.suffixText, suffixPath, fontFamily,
-                            normalGdipFontSize, hintText.suffixRect,
-                            stringFormat);
-                    mustDrawSuffix = true;
-                }
-                if (hintText.highlightRect != null) {
-                    float largeGdipFontSize0 =
-                            hintText.prefixRect == null && hintText.suffixRect == null ?
-                                    normalGdipFontSize : largeGdipFontSize;
-                    drawHintText2(hintText.highlightText, prefixPath, fontFamily,
-                            largeGdipFontSize0, hintText.highlightRect,
-                            stringFormat);
-                    mustDrawHighlight = true;
+                    drawHintText2(keyText.keyText, keyText.left, keyText.top, path,
+                            fontFamily, gdipFontSize, stringFormat);
                 }
             }
 
@@ -909,7 +901,6 @@ public class WindowsOverlay {
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
             int borderLengthPixels =
                     Math.max((int) Math.floor(boxBorderLength * screen.scale()), scaledBoxBorderThickness);
-            logger.info("borderLengthPixels = " + borderLengthPixels);
             for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
                 int minX = Math.max(0, cellRect.left);
                 int maxX = Math.min(windowWidth, cellRect.right);
@@ -1005,11 +996,14 @@ public class WindowsOverlay {
         }
     }
 
-    private static void drawHintText2(String text, PointerByReference path,
+    private static void drawHintText2(String text, double left, double top,
+                                      PointerByReference path,
                                       PointerByReference fontFamily,
-                                      float gdipFontSize, Gdiplus.GdiplusRectF textRect,
+                                      float gdipFontSize,
                                       PointerByReference stringFormat) {
-        Gdiplus.GdiplusRectF layoutRect = textRect;
+        Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF();
+        layoutRect.x = (float) left;
+        layoutRect.y = (float) top;
         layoutRect.width = Float.MAX_VALUE;
         layoutRect.height = Float.MAX_VALUE;
         int addPathStringStatus = Gdiplus.INSTANCE.GdipAddPathString(
@@ -1017,7 +1011,7 @@ public class WindowsOverlay {
                 new WString(text),
                 -1, // Automatically calculate the length of the string.
                 fontFamily.getValue(),
-                1, // FontStyle.Regular
+                1, // FontStyle.Bold
                 gdipFontSize,
                 layoutRect,
                 stringFormat.getValue() // Use default string format.
@@ -1047,11 +1041,12 @@ public class WindowsOverlay {
                                              double boxBorderThickness,
                                              boolean expandBoxes, PointerByReference graphics,
                                              PointerByReference normalFont,
-                                             double fontSize, PointerByReference largeFont,
+                                             double fontSize, double fontBoxWidthPercent,
+                                             PointerByReference largeFont,
                                              int[] pixelData) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<WinDef.RECT> cellRects = new ArrayList<>();
-        List<HintText> hintTexts = new ArrayList<>();
+        List<HintSequenceText> hintSequenceTexts = new ArrayList<>();
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = Double.MIN_VALUE;
@@ -1064,84 +1059,107 @@ public class WindowsOverlay {
         PointerByReference region = new PointerByReference();
         Gdiplus.INSTANCE.GdipCreateRegion(region);
 
+        Map<Key, Gdiplus.GdiplusRectF> normalFontBoundingBoxes = new HashMap<>();
+        Map<Key, Gdiplus.GdiplusRectF> largeFontBoundingBoxes = new HashMap<>();
+        double maxKeyWidth = 0;
+        boolean isFixedSizeWidthFont = true;
+        double boundingBoxX = 0;
+        Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(0, 0, 1000, 1000);
         for (Hint hint : windowHints) {
-            if (!hint.startsWith(focusedHintKeySequence))
-                continue;
             if (currentZoom != null) {
                 hint = new Hint(zoomedX(hint.centerX()), zoomedY(hint.centerY()),
                         zoomPercent() * hint.cellWidth(),
                         zoomPercent() * hint.cellHeight(), hint.keySequence());
-                zoomedWindowHints.add(hint);
+                if (hint.startsWith(focusedHintKeySequence))
+                    zoomedWindowHints.add(hint);
             }
-            maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
-            maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
-            minHintCenterX = Math.min(minHintCenterX, hint.centerX());
-            minHintCenterY = Math.min(minHintCenterY, hint.centerY());
+            if (hint.startsWith(focusedHintKeySequence)) {
+                maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
+                maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
+                minHintCenterX = Math.min(minHintCenterX, hint.centerX());
+                minHintCenterY = Math.min(minHintCenterY, hint.centerY());
+            }
+
+            for (int keyIndex = 0; keyIndex < hint.keySequence().size(); keyIndex++) {
+                Key key = hint.keySequence().get(keyIndex);
+                boolean isPrefix = keyIndex < focusedHintKeySequence.size();
+                boolean isHighlight =
+                        highlightFontScale != 1 && hint.keySequence().size() != 1 &&
+                        keyIndex == focusedHintKeySequence.size();
+                // Compute all bounding boxes.
+                Gdiplus.GdiplusRectF boundingBox =
+                        hintKeyBoundingBox(graphics,
+                                isHighlight ? largeFont : normalFont,
+                                key,
+                                isHighlight ? largeFontBoundingBoxes :
+                                        normalFontBoundingBoxes,
+                                layoutRect, stringFormat, region
+                        );
+                float keyWidth = boundingBox.width - boundingBox.x;
+                if (keyWidth > maxKeyWidth) {
+                    if (maxKeyWidth != 0)
+                        isFixedSizeWidthFont = false;
+                    maxKeyWidth = keyWidth;
+                    boundingBoxX = boundingBox.x;
+                }
+            }
         }
+        if (isFixedSizeWidthFont)
+            // With a fontBoxWidthPercent of 0, the characters of Consolas would overlap
+            // if we subtract the bounding box x from the maxKeyWidth.
+            maxKeyWidth += boundingBoxX;
         for (Hint hint : zoomedWindowHints) {
             if (!hint.startsWith(focusedHintKeySequence))
                 continue;
-            String text = hint.keySequence()
-                              .stream()
-                              .map(Key::hintLabel)
-                              .collect(Collectors.joining());
-            String prefixText;
-            prefixText = focusedHintKeySequence.isEmpty() ? "" :
-                    focusedHintKeySequence.stream()
-                                          .map(Key::hintLabel)
-                                          .collect(Collectors.joining());
-            String highlightText;
-            if (highlightFontScale == 1)
-                highlightText = "";
-            else
-                highlightText = prefixText.length() == text.length() ? "" :
-                        text.substring(prefixText.length(), prefixText.length() + 1);
-            String suffixText = prefixText.length() == text.length() ? "" :
-                    text.substring(prefixText.length() + highlightText.length());
-            // Measure text size.
-            PointerByReference largeFont0 = text.length() == 1 ? normalFont : largeFont;
-            Gdiplus.GdiplusRectF highlightTextSize = new Gdiplus.GdiplusRectF();
-            Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(0, 0, 1000, 1000);
-            if (!highlightText.isEmpty()) {
-                measureString(text, largeFont0, graphics, layoutRect, highlightTextSize,
-                        stringFormat, region);
+            List<HintKeyText> keyTexts = new ArrayList<>();
+            double xAdvance = 0;
+            double highestKeyTop = Double.MAX_VALUE;
+            double highestKeyHeight = 0;
+            for (int keyIndex = 0; keyIndex < hint.keySequence().size(); keyIndex++) {
+                Key key = hint.keySequence().get(keyIndex);
+                boolean isPrefix = keyIndex < focusedHintKeySequence.size();
+                boolean isHighlight = highlightFontScale != 1 && hint.keySequence().size() != 1 &&
+                                      keyIndex == focusedHintKeySequence.size();
+                boolean isSuffix = !isPrefix && !isHighlight;
+                Gdiplus.GdiplusRectF boundingBox =
+                        isHighlight ? largeFontBoundingBoxes.get(key) :
+                                normalFontBoundingBoxes.get(key);
+                String keyText = key.hintLabel();
+                double smallestAcceptableFontBoxWidthPercent = maxKeyWidth * hint.keySequence().size() / hint.cellWidth();
+                // 0.8d fontBoxWidthPercent means characters spread over 80% of the cell width.
+                if (fontBoxWidthPercent < smallestAcceptableFontBoxWidthPercent)
+                    fontBoxWidthPercent = smallestAcceptableFontBoxWidthPercent;
+                double fontBoxWidth = hint.cellWidth() * fontBoxWidthPercent;
+                double keySubcellWidth = fontBoxWidth / hint.keySequence().size();
+                double left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2 + keySubcellWidth/2
+                              + xAdvance - (boundingBox.width)/2 - boundingBox.x; // TODO cast to int?
+                xAdvance += keySubcellWidth;
+                double top = hint.centerY() - screen.rectangle().y() - boundingBox.height / 2; // TODO cast to int?
+                if (top < highestKeyTop) {
+                    highestKeyTop = top;
+                    highestKeyHeight = boundingBox.height;
+                }
+                keyTexts.add(new HintKeyText(keyText, left, top, isPrefix, isSuffix,
+                        isHighlight));
             }
-            Gdiplus.GdiplusRectF prefixTextSize = new Gdiplus.GdiplusRectF();
-            if (!prefixText.isEmpty()) {
-                measureString(prefixText, normalFont, graphics, layoutRect, prefixTextSize,
-                        stringFormat, region);
-            }
-            Gdiplus.GdiplusRectF suffixTextSize = new Gdiplus.GdiplusRectF();
-            if (!suffixText.isEmpty()) {
-                measureString(suffixText, normalFont, graphics, layoutRect, suffixTextSize, stringFormat, region);
-            }
-            float textWidth = prefixTextSize.width + highlightTextSize.width + suffixTextSize.width + 0;//8
-            float normalTextHeight = !prefixText.isEmpty() ? prefixTextSize.height :
-                    suffixTextSize.height;
-            float largeTextHeight = !highlightText.isEmpty() ? highlightTextSize.height : normalTextHeight;
-            int textX = (int) (hint.centerX() - screen.rectangle().x() - textWidth / 2 - suffixTextSize.x);
-            int largeTextY =
-                    (int) (hint.centerY() - screen.rectangle().y() - largeTextHeight / 2);
-            int normalTextY =
-                    (int) (hint.centerY() - screen.rectangle().y() - normalTextHeight / 2);
             WinDef.RECT boxRect = new WinDef.RECT();
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
             if (boxBorderThickness > 0 && scaledBoxBorderThickness == 0)
                 scaledBoxBorderThickness = 1;
-            double simpleBoxLeft = hint.centerX() - screen.rectangle().x() - textWidth / 2 +
-                                -suffixTextSize.x;
-            double simpleBoxTop = hint.centerY() - screen.rectangle().y() - largeTextHeight / 2; // largeTextY
+            double simpleBoxLeft = keyTexts.getFirst().left;
+            double simpleBoxTop = highestKeyTop;
             boxRect.left = (int) (simpleBoxLeft + scaledBoxBorderThickness);
             boxRect.top = (int) (simpleBoxTop + scaledBoxBorderThickness);
-            double simpleBoxRight =  suffixTextSize.x*2 + simpleBoxLeft + prefixTextSize.width + highlightTextSize.width + suffixTextSize.width;
+
+            double simpleBoxRight = xAdvance; //suffixTextSize.x*2 + simpleBoxLeft + prefixTextSize.width + highlightTextSize.width + suffixTextSize.width;
             boxRect.right = (int) (simpleBoxRight - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness));
-            double simpleBoxBottom = simpleBoxTop + largeTextHeight;
+            double simpleBoxBottom = simpleBoxTop + highestKeyHeight;
             boxRect.bottom = (int) (simpleBoxBottom - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness));
             boolean isHintPartOfGrid = hint.cellWidth() != -1;
             if (!isHintPartOfGrid) {
                 // Position history hints have no cellWidth/cellHeight.
                 hint = new Hint(hint.centerX(), hint.centerY(),
-                        textWidth, largeTextHeight, hint.keySequence());
+                        xAdvance, highestKeyHeight, hint.keySequence()); // TODO
             }
             WinDef.RECT cellRect = new WinDef.RECT();
             cellRect.left = boxRect.left - scaledBoxBorderThickness;
@@ -1164,32 +1182,28 @@ public class WindowsOverlay {
             cellRect.bottom = boxRect.bottom + scaledBoxBorderThickness;
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
-            Gdiplus.GdiplusRectF prefixRect;
-            if (prefixText.isEmpty())
-                prefixRect = null;
-            else
-                prefixRect = textRect(textX, normalTextY, prefixTextSize);
-            Gdiplus.GdiplusRectF highlightRect;
-            if (highlightText.isEmpty())
-                highlightRect = null;
-            else
-                highlightRect = textRect(textX + prefixTextSize.width, largeTextY,
-                        highlightTextSize);
-            Gdiplus.GdiplusRectF suffixRect;
-            if (suffixText.isEmpty())
-                suffixRect = null;
-            else
-                suffixRect =
-                        textRect(textX + prefixTextSize.width + highlightTextSize.width,
-                                normalTextY,
-                                suffixTextSize);
-            hintTexts.add(new HintText(prefixRect, prefixText,
-                    highlightRect, highlightText,
-                    suffixRect, suffixText));
+            hintSequenceTexts.add(new HintSequenceText(keyTexts));
         }
         Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
         Gdiplus.INSTANCE.GdipDeleteRegion(region.getValue());
-        return new HintMeshDraw(boxRects, cellRects, hintTexts, pixelData);
+        return new HintMeshDraw(boxRects, cellRects, hintSequenceTexts, pixelData);
+    }
+
+    private static Gdiplus.GdiplusRectF hintKeyBoundingBox(PointerByReference graphics,
+                                                     PointerByReference normalFont,
+                                                     Key key,
+                                                     Map<Key, Gdiplus.GdiplusRectF> normalFontBoundingBoxes,
+                                                     Gdiplus.GdiplusRectF layoutRect,
+                                                     PointerByReference stringFormat,
+                                                     PointerByReference region) {
+        return normalFontBoundingBoxes.computeIfAbsent(key,
+                key1 -> {
+                    Gdiplus.GdiplusRectF boundingBox = new Gdiplus.GdiplusRectF();
+                    measureString(key.hintLabel(), normalFont, graphics,
+                            layoutRect, boundingBox,
+                            stringFormat, region);
+                    return boundingBox;
+                });
     }
 
     private static void measureString(String text, PointerByReference font,

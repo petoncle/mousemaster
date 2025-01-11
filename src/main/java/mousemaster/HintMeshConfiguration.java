@@ -8,7 +8,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean moveMouse,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
-                                    double fontSize, String fontHexColor, double fontOpacity,
+                                    double fontSize, double fontBoxWidthPercent, String fontHexColor, double fontOpacity,
                                     double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                                     String prefixFontHexColor,
                                     double highlightFontScale,
@@ -32,6 +32,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Key undoKey;
         private String fontName;
         private Double fontSize;
+        private Double fontBoxWidthPercent;
         private String fontHexColor;
         private Double fontOpacity;
         private Double fontOutlineThickness;
@@ -82,6 +83,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder fontSize(double fontSize) {
             this.fontSize = fontSize;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder fontBoxWidthPercent(double fontBoxWidthPercent) {
+            this.fontBoxWidthPercent = fontBoxWidthPercent;
             return this;
         }
 
@@ -207,6 +213,10 @@ public record HintMeshConfiguration(boolean enabled,
             return fontSize;
         }
 
+        public Double fontBoxWidthPercent() {
+            return fontBoxWidthPercent;
+        }
+
         public String fontHexColor() {
             return fontHexColor;
         }
@@ -279,7 +289,7 @@ public record HintMeshConfiguration(boolean enabled,
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
                     undoKey, fontName,
-                    fontSize, fontHexColor, fontOpacity,
+                    fontSize, fontBoxWidthPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     prefixFontHexColor,
                     highlightFontScale,

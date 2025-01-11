@@ -120,6 +120,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .type(hintMeshConfiguration.typeAndSelectionKeys().type())
                 .fontName(hintMeshConfiguration.fontName())
                 .fontSize(hintMeshConfiguration.fontSize())
+                .fontBoxWidthPercent(hintMeshConfiguration.fontBoxWidthPercent())
                 .fontHexColor(hintMeshConfiguration.fontHexColor())
                 .fontOpacity(hintMeshConfiguration.fontOpacity())
                 .fontOutlineThickness(hintMeshConfiguration.fontOutlineThickness())
