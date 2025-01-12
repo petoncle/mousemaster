@@ -659,7 +659,7 @@ public class WindowsOverlay {
         return (blendedRed << 16) | (blendedGreen << 8) | blendedBlue;
     }
 
-    private record HintSequenceText(List<HintKeyText> keyTexts) {
+    private record HintSequenceText(Hint hint, List<HintKeyText> keyTexts) {
 
     }
 
@@ -1062,8 +1062,10 @@ public class WindowsOverlay {
         Map<Key, Gdiplus.GdiplusRectF> normalFontBoundingBoxes = new HashMap<>();
         Map<Key, Gdiplus.GdiplusRectF> largeFontBoundingBoxes = new HashMap<>();
         double maxKeyWidth = 0;
+        double maxKeyWidthAndX = 0;
+        double maxKeyBoundingBoxX = 0;
         boolean isFixedSizeWidthFont = true;
-        double boundingBoxX = 0;
+        double maxKeyWidthBoundingBoxX = 0;
         Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(0, 0, 1000, 1000);
         for (Hint hint : windowHints) {
             if (currentZoom != null) {
@@ -1095,86 +1097,106 @@ public class WindowsOverlay {
                                         normalFontBoundingBoxes,
                                 layoutRect, stringFormat, region
                         );
-                float keyWidth = boundingBox.width - boundingBox.x;
-                if (keyWidth > maxKeyWidth) {
+                float keyWidthMinusBoundingBox = boundingBox.width - boundingBox.x;
+                if (keyWidthMinusBoundingBox > maxKeyWidth) {
                     if (maxKeyWidth != 0)
                         isFixedSizeWidthFont = false;
-                    maxKeyWidth = keyWidth;
-                    boundingBoxX = boundingBox.x;
+                    maxKeyWidth = keyWidthMinusBoundingBox;
+                    maxKeyWidthBoundingBoxX = boundingBox.x;
                 }
+                if (boundingBox.width + boundingBox.x > maxKeyWidthAndX)
+                    maxKeyWidthAndX = boundingBox.width + boundingBox.x;
+                if (boundingBox.x > maxKeyBoundingBoxX)
+                    maxKeyBoundingBoxX = boundingBox.x;
             }
         }
         if (isFixedSizeWidthFont)
             // With a fontBoxWidthPercent of 0, the characters of Consolas would overlap
             // if we subtract the bounding box x from the maxKeyWidth.
-            maxKeyWidth += boundingBoxX;
+            maxKeyWidth += maxKeyWidthBoundingBoxX;
+        double maxSimpleBoxWidth = 0;
+        double highestKeyHeight = 0;
         for (Hint hint : zoomedWindowHints) {
-            if (!hint.startsWith(focusedHintKeySequence))
-                continue;
             List<HintKeyText> keyTexts = new ArrayList<>();
             double xAdvance = 0;
-            double highestKeyTop = Double.MAX_VALUE;
-            double highestKeyHeight = 0;
+            double lastKeyBoundingBoxX = 0;
+            double lastKeyWidth = 0;
             for (int keyIndex = 0; keyIndex < hint.keySequence().size(); keyIndex++) {
                 Key key = hint.keySequence().get(keyIndex);
                 boolean isPrefix = keyIndex < focusedHintKeySequence.size();
-                boolean isHighlight = highlightFontScale != 1 && hint.keySequence().size() != 1 &&
-                                      keyIndex == focusedHintKeySequence.size();
+                boolean isHighlight =
+                        highlightFontScale != 1 && hint.keySequence().size() != 1 &&
+                        keyIndex == focusedHintKeySequence.size();
                 boolean isSuffix = !isPrefix && !isHighlight;
                 Gdiplus.GdiplusRectF boundingBox =
                         isHighlight ? largeFontBoundingBoxes.get(key) :
                                 normalFontBoundingBoxes.get(key);
                 String keyText = key.hintLabel();
-                double smallestAcceptableFontBoxWidthPercent = maxKeyWidth * hint.keySequence().size() / hint.cellWidth();
+                double smallestAcceptableFontBoxWidthPercent =
+                        maxKeyWidth * hint.keySequence().size() / hint.cellWidth();
                 // 0.8d fontBoxWidthPercent means characters spread over 80% of the cell width.
-                if (fontBoxWidthPercent < smallestAcceptableFontBoxWidthPercent)
-                    fontBoxWidthPercent = smallestAcceptableFontBoxWidthPercent;
-                double fontBoxWidth = hint.cellWidth() * fontBoxWidthPercent;
+                double usedFontBoxWidthPercent =
+                        Math.max(fontBoxWidthPercent,
+                                smallestAcceptableFontBoxWidthPercent);
+                double fontBoxWidth = hint.cellWidth() * usedFontBoxWidthPercent;
                 double keySubcellWidth = fontBoxWidth / hint.keySequence().size();
-                double left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2 + keySubcellWidth/2
-                              + xAdvance - (boundingBox.width)/2 - boundingBox.x; // TODO cast to int?
+                double left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2 +
+                              keySubcellWidth / 2
+                              + xAdvance - (boundingBox.width) / 2 -
+                              boundingBox.x; // TODO cast to int?
                 xAdvance += keySubcellWidth;
-                double top = hint.centerY() - screen.rectangle().y() - boundingBox.height / 2; // TODO cast to int?
-                if (top < highestKeyTop) {
-                    highestKeyTop = top;
+                double top = hint.centerY() - screen.rectangle().y() -
+                             boundingBox.height / 2; // TODO cast to int?
+                if (boundingBox.height > highestKeyHeight) {
                     highestKeyHeight = boundingBox.height;
+                }
+                if (keyIndex == hint.keySequence().size() - 1) {
+                    lastKeyBoundingBoxX = boundingBox.x;
+                    lastKeyWidth = boundingBox.width + boundingBox.x;
                 }
                 keyTexts.add(new HintKeyText(keyText, left, top, isPrefix, isSuffix,
                         isHighlight));
             }
+            double simpleBoxLeft = keyTexts.getFirst().left;
+            double simpleBoxRight = keyTexts.getLast().left + lastKeyWidth + lastKeyBoundingBoxX;
+            double simpleBoxWidth = simpleBoxRight - simpleBoxLeft;
+            // If we don't want to expand the box widths, then we will use a common width
+            // which will be the largest of the widths.
+            if (simpleBoxWidth > maxSimpleBoxWidth) {
+                maxSimpleBoxWidth = simpleBoxWidth;
+            }
+            if (hint.startsWith(focusedHintKeySequence))
+                hintSequenceTexts.add(new HintSequenceText(hint, keyTexts));
+        }
+        // Hint boxes (assuming non-expanding) are centered on the hint, and of same width.
+        for (HintSequenceText hintSequenceText : hintSequenceTexts) {
+            Hint hint = hintSequenceText.hint;
             WinDef.RECT boxRect = new WinDef.RECT();
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
             if (boxBorderThickness > 0 && scaledBoxBorderThickness == 0)
                 scaledBoxBorderThickness = 1;
-            double simpleBoxLeft = keyTexts.getFirst().left;
-            double simpleBoxTop = highestKeyTop;
+            double simpleBoxLeft =
+                    hint.centerX() - screen.rectangle().x() - maxSimpleBoxWidth / 2;
+
+            double simpleBoxTop =
+                    hint.centerY() - screen.rectangle().y() - highestKeyHeight / 2;
             boxRect.left = (int) (simpleBoxLeft + scaledBoxBorderThickness);
             boxRect.top = (int) (simpleBoxTop + scaledBoxBorderThickness);
 
-            double simpleBoxRight = xAdvance; //suffixTextSize.x*2 + simpleBoxLeft + prefixTextSize.width + highlightTextSize.width + suffixTextSize.width;
+            double simpleBoxRight = hint.centerX() - screen.rectangle().x() + maxSimpleBoxWidth / 2;
             boxRect.right = (int) (simpleBoxRight - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness));
             double simpleBoxBottom = simpleBoxTop + highestKeyHeight;
             boxRect.bottom = (int) (simpleBoxBottom - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness));
             boolean isHintPartOfGrid = hint.cellWidth() != -1;
-            if (!isHintPartOfGrid) {
-                // Position history hints have no cellWidth/cellHeight.
-                hint = new Hint(hint.centerX(), hint.centerY(),
-                        xAdvance, highestKeyHeight, hint.keySequence()); // TODO
-            }
             WinDef.RECT cellRect = new WinDef.RECT();
-            cellRect.left = boxRect.left - scaledBoxBorderThickness;
-            cellRect.top = boxRect.top - scaledBoxBorderThickness;
-            cellRect.right = boxRect.right + (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness);
-            cellRect.bottom = boxRect.bottom + (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness);
-            setBoxOrCellRect(boxRect, screen, scaledBoxBorderThickness,
-                    hint,
-                    minHintCenterX, minHintCenterY, maxHintCenterX, maxHintCenterY, windowWidth, windowHeight,
-                    isHintPartOfGrid);
             if (!expandBoxes || !isHintPartOfGrid) {
                 boxRect.left = (int) Math.round(simpleBoxLeft);
                 boxRect.top = (int) Math.round(simpleBoxTop);
                 boxRect.right = (int) Math.round(simpleBoxRight);
                 boxRect.bottom = (int) Math.round(simpleBoxBottom);
+            }
+            else {
+                setBoxOrCellRect(boxRect, screen, scaledBoxBorderThickness, hint);
             }
             cellRect.left = boxRect.left - scaledBoxBorderThickness;
             cellRect.top = boxRect.top - scaledBoxBorderThickness;
@@ -1182,7 +1204,6 @@ public class WindowsOverlay {
             cellRect.bottom = boxRect.bottom + scaledBoxBorderThickness;
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
-            hintSequenceTexts.add(new HintSequenceText(keyTexts));
         }
         Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
         Gdiplus.INSTANCE.GdipDeleteRegion(region.getValue());
@@ -1250,23 +1271,15 @@ public class WindowsOverlay {
     }
 
     private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, double scaledBoxBorderThickness,
-                                         Hint hint,
-                                         double minHintCenterX, double minHintCenterY,
-                                         double maxHintCenterX, double maxHintCenterY,
-                                         int windowWidth, int windowHeight,
-                                         boolean partOfHintGrid) {
+                                         Hint hint) {
         double cellWidth = hint.cellWidth();
         double halfCellWidth = cellWidth / 2;
         double cellHeight = hint.cellHeight();
         double halfCellHeight = cellHeight / 2;
-        if (partOfHintGrid) {
-            halfCellWidth -= scaledBoxBorderThickness / 2;
-            halfCellHeight -= scaledBoxBorderThickness / 2;
-        }
-        else {
-            halfCellWidth -= scaledBoxBorderThickness;
-            halfCellHeight -= scaledBoxBorderThickness;
-        }
+
+        halfCellWidth -= scaledBoxBorderThickness / 2;
+        halfCellHeight -= scaledBoxBorderThickness / 2;
+
         double boxLeft = hint.centerX() - halfCellWidth - screen.rectangle().x();
         double boxTop = hint.centerY() - halfCellHeight - screen.rectangle().y();
         double boxRight = hint.centerX() + halfCellWidth - screen.rectangle().x();
@@ -1275,16 +1288,16 @@ public class WindowsOverlay {
         int roundedBoxTop = (int) Math.ceil(boxTop);
         int roundedBoxRight = (int) Math.ceil(boxRight);
         int roundedBoxBottom = (int) Math.ceil(boxBottom);
-        if (partOfHintGrid) {
-            if (roundedBoxLeft == 0)
-                boxLeft += scaledBoxBorderThickness / 2;
-            if (roundedBoxTop == 0)
-                boxTop += scaledBoxBorderThickness / 2;
-            if (roundedBoxRight == screen.rectangle().width())
-                boxRight -= scaledBoxBorderThickness / 2;
-            if (roundedBoxBottom == screen.rectangle().height())
-                boxBottom -= scaledBoxBorderThickness / 2;
-        }
+
+        if (roundedBoxLeft == 0)
+            boxLeft += scaledBoxBorderThickness / 2;
+        if (roundedBoxTop == 0)
+            boxTop += scaledBoxBorderThickness / 2;
+        if (roundedBoxRight == screen.rectangle().width())
+            boxRight -= scaledBoxBorderThickness / 2;
+        if (roundedBoxBottom == screen.rectangle().height())
+            boxBottom -= scaledBoxBorderThickness / 2;
+
         roundedBoxLeft = (int) Math.ceil(boxLeft);
         roundedBoxTop = (int) Math.ceil(boxTop);
         roundedBoxRight = (int) Math.ceil(boxRight);
