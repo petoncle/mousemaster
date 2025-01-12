@@ -73,7 +73,7 @@ public class ConfigurationParser {
                                         .toList())
                 .fontName("Arial")
                 .fontSize(16f)
-                .fontBoxWidthPercent(0.6f)
+                .fontBoxWidthPercent(0.5f)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
                 .fontOutlineThickness(2)
