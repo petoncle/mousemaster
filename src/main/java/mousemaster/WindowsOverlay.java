@@ -1063,8 +1063,6 @@ public class WindowsOverlay {
         Map<Key, Gdiplus.GdiplusRectF> largeFontBoundingBoxes = new HashMap<>();
         double maxKeyWidth = 0;
         boolean isFixedSizeWidthFont = true;
-        double smallestColAlignedFontBoxWidth = Double.MAX_VALUE;
-        double smallestColAlignedFontBoxWidthPercent = 1;
         Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(0, 0, 1000, 1000);
         for (Hint hint : windowHints) {
             if (currentZoom != null) {
@@ -1103,17 +1101,16 @@ public class WindowsOverlay {
                 }
             }
         }
-        smallestColAlignedFontBoxWidth = Math.min(smallestColAlignedFontBoxWidth,
-                maxKeyWidth * windowHints.getFirst().keySequence().size());
-        smallestColAlignedFontBoxWidthPercent =
-                Math.min(smallestColAlignedFontBoxWidthPercent,
-                        maxKeyWidth * windowHints.getFirst().keySequence().size() /
-                        windowHints.getFirst().cellWidth());
         double maxSimpleBoxWidth = 0;
         double highestKeyHeight = 0;
-        boolean doNotColAlign =
-                fontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
         for (Hint hint : zoomedWindowHints) {
+            double smallestColAlignedFontBoxWidth =
+                    maxKeyWidth * hint.keySequence().size();
+            double smallestColAlignedFontBoxWidthPercent =
+                    maxKeyWidth * hint.keySequence().size() /
+                    hint.cellWidth();
+            boolean doNotColAlign =
+                    fontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             List<HintKeyText> keyTexts = new ArrayList<>();
             double xAdvance = 0;
             double lastKeyBoundingBoxX = 0;
