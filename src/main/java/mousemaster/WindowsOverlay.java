@@ -875,6 +875,7 @@ public class WindowsOverlay {
             int alphaChannelMultipliedBoxColor =
                     alphaMultipliedChannelsColor(boxColor, boxOpacity) |
                     ((int) (boxOpacity * 255) << 24);
+            int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
             for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
                 int pixel = hintMeshDraw.pixelData[i];
 //                logger.info("pixel = " + Integer.toHexString(pixel) + ", boxColor = " + Integer.toHexString(boxColor) + ", alphaMul = " +
@@ -885,7 +886,7 @@ public class WindowsOverlay {
                     // because the DrawText needs the grey color for the antialiasing.
                     // Now we remove the grey color, and we will put it back only for the boxes.
                     // (We need to clear the pixels that are not in boxes.)
-                    hintMeshDraw.pixelData[i] = 0;
+                    hintMeshDraw.pixelData[i] = noColorColor;
             }
             for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
                 for (int x = Math.max(0, boxRect.left);
@@ -893,7 +894,7 @@ public class WindowsOverlay {
                     for (int y = Math.max(0, boxRect.top);
                          y < Math.min(windowHeight, boxRect.bottom); y++) {
                         // The box may go past the screen dimensions.
-                        if (hintMeshDraw.pixelData[y * windowWidth + x] == 0)
+                        if (hintMeshDraw.pixelData[y * windowWidth + x] == noColorColor)
                             hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
                     }
                 }
@@ -909,7 +910,7 @@ public class WindowsOverlay {
                 for (int x = minX; x < maxX; x++) {
                     for (int y = minY; y < maxY; y++) {
                         // The cell may go past the screen dimensions.
-                        if (hintMeshDraw.pixelData[y * windowWidth + x] == 0) {
+                        if (hintMeshDraw.pixelData[y * windowWidth + x] == noColorColor) {
                             if ((x - minX < borderLengthPixels || maxX - 1 - x < borderLengthPixels)
                                 && (y - minY < borderLengthPixels || maxY - 1 - y < borderLengthPixels)) {
                                 hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenBoxes;

@@ -58,3 +58,4 @@
 + Clear hint cache when reloading config?
 + Group hint keys (e.g. top left quadrant starts with Q, top right starts with W)
 + readme: hint styling showcase
++ Pre-load hint meshes on startup to avoid first time lag
