@@ -56,6 +56,11 @@
 - Empty position history problem: add current position if empty
 - hint.box-border-length=1 means one dot (of size box.thickness) as the border?
 + Clear hint cache when reloading config?
-+ Group hint keys (e.g. top left quadrant starts with Q, top right starts with W)
+- Group hint keys (e.g. top left quadrant starts with Q, top right starts with W)
+ - q w e r t a s d f g z x c v b y u i o p h j k l ; n m , . /
+ - hint.grid-group-column-count=5, hint.grid-group-column-count=6
+ - sub-grid-?
+ - Increase row/col cell size until it can fit full sub-grids
+  - No: draw partial sub-grid. If not enough hint keys, then switch to length 3 or 4
 + readme: hint styling showcase
 + Pre-load hint meshes on startup to avoid first time lag

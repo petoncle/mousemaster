@@ -96,7 +96,10 @@ public class ConfigurationParser {
                            .gridMaxRowCount(200)
                            .gridMaxColumnCount(200)
                            .gridCellWidth(73d)
-                           .gridCellHeight(41d);
+                           .gridCellHeight(41d)
+                           .subgridRowCount(1_000_000)
+                           .subgridColumnCount(1)
+                           .rowOriented(true);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
         hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
@@ -457,6 +460,9 @@ public class ConfigurationParser {
                                                                                              0,
                                                                                              10_000
                                                                                      ));
+                            case "subgrid-row-count" -> mode.hintMesh.builder.type().subgridRowCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
+                            case "subgrid-column-count" -> mode.hintMesh.builder.type().subgridColumnCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
+                            case "grid-row-oriented" -> mode.hintMesh.builder.type().rowOriented(Boolean.parseBoolean(propertyValue));
                             case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                     parseHintKeys(propertyKey, propertyValue, keyAliases));
                             case "undo" ->
@@ -971,12 +977,17 @@ public class ConfigurationParser {
                 if (hintMeshType.gridMaxRowCount() == null ||
                     hintMeshType.gridMaxColumnCount() == null ||
                     hintMeshType.gridCellWidth() == null ||
-                    hintMeshType.gridCellHeight() == null)
+                    hintMeshType.gridCellHeight() == null ||
+                    hintMeshType.subgridRowCount() == null ||
+                    hintMeshType.subgridColumnCount() == null ||
+                    hintMeshType.rowOriented() == null
+                )
                     throw new IllegalArgumentException(
                             "Definition of hint for " + mode.modeName +
                             " is incomplete: expected " +
                             List.of("grid-max-row-count", "grid-max-column-count",
-                                    "grid-cell-width", "grid-cell-height"));
+                                    "grid-cell-width", "grid-cell-height",
+                                    "subgrid-row-count", "subgrid-column-count", "grid-row-oriented"));
             }
             case POSITION_HISTORY -> {
                 // No op.
@@ -1379,6 +1390,12 @@ public class ConfigurationParser {
                         builder.type().gridCellWidth(parent.type().gridCellWidth());
                     if (builder.type().gridCellHeight() == null)
                         builder.type().gridCellHeight(parent.type().gridCellHeight());
+                    if (builder.type().subgridRowCount() == null)
+                        builder.type().subgridRowCount(parent.type().subgridRowCount());
+                    if (builder.type().subgridColumnCount() == null)
+                        builder.type().subgridColumnCount(parent.type().subgridColumnCount());
+                    if (builder.type().rowOriented() == null)
+                        builder.type().rowOriented(parent.type().rowOriented());
                     if (builder.selectionKeys() == null)
                         builder.selectionKeys(parent.selectionKeys());
                     if (builder.undoKey() == null)

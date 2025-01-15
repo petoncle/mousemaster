@@ -3,7 +3,8 @@ package mousemaster;
 public sealed interface HintMeshType {
 
     record HintGrid(HintGridArea area, int maxRowCount, int maxColumnCount, double cellWidth,
-                    double cellHeight) implements HintMeshType {
+                    double cellHeight,
+                    int subgridRowCount, int subgridColumnCount, boolean rowOriented) implements HintMeshType {
     }
 
     record HintPositionHistory() implements HintMeshType {
@@ -25,6 +26,9 @@ public sealed interface HintMeshType {
         private Integer gridMaxColumnCount;
         private Double gridCellWidth;
         private Double gridCellHeight;
+        private Integer subgridRowCount;
+        private Integer subgridColumnCount;
+        private Boolean rowOriented;
 
         public HintMeshTypeBuilder() {
 
@@ -37,6 +41,9 @@ public sealed interface HintMeshType {
                     this.gridArea = hintGrid.area.builder();
                     this.gridCellWidth = hintGrid.cellWidth;
                     this.gridCellHeight = hintGrid.cellHeight;
+                    this.subgridRowCount = hintGrid.subgridRowCount;
+                    this.subgridColumnCount = hintGrid.subgridColumnCount;
+                    this.rowOriented = hintGrid.rowOriented;
                 }
                 case HintPositionHistory hintPositionHistory -> {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
@@ -68,6 +75,18 @@ public sealed interface HintMeshType {
             return gridCellHeight;
         }
 
+        public Integer subgridRowCount() {
+            return subgridRowCount;
+        }
+
+        public Integer subgridColumnCount() {
+            return subgridColumnCount;
+        }
+
+        public Boolean rowOriented() {
+            return rowOriented;
+        }
+
         public HintMeshTypeBuilder type(HintMeshTypeType type) {
             this.type = type;
             return this;
@@ -93,10 +112,26 @@ public sealed interface HintMeshType {
             return this;
         }
 
+        public HintMeshTypeBuilder subgridRowCount(Integer subgridRowCount) {
+            this.subgridRowCount = subgridRowCount;
+            return this;
+        }
+
+        public HintMeshTypeBuilder subgridColumnCount(Integer subgridColumnCount) {
+            this.subgridColumnCount = subgridColumnCount;
+            return this;
+        }
+
+        public HintMeshTypeBuilder rowOriented(Boolean rowOriented) {
+            this.rowOriented = rowOriented;
+            return this;
+        }
+
         public HintMeshType build() {
             return switch (type) {
                 case GRID -> new HintGrid(gridArea.build(), gridMaxRowCount,
-                        gridMaxColumnCount, gridCellWidth, gridCellHeight);
+                        gridMaxColumnCount, gridCellWidth, gridCellHeight,
+                        subgridRowCount, subgridColumnCount, rowOriented);
                 case POSITION_HISTORY -> new HintPositionHistory();
             };
         }
