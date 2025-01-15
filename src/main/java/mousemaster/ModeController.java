@@ -8,7 +8,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-public class ModeController implements GridListener, PositionHistoryListener {
+public class ModeController implements ComboListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ModeController.class);
 
@@ -22,8 +22,7 @@ public class ModeController implements GridListener, PositionHistoryListener {
     private final Deque<Mode> modeHistoryStack = new ArrayDeque<>();
     private double modeTimeoutTimer;
     private double hideCursorIdleTimer;
-    private boolean justSnappedToGrid;
-    private boolean justCycledPosition;
+    private boolean justCompletedCombo;
 
     public ModeController(ModeMap modeMap, MouseController mouseController,
                           MouseState mouseState, KeyboardState keyboardState,
@@ -44,13 +43,11 @@ public class ModeController implements GridListener, PositionHistoryListener {
                 return;
             }
         }
-        boolean mouseIdling = !mouseState.moving() && !mouseState.pressing() &&
-                              !mouseState.wheeling() && !justSnappedToGrid &&
-                              !justCycledPosition;
-        boolean mustResetHideCursorTimeout = !mouseIdling;
-        boolean mustResetModeTimeout = currentMode.timeout().onlyIfIdle() && !mouseIdling;
-        justSnappedToGrid = false;
-        justCycledPosition = false;
+        boolean idling = !mouseState.moving() && !mouseState.pressing() &&
+                              !mouseState.wheeling() && !justCompletedCombo;
+        boolean mustResetHideCursorTimeout = !idling;
+        boolean mustResetModeTimeout = currentMode.timeout().onlyIfIdle() && !idling;
+        justCompletedCombo = false;
         if (mustResetHideCursorTimeout) {
             resetHideCursorTimer();
             resetCurrentModeCursorHidden();
@@ -138,12 +135,8 @@ public class ModeController implements GridListener, PositionHistoryListener {
     }
 
     @Override
-    public void snappedToGrid() {
-        justSnappedToGrid = true;
+    public void completedCombo() {
+        justCompletedCombo = true;
     }
 
-    @Override
-    public void cycledPosition() {
-        justCycledPosition = true;
-    }
 }

@@ -17,7 +17,6 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final ScreenManager screenManager;
     private final MouseController mouseController;
     private ModeController modeController;
-    private List<PositionHistoryListener> positionHistoryListeners;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
     private final Map<HintMeshTypeAndSelectionKeys, HintMesh>
@@ -44,11 +43,6 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     public Point lastSelectedHintPoint() {
         return lastSelectedHintPoint;
-    }
-
-    public void setPositionHistoryListener(
-            List<PositionHistoryListener> positionHistoryListeners) {
-        this.positionHistoryListeners = positionHistoryListeners;
     }
 
     public void setModeController(ModeController modeController) {
@@ -620,7 +614,6 @@ public class HintManager implements ModeListener, MousePositionListener {
         positionCycleIndex = (positionCycleIndex + 1) % positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
         mouseController.moveTo(point.x(), point.y());
-        positionHistoryListeners.forEach(PositionHistoryListener::cycledPosition);
     }
 
     private void findPositionHistoryEntryMatchingCurrentPosition() {
@@ -642,7 +635,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                              positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
         mouseController.moveTo(point.x(), point.y());
-        positionHistoryListeners.forEach(PositionHistoryListener::cycledPosition);
     }
 
 }

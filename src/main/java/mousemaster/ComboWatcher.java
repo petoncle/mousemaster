@@ -18,6 +18,7 @@ public class ComboWatcher implements ModeListener {
     private final Set<Key> pressedComboPreconditionKeys;
     private final boolean logRedactKeys;
     private final Set<Key> unpressedComboPreconditionKeys;
+    private List<ComboListener> listeners;
     private Mode currentMode;
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
@@ -41,6 +42,10 @@ public class ComboWatcher implements ModeListener {
                 pressedComboPreconditionKeys;
         this.logRedactKeys = logRedactKeys;
         this.comboPreparation = ComboPreparation.empty();
+    }
+
+    public void setListeners(List<ComboListener> listeners) {
+        this.listeners = listeners;
     }
 
     public record ComboWatcherUpdateResult(Set<Combo> completedWaitingCombos, boolean preparationIsNotPrefixAnymore) {
@@ -95,6 +100,9 @@ public class ComboWatcher implements ModeListener {
                 // and they should not be regurgitated.
                 completedCombos.add(combo);
             }
+        }
+        if (!completeCombos.isEmpty()) {
+            listeners.forEach(ComboListener::completedCombo);
         }
         List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
                                                                                            .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
@@ -305,6 +313,9 @@ public class ComboWatcher implements ModeListener {
                      ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
                      ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
                      commandsToRun);
+        if (!comboAndCommandsToRun.isEmpty()) {
+            listeners.forEach(ComboListener::completedCombo);
+        }
         commandsToRun.forEach(commandRunner::run);
         if (event != null && event.isPress()) {
             if (processingSet.isPartOfComboSequence()) {
