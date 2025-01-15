@@ -12,6 +12,7 @@ import mousemaster.Wheel.WheelBuilder;
 import mousemaster.ZoomConfiguration.ZoomConfigurationBuilder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -155,7 +156,8 @@ public class ConfigurationParser {
     }
 
     public static Configuration parse(Path path) throws IOException {
-        List<String> lines = Files.readAllLines(path);
+        // The default encoding for .properties files is ISO-8859-1 (Latin-1).
+        List<String> lines = Files.readAllLines(path, StandardCharsets.ISO_8859_1);
         String logLevel = null;
         boolean logRedactKeys = false;
         ComboMoveDuration defaultComboMoveDuration =
