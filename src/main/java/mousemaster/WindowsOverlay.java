@@ -708,8 +708,6 @@ public class WindowsOverlay {
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
 //        int scaledDpi = (int) (screen.dpi() * screen.scale());
         int dpi = screen.dpi();
-        // Convert point size to logical units.
-        // 1 point = 1/72 inch. So, multiply by dpi and divide by 72 to convert to pixels.
         int windowWidth = windowRect.right - windowRect.left;
         int windowHeight = windowRect.bottom - windowRect.top;
 
@@ -1168,7 +1166,7 @@ public class WindowsOverlay {
                            keySubcellWidth / 2
                            + xAdvance
                            - (boundingBox.width) / 2 - boundingBox.x;
-                    xAdvance += keySubcellWidth; // TODO simplify (no need for a loop var)
+                    xAdvance += keySubcellWidth;
                 }
                 double top = hint.centerY() - screen.rectangle().y() -
                              boundingBox.height / 2;

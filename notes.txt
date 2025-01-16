@@ -58,9 +58,20 @@
 + Clear hint cache when reloading config?
 - Group hint keys (e.g. top left quadrant starts with Q, top right starts with W)
  - q w e r t a s d f g z x c v b y u i o p h j k l ; n m , . /
+ + hint2-2: q w e r u i o p a s d f j k l ; z x c v m , . /
  - hint.grid-group-column-count=5, hint.grid-group-column-count=6
  - sub-grid-?
  - Increase row/col cell size until it can fit full sub-grids
   - No: draw partial sub-grid. If not enough hint keys, then switch to length 3 or 4
 + readme: hint styling showcase
 + Pre-load hint meshes on startup to avoid first time lag
+ + Try caching each key drawing into a small int[][]?
+ + Window hint grid: must clear draw cache if size == 10
++ key-alias.hint1key.qwerty=..., key-alias.hint1key.azerty=...
+ + Reload config file when layout changes?
+ + Layout names: us-qwerty, uk-qwerty, italian-qwerty, french-azerty
+ + Include defaults key-alias.hint1key, key-alias.hint1key.*, but if there is one
+   key-alias.hint1key(.*) in the config file then ignore the defaults
+   + Also include other key aliases: left/down/etc.
+   + Remove the heading # character for each key-alias you want to modify.
++ Change ctrl + e to alt + e, add goback goforward remappings, rework documentation

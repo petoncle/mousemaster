@@ -1,5 +1,6 @@
 package mousemaster;
 
+import com.sun.jna.Native;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import org.slf4j.Logger;
@@ -433,7 +434,7 @@ public enum WindowsVirtualKey {
     public static void mapKeysToVirtualKeysUsingLayout(Set<Key> keys, KeyboardLayout configurationKeyboardLayout) {
         WinDef.HKL keyboardLayoutHandle;
         KeyboardLayout keyboardLayout;
-        KeyboardLayout activeKeyboardLayout = findActiveKeyboardLayoutName();
+        KeyboardLayout activeKeyboardLayout = findActiveKeyboardLayout();
         if (configurationKeyboardLayout == null) {
             keyboardLayoutHandle = User32.INSTANCE.GetKeyboardLayout(0);
             // Active keyboard layout is the system-wide layout that was active when the app started.
@@ -516,7 +517,35 @@ public enum WindowsVirtualKey {
         }
     }
 
-    private static KeyboardLayout findActiveKeyboardLayoutName() {
+    public static KeyboardLayout findActiveKeyboardLayout() {
+        WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
+        if (hwnd == null) {
+            // GetForegroundWindow does not set the last error value.
+            logger.error("GetForegroundWindow failed");
+        }
+        else {
+            int thread = User32.INSTANCE.GetWindowThreadProcessId(hwnd, null);
+            if (thread == 0) {
+                logger.error("GetWindowThreadProcessId failed: " + Integer.toHexString(Native.getLastError()));
+            }
+            else {
+                WinDef.HKL hkl = User32.INSTANCE.GetKeyboardLayout(thread);
+                if (hkl == null) {
+                    // GetKeyboardLayout does not set the last error value.
+                    logger.error("GetKeyboardLayout failed");
+                }
+                else {
+                    int languageIdentifier = hkl.getLanguageIdentifier();
+                    return KeyboardLayout.keyboardLayoutByIdentifier.get(
+                            String.format("%08X", languageIdentifier));
+                }
+            }
+        }
+        logger.info(
+                "Unable to find the foreground window's keyboard layout, falling back to using GetKeyboardLayoutName");
+        // GetKeyboardLayoutName returns the layout at the time of when the app was started.
+        // If the system layout is changed after the app is started, GetKeyboardLayoutName
+        // still returns the old layout.
         char[] nameBuffer = new char[User32.KL_NAMELENGTH];
         User32.INSTANCE.GetKeyboardLayoutName(nameBuffer);
         int nameLength = nameBuffer.length;
