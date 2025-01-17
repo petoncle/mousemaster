@@ -1108,9 +1108,9 @@ public class WindowsOverlay {
             double smallestColAlignedFontBoxWidth =
                     maxKeyBoundingBoxWidth * hint.keySequence().size();
             // This matches the hintKeyTextTotalXAdvance calculation:
-            if (hint.keySequence().size() == 1)
-                smallestColAlignedFontBoxWidth += maxKeyBoundingBoxX;
-            else
+//            if (hint.keySequence().size() == 1)
+//                smallestColAlignedFontBoxWidth += maxKeyBoundingBoxX;
+//            else
                 smallestColAlignedFontBoxWidth += 2*maxKeyBoundingBoxX; // 1 for first 1 for last
             double smallestColAlignedFontBoxWidthPercent =
                     maxKeyBoundingBoxWidth * hint.keySequence().size() /
@@ -1141,6 +1141,7 @@ public class WindowsOverlay {
                                 normalFontBoundingBoxes.get(key);
                 hintKeyTextTotalXAdvance += boundingBox.width;
                 if (keyIndex == 0 || keyIndex == hint.keySequence().size() - 1)
+                    // Should it be added twice if key is both first and last (1-character)?
                     hintKeyTextTotalXAdvance += boundingBox.x;
             }
             // If shiftedFontBoxWidthPercent is too small, then we don't try to align characters
