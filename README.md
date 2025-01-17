@@ -16,9 +16,13 @@
 # Demo
 
 ## Hints Demo
-(This video shows transparent hint grid lines. Now, the lines are opaque (white) by default.)
-
 https://github.com/user-attachments/assets/2c0765eb-5fa2-4604-a868-df7e9f25e32a
+
+## Hint Styling Showcase
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/3d39d518-d0ff-4444-8dd6-d82896e47fe4" style="width: 100%; height: 100%;" />
+</p>
+
 
 ## Grid Demo (1/2)
 https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9

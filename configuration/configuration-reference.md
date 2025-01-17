@@ -213,17 +213,23 @@ hint1-mode.hint.undo=backspace
 hint1-mode.hint.mode-after-selection=normal-mode
 hint1-mode.hint.move-mouse=false
 hint1-mode.hint.swallow-hint-end-key-press=true
-hint1-mode.font-name=Consolas
-hint1-mode.font-size=18
-hint1-mode.font-color=#FFFFFF
-hint1-mode.font-opacity=1
-hint1-mode.prefix-font-color=#A3A3A3
-hint1-mode.highlight-font-scale=1
-hint1-mode.box-color=#000000
-hint1-mode.box-opacity=0.4
-hint1-mode.box-border-thickness=1
-hint1-mode.box-border-color=#FFFFFF
-hint1-mode.box-border-opacity=0.4
+hint1-mode.hint.font-name=Consolas
+hint1-mode.hint.font-size=18
+hint1-mode.hint.font-box-width-percent=0.2
+hint1-mode.hint.font-color=#FFFFFF
+hint1-mode.hint.font-opacity=1
+hint1-mode.hint.font-outline-thickness=2
+hint1-mode.hint.font-outline-color=#000000
+hint1-mode.hint.font-outline-opacity=0.5
+hint1-mode.hint.prefix-font-color=#A3A3A3
+hint1-mode.hint.highlight-font-scale=1
+hint1-mode.hint.box-color=#000000
+hint1-mode.hint.box-opacity=0.4
+hint1-mode.hint.box-border-thickness=1
+hint1-mode.hint.box-border-length=1000
+hint1-mode.hint.box-border-color=#FFFFFF
+hint1-mode.hint.box-border-opacity=0.4
+hint1-mode.hint.expand-boxes=true
 ```
 
 - `type` can either be `grid` or `position-history`.
@@ -238,8 +244,14 @@ hint1-mode.box-border-opacity=0.4
   be moved yet (it should be moved only once a hint of the second, smaller hint grid is selected).
 - If `swallow-hint-end-key-press` is false, then the last key press of the selection of a
   hint (e.g. B in AB) will be passed to the next mode which can trigger a command.
+- `font-box-width-percent` is for controlling hint character spacing: 0 means no space,
+  1 means characters are distributed across the entire box.
 - `prefix-font-color` is the color of the letters of the hint that have already been selected.
 - `highlight-font-scale` can be used to make the next letter that needs to be pressed bigger.
+- `box-border-length` controls the hint grid lines. A higher value results in the hint
+  boxes being separated by lines, while a value of 1 pixel results in the hint boxes being
+  separated by dots.
+- `expand-boxes` can be set to false to have small hint boxes (Vimium-like).
 
 ### Grid properties (not to be confused with the hint grid)
 
@@ -312,3 +324,14 @@ max-position-history-size=16
 
 This is used in conjunction with a hint mode of type `position-history`. For each position
 saved in the position history, one hint box will be displayed.
+
+### Logging
+
+```properties
+logging.level=DEBUG
+logging.redact-keys=true
+```
+
+These properties control the logging behavior in the command line window.
+If `logging.redact-keys` is set to `true`, the pressed keys will be redacted from the
+logs.

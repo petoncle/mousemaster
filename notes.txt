@@ -74,4 +74,4 @@
    key-alias.hint1key(.*) in the config file then ignore the defaults
    - Also include other key aliases: left/down/etc.
    - Remove the heading # character for each key-alias you want to modify.
-+ Change ctrl + e to alt + e, add goback goforward remappings, rework documentation
++ Change ctrl + e to alt + e, add goback goforward remappings
