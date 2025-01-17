@@ -85,7 +85,7 @@ public class ConfigurationParser {
                                         .toList())
                 .fontName("Consolas")
                 .fontSize(18f)
-                .fontBoxWidthPercent(0.5f)
+                .fontBoxWidthPercent(0.2f)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
                 .fontOutlineThickness(2)

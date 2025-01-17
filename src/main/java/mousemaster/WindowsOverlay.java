@@ -1060,7 +1060,8 @@ public class WindowsOverlay {
 
         Map<Key, Gdiplus.GdiplusRectF> normalFontBoundingBoxes = new HashMap<>();
         Map<Key, Gdiplus.GdiplusRectF> largeFontBoundingBoxes = new HashMap<>();
-        double maxKeyWidth = 0;
+        double maxKeyBoundingBoxWidth = 0;
+        double maxKeyBoundingBoxX = 0;
         boolean isFixedSizeWidthFont = true;
         Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(0, 0, 1000, 1000);
         for (Hint hint : windowHints) {
@@ -1093,10 +1094,11 @@ public class WindowsOverlay {
                                 layoutRect, stringFormat, region
                         );
                 float keyWidth = boundingBox.width + boundingBox.x;
-                if (keyWidth > maxKeyWidth) {
-                    if (maxKeyWidth != 0)
+                if (keyWidth > maxKeyBoundingBoxWidth) {
+                    if (maxKeyBoundingBoxWidth != 0 && maxKeyBoundingBoxWidth+maxKeyBoundingBoxX != keyWidth)
                         isFixedSizeWidthFont = false;
-                    maxKeyWidth = keyWidth;
+                    maxKeyBoundingBoxWidth = keyWidth - boundingBox.x;
+                    maxKeyBoundingBoxX = boundingBox.x;
                 }
             }
         }
@@ -1104,12 +1106,26 @@ public class WindowsOverlay {
         double highestKeyHeight = 0;
         for (Hint hint : zoomedWindowHints) {
             double smallestColAlignedFontBoxWidth =
-                    maxKeyWidth * hint.keySequence().size();
+                    maxKeyBoundingBoxWidth * hint.keySequence().size();
+            // This matches the hintKeyTextTotalXAdvance calculation:
+            if (hint.keySequence().size() == 1)
+                smallestColAlignedFontBoxWidth += maxKeyBoundingBoxX;
+            else
+                smallestColAlignedFontBoxWidth += 2*maxKeyBoundingBoxX; // 1 for first 1 for last
             double smallestColAlignedFontBoxWidthPercent =
-                    maxKeyWidth * hint.keySequence().size() /
+                    maxKeyBoundingBoxWidth * hint.keySequence().size() /
                     hint.cellWidth();
+            // fontBoxWidthPercent: 0..1
+            // shiftedFontBoxWidthPercent: smallestColAlignedFontBoxWidthPercent..1
+            double shiftedFontBoxWidthPercent;
+            if (isFixedSizeWidthFont)
+                shiftedFontBoxWidthPercent = smallestColAlignedFontBoxWidthPercent +
+                                             fontBoxWidthPercent *
+                                             (1 - smallestColAlignedFontBoxWidthPercent);
+            else
+                shiftedFontBoxWidthPercent = fontBoxWidthPercent;
             boolean doNotColAlign =
-                    fontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
+                    shiftedFontBoxWidthPercent <= smallestColAlignedFontBoxWidthPercent;
             List<HintKeyText> keyTexts = new ArrayList<>();
             double xAdvance = 0;
             double lastKeyBoundingBoxX = 0;
@@ -1127,13 +1143,11 @@ public class WindowsOverlay {
                 if (keyIndex == 0 || keyIndex == hint.keySequence().size() - 1)
                     hintKeyTextTotalXAdvance += boundingBox.x;
             }
-            // If fontBoxWidthPercent is too small, then we don't try to align characters
+            // If shiftedFontBoxWidthPercent is too small, then we don't try to align characters
             // in columns anymore and we just place them next to each other (percent = 0
             // to smallestColAlignedFontBoxWidthPercent), centered in the box.
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth - hintKeyTextTotalXAdvance;
-            extraNotAlignedWidth =
-                    (fontBoxWidthPercent / smallestColAlignedFontBoxWidthPercent) *
-                    extraNotAlignedWidth;
+            extraNotAlignedWidth = shiftedFontBoxWidthPercent * extraNotAlignedWidth;
             for (int keyIndex = 0; keyIndex < hint.keySequence().size(); keyIndex++) {
                 Key key = hint.keySequence().get(keyIndex);
                 boolean isPrefix = keyIndex < focusedHintKeySequence.size();
@@ -1157,10 +1171,8 @@ public class WindowsOverlay {
                         xAdvance += extraNotAlignedWidth / (hint.keySequence().size() - 1);
                 }
                 else {
-                    // 0.8d fontBoxWidthPercent means characters spread over 80% of the cell width.
-                    double usedFontBoxWidthPercent =
-                            Math.max(fontBoxWidthPercent, smallestColAlignedFontBoxWidthPercent);
-                    double fontBoxWidth = hint.cellWidth() * usedFontBoxWidthPercent;
+                    // 0.8d shiftedFontBoxWidthPercent means characters spread over 80% of the cell width.
+                    double fontBoxWidth = hint.cellWidth() * shiftedFontBoxWidthPercent;
                     double keySubcellWidth = fontBoxWidth / hint.keySequence().size();
                     left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2 +
                            keySubcellWidth / 2
