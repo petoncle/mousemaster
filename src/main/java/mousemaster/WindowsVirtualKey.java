@@ -521,7 +521,7 @@ public enum WindowsVirtualKey {
                 keyboardLayoutSeenCount = 0;
                 String hwnd = String.format("0x%X", Pointer.nativeValue(
                         User32.INSTANCE.GetForegroundWindow().getPointer()));
-                logger.debug("Found foreground window's keyboard layout for hwnd " + hwnd + ": " +
+                logger.trace("Found foreground window's keyboard layout for hwnd " + hwnd + ": " +
                             foregroundWindowKeyboardLayout);
             }
             lastPolledActiveKeyboardLayout = foregroundWindowKeyboardLayout;
@@ -529,13 +529,13 @@ public enum WindowsVirtualKey {
         }
         // When changing the active window, the foreground window may be null for a short period of time (?).
         if (lastPolledActiveKeyboardLayout != null) {
-            logger.debug(
+            logger.trace(
                     "Unable to find the foreground window's keyboard layout, using last known keyboard layout " +
                     lastPolledActiveKeyboardLayout);
             return lastPolledActiveKeyboardLayout;
         }
         KeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
-        logger.debug(
+        logger.trace(
                 "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
                 startupKeyboardLayout);
         return startupKeyboardLayout;
