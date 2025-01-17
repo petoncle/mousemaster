@@ -289,7 +289,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         // Number of sub grids in a column.
         int bigRowCount = (int) Math.ceil((double) rowCount / subgridRowCount);
         if (rowIndex != -1) {
-            if (rowCount * columnCount < keyCount) {
+            if (rowCount * columnCount <= keyCount) {
                 return List.of(keys.get(hintIndex));
             }
             // With no subgrids, we want the hints to look like this:
