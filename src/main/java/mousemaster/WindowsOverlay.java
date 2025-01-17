@@ -822,7 +822,7 @@ public class WindowsOverlay {
                 zoomHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
         if (hintMeshDrawIsCached)
-            logger.debug("hintMeshDraw is cached");
+            logger.trace("hintMeshDraw is cached");
         else {
             // Without caching, a full screen of hints drawn with GDI+ takes some time
             // to compute, even when there is no outline.
@@ -834,7 +834,7 @@ public class WindowsOverlay {
             if (hintMeshDraw.hintSequenceTexts.size() > 200) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
-                logger.debug("Caching new hintMeshDraw with " +
+                logger.trace("Caching new hintMeshDraw with " +
                              hintMeshDraw.hintSequenceTexts.size() + " visible hints");
                 hintMeshWindow.hintMeshDrawCache.put(zoomHintMesh, hintMeshDraw);
             }
