@@ -20,4 +20,6 @@ public interface Platform {
 
     PlatformClock clock();
 
+    KeyboardLayout activeKeyboardLayout();
+
 }

@@ -1,6 +1,7 @@
 package mousemaster;
 
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import org.slf4j.Logger;
@@ -431,35 +432,19 @@ public enum WindowsVirtualKey {
                     entry.getKey());
     }
 
-    public static void mapKeysToVirtualKeysUsingLayout(Set<Key> keys, KeyboardLayout configurationKeyboardLayout) {
-        WinDef.HKL keyboardLayoutHandle;
-        KeyboardLayout keyboardLayout;
-        KeyboardLayout activeKeyboardLayout = findActiveKeyboardLayout();
-        if (configurationKeyboardLayout == null) {
+    public static void mapKeysToVirtualKeysUsingLayout(Set<Key> keys, KeyboardLayout keyboardLayout) {
+        keyboardLayoutDependentKeyByVirtualKey.clear();
+        keyboardLayoutDependentVirtualKeyByKey.clear();
+        // Warning: LoadKeyboardLayoutA does not seem to load the layout passed as parameter?
+//        WinDef.HKL keyboardLayoutHandle = ExtendedUser32.INSTANCE.LoadKeyboardLayoutA(
+//                keyboardLayout.identifier(),
+//                1);
+        WinDef.HKL keyboardLayoutHandle = foregroundWindowHkl();
+        if (keyboardLayoutHandle == null)
             keyboardLayoutHandle = User32.INSTANCE.GetKeyboardLayout(0);
-            // Active keyboard layout is the system-wide layout that was active when the app started.
-            // It does not change after that, even if the system-wide layout changes.
-            logger.info("Using active keyboard layout " + activeKeyboardLayout);
-            keyboardLayout = activeKeyboardLayout;
-        }
-        else {
-            keyboardLayoutHandle =
-                    ExtendedUser32.INSTANCE.LoadKeyboardLayoutA(configurationKeyboardLayout.identifier(),
-                            0);
-            if (keyboardLayoutHandle == null)
-                throw new IllegalStateException(
-                        "Unable to load keyboard layout " + configurationKeyboardLayout);
-            if (activeKeyboardLayout.equals(configurationKeyboardLayout))
-                logger.info("Using configuration keyboard layout " +
-                            configurationKeyboardLayout +
-                            " which is the active keyboard layout");
-            else
-                logger.info("Using configuration keyboard layout " +
-                            configurationKeyboardLayout +
-                            " which is different from the active keyboard layout " +
-                            activeKeyboardLayout);
-            keyboardLayout = configurationKeyboardLayout;
-        }
+        if (keyboardLayoutHandle == null)
+            throw new IllegalStateException(
+                    "Unable to load keyboard layout " + keyboardLayout);
         for (Key key : keys) {
             if (key.character() == null)
                 continue;
@@ -517,16 +502,56 @@ public enum WindowsVirtualKey {
         }
     }
 
-    public static KeyboardLayout findActiveKeyboardLayout() {
+    private static KeyboardLayout lastPolledActiveKeyboardLayout;
+    private static int keyboardLayoutSeenCount;
+
+    /**
+     * When changing the layout with win + space:
+     * when opening the Win start menu, the layout of that hwnd would be the old layout for
+     * a few milliseconds. The workaround here waits for the layout to show up twice before
+     * confirming it has changed.
+     */
+    public static KeyboardLayout activeKeyboardLayout() {
+        KeyboardLayout foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
+        if (foregroundWindowKeyboardLayout != null) {
+            if (!foregroundWindowKeyboardLayout.equals(lastPolledActiveKeyboardLayout)) {
+                if (lastPolledActiveKeyboardLayout != null && keyboardLayoutSeenCount++ < 2)
+                    return lastPolledActiveKeyboardLayout;
+                // New layout confirmed.
+                keyboardLayoutSeenCount = 0;
+                String hwnd = String.format("0x%X", Pointer.nativeValue(
+                        User32.INSTANCE.GetForegroundWindow().getPointer()));
+                logger.debug("Found foreground window's keyboard layout for hwnd " + hwnd + ": " +
+                            foregroundWindowKeyboardLayout);
+            }
+            lastPolledActiveKeyboardLayout = foregroundWindowKeyboardLayout;
+            return foregroundWindowKeyboardLayout;
+        }
+        // When changing the active window, the foreground window may be null for a short period of time (?).
+        if (lastPolledActiveKeyboardLayout != null) {
+            logger.debug(
+                    "Unable to find the foreground window's keyboard layout, using last known keyboard layout " +
+                    lastPolledActiveKeyboardLayout);
+            return lastPolledActiveKeyboardLayout;
+        }
+        KeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
+        logger.debug(
+                "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
+                startupKeyboardLayout);
+        return startupKeyboardLayout;
+    }
+
+    private static WinDef.HKL foregroundWindowHkl() {
         WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         if (hwnd == null) {
             // GetForegroundWindow does not set the last error value.
-            logger.error("GetForegroundWindow failed");
+            logger.trace("GetForegroundWindow failed");
         }
         else {
             int thread = User32.INSTANCE.GetWindowThreadProcessId(hwnd, null);
             if (thread == 0) {
-                logger.error("GetWindowThreadProcessId failed: " + Integer.toHexString(Native.getLastError()));
+                logger.error("GetWindowThreadProcessId failed: " + Integer.toHexString(
+                        Native.getLastError()));
             }
             else {
                 WinDef.HKL hkl = User32.INSTANCE.GetKeyboardLayout(thread);
@@ -534,15 +559,29 @@ public enum WindowsVirtualKey {
                     // GetKeyboardLayout does not set the last error value.
                     logger.error("GetKeyboardLayout failed");
                 }
-                else {
-                    int languageIdentifier = hkl.getLanguageIdentifier();
-                    return KeyboardLayout.keyboardLayoutByIdentifier.get(
-                            String.format("%08X", languageIdentifier));
-                }
+                return hkl;
             }
         }
-        logger.info(
-                "Unable to find the foreground window's keyboard layout, falling back to using GetKeyboardLayoutName");
+        return null;
+    }
+
+    private static KeyboardLayout foregroundWindowKeyboardLayout() {
+        WinDef.HKL hkl = foregroundWindowHkl();
+        if (hkl != null) {
+            // The mousemaster.exe command line window does not handle the WM_INPUTLANGCHANGE message.
+            // Therefore, when the user changes the layout, the command line window keeps the old layout.
+            // We call ActivateKeyboardLayout to change the layout of the command line window.
+            ExtendedUser32.INSTANCE.ActivateKeyboardLayout(hkl, 0);
+            int languageIdentifier = hkl.getLanguageIdentifier();
+            KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayoutByIdentifier.get(
+                    String.format("%08X", languageIdentifier));
+//            logger.debug("Found active window keyboard layout: " + keyboardLayout);
+            return keyboardLayout;
+        }
+        return null;
+    }
+
+    private static KeyboardLayout startupKeyboardLayout() {
         // GetKeyboardLayoutName returns the layout at the time of when the app was started.
         // If the system layout is changed after the app is started, GetKeyboardLayoutName
         // still returns the old layout.

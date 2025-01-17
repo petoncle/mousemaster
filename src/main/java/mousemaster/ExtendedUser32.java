@@ -105,4 +105,6 @@ public interface ExtendedUser32 extends User32 {
 
     int DrawText(HDC hdc, String lpchText, int cchText, RECT lprc, UINT format);
 
+    HKL ActivateKeyboardLayout(HKL hkl, int flags);
+
 }

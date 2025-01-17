@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Collection;
 import java.util.HashSet;
@@ -24,11 +25,14 @@ public class Mousemaster {
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
     private ModeController modeController;
+    private List<String> configurationLines;
+    private KeyboardLayout activeKeyboardLayout;
 
     public Mousemaster(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
         this.platform = platform;
-        loadConfiguration();
+        this.activeKeyboardLayout = platform.activeKeyboardLayout();
+        loadConfiguration(true);
         watchService = FileSystems.getDefault().newWatchService();
         configurationPath.toAbsolutePath()
                          .getParent()
@@ -46,6 +50,11 @@ public class Mousemaster {
             updateConfiguration();
             long timeAfterOp = System.nanoTime();
             long updateConfigurationDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            platform.windowsMessagePump();
+            timeBeforeOp = timeAfterOp;
+            updateActiveKeyboardLayout(delta);
+            timeAfterOp = System.nanoTime();
+            long updateActiveKeyboardLayoutDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.windowsMessagePump();
             timeBeforeOp = timeAfterOp;
             platform.update(delta);
@@ -87,6 +96,7 @@ public class Mousemaster {
             if (iterationDuration > 10L && logger.isTraceEnabled()) {
                 logger.trace("Iteration duration is long: " + iterationDuration + "ms, " +
                              "updateConfigurationDuration = " + updateConfigurationDuration + "ms, " +
+                             "updateActiveKeyboardLayoutDuration = " + updateActiveKeyboardLayoutDuration + "ms, " +
                              "platformDuration = " + platformDuration + "ms, " +
                              "modeControllerDuration = " + modeControllerDuration + "ms, " +
                              "mouseControllerDuration = " + mouseControllerDuration + "ms, " +
@@ -96,6 +106,14 @@ public class Mousemaster {
                              "remapperDuration = " + remapperDuration + "ms");
             }
             platform.sleep();
+        }
+    }
+
+    private void updateActiveKeyboardLayout(double delta) {
+        KeyboardLayout newActiveKeyboardLayout = platform.activeKeyboardLayout();
+        if (!newActiveKeyboardLayout.equals(activeKeyboardLayout)) {
+            activeKeyboardLayout = newActiveKeyboardLayout;
+            tryLoadConfiguration(false);
         }
     }
 
@@ -114,24 +132,33 @@ public class Mousemaster {
                 logger.info("Configuration file " + configurationPath + " was deleted");
             else {
                 logger.info("Configuration file " + configurationPath + " has changed");
-                try {
-                    loadConfiguration();
-                } catch (Exception e) {
-                    logger.error(
-                            "Unable to load configuration file " + configurationPath, e);
-                }
+                tryLoadConfiguration(true);
             }
         }
         key.reset();
     }
 
-    private void loadConfiguration() throws IOException {
+    private void tryLoadConfiguration(boolean reReadFile) {
+        try {
+            loadConfiguration(reReadFile);
+        } catch (Exception e) {
+            logger.error(
+                    "Unable to load configuration file " + configurationPath, e);
+        }
+    }
+
+    private void loadConfiguration(boolean readFile) throws IOException {
         boolean reload = configuration != null;
-        configuration = ConfigurationParser.parse(configurationPath);
+        if (readFile)
+            configurationLines =
+                    Files.readAllLines(configurationPath, StandardCharsets.UTF_8);
+        configuration =
+                ConfigurationParser.parse(configurationLines, activeKeyboardLayout);
         if (configuration.logLevel() != null)
             MousemasterApplication.setLogLevel(configuration.logLevel());
-        logger.info((reload ? "Reloaded" : "Loaded") + " configuration file " +
-                    configurationPath);
+        logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +
+                    (readFile ? "file " + configurationPath + " " : "") +
+                    "with keyboard layout " + activeKeyboardLayout);
         ScreenManager screenManager = new ScreenManager();
         mouseController = new MouseController(screenManager);
         MouseState mouseState = new MouseState(mouseController);

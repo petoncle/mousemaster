@@ -232,6 +232,11 @@ public class WindowsPlatform implements Platform {
         return clock;
     }
 
+    @Override
+    public KeyboardLayout activeKeyboardLayout() {
+        return WindowsVirtualKey.activeKeyboardLayout();
+    }
+
 
     /**
      * On the Windows lock screen, hit space then enter the pin. Space press is recorded by the app but the

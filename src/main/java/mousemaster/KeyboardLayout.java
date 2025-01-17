@@ -228,15 +228,16 @@ public record KeyboardLayout(String fullName, String identifier, String shortNam
                 new KeyboardLayout("Yoruba", "0000046A", null)
             );
 
-    public static final Map<String, KeyboardLayout> keyboardLayoutByName =
-            new HashMap<>();
-    public static final Map<String, KeyboardLayout> keyboardLayoutByIdentifier =
-            new HashMap<>();
+    public static final Map<String, KeyboardLayout> keyboardLayoutByFullName = new HashMap<>();
+    public static final Map<String, KeyboardLayout> keyboardLayoutByIdentifier = new HashMap<>();
+    public static final Map<String, KeyboardLayout> keyboardLayoutByShortName = new HashMap<>();
 
     static {
         for (KeyboardLayout keyboardLayout : keyboardLayouts) {
-            keyboardLayoutByName.put(keyboardLayout.fullName, keyboardLayout);
+            keyboardLayoutByFullName.put(keyboardLayout.fullName, keyboardLayout);
             keyboardLayoutByIdentifier.put(keyboardLayout.identifier, keyboardLayout);
+            if (keyboardLayout.shortName != null)
+                keyboardLayoutByShortName.put(keyboardLayout.shortName, keyboardLayout);
         }
     }
 

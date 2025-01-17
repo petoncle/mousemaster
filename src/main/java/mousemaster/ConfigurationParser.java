@@ -11,10 +11,10 @@ import mousemaster.Mouse.MouseBuilder;
 import mousemaster.Wheel.WheelBuilder;
 import mousemaster.ZoomConfiguration.ZoomConfigurationBuilder;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,10 +31,21 @@ import static mousemaster.Command.*;
 
 public class ConfigurationParser {
 
-    private static final Map<String, Property<?>> defaultPropertyByName;
+    private static final Pattern propertyLinePattern = Pattern.compile("(.+?)=(.+)");
+    private static final Map<String, Property<?>> defaultPropertyByName = defaultPropertyByName();
+    private static final Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName = defaultLayoutKeyAliasByName();
 
-    static {
-        defaultPropertyByName = defaultPropertyByName();
+    private static Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName() {
+        List<String> lines;
+        try (InputStream inputStream = ConfigurationParser.class.getClassLoader()
+                                                                .getResourceAsStream(
+                                                                        "default-key-aliases.properties")) {
+            lines = new BufferedReader(new InputStreamReader(inputStream)).lines()
+                                                                          .toList();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return parseAliases(lines).layoutKeyAliasByName;
     }
 
     private static Map<String, Property<?>> defaultPropertyByName() {
@@ -155,43 +166,47 @@ public class ConfigurationParser {
         // @formatter:on
     }
 
-    public static Configuration parse(Path path) throws IOException {
-        // The default encoding for .properties files is ISO-8859-1 (Latin-1).
-        List<String> lines = Files.readAllLines(path, StandardCharsets.ISO_8859_1);
+    private record Aliases(Map<String, LayoutKeyAlias> layoutKeyAliasByName,
+                           Map<String, AppAlias> appAliasByName) {
+
+    }
+
+    private static class LayoutKeyAlias {
+
+        KeyAlias noLayoutAlias = null;
+        Map<KeyboardLayout, KeyAlias> aliasByLayout = new HashMap<>();
+
+    }
+
+    public static Configuration parse(List<String> lines,
+                                      KeyboardLayout activeKeyboardLayout) {
+        Aliases configurationAliases = parseAliases(lines);
+        Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
+        Map<String, KeyAlias> keyAliases =
+                mergeDefaultAndConfigurationKeyAliases(activeKeyboardLayout,
+                        defaultLayoutKeyAliasByName,
+                        configurationAliases.layoutKeyAliasByName);
         String logLevel = null;
         boolean logRedactKeys = false;
         ComboMoveDuration defaultComboMoveDuration =
                 new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
-        KeyboardLayout keyboardLayout = null;
         int maxPositionHistorySize = 16;
-        Map<String, KeyAlias> keyAliases = new HashMap<>();
-        Map<String, AppAlias> appAliases = new HashMap<>();
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Map<PropertyKey, Property<?>> propertyByKey = new HashMap<>();
         Set<PropertyKey> nonRootPropertyKeys = new HashSet<>();
         Set<String> modeReferences = new HashSet<>();
         Map<String, Set<String>> referencedModesByReferencerMode = new HashMap<>();
-        Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty = new HashMap<>();
-        Pattern linePattern = Pattern.compile("(.+?)=(.+)");
+        Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty =
+                new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
         for (String line : lines) {
-            if (line.startsWith("#") || line.isBlank())
+            if (!checkPropertyLineCorrectness(line, visitedPropertyKeys))
                 continue;
-            Matcher lineMatcher = linePattern.matcher(line);
-            if (!lineMatcher.matches())
-                throw new IllegalArgumentException("Invalid property " + line +
-                                                   ": expected <property key>=<property value>");
+            Matcher lineMatcher = propertyLinePattern.matcher(line);
+            //noinspection ResultOfMethodCallIgnored
+            lineMatcher.matches();
             String propertyKey = lineMatcher.group(1).strip();
             String propertyValue = lineMatcher.group(2).strip();
-            if (propertyKey.isEmpty())
-                throw new IllegalArgumentException(
-                        "Invalid property " + line + ": property key cannot be blank");
-            if (propertyValue.isEmpty())
-                throw new IllegalArgumentException(
-                        "Invalid property " + line + ": property value cannot be blank");
-            if (!visitedPropertyKeys.add(propertyKey))
-                throw new IllegalArgumentException(
-                        "Property " + propertyKey + " is defined twice");
             if (propertyKey.equals("logging.level")) {
                 logLevel = propertyValue;
                 continue;
@@ -204,37 +219,13 @@ public class ConfigurationParser {
                 defaultComboMoveDuration = parseComboMoveDuration(propertyKey, propertyValue);
                 continue;
             }
-            else if (propertyKey.equals("keyboard-layout")) {
-                keyboardLayout = KeyboardLayout.keyboardLayoutByName.get(propertyValue);
-                if (keyboardLayout == null)
-                    throw new IllegalArgumentException(
-                            "Invalid keyboard layout: " + propertyValue +
-                            ", available keyboard layouts: " +
-                            KeyboardLayout.keyboardLayoutByName.keySet());
-                continue;
-            }
             else if (propertyKey.equals("max-position-history-size")) {
                 maxPositionHistorySize =
                         parseUnsignedInteger(propertyKey, propertyValue, 1, 100);
                 continue;
             }
-            else if (propertyKey.startsWith("key-alias.")) {
-                // For now, key-alias must be defined at the beginning of the file, before they are used.
-                String aliasName = propertyKey.substring("key-alias.".length());
-                // List and not Set because hint.selection-keys=hintkeys needs ordering.
-                List<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
-                                       .map(Key::ofName)
-                                       .toList();
-                keyAliases.put(aliasName, new KeyAlias(aliasName, keys));
-            }
-            else if (propertyKey.startsWith("app-alias.")) {
-                String aliasName = propertyKey.substring("app-alias.".length());
-                Set<App> apps = Arrays.stream(propertyValue.split("\\s+"))
-                                       .map(App::new)
-                                       .collect(Collectors.toSet());
-                appAliases.put(aliasName, new AppAlias(aliasName, apps));
-            }
-            Pattern modeKeyPattern = Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
+            Pattern modeKeyPattern =
+                    Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
             if (!keyMatcher.matches())
                 continue;
@@ -948,8 +939,123 @@ public class ConfigurationParser {
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
-        return new Configuration(keyboardLayout, maxPositionHistorySize,
+        return new Configuration(activeKeyboardLayout, maxPositionHistorySize,
                 new ModeMap(modes), logLevel, logRedactKeys);
+    }
+
+    private static Map<String, KeyAlias> mergeDefaultAndConfigurationKeyAliases(
+            KeyboardLayout activeKeyboardLayout,
+            Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName,
+            Map<String, LayoutKeyAlias> configurationLayoutKeyAliasByName) {
+        Map<String, KeyAlias> keyAliases = new HashMap<>();
+        for (Map.Entry<String, LayoutKeyAlias> entry : configurationLayoutKeyAliasByName.entrySet()) {
+            String aliasName = entry.getKey();
+            LayoutKeyAlias layoutKeyAlias = entry.getValue();
+            KeyAlias alias =
+                    findKeyAliasForLayout(activeKeyboardLayout, layoutKeyAlias,
+                            aliasName);
+            keyAliases.put(aliasName, alias);
+        }
+        for (Map.Entry<String, LayoutKeyAlias> entry : defaultLayoutKeyAliasByName.entrySet()) {
+            String aliasName = entry.getKey();
+            LayoutKeyAlias layoutKeyAlias = entry.getValue();
+            if (keyAliases.containsKey(entry.getKey()))
+                continue;
+            KeyAlias alias =
+                    findKeyAliasForLayout(activeKeyboardLayout, layoutKeyAlias,
+                            aliasName);
+            keyAliases.put(aliasName, alias);
+        }
+        return keyAliases;
+    }
+
+    private static KeyAlias findKeyAliasForLayout(KeyboardLayout activeKeyboardLayout,
+                                                  LayoutKeyAlias layoutKeyAlias, String aliasName) {
+        KeyAlias keyAlias = layoutKeyAlias.aliasByLayout.get(activeKeyboardLayout);
+        if (keyAlias == null) {
+            keyAlias = layoutKeyAlias.noLayoutAlias;
+            if (keyAlias == null)
+                throw new IllegalArgumentException("Key alias " + aliasName +
+                                                   " is not defined for the active keyboard layout " +
+                                                   activeKeyboardLayout);
+        }
+        return keyAlias;
+    }
+
+    private static Aliases parseAliases(List<String> lines) {
+        Map<String, LayoutKeyAlias> layoutKeyAliasByName = new HashMap<>();
+        Map<String, AppAlias> appAliasByName = new HashMap<>();
+        Set<String> visitedPropertyKeys = new HashSet<>();
+        for (String line : lines) {
+            if (!checkPropertyLineCorrectness(line, visitedPropertyKeys))
+                continue;
+            Matcher lineMatcher = propertyLinePattern.matcher(line);
+            //noinspection ResultOfMethodCallIgnored
+            lineMatcher.matches();
+            String propertyKey = lineMatcher.group(1).strip();
+            String propertyValue = lineMatcher.group(2).strip();
+            if (propertyKey.startsWith("app-alias.")) {
+                String aliasName = propertyKey.substring("app-alias.".length());
+                Set<App> apps = Arrays.stream(propertyValue.split("\\s+"))
+                                      .map(App::new)
+                                      .collect(Collectors.toSet());
+                appAliasByName.put(aliasName, new AppAlias(aliasName, apps));
+            }
+            else if (propertyKey.startsWith("key-alias.")) {
+                // key-alias.left=a
+                // key-alias.us-qwerty=a
+                Pattern modeKeyPattern = Pattern.compile("key-alias\\.([^.]+)(\\.([^.]+))?");
+                Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
+                if (!keyMatcher.matches())
+                    throw new IllegalArgumentException(
+                            "Invalid key-alias property key: " + propertyKey);
+                // List and not Set because hint.selection-keys=hintkeys needs ordering.
+                List<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
+                                       .map(Key::ofName)
+                                       .toList();
+                String aliasName = keyMatcher.group(1);
+                if (keyMatcher.group(2) == null) {
+                    layoutKeyAliasByName.computeIfAbsent(aliasName,
+                            name -> new LayoutKeyAlias()).noLayoutAlias =
+                            new KeyAlias(aliasName, keys);
+                }
+                else {
+                    String layoutName = keyMatcher.group(3);
+                    KeyboardLayout layout =
+                            KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
+                    if (layout == null)
+                        throw new IllegalArgumentException(
+                                "Invalid keyboard layout: " + layoutName +
+                                ", available keyboard layouts: " +
+                                KeyboardLayout.keyboardLayoutByShortName.keySet());
+                    layoutKeyAliasByName.computeIfAbsent(aliasName,
+                                                name -> new LayoutKeyAlias())
+                            .aliasByLayout.put(layout, new KeyAlias(aliasName, keys));
+                }
+            }
+        }
+        return new Aliases(layoutKeyAliasByName, appAliasByName);
+    }
+
+    private static boolean checkPropertyLineCorrectness(String line, Set<String> visitedPropertyKeys) {
+        if (line.startsWith("#") || line.isBlank())
+            return false;
+        Matcher lineMatcher = propertyLinePattern.matcher(line);
+        if (!lineMatcher.matches())
+            throw new IllegalArgumentException("Invalid property " + line +
+                                               ": expected <property key>=<property value>");
+        String propertyKey = lineMatcher.group(1).strip();
+        String propertyValue = lineMatcher.group(2).strip();
+        if (propertyKey.isEmpty())
+            throw new IllegalArgumentException(
+                    "Invalid property " + line + ": property key cannot be blank");
+        if (propertyValue.isEmpty())
+            throw new IllegalArgumentException(
+                    "Invalid property " + line + ": property value cannot be blank");
+        if (!visitedPropertyKeys.add(propertyKey))
+            throw new IllegalArgumentException(
+                    "Property " + propertyKey + " is defined twice");
+        return true;
     }
 
     private static void checkMissingProperties(ModeBuilder mode) {

@@ -13,6 +13,8 @@
   }, {
     "pattern":"\\Qapplication.properties\\E"
   }, {
+    "pattern":"\\Qdefault-key-aliases.properties\\E"
+  }, {
     "pattern":"\\Qcom/sun/jna/win32-x86-64/jnidispatch.dll\\E"
   }, {
     "pattern":"\\Qlogback-test.scmo\\E"
