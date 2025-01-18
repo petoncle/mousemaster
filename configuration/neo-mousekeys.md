@@ -4,16 +4,16 @@
 
 ## Overview
 
-- Press _leftctrl + e_ to activate.
+- Press _leftalt + e_ or _leftalt + capslock_ to activate.
 - Press _w_, _a_, _s_, _d_ to move the mouse.
 - Press _q_ or _p_ to deactivate.
 
-![neo-mousekeys layout](https://github.com/petoncle/mousemaster/assets/39304282/c1648953-8acb-49e3-abb5-8106b7502105)
+![neo-mousekeys layout](https://github.com/user-attachments/assets/4aff87f3-7724-440c-aff2-ae58396e4bb9)
 
 ## Normal Mode (_leftctrl + e_)
 
 - Press mouse buttons with _k_ (left button), _;_ (middle button), _l_ (right button).
-- Toggle mouse buttons with _n_ (left button) and _y_ (right button).
+- Toggle left mouse button with _n_.
 - Left click then deactivate with _._
 - Jump to screen edges with _rightalt + w_, _rightalt + a_, _rightalt + s_, _rightalt + d_.
 - Jump to screen center with _h_.
@@ -22,6 +22,8 @@
 - Slow down mouse and scroll movement by holding _leftshift_ while moving.
 - Accelerate mouse movement by holding _u_ while moving.
 - Accelerate scroll movement by holding _v_ or _b_ while scrolling.
+- Navigate back and forward using _h_ (back) and _y_ (forward). These keys send 
+_leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the active application. 
 
 ## Grid Mode (_g_ in normal mode)
 
@@ -48,4 +50,4 @@
 ## Screen Selection Mode (_c_ in normal mode)
 
 - Display one large hint label on each screen for quickly moving from one screen to another.
-- Go back to normal mode with _c_, _esc_ or _backspace.
+- Go back to normal mode with _c_, _esc_ or _backspace_.
