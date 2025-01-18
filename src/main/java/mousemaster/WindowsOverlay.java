@@ -1095,9 +1095,10 @@ public class WindowsOverlay {
                         );
                 float keyWidth = boundingBox.width + boundingBox.x;
                 if (keyWidth > maxKeyBoundingBoxWidth) {
-                    if (maxKeyBoundingBoxWidth != 0 && maxKeyBoundingBoxWidth+maxKeyBoundingBoxX != keyWidth)
+                    if (maxKeyBoundingBoxWidth != 0 && maxKeyBoundingBoxWidth !=
+                                                       boundingBox.width)
                         isFixedSizeWidthFont = false;
-                    maxKeyBoundingBoxWidth = keyWidth - boundingBox.x;
+                    maxKeyBoundingBoxWidth = boundingBox.width;
                     maxKeyBoundingBoxX = boundingBox.x;
                 }
             }
