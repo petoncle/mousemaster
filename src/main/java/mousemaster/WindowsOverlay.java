@@ -1093,11 +1093,12 @@ public class WindowsOverlay {
                                         normalFontBoundingBoxes,
                                 layoutRect, stringFormat, region
                         );
-                float keyWidth = boundingBox.width + boundingBox.x;
-                if (keyWidth > maxKeyBoundingBoxWidth) {
-                    if (maxKeyBoundingBoxWidth != 0 && maxKeyBoundingBoxWidth !=
-                                                       boundingBox.width)
-                        isFixedSizeWidthFont = false;
+                if (maxKeyBoundingBoxWidth != 0 &&
+                    maxKeyBoundingBoxWidth != boundingBox.width
+                    || maxKeyBoundingBoxX != 0 && maxKeyBoundingBoxX != boundingBox.x)
+                    isFixedSizeWidthFont = false;
+                if (boundingBox.width + boundingBox.x >
+                    maxKeyBoundingBoxWidth + maxKeyBoundingBoxX) {
                     maxKeyBoundingBoxWidth = boundingBox.width;
                     maxKeyBoundingBoxX = boundingBox.x;
                 }
@@ -1113,7 +1114,7 @@ public class WindowsOverlay {
 //                smallestColAlignedFontBoxWidth += maxKeyBoundingBoxX;
 //            else
                 smallestColAlignedFontBoxWidth += 2*maxKeyBoundingBoxX; // 1 for first 1 for last
-            double smallestColAlignedFontBoxWidthPercent = (hint.cellWidth() == -1 ? 1 :
+            double smallestColAlignedFontBoxWidthPercent = (hint.cellWidth() == -1 ? 0 :
                     smallestColAlignedFontBoxWidth /
                     hint.cellWidth());
             // fontBoxWidthPercent: 0..1
@@ -1126,7 +1127,7 @@ public class WindowsOverlay {
             else
                 shiftedFontBoxWidthPercent = fontBoxWidthPercent;
             boolean doNotColAlign =
-                    shiftedFontBoxWidthPercent <= smallestColAlignedFontBoxWidthPercent;
+                    shiftedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             List<HintKeyText> keyTexts = new ArrayList<>();
             double xAdvance = 0;
             double lastKeyBoundingBoxX = 0;
