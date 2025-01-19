@@ -433,7 +433,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 (int) ((double) areaRectangle.height() / cellHeight)));
         int columnCount = Math.max(1, Math.min(maxColumnCount,
                 (int) ((double) areaRectangle.width() / cellWidth)));
-        hintMeshWidth = (int) Math.ceil(columnCount * cellWidth);
+        hintMeshWidth = columnCount * cellWidth;
         // If there is space left around the edges, and the max cell count (in one direction) is reached,
         // we want to increase the cell size only if the space left is smaller than
         // the user-defined max size of a cell. Otherwise, it is a 2-pass hint scenario,
@@ -457,7 +457,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 cellWidth = (double) areaRectangle.width() / columnCount;
             }
         }
-        hintMeshHeight = (int) Math.ceil(rowCount * cellHeight);
+        hintMeshHeight = rowCount * cellHeight;
         boolean maxRowCountReached = rowCount == maxRowCount;
         double spareHeight = areaRectangle.height() - hintMeshHeight;
         if (spareHeight > 0) {
@@ -530,8 +530,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            lastSelectedHintPoint = new Point((int) exactMatchHint.centerX(),
-                    (int) exactMatchHint.centerY());
+            lastSelectedHintPoint = new Point(Math.round(exactMatchHint.centerX()),
+                    Math.round(exactMatchHint.centerY()));
              if (hintMeshConfiguration.moveMouse()) {
                  // After this moveTo call, the move is not fully completed.
                  // We need to wait until the jump completes before a click can be performed at
@@ -560,7 +560,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void finalizeHintSelection(Hint hint) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (hintMeshConfiguration.savePositionAfterSelection())
-            savePosition(new Point((int) hint.centerX(), (int) hint.centerY()));
+            savePosition(new Point(Math.round(hint.centerX()), Math.round(hint.centerY())));
         if (hintMeshConfiguration.modeAfterSelection() != null) {
             logger.debug("Hint " + hint.keySequence()
                                        .stream()

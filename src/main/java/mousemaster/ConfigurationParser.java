@@ -666,7 +666,7 @@ public class ConfigurationParser {
                     else {
                         switch (keyMatcher.group(4)) {
                             case "percent" -> mode.zoom.builder.percent(
-                                    parseDouble(propertyKey, propertyValue, true, 1, 10));
+                                    parseDouble(propertyKey, propertyValue, true, 1, 100));
                             case "center" ->
                                     mode.zoom.builder.center(
                                             parseZoomCenter(propertyKey, propertyValue));

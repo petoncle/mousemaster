@@ -1424,8 +1424,8 @@ public class WindowsOverlay {
         }
         else {
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(
-                    (int) Math.round(zoom.center().x()),
-                    (int) Math.round(zoom.center().y())));
+                    (int) zoom.center().x(),
+                    (int) zoom.center().y()));
             currentZoomScreen = screen;
             if (oldZoom == null || oldZoom.percent() != zoom.percent()) {
                 // MagSetWindowTransform() can take 10-20ms.
