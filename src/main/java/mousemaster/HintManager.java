@@ -224,10 +224,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                                          int subgridColumnCount, boolean rowOriented) {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
-        int hintMeshWidth = fixedSizeHintGrid.hintMeshWidth();
-        int hintMeshHeight = fixedSizeHintGrid.hintMeshHeight();
-        int hintMeshX = fixedSizeHintGrid.hintMeshX();
-        int hintMeshY = fixedSizeHintGrid.hintMeshY();
+        double hintMeshWidth = fixedSizeHintGrid.hintMeshWidth();
+        double hintMeshHeight = fixedSizeHintGrid.hintMeshHeight();
+        double hintMeshX = fixedSizeHintGrid.hintMeshX();
+        double hintMeshY = fixedSizeHintGrid.hintMeshY();
         double cellWidth = fixedSizeHintGrid.cellWidth;
         double cellHeight = fixedSizeHintGrid.cellHeight;
         int spareWidthPixelCount = (int) (hintMeshWidth - cellWidth * columnCount);
@@ -428,7 +428,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                 Point gridCenter, int maxRowCount,
                                                 int maxColumnCount, double cellWidth,
                                                 double cellHeight) {
-        int hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight;
+        double hintMeshX, hintMeshY, hintMeshWidth, hintMeshHeight;
         int rowCount = Math.max(1, Math.min(maxRowCount,
                 (int) ((double) areaRectangle.height() / cellHeight)));
         int columnCount = Math.max(1, Math.min(maxColumnCount,
@@ -443,7 +443,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         // 2. or increase the cell count and decrease the size so that it fills the space
         // (Currently, we only do 1.)
         boolean maxColumnCountReached = columnCount == maxColumnCount;
-        int spareWidth = areaRectangle.width() - hintMeshWidth;
+        double spareWidth = areaRectangle.width() - hintMeshWidth;
         if (spareWidth > 0) {
             if (maxColumnCountReached) {
                 if (spareWidth < cellWidth) {
@@ -459,7 +459,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         hintMeshHeight = (int) Math.ceil(rowCount * cellHeight);
         boolean maxRowCountReached = rowCount == maxRowCount;
-        int spareHeight = areaRectangle.height() - hintMeshHeight;
+        double spareHeight = areaRectangle.height() - hintMeshHeight;
         if (spareHeight > 0) {
             if (maxRowCountReached) {
                 if (spareHeight < cellHeight) {
@@ -481,8 +481,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 rowCount, columnCount, cellWidth, cellHeight);
     }
 
-    private record FixedSizeHintGrid(int hintMeshX, int hintMeshY, int hintMeshWidth,
-                                     int hintMeshHeight, int rowCount, int columnCount,
+    private record FixedSizeHintGrid(double hintMeshX, double hintMeshY, double hintMeshWidth,
+                                     double hintMeshHeight, int rowCount, int columnCount,
                                      double cellWidth, double cellHeight) {
 
     }
@@ -613,14 +613,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         findPositionHistoryEntryMatchingCurrentPosition();
         positionCycleIndex = (positionCycleIndex + 1) % positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
-        mouseController.moveTo(point.x(), point.y());
+        mouseController.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
     }
 
     private void findPositionHistoryEntryMatchingCurrentPosition() {
         for (int positionIndex = 0;
              positionIndex < positionHistory.size(); positionIndex++) {
             Point point = positionHistory.get(positionIndex);
-            if (point.x() == mouseX && point.y() == mouseY) {
+            if (Math.round(point.x()) == mouseX && Math.round(point.y()) == mouseY) {
                 positionCycleIndex = positionIndex;
                 break;
             }
@@ -634,7 +634,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         positionCycleIndex = (positionCycleIndex - 1 + positionHistory.size()) %
                              positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
-        mouseController.moveTo(point.x(), point.y());
+        mouseController.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
     }
 
 }

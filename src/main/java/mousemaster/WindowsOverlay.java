@@ -1422,8 +1422,9 @@ public class WindowsOverlay {
             User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_HIDE);
         }
         else {
-            Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(zoom.center().x(),
-                    zoom.center().y()));
+            Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(
+                    (int) Math.round(zoom.center().x()),
+                    (int) Math.round(zoom.center().y())));
             currentZoomScreen = screen;
             if (oldZoom == null || oldZoom.percent() != zoom.percent()) {
                 // MagSetWindowTransform() can take 10-20ms.
