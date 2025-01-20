@@ -26,7 +26,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final List<Point> positionHistory = new ArrayList<>();
     private final int maxPositionHistorySize;
     // Pop when going back to the mode that selected the hint.
-    private Stack<HintsAndSelectedHintPoint> lastSelectedHintPointStack = new Stack<>();
+    private Stack<Point> selectedHintPointStack = new Stack<>();
     /**
      * Used for deterministic hint key sequences.
      */
@@ -34,10 +34,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int positionCycleIndex = 0;
     private Hint selectedHintToFinalize;
-
-    private record HintsAndSelectedHintPoint(List<Hint> hints, Point selectedHintPoint) {
-
-    }
+    private boolean modeJustChangedThisFrame;
 
     public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
                        MouseController mouseController) {
@@ -47,7 +44,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public Point lastSelectedHintPoint() {
-        return lastSelectedHintPointStack.peek().selectedHintPoint;
+        logger.trace("Zoom peeking " + selectedHintPointStack.peek());
+        return selectedHintPointStack.peek();
     }
 
     public void setModeController(ModeController modeController) {
@@ -58,6 +56,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         // Relying on mouseMoved() callbacks is not enough because the mouse may not move
         // when a hint is selected (and no there is no callback).
         tryFinalizeHintSelection();
+        modeJustChangedThisFrame = false;
     }
 
     @Override
@@ -84,11 +83,12 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
+        modeJustChangedThisFrame = true;
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
             previousHintMeshByTypeAndSelectionKeys.clear();
-            lastSelectedHintPointStack.clear();
+            selectedHintPointStack.clear();
             WindowsOverlay.hideHintMesh();
             return;
         }
@@ -96,7 +96,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             // This makes the behavior of the hint different depending on whether it is visible.
             // An alternative would be a setting like hint.reset-focused-key-sequence-history-after-selection=true.
             previousHintMeshByTypeAndSelectionKeys.clear();
-            lastSelectedHintPointStack.clear();
+            selectedHintPointStack.clear();
             WindowsOverlay.hideHintMesh();
         }
         HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration);
@@ -109,12 +109,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .flatMap(Collection::stream)
                                         .collect(Collectors.toSet());
         currentMode = newMode;
-        if (!lastSelectedHintPointStack.isEmpty()) {
-            if (lastSelectedHintPointStack.peek().hints.equals(newHintMesh.hints())) {
-                // We went back. Pop the last selected hint point.
-                lastSelectedHintPointStack.pop();
-            }
-        }
         hintMesh = newHintMesh;
         previousHintMeshByTypeAndSelectionKeys.put(
                 hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
@@ -153,9 +147,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                     case SCREEN_CENTER -> gridScreen.rectangle().center();
                     case MOUSE -> new Point(mouseX, mouseY);
                     case LAST_SELECTED_HINT ->
-                            lastSelectedHintPointStack.isEmpty() ? new Point(mouseX, mouseY) :
-                                    lastSelectedHintPointStack.peek().selectedHintPoint;
+                            selectedHintPointStack.isEmpty() ? new Point(mouseX, mouseY) :
+                                    selectedHintPointStack.peek();
                 };
+                logger.trace("Grid center " + gridCenter);
                 fixedSizeHintGrids.add(fixedSizeHintGrid(
                         screenManager.activeScreen().rectangle(), gridCenter, hintGrid.maxRowCount(),
                         hintGrid.maxColumnCount(), hintGrid.cellWidth(),
@@ -543,9 +538,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            lastSelectedHintPointStack.push(new HintsAndSelectedHintPoint(hintMesh.hints(),
-                    new Point(Math.round(exactMatchHint.centerX()),
-                            Math.round(exactMatchHint.centerY()))));
+            selectedHintPointStack.push(new Point(Math.round(exactMatchHint.centerX()),
+                    Math.round(exactMatchHint.centerY())));
+            logger.trace("Pushing " + selectedHintPointStack.peek());
              if (hintMeshConfiguration.moveMouse()) {
                  // After this moveTo call, the move is not fully completed.
                  // We need to wait until the jump completes before a click can be performed at
@@ -649,6 +644,16 @@ public class HintManager implements ModeListener, MousePositionListener {
                              positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
         mouseController.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
+    }
+
+    public void popLastSelectedHint() {
+        if (modeJustChangedThisFrame)
+            // hint3-3-mode.hint.pop-last-selected-hint=+backspace
+            // After switching to hint2-2, +backspace will trigger another PopLastSelectedHint
+            // which should be ignored.
+            return;
+        logger.trace("Popping " + selectedHintPointStack.peek());
+        selectedHintPointStack.pop();
     }
 
 }

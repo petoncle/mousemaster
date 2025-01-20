@@ -28,7 +28,7 @@ public class WindowsOverlay {
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static boolean showingHintMesh;
     private static HintMesh currentHintMesh;
-    private static ZoomWindow zoomWindow;
+    private static ZoomWindow zoomWindow, standByZoomWindow;
     private static Zoom currentZoom;
     private static Screen currentZoomScreen;
     private static boolean mustUpdateMagnifierSource;
@@ -59,6 +59,8 @@ public class WindowsOverlay {
         }
         User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_SHOWNORMAL);
         User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
+        if (standByZoomWindow != null)
+            User32.INSTANCE.ShowWindow(standByZoomWindow.hostHwnd(), WinUser.SW_HIDE);
         // Without a setTopmost() call here, the Zoom window would be displayed on top
         // of the indicator window for a single frame.
         setTopmost();
@@ -172,8 +174,8 @@ public class WindowsOverlay {
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         MouseSize mouseSize = WindowsMouse.mouseSize();
-        return (int) zoomedX(bestIndicatorX(mousePosition.x, mouseSize.width(),
-                activeScreen.rectangle(), indicatorSize()));
+        return (int) Math.round(zoomedX(bestIndicatorX(mousePosition.x, mouseSize.width(),
+                activeScreen.rectangle(), indicatorSize())));
     }
 
     private static double zoomedX(double x) {
@@ -196,8 +198,8 @@ public class WindowsOverlay {
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         MouseSize mouseSize = WindowsMouse.mouseSize();
-        return (int) zoomedY(bestIndicatorY(mousePosition.y, mouseSize.height(),
-                activeScreen.rectangle(), indicatorSize()));
+        return (int) Math.round(zoomedY(bestIndicatorY(mousePosition.y, mouseSize.height(),
+                activeScreen.rectangle(), indicatorSize())));
     }
 
     private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle screenRectangle,
@@ -1423,11 +1425,25 @@ public class WindowsOverlay {
             User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_HIDE);
         }
         else {
+            // We use a second zoom window to keep the already open zoom window visible,
+            // until the second zoom is ready.
+            // Because MagSetWindowTransform() will immediately show the new zoom area,
+            // except only the zoom percent has been set so far (the new source will be updated by
+            // MagSetWindowSource, next frame only).
             Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(
                     (int) zoom.center().x(),
                     (int) zoom.center().y()));
             currentZoomScreen = screen;
             if (oldZoom == null || oldZoom.percent() != zoom.percent()) {
+                if (standByZoomWindow == null) {
+                    standByZoomWindow = zoomWindow;
+                    createZoomWindow();
+                }
+                else {
+                    ZoomWindow newStandByZoomWindow = zoomWindow;
+                    zoomWindow = standByZoomWindow;
+                    standByZoomWindow = newStandByZoomWindow;
+                }
                 // MagSetWindowTransform() can take 10-20ms.
                 if (!Magnification.INSTANCE.MagSetWindowTransform(zoomWindow.hwnd(),
                         new Magnification.MAGTRANSFORM.ByReference(
@@ -1474,6 +1490,8 @@ public class WindowsOverlay {
         }
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
+        if (standByZoomWindow != null)
+            hwnds.add(standByZoomWindow.hostHwnd);
         if (hwnds.isEmpty())
             return;
         if (!Magnification.INSTANCE.MagSetWindowFilterList(zoomWindow.hwnd(),
