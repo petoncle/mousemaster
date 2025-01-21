@@ -691,7 +691,8 @@ public class WindowsOverlay {
                                   List<Hint> windowHints) {
         WinDef.HDC hdcTemp = GDI32.INSTANCE.CreateCompatibleDC(hdc);
 
-        String fontName = currentHintMesh.fontName();
+        WindowsFont.WindowsFontFamilyAndStyle
+                fontFamilyAndStyle = WindowsFont.fontFamilyAndStyle(currentHintMesh.fontName());
         double fontSize = currentHintMesh.fontSize();
         double fontBoxWidthPercent = currentHintMesh.fontBoxWidthPercent();
         double fontOpacity = currentHintMesh.fontOpacity();
@@ -756,7 +757,8 @@ public class WindowsOverlay {
         }
 
         PointerByReference fontFamily = new PointerByReference();
-        int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(new WString(fontName), null, fontFamily);
+        int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(
+                new WString(fontFamilyAndStyle.fontFamily()), null, fontFamily);
 
         float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
         float largeGdipFontSize = (float) (fontSize * highlightFontScale * dpi * zoomPercent() / 72);
@@ -855,8 +857,8 @@ public class WindowsOverlay {
                     mustDrawHighlight |= keyText.isHighlight;
                     mustDrawSuffix |= keyText.isSuffix;
                     // Color is defined in the brush.
-                    drawHintText2(keyText.keyText, keyText.left, keyText.top, path,
-                            fontFamily, gdipFontSize, stringFormat);
+                    drawHintText(keyText.keyText, keyText.left, keyText.top, path,
+                            fontFamilyAndStyle, fontFamily, gdipFontSize, stringFormat);
                 }
             }
 
@@ -998,22 +1000,30 @@ public class WindowsOverlay {
         }
     }
 
-    private static void drawHintText2(String text, double left, double top,
-                                      PointerByReference path,
-                                      PointerByReference fontFamily,
-                                      float gdipFontSize,
-                                      PointerByReference stringFormat) {
+    private static void drawHintText(String text, double left, double top,
+                                     PointerByReference path,
+                                     WindowsFont.WindowsFontFamilyAndStyle fontFamilyAndStyle,
+                                     PointerByReference fontFamily,
+                                     float gdipFontSize,
+                                     PointerByReference stringFormat) {
         Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF();
         layoutRect.x = (float) left;
         layoutRect.y = (float) top;
         layoutRect.width = Float.MAX_VALUE;
         layoutRect.height = Float.MAX_VALUE;
+        // https://learn.microsoft.com/en-us/windows/win32/api/gdiplusenums/ne-gdiplusenums-fontstyle
+        int fontStyle = switch (fontFamilyAndStyle.style()) {
+            case REGULAR -> 0;
+            case BOLD -> 1;
+            case ITALIC -> 2;
+            case BOLD_ITALIC -> 3;
+        };
         int addPathStringStatus = Gdiplus.INSTANCE.GdipAddPathString(
                 path.getValue(),
                 new WString(text),
                 -1, // Automatically calculate the length of the string.
                 fontFamily.getValue(),
-                1, // FontStyle.Bold TODO
+                fontStyle,
                 gdipFontSize,
                 layoutRect,
                 stringFormat.getValue() // Use default string format.
@@ -1021,19 +1031,6 @@ public class WindowsOverlay {
         if (addPathStringStatus != 0) {
             throw new RuntimeException("Failed to add path string to GraphicsPath. Status: " + addPathStringStatus);
         }
-    }
-
-    private static WinDef.HFONT createFont(int fontHeight, String fontName) {
-        boolean antialiased = true;
-        return ExtendedGDI32.INSTANCE.CreateFontA(fontHeight, 0, 0, 0,
-                ExtendedGDI32.FW_NORMAL,
-                new WinDef.DWORD(0), new WinDef.DWORD(0), new WinDef.DWORD(0),
-                new WinDef.DWORD(ExtendedGDI32.ANSI_CHARSET),
-                new WinDef.DWORD(ExtendedGDI32.OUT_DEFAULT_PRECIS),
-                new WinDef.DWORD(ExtendedGDI32.CLIP_DEFAULT_PRECIS),
-                new WinDef.DWORD(antialiased ? ExtendedGDI32.DEFAULT_QUALITY : ExtendedGDI32.NONANTIALIASED_QUALITY),
-                new WinDef.DWORD(
-                        ExtendedGDI32.DEFAULT_PITCH | ExtendedGDI32.FF_SWISS), fontName);
     }
 
     private static HintMeshDraw hintMeshDraw(Screen screen, int windowWidth,
@@ -1608,38 +1605,6 @@ public class WindowsOverlay {
                 bestIndicatorY(),
                 indicatorSize() + 1,
                 indicatorSize() + 1, false);
-    }
-
-    public static boolean doesFontExist(String fontName) {
-        ExtendedGDI32.EnumFontFamExProc fontEnumProc = new ExtendedGDI32.EnumFontFamExProc() {
-            public int callback(ExtendedGDI32.LOGFONT lpelfe, ExtendedGDI32.TEXTMETRIC lpntme, WinDef.DWORD FontType, WinDef.LPARAM lParam) {
-                int nameLength = 0;
-                for (int i = 0; i < lpelfe.lfFaceName.length; i++) {
-                    if (lpelfe.lfFaceName[i] == 0) {
-                        nameLength = i;
-                        break;
-                    }
-                }
-                String faceName = new String(lpelfe.lfFaceName, 0, nameLength);
-                if (fontName.equalsIgnoreCase(faceName)) {
-                    // Font found
-                    return 0; // Return 0 to stop enumeration
-                }
-                return 1; // Continue enumeration
-            }
-        };
-        WinDef.HDC hdc = User32.INSTANCE.GetDC(null);
-        ExtendedGDI32.LOGFONT logfont = new ExtendedGDI32.LOGFONT();
-        logfont.lfCharSet = ExtendedGDI32.DEFAULT_CHARSET;
-        byte[] fontBytes = fontName.getBytes();
-        System.arraycopy(fontBytes, 0, logfont.lfFaceName, 0,
-                Math.min(fontBytes.length, logfont.lfFaceName.length - 1));
-        // lfFaceName[this.lfFaceName.length - 1] is 0, it is the null-terminator.
-        boolean fontExists =
-                ExtendedGDI32.INSTANCE.EnumFontFamiliesExA(hdc, logfont, fontEnumProc,
-                        new WinDef.LPARAM(0), new WinDef.DWORD(0)) == 0;
-        User32.INSTANCE.ReleaseDC(null, hdc);
-        return fontExists;
     }
 
 }

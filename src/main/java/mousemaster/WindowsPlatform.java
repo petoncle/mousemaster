@@ -138,10 +138,7 @@ public class WindowsPlatform implements Platform {
             }
             hintFontNames.add(mode.hintMesh().fontName());
         }
-        for (String hintFontName : hintFontNames) {
-            if (!WindowsOverlay.doesFontExist(hintFontName))
-                throw new IllegalStateException("Unable to find hint font: " + hintFontName);
-        }
+        WindowsFont.setFontPool(hintFontNames);
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboAndRemappingKeys, keyboardLayout);
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         mousePositionListeners.forEach(
