@@ -83,9 +83,9 @@ public class ConfigurationParser {
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
                                         .toList())
-                .fontName("Consolas")
+                .fontName("Consolas Bold")
                 .fontSize(18f)
-                .fontBoxWidthPercent(0.2f)
+                .fontSpacingPercent(0.6f)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
                 .fontOutlineThickness(2)
@@ -464,7 +464,7 @@ public class ConfigurationParser {
                             case "font-size" -> mode.hintMesh.builder.fontSize(
                                     parseDouble(propertyKey, propertyValue, false, 0,
                                             1000));
-                            case "font-box-width-percent" -> mode.hintMesh.builder.fontBoxWidthPercent(
+                            case "font-spacing-percent" -> mode.hintMesh.builder.fontSpacingPercent(
                                     parseDouble(propertyKey, propertyValue, true, 0, 1));
                             case "font-color" -> mode.hintMesh.builder.fontHexColor(
                                     checkColorFormat(propertyKey, propertyValue));
@@ -1512,8 +1512,8 @@ public class ConfigurationParser {
                         builder.fontName(parent.fontName());
                     if (builder.fontSize() == null)
                         builder.fontSize(parent.fontSize());
-                    if (builder.fontBoxWidthPercent() == null)
-                        builder.fontBoxWidthPercent(parent.fontBoxWidthPercent());
+                    if (builder.fontSpacingPercent() == null)
+                        builder.fontSpacingPercent(parent.fontSpacingPercent());
                     if (builder.fontHexColor() == null)
                         builder.fontHexColor(parent.fontHexColor());
                     if (builder.fontOpacity() == null)

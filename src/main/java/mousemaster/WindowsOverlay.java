@@ -694,7 +694,7 @@ public class WindowsOverlay {
         WindowsFont.WindowsFontFamilyAndStyle
                 fontFamilyAndStyle = WindowsFont.fontFamilyAndStyle(currentHintMesh.fontName());
         double fontSize = currentHintMesh.fontSize();
-        double fontBoxWidthPercent = currentHintMesh.fontBoxWidthPercent();
+        double fontSpacingPercent = currentHintMesh.fontSpacingPercent();
         double fontOpacity = currentHintMesh.fontOpacity();
         double fontOutlineThickness = currentHintMesh.fontOutlineThickness();
         String fontOutlineHexColor = currentHintMesh.fontOutlineHexColor();
@@ -835,7 +835,7 @@ public class WindowsOverlay {
             hintMeshDraw = hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
                     focusedHintKeySequence,
                     highlightFontScale, boxBorderThickness, expandBoxes,
-                    graphics, normalFont, fontSize, fontBoxWidthPercent, largeFont, pixelData);
+                    graphics, normalFont, fontSize, fontSpacingPercent, largeFont, pixelData);
             if (hintMeshDraw.hintSequenceTexts.size() > 200) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
@@ -1040,7 +1040,7 @@ public class WindowsOverlay {
                                              double boxBorderThickness,
                                              boolean expandBoxes, PointerByReference graphics,
                                              PointerByReference normalFont,
-                                             double fontSize, double fontBoxWidthPercent,
+                                             double fontSize, double fontSpacingPercent,
                                              PointerByReference largeFont,
                                              int[] pixelData) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
@@ -1107,27 +1107,31 @@ public class WindowsOverlay {
         double maxSimpleBoxWidth = 0;
         double highestKeyHeight = 0;
         for (Hint hint : zoomedWindowHints) {
-            double smallestColAlignedFontBoxWidth =
-                    maxKeyBoundingBoxWidth * hint.keySequence().size();
+            double smallestColAlignedFontBoxWidth;
+            if (isFixedSizeWidthFont) {
+                smallestColAlignedFontBoxWidth = (maxKeyBoundingBoxWidth) * hint.keySequence().size();
+            }
+            else {
+                smallestColAlignedFontBoxWidth = maxKeyBoundingBoxWidth * hint.keySequence().size()
+                + 2*maxKeyBoundingBoxX; // 1 for first 1 for last
+            }
             // This matches the hintKeyTextTotalXAdvance calculation:
 //            if (hint.keySequence().size() == 1)
 //                smallestColAlignedFontBoxWidth += maxKeyBoundingBoxX;
 //            else
-                smallestColAlignedFontBoxWidth += 2*maxKeyBoundingBoxX; // 1 for first 1 for last
+//                smallestColAlignedFontBoxWidth += 2*maxKeyBoundingBoxX; // 1 for first 1 for last
             double smallestColAlignedFontBoxWidthPercent = (hint.cellWidth() == -1 ? 0 :
                     smallestColAlignedFontBoxWidth /
                     hint.cellWidth());
-            // fontBoxWidthPercent: 0..1
-            // shiftedFontBoxWidthPercent: smallestColAlignedFontBoxWidthPercent..1
-            double shiftedFontBoxWidthPercent;
-            if (isFixedSizeWidthFont)
-                shiftedFontBoxWidthPercent = smallestColAlignedFontBoxWidthPercent +
-                                             fontBoxWidthPercent *
-                                             (1 - smallestColAlignedFontBoxWidthPercent);
-            else
-                shiftedFontBoxWidthPercent = fontBoxWidthPercent;
+            if (smallestColAlignedFontBoxWidthPercent > 1)
+                // screen-selection mode: cell size is not defined in the config and is too small.
+                smallestColAlignedFontBoxWidthPercent = 1;
+            // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
+            double adjustedFontBoxWidthPercent = fontSpacingPercent < 0.5d ?
+                    (fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
+                    : smallestColAlignedFontBoxWidthPercent + (fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
             boolean doNotColAlign =
-                    shiftedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
+                    adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             List<HintKeyText> keyTexts = new ArrayList<>();
             double xAdvance = 0;
             double lastKeyBoundingBoxX = 0;
@@ -1148,11 +1152,11 @@ public class WindowsOverlay {
                 if (keyIndex == hint.keySequence().size() - 1)
                     hintKeyTextTotalXAdvance += boundingBox.x;
             }
-            // If shiftedFontBoxWidthPercent is too small, then we don't try to align characters
+            // If adjustedFontBoxWidthPercent is too small, then we don't try to align characters
             // in columns anymore and we just place them next to each other (percent = 0
             // to smallestColAlignedFontBoxWidthPercent), centered in the box.
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth - hintKeyTextTotalXAdvance;
-            extraNotAlignedWidth = shiftedFontBoxWidthPercent * extraNotAlignedWidth;
+            extraNotAlignedWidth = adjustedFontBoxWidthPercent * extraNotAlignedWidth;
             for (int keyIndex = 0; keyIndex < hint.keySequence().size(); keyIndex++) {
                 Key key = hint.keySequence().get(keyIndex);
                 boolean isPrefix = keyIndex < focusedHintKeySequence.size();
@@ -1176,8 +1180,8 @@ public class WindowsOverlay {
                         xAdvance += extraNotAlignedWidth / (hint.keySequence().size() - 1);
                 }
                 else {
-                    // 0.8d shiftedFontBoxWidthPercent means characters spread over 80% of the cell width.
-                    double fontBoxWidth = hint.cellWidth() * shiftedFontBoxWidthPercent;
+                    // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
+                    double fontBoxWidth = hint.cellWidth() * adjustedFontBoxWidthPercent;
                     double keySubcellWidth = fontBoxWidth / hint.keySequence().size();
                     left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2 +
                            keySubcellWidth / 2

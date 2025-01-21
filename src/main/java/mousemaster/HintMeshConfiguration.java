@@ -8,7 +8,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean moveMouse,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
-                                    double fontSize, double fontBoxWidthPercent, String fontHexColor, double fontOpacity,
+                                    double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                                     double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                                     String prefixFontHexColor,
                                     double highlightFontScale,
@@ -32,7 +32,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Key undoKey;
         private String fontName;
         private Double fontSize;
-        private Double fontBoxWidthPercent;
+        private Double fontSpacingPercent;
         private String fontHexColor;
         private Double fontOpacity;
         private Double fontOutlineThickness;
@@ -86,8 +86,8 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder fontBoxWidthPercent(double fontBoxWidthPercent) {
-            this.fontBoxWidthPercent = fontBoxWidthPercent;
+        public HintMeshConfigurationBuilder fontSpacingPercent(double fontSpacingPercent) {
+            this.fontSpacingPercent = fontSpacingPercent;
             return this;
         }
 
@@ -213,8 +213,8 @@ public record HintMeshConfiguration(boolean enabled,
             return fontSize;
         }
 
-        public Double fontBoxWidthPercent() {
-            return fontBoxWidthPercent;
+        public Double fontSpacingPercent() {
+            return fontSpacingPercent;
         }
 
         public String fontHexColor() {
@@ -289,7 +289,7 @@ public record HintMeshConfiguration(boolean enabled,
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
                     undoKey, fontName,
-                    fontSize, fontBoxWidthPercent, fontHexColor, fontOpacity,
+                    fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     prefixFontHexColor,
                     highlightFontScale,

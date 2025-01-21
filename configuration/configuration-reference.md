@@ -215,7 +215,7 @@ hint1-mode.hint.move-mouse=false
 hint1-mode.hint.swallow-hint-end-key-press=true
 hint1-mode.hint.font-name=Consolas
 hint1-mode.hint.font-size=18
-hint1-mode.hint.font-box-width-percent=0.2
+hint1-mode.hint.font-spacing-percent=0.6
 hint1-mode.hint.font-color=#FFFFFF
 hint1-mode.hint.font-opacity=1
 hint1-mode.hint.font-outline-thickness=2
@@ -244,8 +244,10 @@ hint1-mode.hint.expand-boxes=true
   be moved yet (it should be moved only once a hint of the second, smaller hint grid is selected).
 - If `swallow-hint-end-key-press` is false, then the last key press of the selection of a
   hint (e.g. B in AB) will be passed to the next mode which can trigger a command.
-- `font-box-width-percent` is for controlling hint character spacing: 0 means no space,
-  1 means characters are distributed across the entire box.
+- `font-spacing-percent` controls the spacing between characters. A value of 0 means the
+  characters touch each other, 1 means the characters are evenly distributed across the
+  entire box, and 0.5 represents the smallest spacing while maintaining column alignment
+  for the characters.
 - `prefix-font-color` is the color of the letters of the hint that have already been selected.
 - `highlight-font-scale` can be used to make the next letter that needs to be pressed bigger.
 - `box-border-length` controls the hint grid lines. A higher value results in the hint

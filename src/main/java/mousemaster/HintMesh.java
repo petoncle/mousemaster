@@ -7,7 +7,7 @@ import java.util.List;
  */
 public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
                        String fontName,
-                       double fontSize, double fontBoxWidthPercent, String fontHexColor, double fontOpacity,
+                       double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                        double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
@@ -27,7 +27,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private List<Key> focusedKeySequence = List.of();
         private String fontName;
         private double fontSize;
-        private double fontBoxWidthPercent;
+        private double fontSpacingPercent;
         private String fontHexColor;
         private double fontOpacity;
         private double fontOutlineThickness;
@@ -53,7 +53,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.focusedKeySequence = hintMesh.focusedKeySequence;
             this.fontName = hintMesh.fontName;
             this.fontSize = hintMesh.fontSize;
-            this.fontBoxWidthPercent = hintMesh.fontBoxWidthPercent;
+            this.fontSpacingPercent = hintMesh.fontSpacingPercent;
             this.fontHexColor = hintMesh.fontHexColor;
             this.fontOpacity = hintMesh.fontOpacity;
             this.fontOutlineThickness = hintMesh.fontOutlineThickness;
@@ -95,8 +95,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return fontSize;
         }
 
-        public double fontBoxWidthPercent() {
-            return fontBoxWidthPercent;
+        public double fontSpacingPercent() {
+            return fontSpacingPercent;
         }
 
         public String fontHexColor() {
@@ -185,8 +185,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder fontBoxWidthPercent(double fontBoxWidthPercent) {
-            this.fontBoxWidthPercent = fontBoxWidthPercent;
+        public HintMeshBuilder fontSpacingPercent(double fontSpacingPercent) {
+            this.fontSpacingPercent = fontSpacingPercent;
             return this;
         }
 
@@ -264,7 +264,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public HintMesh build() {
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
-                    fontSize, fontBoxWidthPercent, fontHexColor, fontOpacity,
+                    fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     prefixFontHexColor, highlightFontScale,
                     boxHexColor, boxOpacity,
