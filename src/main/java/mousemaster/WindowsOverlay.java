@@ -1109,11 +1109,14 @@ public class WindowsOverlay {
         for (Hint hint : zoomedWindowHints) {
             double smallestColAlignedFontBoxWidth;
             if (isFixedSizeWidthFont) {
-                smallestColAlignedFontBoxWidth = (maxKeyBoundingBoxWidth) * hint.keySequence().size();
+                smallestColAlignedFontBoxWidth = (maxKeyBoundingBoxWidth) * hint.keySequence().size()
+//                + 2*maxKeyBoundingBoxX; // 1 for first 1 for last
+                                                 + maxKeyBoundingBoxX * hint.keySequence().size();
             }
             else {
                 smallestColAlignedFontBoxWidth = maxKeyBoundingBoxWidth * hint.keySequence().size()
-                + 2*maxKeyBoundingBoxX; // 1 for first 1 for last
+//                + 2*maxKeyBoundingBoxX; // 1 for first 1 for last
+                                                 + maxKeyBoundingBoxX * hint.keySequence().size();
             }
             // This matches the hintKeyTextTotalXAdvance calculation:
 //            if (hint.keySequence().size() == 1)
@@ -1151,6 +1154,13 @@ public class WindowsOverlay {
                 // Added twice if key is both first and last (1-character).
                 if (keyIndex == hint.keySequence().size() - 1)
                     hintKeyTextTotalXAdvance += boundingBox.x;
+                if (boundingBox.height > highestKeyHeight) {
+                    highestKeyHeight = boundingBox.height;
+                }
+                if (keyIndex == hint.keySequence().size() - 1) {
+                    lastKeyBoundingBoxX = boundingBox.x;
+                    lastKeyWidth = boundingBox.width + boundingBox.x;
+                }
             }
             // If adjustedFontBoxWidthPercent is too small, then we don't try to align characters
             // in columns anymore and we just place them next to each other (percent = 0
@@ -1181,23 +1191,18 @@ public class WindowsOverlay {
                 }
                 else {
                     // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
-                    double fontBoxWidth = hint.cellWidth() * adjustedFontBoxWidthPercent;
-                    double keySubcellWidth = fontBoxWidth / hint.keySequence().size();
-                    left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2 +
-                           keySubcellWidth / 2
+                    double fontBoxWidth = hint.cellWidth() * adjustedFontBoxWidthPercent
+                                          - (hint.keySequence().size()-2) * boundingBox.x; // Similar to hintKeyTextTotalXAdvance
+                    double fontBoxWidth2 = hint.cellWidth() * adjustedFontBoxWidthPercent;
+                    double keySubcellWidth = fontBoxWidth2 / hint.keySequence().size();
+                    left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2
                            + xAdvance
-                           - (boundingBox.width) / 2 - boundingBox.x;
-                    xAdvance += keySubcellWidth;
+                           + keySubcellWidth / 2
+                           - (boundingBox.width) / 2 - boundingBox.x / 2;
+                    xAdvance += keySubcellWidth - boundingBox.x;
                 }
                 double top = hint.centerY() - screen.rectangle().y() -
                              boundingBox.height / 2;
-                if (boundingBox.height > highestKeyHeight) {
-                    highestKeyHeight = boundingBox.height;
-                }
-                if (keyIndex == hint.keySequence().size() - 1) {
-                    lastKeyBoundingBoxX = boundingBox.x;
-                    lastKeyWidth = boundingBox.width + boundingBox.x;
-                }
                 keyTexts.add(new HintKeyText(keyText, left, top, isPrefix, isSuffix,
                         isHighlight));
             }
