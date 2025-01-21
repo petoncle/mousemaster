@@ -16,6 +16,7 @@ public class WindowsOverlay {
     private static final Logger logger = LoggerFactory.getLogger(WindowsOverlay.class);
 
     private static final int indicatorEdgeThreshold = 100; // in pixels
+    public static boolean waitForZoomBeforeRepainting;
 
     private static IndicatorWindow indicatorWindow;
     private static boolean showingIndicator;
@@ -1012,7 +1013,7 @@ public class WindowsOverlay {
                 new WString(text),
                 -1, // Automatically calculate the length of the string.
                 fontFamily.getValue(),
-                1, // FontStyle.Bold
+                1, // FontStyle.Bold TODO
                 gdipFontSize,
                 layoutRect,
                 stringFormat.getValue() // Use default string format.
@@ -1573,8 +1574,10 @@ public class WindowsOverlay {
         currentHintMesh = hintMesh;
         createOrUpdateHintMeshWindows(currentHintMesh.hints());
         showingHintMesh = true;
-        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
-            requestWindowRepaint(hintMeshWindow.hwnd);
+        if (!waitForZoomBeforeRepainting) {
+            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+                requestWindowRepaint(hintMeshWindow.hwnd);
+        }
     }
 
     public static void hideGrid() {

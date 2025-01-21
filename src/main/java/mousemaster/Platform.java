@@ -2,7 +2,7 @@ package mousemaster;
 
 import java.util.List;
 
-public interface Platform {
+public interface Platform extends ModeListener {
 
     void update(double delta);
 

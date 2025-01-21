@@ -74,6 +74,6 @@
    key-alias.hint1key(.*) in the config file then ignore the defaults
    - Also include other key aliases: left/down/etc.
    - Remove the heading # character for each key-alias you want to modify.
-+ Change ctrl + e to alt + e, add goback goforward remappings
 + previous-mode-selected-hint
  + When switching mode, Map<List<Hint>, hintCenter==previous mode selected hint>
++ WindowsFont that convert "Arial Bold Italic" to "Arial" + font style BoldItalic

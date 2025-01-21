@@ -82,8 +82,6 @@ public class CommandRunner {
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
 
             case RemappingCommand remap -> remapper.submitRemapping(remap.remapping());
-
-            case PopLastSelectedHint popLastSelectedHint -> hintManager.popLastSelectedHint();
             // @formatter:on
         }
     }

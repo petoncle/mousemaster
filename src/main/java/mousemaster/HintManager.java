@@ -19,14 +19,14 @@ public class HintManager implements ModeListener, MousePositionListener {
     private ModeController modeController;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
-    private final Map<HintMeshTypeAndSelectionKeys, HintMesh>
+    private final Map<HintMeshTypeAndSelectionKeys, HintMeshAndPreviousModeSelectedHintPoint>
             previousHintMeshByTypeAndSelectionKeys = new HashMap<>();
+    private boolean hintJustSelected = false;
     private int mouseX, mouseY;
     private Mode currentMode;
     private final List<Point> positionHistory = new ArrayList<>();
     private final int maxPositionHistorySize;
-    // Pop when going back to the mode that selected the hint.
-    private Stack<Point> selectedHintPointStack = new Stack<>();
+    private Point lastSelectedHintPoint;
     /**
      * Used for deterministic hint key sequences.
      */
@@ -34,7 +34,11 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int positionCycleIndex = 0;
     private Hint selectedHintToFinalize;
-    private boolean modeJustChangedThisFrame;
+
+    private record HintMeshAndPreviousModeSelectedHintPoint(HintMesh hintMesh,
+                                                            Point previousModeSelectedHintPoint) {
+
+    }
 
     public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
                        MouseController mouseController) {
@@ -44,8 +48,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public Point lastSelectedHintPoint() {
-        logger.trace("Zoom peeking " + selectedHintPointStack.peek());
-        return selectedHintPointStack.peek();
+        logger.trace("Zoom " + lastSelectedHintPoint);
+        return lastSelectedHintPoint;
     }
 
     public void setModeController(ModeController modeController) {
@@ -56,7 +60,6 @@ public class HintManager implements ModeListener, MousePositionListener {
         // Relying on mouseMoved() callbacks is not enough because the mouse may not move
         // when a hint is selected (and no there is no callback).
         tryFinalizeHintSelection();
-        modeJustChangedThisFrame = false;
     }
 
     @Override
@@ -83,12 +86,30 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
-        modeJustChangedThisFrame = true;
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
+        if (hintJustSelected) {
+            // When going from hint2-1 to hint2-2, even if we already have been in hint2-2
+            // before, we don't want the old state of hint2-2.
+            hintJustSelected = false;
+            previousHintMeshByTypeAndSelectionKeys.remove(
+                    hintMeshConfiguration.typeAndSelectionKeys());
+        }
+        else if (hintMeshConfiguration.typeAndSelectionKeys().type() instanceof HintMeshType.HintGrid hintGrid &&
+                         hintGrid.area() instanceof  ActiveScreenHintGridArea activeScreenHintGridArea &&
+                         activeScreenHintGridArea.center() == ActiveScreenHintGridAreaCenter.LAST_SELECTED_HINT) {
+            // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
+            // (Because currently, last selected hint is the hint selected by hint3-2.)
+            HintMeshAndPreviousModeSelectedHintPoint
+                    hintMeshAndPreviousModeSelectedHintPoint =
+                    previousHintMeshByTypeAndSelectionKeys.get(
+                            hintMeshConfiguration.typeAndSelectionKeys());
+            if (hintMeshAndPreviousModeSelectedHintPoint != null)
+                lastSelectedHintPoint =
+                        hintMeshAndPreviousModeSelectedHintPoint.previousModeSelectedHintPoint;
+        }
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
             previousHintMeshByTypeAndSelectionKeys.clear();
-            selectedHintPointStack.clear();
             WindowsOverlay.hideHintMesh();
             return;
         }
@@ -96,7 +117,6 @@ public class HintManager implements ModeListener, MousePositionListener {
             // This makes the behavior of the hint different depending on whether it is visible.
             // An alternative would be a setting like hint.reset-focused-key-sequence-history-after-selection=true.
             previousHintMeshByTypeAndSelectionKeys.clear();
-            selectedHintPointStack.clear();
             WindowsOverlay.hideHintMesh();
         }
         HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration);
@@ -109,9 +129,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .flatMap(Collection::stream)
                                         .collect(Collectors.toSet());
         currentMode = newMode;
-        hintMesh = newHintMesh;
         previousHintMeshByTypeAndSelectionKeys.put(
-                hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
+                hintMeshConfiguration.typeAndSelectionKeys(),
+                new HintMeshAndPreviousModeSelectedHintPoint(newHintMesh, lastSelectedHintPoint));
+        hintMesh = newHintMesh;
         WindowsOverlay.setHintMesh(hintMesh);
     }
 
@@ -147,8 +168,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                     case SCREEN_CENTER -> gridScreen.rectangle().center();
                     case MOUSE -> new Point(mouseX, mouseY);
                     case LAST_SELECTED_HINT ->
-                            selectedHintPointStack.isEmpty() ? new Point(mouseX, mouseY) :
-                                    selectedHintPointStack.peek();
+                            lastSelectedHintPoint == null ? new Point(mouseX, mouseY) :
+                                    lastSelectedHintPoint;
                 };
                 logger.trace("Grid center " + gridCenter);
                 fixedSizeHintGrids.add(fixedSizeHintGrid(
@@ -215,13 +236,17 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             hintMesh.hints(hints);
         }
-        HintMesh previousHintMesh = previousHintMeshByTypeAndSelectionKeys.get(
-                hintMeshConfiguration.typeAndSelectionKeys());
-        if (previousHintMesh != null &&
-            previousHintMesh.hints().equals(hintMesh.hints())) {
+        HintMeshAndPreviousModeSelectedHintPoint
+                previousHintMeshAndPreviousModeSelectedHintPoint =
+                previousHintMeshByTypeAndSelectionKeys.get(
+                        hintMeshConfiguration.typeAndSelectionKeys());
+        if (previousHintMeshAndPreviousModeSelectedHintPoint != null &&
+            previousHintMeshAndPreviousModeSelectedHintPoint.hintMesh.hints()
+                                                                     .equals(hintMesh.hints())) {
             // Keep the old focusedKeySequence.
             // This is useful for hint-then-click-mode that extends hint-mode.
-            hintMesh.focusedKeySequence(previousHintMesh.focusedKeySequence());
+            hintMesh.focusedKeySequence(
+                    previousHintMeshAndPreviousModeSelectedHintPoint.hintMesh.focusedKeySequence());
         }
         return hintMesh.build();
     }
@@ -512,7 +537,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                                            focusedKeySequence.size() - 1))
                                    .build();
                 previousHintMeshByTypeAndSelectionKeys.put(
-                        hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
+                        hintMeshConfiguration.typeAndSelectionKeys(),
+                        new HintMeshAndPreviousModeSelectedHintPoint(
+                                hintMesh, previousHintMeshByTypeAndSelectionKeys.get(
+                                hintMeshConfiguration.typeAndSelectionKeys()).previousModeSelectedHintPoint
+                        ));
                 WindowsOverlay.setHintMesh(hintMesh);
                 return PressKeyEventProcessing.hintUndo();
             }
@@ -538,9 +567,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            selectedHintPointStack.push(new Point(Math.round(exactMatchHint.centerX()),
-                    Math.round(exactMatchHint.centerY())));
-            logger.trace("Pushing " + selectedHintPointStack.peek());
+            lastSelectedHintPoint = new Point(Math.round(exactMatchHint.centerX()),
+                    Math.round(exactMatchHint.centerY()));
+            logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
              if (hintMeshConfiguration.moveMouse()) {
                  // After this moveTo call, the move is not fully completed.
                  // We need to wait until the jump completes before a click can be performed at
@@ -560,7 +589,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
             previousHintMeshByTypeAndSelectionKeys.put(
-                    hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
+                    hintMeshConfiguration.typeAndSelectionKeys(),
+                    new HintMeshAndPreviousModeSelectedHintPoint(
+                            hintMesh,
+                            previousHintMeshByTypeAndSelectionKeys.get(
+                                    hintMeshConfiguration.typeAndSelectionKeys()).previousModeSelectedHintPoint
+                    ));
             WindowsOverlay.setHintMesh(hintMesh);
             return PressKeyEventProcessing.partOfHintPrefix();
         }
@@ -571,7 +605,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (hintMeshConfiguration.savePositionAfterSelection())
             savePosition(new Point(Math.round(hint.centerX()), Math.round(hint.centerY())));
         if (hintMeshConfiguration.modeAfterSelection() != null) {
-            logger.debug("Hint " + hint.keySequence()
+            hintJustSelected = true;
+            logger.trace("Hint " + hint.keySequence()
                                        .stream()
                                        .map(Key::name)
                                        .toList() +
@@ -583,7 +618,11 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(List.of()).build();
             previousHintMeshByTypeAndSelectionKeys.put(
-                    hintMeshConfiguration.typeAndSelectionKeys(), hintMesh);
+                    hintMeshConfiguration.typeAndSelectionKeys(),
+                    new HintMeshAndPreviousModeSelectedHintPoint(
+                            hintMesh, previousHintMeshByTypeAndSelectionKeys.get(
+                            hintMeshConfiguration.typeAndSelectionKeys()).previousModeSelectedHintPoint
+                    ));
             WindowsOverlay.setHintMesh(hintMesh);
         }
     }
@@ -644,16 +683,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                              positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
         mouseController.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
-    }
-
-    public void popLastSelectedHint() {
-        if (modeJustChangedThisFrame)
-            // hint3-3-mode.hint.pop-last-selected-hint=+backspace
-            // After switching to hint2-2, +backspace will trigger another PopLastSelectedHint
-            // which should be ignored.
-            return;
-        logger.trace("Popping " + selectedHintPointStack.peek());
-        selectedHintPointStack.pop();
     }
 
 }

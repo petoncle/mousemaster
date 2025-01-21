@@ -381,7 +381,6 @@ public class ComboWatcher implements ModeListener {
 
     private static final List<? extends Class<? extends Command>> commandOrder =
             List.of(
-                    Command.PopLastSelectedHint.class,
                     Command.SwitchMode.class
             );
 

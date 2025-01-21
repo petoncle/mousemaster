@@ -40,6 +40,7 @@ public class WindowsPlatform implements Platform {
     private double enforceWindowsTopmostTimer;
     private boolean mustEatNextReleaseOfRightalt = false;
     private Set<Key> extendedKeys = new HashSet<>();
+    private Mode currentMode;
 
     public WindowsPlatform(boolean keyRegurgitationEnabled) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
@@ -53,6 +54,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void update(double delta) {
+        WindowsOverlay.waitForZoomBeforeRepainting = false;
         WindowsKeyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         enforceWindowsTopmostTimer -= delta;
@@ -415,4 +417,17 @@ public class WindowsPlatform implements Platform {
         mousePositionQueue.add(mousePosition);
     }
 
+    @Override
+    public void modeChanged(Mode newMode) {
+        // If zoom is going to change, WindowsOverlay.setZoom() will repaint the hint mesh
+        // after the zoom window is initialized.
+        WindowsOverlay.waitForZoomBeforeRepainting =
+                currentMode != null && !currentMode.zoom().equals(newMode.zoom());
+        currentMode = newMode;
+    }
+
+    @Override
+    public void modeTimedOut() {
+        // No op.
+    }
 }

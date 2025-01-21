@@ -161,8 +161,7 @@ public class ConfigurationParser {
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
-                new Property<>("remapping", Map.of()),
-                new Property<>("pop-last-selected-hint", Map.of())
+                new Property<>("remapping", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
     }
@@ -883,11 +882,6 @@ public class ConfigurationParser {
                                     "Invalid position-history property key: " + propertyKey);
                         }
                     }
-                }
-                case "pop-last-selected-hint" -> {
-                    // @formatter:off
-                    setCommand(mode.comboMap.popLastSelectedHint.builder, propertyValue, new PopLastSelectedHint(), defaultComboMoveDuration, keyAliases, appAliases);
-                    // @formatter:on
                 }
                 // @formatter:off
                 case "move-to-grid-center" -> {
@@ -1648,7 +1642,6 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
         Property<Map<Combo, List<Command>>> remapping;
-        Property<Map<Combo, List<Command>>> popLastSelectedHint;
 
         public ComboMapConfigurationBuilder(String modeName,
                                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -1669,7 +1662,6 @@ public class ConfigurationParser {
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
             remapping = new ComboMapProperty("remapping", modeName, propertyByKey);
-            popLastSelectedHint = new ComboMapProperty("pop-last-selected-hint", modeName, propertyByKey);
         }
 
         private static class ComboMapProperty extends Property<Map<Combo, List<Command>>> {
@@ -1706,7 +1698,6 @@ public class ConfigurationParser {
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);
             add(commandsByCombo, remapping.builder);
-            add(commandsByCombo, popLastSelectedHint.builder);
             return commandsByCombo;
         }
 

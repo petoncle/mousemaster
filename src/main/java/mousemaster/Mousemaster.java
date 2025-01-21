@@ -200,8 +200,10 @@ public class Mousemaster {
         modeController =
                 new ModeController(configuration.modeMap(), mouseController, mouseState,
                         keyboardState,
-                        List.of(comboWatcher, mouseController, zoomManager,
-                                indicatorManager, gridManager, hintManager));
+                        // ZoomManager must be notified after HintManager because it calls
+                        // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
+                        List.of(platform, comboWatcher, mouseController, indicatorManager,
+                                gridManager, hintManager, zoomManager));
         commandRunner.setModeController(modeController);
         hintManager.setModeController(modeController);
         comboWatcher.setListeners(List.of(modeController));
