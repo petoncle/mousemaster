@@ -3,11 +3,12 @@ package mousemaster;
 import mousemaster.HintMeshType.HintMeshTypeBuilder;
 
 import java.util.List;
+import java.util.Set;
 
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean moveMouse,
-                                    HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Key undoKey, String fontName,
+                                    HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Set<Key> undoKeys, String fontName,
                                     double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                                     double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                                     String prefixFontHexColor,
@@ -29,7 +30,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Boolean moveMouse;
         private HintMeshTypeBuilder type = new HintMeshTypeBuilder();
         private List<Key> selectionKeys;
-        private Key undoKey;
+        private Set<Key> undoKeys;
         private String fontName;
         private Double fontSize;
         private Double fontSpacingPercent;
@@ -71,8 +72,8 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder undoKey(Key undoKey) {
-            this.undoKey = undoKey;
+        public HintMeshConfigurationBuilder undoKeys(Set<Key> undoKeys) {
+            this.undoKeys = undoKeys;
             return this;
         }
 
@@ -201,8 +202,8 @@ public record HintMeshConfiguration(boolean enabled,
             return selectionKeys;
         }
 
-        public Key undoKey() {
-            return undoKey;
+        public Set<Key> undoKeys() {
+            return undoKeys;
         }
 
         public String fontName() {
@@ -288,7 +289,7 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
-                    undoKey, fontName,
+                    undoKeys, fontName,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     prefixFontHexColor,

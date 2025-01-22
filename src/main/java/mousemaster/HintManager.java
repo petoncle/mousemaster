@@ -529,7 +529,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
             return PressKeyEventProcessing.unhandled();
-        if (key.equals(hintMeshConfiguration.undoKey())) {
+        if (hintMeshConfiguration.undoKeys().contains(key)) {
             List<Key> focusedKeySequence = hintMesh.focusedKeySequence();
             if (!focusedKeySequence.isEmpty()) {
                 hintMesh = hintMesh.builder()

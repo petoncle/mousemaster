@@ -459,7 +459,7 @@ public class ConfigurationParser {
                             case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                     parseHintKeys(propertyKey, propertyValue, keyAliases));
                             case "undo" ->
-                                    mode.hintMesh.builder.undoKey(Key.ofName(propertyValue));
+                                    mode.hintMesh.builder.undoKeys(parseKeyOrAlias(propertyValue, keyAliases));
                             case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
                             case "font-size" -> mode.hintMesh.builder.fontSize(
                                     parseDouble(propertyKey, propertyValue, false, 0,
@@ -1241,6 +1241,14 @@ public class ConfigurationParser {
         return hintKeys;
     }
 
+    private static Set<Key> parseKeyOrAlias(String propertyValue,
+                                             Map<String, KeyAlias> keyAliases) {
+        KeyAlias alias = keyAliases.get(propertyValue);
+        if (alias != null)
+            return Set.copyOf(alias.keys());
+        return Set.of(Key.ofName(propertyValue));
+    }
+
     private static HintMeshType.HintMeshTypeType parseHintMeshTypeType(String propertyKey,
                                                                        String propertyValue) {
         return switch (propertyValue) {
@@ -1506,8 +1514,8 @@ public class ConfigurationParser {
                         builder.type().rowOriented(parent.type().rowOriented());
                     if (builder.selectionKeys() == null)
                         builder.selectionKeys(parent.selectionKeys());
-                    if (builder.undoKey() == null)
-                        builder.undoKey(parent.undoKey());
+                    if (builder.undoKeys() == null)
+                        builder.undoKeys(parent.undoKeys());
                     if (builder.fontName() == null)
                         builder.fontName(parent.fontName());
                     if (builder.fontSize() == null)
