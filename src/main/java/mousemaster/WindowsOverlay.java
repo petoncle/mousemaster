@@ -1498,7 +1498,7 @@ public class WindowsOverlay {
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
         if (standByZoomWindow != null)
-            hwnds.add(standByZoomWindow.hostHwnd);
+            hwnds.add(standByZoomWindow.hwnd);
         if (hwnds.isEmpty())
             return;
         if (!Magnification.INSTANCE.MagSetWindowFilterList(zoomWindow.hwnd(),
