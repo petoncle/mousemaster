@@ -76,6 +76,8 @@ public class CommandRunner {
 
             case MoveToGridCenter moveToGridCenter -> gridManager.moveToGridCenter();
 
+            case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
+
             case SavePosition savePosition -> hintManager.saveCurrentPosition();
             case ClearPositionHistory clearPositionHistory -> hintManager.clearPositionHistory();
             case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();

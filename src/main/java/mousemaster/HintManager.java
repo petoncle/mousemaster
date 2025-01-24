@@ -35,6 +35,13 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int positionCycleIndex = 0;
     private Hint selectedHintToFinalize;
 
+    public void moveToLastSelectedHint() {
+        if (lastSelectedHintPoint == null)
+            return;
+        mouseController.moveTo((int) lastSelectedHintPoint.x(),
+                (int) lastSelectedHintPoint.y());
+    }
+
     private record HintMeshAndPreviousModeSelectedHintPoint(HintMesh hintMesh,
                                                             Point previousModeSelectedHintPoint) {
 

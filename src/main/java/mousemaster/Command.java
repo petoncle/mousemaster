@@ -53,6 +53,8 @@ public sealed interface Command {
 
     record MoveToGridCenter() implements Command {}
 
+    record MoveToLastSelectedHint() implements Command {}
+
     record SavePosition() implements Command {}
     record ClearPositionHistory() implements Command {}
     record CycleNextPosition() implements Command {}

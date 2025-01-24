@@ -163,6 +163,7 @@ public class ConfigurationParser {
                 new Property<>("shrink-grid", Map.of()),
                 new Property<>("move-grid", Map.of()),
                 new Property<>("move-grid-to-center", Map.of()),
+                new Property<>("move-to-last-selected-hint", Map.of()),
                 new Property<>("save-position", Map.of()),
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
@@ -905,6 +906,11 @@ public class ConfigurationParser {
                 case "move-to-grid-center" -> {
                     mode.comboMap.moveToGridCenter.parseReferenceOr(propertyKey, propertyValue,
                             commandsByCombo -> setCommand(mode.comboMap.moveToGridCenter.builder, propertyValue, new MoveToGridCenter(), finalDefaultComboMoveDuration, keyAliases, appAliases),
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                }
+                case "move-to-last-selected-hint" -> {
+                    mode.comboMap.moveToLastSelectedHint.parseReferenceOr(propertyKey, propertyValue,
+                            commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder, propertyValue, new MoveToLastSelectedHint(), finalDefaultComboMoveDuration, keyAliases, appAliases),
                             childPropertiesByParentProperty, nonRootPropertyKeys);
                 }
                 // @formatter:on
@@ -1675,6 +1681,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> shrinkGrid;
         Property<Map<Combo, List<Command>>> moveGrid;
         Property<Map<Combo, List<Command>>> moveToGridCenter;
+        Property<Map<Combo, List<Command>>> moveToLastSelectedHint;
         Property<Map<Combo, List<Command>>> savePosition;
         Property<Map<Combo, List<Command>>> clearPositionHistory;
         Property<Map<Combo, List<Command>>> cycleNextPosition;
@@ -1695,6 +1702,7 @@ public class ConfigurationParser {
             shrinkGrid = new ComboMapProperty("shrink-grid", modeName, propertyByKey);
             moveGrid = new ComboMapProperty("move-grid", modeName, propertyByKey);
             moveToGridCenter = new ComboMapProperty("move-grid-to-center", modeName, propertyByKey);
+            moveToLastSelectedHint = new ComboMapProperty("move-to-last-selected-hint", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
@@ -1731,6 +1739,7 @@ public class ConfigurationParser {
             add(commandsByCombo, shrinkGrid.builder);
             add(commandsByCombo, moveGrid.builder);
             add(commandsByCombo, moveToGridCenter.builder);
+            add(commandsByCombo, moveToLastSelectedHint.builder);
             add(commandsByCombo, savePosition.builder);
             add(commandsByCombo, clearPositionHistory.builder);
             add(commandsByCombo, cycleNextPosition.builder);
