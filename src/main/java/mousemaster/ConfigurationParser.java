@@ -100,6 +100,12 @@ public class ConfigurationParser {
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
                 .expandBoxes(true)
+                .subgridRowCount(1)
+                .subgridColumnCount(1)
+                .subgridBorderThickness(1)
+                .subgridBorderLength(10_000)
+                .subgridBorderHexColor("#FFFFFF")
+                .subgridBorderOpacity(1d)
                 .swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -508,6 +514,18 @@ public class ConfigurationParser {
                                     ));
                             case "expand-boxes" -> mode.hintMesh.builder.expandBoxes(
                                     Boolean.parseBoolean(propertyValue));
+                            case "subgrid-row-count" -> mode.hintMesh.builder.subgridRowCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000));
+                            case "subgrid-column-count" -> mode.hintMesh.builder.subgridColumnCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000));
+                            case "subgrid-border-thickness" -> mode.hintMesh.builder.subgridBorderThickness(
+                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
+                            case "subgrid-border-length" -> mode.hintMesh.builder.subgridBorderLength(
+                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
+                            case "subgrid-border-color" -> mode.hintMesh.builder.subgridBorderHexColor(
+                                    checkColorFormat(propertyKey, propertyValue));
+                            case "subgrid-border-opacity" -> mode.hintMesh.builder.subgridBorderOpacity(
+                                    parseDouble(propertyKey, propertyValue, true,
+                                            0, 1
+                                    ));
                             case "mode-after-selection" -> {
                                 String modeAfterSelection = propertyValue;
                                 modeReferences.add(
@@ -1550,6 +1568,18 @@ public class ConfigurationParser {
                         builder.boxBorderOpacity(parent.boxBorderOpacity());
                     if (builder.expandBoxes() == null)
                         builder.expandBoxes(parent.expandBoxes());
+                    if (builder.subgridRowCount() == null)
+                        builder.subgridRowCount(parent.subgridRowCount());
+                    if (builder.subgridColumnCount() == null)
+                        builder.subgridColumnCount(parent.subgridColumnCount());
+                    if (builder.subgridBorderThickness() == null)
+                        builder.subgridBorderThickness(parent.subgridBorderThickness());
+                    if (builder.subgridBorderLength() == null)
+                        builder.subgridBorderLength(parent.subgridBorderLength());
+                    if (builder.subgridBorderHexColor() == null)
+                        builder.subgridBorderHexColor(parent.subgridBorderHexColor());
+                    if (builder.subgridBorderOpacity() == null)
+                        builder.subgridBorderOpacity(parent.subgridBorderOpacity());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

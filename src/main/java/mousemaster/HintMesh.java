@@ -14,7 +14,13 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        double boxBorderThickness,
                        double boxBorderLength,
                        String boxBorderHexColor, double boxBorderOpacity,
-                       boolean expandBoxes) {
+                       boolean expandBoxes,
+                       int subgridRowCount,
+                       int subgridColumnCount,
+                       double subgridBorderThickness,
+                       double subgridBorderLength,
+                       String subgridBorderHexColor,
+                       double subgridBorderOpacity) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -42,6 +48,12 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private String boxBorderHexColor;
         private double boxBorderOpacity;
         private boolean expandBoxes;
+        private int subgridRowCount;
+        private int subgridColumnCount;
+        private double subgridBorderThickness;
+        private double subgridBorderLength;
+        private String subgridBorderHexColor;
+        private double subgridBorderOpacity;
 
         public HintMeshBuilder() {
         }
@@ -68,6 +80,12 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.boxBorderHexColor = hintMesh.boxBorderHexColor;
             this.boxBorderOpacity = hintMesh.boxBorderOpacity;
             this.expandBoxes = hintMesh.expandBoxes;
+            this.subgridRowCount = hintMesh.subgridRowCount;
+            this.subgridColumnCount = hintMesh.subgridColumnCount;
+            this.subgridBorderThickness = hintMesh.subgridBorderThickness;
+            this.subgridBorderLength = hintMesh.subgridBorderLength;
+            this.subgridBorderHexColor = hintMesh.subgridBorderHexColor;
+            this.subgridBorderOpacity = hintMesh.subgridBorderOpacity;
         }
 
 
@@ -153,6 +171,30 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public boolean expandBoxes() {
             return expandBoxes;
+        }
+
+        public int subgridRowCount() {
+            return subgridRowCount;
+        }
+
+        public int subgridColumnCount() {
+            return subgridColumnCount;
+        }
+
+        public double subgridBorderThickness() {
+            return subgridBorderThickness;
+        }
+
+        public double subgridBorderLength() {
+            return subgridBorderLength;
+        }
+
+        public String subgridBorderHexColor() {
+            return subgridBorderHexColor;
+        }
+
+        public double subgridBorderOpacity() {
+            return subgridBorderOpacity;
         }
 
         public HintMeshBuilder type(HintMeshType type) {
@@ -262,6 +304,36 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder subgridRowCount(int subgridRowCount) {
+            this.subgridRowCount = subgridRowCount;
+            return this;
+        }
+
+        public HintMeshBuilder subgridColumnCount(int subgridColumnCount) {
+            this.subgridColumnCount = subgridColumnCount;
+            return this;
+        }
+
+        public HintMeshBuilder subgridBorderThickness(double subgridBorderThickness) {
+            this.subgridBorderThickness = subgridBorderThickness;
+            return this;
+        }
+
+        public HintMeshBuilder subgridBorderLength(double subgridBorderLength) {
+            this.subgridBorderLength = subgridBorderLength;
+            return this;
+        }
+
+        public HintMeshBuilder subgridBorderHexColor(String subgridBorderHexColor) {
+            this.subgridBorderHexColor = subgridBorderHexColor;
+            return this;
+        }
+
+        public HintMeshBuilder subgridBorderOpacity(double subgridBorderOpacity) {
+            this.subgridBorderOpacity = subgridBorderOpacity;
+            return this;
+        }
+
         public HintMesh build() {
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
@@ -271,7 +343,13 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                     boxBorderThickness,
                     boxBorderLength,
                     boxBorderHexColor, boxBorderOpacity,
-                    expandBoxes);
+                    expandBoxes,
+                    subgridRowCount,
+                    subgridColumnCount,
+                    subgridBorderThickness,
+                    subgridBorderLength,
+                    subgridBorderHexColor,
+                    subgridBorderOpacity);
         }
     }
 

@@ -709,6 +709,12 @@ public class WindowsOverlay {
         boolean expandBoxes = currentHintMesh.expandBoxes();
         String fontHexColor = currentHintMesh.fontHexColor();
         String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
+        int subgridRowCount = currentHintMesh.subgridRowCount();
+        int subgridColumnCount = currentHintMesh.subgridColumnCount();
+        double subgridBorderThickness = currentHintMesh.subgridBorderThickness();
+        double subgridBorderLength = currentHintMesh.subgridBorderLength();
+        String subgridBorderHexColor = currentHintMesh.subgridBorderHexColor();
+        double subgridBorderOpacity = currentHintMesh.subgridBorderOpacity();
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
 //        int scaledDpi = (int) (screen.dpi() * screen.scale());
         int dpi = screen.dpi();
@@ -902,25 +908,22 @@ public class WindowsOverlay {
                     }
                 }
             }
-            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
+            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, 1);
             int borderLengthPixels =
-                    Math.max((int) Math.floor(boxBorderLength * screen.scale()), scaledBoxBorderThickness);
-            int subRowCount = 2;
-            int subColumnCount = 2;
-            int subThickness = 2;
-            int subLength = 10;
-            String subBoxBorderHexColor = "#FFFF00";
-            double subBoxBorderOpacity = 1;
+                    Math.max((int) Math.floor(boxBorderLength * 1), scaledBoxBorderThickness);
             int colorBetweenSubBoxes =
-                    hexColorStringToRgb(subBoxBorderHexColor, subBoxBorderOpacity) |
-                    ((int) (255 * subBoxBorderOpacity) << 24);
+                    hexColorStringToRgb(subgridBorderHexColor, subgridBorderOpacity) |
+                    ((int) (255 * subgridBorderOpacity) << 24);
+            int scaledSubgridBorderThickness = (int) Math.floor(subgridBorderThickness);
+            int subgridBorderLengthPixels =
+                    Math.max((int) Math.floor(subgridBorderLength * 1), scaledSubgridBorderThickness);
             for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
                 int minX = Math.max(0, cellRect.left);
                 int maxX = Math.min(windowWidth, cellRect.right);
                 int minY = Math.max(0, cellRect.top);
                 int maxY = Math.min(windowHeight, cellRect.bottom);
-                int subWidth = (int) Math.round((double) (maxX - minX) / subColumnCount);
-                int subHeight = (int) Math.round((double) (maxY - minY) / subRowCount);
+                int subWidth = (int) Math.round((double) (maxX - minX) / subgridColumnCount);
+                int subHeight = (int) Math.round((double) (maxY - minY) / subgridRowCount);
                 for (int x = minX; x < maxX; x++) {
                     for (int y = minY; y < maxY; y++) {
                         // The cell may go past the screen dimensions.
@@ -935,21 +938,21 @@ public class WindowsOverlay {
                         }
                         else {
                             if (pixel == boxColor) {
-                                int xx = x - subThickness / 2;
-                                if ((xx - minX + subThickness / 2) % subWidth < subThickness
-                                    && xx - minX > Math.max(subThickness, boxBorderThickness)
-                                    && xx < maxX - Math.max(subThickness, boxBorderThickness)
-                                    && (y - minY + subLength / 2) % subHeight < subLength
-                                    && y - minY > (subLength >= maxY - minY ? 0 : subLength)
-                                    && y < maxY - (subLength >= maxY - minY ? 0 : subLength))
+                                int xx = x - scaledSubgridBorderThickness / 2;
+                                if ((xx - minX + scaledSubgridBorderThickness / 2) % subWidth < scaledSubgridBorderThickness
+                                    && xx - minX > Math.max(scaledSubgridBorderThickness, boxBorderThickness)
+                                    && xx < maxX - Math.max(scaledSubgridBorderThickness, boxBorderThickness)
+                                    && (y - minY + subgridBorderLengthPixels / 2) % subHeight < subgridBorderLengthPixels
+                                    && y - minY > (subgridBorderLengthPixels >= maxY - minY ? 0 : subgridBorderLengthPixels)
+                                    && y < maxY - (subgridBorderLengthPixels >= maxY - minY ? 0 : subgridBorderLengthPixels))
                                     hintMeshDraw.pixelData[y * windowWidth + xx] = colorBetweenSubBoxes;
-                                int yy = y - subThickness / 2;
-                                if ((yy - minY + subThickness / 2) % subHeight < subThickness
-                                    && yy - minY > Math.max(subThickness, boxBorderThickness)
-                                    && yy < maxY - Math.max(subThickness, boxBorderThickness)
-                                    && (x - minX + subLength / 2) % subWidth < subLength
-                                    && x - minX > (subLength >= maxX - minX ? 0 : subLength)
-                                    && x < maxX - (subLength >= maxX - minX ? 0 : subLength))
+                                int yy = y - scaledSubgridBorderThickness / 2;
+                                if ((yy - minY + scaledSubgridBorderThickness / 2) % subHeight < scaledSubgridBorderThickness
+                                    && yy - minY > Math.max(scaledSubgridBorderThickness, boxBorderThickness)
+                                    && yy < maxY - Math.max(scaledSubgridBorderThickness, boxBorderThickness)
+                                    && (x - minX + subgridBorderLengthPixels / 2) % subWidth < subgridBorderLengthPixels
+                                    && x - minX > (subgridBorderLengthPixels >= maxX - minX ? 0 : subgridBorderLengthPixels)
+                                    && x < maxX - (subgridBorderLengthPixels >= maxX - minX ? 0 : subgridBorderLengthPixels))
                                     hintMeshDraw.pixelData[yy * windowWidth + x] = colorBetweenSubBoxes;
                             }
                         }

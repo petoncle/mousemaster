@@ -20,6 +20,12 @@ public record HintMeshConfiguration(boolean enabled,
                                     String boxBorderHexColor,
                                     double boxBorderOpacity,
                                     boolean expandBoxes,
+                                    int subgridRowCount,
+                                    int subgridColumnCount,
+                                    double subgridBorderThickness,
+                                    double subgridBorderLength,
+                                    String subgridBorderHexColor,
+                                    double subgridBorderOpacity,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
@@ -48,6 +54,12 @@ public record HintMeshConfiguration(boolean enabled,
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
         private Boolean expandBoxes;
+        private Integer subgridRowCount;
+        private Integer subgridColumnCount;
+        private Double subgridBorderThickness;
+        private Double subgridBorderLength;
+        private String subgridBorderHexColor;
+        private Double subgridBorderOpacity;
         private String modeAfterSelection;
         private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
@@ -164,6 +176,36 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
+        public HintMeshConfigurationBuilder subgridRowCount(int subgridRowCount) {
+            this.subgridRowCount = subgridRowCount;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder subgridColumnCount(int subgridColumnCount) {
+            this.subgridColumnCount = subgridColumnCount;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder subgridBorderThickness(double subgridBorderThickness) {
+            this.subgridBorderThickness = subgridBorderThickness;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder subgridBorderLength(double subgridBorderLength) {
+            this.subgridBorderLength = subgridBorderLength;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder subgridBorderHexColor(String subgridBorderHexColor) {
+            this.subgridBorderHexColor = subgridBorderHexColor;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder subgridBorderOpacity(double subgridBorderOpacity) {
+            this.subgridBorderOpacity = subgridBorderOpacity;
+            return this;
+        }
+
         public HintMeshConfigurationBuilder modeAfterSelection(
                 String modeAfterSelection) {
             this.modeAfterSelection = modeAfterSelection;
@@ -274,6 +316,30 @@ public record HintMeshConfiguration(boolean enabled,
             return expandBoxes;
         }
 
+        public Integer subgridRowCount() {
+            return subgridRowCount;
+        }
+
+        public Integer subgridColumnCount() {
+            return subgridColumnCount;
+        }
+
+        public Double subgridBorderThickness() {
+            return subgridBorderThickness;
+        }
+
+        public Double subgridBorderLength() {
+            return subgridBorderLength;
+        }
+
+        public String subgridBorderHexColor() {
+            return subgridBorderHexColor;
+        }
+
+        public Double subgridBorderOpacity() {
+            return subgridBorderOpacity;
+        }
+
         public String modeAfterSelection() {
             return modeAfterSelection;
         }
@@ -298,6 +364,12 @@ public record HintMeshConfiguration(boolean enabled,
                     boxBorderLength,
                     boxBorderHexColor, boxBorderOpacity,
                     expandBoxes,
+                    subgridRowCount,
+                    subgridColumnCount,
+                    subgridBorderThickness,
+                    subgridBorderLength,
+                    subgridBorderHexColor,
+                    subgridBorderOpacity,
                     modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }
