@@ -206,8 +206,8 @@ hint1-mode.hint.type=grid
 hint1-mode.hint.grid-area=active-screen
 hint1-mode.hint.active-screen-grid-area-center=screen-center
 hint1-mode.hint.grid-cell-width=74
-hint1-mode.hint.subgrid-row-count=6
-hint1-mode.hint.subgrid-column-count=5
+hint1-mode.hint.layout-row-count=6
+hint1-mode.hint.layout-column-count=5
 hint1-mode.hint.selection-keys=hint1key
 hint1-mode.hint.undo=backspace
 hint1-mode.hint.mode-after-selection=normal-mode
@@ -236,8 +236,8 @@ hint1-mode.hint.expand-boxes=true
 - `grid-area` can either be `active-screen`, `active-window` or `all-screens`.
 - `active-screen-grid-area-center` can either be `screen-center`, `mouse`
   or `last-selected-hint`.
-- `subgrid-row-count` and `subgrid-column-count` are for controlling the size of the
-  subgrid. Use `subgrid-row-count=1` and `subgrid-column-count=1000` to lay out the hints 
+- `layout-row-count` and `layout-column-count` are for controlling the size of the
+  layout. Use `layout-row-count=1` and `layout-column-count=1000` to lay out the hints 
   in columns.
 - `move-mouse` can be set to false to not move the mouse once a hint is selected. This can
   be used when the next mode is going to be a smaller hint grid, and the mouse should not

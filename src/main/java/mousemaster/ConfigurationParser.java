@@ -109,8 +109,8 @@ public class ConfigurationParser {
                            .gridMaxColumnCount(200)
                            .gridCellWidth(73d)
                            .gridCellHeight(41d)
-                           .subgridRowCount(1_000_000)
-                           .subgridColumnCount(1)
+                           .layoutRowCount(1_000_000)
+                           .layoutColumnCount(1)
                            .rowOriented(true);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
@@ -453,8 +453,8 @@ public class ConfigurationParser {
                                                                                              0,
                                                                                              10_000
                                                                                      ));
-                            case "subgrid-row-count" -> mode.hintMesh.builder.type().subgridRowCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
-                            case "subgrid-column-count" -> mode.hintMesh.builder.type().subgridColumnCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
+                            case "layout-row-count" -> mode.hintMesh.builder.type().layoutRowCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
+                            case "layout-column-count" -> mode.hintMesh.builder.type().layoutColumnCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
                             case "grid-row-oriented" -> mode.hintMesh.builder.type().rowOriented(Boolean.parseBoolean(propertyValue));
                             case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                     parseHintKeys(propertyKey, propertyValue, keyAliases));
@@ -1086,8 +1086,8 @@ public class ConfigurationParser {
                     hintMeshType.gridMaxColumnCount() == null ||
                     hintMeshType.gridCellWidth() == null ||
                     hintMeshType.gridCellHeight() == null ||
-                    hintMeshType.subgridRowCount() == null ||
-                    hintMeshType.subgridColumnCount() == null ||
+                    hintMeshType.layoutRowCount() == null ||
+                    hintMeshType.layoutColumnCount() == null ||
                     hintMeshType.rowOriented() == null
                 )
                     throw new IllegalArgumentException(
@@ -1095,7 +1095,7 @@ public class ConfigurationParser {
                             " is incomplete: expected " +
                             List.of("grid-max-row-count", "grid-max-column-count",
                                     "grid-cell-width", "grid-cell-height",
-                                    "subgrid-row-count", "subgrid-column-count", "grid-row-oriented"));
+                                    "layout-row-count", "layout-column-count", "grid-row-oriented"));
             }
             case POSITION_HISTORY -> {
                 // No op.
@@ -1506,10 +1506,10 @@ public class ConfigurationParser {
                         builder.type().gridCellWidth(parent.type().gridCellWidth());
                     if (builder.type().gridCellHeight() == null)
                         builder.type().gridCellHeight(parent.type().gridCellHeight());
-                    if (builder.type().subgridRowCount() == null)
-                        builder.type().subgridRowCount(parent.type().subgridRowCount());
-                    if (builder.type().subgridColumnCount() == null)
-                        builder.type().subgridColumnCount(parent.type().subgridColumnCount());
+                    if (builder.type().layoutRowCount() == null)
+                        builder.type().layoutRowCount(parent.type().layoutRowCount());
+                    if (builder.type().layoutColumnCount() == null)
+                        builder.type().layoutColumnCount(parent.type().layoutColumnCount());
                     if (builder.type().rowOriented() == null)
                         builder.type().rowOriented(parent.type().rowOriented());
                     if (builder.selectionKeys() == null)

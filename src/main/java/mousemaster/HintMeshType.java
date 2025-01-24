@@ -4,7 +4,7 @@ public sealed interface HintMeshType {
 
     record HintGrid(HintGridArea area, int maxRowCount, int maxColumnCount, double cellWidth,
                     double cellHeight,
-                    int subgridRowCount, int subgridColumnCount, boolean rowOriented) implements HintMeshType {
+                    int layoutRowCount, int layoutColumnCount, boolean rowOriented) implements HintMeshType {
     }
 
     record HintPositionHistory() implements HintMeshType {
@@ -26,8 +26,8 @@ public sealed interface HintMeshType {
         private Integer gridMaxColumnCount;
         private Double gridCellWidth;
         private Double gridCellHeight;
-        private Integer subgridRowCount;
-        private Integer subgridColumnCount;
+        private Integer layoutRowCount;
+        private Integer layoutColumnCount;
         private Boolean rowOriented;
 
         public HintMeshTypeBuilder() {
@@ -41,8 +41,8 @@ public sealed interface HintMeshType {
                     this.gridArea = hintGrid.area.builder();
                     this.gridCellWidth = hintGrid.cellWidth;
                     this.gridCellHeight = hintGrid.cellHeight;
-                    this.subgridRowCount = hintGrid.subgridRowCount;
-                    this.subgridColumnCount = hintGrid.subgridColumnCount;
+                    this.layoutRowCount = hintGrid.layoutRowCount;
+                    this.layoutColumnCount = hintGrid.layoutColumnCount;
                     this.rowOriented = hintGrid.rowOriented;
                 }
                 case HintPositionHistory hintPositionHistory -> {
@@ -75,12 +75,12 @@ public sealed interface HintMeshType {
             return gridCellHeight;
         }
 
-        public Integer subgridRowCount() {
-            return subgridRowCount;
+        public Integer layoutRowCount() {
+            return layoutRowCount;
         }
 
-        public Integer subgridColumnCount() {
-            return subgridColumnCount;
+        public Integer layoutColumnCount() {
+            return layoutColumnCount;
         }
 
         public Boolean rowOriented() {
@@ -112,13 +112,13 @@ public sealed interface HintMeshType {
             return this;
         }
 
-        public HintMeshTypeBuilder subgridRowCount(Integer subgridRowCount) {
-            this.subgridRowCount = subgridRowCount;
+        public HintMeshTypeBuilder layoutRowCount(Integer layoutRowCount) {
+            this.layoutRowCount = layoutRowCount;
             return this;
         }
 
-        public HintMeshTypeBuilder subgridColumnCount(Integer subgridColumnCount) {
-            this.subgridColumnCount = subgridColumnCount;
+        public HintMeshTypeBuilder layoutColumnCount(Integer layoutColumnCount) {
+            this.layoutColumnCount = layoutColumnCount;
             return this;
         }
 
@@ -131,7 +131,7 @@ public sealed interface HintMeshType {
             return switch (type) {
                 case GRID -> new HintGrid(gridArea.build(), gridMaxRowCount,
                         gridMaxColumnCount, gridCellWidth, gridCellHeight,
-                        subgridRowCount, subgridColumnCount, rowOriented);
+                        layoutRowCount, layoutColumnCount, rowOriented);
                 case POSITION_HISTORY -> new HintPositionHistory();
             };
         }
