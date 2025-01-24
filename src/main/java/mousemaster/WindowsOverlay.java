@@ -905,21 +905,52 @@ public class WindowsOverlay {
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
             int borderLengthPixels =
                     Math.max((int) Math.floor(boxBorderLength * screen.scale()), scaledBoxBorderThickness);
+            int subRowCount = 2;
+            int subColumnCount = 2;
+            int subThickness = 2;
+            int subLength = 10;
+            String subBoxBorderHexColor = "#FFFF00";
+            double subBoxBorderOpacity = 1;
+            int colorBetweenSubBoxes =
+                    hexColorStringToRgb(subBoxBorderHexColor, subBoxBorderOpacity) |
+                    ((int) (255 * subBoxBorderOpacity) << 24);
             for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
                 int minX = Math.max(0, cellRect.left);
                 int maxX = Math.min(windowWidth, cellRect.right);
                 int minY = Math.max(0, cellRect.top);
                 int maxY = Math.min(windowHeight, cellRect.bottom);
+                int subWidth = (int) Math.round((double) (maxX - minX) / subColumnCount);
+                int subHeight = (int) Math.round((double) (maxY - minY) / subRowCount);
                 for (int x = minX; x < maxX; x++) {
                     for (int y = minY; y < maxY; y++) {
                         // The cell may go past the screen dimensions.
-                        if (hintMeshDraw.pixelData[y * windowWidth + x] == noColorColor) {
+                        int pixel = hintMeshDraw.pixelData[y * windowWidth + x];
+                        if (pixel == noColorColor) {
                             if ((x - minX < borderLengthPixels || maxX - 1 - x < borderLengthPixels)
                                 && (y - minY < borderLengthPixels || maxY - 1 - y < borderLengthPixels)) {
                                 hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenBoxes;
                             }
-                            else {
+                            else
                                 hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
+                        }
+                        else {
+                            if (pixel == boxColor) {
+                                int xx = x - subThickness / 2;
+                                if ((xx - minX + subThickness / 2) % subWidth < subThickness
+                                    && xx - minX > Math.max(subThickness, boxBorderThickness)
+                                    && xx < maxX - Math.max(subThickness, boxBorderThickness)
+                                    && (y - minY + subLength / 2) % subHeight < subLength
+                                    && y - minY > (subLength >= maxY - minY ? 0 : subLength)
+                                    && y < maxY - (subLength >= maxY - minY ? 0 : subLength))
+                                    hintMeshDraw.pixelData[y * windowWidth + xx] = colorBetweenSubBoxes;
+                                int yy = y - subThickness / 2;
+                                if ((yy - minY + subThickness / 2) % subHeight < subThickness
+                                    && yy - minY > Math.max(subThickness, boxBorderThickness)
+                                    && yy < maxY - Math.max(subThickness, boxBorderThickness)
+                                    && (x - minX + subLength / 2) % subWidth < subLength
+                                    && x - minX > (subLength >= maxX - minX ? 0 : subLength)
+                                    && x < maxX - (subLength >= maxX - minX ? 0 : subLength))
+                                    hintMeshDraw.pixelData[yy * windowWidth + x] = colorBetweenSubBoxes;
                             }
                         }
                     }
