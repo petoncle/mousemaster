@@ -1041,8 +1041,12 @@ public class WindowsOverlay {
                                      float gdipFontSize,
                                      PointerByReference stringFormat) {
         Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF();
-        layoutRect.x = (float) left;
-        layoutRect.y = (float) top;
+//        layoutRect.x = (float) left;
+//        layoutRect.y = (float) top;
+//        layoutRect.x = Math.round(left);
+//        layoutRect.y = Math.round(top);
+        layoutRect.x = (int) Math.ceil(left);
+        layoutRect.y = (int) Math.ceil(top);
         layoutRect.width = Float.MAX_VALUE;
         layoutRect.height = Float.MAX_VALUE;
         // https://learn.microsoft.com/en-us/windows/win32/api/gdiplusenums/ne-gdiplusenums-fontstyle

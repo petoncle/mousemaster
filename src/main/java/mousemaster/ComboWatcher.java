@@ -306,8 +306,11 @@ public class ComboWatcher implements ModeListener {
         }
         if (newComboDuration != null)
             previousComboMoveDuration = newComboDuration;
-        List<Command> commandsToRun =
+        List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
+        commandsWaitingForAtomicCommandToComplete.clear();
+        List<Command> completeCombosCommandsToRun =
                 longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
+        commandsToRun.addAll(completeCombosCommandsToRun);
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo);
         logger.debug("currentMode = " + currentMode.name() +
@@ -316,7 +319,7 @@ public class ComboWatcher implements ModeListener {
                      (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
                      ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
                      ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
-                     commandsToRun);
+                     completeCombosCommandsToRun);
         if (!comboAndCommandsToRun.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
