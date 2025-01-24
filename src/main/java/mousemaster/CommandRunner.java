@@ -22,6 +22,10 @@ public class CommandRunner {
         this.modeController = modeController;
     }
 
+    public boolean runningAtomicCommand() {
+        return mouseController.jumping();
+    }
+
     public void run(Command command) {
         switch (command) {
             // @formatter:off

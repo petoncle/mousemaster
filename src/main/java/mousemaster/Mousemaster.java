@@ -20,7 +20,7 @@ public class Mousemaster {
     private final WatchService watchService;
     private Configuration configuration;
     private MouseController mouseController;
-    private HintManager hintManager;
+    private CommandRunner commandRunner;
     private Remapper remapper;
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
@@ -72,11 +72,6 @@ public class Mousemaster {
             long mouseControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.windowsMessagePump();
             timeBeforeOp = timeAfterOp;
-            hintManager.update(delta);
-            timeAfterOp = System.nanoTime();
-            long hintManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
-            timeBeforeOp = timeAfterOp;
             keyboardManager.update(delta);
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
@@ -100,7 +95,6 @@ public class Mousemaster {
                              "platformDuration = " + platformDuration + "ms, " +
                              "modeControllerDuration = " + modeControllerDuration + "ms, " +
                              "mouseControllerDuration = " + mouseControllerDuration + "ms, " +
-                             "hintManagerDuration = " + hintManagerDuration + "ms, " +
                              "keyboardManagerDuration = " + keyboardManagerDuration + "ms, " +
                              "indicatorManagerDuration = " + indicatorManagerDuration + "ms, " +
                              "remapperDuration = " + remapperDuration + "ms");
@@ -163,11 +157,10 @@ public class Mousemaster {
         mouseController = new MouseController(screenManager);
         MouseState mouseState = new MouseState(mouseController);
         GridManager gridManager = new GridManager(screenManager, mouseController);
-        hintManager =
-                new HintManager(configuration.maxPositionHistorySize(),
-                        screenManager, mouseController);
+        HintManager hintManager = new HintManager(configuration.maxPositionHistorySize(),
+                screenManager, mouseController);
         remapper = new Remapper();
-        CommandRunner commandRunner = new CommandRunner(mouseController, gridManager,
+        commandRunner = new CommandRunner(mouseController, gridManager,
                 hintManager, remapper);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();

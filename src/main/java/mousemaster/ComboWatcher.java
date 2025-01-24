@@ -25,6 +25,7 @@ public class ComboWatcher implements ModeListener {
     private PressKeyEventProcessingSet lastProcessingSet;
     private ComboMoveDuration previousComboMoveDuration;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
+    private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
 
     private Set<Key> currentlyPressedCompletedComboSequenceKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
@@ -104,10 +105,13 @@ public class ComboWatcher implements ModeListener {
         if (!completeCombos.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
-        List<Command> commandsToRun = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
-                                                                                           .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
-                                                                                           .toList());
-        if (!commandsToRun.isEmpty()) {
+        List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
+        commandsWaitingForAtomicCommandToComplete.clear();
+        List<Command> completeCombosCommands = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
+                                                                               .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
+                                                                               .toList());
+        commandsToRun.addAll(completeCombosCommands);
+        if (!completeCombosCommands.isEmpty()) {
             logger.debug(
                     "Completed combos that were waiting for last move to complete, currentMode = " +
                     currentMode.name() + ", completeCombos = " + completeCombos.stream()
@@ -117,7 +121,7 @@ public class ComboWatcher implements ModeListener {
                     ", commandsToRun = " + commandsToRun);
         }
         Mode beforeMode = currentMode;
-        commandsToRun.forEach(commandRunner::run);
+        runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
         if (currentMode != beforeMode) {
             PressKeyEventProcessingSet processingSet =
@@ -281,7 +285,7 @@ public class ComboWatcher implements ModeListener {
             if (ignoreSwitchModeCommands &&
                 commands.stream().anyMatch(Command.SwitchMode.class::isInstance)) {
                 logger.debug(
-                        "Ignoring the following SwitchMode commands since the mode was just changed to " +
+                        "Ignoring the following SwitchMode commands because the mode was just changed to " +
                         currentMode.name() + ": " + commands.stream()
                                                             .filter(Command.SwitchMode.class::isInstance)
                                                             .toList());
@@ -316,7 +320,7 @@ public class ComboWatcher implements ModeListener {
         if (!comboAndCommandsToRun.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
-        commandsToRun.forEach(commandRunner::run);
+        runCommands(commandsToRun);
         if (event != null && event.isPress()) {
             if (processingSet.isPartOfComboSequence()) {
                 for (ComboAndCommands comboAndCommands : comboAndCommandsToRun) {
@@ -328,6 +332,15 @@ public class ComboWatcher implements ModeListener {
             }
         }
         return processingSet;
+    }
+
+    private void runCommands(List<Command> commandsToRun) {
+        List<Command> commands = new ArrayList<>(commandsToRun);
+        while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
+            Command command = commands.removeFirst();
+            commandRunner.run(command);
+        }
+        commandsWaitingForAtomicCommandToComplete.addAll(commands);
     }
 
     private boolean comboPressedPreconditionSatisfied(Combo combo,

@@ -4,7 +4,10 @@ import mousemaster.ComboWatcher.ComboWatcherUpdateResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class KeyboardManager {
 
@@ -28,15 +31,6 @@ public class KeyboardManager {
             reset();
         }
         else {
-            if (!hintManager.finalizingHintSelection()) {
-                while (!eventsWaitingForHintSelectionFinalization.isEmpty()) {
-                    logger.trace(
-                            "Update processing event from hint selection finalization queue: " +
-                            eventsWaitingForHintSelectionFinalization.getFirst());
-                    singleKeyEvent(eventsWaitingForHintSelectionFinalization.removeFirst());
-                    nextEventIsUnswallowedHintEnd = false;
-                }
-            }
             ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
             if (!watcherUpdateResult.completedWaitingCombos().isEmpty())
                 markOtherKeysOfTheseCombosAsCompleted(
@@ -63,22 +57,7 @@ public class KeyboardManager {
     private static final EatAndRegurgitates
             mustBeEatenOnly = new EatAndRegurgitates(true, Set.of());
 
-    private List<KeyEvent> eventsWaitingForHintSelectionFinalization = new ArrayList<>();
-    private boolean nextEventIsUnswallowedHintEnd;
-
     public EatAndRegurgitates keyEvent(KeyEvent keyEvent) {
-        if (hintManager.finalizingHintSelection()) {
-            logger.trace("Enqueuing keyEvent because finalizing hint selection: " + keyEvent);
-            eventsWaitingForHintSelectionFinalization.add(keyEvent);
-            return eatAndRegurgitates(true, Set.of());
-        }
-        while (!eventsWaitingForHintSelectionFinalization.isEmpty()) {
-            logger.trace(
-                    "keyEvent processing event from hint selection finalization queue: " +
-                    eventsWaitingForHintSelectionFinalization.getFirst());
-            singleKeyEvent(eventsWaitingForHintSelectionFinalization.removeFirst());
-            nextEventIsUnswallowedHintEnd = false;
-        }
         return singleKeyEvent(keyEvent);
     }
 
@@ -89,21 +68,12 @@ public class KeyboardManager {
             Set<Key> keysToRegurgitate = Set.of();
             if (processingSet == null) {
                 if (!pressingUnhandledKey()) {
-                    if (!nextEventIsUnswallowedHintEnd) {
-                        processingSet =
-                                new PressKeyEventProcessingSet(Map.of(
-                                        PressKeyEventProcessingSet.dummyCombo,
-                                        hintManager.keyPressed(keyEvent.key())));
-                    }
-                    if (nextEventIsUnswallowedHintEnd || !processingSet.handled())
+                    processingSet =
+                            new PressKeyEventProcessingSet(Map.of(
+                                    PressKeyEventProcessingSet.dummyCombo,
+                                    hintManager.keyPressed(keyEvent.key())));
+                    if (processingSet.isUnswallowedHintEnd() || !processingSet.handled())
                         processingSet = comboWatcher.keyEvent(keyEvent);
-                    else if (processingSet.isUnswallowedHintEnd()) {
-                        logger.trace("Enqueuing unswallowed hint end keyEvent " + keyEvent);
-                        eventsWaitingForHintSelectionFinalization.add(keyEvent);
-                        nextEventIsUnswallowedHintEnd = true;
-                        // Key not put in currentlyPressedKeys.
-                        return eatAndRegurgitates(true, keysToRegurgitate);
-                    }
                 }
                 else {
                     // Even if pressing unhandled key, give the hint manager a chance.

@@ -33,7 +33,6 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int positionIdCount = 0;
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int positionCycleIndex = 0;
-    private Hint selectedHintToFinalize;
 
     public void moveToLastSelectedHint() {
         if (lastSelectedHintPoint == null)
@@ -63,32 +62,12 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.modeController = modeController;
     }
 
-    public void update(double delta) {
-        // Relying on mouseMoved() callbacks is not enough because the mouse may not move
-        // when a hint is selected (and no there is no callback).
-        tryFinalizeHintSelection();
-    }
-
     @Override
     public void mouseMoved(int x, int y) {
         if (mouseController.jumping())
             return;
         mouseX = x;
         mouseY = y;
-        tryFinalizeHintSelection();
-    }
-
-    private void tryFinalizeHintSelection() {
-        if (selectedHintToFinalize != null) {
-            if (!mouseController.jumping()) {
-                finalizeHintSelection(selectedHintToFinalize);
-                selectedHintToFinalize = null;
-            }
-        }
-    }
-
-    public boolean finalizingHintSelection() {
-        return selectedHintToFinalize != null;
     }
 
     @Override
@@ -589,11 +568,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                  // the new position.
                  mouseController.moveTo((int) exactMatchHint.centerX(),
                          (int) exactMatchHint.centerY());
-                selectedHintToFinalize = exactMatchHint;
              }
-             else {
-                finalizeHintSelection(exactMatchHint);
-             }
+            finalizeHintSelection(exactMatchHint);
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
                     PressKeyEventProcessing.swallowedHintEnd() :
                     PressKeyEventProcessing.unswallowedHintEnd();

@@ -77,4 +77,5 @@
 - previous-mode-selected-hint
  - When switching mode, Map<List<Hint>, hintCenter==previous mode selected hint>
 - WindowsFont that convert "Arial Bold Italic" to "Arial" + font style BoldItalic
-+ Divide hint cell into subcells with a sub grid style (box border thickness/length/color/opacity)
+- Divide hint cell into subcells with a sub grid style (box border thickness/length/color/opacity)
++ Click commmands that do both press and release?
