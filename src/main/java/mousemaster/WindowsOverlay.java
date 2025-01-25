@@ -742,8 +742,6 @@ public class WindowsOverlay {
         if (clearStatus != 0) {
             throw new RuntimeException("Failed to clear graphics with box color. Status: " + clearStatus);
         }
-//        clearWindow(hdcTemp, windowRect, 0);
-
 
         // https://stackoverflow.com/questions/1203087/why-is-graphics-measurestring-returning-a-higher-than-expected-number
         // Does not look like it is useful when used with GdipAddPathString (it is useful with GdipDrawString)
@@ -832,8 +830,10 @@ public class WindowsOverlay {
         HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.get(
                 zoomHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
-        if (hintMeshDrawIsCached)
+        if (hintMeshDrawIsCached) {
             logger.trace("hintMeshDraw is cached");
+            dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
+        }
         else {
             // Without caching, a full screen of hints drawn with GDI+ takes some time
             // to compute, even when there is no outline.
@@ -849,62 +849,21 @@ public class WindowsOverlay {
                              hintMeshDraw.hintSequenceTexts.size() + " visible hints");
                 hintMeshWindow.hintMeshDrawCache.put(zoomHintMesh, hintMeshDraw);
             }
-            boolean mustDrawPrefix = false;
-            boolean mustDrawSuffix = false;
-            boolean mustDrawHighlight = false;
-            for (HintSequenceText hintSequenceText : hintMeshDraw.hintSequenceTexts()) {
-                for (HintKeyText keyText : hintSequenceText.keyTexts) {
-                    PointerByReference path = keyText.isPrefix ? prefixPath :
-                            (keyText.isHighlight ? highlightPath : suffixPath);
-                    float gdipFontSize = keyText.isPrefix ? normalGdipFontSize :
-                            (keyText.isHighlight ? largeGdipFontSize :
-                                    normalGdipFontSize);
-                    mustDrawPrefix |= keyText.isPrefix;
-                    mustDrawHighlight |= keyText.isHighlight;
-                    mustDrawSuffix |= keyText.isSuffix;
-                    // Color is defined in the brush.
-                    drawHintText(keyText.keyText, keyText.left, keyText.top, path,
-                            fontFamilyAndStyle, fontFamily, gdipFontSize, stringFormat);
-                }
-            }
-
-            if (mustDrawPrefix)
-                drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
-            if (mustDrawSuffix)
-                drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
-            if (mustDrawHighlight)
-                drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
 
             // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
             int colorBetweenBoxes =
                             hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) |
                     ((int) (255 * boxBorderOpacity) << 24);
-            dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
-                    hintMeshDraw.pixelData.length);
-            int alphaChannelMultipliedBoxColor =
-                    alphaMultipliedChannelsColor(boxColor, boxOpacity) |
-                    ((int) (boxOpacity * 255) << 24);
             int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
-            for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
-                int pixel = hintMeshDraw.pixelData[i];
-//                logger.info("pixel = " + Integer.toHexString(pixel) + ", boxColor = " + Integer.toHexString(boxColor) + ", alphaMul = " +
-//                            Integer.toHexString(alphaChannelMultipliedBoxColor));
-                if (pixel == alphaChannelMultipliedBoxColor)
-                    // The previous call to clearWindow(hdcTemp, windowRect, hintMeshWindow.transparentColor)
-                    // has filled everything with the grey color. That call was needed
-                    // because the DrawText needs the grey color for the antialiasing.
-                    // Now we remove the grey color, and we will put it back only for the boxes.
-                    // (We need to clear the pixels that are not in boxes.)
-                    hintMeshDraw.pixelData[i] = noColorColor;
-            }
+            clearWindow(hdcTemp, windowRect, noColorColor);
+            dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
             for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
                 for (int x = Math.max(0, boxRect.left);
                      x < Math.min(windowWidth, boxRect.right); x++) {
                     for (int y = Math.max(0, boxRect.top);
                          y < Math.min(windowHeight, boxRect.bottom); y++) {
                         // The box may go past the screen dimensions.
-                        if (hintMeshDraw.pixelData[y * windowWidth + x] == noColorColor)
-                            hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
+                        hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
                     }
                 }
             }
@@ -959,8 +918,33 @@ public class WindowsOverlay {
                     }
                 }
             }
+            dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
+            boolean mustDrawPrefix = false;
+            boolean mustDrawSuffix = false;
+            boolean mustDrawHighlight = false;
+            for (HintSequenceText hintSequenceText : hintMeshDraw.hintSequenceTexts()) {
+                for (HintKeyText keyText : hintSequenceText.keyTexts) {
+                    PointerByReference path = keyText.isPrefix ? prefixPath :
+                            (keyText.isHighlight ? highlightPath : suffixPath);
+                    float gdipFontSize = keyText.isPrefix ? normalGdipFontSize :
+                            (keyText.isHighlight ? largeGdipFontSize :
+                                    normalGdipFontSize);
+                    mustDrawPrefix |= keyText.isPrefix;
+                    mustDrawHighlight |= keyText.isHighlight;
+                    mustDrawSuffix |= keyText.isSuffix;
+                    // Color is defined in the brush.
+                    drawHintText(keyText.keyText, keyText.left, keyText.top, path,
+                            fontFamilyAndStyle, fontFamily, gdipFontSize, stringFormat);
+                }
+            }
+            if (mustDrawPrefix)
+                drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
+            if (mustDrawSuffix)
+                drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
+            if (mustDrawHighlight)
+                drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
+            dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
         }
-        dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
 
