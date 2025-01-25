@@ -289,7 +289,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     /**
      * If columnCount * cellWidth is 1898, spread the 1920 - 1898 = 22 pixels across the cells.
      */
-    private static boolean[] distributeTrueUniformly(int arraySize, int trueCount) {
+    public static boolean[] distributeTrueUniformly(int arraySize, int trueCount) {
         if (trueCount > arraySize)
             throw new IllegalArgumentException();
         boolean[] distribution = new boolean[arraySize];
