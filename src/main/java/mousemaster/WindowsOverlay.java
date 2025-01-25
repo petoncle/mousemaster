@@ -857,16 +857,6 @@ public class WindowsOverlay {
             int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
             clearWindow(hdcTemp, windowRect, noColorColor);
             dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
-            for (WinDef.RECT boxRect : hintMeshDraw.boxRects()) {
-                for (int x = Math.max(0, boxRect.left);
-                     x < Math.min(windowWidth, boxRect.right); x++) {
-                    for (int y = Math.max(0, boxRect.top);
-                         y < Math.min(windowHeight, boxRect.bottom); y++) {
-                        // The box may go past the screen dimensions.
-                        hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
-                    }
-                }
-            }
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, 1);
             int borderLengthPixels =
                     Math.max((int) Math.floor(boxBorderLength * 1), scaledBoxBorderThickness);
@@ -876,7 +866,22 @@ public class WindowsOverlay {
             int scaledSubgridBorderThickness = (int) Math.floor(subgridBorderThickness);
             int subgridBorderLengthPixels =
                     Math.max((int) Math.floor(subgridBorderLength * 1), scaledSubgridBorderThickness);
-            for (WinDef.RECT cellRect : hintMeshDraw.cellRects()) {
+            for (int cellIndex = 0; cellIndex < hintMeshDraw.cellRects().size(); cellIndex++) {
+                // A box and its corresponding cell are handled within the same iteration.
+                // If we handle all the boxes first, then all the cells, the problem is that
+                // with small grids, the cell border will not be rendered because the color
+                // will be boxColor instead of noColorColor.
+                WinDef.RECT cellRect = hintMeshDraw.cellRects().get(cellIndex);
+                WinDef.RECT boxRect = hintMeshDraw.boxRects().get(cellIndex);
+                for (int x = Math.max(0, boxRect.left);
+                     x < Math.min(windowWidth, boxRect.right); x++) {
+                    for (int y = Math.max(0, boxRect.top);
+                         y < Math.min(windowHeight, boxRect.bottom); y++) {
+                        int pixel = hintMeshDraw.pixelData[y * windowWidth + x];
+                        if (pixel == noColorColor)
+                            hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
+                    }
+                }
                 int minX = Math.max(0, cellRect.left);
                 int maxX = Math.min(windowWidth, cellRect.right);
                 int minY = Math.max(0, cellRect.top);
@@ -1273,7 +1278,7 @@ public class WindowsOverlay {
         for (HintSequenceText hintSequenceText : hintSequenceTexts) {
             Hint hint = hintSequenceText.hint;
             WinDef.RECT boxRect = new WinDef.RECT();
-            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, screen.scale());
+            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, 1);
             if (boxBorderThickness > 0 && scaledBoxBorderThickness == 0)
                 scaledBoxBorderThickness = 1;
             double simpleBoxLeft =
@@ -1403,14 +1408,14 @@ public class WindowsOverlay {
         roundedBoxTop = (int) Math.ceil(boxTop);
         roundedBoxRight = (int) Math.ceil(boxRight);
         roundedBoxBottom = (int) Math.ceil(boxBottom);
-        if (roundedBoxLeft < boxRect.left || roundedBoxTop < boxRect.top
-            || roundedBoxRight > boxRect.right || roundedBoxBottom > boxRect.bottom) {
-            // Screen selection hint are bigger.
+        if (roundedBoxLeft < boxRect.left)
             boxRect.left = roundedBoxLeft;
+        if (roundedBoxTop < boxRect.top)
             boxRect.top = roundedBoxTop;
+        if (roundedBoxRight > boxRect.right)
             boxRect.right = roundedBoxRight;
+        if (roundedBoxBottom > boxRect.bottom)
             boxRect.bottom = roundedBoxBottom;
-        }
     }
 
     private static Gdiplus.GdiplusRectF textRect(float textX, float textY, Gdiplus.GdiplusRectF textSize) {
