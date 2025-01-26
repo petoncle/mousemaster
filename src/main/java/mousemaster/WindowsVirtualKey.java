@@ -457,7 +457,11 @@ public enum WindowsVirtualKey {
                         " in " + keyboardLayout);
             }
             int virtualKeyCode = vkScanResult & 0xFF;
-            int shiftState = (vkScanResult >> 8) & 0xFF;
+            int shiftState = (vkScanResult >> 8) & 0xFF; // shift state is not just about shift but alt and ctrl too.
+            if (shiftState != 0)
+                // In fr-azerty, Key "1" should not be mapped to VK_1.
+                // In fr-azerty, VK_1 should be mapped to "&".
+                continue;
             WindowsVirtualKey windowsVirtualKey = values.get(virtualKeyCode);
             keyboardLayoutDependentKeyByVirtualKey.put(windowsVirtualKey, key);
             keyboardLayoutDependentVirtualKeyByKey.put(key, windowsVirtualKey);
