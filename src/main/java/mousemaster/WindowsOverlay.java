@@ -886,16 +886,6 @@ public class WindowsOverlay {
                 int maxX = Math.min(windowWidth, cellRect.right);
                 int minY = Math.max(0, cellRect.top);
                 int maxY = Math.min(windowHeight, cellRect.bottom);
-                int subWidth = (int) Math.floor((double) (maxX - minX) / subgridColumnCount);
-                int spareWidth = (maxX - minX) - subWidth * subgridColumnCount;
-                boolean[] subgridColumnExtraPixelDistribution =
-                        HintManager.distributeTrueUniformly(subgridColumnCount,
-                                spareWidth);
-                int subHeight = (int) Math.floor((double) (maxY - minY) / subgridRowCount);
-                int spareHeight = (maxY - minY) - subHeight * subgridRowCount;
-                boolean[] subgridRowExtraPixelDistribution =
-                        HintManager.distributeTrueUniformly(subgridRowCount,
-                                spareHeight);
                 for (int x = minX; x < maxX; x++) {
                     for (int y = minY; y < maxY; y++) {
                         // The cell may go past the screen dimensions.
@@ -910,7 +900,16 @@ public class WindowsOverlay {
                         }
                     }
                 }
-                int columnWidthOffset = subgridColumnExtraPixelDistribution[0] ? 1 : 0;
+                int subWidth = (int) Math.floor((double) (maxX - minX) / subgridColumnCount);
+                int spareWidth = (maxX - minX) - subWidth * subgridColumnCount;
+                boolean[] subgridColumnExtraPixelDistribution =
+                        HintManager.distributeTrueUniformly(subgridColumnCount,
+                                spareWidth);
+                int subHeight = (int) Math.floor((double) (maxY - minY) / subgridRowCount);
+                int spareHeight = (maxY - minY) - subHeight * subgridRowCount;
+                boolean[] subgridRowExtraPixelDistribution =
+                        HintManager.distributeTrueUniformly(subgridRowCount,
+                                spareHeight);
                 int centerRowIndex = subgridRowCount / 2;
                 int centerRowHeightOffset = 0;
                 for (int i = 0; i < centerRowIndex; i++) {
@@ -923,6 +922,7 @@ public class WindowsOverlay {
                 }
                 int borderThicknessOrLength =
                         Math.max(scaledSubgridBorderThickness, subgridBorderLengthPixels);
+                int columnWidthOffset = subgridColumnExtraPixelDistribution[0] ? 1 : 0;
                 for (int subgridColumnIndex = 1;
                      subgridColumnIndex < subgridColumnCount; subgridColumnIndex++) {
                     int columnCenterX = minX + columnWidthOffset + subgridColumnIndex * subWidth;
@@ -1282,8 +1282,10 @@ public class WindowsOverlay {
 
             double simpleBoxTop =
                     hint.centerY() - screen.rectangle().y() - highestKeyHeight / 2;
-            boxRect.left = (int) (simpleBoxLeft + scaledBoxBorderThickness);
-            boxRect.top = (int) (simpleBoxTop + scaledBoxBorderThickness);
+//            boxRect.left = (int) (simpleBoxLeft + scaledBoxBorderThickness);
+//            boxRect.top = (int) (simpleBoxTop + scaledBoxBorderThickness);
+            boxRect.left = (int) (simpleBoxLeft + (hint.centerX() > minHintCenterX ? scaledBoxBorderThickness : 0));
+            boxRect.top = (int) (simpleBoxTop + (hint.centerY() > minHintCenterY ? scaledBoxBorderThickness : 0));
 
             double simpleBoxRight = hint.centerX() - screen.rectangle().x() + maxSimpleBoxWidth / 2;
             boxRect.right = (int) (simpleBoxRight - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness));
@@ -1298,7 +1300,8 @@ public class WindowsOverlay {
                 boxRect.bottom = (int) Math.round(simpleBoxBottom);
             }
             else {
-                setBoxOrCellRect(boxRect, screen, scaledBoxBorderThickness, hint);
+                setBoxRect(boxRect, screen, scaledBoxBorderThickness, hint,
+                        minHintCenterX, maxHintCenterX, minHintCenterY, maxHintCenterY);
             }
             cellRect.left = boxRect.left - scaledBoxBorderThickness;
             cellRect.top = boxRect.top - scaledBoxBorderThickness;
@@ -1372,8 +1375,10 @@ public class WindowsOverlay {
 //        ExtendedGDI32.ABC[] abcWidths = (ExtendedGDI32.ABC[]) new ExtendedGDI32.ABC().toArray(1);
     }
 
-    private static void setBoxOrCellRect(WinDef.RECT boxRect, Screen screen, double scaledBoxBorderThickness,
-                                         Hint hint) {
+    private static void setBoxRect(WinDef.RECT boxRect, Screen screen, double scaledBoxBorderThickness,
+                                   Hint hint, double minHintCenterX,
+                                   double maxHintCenterX, double minHintCenterY,
+                                   double maxHintCenterY) {
         double cellWidth = hint.cellWidth();
         double halfCellWidth = cellWidth / 2;
         double cellHeight = hint.cellHeight();
@@ -1391,13 +1396,22 @@ public class WindowsOverlay {
         int roundedBoxRight = (int) Math.ceil(boxRight);
         int roundedBoxBottom = (int) Math.ceil(boxBottom);
 
-        if (roundedBoxLeft == 0)
+//        if (roundedBoxLeft == 0)
+//            boxLeft += scaledBoxBorderThickness / 2;
+//        if (roundedBoxTop == 0)
+//            boxTop += scaledBoxBorderThickness / 2;
+//        if (roundedBoxRight == screen.rectangle().width())
+//            boxRight -= scaledBoxBorderThickness / 2;
+//        if (roundedBoxBottom == screen.rectangle().height())
+//            boxBottom -= scaledBoxBorderThickness / 2;
+
+        if (roundedBoxLeft == screen.rectangle().x() + Math.ceil(scaledBoxBorderThickness / 2))
             boxLeft += scaledBoxBorderThickness / 2;
-        if (roundedBoxTop == 0)
-            boxTop += scaledBoxBorderThickness / 2;
-        if (roundedBoxRight == screen.rectangle().width())
+        if (roundedBoxRight == screen.rectangle().x() + screen.rectangle().width() - Math.floor(scaledBoxBorderThickness / 2))
             boxRight -= scaledBoxBorderThickness / 2;
-        if (roundedBoxBottom == screen.rectangle().height())
+        if (roundedBoxTop == screen.rectangle().y() + Math.ceil(scaledBoxBorderThickness / 2))
+            boxTop += scaledBoxBorderThickness / 2;
+        if (roundedBoxBottom == screen.rectangle().y() + screen.rectangle().height() - Math.floor(scaledBoxBorderThickness / 2))
             boxBottom -= scaledBoxBorderThickness / 2;
 
         roundedBoxLeft = (int) Math.ceil(boxLeft);
