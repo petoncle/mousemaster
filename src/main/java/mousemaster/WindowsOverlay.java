@@ -1243,8 +1243,8 @@ public class WindowsOverlay {
                 }
                 else {
                     // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
+                    // If we are here, hint.keySequence().size() is 2 or more (else, doNotColAlign would be true).
                     double fontBoxWidth = hint.cellWidth() * adjustedFontBoxWidthPercent
-                                          // TODO wrong if 1 character
                                           - (hint.keySequence().size()-2) * boundingBox.x; // Similar to hintKeyTextTotalXAdvance
                     double fontBoxWidth2 = hint.cellWidth() * adjustedFontBoxWidthPercent;
                     double keySubcellWidth = fontBoxWidth2 / hint.keySequence().size();

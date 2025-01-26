@@ -84,7 +84,7 @@ public class KeyboardManager {
                             hintManager.keyPressed(keyEvent.key())));
                 }
                 if (!processingSet.isPartOfComboSequence() &&
-                    !processingSet.isPartOfHintPrefix() && !processingSet.isHintEnd()) {
+                    !processingSet.isHint()) {
                     keysToRegurgitate = regurgitatePressedKeys(null);
                 }
                 currentlyPressedKeys.put(key, processingSet);
