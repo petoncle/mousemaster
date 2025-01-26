@@ -83,6 +83,7 @@ public class ConfigurationParser {
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
                                         .toList())
+                .undoKeys(Set.of())
                 .fontName("Consolas Bold")
                 .fontSize(18f)
                 .fontSpacingPercent(0.6f)

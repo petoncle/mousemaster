@@ -1165,19 +1165,12 @@ public class WindowsOverlay {
         double highestKeyHeight = 0;
         for (Hint hint : zoomedWindowHints) {
             double smallestColAlignedFontBoxWidth;
-            if (isFixedSizeWidthFont) {
-                smallestColAlignedFontBoxWidth = (maxKeyBoundingBoxWidth) * hint.keySequence().size()
+            smallestColAlignedFontBoxWidth = (maxKeyBoundingBoxWidth) * hint.keySequence().size()
 //                + 2*maxKeyBoundingBoxX; // 1 for first 1 for last
-                                                 + maxKeyBoundingBoxX * hint.keySequence().size();
-            }
-            else {
-                smallestColAlignedFontBoxWidth = maxKeyBoundingBoxWidth * hint.keySequence().size()
-//                + 2*maxKeyBoundingBoxX; // 1 for first 1 for last
-                                                 + maxKeyBoundingBoxX * hint.keySequence().size();
-            }
+                                             + maxKeyBoundingBoxX * hint.keySequence().size();
             // This matches the hintKeyTextTotalXAdvance calculation:
-//            if (hint.keySequence().size() == 1)
-//                smallestColAlignedFontBoxWidth += maxKeyBoundingBoxX;
+            if (hint.keySequence().size() == 1)
+                smallestColAlignedFontBoxWidth += maxKeyBoundingBoxX;
 //            else
 //                smallestColAlignedFontBoxWidth += 2*maxKeyBoundingBoxX; // 1 for first 1 for last
             double smallestColAlignedFontBoxWidthPercent = (hint.cellWidth() == -1 ? 0 :
@@ -1190,7 +1183,9 @@ public class WindowsOverlay {
             double adjustedFontBoxWidthPercent = fontSpacingPercent < 0.5d ?
                     (fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
                     : smallestColAlignedFontBoxWidthPercent + (fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
-            boolean doNotColAlign =
+            if (hint.cellWidth() == -1)
+                adjustedFontBoxWidthPercent = 1;
+            boolean doNotColAlign = hint.cellWidth() == -1 || hint.keySequence().size() == 1 ||
                     adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             List<HintKeyText> keyTexts = new ArrayList<>();
             double xAdvance = 0;
@@ -1249,6 +1244,7 @@ public class WindowsOverlay {
                 else {
                     // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
                     double fontBoxWidth = hint.cellWidth() * adjustedFontBoxWidthPercent
+                                          // TODO wrong if 1 character
                                           - (hint.keySequence().size()-2) * boundingBox.x; // Similar to hintKeyTextTotalXAdvance
                     double fontBoxWidth2 = hint.cellWidth() * adjustedFontBoxWidthPercent;
                     double keySubcellWidth = fontBoxWidth2 / hint.keySequence().size();
@@ -1264,7 +1260,7 @@ public class WindowsOverlay {
                         isHighlight));
             }
             double simpleBoxLeft = keyTexts.getFirst().left;
-            double simpleBoxRight = keyTexts.getLast().left + lastKeyWidth + lastKeyBoundingBoxX;
+            double simpleBoxRight = keyTexts.getLast().left + lastKeyWidth;// + lastKeyBoundingBoxX;
             double simpleBoxWidth = simpleBoxRight - simpleBoxLeft;
             // If we don't want to expand the box widths, then we will use a common width
             // which will be the largest of the widths.

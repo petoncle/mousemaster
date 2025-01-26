@@ -79,4 +79,9 @@
 - WindowsFont that convert "Arial Bold Italic" to "Arial" + font style BoldItalic
 - Divide hint cell into subcells with a sub grid style (box border thickness/length/color/opacity)
 + Click commmands that do both press and release?
-+ Should hint undo be a command/combo? hint1-mode.undo=+backspace | +hh
+ + normal-mode.reset-previous-hint-state=true
+ + Goal: remove hint-xx-then-click modes, just have hint-xx- modes
+ + timeout.only-if-idle: if hint not selected then not idling, otherwise hint is idling
+ + Remove hint.swallow-hint-end-key-press? Always false
+  + Remove mode-after-selection? Now becomes mode.to.normal-mode=+hintkey
++ Should hint undo be a command/combo? hint1-mode.hint.undo=+backspace | +hh
