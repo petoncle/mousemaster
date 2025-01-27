@@ -229,7 +229,7 @@ public class ConfigurationParser {
             }
             else if (propertyKey.equals("max-position-history-size")) {
                 maxPositionHistorySize =
-                        parseUnsignedInteger(propertyKey, propertyValue, 1, 100);
+                        parseUnsignedInteger(propertyValue, 1, 100);
                 continue;
             }
             Pattern modeKeyPattern =
@@ -256,676 +256,17 @@ public class ConfigurationParser {
                             modeName1 -> new ModeBuilder(modeName1, propertyByKey));
             String group2 = keyMatcher.group(2);
             ComboMoveDuration finalDefaultComboMoveDuration = defaultComboMoveDuration;
-            switch (group2) {
-                case "stop-commands-from-previous-mode" ->
-                        mode.stopCommandsFromPreviousMode.parseReferenceOr(propertyKey,
-                                propertyValue, builder -> builder.set(
-                                        Boolean.parseBoolean(propertyValue)),
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                case "push-mode-to-history-stack" ->
-                        mode.pushModeToHistoryStack.parseReferenceOr(propertyKey,
-                                propertyValue, builder -> builder.set(
-                                        Boolean.parseBoolean(propertyValue)),
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                case "mode-after-unhandled-key-press" -> {
-                    String modeAfterPressingUnhandledKeysOnly =
-                            checkModeReference(propertyValue);
-                    mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
-                            modeAfterPressingUnhandledKeysOnly, builder -> {
-                                builder.set(modeAfterPressingUnhandledKeysOnly);
-                                referencedModesByReferencerMode.computeIfAbsent(modeName,
-                                                                       modeName_ -> new HashSet<>())
-                                                               .add(modeAfterPressingUnhandledKeysOnly);
-                            }, childPropertiesByParentProperty, nonRootPropertyKeys);
-                }
-                case "mouse" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.mouse.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid mouse property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            case "initial-velocity" -> mode.mouse.builder.initialVelocity(
-                                    Double.parseDouble(propertyValue));
-                            case "max-velocity" -> mode.mouse.builder.maxVelocity(
-                                    Double.parseDouble(propertyValue));
-                            case "acceleration" -> mode.mouse.builder.acceleration(
-                                    Double.parseDouble(propertyValue));
-                            case "smooth-jump-enabled" -> mode.mouse.builder.smoothJumpEnabled(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "smooth-jump-velocity" -> mode.mouse.builder.smoothJumpVelocity(
-                                    Double.parseDouble(propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid mouse property key: " + propertyKey);
-                        }
-                    }
-                }
-                case "wheel" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.wheel.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid wheel property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            case "acceleration" -> mode.wheel.builder.acceleration(
-                                    Double.parseDouble(propertyValue));
-                            case "initial-velocity" -> mode.wheel.builder.initialVelocity(
-                                    Double.parseDouble(propertyValue));
-                            case "max-velocity" -> mode.wheel.builder.maxVelocity(
-                                    Double.parseDouble(propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid wheel property key: " + propertyKey);
-                        }
-                    }
-                }
-                case "grid" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.grid.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid grid property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            case "area" -> mode.grid.builder.area()
-                                                            .type(parseGridAreaType(
-                                                                    propertyKey,
-                                                                    propertyValue));
-                            case "area-width-percent" -> mode.grid.builder.area()
-                                                                          .widthPercent(
-                                                                                  parseNonZeroPercent(
-                                                                                          propertyKey,
-                                                                                          propertyValue,
-                                                                                          2));
-                            case "area-height-percent" -> mode.grid.builder.area()
-                                                                           .heightPercent(
-                                                                                   parseNonZeroPercent(
-                                                                                           propertyKey,
-                                                                                           propertyValue,
-                                                                                           2));
-                            case "area-top-inset" -> mode.grid.builder.area()
-                                                                      .topInset(
-                                                                              parseUnsignedInteger(
-                                                                                      propertyKey,
-                                                                                      propertyValue,
-                                                                                      0,
-                                                                                      10_000));
-                            case "area-bottom-inset" -> mode.grid.builder.area()
-                                                                      .bottomInset(
-                                                                              parseUnsignedInteger(
-                                                                                      propertyKey,
-                                                                                      propertyValue,
-                                                                                      0,
-                                                                                      10_000));
-                            case "area-left-inset" -> mode.grid.builder.area()
-                                                                      .leftInset(
-                                                                              parseUnsignedInteger(
-                                                                                      propertyKey,
-                                                                                      propertyValue,
-                                                                                      0,
-                                                                                      10_000));
-                            case "area-right-inset" -> mode.grid.builder.area()
-                                                                      .rightInset(
-                                                                              parseUnsignedInteger(
-                                                                                      propertyKey,
-                                                                                      propertyValue,
-                                                                                      0,
-                                                                                      10_000));
-                            case "synchronization" -> mode.grid.builder.synchronization(
-                                    parseSynchronization(propertyKey, propertyValue));
-                            case "row-count" -> mode.grid.builder.rowCount(
-                                    parseUnsignedInteger(propertyKey, propertyValue, 1, 50));
-                            case "column-count" -> mode.grid.builder.columnCount(
-                                    parseUnsignedInteger(propertyKey, propertyValue, 1, 50));
-                            case "line-visible" -> mode.grid.builder.lineVisible(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "line-color" -> mode.grid.builder.lineHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "line-thickness" -> mode.grid.builder.lineThickness(
-                                    Integer.parseUnsignedInt(propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid grid property key: " + propertyKey);
-                        }
-                    }
-                }
-                case "hint" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.hintMesh.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid hint property key: " + propertyKey);
-                    else {
-                        if (mode.hintMesh.builder.enabled() == null)
-                            mode.hintMesh.builder.enabled(true);
-                        switch (keyMatcher.group(4)) {
-                            case "enabled" -> mode.hintMesh.builder.enabled(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "visible" -> mode.hintMesh.builder.visible(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "move-mouse" -> mode.hintMesh.builder.moveMouse(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "type" -> mode.hintMesh.builder.type()
-                                                                .type(parseHintMeshTypeType(
-                                                                        propertyKey,
-                                                                        propertyValue));
-                            case "grid-area" -> mode.hintMesh.builder.type()
-                                                                     .gridArea()
-                                                                     .type(parseHintGridAreaType(
-                                                                             propertyKey,
-                                                                             propertyValue));
-                            case "active-screen-grid-area-center" ->
-                                    mode.hintMesh.builder.type()
-                                                         .gridArea()
-                                                         .activeScreenHintGridAreaCenter(
-                                                                 parseActiveScreenHintGridAreaCenter(
-                                                                         propertyKey,
-                                                                         propertyValue));
-                            case "grid-max-row-count" -> mode.hintMesh.builder.type()
-                                                                                   .gridMaxRowCount(
-                                                                                           parseUnsignedInteger(
-                                                                                                   propertyKey,
-                                                                                                   propertyValue, 1, 200));
-                            case "grid-max-column-count" -> mode.hintMesh.builder.type()
-                                                                                 .gridMaxColumnCount(
-                                                                                         parseUnsignedInteger(
-                                                                                                 propertyKey,
-                                                                                                 propertyValue,
-                                                                                                 1,
-                                                                                                 200));
-                            case "grid-cell-width" -> mode.hintMesh.builder.type()
-                                                                           .gridCellWidth(
-                                                                                   parseDouble(
-                                                                                           propertyKey,
-                                                                                           propertyValue,
-                                                                                           false,
-                                                                                           0,
-                                                                                           10_000
-                                                                                   ));
-                            case "grid-cell-height" -> mode.hintMesh.builder.type()
-                                                                             .gridCellHeight(
-                                                                                     parseDouble(
-                                                                                             propertyKey,
-                                                                                             propertyValue,
-                                                                                             false,
-                                                                                             0,
-                                                                                             10_000
-                                                                                     ));
-                            case "layout-row-count" -> mode.hintMesh.builder.type().layoutRowCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
-                            case "layout-column-count" -> mode.hintMesh.builder.type().layoutColumnCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000_000_000));
-                            case "grid-row-oriented" -> mode.hintMesh.builder.type().rowOriented(Boolean.parseBoolean(propertyValue));
-                            case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
-                                    parseHintKeys(propertyKey, propertyValue, keyAliases));
-                            case "undo" ->
-                                    mode.hintMesh.builder.undoKeys(parseKeyOrAlias(propertyValue, keyAliases));
-                            case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
-                            case "font-size" -> mode.hintMesh.builder.fontSize(
-                                    parseDouble(propertyKey, propertyValue, false, 0,
-                                            1000));
-                            case "font-spacing-percent" -> mode.hintMesh.builder.fontSpacingPercent(
-                                    parseDouble(propertyKey, propertyValue, true, 0, 1));
-                            case "font-color" -> mode.hintMesh.builder.fontHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
-                                    parseDouble(propertyKey, propertyValue, true,
-                                            0, 1
-                                    ));
-                            case "font-outline-thickness" -> mode.hintMesh.builder.fontOutlineThickness(
-                                    parseDouble(propertyKey, propertyValue, true, 0,
-                                            1000));
-                            case "font-outline-color" -> mode.hintMesh.builder.fontOutlineHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "font-outline-opacity" -> mode.hintMesh.builder.fontOutlineOpacity(
-                                    parseDouble(propertyKey, propertyValue, true,
-                                            0, 1
-                                    ));
-                            case "prefix-font-color" ->
-                                    mode.hintMesh.builder.prefixFontHexColor(
-                                            checkColorFormat(propertyKey, propertyValue));
-                            case "highlight-font-scale" ->
-                                    mode.hintMesh.builder.highlightFontScale(
-                                            parseNonZeroPercent(propertyKey, propertyValue, 2));
-                            case "box-color" -> mode.hintMesh.builder.boxHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
-                                    parseDouble(propertyKey, propertyValue, true,
-                                            0, 1
-                                    ));
-                            // Allow for box grow percent > 1: even with 1, I would get empty pixels
-                            // between the cells due to the way we distribute spare pixels.
-                            // See HintManager#distributeTrueUniformly.
-                            case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
-                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
-                            case "box-border-length" -> mode.hintMesh.builder.boxBorderLength(
-                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
-                            case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(
-                                    parseDouble(propertyKey, propertyValue, true,
-                                            0, 1
-                                    ));
-                            case "expand-boxes" -> mode.hintMesh.builder.expandBoxes(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "subgrid-row-count" -> mode.hintMesh.builder.subgridRowCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000));
-                            case "subgrid-column-count" -> mode.hintMesh.builder.subgridColumnCount(parseUnsignedInteger(propertyKey, propertyValue, 1, 1_000));
-                            case "subgrid-border-thickness" -> mode.hintMesh.builder.subgridBorderThickness(
-                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
-                            case "subgrid-border-length" -> mode.hintMesh.builder.subgridBorderLength(
-                                    parseDouble(propertyKey, propertyValue, true, 0, 10_000));
-                            case "subgrid-border-color" -> mode.hintMesh.builder.subgridBorderHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "subgrid-border-opacity" -> mode.hintMesh.builder.subgridBorderOpacity(
-                                    parseDouble(propertyKey, propertyValue, true,
-                                            0, 1
-                                    ));
-                            case "mode-after-selection" -> {
-                                String modeAfterSelection = propertyValue;
-                                modeReferences.add(
-                                        checkModeReference(modeAfterSelection));
-                                referencedModesByReferencerMode.computeIfAbsent(modeName,
-                                                                           modeName_ -> new HashSet<>())
-                                                                   .add(modeAfterSelection);
-                                mode.hintMesh.builder.modeAfterSelection(
-                                        modeAfterSelection);
-                            }
-                            case "swallow-hint-end-key-press" ->
-                                    mode.hintMesh.builder.swallowHintEndKeyPress(
-                                            Boolean.parseBoolean(propertyValue));
-                            case "save-position-after-selection" ->
-                                    mode.hintMesh.builder.savePositionAfterSelection(
-                                            Boolean.parseBoolean(propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid hint property key: " + propertyKey);
-                        }
-                    }
-                }
-                case "to" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.to.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid to (mode switch) property key: " + propertyKey);
-                    else {
-                        String newModeName = keyMatcher.group(4);
-                        modeReferences.add(checkModeReference(newModeName));
-                        referencedModesByReferencerMode.computeIfAbsent(modeName,
-                                modeName_ -> new HashSet<>()).add(newModeName);
-                        setCommand(mode.comboMap.to.builder, propertyValue,
-                                new SwitchMode(newModeName), defaultComboMoveDuration,
-                                keyAliases, appAliases);
-                    }
-                }
-                case "remapping" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.remapping.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid remapping property key: " + propertyKey);
-                    else {
-                        String remappingName = keyMatcher.group(4);
-                        String remappingString = propertyValue;
-                        String[] split = remappingString.split("\\s*->\\s*");
-                        if (split.length != 2)
-                            throw new IllegalArgumentException(
-                                    "Invalid remapping: " + propertyValue);
-                        Remapping remapping = Remapping.of(remappingName, split[1]);
-                        setCommand(mode.comboMap.remapping.builder, split[0],
-                                new RemappingCommand(remapping), defaultComboMoveDuration,
-                                keyAliases, appAliases);
-                    }
-                }
-                case "timeout" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.timeout.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid timeout property key: " + propertyKey);
-                    else {
-                        if (mode.timeout.builder.enabled() == null)
-                            mode.timeout.builder.enabled(true);
-                        switch (keyMatcher.group(4)) {
-                            case "enabled" -> mode.timeout.builder.enabled(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "duration-millis" -> mode.timeout.builder.duration(
-                                    parseDuration(propertyValue));
-                            case "mode" -> {
-                                String timeoutModeName = propertyValue;
-                                mode.timeout.builder.modeName(timeoutModeName);
-                                modeReferences.add(
-                                        checkModeReference(timeoutModeName));
-                                referencedModesByReferencerMode.computeIfAbsent(modeName,
-                                                                           modeName_ -> new HashSet<>())
-                                                                   .add(timeoutModeName);
-                            }
-                            case "only-if-idle" -> mode.timeout.builder.onlyIfIdle(
-                                    Boolean.parseBoolean(propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid timeout property key: " + propertyKey);
-                        }
-                    }
-                }
-                case "indicator" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.indicator.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid indicator property key: " + propertyKey);
-                    else {
-                        if (mode.indicator.builder.enabled() == null)
-                            mode.indicator.builder.enabled(true);
-                        switch (keyMatcher.group(4)) {
-                            case "enabled" -> mode.indicator.builder.enabled(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "size" -> mode.indicator.builder.size(
-                                    parseUnsignedInteger(propertyKey, propertyValue, 1, 100));
-                            case "idle-color" -> mode.indicator.builder.idleHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "move-color" -> mode.indicator.builder.moveHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "wheel-color" -> mode.indicator.builder.wheelHexColor(
-                                    checkColorFormat(propertyKey, propertyValue));
-                            case "mouse-press-color" ->
-                                    mode.indicator.builder.mousePressHexColor(
-                                            checkColorFormat(propertyKey, propertyValue));
-                            case "left-mouse-press-color" ->
-                                    mode.indicator.builder.leftMousePressHexColor(
-                                            checkColorFormat(propertyKey, propertyValue));
-                            case "middle-mouse-press-color" ->
-                                    mode.indicator.builder.middleMousePressHexColor(
-                                            checkColorFormat(propertyKey, propertyValue));
-                            case "right-mouse-press-color" ->
-                                    mode.indicator.builder.rightMousePressHexColor(
-                                            checkColorFormat(propertyKey, propertyValue));
-                            case "unhandled-key-press-color" ->
-                                    mode.indicator.builder.unhandledKeyPressHexColor(
-                                            checkColorFormat(propertyKey, propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid indicator property key: " + propertyKey);
-                        }
-                    }
-                }
-                case "hide-cursor" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.hideCursor.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid hide-cursor property key: " + propertyKey);
-                    else {
-                        if (mode.hideCursor.builder.enabled() == null)
-                            mode.hideCursor.builder.enabled(true);
-                        switch (keyMatcher.group(4)) {
-                            case "enabled" -> mode.hideCursor.builder.enabled(
-                                    Boolean.parseBoolean(propertyValue));
-                            case "idle-duration-millis" ->
-                                    mode.hideCursor.builder.idleDuration(
-                                            parseDuration(propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid hide-cursor configuration: " + propertyKey);
-                        }
-                    }
-                }
-                case "zoom" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.zoom.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid zoom property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            case "percent" -> mode.zoom.builder.percent(
-                                    parseDouble(propertyKey, propertyValue, true, 1, 100));
-                            case "center" ->
-                                    mode.zoom.builder.center(
-                                            parseZoomCenter(propertyKey, propertyValue));
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid zoom configuration: " + propertyKey);
-                        }
-                    }
-                }
-                case "start-move" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.startMove.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid start-move property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "up" -> setCommand(mode.comboMap.startMove.builder, propertyValue, new StartMoveUp(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "down" -> setCommand(mode.comboMap.startMove.builder, propertyValue, new StartMoveDown(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "left" -> setCommand(mode.comboMap.startMove.builder, propertyValue, new StartMoveLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.startMove.builder, propertyValue, new StartMoveRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "stop-move" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.stopMove.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid stop-move property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "up" -> setCommand(mode.comboMap.stopMove.builder, propertyValue, new StopMoveUp(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "down" -> setCommand(mode.comboMap.stopMove.builder, propertyValue, new StopMoveDown(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "left" -> setCommand(mode.comboMap.stopMove.builder, propertyValue, new StopMoveLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.stopMove.builder, propertyValue, new StopMoveRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "press" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.press.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid press property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "left" -> setCommand(mode.comboMap.press.builder, propertyValue, new PressLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "middle" -> setCommand(mode.comboMap.press.builder, propertyValue, new PressMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.press.builder, propertyValue, new PressRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "release" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.release.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid release property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "left" -> setCommand(mode.comboMap.release.builder, propertyValue, new ReleaseLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "middle" -> setCommand(mode.comboMap.release.builder, propertyValue, new ReleaseMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.release.builder, propertyValue, new ReleaseRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "toggle" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.toggle.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid toggle property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "left" -> setCommand(mode.comboMap.toggle.builder, propertyValue, new ToggleLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "middle" -> setCommand(mode.comboMap.toggle.builder, propertyValue, new ToggleMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.toggle.builder, propertyValue, new ToggleRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "start-wheel" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.startWheel.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid start-wheel property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "up" -> setCommand(mode.comboMap.startWheel.builder, propertyValue, new StartWheelUp(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "down" -> setCommand(mode.comboMap.startWheel.builder, propertyValue, new StartWheelDown(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "left" -> setCommand(mode.comboMap.startWheel.builder, propertyValue, new StartWheelLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.startWheel.builder, propertyValue, new StartWheelRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "stop-wheel" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.stopWheel.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid stop-wheel property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "up" -> setCommand(mode.comboMap.stopWheel.builder, propertyValue, new StopWheelUp(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "down" -> setCommand(mode.comboMap.stopWheel.builder, propertyValue, new StopWheelDown(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "left" -> setCommand(mode.comboMap.stopWheel.builder, propertyValue, new StopWheelLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.stopWheel.builder, propertyValue, new StopWheelRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "snap" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.snap.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid snap property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "up" -> setCommand(mode.comboMap.snap.builder, propertyValue, new SnapUp(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "down" -> setCommand(mode.comboMap.snap.builder, propertyValue, new SnapDown(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "left" -> setCommand(mode.comboMap.snap.builder, propertyValue, new SnapLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.snap.builder, propertyValue, new SnapRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "shrink-grid" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.shrinkGrid.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid shrink-grid property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "up" -> setCommand(mode.comboMap.shrinkGrid.builder, propertyValue, new ShrinkGridUp(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "down" -> setCommand(mode.comboMap.shrinkGrid.builder, propertyValue, new ShrinkGridDown(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "left" -> setCommand(mode.comboMap.shrinkGrid.builder, propertyValue, new ShrinkGridLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.shrinkGrid.builder, propertyValue, new ShrinkGridRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "move-grid" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.comboMap.moveGrid.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid move-grid property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "up" -> setCommand(mode.comboMap.moveGrid.builder, propertyValue, new MoveGridUp(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "down" -> setCommand(mode.comboMap.moveGrid.builder, propertyValue, new MoveGridDown(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "left" -> setCommand(mode.comboMap.moveGrid.builder, propertyValue, new MoveGridLeft(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "right" -> setCommand(mode.comboMap.moveGrid.builder, propertyValue, new MoveGridRight(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                        }
-                    }
-                }
-                case "position-history" -> {
-                    if (keyMatcher.group(3) == null)
-                        mode.wheel.parsePropertyReference(propertyKey, propertyValue,
-                                childPropertiesByParentProperty,
-                                nonRootPropertyKeys);
-                    else if (keyMatcher.group(4) == null)
-                        throw new IllegalArgumentException(
-                                "Invalid position-history property key: " + propertyKey);
-                    else {
-                        switch (keyMatcher.group(4)) {
-                            // @formatter:off
-                            case "save-position" -> setCommand(mode.comboMap.savePosition.builder, propertyValue, new SavePosition(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder, propertyValue, new ClearPositionHistory(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder, propertyValue, new CycleNextPosition(), defaultComboMoveDuration, keyAliases, appAliases);
-                            case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder, propertyValue, new CyclePreviousPosition(), defaultComboMoveDuration, keyAliases, appAliases);
-                            // @formatter:on
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid position-history property key: " + propertyKey);
-                        }
-                    }
-                }
-                // @formatter:off
-                case "move-to-grid-center" -> {
-                    mode.comboMap.moveToGridCenter.parseReferenceOr(propertyKey, propertyValue,
-                            commandsByCombo -> setCommand(mode.comboMap.moveToGridCenter.builder, propertyValue, new MoveToGridCenter(), finalDefaultComboMoveDuration, keyAliases, appAliases),
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                }
-                case "move-to-last-selected-hint" -> {
-                    mode.comboMap.moveToLastSelectedHint.parseReferenceOr(propertyKey, propertyValue,
-                            commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder, propertyValue, new MoveToLastSelectedHint(), finalDefaultComboMoveDuration, keyAliases, appAliases),
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                }
-                // @formatter:on
-                default -> throw new IllegalArgumentException(
-                        "Invalid mode property key: " + propertyKey);
+            try {
+                parseLine(group2, mode, propertyKey, propertyValue,
+                        childPropertiesByParentProperty, nonRootPropertyKeys,
+                        referencedModesByReferencerMode, modeName, keyMatcher, keyAliases,
+                        modeReferences, defaultComboMoveDuration, appAliases,
+                        finalDefaultComboMoveDuration);
+            } catch (IllegalArgumentException e) {
+                IllegalArgumentException e2 =
+                        new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
+                e2.setStackTrace(e.getStackTrace());
+                throw e2;
             }
         }
         // Verify mode name references are valid.
@@ -975,6 +316,683 @@ public class ConfigurationParser {
                                     .collect(Collectors.toSet());
         return new Configuration(activeKeyboardLayout, maxPositionHistorySize,
                 new ModeMap(modes), logLevel, logRedactKeys);
+    }
+
+    private static void parseLine(String group2, ModeBuilder mode, String propertyKey,
+                                  String propertyValue,
+                                  Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty,
+                                  Set<PropertyKey> nonRootPropertyKeys,
+                                  Map<String, Set<String>> referencedModesByReferencerMode,
+                                  String modeName, Matcher keyMatcher,
+                                  Map<String, KeyAlias> keyAliases,
+                                  Set<String> modeReferences,
+                                  ComboMoveDuration defaultComboMoveDuration,
+                                  Map<String, AppAlias> appAliases,
+                                  ComboMoveDuration finalDefaultComboMoveDuration) {
+        switch (group2) {
+            case "stop-commands-from-previous-mode" ->
+                    mode.stopCommandsFromPreviousMode.parseReferenceOr(propertyKey,
+                            propertyValue, builder -> builder.set(
+                                    Boolean.parseBoolean(propertyValue)),
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+            case "push-mode-to-history-stack" ->
+                    mode.pushModeToHistoryStack.parseReferenceOr(propertyKey,
+                            propertyValue, builder -> builder.set(
+                                    Boolean.parseBoolean(propertyValue)),
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+            case "mode-after-unhandled-key-press" -> {
+                String modeAfterPressingUnhandledKeysOnly =
+                        checkModeReference(propertyValue);
+                mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
+                        modeAfterPressingUnhandledKeysOnly, builder -> {
+                            builder.set(modeAfterPressingUnhandledKeysOnly);
+                            referencedModesByReferencerMode.computeIfAbsent(modeName,
+                                                                   modeName_ -> new HashSet<>())
+                                                           .add(modeAfterPressingUnhandledKeysOnly);
+                        }, childPropertiesByParentProperty, nonRootPropertyKeys);
+            }
+            case "mouse" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.mouse.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid mouse property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        case "initial-velocity" -> mode.mouse.builder.initialVelocity(
+                                Double.parseDouble(propertyValue));
+                        case "max-velocity" -> mode.mouse.builder.maxVelocity(
+                                Double.parseDouble(propertyValue));
+                        case "acceleration" -> mode.mouse.builder.acceleration(
+                                Double.parseDouble(propertyValue));
+                        case "smooth-jump-enabled" -> mode.mouse.builder.smoothJumpEnabled(
+                                Boolean.parseBoolean(propertyValue));
+                        case "smooth-jump-velocity" -> mode.mouse.builder.smoothJumpVelocity(
+                                Double.parseDouble(propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid mouse property key");
+                    }
+                }
+            }
+            case "wheel" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.wheel.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid wheel property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        case "acceleration" -> mode.wheel.builder.acceleration(
+                                Double.parseDouble(propertyValue));
+                        case "initial-velocity" -> mode.wheel.builder.initialVelocity(
+                                Double.parseDouble(propertyValue));
+                        case "max-velocity" -> mode.wheel.builder.maxVelocity(
+                                Double.parseDouble(propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid wheel property key");
+                    }
+                }
+            }
+            case "grid" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.grid.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid grid property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        case "area" -> mode.grid.builder.area()
+                                                        .type(parseGridAreaType(
+                                                                propertyKey,
+                                                                propertyValue));
+                        case "area-width-percent" -> mode.grid.builder.area()
+                                                                      .widthPercent(
+                                                                              parseNonZeroPercent(
+                                                                                      propertyValue,
+                                                                                      2));
+                        case "area-height-percent" -> mode.grid.builder.area()
+                                                                       .heightPercent(
+                                                                               parseNonZeroPercent(
+                                                                                       propertyValue,
+                                                                                       2));
+                        case "area-top-inset" -> mode.grid.builder.area()
+                                                                  .topInset(
+                                                                          parseUnsignedInteger(
+                                                                                  propertyValue,
+                                                                                  0,
+                                                                                  10_000));
+                        case "area-bottom-inset" -> mode.grid.builder.area()
+                                                                     .bottomInset(
+                                                                          parseUnsignedInteger(
+                                                                                  propertyValue,
+                                                                                  0,
+                                                                                  10_000));
+                        case "area-left-inset" -> mode.grid.builder.area()
+                                                                   .leftInset(
+                                                                          parseUnsignedInteger(
+                                                                                  propertyValue,
+                                                                                  0,
+                                                                                  10_000));
+                        case "area-right-inset" -> mode.grid.builder.area()
+                                                                    .rightInset(
+                                                                          parseUnsignedInteger(
+                                                                                  propertyValue,
+                                                                                  0,
+                                                                                  10_000));
+                        case "synchronization" -> mode.grid.builder.synchronization(
+                                parseSynchronization(propertyKey, propertyValue));
+                        case "row-count" -> mode.grid.builder.rowCount(
+                                parseUnsignedInteger(propertyValue, 1, 50));
+                        case "column-count" -> mode.grid.builder.columnCount(
+                                parseUnsignedInteger(propertyValue, 1, 50));
+                        case "line-visible" -> mode.grid.builder.lineVisible(
+                                Boolean.parseBoolean(propertyValue));
+                        case "line-color" -> mode.grid.builder.lineHexColor(
+                                checkColorFormat(propertyValue));
+                        case "line-thickness" -> mode.grid.builder.lineThickness(
+                                Integer.parseUnsignedInt(propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid grid property key");
+                    }
+                }
+            }
+            case "hint" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.hintMesh.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid hint property key");
+                else {
+                    if (mode.hintMesh.builder.enabled() == null)
+                        mode.hintMesh.builder.enabled(true);
+                    switch (keyMatcher.group(4)) {
+                        case "enabled" -> mode.hintMesh.builder.enabled(
+                                Boolean.parseBoolean(propertyValue));
+                        case "visible" -> mode.hintMesh.builder.visible(
+                                Boolean.parseBoolean(propertyValue));
+                        case "move-mouse" -> mode.hintMesh.builder.moveMouse(
+                                Boolean.parseBoolean(propertyValue));
+                        case "type" -> mode.hintMesh.builder.type()
+                                                            .type(parseHintMeshTypeType(
+                                                                    propertyKey,
+                                                                    propertyValue));
+                        case "grid-area" -> mode.hintMesh.builder.type()
+                                                                 .gridArea()
+                                                                 .type(parseHintGridAreaType(
+                                                                         propertyKey,
+                                                                         propertyValue));
+                        case "active-screen-grid-area-center" ->
+                                mode.hintMesh.builder.type()
+                                                     .gridArea()
+                                                     .activeScreenHintGridAreaCenter(
+                                                             parseActiveScreenHintGridAreaCenter(
+                                                                     propertyKey,
+                                                                     propertyValue));
+                        case "grid-max-row-count" -> mode.hintMesh.builder.type()
+                                                                          .gridMaxRowCount(
+                                                                                       parseUnsignedInteger(
+                                                                                               propertyValue, 1, 200));
+                        case "grid-max-column-count" -> mode.hintMesh.builder.type()
+                                                                             .gridMaxColumnCount(
+                                                                                     parseUnsignedInteger(
+                                                                                             propertyValue,
+                                                                                             1,
+                                                                                             200));
+                        case "grid-cell-width" -> mode.hintMesh.builder.type()
+                                                                       .gridCellWidth(
+                                                                               parseDouble(
+                                                                                       propertyValue,
+                                                                                       false,
+                                                                                       0,
+                                                                                       10_000
+                                                                               ));
+                        case "grid-cell-height" -> mode.hintMesh.builder.type()
+                                                                        .gridCellHeight(
+                                                                                 parseDouble(
+                                                                                         propertyValue,
+                                                                                         false,
+                                                                                         0,
+                                                                                         10_000
+                                                                                 ));
+                        case "layout-row-count" -> mode.hintMesh.builder.type().layoutRowCount(parseUnsignedInteger(
+                                propertyValue, 1, 1_000_000_000));
+                        case "layout-column-count" -> mode.hintMesh.builder.type().layoutColumnCount(parseUnsignedInteger(
+                                propertyValue, 1, 1_000_000_000));
+                        case "grid-row-oriented" -> mode.hintMesh.builder.type().rowOriented(Boolean.parseBoolean(
+                                propertyValue));
+                        case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
+                                parseHintKeys(propertyValue, keyAliases));
+                        case "undo" ->
+                                mode.hintMesh.builder.undoKeys(parseKeyOrAlias(
+                                        propertyValue, keyAliases));
+                        case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
+                        case "font-size" -> mode.hintMesh.builder.fontSize(
+                                parseDouble(propertyValue, false, 0, 1000));
+                        case "font-spacing-percent" -> mode.hintMesh.builder.fontSpacingPercent(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "font-color" -> mode.hintMesh.builder.fontHexColor(
+                                checkColorFormat(propertyValue));
+                        case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "font-outline-thickness" -> mode.hintMesh.builder.fontOutlineThickness(
+                                parseDouble(propertyValue, true, 0, 1000));
+                        case "font-outline-color" -> mode.hintMesh.builder.fontOutlineHexColor(
+                                checkColorFormat(propertyValue));
+                        case "font-outline-opacity" -> mode.hintMesh.builder.fontOutlineOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-font-color" ->
+                                mode.hintMesh.builder.prefixFontHexColor(
+                                        checkColorFormat(propertyValue));
+                        case "highlight-font-scale" ->
+                                mode.hintMesh.builder.highlightFontScale(
+                                        parseNonZeroPercent(propertyValue, 2));
+                        case "box-color" -> mode.hintMesh.builder.boxHexColor(
+                                checkColorFormat(propertyValue));
+                        case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        // Allow for box grow percent > 1: even with 1, I would get empty pixels
+                        // between the cells due to the way we distribute spare pixels.
+                        // See HintManager#distributeTrueUniformly.
+                        case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
+                                parseDouble(propertyValue, true, 0, 10_000));
+                        case "box-border-length" -> mode.hintMesh.builder.boxBorderLength(
+                                parseDouble(propertyValue, true, 0, 10_000));
+                        case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
+                                checkColorFormat(propertyValue));
+                        case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "expand-boxes" -> mode.hintMesh.builder.expandBoxes(
+                                Boolean.parseBoolean(propertyValue));
+                        case "subgrid-row-count" -> mode.hintMesh.builder.subgridRowCount(parseUnsignedInteger(
+                                propertyValue, 1, 1_000));
+                        case "subgrid-column-count" -> mode.hintMesh.builder.subgridColumnCount(parseUnsignedInteger(
+                                propertyValue, 1, 1_000));
+                        case "subgrid-border-thickness" -> mode.hintMesh.builder.subgridBorderThickness(
+                                parseDouble(propertyValue, true, 0, 10_000));
+                        case "subgrid-border-length" -> mode.hintMesh.builder.subgridBorderLength(
+                                parseDouble(propertyValue, true, 0, 10_000));
+                        case "subgrid-border-color" -> mode.hintMesh.builder.subgridBorderHexColor(
+                                checkColorFormat(propertyValue));
+                        case "subgrid-border-opacity" -> mode.hintMesh.builder.subgridBorderOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "mode-after-selection" -> {
+                            String modeAfterSelection = propertyValue;
+                            modeReferences.add(
+                                    checkModeReference(modeAfterSelection));
+                            referencedModesByReferencerMode.computeIfAbsent(modeName,
+                                                                       modeName_ -> new HashSet<>())
+                                                           .add(modeAfterSelection);
+                            mode.hintMesh.builder.modeAfterSelection(
+                                    modeAfterSelection);
+                        }
+                        case "swallow-hint-end-key-press" ->
+                                mode.hintMesh.builder.swallowHintEndKeyPress(
+                                        Boolean.parseBoolean(propertyValue));
+                        case "save-position-after-selection" ->
+                                mode.hintMesh.builder.savePositionAfterSelection(
+                                        Boolean.parseBoolean(propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid hint property key");
+                    }
+                }
+            }
+            case "to" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.to.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid to (mode switch) property key");
+                else {
+                    String newModeName = keyMatcher.group(4);
+                    modeReferences.add(checkModeReference(newModeName));
+                    referencedModesByReferencerMode.computeIfAbsent(modeName,
+                            modeName_ -> new HashSet<>()).add(newModeName);
+                    setCommand(mode.comboMap.to.builder, propertyValue,
+                            new SwitchMode(newModeName), defaultComboMoveDuration,
+                            keyAliases, appAliases);
+                }
+            }
+            case "remapping" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.remapping.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid remapping property key");
+                else {
+                    String remappingName = keyMatcher.group(4);
+                    String remappingString = propertyValue;
+                    String[] split = remappingString.split("\\s*->\\s*");
+                    if (split.length != 2)
+                        throw new IllegalArgumentException(
+                                "Invalid remapping: " + propertyValue);
+                    Remapping remapping = Remapping.of(remappingName, split[1]);
+                    setCommand(mode.comboMap.remapping.builder, split[0],
+                            new RemappingCommand(remapping), defaultComboMoveDuration,
+                            keyAliases, appAliases);
+                }
+            }
+            case "timeout" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.timeout.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid timeout property key");
+                else {
+                    if (mode.timeout.builder.enabled() == null)
+                        mode.timeout.builder.enabled(true);
+                    switch (keyMatcher.group(4)) {
+                        case "enabled" -> mode.timeout.builder.enabled(
+                                Boolean.parseBoolean(propertyValue));
+                        case "duration-millis" -> mode.timeout.builder.duration(
+                                parseDuration(propertyValue));
+                        case "mode" -> {
+                            String timeoutModeName = propertyValue;
+                            mode.timeout.builder.modeName(timeoutModeName);
+                            modeReferences.add(
+                                    checkModeReference(timeoutModeName));
+                            referencedModesByReferencerMode.computeIfAbsent(modeName,
+                                                                       modeName_ -> new HashSet<>())
+                                                           .add(timeoutModeName);
+                        }
+                        case "only-if-idle" -> mode.timeout.builder.onlyIfIdle(
+                                Boolean.parseBoolean(propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid timeout property key");
+                    }
+                }
+            }
+            case "indicator" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.indicator.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid indicator property key");
+                else {
+                    if (mode.indicator.builder.enabled() == null)
+                        mode.indicator.builder.enabled(true);
+                    switch (keyMatcher.group(4)) {
+                        case "enabled" -> mode.indicator.builder.enabled(
+                                Boolean.parseBoolean(propertyValue));
+                        case "size" -> mode.indicator.builder.size(
+                                parseUnsignedInteger(propertyValue, 1, 100));
+                        case "idle-color" -> mode.indicator.builder.idleHexColor(
+                                checkColorFormat(propertyValue));
+                        case "move-color" -> mode.indicator.builder.moveHexColor(
+                                checkColorFormat(propertyValue));
+                        case "wheel-color" -> mode.indicator.builder.wheelHexColor(
+                                checkColorFormat(propertyValue));
+                        case "mouse-press-color" ->
+                                mode.indicator.builder.mousePressHexColor(
+                                        checkColorFormat(propertyValue));
+                        case "left-mouse-press-color" ->
+                                mode.indicator.builder.leftMousePressHexColor(
+                                        checkColorFormat(propertyValue));
+                        case "middle-mouse-press-color" ->
+                                mode.indicator.builder.middleMousePressHexColor(
+                                        checkColorFormat(propertyValue));
+                        case "right-mouse-press-color" ->
+                                mode.indicator.builder.rightMousePressHexColor(
+                                        checkColorFormat(propertyValue));
+                        case "unhandled-key-press-color" ->
+                                mode.indicator.builder.unhandledKeyPressHexColor(
+                                        checkColorFormat(propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid indicator property key");
+                    }
+                }
+            }
+            case "hide-cursor" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.hideCursor.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid hide-cursor property key");
+                else {
+                    if (mode.hideCursor.builder.enabled() == null)
+                        mode.hideCursor.builder.enabled(true);
+                    switch (keyMatcher.group(4)) {
+                        case "enabled" -> mode.hideCursor.builder.enabled(
+                                Boolean.parseBoolean(propertyValue));
+                        case "idle-duration-millis" ->
+                                mode.hideCursor.builder.idleDuration(
+                                        parseDuration(propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid hide-cursor configuration");
+                    }
+                }
+            }
+            case "zoom" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.zoom.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid zoom property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        case "percent" -> mode.zoom.builder.percent(
+                                parseDouble(propertyValue, true, 1, 100));
+                        case "center" ->
+                                mode.zoom.builder.center(
+                                        parseZoomCenter(propertyKey, propertyValue));
+                        default -> throw new IllegalArgumentException(
+                                "Invalid zoom property key");
+                    }
+                }
+            }
+            case "start-move" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.startMove.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid start-move property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveUp(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "down" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveDown(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "left" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "stop-move" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.stopMove.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid stop-move property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveUp(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "down" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveDown(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "left" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "press" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.press.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid press property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "left" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "middle" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "release" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.release.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid release property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "left" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "middle" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "toggle" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.toggle.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid toggle property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "left" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "middle" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "start-wheel" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.startWheel.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid start-wheel property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelUp(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "down" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelDown(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "left" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "stop-wheel" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.stopWheel.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid stop-wheel property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelUp(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "down" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelDown(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "left" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "snap" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.snap.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid snap property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapUp(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "down" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapDown(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "left" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "shrink-grid" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.shrinkGrid.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid shrink-grid property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridUp(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "down" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridDown(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "left" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "move-grid" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.comboMap.moveGrid.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid move-grid property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "up" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridUp(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "down" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridDown(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "left" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridLeft(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "right" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridRight(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                    }
+                }
+            }
+            case "position-history" -> {
+                if (keyMatcher.group(3) == null)
+                    mode.wheel.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid position-history property key");
+                else {
+                    switch (keyMatcher.group(4)) {
+                        // @formatter:off
+                        case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(), defaultComboMoveDuration, keyAliases, appAliases);
+                        // @formatter:on
+                        default -> throw new IllegalArgumentException(
+                                "Invalid position-history property key");
+                    }
+                }
+            }
+            // @formatter:off
+            case "move-to-grid-center" -> {
+                mode.comboMap.moveToGridCenter.parseReferenceOr(propertyKey, propertyValue,
+                        commandsByCombo -> setCommand(mode.comboMap.moveToGridCenter.builder,  propertyValue, new MoveToGridCenter(), finalDefaultComboMoveDuration, keyAliases, appAliases),
+                        childPropertiesByParentProperty, nonRootPropertyKeys);
+            }
+            case "move-to-last-selected-hint" -> {
+                mode.comboMap.moveToLastSelectedHint.parseReferenceOr(propertyKey, propertyValue,
+                        commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder,  propertyValue, new MoveToLastSelectedHint(), finalDefaultComboMoveDuration, keyAliases, appAliases),
+                        childPropertiesByParentProperty, nonRootPropertyKeys);
+            }
+            // @formatter:on
+            default -> throw new IllegalArgumentException(
+                    "Invalid mode property key");
+        }
     }
 
     private static Map<String, KeyAlias> mergeDefaultAndConfigurationKeyAliases(
@@ -1042,7 +1060,7 @@ public class ConfigurationParser {
                 Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
                 if (!keyMatcher.matches())
                     throw new IllegalArgumentException(
-                            "Invalid key-alias property key: " + propertyKey);
+                            "Invalid key-alias property key");
                 // List and not Set because hint.selection-keys=hintkeys needs ordering.
                 List<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
                                        .map(Key::ofName)
@@ -1220,47 +1238,47 @@ public class ConfigurationParser {
         return new ModeNode(modeName, subModes);
     }
 
-    private static String checkColorFormat(String propertyKey, String propertyValue) {
+    private static String checkColorFormat(String propertyValue) {
         if (!propertyValue.matches("^#?([a-fA-F0-9]{6})$"))
             throw new IllegalArgumentException(
-                    "Invalid color " + propertyKey + "=" + propertyValue +
+                    "Invalid color " + propertyValue +
                     ": a color should be in the #FFFFFF format");
         return propertyValue;
     }
 
-    private static int parseUnsignedInteger(String propertyKey, String propertyValue, int min, int max) {
+    private static int parseUnsignedInteger(String propertyValue, int min, int max) {
         int integer = Integer.parseUnsignedInt(propertyValue);
         if (integer < min)
             throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + ": " + integer +
+                    "Invalid property value " + integer + ": " +
                     " must greater than or equal to " + min);
         if (integer > max)
             throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + ": " + integer +
+                    "Invalid property value in " + integer + ": " +
                     " must be less than or equal to " + max);
         return integer;
     }
 
-    private static double parseNonZeroPercent(String propertyKey, String propertyValue,
+    private static double parseNonZeroPercent(String propertyValue,
                                               double max) {
-        return parseDouble(propertyKey, propertyValue, false, 0, max);
+        return parseDouble(propertyValue, false, 0, max);
     }
 
-    private static double parseDouble(String propertyKey, String propertyValue, boolean minIncluded,
+    private static double parseDouble(String propertyValue, boolean minIncluded,
                                       double min, double max) {
         double percent = Double.parseDouble(propertyValue);
         if (percent < min || percent == min && !minIncluded)
             throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey +
-                    ": percent must greater than 0.0");
+                    "Invalid property value " + percent +
+                    ": must greater than " + min);
         if (percent > max)
             throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey +
-                    ": percent must be less than or equal to " + max);
+                    "Invalid property value " + percent +
+                    ": must be less than or equal to " + max);
         return percent;
     }
 
-    private static List<Key> parseHintKeys(String propertyKey, String propertyValue,
+    private static List<Key> parseHintKeys(String propertyValue,
                                            Map<String, KeyAlias> keyAliases) {
         KeyAlias alias = keyAliases.get(propertyValue);
         if (alias != null)
@@ -1270,7 +1288,7 @@ public class ConfigurationParser {
         if (hintKeys.size() <= 1)
             // Even 1 key is not enough because we use fixed-length hints.
             throw new IllegalArgumentException(
-                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    "Invalid hint keys " + propertyValue +
                     ": at least two keys are required");
         return hintKeys;
     }
