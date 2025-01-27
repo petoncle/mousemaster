@@ -4,7 +4,7 @@ public sealed interface HintMeshType {
 
     record HintGrid(HintGridArea area, int maxRowCount, int maxColumnCount, double cellWidth,
                     double cellHeight,
-                    int layoutRowCount, int layoutColumnCount, boolean rowOriented) implements HintMeshType {
+                    int layoutRowCount, int layoutColumnCount, boolean layoutRowOriented) implements HintMeshType {
     }
 
     record HintPositionHistory() implements HintMeshType {
@@ -28,7 +28,7 @@ public sealed interface HintMeshType {
         private Double gridCellHeight;
         private Integer layoutRowCount;
         private Integer layoutColumnCount;
-        private Boolean rowOriented;
+        private Boolean layoutRowOriented;
 
         public HintMeshTypeBuilder() {
 
@@ -43,7 +43,7 @@ public sealed interface HintMeshType {
                     this.gridCellHeight = hintGrid.cellHeight;
                     this.layoutRowCount = hintGrid.layoutRowCount;
                     this.layoutColumnCount = hintGrid.layoutColumnCount;
-                    this.rowOriented = hintGrid.rowOriented;
+                    this.layoutRowOriented = hintGrid.layoutRowOriented;
                 }
                 case HintPositionHistory hintPositionHistory -> {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
@@ -83,8 +83,8 @@ public sealed interface HintMeshType {
             return layoutColumnCount;
         }
 
-        public Boolean rowOriented() {
-            return rowOriented;
+        public Boolean layoutRowOriented() {
+            return layoutRowOriented;
         }
 
         public HintMeshTypeBuilder type(HintMeshTypeType type) {
@@ -122,8 +122,8 @@ public sealed interface HintMeshType {
             return this;
         }
 
-        public HintMeshTypeBuilder rowOriented(Boolean rowOriented) {
-            this.rowOriented = rowOriented;
+        public HintMeshTypeBuilder layoutRowOriented(Boolean layoutRowOriented) {
+            this.layoutRowOriented = layoutRowOriented;
             return this;
         }
 
@@ -131,7 +131,7 @@ public sealed interface HintMeshType {
             return switch (type) {
                 case GRID -> new HintGrid(gridArea.build(), gridMaxRowCount,
                         gridMaxColumnCount, gridCellWidth, gridCellHeight,
-                        layoutRowCount, layoutColumnCount, rowOriented);
+                        layoutRowCount, layoutColumnCount, layoutRowOriented);
                 case POSITION_HISTORY -> new HintPositionHistory();
             };
         }

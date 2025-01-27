@@ -118,7 +118,7 @@ public class ConfigurationParser {
                            .gridCellHeight(41d)
                            .layoutRowCount(1_000_000)
                            .layoutColumnCount(1)
-                           .rowOriented(true);
+                           .layoutRowOriented(true);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
         hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
@@ -528,7 +528,7 @@ public class ConfigurationParser {
                                 propertyValue, 1, 1_000_000_000));
                         case "layout-column-count" -> mode.hintMesh.builder.type().layoutColumnCount(parseUnsignedInteger(
                                 propertyValue, 1, 1_000_000_000));
-                        case "grid-row-oriented" -> mode.hintMesh.builder.type().rowOriented(Boolean.parseBoolean(
+                        case "layout-row-oriented" -> mode.hintMesh.builder.type().layoutRowOriented(Boolean.parseBoolean(
                                 propertyValue));
                         case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                 parseHintKeys(propertyValue, keyAliases));
@@ -1140,14 +1140,14 @@ public class ConfigurationParser {
                     hintMeshType.gridCellHeight() == null ||
                     hintMeshType.layoutRowCount() == null ||
                     hintMeshType.layoutColumnCount() == null ||
-                    hintMeshType.rowOriented() == null
+                    hintMeshType.layoutRowOriented() == null
                 )
                     throw new IllegalArgumentException(
                             "Definition of hint for " + mode.modeName +
                             " is incomplete: expected " +
                             List.of("grid-max-row-count", "grid-max-column-count",
                                     "grid-cell-width", "grid-cell-height",
-                                    "layout-row-count", "layout-column-count", "grid-row-oriented"));
+                                    "layout-row-count", "layout-column-count", "layout-row-oriented"));
             }
             case POSITION_HISTORY -> {
                 // No op.
@@ -1562,8 +1562,8 @@ public class ConfigurationParser {
                         builder.type().layoutRowCount(parent.type().layoutRowCount());
                     if (builder.type().layoutColumnCount() == null)
                         builder.type().layoutColumnCount(parent.type().layoutColumnCount());
-                    if (builder.type().rowOriented() == null)
-                        builder.type().rowOriented(parent.type().rowOriented());
+                    if (builder.type().layoutRowOriented() == null)
+                        builder.type().layoutRowOriented(parent.type().layoutRowOriented());
                     if (builder.selectionKeys() == null)
                         builder.selectionKeys(parent.selectionKeys());
                     if (builder.undoKeys() == null)
