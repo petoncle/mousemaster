@@ -56,8 +56,16 @@ public class MouseController implements ModeListener, MousePositionListener {
         return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty();
     }
 
-    boolean pressing() {
-        return leftPressing || middlePressing || rightPressing;
+    public boolean leftPressing() {
+        return leftPressing;
+    }
+
+    public boolean middlePressing() {
+        return middlePressing;
+    }
+
+    public boolean rightPressing() {
+        return rightPressing;
     }
 
     boolean wheeling() {

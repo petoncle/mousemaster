@@ -645,6 +645,15 @@ public class ConfigurationParser {
                             case "mouse-press-color" ->
                                     mode.indicator.builder.mousePressHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
+                            case "left-mouse-press-color" ->
+                                    mode.indicator.builder.leftMousePressHexColor(
+                                            checkColorFormat(propertyKey, propertyValue));
+                            case "middle-mouse-press-color" ->
+                                    mode.indicator.builder.middleMousePressHexColor(
+                                            checkColorFormat(propertyKey, propertyValue));
+                            case "right-mouse-press-color" ->
+                                    mode.indicator.builder.rightMousePressHexColor(
+                                            checkColorFormat(propertyKey, propertyValue));
                             case "unhandled-key-press-color" ->
                                     mode.indicator.builder.unhandledKeyPressHexColor(
                                             checkColorFormat(propertyKey, propertyValue));
@@ -1628,6 +1637,12 @@ public class ConfigurationParser {
                         builder.wheelHexColor(parent.wheelHexColor());
                     if (builder.mousePressHexColor() == null)
                         builder.mousePressHexColor(parent.mousePressHexColor());
+                    if (builder.leftMousePressHexColor() == null)
+                        builder.leftMousePressHexColor(parent.leftMousePressHexColor());
+                    if (builder.middleMousePressHexColor() == null)
+                        builder.middleMousePressHexColor(parent.middleMousePressHexColor());
+                    if (builder.rightMousePressHexColor() == null)
+                        builder.rightMousePressHexColor(parent.rightMousePressHexColor());
                     if (builder.unhandledKeyPressHexColor() == null)
                         builder.unhandledKeyPressHexColor(parent.unhandledKeyPressHexColor());
                 }

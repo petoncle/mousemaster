@@ -1,7 +1,11 @@
 package mousemaster;
 
 public record IndicatorConfiguration(boolean enabled, int size, String idleHexColor, String moveHexColor,
-                                     String wheelHexColor, String mousePressHexColor,
+                                     String wheelHexColor,
+                                     String mousePressHexColor,
+                                     String leftMousePressHexColor,
+                                     String middleMousePressHexColor,
+                                     String rightMousePressHexColor,
                                      String unhandledKeyPressHexColor) {
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
@@ -10,6 +14,9 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
         private String moveHexColor;
         private String wheelHexColor;
         private String mousePressHexColor;
+        private String leftMousePressHexColor;
+        private String middleMousePressHexColor;
+        private String rightMousePressHexColor;
         private String unhandledKeyPressHexColor;
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
@@ -42,6 +49,21 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return this;
         }
 
+        public IndicatorConfigurationBuilder leftMousePressHexColor(String leftMousePressHexColor) {
+            this.leftMousePressHexColor = leftMousePressHexColor;
+            return this;
+        }
+
+        public IndicatorConfigurationBuilder middleMousePressHexColor(String middleMousePressHexColor) {
+            this.middleMousePressHexColor = middleMousePressHexColor;
+            return this;
+        }
+
+        public IndicatorConfigurationBuilder rightMousePressHexColor(String rightMousePressHexColor) {
+            this.rightMousePressHexColor = rightMousePressHexColor;
+            return this;
+        }
+
         public IndicatorConfigurationBuilder unhandledKeyPressHexColor(
                 String unhandledKeyPressHexColor) {
             this.unhandledKeyPressHexColor = unhandledKeyPressHexColor;
@@ -71,13 +93,29 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return mousePressHexColor;
         }
 
+        public String leftMousePressHexColor() {
+            return leftMousePressHexColor;
+        }
+
+        public String middleMousePressHexColor() {
+            return middleMousePressHexColor;
+        }
+
+        public String rightMousePressHexColor() {
+            return rightMousePressHexColor;
+        }
+
         public String unhandledKeyPressHexColor() {
             return unhandledKeyPressHexColor;
         }
 
         public IndicatorConfiguration build() {
             return new IndicatorConfiguration(enabled, size, idleHexColor, moveHexColor, wheelHexColor,
-                    mousePressHexColor, unhandledKeyPressHexColor);
+                    mousePressHexColor,
+                    leftMousePressHexColor,
+                    middleMousePressHexColor,
+                    rightMousePressHexColor,
+                    unhandledKeyPressHexColor);
         }
 
     }

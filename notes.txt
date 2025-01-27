@@ -87,3 +87,5 @@
 + Should hint undo be a command/combo? hint1-mode.hint.undo=+backspace | +hh
  + Problem when pressing backspace when at least one hint key is selected:
    we do not want to go to another mode, but just perform the undo instead.
++ Rename grid-row-oriented to ???
++ hint-then-rightclick color

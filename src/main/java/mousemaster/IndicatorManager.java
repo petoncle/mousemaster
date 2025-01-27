@@ -39,8 +39,12 @@ public class IndicatorManager implements ModeListener {
         if (keyboardState.pressingUnhandledKey() &&
             indicatorConfiguration.unhandledKeyPressHexColor() != null)
             return indicatorConfiguration.unhandledKeyPressHexColor();
-        if (mouseState.pressing() && indicatorConfiguration.mousePressHexColor() != null)
-            return indicatorConfiguration.mousePressHexColor();
+        if (mouseState.leftPressing() && (indicatorConfiguration.leftMousePressHexColor() != null || indicatorConfiguration.mousePressHexColor() != null))
+            return indicatorConfiguration.leftMousePressHexColor() != null ? indicatorConfiguration.leftMousePressHexColor() : indicatorConfiguration.mousePressHexColor();
+        if (mouseState.middlePressing() && (indicatorConfiguration.middleMousePressHexColor() != null || indicatorConfiguration.mousePressHexColor() != null))
+            return indicatorConfiguration.middleMousePressHexColor() != null ? indicatorConfiguration.middleMousePressHexColor() : indicatorConfiguration.mousePressHexColor();
+        if (mouseState.rightPressing() && (indicatorConfiguration.rightMousePressHexColor() != null || indicatorConfiguration.mousePressHexColor() != null))
+            return indicatorConfiguration.rightMousePressHexColor() != null ? indicatorConfiguration.rightMousePressHexColor() : indicatorConfiguration.mousePressHexColor();
         if (mouseState.wheeling() && indicatorConfiguration.wheelHexColor() != null)
             return indicatorConfiguration.wheelHexColor();
         if (mouseState.moving() && indicatorConfiguration.moveHexColor() != null)

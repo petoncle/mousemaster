@@ -12,8 +12,16 @@ public class MouseState {
         return mouseController.moving();
     }
 
-    public boolean pressing() {
-        return mouseController.pressing();
+    public boolean leftPressing() {
+        return mouseController.leftPressing();
+    }
+
+    public boolean middlePressing() {
+        return mouseController.middlePressing();
+    }
+
+    public boolean rightPressing() {
+        return mouseController.rightPressing();
     }
 
     public boolean wheeling() {
