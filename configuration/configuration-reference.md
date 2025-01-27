@@ -60,6 +60,9 @@ normal-mode.indicator.idle-color=#FF0000
 normal-mode.indicator.move-color=#FF0000
 normal-mode.indicator.wheel-color=#FFFF00
 normal-mode.indicator.mouse-press-color=#00FF00
+normal-mode.indicator.left-mouse-press-color=#00FF00
+normal-mode.indicator.middle-mouse-press-color=#00FF00
+normal-mode.indicator.right-mouse-press-color=#00FF00
 ```
 
 If you are creating another mode and want this new mode to have the same indicator configuration, it can be done like so:
