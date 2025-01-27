@@ -33,11 +33,9 @@
 - Display labels on the screen for direct mouse warping.
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
-- Trigger a left button click by holding _space_ while selecting a hint.
-- Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _rightalt_ while selecting a hint. 
-Release _rightalt_ during the second hint pass to not trigger a click after hint selection.
+- Trigger a left button click by holding _space_ while selecting a hint (_;_ for middle button and _p_ for right button).
 - Double click by pressing the hint key a second time after selecting the hint.
-- Only the characters _i, j, k, l, m_ are used for hint labels to be able to select hints without moving the hand.
+- Only the characters _i, o, j, k, l, m_ are used for hint labels to be able to select hints without moving the hand.
 - Exit with _rightalt_, _esc_ or _backspace_.
 
 ## Grid Mode (hold _rightalt_)
