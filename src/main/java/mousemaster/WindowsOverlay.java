@@ -785,7 +785,7 @@ public class WindowsOverlay {
         int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
         PointerByReference shadowOutlinePath = new PointerByReference();
         int createShadowOutlinePathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, shadowOutlinePath);
-        List<PointerByReference> outlinePens =
+        List<PointerByReference> outlinePens = fontOutlineThickness == 0 ? List.of():
                 createOutlinePens(fontOutlineThickness, fontOutlineHexColor,
                         fontOutlineOpacity, true);
 
@@ -806,8 +806,18 @@ public class WindowsOverlay {
         int highlightFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
         int highlightFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(highlightFontBrushColor, highlightFontBrush);
         PointerByReference shadowFontBrush = new PointerByReference();
-        double shadowFontOpacity = 1 - Math.pow(1 - fontShadowOpacity, fontShadowThickness);
-        int shadowFontBrushColor = ((int) (shadowFontOpacity * 255) << 24) | hexColorStringToRgb(fontShadowHexColor, 1d);
+        // Formula is 1 - (1 - opacity)^(number of times opacity is applied).
+        // But +2 seems to work for 0.1. +4 for 0.05 (any thickness)
+        // +1 for 0.2.
+        int extra;
+        if (fontShadowOpacity <= 0.05)
+            extra = 4;
+        else if (fontShadowOpacity <= 0.1)
+            extra = 2;
+        else
+            extra = 1;
+        double shadowFontBodyOpacity = 1 - Math.pow(1 - fontShadowOpacity, fontShadowThickness + extra);
+        int shadowFontBrushColor = ((int) (shadowFontBodyOpacity * 255) << 24) | hexColorStringToRgb(fontShadowHexColor, 1d);
         int shadowFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowFontBrushColor, shadowFontBrush);
 
         PointerByReference stringFormat = stringFormat();
@@ -840,7 +850,7 @@ public class WindowsOverlay {
                     focusedHintKeySequence,
                     highlightFontScale, boxBorderThickness, expandBoxes,
                     graphics, normalFont, fontSize, fontSpacingPercent, largeFont, pixelData);
-            if (hintMeshDraw.hintSequenceTexts.size() > 200) {
+            if (hintMeshDraw.hintSequenceTexts.size() > 0) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
                 logger.trace("Caching new hintMeshDraw with " +
@@ -848,12 +858,49 @@ public class WindowsOverlay {
                 hintMeshWindow.hintMeshDrawCache.put(zoomHintMesh, hintMeshDraw);
             }
 
+            int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
+            clearWindow(hdcTemp, windowRect, noColorColor);
+            // Shadow outline drawn first, then shadow body (which must overwrite existing shadow outline pixel),
+            // then the rest.
+            boolean mustDrawShadow =
+                    fontShadowOpacity != 0 && (fontShadowHorizontalOffset != 0 ||
+                                               fontShadowVerticalOffset != 0);
+            int[] shadowBodyPixelData = mustDrawShadow ? new int[hintMeshDraw.pixelData.length] : null;
+            if (mustDrawShadow) {
+                if (fontShadowThickness > 1) {
+                    // No antialiasing for the shadow body.
+                    Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(),
+                            0); // 2= SmoothingModeAntiAlias
+                }
+                for (HintSequenceText hintSequenceText : hintMeshDraw.hintSequenceTexts()) {
+                    for (HintKeyText keyText : hintSequenceText.keyTexts) {
+                        float gdipFontSize = keyText.isPrefix ? normalGdipFontSize :
+                                (keyText.isHighlight ? largeGdipFontSize :
+                                        normalGdipFontSize);
+                        drawHintText(keyText.keyText,
+                                keyText.left + fontShadowHorizontalOffset,
+                                keyText.top + fontShadowVerticalOffset, shadowOutlinePath,
+                                fontFamilyAndStyle, fontFamily, gdipFontSize,
+                                stringFormat);
+                    }
+                }
+                // If shadow body and outline are drawn at the same time,
+                // some area of the font body and font outline overlaps, so they are rendered twice,
+                // therefore it is darker.
+                //drawAndFillPath(shadowPens, graphics, shadowOutlinePath, null);
+                drawAndFillPath(List.of(), graphics, shadowOutlinePath, shadowFontBrush);
+                dibSection.pixelPointer.read(0, shadowBodyPixelData, 0, shadowBodyPixelData.length);
+                if (fontShadowThickness > 1) {
+                    Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(),
+                            2); // 2= SmoothingModeAntiAlias
+                }
+            }
+
             // No cell if cellWidth/Height is not defined (e.g. non-grid hint mesh).
             int colorBetweenBoxes =
                             hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) |
                     ((int) (255 * boxBorderOpacity) << 24);
-            int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
-            clearWindow(hdcTemp, windowRect, noColorColor);
+            clearWindow(hdcTemp, windowRect, noColorColor); // Clears the shadow body.
             dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
             int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, 1);
             int borderLengthPixels =
@@ -952,12 +999,25 @@ public class WindowsOverlay {
                 }
             }
             dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
+            if (mustDrawShadow) {
+                drawAndFillPath(shadowPens, graphics, shadowOutlinePath, null);
+                if (fontShadowThickness > 1) {
+                    dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
+                            hintMeshDraw.pixelData.length);
+                    for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
+                        int shadowBodyPixel = shadowBodyPixelData[i];
+                        if (shadowBodyPixel == noColorColor)
+                            continue;
+                        hintMeshDraw.pixelData[i] = shadowBodyPixel;
+                    }
+                    dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0,
+                            hintMeshDraw.pixelData.length);
+                }
+            }
+
             boolean mustDrawPrefix = false;
             boolean mustDrawSuffix = false;
             boolean mustDrawHighlight = false;
-            boolean mustDrawShadow =
-                    fontShadowOpacity != 0 && (fontShadowHorizontalOffset != 0 ||
-                                           fontShadowVerticalOffset != 0);
             for (HintSequenceText hintSequenceText : hintMeshDraw.hintSequenceTexts()) {
                 for (HintKeyText keyText : hintSequenceText.keyTexts) {
                     PointerByReference path = keyText.isPrefix ? prefixPath :
@@ -971,19 +1031,7 @@ public class WindowsOverlay {
                     // Color is defined in the brush.
                     drawHintText(keyText.keyText, keyText.left, keyText.top, path,
                             fontFamilyAndStyle, fontFamily, gdipFontSize, stringFormat);
-                    if (mustDrawShadow)
-                        drawHintText(keyText.keyText,
-                                keyText.left + fontShadowHorizontalOffset,
-                                keyText.top + fontShadowVerticalOffset, shadowOutlinePath,
-                                fontFamilyAndStyle, fontFamily, gdipFontSize,
-                                stringFormat);
                 }
-            }
-            if (mustDrawShadow) {
-                // If shadow body and outline are drawn in the same path,
-                // some area of the font body and font outline overlaps, so they are rendered twice,
-                // therefore it is darker.
-                drawAndFillPath(shadowPens, graphics, shadowOutlinePath, null);
             }
             if (mustDrawPrefix)
                 drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
