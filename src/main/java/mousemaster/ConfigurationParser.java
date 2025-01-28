@@ -89,10 +89,15 @@ public class ConfigurationParser {
                 .fontSpacingPercent(0.6f)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
-                .fontOutlineThickness(2)
+                .fontOutlineThickness(0)
                 .fontOutlineHexColor("#000000")
                 .fontOutlineOpacity(0.5d)
-                .prefixFontHexColor("#666666")
+                .fontShadowThickness(2)
+                .fontShadowHexColor("#000000")
+                .fontShadowOpacity(0.3d)
+                .fontShadowHorizontalOffset(1)
+                .fontShadowVerticalOffset(1)
+                .prefixFontHexColor("#AAAAAA")
                 .highlightFontScale(1d)
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
@@ -550,6 +555,16 @@ public class ConfigurationParser {
                                 checkColorFormat(propertyValue));
                         case "font-outline-opacity" -> mode.hintMesh.builder.fontOutlineOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
+                        case "font-shadow-thickness" -> mode.hintMesh.builder.fontShadowThickness(
+                                parseDouble(propertyValue, true, 0, 1000));
+                        case "font-shadow-color" -> mode.hintMesh.builder.fontShadowHexColor(
+                                checkColorFormat(propertyValue));
+                        case "font-shadow-opacity" -> mode.hintMesh.builder.fontShadowOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.fontShadowHorizontalOffset(
+                                parseDouble(propertyValue, true, -100, 100));
+                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.fontShadowVerticalOffset(
+                                parseDouble(propertyValue, true, -100, 100));
                         case "prefix-font-color" ->
                                 mode.hintMesh.builder.prefixFontHexColor(
                                         checkColorFormat(propertyValue));
@@ -1584,6 +1599,16 @@ public class ConfigurationParser {
                         builder.fontOutlineHexColor(parent.fontOutlineHexColor());
                     if (builder.fontOutlineOpacity() == null)
                         builder.fontOutlineOpacity(parent.fontOutlineOpacity());
+                    if (builder.fontShadowThickness() == null)
+                        builder.fontShadowThickness(parent.fontShadowThickness());
+                    if (builder.fontShadowHexColor() == null)
+                        builder.fontShadowHexColor(parent.fontShadowHexColor());
+                    if (builder.fontShadowOpacity() == null)
+                        builder.fontShadowOpacity(parent.fontShadowOpacity());
+                    if (builder.fontShadowHorizontalOffset() == null)
+                        builder.fontShadowHorizontalOffset(parent.fontShadowHorizontalOffset());
+                    if (builder.fontShadowVerticalOffset() == null)
+                        builder.fontShadowVerticalOffset(parent.fontShadowVerticalOffset());
                     if (builder.prefixFontHexColor() == null)
                         builder.prefixFontHexColor(parent.prefixFontHexColor());
                     if (builder.highlightFontScale() == null)

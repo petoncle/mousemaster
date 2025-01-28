@@ -699,6 +699,11 @@ public class WindowsOverlay {
         double fontOutlineThickness = currentHintMesh.fontOutlineThickness();
         String fontOutlineHexColor = currentHintMesh.fontOutlineHexColor();
         double fontOutlineOpacity = currentHintMesh.fontOutlineOpacity();
+        double fontShadowThickness = currentHintMesh.fontShadowThickness();
+        String fontShadowHexColor = currentHintMesh.fontShadowHexColor();
+        double fontShadowOpacity = currentHintMesh.fontShadowOpacity();
+        double fontShadowHorizontalOffset = currentHintMesh.fontShadowHorizontalOffset();
+        double fontShadowVerticalOffset = currentHintMesh.fontShadowVerticalOffset();
         double highlightFontScale = currentHintMesh.highlightFontScale();
         String boxHexColor = currentHintMesh.boxHexColor();
         double boxOpacity = currentHintMesh.boxOpacity();
@@ -780,19 +785,10 @@ public class WindowsOverlay {
         int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
         PointerByReference shadowOutlinePath = new PointerByReference();
         int createShadowOutlinePathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, shadowOutlinePath);
-        fontOutlineThickness=0; // TODO remove
         List<PointerByReference> outlinePens =
                 createOutlinePens(fontOutlineThickness, fontOutlineHexColor,
                         fontOutlineOpacity, true);
 
-        double fontShadowThickness = 3; // big font size only
-//        double fontShadowThickness = 2;
-        String fontShadowHexColor = fontOutlineHexColor;
-//        double fontShadowOpacity = 0.2d;
-        double fontShadowOpacity = 0.3d;
-//        double fontShadowOpacity = 0.0d;
-        double fontShadowHorizontalOffset = 1;
-        double fontShadowVerticalOffset = 1;
         List<PointerByReference> shadowPens =
                 createOutlinePens(fontShadowThickness, fontShadowHexColor,
                         fontShadowOpacity, false);
