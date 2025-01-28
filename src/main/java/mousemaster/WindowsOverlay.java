@@ -778,26 +778,24 @@ public class WindowsOverlay {
         int createSuffixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, suffixPath);
         PointerByReference highlightPath = new PointerByReference();
         int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
+        PointerByReference shadowOutlinePath = new PointerByReference();
+        int createShadowOutlinePathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, shadowOutlinePath);
+        fontOutlineThickness=0; // TODO remove
+        List<PointerByReference> outlinePens =
+                createOutlinePens(fontOutlineThickness, fontOutlineHexColor,
+                        fontOutlineOpacity, true);
 
-        double outlineThickness = fontOutlineThickness;
-        int glowRadius = outlineThickness == 0 ? 0 : 1;
-        float penWidthMultiplier = (float) outlineThickness;
-        double outlineOpacity = fontOutlineOpacity;
-        int outlineColorRgb = hexColorStringToRgb(fontOutlineHexColor, 1d);
-        int penColor = (int) (outlineOpacity * 0xFF) << 24 | outlineColorRgb; //0x80000000; // ARGB
-        List<PointerByReference> outlinePens = new ArrayList<>();
-        for (int radius = 1; radius <= glowRadius; radius++) {
-            PointerByReference pen = new PointerByReference();
-            outlinePens.add(pen);
-            int penStatus = Gdiplus.INSTANCE.GdipCreatePen1(penColor, radius * penWidthMultiplier, 2, pen); // 2 = UnitPixel
-            if (penStatus != 0) {
-                throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
-            }
-            int setLineJoinStatus = Gdiplus.INSTANCE.GdipSetPenLineJoin(pen.getValue(), 2); // 2 = LineJoinRound
-            if (setLineJoinStatus != 0) {
-                throw new RuntimeException("Failed to set Pen LineJoin to Round. Status: " + setLineJoinStatus);
-            }
-        }
+        double fontShadowThickness = 3; // big font size only
+//        double fontShadowThickness = 2;
+        String fontShadowHexColor = fontOutlineHexColor;
+//        double fontShadowOpacity = 0.2d;
+        double fontShadowOpacity = 0.3d;
+//        double fontShadowOpacity = 0.0d;
+        double fontShadowHorizontalOffset = 1;
+        double fontShadowVerticalOffset = 1;
+        List<PointerByReference> shadowPens =
+                createOutlinePens(fontShadowThickness, fontShadowHexColor,
+                        fontShadowOpacity, false);
 
         PointerByReference prefixFontBrush = new PointerByReference();
         int prefixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(prefixFontHexColor, 1d);
@@ -811,6 +809,10 @@ public class WindowsOverlay {
         PointerByReference highlightFontBrush = new PointerByReference();
         int highlightFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
         int highlightFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(highlightFontBrushColor, highlightFontBrush);
+        PointerByReference shadowFontBrush = new PointerByReference();
+        double shadowFontOpacity = 1 - Math.pow(1 - fontShadowOpacity, fontShadowThickness);
+        int shadowFontBrushColor = ((int) (shadowFontOpacity * 255) << 24) | hexColorStringToRgb(fontShadowHexColor, 1d);
+        int shadowFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowFontBrushColor, shadowFontBrush);
 
         PointerByReference stringFormat = stringFormat();
 
@@ -957,6 +959,9 @@ public class WindowsOverlay {
             boolean mustDrawPrefix = false;
             boolean mustDrawSuffix = false;
             boolean mustDrawHighlight = false;
+            boolean mustDrawShadow =
+                    fontShadowOpacity != 0 && (fontShadowHorizontalOffset != 0 ||
+                                           fontShadowVerticalOffset != 0);
             for (HintSequenceText hintSequenceText : hintMeshDraw.hintSequenceTexts()) {
                 for (HintKeyText keyText : hintSequenceText.keyTexts) {
                     PointerByReference path = keyText.isPrefix ? prefixPath :
@@ -970,7 +975,19 @@ public class WindowsOverlay {
                     // Color is defined in the brush.
                     drawHintText(keyText.keyText, keyText.left, keyText.top, path,
                             fontFamilyAndStyle, fontFamily, gdipFontSize, stringFormat);
+                    if (mustDrawShadow)
+                        drawHintText(keyText.keyText,
+                                keyText.left + fontShadowHorizontalOffset,
+                                keyText.top + fontShadowVerticalOffset, shadowOutlinePath,
+                                fontFamilyAndStyle, fontFamily, gdipFontSize,
+                                stringFormat);
                 }
+            }
+            if (mustDrawShadow) {
+                // If shadow body and outline are drawn in the same path,
+                // some area of the font body and font outline overlaps, so they are rendered twice,
+                // therefore it is darker.
+                drawAndFillPath(shadowPens, graphics, shadowOutlinePath, null);
             }
             if (mustDrawPrefix)
                 drawAndFillPath(outlinePens, graphics, prefixPath, prefixFontBrush);
@@ -978,6 +995,7 @@ public class WindowsOverlay {
                 drawAndFillPath(outlinePens, graphics, suffixPath, suffixFontBrush);
             if (mustDrawHighlight)
                 drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
+
             dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
         }
 
@@ -991,10 +1009,13 @@ public class WindowsOverlay {
         Gdiplus.INSTANCE.GdipDeleteFont(largeFont.getValue());
         for (PointerByReference pen : outlinePens)
             Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
+        for (PointerByReference pen : shadowPens)
+            Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
         Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
         Gdiplus.INSTANCE.GdipDeletePath(prefixPath.getValue());
         Gdiplus.INSTANCE.GdipDeletePath(suffixPath.getValue());
         Gdiplus.INSTANCE.GdipDeletePath(highlightPath.getValue());
+        Gdiplus.INSTANCE.GdipDeletePath(shadowOutlinePath.getValue());
         Gdiplus.INSTANCE.GdipDeleteFontFamily(fontFamily.getValue());
         Gdiplus.INSTANCE.GdipDeleteGraphics(graphics.getValue());
 
@@ -1003,6 +1024,44 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(dibSection.hDIBitmap);
         GDI32.INSTANCE.DeleteDC(hdcTemp);
 
+    }
+
+    private static List<PointerByReference> createOutlinePens(double outlineThickness,
+                                                              String fontOutlineHexColor,
+                                                              double outlineOpacity,
+                                                              boolean singlePass) {
+        int glowRadius;
+        float penWidthMultiplier;
+        if (singlePass) {
+            glowRadius = outlineThickness == 0 ? 0 : 1;
+            penWidthMultiplier = (float) outlineThickness;
+        }
+        else {
+            glowRadius = (int) Math.ceil(outlineThickness);
+            penWidthMultiplier = 1;
+        }
+        int outlineColorRgb = hexColorStringToRgb(fontOutlineHexColor, 1d);
+        int penColor = (int) (outlineOpacity * 0xFF) << 24 |
+                       outlineColorRgb; //0x80000000; // ARGB
+        List<PointerByReference> outlinePens = new ArrayList<>();
+        for (int radius = 1; radius <= glowRadius; radius++) {
+            PointerByReference pen = new PointerByReference();
+            outlinePens.add(pen);
+            int penStatus =
+                    Gdiplus.INSTANCE.GdipCreatePen1(penColor, radius * penWidthMultiplier,
+                            2, pen); // 2 = UnitPixel
+            if (penStatus != 0) {
+                throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
+            }
+            int setLineJoinStatus = Gdiplus.INSTANCE.GdipSetPenLineJoin(pen.getValue(),
+                    2); // 2 = LineJoinRound
+            if (setLineJoinStatus != 0) {
+                throw new RuntimeException(
+                        "Failed to set Pen LineJoin to Round. Status: " +
+                        setLineJoinStatus);
+            }
+        }
+        return outlinePens;
     }
 
     private static PointerByReference stringFormat() {
@@ -1047,6 +1106,8 @@ public class WindowsOverlay {
                 throw new RuntimeException("Failed to draw path. Status: " + drawPathStatus);
             }
         }
+        if (fontBrush == null)
+            return;
         int fillPathStatus = Gdiplus.INSTANCE.GdipFillPath(graphics.getValue(), fontBrush.getValue(), path.getValue());
         if (fillPathStatus != 0) {
             throw new RuntimeException("Failed to fill path. Status: " + fillPathStatus);
