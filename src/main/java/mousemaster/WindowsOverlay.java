@@ -149,15 +149,11 @@ public class WindowsOverlay {
 
     }
 
-    private record ZoomHintMesh(HintMesh hintMesh, Zoom zoom) {
-
-    }
-
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   WinDef.HWND transparentHwnd,
                                   WinUser.WindowProc callback,
                                   List<Hint> hints,
-                                  Map<ZoomHintMesh, HintMeshDraw> hintMeshDrawCache) {
+                                  Map<HintMesh, HintMeshDraw> hintMeshDrawCache) {
 
     }
 
@@ -673,7 +669,8 @@ public class WindowsOverlay {
     private record HintMeshDraw(List<WinDef.RECT> boxRects,
                                 List<WinDef.RECT> cellRects,
                                 List<HintSequenceText> hintSequenceTexts,
-                                int[] pixelData) {
+                                int[] pixelData,
+                                double offsetX, double offsetY) {
     }
 
     static {
@@ -689,11 +686,31 @@ public class WindowsOverlay {
                                   WinDef.RECT windowRect, Screen screen,
                                   HintMeshWindow hintMeshWindow,
                                   List<Hint> windowHints) {
-        WinDef.HDC hdcTemp = GDI32.INSTANCE.CreateCompatibleDC(hdc);
+        List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
+        double boxBorderThickness = currentHintMesh.boxBorderThickness();
+        // TODO Make border thickness, font size, independent of zoom.
+        int scaledBoxBorderThickness =
+                boxBorderThickness > 0 && scaledPixels(boxBorderThickness, 1) == 0 ? 1 :
+                        scaledPixels(boxBorderThickness, 1);
+        boolean isHintGrid = windowHints.getFirst().cellWidth() != -1;
+        NormalizedHints normalizedHints =
+                normalizedHints(windowHints, focusedHintKeySequence,
+                        scaledBoxBorderThickness, isHintGrid);
+        double fontSize = currentHintMesh.fontSize();
+        int dpi = screen.dpi();
+        float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
+        HintMesh normalizedHintMesh = new HintMesh.HintMeshBuilder(currentHintMesh)
+                .hints(normalizedHints.hints())
+                .fontSize(normalGdipFontSize)
+                .boxBorderThickness(scaledBoxBorderThickness)
+                .build();
 
+        WinDef.HDC hdcTemp = GDI32.INSTANCE.CreateCompatibleDC(hdc);
         WindowsFont.WindowsFontFamilyAndStyle
                 fontFamilyAndStyle = WindowsFont.fontFamilyAndStyle(currentHintMesh.fontName());
-        double fontSize = currentHintMesh.fontSize();
+        double highlightFontScale = currentHintMesh.highlightFontScale();
+        float largeGdipFontSize = (float) (highlightFontScale * normalGdipFontSize);
+
         double fontSpacingPercent = currentHintMesh.fontSpacingPercent();
         double fontOpacity = currentHintMesh.fontOpacity();
         double fontOutlineThickness = currentHintMesh.fontOutlineThickness();
@@ -704,10 +721,8 @@ public class WindowsOverlay {
         double fontShadowOpacity = currentHintMesh.fontShadowOpacity();
         double fontShadowHorizontalOffset = currentHintMesh.fontShadowHorizontalOffset();
         double fontShadowVerticalOffset = currentHintMesh.fontShadowVerticalOffset();
-        double highlightFontScale = currentHintMesh.highlightFontScale();
         String boxHexColor = currentHintMesh.boxHexColor();
         double boxOpacity = currentHintMesh.boxOpacity();
-        double boxBorderThickness = currentHintMesh.boxBorderThickness();
         double boxBorderLength = currentHintMesh.boxBorderLength();
         String boxBorderHexColor = currentHintMesh.boxBorderHexColor();
         double boxBorderOpacity = currentHintMesh.boxBorderOpacity();
@@ -720,13 +735,9 @@ public class WindowsOverlay {
         double subgridBorderLength = currentHintMesh.subgridBorderLength();
         String subgridBorderHexColor = currentHintMesh.subgridBorderHexColor();
         double subgridBorderOpacity = currentHintMesh.subgridBorderOpacity();
-        List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
-//        int scaledDpi = (int) (screen.dpi() * screen.scale());
-        int dpi = screen.dpi();
         int windowWidth = windowRect.right - windowRect.left;
         int windowHeight = windowRect.bottom - windowRect.top;
 
-        ZoomHintMesh zoomHintMesh = new ZoomHintMesh(currentHintMesh, currentZoom);
         WinDef.HBITMAP hbm = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, windowWidth, windowHeight);
         GDI32.INSTANCE.SelectObject(hdcTemp, hbm);
         DibSection dibSection = createDibSection(windowWidth, windowHeight, hdcTemp);
@@ -768,11 +779,6 @@ public class WindowsOverlay {
         PointerByReference fontFamily = new PointerByReference();
         int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(
                 new WString(fontFamilyAndStyle.fontFamily()), null, fontFamily);
-
-        float normalGdipFontSize = (float) (fontSize * dpi * zoomPercent() / 72);
-        float largeGdipFontSize = (float) (fontSize * highlightFontScale * dpi * zoomPercent() / 72);
-//        float normalGdipFontSize = (float) (-fontHeight / zoomPercent());
-//        float largeGdipFontSize = (float) (-largeFontHeight / zoomPercent());
 
         PointerByReference prefixPath = new PointerByReference();
         int createPrefixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, prefixPath); // 0 = FillModeAlternate
@@ -836,26 +842,34 @@ public class WindowsOverlay {
         }
 
         HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.get(
-                zoomHintMesh);
+                normalizedHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
         if (hintMeshDrawIsCached) {
-            logger.trace("hintMeshDraw is cached");
-            dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
+            logger.info("hintMeshDraw is cached");
+            int[] pixelData;
+            if (normalizedHints.offsetX != 0 || normalizedHints.offsetY != 0) {
+                pixelData = offsetPixelData(hintMeshDraw, windowWidth, windowHeight,
+                        normalizedHints.offsetX, normalizedHints.offsetY);
+            }
+            else
+                pixelData = hintMeshDraw.pixelData;
+            dibSection.pixelPointer.write(0, pixelData, 0, pixelData.length);
         }
         else {
             // Without caching, a full screen of hints drawn with GDI+ takes some time
             // to compute, even when there is no outline.
-            int[] pixelData = new int[windowWidth * windowHeight];
-            hintMeshDraw = hintMeshDraw(screen, windowWidth, windowHeight, windowHints,
+            hintMeshDraw = hintMeshDraw(screen, normalizedHints,
                     focusedHintKeySequence,
-                    highlightFontScale, boxBorderThickness, expandBoxes,
-                    graphics, normalFont, fontSize, fontSpacingPercent, largeFont, pixelData);
-            if (hintMeshDraw.hintSequenceTexts.size() > 0) {
+                    highlightFontScale, expandBoxes,
+                    graphics, normalFont, fontSpacingPercent, largeFont,
+                    scaledBoxBorderThickness, windowWidth, windowHeight);
+            boolean hintMeshMustBeCached = isHintGrid && hintMeshDraw.hintSequenceTexts.size() > 0;
+            if (hintMeshMustBeCached) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
-                logger.trace("Caching new hintMeshDraw with " +
+                logger.info("Caching new hintMeshDraw with " +
                              hintMeshDraw.hintSequenceTexts.size() + " visible hints");
-                hintMeshWindow.hintMeshDrawCache.put(zoomHintMesh, hintMeshDraw);
+                hintMeshWindow.hintMeshDrawCache.put(normalizedHintMesh, hintMeshDraw);
             }
 
             int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
@@ -902,7 +916,6 @@ public class WindowsOverlay {
                     ((int) (255 * boxBorderOpacity) << 24);
             clearWindow(hdcTemp, windowRect, noColorColor); // Clears the shadow body.
             dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
-            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, 1);
             int borderLengthPixels =
                     Math.max((int) Math.floor(boxBorderLength * 1), scaledBoxBorderThickness);
             int colorBetweenSubBoxes =
@@ -918,13 +931,14 @@ public class WindowsOverlay {
                 // will be boxColor instead of noColorColor.
                 WinDef.RECT cellRect = hintMeshDraw.cellRects().get(cellIndex);
                 WinDef.RECT boxRect = hintMeshDraw.boxRects().get(cellIndex);
-                for (int x = Math.max(0, boxRect.left);
+                for (int x = Math.max(0, boxRect.left); // TODO should not need to max(0. screen.x instead?
                      x < Math.min(windowWidth, boxRect.right); x++) {
                     for (int y = Math.max(0, boxRect.top);
                          y < Math.min(windowHeight, boxRect.bottom); y++) {
-                        int pixel = hintMeshDraw.pixelData[y * windowWidth + x];
+                        int i = y * windowWidth + x;
+                        int pixel = hintMeshDraw.pixelData[i];
                         if (pixel == noColorColor)
-                            hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
+                            hintMeshDraw.pixelData[i] = boxColor;
                     }
                 }
                 int minX = Math.max(0, cellRect.left);
@@ -934,14 +948,15 @@ public class WindowsOverlay {
                 for (int x = minX; x < maxX; x++) {
                     for (int y = minY; y < maxY; y++) {
                         // The cell may go past the screen dimensions.
-                        int pixel = hintMeshDraw.pixelData[y * windowWidth + x];
+                        int i = y * windowWidth + x;
+                        int pixel = hintMeshDraw.pixelData[i];
                         if (pixel == noColorColor) {
                             if ((x - minX < borderLengthPixels || maxX - 1 - x < borderLengthPixels)
                                 && (y - minY < borderLengthPixels || maxY - 1 - y < borderLengthPixels)) {
-                                hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenBoxes;
+                                hintMeshDraw.pixelData[i] = colorBetweenBoxes;
                             }
                             else
-                                hintMeshDraw.pixelData[y * windowWidth + x] = boxColor;
+                                hintMeshDraw.pixelData[i] = boxColor;
                         }
                     }
                 }
@@ -977,8 +992,9 @@ public class WindowsOverlay {
                          y <= Math.min(maxY - 1, centerY + borderThicknessOrLength / 2 - (scaledSubgridBorderThickness - 1) % 2); y++) {
                         for (int thicknessX = 0; thicknessX < scaledSubgridBorderThickness; thicknessX++) {
                             int x = columnCenterX - scaledSubgridBorderThickness / 2 + thicknessX;
-                            if (hintMeshDraw.pixelData[y * windowWidth + x] == boxColor)
-                                hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenSubBoxes;
+                            int i = y * windowWidth + x;
+                            if (hintMeshDraw.pixelData[i] == boxColor)
+                                hintMeshDraw.pixelData[i] = colorBetweenSubBoxes;
                         }
                     }
                 }
@@ -992,8 +1008,9 @@ public class WindowsOverlay {
                          x <= Math.min(maxX - 1, centerX + borderThicknessOrLength / 2 - (scaledSubgridBorderThickness - 1) % 2); x++) {
                         for (int thicknessY = 0; thicknessY < scaledSubgridBorderThickness; thicknessY++) {
                             int y = rowCenterY - scaledSubgridBorderThickness / 2 + thicknessY;
-                            if (hintMeshDraw.pixelData[y * windowWidth + x] == boxColor)
-                                hintMeshDraw.pixelData[y * windowWidth + x] = colorBetweenSubBoxes;
+                            int i = y * windowWidth + x;
+                            if (hintMeshDraw.pixelData[i] == boxColor)
+                                hintMeshDraw.pixelData[i] = colorBetweenSubBoxes;
                         }
                     }
                 }
@@ -1040,7 +1057,16 @@ public class WindowsOverlay {
             if (mustDrawHighlight)
                 drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
 
-            dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
+            if (hintMeshMustBeCached) {
+                dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
+                        hintMeshDraw.pixelData.length);
+            }
+            if (normalizedHints.offsetX != 0 || normalizedHints.offsetY != 0) {
+                int[] pixelData =
+                        offsetPixelData(hintMeshDraw, windowWidth, windowHeight,
+                                normalizedHints.offsetX, normalizedHints.offsetY);
+                dibSection.pixelPointer.write(0, pixelData, 0, pixelData.length);
+            }
         }
 
         updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
@@ -1068,6 +1094,20 @@ public class WindowsOverlay {
         GDI32.INSTANCE.DeleteObject(dibSection.hDIBitmap);
         GDI32.INSTANCE.DeleteDC(hdcTemp);
 
+    }
+
+    private static int[] offsetPixelData(HintMeshDraw hintMeshDraw,
+                                         int windowWidth, int windowHeight,
+                                         int offsetX, int offsetY) {
+        int[] pixelData = new int[hintMeshDraw.pixelData.length];
+        for (int x = offsetX; x < windowWidth; x++) {
+            for (int y = offsetY; y < windowHeight; y++) {
+                int source = (y - offsetY) * windowWidth + (x - offsetX);
+                int destination = y * windowWidth + x;
+                pixelData[destination] = hintMeshDraw.pixelData[source];
+            }
+        }
+        return pixelData;
     }
 
     private static List<PointerByReference> createOutlinePens(double outlineThickness,
@@ -1195,16 +1235,53 @@ public class WindowsOverlay {
         }
     }
 
-    private static HintMeshDraw hintMeshDraw(Screen screen, int windowWidth,
-                                             int windowHeight, List<Hint> windowHints,
+    private record NormalizedHints(List<Hint> hints, int offsetX, int offsetY) {
+
+    }
+
+    private static NormalizedHints normalizedHints(List<Hint> originalHints,
+                                                   List<Key> focusedHintKeySequence,
+                                                   int scaledBoxBorderThickness,
+                                                   boolean isHintPartOfGrid) {
+        if (!isHintPartOfGrid) {
+            return new NormalizedHints(originalHints, 0, 0);
+        }
+        double minHintCellX = Double.MAX_VALUE;
+        double minHintCellY = Double.MAX_VALUE;
+        for (Hint hint : originalHints) {
+            if (!hint.startsWith(focusedHintKeySequence))
+                continue;
+            minHintCellX = Math.min(minHintCellX, zoomedX(hint.centerX()) - zoomPercent() * hint.cellWidth() / 2);
+            minHintCellY = Math.min(minHintCellY, zoomedY(hint.centerY()) - zoomPercent() * hint.cellHeight() / 2);
+        }
+        // TODO screen x/y instead of 0/0
+        int offsetX = Math.max(0, (int) (minHintCellX - scaledBoxBorderThickness / 2d));
+        int offsetY = Math.max(0, (int) (minHintCellY - scaledBoxBorderThickness / 2d));
+//        int offsetX = (int) (minHintCellX - scaledBoxBorderThickness / 2d);
+//        int offsetY = (int) (minHintCellY - scaledBoxBorderThickness / 2d);
+        List<Hint> hints = new ArrayList<>();
+        for (Hint hint : originalHints) {
+            if (!hint.startsWith(focusedHintKeySequence))
+                continue;
+            hint = new Hint(zoomedX(hint.centerX()) - offsetX,
+                    zoomedY(hint.centerY()) - offsetY,
+                    zoomPercent() * hint.cellWidth(),
+                    zoomPercent() * hint.cellHeight(), hint.keySequence());
+            hints.add(hint);
+        }
+        return new NormalizedHints(hints, offsetX, offsetY);
+    }
+
+    private static HintMeshDraw hintMeshDraw(Screen screen,
+                                             NormalizedHints normalizedHints,
                                              List<Key> focusedHintKeySequence,
                                              double highlightFontScale,
-                                             double boxBorderThickness,
                                              boolean expandBoxes, PointerByReference graphics,
                                              PointerByReference normalFont,
-                                             double fontSize, double fontSpacingPercent,
+                                             double fontSpacingPercent,
                                              PointerByReference largeFont,
-                                             int[] pixelData) {
+                                             int scaledBoxBorderThickness,
+                                             int windowWidth, int windowHeight) {
         List<WinDef.RECT> boxRects = new ArrayList<>();
         List<WinDef.RECT> cellRects = new ArrayList<>();
         List<HintSequenceText> hintSequenceTexts = new ArrayList<>();
@@ -1212,8 +1289,6 @@ public class WindowsOverlay {
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = Double.MIN_VALUE;
         double maxHintCenterY = Double.MIN_VALUE;
-        List<Hint> zoomedWindowHints = currentZoom == null ? windowHints : new ArrayList<>();
-
 //        stringFormat = new PointerByReference();
 //        Gdiplus.INSTANCE.GdipCreateStringFormat(0, null, stringFormat);
         PointerByReference stringFormat = stringFormat();
@@ -1226,19 +1301,14 @@ public class WindowsOverlay {
         double maxKeyBoundingBoxX = 0;
         boolean isFixedSizeWidthFont = true;
         Gdiplus.GdiplusRectF layoutRect = new Gdiplus.GdiplusRectF(0, 0, 1000, 1000);
-        for (Hint hint : windowHints) {
-            if (currentZoom != null) {
-                hint = new Hint(zoomedX(hint.centerX()), zoomedY(hint.centerY()),
-                        zoomPercent() * hint.cellWidth(),
-                        zoomPercent() * hint.cellHeight(), hint.keySequence());
-                if (hint.startsWith(focusedHintKeySequence))
-                    zoomedWindowHints.add(hint);
-            }
+        for (Hint hint : normalizedHints.hints()) {
             if (hint.startsWith(focusedHintKeySequence)) {
-                maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
-                maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
-                minHintCenterX = Math.min(minHintCenterX, hint.centerX());
-                minHintCenterY = Math.min(minHintCenterY, hint.centerY());
+                double hintCenterX = hint.centerX();
+                maxHintCenterX = Math.max(maxHintCenterX, hintCenterX);
+                double hintCenterY = hint.centerY();
+                maxHintCenterY = Math.max(maxHintCenterY, hintCenterY);
+                minHintCenterX = Math.min(minHintCenterX, hintCenterX);
+                minHintCenterY = Math.min(minHintCenterY, hintCenterY);
             }
             for (int keyIndex = 0; keyIndex < hint.keySequence().size(); keyIndex++) {
                 Key key = hint.keySequence().get(keyIndex);
@@ -1268,7 +1338,9 @@ public class WindowsOverlay {
         }
         double maxSimpleBoxWidth = 0;
         double highestKeyHeight = 0;
-        for (Hint hint : zoomedWindowHints) {
+        for (Hint hint : normalizedHints.hints()) {
+            double hintCenterX = hint.centerX();
+            double hintCenterY = hint.centerY();
             double smallestColAlignedFontBoxWidth;
             smallestColAlignedFontBoxWidth = (maxKeyBoundingBoxWidth) * hint.keySequence().size()
 //                + 2*maxKeyBoundingBoxX; // 1 for first 1 for last
@@ -1339,7 +1411,7 @@ public class WindowsOverlay {
                 if (doNotColAlign) {
                     // Extra is added between each letter (not to the left of the leftmost letter,
                     // nor to the right of the rightmost letter).
-                    left = hint.centerX() - screen.rectangle().x() - (hintKeyTextTotalXAdvance + extraNotAlignedWidth) / 2
+                    left = hintCenterX - screen.rectangle().x() - (hintKeyTextTotalXAdvance + extraNotAlignedWidth) / 2
                            + xAdvance
                            ;
                     xAdvance += boundingBox.width;// + boundingBox.x;
@@ -1353,13 +1425,13 @@ public class WindowsOverlay {
                                           - (hint.keySequence().size()-2) * boundingBox.x; // Similar to hintKeyTextTotalXAdvance
                     double fontBoxWidth2 = hint.cellWidth() * adjustedFontBoxWidthPercent;
                     double keySubcellWidth = fontBoxWidth2 / hint.keySequence().size();
-                    left = hint.centerX() - screen.rectangle().x() - fontBoxWidth / 2
+                    left = hintCenterX - screen.rectangle().x() - fontBoxWidth / 2
                            + xAdvance
                            + keySubcellWidth / 2
                            - (boundingBox.width) / 2 - boundingBox.x / 2;
                     xAdvance += keySubcellWidth - boundingBox.x;
                 }
-                double top = hint.centerY() - screen.rectangle().y() -
+                double top = hintCenterY - screen.rectangle().y() -
                              boundingBox.height / 2;
                 keyTexts.add(new HintKeyText(keyText, left, top, isPrefix, isSuffix,
                         isHighlight));
@@ -1378,24 +1450,27 @@ public class WindowsOverlay {
         // Hint boxes (assuming non-expanding) are centered on the hint, and of same width.
         for (HintSequenceText hintSequenceText : hintSequenceTexts) {
             Hint hint = hintSequenceText.hint;
+            double hintCenterX = hint.centerX();
+            double hintCenterY = hint.centerY();
             WinDef.RECT boxRect = new WinDef.RECT();
-            int scaledBoxBorderThickness = scaledPixels(boxBorderThickness, 1);
-            if (boxBorderThickness > 0 && scaledBoxBorderThickness == 0)
-                scaledBoxBorderThickness = 1;
             double simpleBoxLeft =
-                    hint.centerX() - screen.rectangle().x() - maxSimpleBoxWidth / 2;
+                    hintCenterX - screen.rectangle().x() - maxSimpleBoxWidth / 2;
 
             double simpleBoxTop =
-                    hint.centerY() - screen.rectangle().y() - highestKeyHeight / 2;
+                    hintCenterY - screen.rectangle().y() - highestKeyHeight / 2;
 //            boxRect.left = (int) (simpleBoxLeft + scaledBoxBorderThickness);
 //            boxRect.top = (int) (simpleBoxTop + scaledBoxBorderThickness);
-            boxRect.left = (int) (simpleBoxLeft + (hint.centerX() > minHintCenterX ? scaledBoxBorderThickness : 0));
-            boxRect.top = (int) (simpleBoxTop + (hint.centerY() > minHintCenterY ? scaledBoxBorderThickness : 0));
+            boxRect.left = (int) (simpleBoxLeft + (hintCenterX > minHintCenterX ?
+                    scaledBoxBorderThickness : 0));
+            boxRect.top = (int) (simpleBoxTop + (hintCenterY > minHintCenterY ?
+                    scaledBoxBorderThickness : 0));
 
-            double simpleBoxRight = hint.centerX() - screen.rectangle().x() + maxSimpleBoxWidth / 2;
-            boxRect.right = (int) (simpleBoxRight - (hint.centerX() < maxHintCenterX ? 0 : scaledBoxBorderThickness));
+            double simpleBoxRight = hintCenterX - screen.rectangle().x() + maxSimpleBoxWidth / 2;
+            boxRect.right = (int) (simpleBoxRight - (hintCenterX < maxHintCenterX ? 0 :
+                    scaledBoxBorderThickness));
             double simpleBoxBottom = simpleBoxTop + highestKeyHeight;
-            boxRect.bottom = (int) (simpleBoxBottom - (hint.centerY() < maxHintCenterY ? 0 : scaledBoxBorderThickness));
+            boxRect.bottom = (int) (simpleBoxBottom - (hintCenterY < maxHintCenterY ? 0 :
+                    scaledBoxBorderThickness));
             boolean isHintPartOfGrid = hint.cellWidth() != -1;
             WinDef.RECT cellRect = new WinDef.RECT();
             if (!expandBoxes || !isHintPartOfGrid) {
@@ -1405,8 +1480,10 @@ public class WindowsOverlay {
                 boxRect.bottom = (int) Math.round(simpleBoxBottom);
             }
             else {
-                setBoxRect(boxRect, screen, scaledBoxBorderThickness, hint,
-                        minHintCenterX, maxHintCenterX, minHintCenterY, maxHintCenterY);
+                setBoxRect(boxRect, screen, scaledBoxBorderThickness,
+                        hint.cellWidth(), hint.cellHeight(), hintCenterX,
+                        hintCenterY, minHintCenterX, maxHintCenterX, minHintCenterY,
+                        maxHintCenterY, normalizedHints.offsetX, normalizedHints.offsetY);
             }
             cellRect.left = boxRect.left - scaledBoxBorderThickness;
             cellRect.top = boxRect.top - scaledBoxBorderThickness;
@@ -1417,7 +1494,8 @@ public class WindowsOverlay {
         }
         Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
         Gdiplus.INSTANCE.GdipDeleteRegion(region.getValue());
-        return new HintMeshDraw(boxRects, cellRects, hintSequenceTexts, pixelData);
+        return new HintMeshDraw(boxRects, cellRects, hintSequenceTexts, new int[windowWidth * windowHeight],
+                normalizedHints.offsetX, normalizedHints.offsetY);
     }
 
     private static Gdiplus.GdiplusRectF hintKeyBoundingBox(PointerByReference graphics,
@@ -1481,42 +1559,33 @@ public class WindowsOverlay {
     }
 
     private static void setBoxRect(WinDef.RECT boxRect, Screen screen, double scaledBoxBorderThickness,
-                                   Hint hint, double minHintCenterX,
-                                   double maxHintCenterX, double minHintCenterY,
-                                   double maxHintCenterY) {
-        double cellWidth = hint.cellWidth();
+                                   double cellWidth, double cellHeight,
+                                   double hintCenterX, double hintCenterY,
+                                   double minHintCenterX, double maxHintCenterX,
+                                   double minHintCenterY, double maxHintCenterY,
+                                   int offsetX, int offsetY) {
         double halfCellWidth = cellWidth / 2;
-        double cellHeight = hint.cellHeight();
         double halfCellHeight = cellHeight / 2;
 
         halfCellWidth -= scaledBoxBorderThickness / 2;
         halfCellHeight -= scaledBoxBorderThickness / 2;
 
-        double boxLeft = hint.centerX() - halfCellWidth - screen.rectangle().x();
-        double boxTop = hint.centerY() - halfCellHeight - screen.rectangle().y();
-        double boxRight = hint.centerX() + halfCellWidth - screen.rectangle().x();
-        double boxBottom = hint.centerY() + halfCellHeight - screen.rectangle().y();
+        double boxLeft = hintCenterX - halfCellWidth - screen.rectangle().x();
+        double boxTop = hintCenterY - halfCellHeight - screen.rectangle().y();
+        double boxRight = hintCenterX + halfCellWidth - screen.rectangle().x();
+        double boxBottom = hintCenterY + halfCellHeight - screen.rectangle().y();
         int roundedBoxLeft = (int) Math.ceil(boxLeft);
         int roundedBoxTop = (int) Math.ceil(boxTop);
         int roundedBoxRight = (int) Math.ceil(boxRight);
         int roundedBoxBottom = (int) Math.ceil(boxBottom);
 
-//        if (roundedBoxLeft == 0)
-//            boxLeft += scaledBoxBorderThickness / 2;
-//        if (roundedBoxTop == 0)
-//            boxTop += scaledBoxBorderThickness / 2;
-//        if (roundedBoxRight == screen.rectangle().width())
-//            boxRight -= scaledBoxBorderThickness / 2;
-//        if (roundedBoxBottom == screen.rectangle().height())
-//            boxBottom -= scaledBoxBorderThickness / 2;
-
-        if (roundedBoxLeft == screen.rectangle().x() + Math.ceil(scaledBoxBorderThickness / 2))
+        if (offsetX + roundedBoxLeft == screen.rectangle().x() + Math.ceil(scaledBoxBorderThickness / 2))
             boxLeft += scaledBoxBorderThickness / 2;
-        if (roundedBoxRight == screen.rectangle().x() + screen.rectangle().width() - Math.floor(scaledBoxBorderThickness / 2))
+        if (offsetX + roundedBoxRight == screen.rectangle().x() + screen.rectangle().width() - Math.floor(scaledBoxBorderThickness / 2))
             boxRight -= scaledBoxBorderThickness / 2;
-        if (roundedBoxTop == screen.rectangle().y() + Math.ceil(scaledBoxBorderThickness / 2))
+        if (offsetY + roundedBoxTop == screen.rectangle().y() + Math.ceil(scaledBoxBorderThickness / 2))
             boxTop += scaledBoxBorderThickness / 2;
-        if (roundedBoxBottom == screen.rectangle().y() + screen.rectangle().height() - Math.floor(scaledBoxBorderThickness / 2))
+        if (offsetY + roundedBoxBottom == screen.rectangle().y() + screen.rectangle().height() - Math.floor(scaledBoxBorderThickness / 2))
             boxBottom -= scaledBoxBorderThickness / 2;
 
         roundedBoxLeft = (int) Math.ceil(boxLeft);
