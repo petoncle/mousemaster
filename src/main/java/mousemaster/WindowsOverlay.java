@@ -694,7 +694,7 @@ public class WindowsOverlay {
                         scaledPixels(boxBorderThickness, 1);
         boolean isHintGrid = windowHints.getFirst().cellWidth() != -1;
         NormalizedHints normalizedHints =
-                normalizedHints(windowHints, focusedHintKeySequence,
+                normalizedHints(screen, windowHints, focusedHintKeySequence,
                         scaledBoxBorderThickness, isHintGrid);
         double fontSize = currentHintMesh.fontSize();
         int dpi = screen.dpi();
@@ -915,7 +915,7 @@ public class WindowsOverlay {
                             hexColorStringToRgb(boxBorderHexColor, boxBorderOpacity) |
                     ((int) (255 * boxBorderOpacity) << 24);
             clearWindow(hdcTemp, windowRect, noColorColor); // Clears the shadow body.
-            dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
+            dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length); // TODO remove?
             int borderLengthPixels =
                     Math.max((int) Math.floor(boxBorderLength * 1), scaledBoxBorderThickness);
             int colorBetweenSubBoxes =
@@ -931,7 +931,7 @@ public class WindowsOverlay {
                 // will be boxColor instead of noColorColor.
                 WinDef.RECT cellRect = hintMeshDraw.cellRects().get(cellIndex);
                 WinDef.RECT boxRect = hintMeshDraw.boxRects().get(cellIndex);
-                for (int x = Math.max(0, boxRect.left); // TODO should not need to max(0. screen.x instead?
+                for (int x = Math.max(0, boxRect.left);
                      x < Math.min(windowWidth, boxRect.right); x++) {
                     for (int y = Math.max(0, boxRect.top);
                          y < Math.min(windowHeight, boxRect.bottom); y++) {
@@ -1057,11 +1057,10 @@ public class WindowsOverlay {
             if (mustDrawHighlight)
                 drawAndFillPath(outlinePens, graphics, highlightPath, highlightFontBrush);
 
-            if (hintMeshMustBeCached) {
+            if (hintMeshMustBeCached || normalizedHints.offsetX != 0 ||
+                normalizedHints.offsetY != 0) {
                 dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
                         hintMeshDraw.pixelData.length);
-            }
-            if (normalizedHints.offsetX != 0 || normalizedHints.offsetY != 0) {
                 int[] pixelData =
                         offsetPixelData(hintMeshDraw, windowWidth, windowHeight,
                                 normalizedHints.offsetX, normalizedHints.offsetY);
@@ -1239,7 +1238,7 @@ public class WindowsOverlay {
 
     }
 
-    private static NormalizedHints normalizedHints(List<Hint> originalHints,
+    private static NormalizedHints normalizedHints(Screen screen, List<Hint> originalHints,
                                                    List<Key> focusedHintKeySequence,
                                                    int scaledBoxBorderThickness,
                                                    boolean isHintPartOfGrid) {
@@ -1254,9 +1253,8 @@ public class WindowsOverlay {
             minHintCellX = Math.min(minHintCellX, zoomedX(hint.centerX()) - zoomPercent() * hint.cellWidth() / 2);
             minHintCellY = Math.min(minHintCellY, zoomedY(hint.centerY()) - zoomPercent() * hint.cellHeight() / 2);
         }
-        // TODO screen x/y instead of 0/0
-        int offsetX = Math.max(0, (int) (minHintCellX - scaledBoxBorderThickness / 2d));
-        int offsetY = Math.max(0, (int) (minHintCellY - scaledBoxBorderThickness / 2d));
+        int offsetX = Math.max(screen.rectangle().x(), (int) (minHintCellX - scaledBoxBorderThickness / 2d));
+        int offsetY = Math.max(screen.rectangle().y(), (int) (minHintCellY - scaledBoxBorderThickness / 2d));
 //        int offsetX = (int) (minHintCellX - scaledBoxBorderThickness / 2d);
 //        int offsetY = (int) (minHintCellY - scaledBoxBorderThickness / 2d);
         List<Hint> hints = new ArrayList<>();
