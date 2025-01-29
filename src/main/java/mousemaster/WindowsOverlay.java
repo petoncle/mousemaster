@@ -808,16 +808,8 @@ public class WindowsOverlay {
         int highlightFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(highlightFontBrushColor, highlightFontBrush);
         PointerByReference shadowFontBrush = new PointerByReference();
         // Formula is 1 - (1 - opacity)^(number of times opacity is applied).
-        // But +2 seems to work for 0.1. +4 for 0.05 (any thickness)
-        // +1 for 0.2.
-        int extra;
-        if (fontShadowOpacity <= 0.05)
-            extra = 4;
-        else if (fontShadowOpacity <= 0.1)
-            extra = 2;
-        else
-            extra = 1;
-        double shadowFontBodyOpacity = 1 - Math.pow(1 - fontShadowOpacity, fontShadowThickness + extra);
+        // Note: the shadow body is drawn on top of boxColor, and so it appears darker than shadowFontBrushColor.
+        double shadowFontBodyOpacity = 1 - Math.pow(1 - fontShadowOpacity, fontShadowThickness);
         int shadowFontBrushColor = ((int) (shadowFontBodyOpacity * 255) << 24) | hexColorStringToRgb(fontShadowHexColor, 1d);
         int shadowFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowFontBrushColor, shadowFontBrush);
 
@@ -868,14 +860,13 @@ public class WindowsOverlay {
             }
 
             int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
-            clearWindow(hdcTemp, windowRect, noColorColor);
             // Shadow outline drawn first, then shadow body (which must overwrite existing shadow outline pixel),
             // then the rest.
             boolean mustDrawShadow =
-                    fontShadowOpacity != 0 && (fontShadowHorizontalOffset != 0 ||
-                                               fontShadowVerticalOffset != 0);
+                    fontShadowOpacity != 0 && fontShadowThickness != 0;
             int[] shadowBodyPixelData = mustDrawShadow ? new int[hintMeshDraw.pixelData.length] : null;
             if (mustDrawShadow) {
+//                clearWindow(hdcTemp, windowRect, boxColor);
                 if (fontShadowThickness > 1) {
                     // No antialiasing for the shadow body.
                     Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(),
@@ -1018,8 +1009,9 @@ public class WindowsOverlay {
                             hintMeshDraw.pixelData.length);
                     for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
                         int shadowBodyPixel = shadowBodyPixelData[i];
-                        if (shadowBodyPixel == noColorColor)
+                        if (shadowBodyPixel == boxColor)
                             continue;
+
                         hintMeshDraw.pixelData[i] = shadowBodyPixel;
                     }
                     dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0,
