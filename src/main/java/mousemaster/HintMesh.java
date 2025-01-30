@@ -9,7 +9,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        String fontName,
                        double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                        double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
-                       double fontShadowThickness, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
+                       double fontShadowThickness, double fontShadowStep, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
                        String prefixFontHexColor, double highlightFontScale,
                        String boxHexColor, double boxOpacity,
                        double boxBorderThickness,
@@ -41,6 +41,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private String fontOutlineHexColor;
         private double fontOutlineOpacity;
         private double fontShadowThickness;
+        private double fontShadowStep;
         private String fontShadowHexColor;
         private double fontShadowOpacity;
         private double fontShadowHorizontalOffset;
@@ -78,6 +79,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.fontOutlineHexColor = hintMesh.fontOutlineHexColor;
             this.fontOutlineOpacity = hintMesh.fontOutlineOpacity;
             this.fontShadowThickness = hintMesh.fontShadowThickness;
+            this.fontShadowStep = hintMesh.fontShadowStep;
             this.fontShadowHexColor = hintMesh.fontShadowHexColor;
             this.fontShadowOpacity = hintMesh.fontShadowOpacity;
             this.fontShadowHorizontalOffset = hintMesh.fontShadowHorizontalOffset;
@@ -150,6 +152,10 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public double fontShadowThickness() {
             return fontShadowThickness;
+        }
+
+        public double fontShadowStep() {
+            return fontShadowStep;
         }
 
         public String fontShadowHexColor() {
@@ -293,6 +299,11 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
+        public HintMeshBuilder fontShadowStep(double fontShadowStep) {
+            this.fontShadowStep = fontShadowStep;
+            return this;
+        }
+
         public HintMeshBuilder fontShadowHexColor(String fontShadowHexColor) {
             this.fontShadowHexColor = fontShadowHexColor;
             return this;
@@ -394,7 +405,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
-                    fontShadowThickness, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
+                    fontShadowThickness, fontShadowStep, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
                     prefixFontHexColor, highlightFontScale,
                     boxHexColor, boxOpacity,
                     boxBorderThickness,

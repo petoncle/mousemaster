@@ -93,6 +93,7 @@ public class ConfigurationParser {
                 .fontOutlineHexColor("#000000")
                 .fontOutlineOpacity(0.5d)
                 .fontShadowThickness(2)
+                .fontShadowStep(1000)
                 .fontShadowHexColor("#000000")
                 .fontShadowOpacity(0.3d)
                 .fontShadowHorizontalOffset(1)
@@ -557,6 +558,8 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, 0, 1));
                         case "font-shadow-thickness" -> mode.hintMesh.builder.fontShadowThickness(
                                 parseDouble(propertyValue, true, 0, 1000));
+                        case "font-shadow-step" -> mode.hintMesh.builder.fontShadowStep(
+                                parseDouble(propertyValue, true, 1, 1000));
                         case "font-shadow-color" -> mode.hintMesh.builder.fontShadowHexColor(
                                 checkColorFormat(propertyValue));
                         case "font-shadow-opacity" -> mode.hintMesh.builder.fontShadowOpacity(
@@ -1601,6 +1604,8 @@ public class ConfigurationParser {
                         builder.fontOutlineOpacity(parent.fontOutlineOpacity());
                     if (builder.fontShadowThickness() == null)
                         builder.fontShadowThickness(parent.fontShadowThickness());
+                    if (builder.fontShadowStep() == null)
+                        builder.fontShadowStep(parent.fontShadowStep());
                     if (builder.fontShadowHexColor() == null)
                         builder.fontShadowHexColor(parent.fontShadowHexColor());
                     if (builder.fontShadowOpacity() == null)

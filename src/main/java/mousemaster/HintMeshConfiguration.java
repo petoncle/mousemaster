@@ -11,7 +11,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Set<Key> undoKeys, String fontName,
                                     double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                                     double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
-                                    double fontShadowThickness, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
+                                    double fontShadowThickness, double fontShadowStep, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
                                     String prefixFontHexColor,
                                     double highlightFontScale,
                                     String boxHexColor,
@@ -47,6 +47,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String fontOutlineHexColor;
         private Double fontOutlineOpacity;
         private Double fontShadowThickness;
+        private Double fontShadowStep;
         private String fontShadowHexColor;
         private Double fontShadowOpacity;
         private Double fontShadowHorizontalOffset;
@@ -137,6 +138,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder fontShadowThickness(double fontShadowThickness) {
             this.fontShadowThickness = fontShadowThickness;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder fontShadowStep(double fontShadowStep) {
+            this.fontShadowStep = fontShadowStep;
             return this;
         }
 
@@ -315,6 +321,10 @@ public record HintMeshConfiguration(boolean enabled,
             return fontShadowThickness;
         }
 
+        public Double fontShadowStep() {
+            return fontShadowStep;
+        }
+
         public String fontShadowHexColor() {
             return fontShadowHexColor;
         }
@@ -409,7 +419,7 @@ public record HintMeshConfiguration(boolean enabled,
                     undoKeys, fontName,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
-                    fontShadowThickness, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
+                    fontShadowThickness, fontShadowStep, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
                     prefixFontHexColor,
                     highlightFontScale,
                     boxHexColor, boxOpacity, boxBorderThickness,

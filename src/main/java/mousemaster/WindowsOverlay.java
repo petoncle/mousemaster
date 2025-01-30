@@ -712,6 +712,7 @@ public class WindowsOverlay {
         String fontOutlineHexColor = currentHintMesh.fontOutlineHexColor();
         double fontOutlineOpacity = currentHintMesh.fontOutlineOpacity();
         double fontShadowThickness = currentHintMesh.fontShadowThickness();
+        double fontShadowStep = currentHintMesh.fontShadowStep();
         String fontShadowHexColor = currentHintMesh.fontShadowHexColor();
         double fontShadowOpacity = currentHintMesh.fontShadowOpacity();
         double fontShadowHorizontalOffset = currentHintMesh.fontShadowHorizontalOffset();
@@ -787,12 +788,12 @@ public class WindowsOverlay {
         PointerByReference shadowOutlinePath = new PointerByReference();
         int createShadowOutlinePathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, shadowOutlinePath);
         List<PointerByReference> outlinePens = fontOutlineThickness == 0 ? List.of():
-                createOutlinePens(fontOutlineThickness, fontOutlineHexColor,
-                        fontOutlineOpacity, true);
-
-        List<PointerByReference> shadowPens =
-                createOutlinePens(fontShadowThickness, fontShadowHexColor,
-                        fontShadowOpacity, false);
+                createOutlinePens(fontOutlineThickness, fontOutlineThickness, fontOutlineHexColor,
+                        fontOutlineOpacity);
+        fontShadowStep = Math.min(fontShadowThickness, fontShadowStep);
+        List<PointerByReference> shadowPens = fontShadowThickness == 0 ? List.of() :
+                createOutlinePens(fontShadowThickness, fontShadowStep, fontShadowHexColor,
+                        fontShadowOpacity);
 
         PointerByReference prefixFontBrush = new PointerByReference();
         int prefixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(prefixFontHexColor, 1d);
@@ -809,7 +810,9 @@ public class WindowsOverlay {
         PointerByReference shadowFontBrush = new PointerByReference();
         // Formula is 1 - (1 - opacity)^(number of times opacity is applied).
         // Note: the shadow body is drawn on top of boxColor, and so it appears darker than shadowFontBrushColor.
-        double shadowFontBodyOpacity = 1 - Math.pow(1 - fontShadowOpacity, fontShadowThickness);
+        int shadowOutlineStepCount = (int) (fontShadowThickness / fontShadowStep);
+        double shadowFontBodyOpacity = shadowOutlineStepCount == 0 ? fontShadowOpacity :
+                1 - Math.pow(1 - fontShadowOpacity, shadowOutlineStepCount);
         int shadowFontBrushColor = ((int) (shadowFontBodyOpacity * 255) << 24) | hexColorStringToRgb(fontShadowHexColor, 1d);
         int shadowFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowFontBrushColor, shadowFontBrush);
 
@@ -862,8 +865,7 @@ public class WindowsOverlay {
             int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
             // Shadow outline drawn first, then shadow body (which must overwrite existing shadow outline pixel),
             // then the rest.
-            boolean mustDrawShadow =
-                    fontShadowOpacity != 0 && fontShadowThickness != 0;
+            boolean mustDrawShadow = fontShadowOpacity != 0;
             int[] shadowBodyPixelData = mustDrawShadow ? new int[hintMeshDraw.pixelData.length] : null;
             if (mustDrawShadow) {
 //                clearWindow(hdcTemp, windowRect, boxColor);
@@ -1003,20 +1005,19 @@ public class WindowsOverlay {
             }
             dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length);
             if (mustDrawShadow) {
-                drawAndFillPath(shadowPens, graphics, shadowOutlinePath, null);
-                if (fontShadowThickness > 1) {
-                    dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
-                            hintMeshDraw.pixelData.length);
-                    for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
-                        int shadowBodyPixel = shadowBodyPixelData[i];
-                        if (shadowBodyPixel == boxColor)
-                            continue;
+                if (shadowOutlineStepCount > 0)
+                    drawAndFillPath(shadowPens, graphics, shadowOutlinePath, null);
+                dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0,
+                        hintMeshDraw.pixelData.length);
+                for (int i = 0; i < hintMeshDraw.pixelData.length; i++) {
+                    int shadowBodyPixel = shadowBodyPixelData[i];
+                    if (shadowBodyPixel == boxColor)
+                        continue;
 
-                        hintMeshDraw.pixelData[i] = shadowBodyPixel;
-                    }
-                    dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0,
-                            hintMeshDraw.pixelData.length);
+                    hintMeshDraw.pixelData[i] = shadowBodyPixel;
                 }
+                dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0,
+                        hintMeshDraw.pixelData.length);
             }
 
             boolean mustDrawPrefix = false;
@@ -1097,28 +1098,18 @@ public class WindowsOverlay {
     }
 
     private static List<PointerByReference> createOutlinePens(double outlineThickness,
+                                                              double step,
                                                               String fontOutlineHexColor,
-                                                              double outlineOpacity,
-                                                              boolean singlePass) {
-        int glowRadius;
-        float penWidthMultiplier;
-        if (singlePass) {
-            glowRadius = outlineThickness == 0 ? 0 : 1;
-            penWidthMultiplier = (float) outlineThickness;
-        }
-        else {
-            glowRadius = (int) Math.ceil(outlineThickness);
-            penWidthMultiplier = 1;
-        }
+                                                              double outlineOpacity) {
         int outlineColorRgb = hexColorStringToRgb(fontOutlineHexColor, 1d);
         int penColor = (int) (outlineOpacity * 0xFF) << 24 |
                        outlineColorRgb; //0x80000000; // ARGB
         List<PointerByReference> outlinePens = new ArrayList<>();
-        for (int radius = 1; radius <= glowRadius; radius++) {
+        for (int stepIndex = 1; stepIndex * step <= outlineThickness; stepIndex++) {
             PointerByReference pen = new PointerByReference();
             outlinePens.add(pen);
             int penStatus =
-                    Gdiplus.INSTANCE.GdipCreatePen1(penColor, radius * penWidthMultiplier,
+                    Gdiplus.INSTANCE.GdipCreatePen1(penColor, (float) (stepIndex * step),
                             2, pen); // 2 = UnitPixel
             if (penStatus != 0) {
                 throw new RuntimeException("Failed to create Pen. Status: " + penStatus);
@@ -1230,7 +1221,9 @@ public class WindowsOverlay {
                                                    double boxBorderThickness,
                                                    boolean isHintPartOfGrid) {
         if (!isHintPartOfGrid) {
-            return new NormalizedHints(originalHints, 0, 0);
+            // No cellWidth/Height if !isHintPartOfGrid
+            return new NormalizedHints(originalHints, screen.rectangle().x(),
+                    screen.rectangle().y());
         }
         double minHintCellX = Double.MAX_VALUE;
         double minHintCellY = Double.MAX_VALUE;
