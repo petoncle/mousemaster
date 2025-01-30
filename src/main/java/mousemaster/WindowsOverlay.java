@@ -696,6 +696,7 @@ public class WindowsOverlay {
         int dpi = screen.dpi();
         float normalGdipFontSize = (float) (fontSize * dpi / 72);
         HintMesh normalizedHintMesh = new HintMesh.HintMeshBuilder(currentHintMesh)
+                .type(null) // last-selected-hint or screen-center can lead to same drawings.
                 .hints(normalizedHints.hints())
                 .fontSize(normalGdipFontSize) // DPI-dependent
                 .build();
@@ -755,84 +756,14 @@ public class WindowsOverlay {
             throw new RuntimeException("Failed to clear graphics with box color. Status: " + clearStatus);
         }
 
-        // https://stackoverflow.com/questions/1203087/why-is-graphics-measurestring-returning-a-higher-than-expected-number
-        // Does not look like it is useful when used with GdipAddPathString (it is useful with GdipDrawString)
-        int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 3); // 3 = AntiAliasGridFit, 4 = TextRenderingHintAntiAlias
-        if (textRenderingStatus != 0) {
-            throw new RuntimeException("Failed to set TextRenderingHint. Status: " + textRenderingStatus);
+        List<Hint> roundedHints = new ArrayList<>(normalizedHintMesh.hints().size());
+        for (Hint hint : normalizedHintMesh.hints()) {
+            roundedHints.add(new Hint(Math.round(hint.centerX()), Math.round(hint.centerY()), Math.round(hint.cellWidth()),
+                    Math.round(hint.cellHeight()), hint.keySequence()));
         }
-
-        int smoothingModeStatus = Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(), 2); // 2= SmoothingModeAntiAlias
-        if (smoothingModeStatus != 0) {
-            throw new RuntimeException("Failed to set SmoothingMode. Status: " + smoothingModeStatus);
-        }
-
-        int interpolationModeStatus = Gdiplus.INSTANCE.GdipSetInterpolationMode(graphics.getValue(), 7); // InterpolationModeHighQualityBicubic
-        if (interpolationModeStatus != 0) {
-            throw new RuntimeException("Failed to set SmoothingMode. Status: " + interpolationModeStatus);
-        }
-
-        PointerByReference fontFamily = new PointerByReference();
-        int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(
-                new WString(fontFamilyAndStyle.fontFamily()), null, fontFamily);
-
-        PointerByReference prefixPath = new PointerByReference();
-        int createPrefixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, prefixPath); // 0 = FillModeAlternate
-        if (createPrefixPathStatus != 0) {
-            throw new RuntimeException("Failed to create GraphicsPath. Status: " + createPrefixPathStatus);
-        }
-        PointerByReference suffixPath = new PointerByReference();
-        int createSuffixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, suffixPath);
-        PointerByReference highlightPath = new PointerByReference();
-        int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
-        PointerByReference shadowOutlinePath = new PointerByReference();
-        int createShadowOutlinePathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, shadowOutlinePath);
-        List<PointerByReference> outlinePens = fontOutlineThickness == 0 ? List.of():
-                createOutlinePens(fontOutlineThickness, fontOutlineThickness, fontOutlineHexColor,
-                        fontOutlineOpacity);
-        fontShadowStep = Math.min(fontShadowThickness, fontShadowStep);
-        List<PointerByReference> shadowPens = fontShadowThickness == 0 ? List.of() :
-                createOutlinePens(fontShadowThickness, fontShadowStep, fontShadowHexColor,
-                        fontShadowOpacity);
-
-        PointerByReference prefixFontBrush = new PointerByReference();
-        int prefixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(prefixFontHexColor, 1d);
-        int prefixFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(prefixFontBrushColor, prefixFontBrush);
-        if (prefixFontBrushStatus != 0) {
-            throw new RuntimeException("Failed to create Brush. Status: " + prefixFontBrushStatus);
-        }
-        PointerByReference suffixFontBrush = new PointerByReference();
-        int suffixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
-        int suffixFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(suffixFontBrushColor, suffixFontBrush);
-        PointerByReference highlightFontBrush = new PointerByReference();
-        int highlightFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
-        int highlightFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(highlightFontBrushColor, highlightFontBrush);
-        PointerByReference shadowFontBrush = new PointerByReference();
-        // Formula is 1 - (1 - opacity)^(number of times opacity is applied).
-        // Note: the shadow body is drawn on top of boxColor, and so it appears darker than shadowFontBrushColor.
-        int shadowOutlineStepCount = (int) (fontShadowThickness / fontShadowStep);
-        double shadowFontBodyOpacity = shadowOutlineStepCount == 0 ? fontShadowOpacity :
-                1 - Math.pow(1 - fontShadowOpacity, shadowOutlineStepCount);
-        int shadowFontBrushColor = ((int) (shadowFontBodyOpacity * 255) << 24) | hexColorStringToRgb(fontShadowHexColor, 1d);
-        int shadowFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowFontBrushColor, shadowFontBrush);
-
-        PointerByReference stringFormat = stringFormat();
-
-        PointerByReference normalFont = new PointerByReference();
-        int fontStyle = 0; // Regular style
-        int unit = 2; // UnitPixel
-        int normalFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), normalGdipFontSize, fontStyle, unit, normalFont);
-        if (normalFontStatus != 0) {
-            throw new RuntimeException("Failed to create Font. Status: " + normalFontStatus);
-        }
-        PointerByReference largeFont = new PointerByReference();
-        int largeFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), largeGdipFontSize, fontStyle, unit, largeFont);
-        if (largeFontStatus != 0) {
-            throw new RuntimeException("Failed to create Font. Status: " + largeFontStatus);
-        }
-
+        HintMesh roundedNormalizedHintMesh = normalizedHintMesh.builder().hints(roundedHints).build();
         HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.get(
-                normalizedHintMesh);
+                roundedNormalizedHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
         if (hintMeshDrawIsCached) {
             logger.info("hintMeshDraw is cached");
@@ -844,8 +775,85 @@ public class WindowsOverlay {
             else
                 pixelData = hintMeshDraw.pixelData;
             dibSection.pixelPointer.write(0, pixelData, 0, pixelData.length);
+            updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
         }
         else {
+            // https://stackoverflow.com/questions/1203087/why-is-graphics-measurestring-returning-a-higher-than-expected-number
+            // Does not look like it is useful when used with GdipAddPathString (it is useful with GdipDrawString)
+            int textRenderingStatus = Gdiplus.INSTANCE.GdipSetTextRenderingHint(graphics.getValue(), 3); // 3 = AntiAliasGridFit, 4 = TextRenderingHintAntiAlias
+            if (textRenderingStatus != 0) {
+                throw new RuntimeException("Failed to set TextRenderingHint. Status: " + textRenderingStatus);
+            }
+
+            int smoothingModeStatus = Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(), 2); // 2= SmoothingModeAntiAlias
+            if (smoothingModeStatus != 0) {
+                throw new RuntimeException("Failed to set SmoothingMode. Status: " + smoothingModeStatus);
+            }
+
+            int interpolationModeStatus = Gdiplus.INSTANCE.GdipSetInterpolationMode(graphics.getValue(), 7); // InterpolationModeHighQualityBicubic
+            if (interpolationModeStatus != 0) {
+                throw new RuntimeException("Failed to set SmoothingMode. Status: " + interpolationModeStatus);
+            }
+
+            PointerByReference fontFamily = new PointerByReference();
+            int fontFamilyStatus = Gdiplus.INSTANCE.GdipCreateFontFamilyFromName(
+                    new WString(fontFamilyAndStyle.fontFamily()), null, fontFamily);
+
+            PointerByReference prefixPath = new PointerByReference();
+            int createPrefixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, prefixPath); // 0 = FillModeAlternate
+            if (createPrefixPathStatus != 0) {
+                throw new RuntimeException("Failed to create GraphicsPath. Status: " + createPrefixPathStatus);
+            }
+            PointerByReference suffixPath = new PointerByReference();
+            int createSuffixPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, suffixPath);
+            PointerByReference highlightPath = new PointerByReference();
+            int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
+            PointerByReference shadowOutlinePath = new PointerByReference();
+            int createShadowOutlinePathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, shadowOutlinePath);
+            List<PointerByReference> outlinePens = fontOutlineThickness == 0 ? List.of():
+                    createOutlinePens(fontOutlineThickness, fontOutlineThickness, fontOutlineHexColor,
+                            fontOutlineOpacity);
+            fontShadowStep = Math.min(fontShadowThickness, fontShadowStep);
+            List<PointerByReference> shadowPens = fontShadowThickness == 0 ? List.of() :
+                    createOutlinePens(fontShadowThickness, fontShadowStep, fontShadowHexColor,
+                            fontShadowOpacity);
+
+            PointerByReference prefixFontBrush = new PointerByReference();
+            int prefixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(prefixFontHexColor, 1d);
+            int prefixFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(prefixFontBrushColor, prefixFontBrush);
+            if (prefixFontBrushStatus != 0) {
+                throw new RuntimeException("Failed to create Brush. Status: " + prefixFontBrushStatus);
+            }
+            PointerByReference suffixFontBrush = new PointerByReference();
+            int suffixFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
+            int suffixFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(suffixFontBrushColor, suffixFontBrush);
+            PointerByReference highlightFontBrush = new PointerByReference();
+            int highlightFontBrushColor = ((int) (fontOpacity * 255) << 24) | hexColorStringToRgb(fontHexColor, 1d);
+            int highlightFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(highlightFontBrushColor, highlightFontBrush);
+            PointerByReference shadowFontBrush = new PointerByReference();
+            // Formula is 1 - (1 - opacity)^(number of times opacity is applied).
+            // Note: the shadow body is drawn on top of boxColor, and so it appears darker than shadowFontBrushColor.
+            int shadowOutlineStepCount = (int) (fontShadowThickness / fontShadowStep);
+            double shadowFontBodyOpacity = shadowOutlineStepCount == 0 ? fontShadowOpacity :
+                    1 - Math.pow(1 - fontShadowOpacity, shadowOutlineStepCount);
+            int shadowFontBrushColor = ((int) (shadowFontBodyOpacity * 255) << 24) | hexColorStringToRgb(fontShadowHexColor, 1d);
+            int shadowFontBrushStatus = Gdiplus.INSTANCE.GdipCreateSolidFill(shadowFontBrushColor, shadowFontBrush);
+
+            PointerByReference stringFormat = stringFormat();
+
+            PointerByReference normalFont = new PointerByReference();
+            int fontStyle = 0; // Regular style
+            int unit = 2; // UnitPixel
+            int normalFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), normalGdipFontSize, fontStyle, unit, normalFont);
+            if (normalFontStatus != 0) {
+                throw new RuntimeException("Failed to create Font. Status: " + normalFontStatus);
+            }
+            PointerByReference largeFont = new PointerByReference();
+            int largeFontStatus = Gdiplus.INSTANCE.GdipCreateFont(fontFamily.getValue(), largeGdipFontSize, fontStyle, unit, largeFont);
+            if (largeFontStatus != 0) {
+                throw new RuntimeException("Failed to create Font. Status: " + largeFontStatus);
+            }
+
             // Without caching, a full screen of hints drawn with GDI+ takes some time
             // to compute, even when there is no outline.
             hintMeshDraw = hintMeshDraw(screen, normalizedHints,
@@ -859,7 +867,7 @@ public class WindowsOverlay {
                 // of them.
                 logger.info("Caching new hintMeshDraw with " +
                              hintMeshDraw.hintSequenceTexts.size() + " visible hints");
-                hintMeshWindow.hintMeshDrawCache.put(normalizedHintMesh, hintMeshDraw);
+                hintMeshWindow.hintMeshDrawCache.put(roundedNormalizedHintMesh, hintMeshDraw);
             }
 
             int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
@@ -1013,7 +1021,6 @@ public class WindowsOverlay {
                     int shadowBodyPixel = shadowBodyPixelData[i];
                     if (shadowBodyPixel == boxColor)
                         continue;
-
                     hintMeshDraw.pixelData[i] = shadowBodyPixel;
                 }
                 dibSection.pixelPointer.write(0, hintMeshDraw.pixelData, 0,
@@ -1054,26 +1061,26 @@ public class WindowsOverlay {
                                 normalizedHints.offsetX, normalizedHints.offsetY);
                 dibSection.pixelPointer.write(0, pixelData, 0, pixelData.length);
             }
+            updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
+
+            Gdiplus.INSTANCE.GdipDeleteBrush(prefixFontBrush.getValue());
+            Gdiplus.INSTANCE.GdipDeleteBrush(suffixFontBrush.getValue());
+            Gdiplus.INSTANCE.GdipDeleteBrush(highlightFontBrush.getValue());
+            Gdiplus.INSTANCE.GdipDeleteBrush(shadowFontBrush.getValue());
+            Gdiplus.INSTANCE.GdipDeleteFont(normalFont.getValue());
+            Gdiplus.INSTANCE.GdipDeleteFont(largeFont.getValue());
+            for (PointerByReference pen : outlinePens)
+                Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
+            for (PointerByReference pen : shadowPens)
+                Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
+            Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
+            Gdiplus.INSTANCE.GdipDeletePath(prefixPath.getValue());
+            Gdiplus.INSTANCE.GdipDeletePath(suffixPath.getValue());
+            Gdiplus.INSTANCE.GdipDeletePath(highlightPath.getValue());
+            Gdiplus.INSTANCE.GdipDeletePath(shadowOutlinePath.getValue());
+            Gdiplus.INSTANCE.GdipDeleteFontFamily(fontFamily.getValue());
         }
 
-        updateLayeredWindow(windowRect, hintMeshWindow, hdcTemp);
-
-        // Step 7: Cleanup
-        Gdiplus.INSTANCE.GdipDeleteBrush(prefixFontBrush.getValue());
-        Gdiplus.INSTANCE.GdipDeleteBrush(suffixFontBrush.getValue());
-        Gdiplus.INSTANCE.GdipDeleteBrush(highlightFontBrush.getValue());
-        Gdiplus.INSTANCE.GdipDeleteFont(normalFont.getValue());
-        Gdiplus.INSTANCE.GdipDeleteFont(largeFont.getValue());
-        for (PointerByReference pen : outlinePens)
-            Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
-        for (PointerByReference pen : shadowPens)
-            Gdiplus.INSTANCE.GdipDeletePen(pen.getValue());
-        Gdiplus.INSTANCE.GdipDeleteStringFormat(stringFormat.getValue());
-        Gdiplus.INSTANCE.GdipDeletePath(prefixPath.getValue());
-        Gdiplus.INSTANCE.GdipDeletePath(suffixPath.getValue());
-        Gdiplus.INSTANCE.GdipDeletePath(highlightPath.getValue());
-        Gdiplus.INSTANCE.GdipDeletePath(shadowOutlinePath.getValue());
-        Gdiplus.INSTANCE.GdipDeleteFontFamily(fontFamily.getValue());
         Gdiplus.INSTANCE.GdipDeleteGraphics(graphics.getValue());
 
         GDI32.INSTANCE.SelectObject(hdcTemp, oldDIBitmap);
