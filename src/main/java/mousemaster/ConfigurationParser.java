@@ -95,7 +95,7 @@ public class ConfigurationParser {
                 .fontShadowThickness(2)
                 .fontShadowStep(1000)
                 .fontShadowHexColor("#000000")
-                .fontShadowOpacity(0.3d)
+                .fontShadowOpacity(0.4d)
                 .fontShadowHorizontalOffset(1)
                 .fontShadowVerticalOffset(1)
                 .prefixFontHexColor("#AAAAAA")

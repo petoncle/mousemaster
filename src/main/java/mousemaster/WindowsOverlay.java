@@ -861,7 +861,10 @@ public class WindowsOverlay {
                     highlightFontScale, expandBoxes,
                     graphics, normalFont, fontSpacingPercent, largeFont,
                     boxBorderThickness, windowWidth, windowHeight);
-            boolean hintMeshMustBeCached = isHintGrid && hintMeshDraw.hintSequenceTexts.size() > 0;
+            boolean hintMeshMustBeCached = isHintGrid &&
+                                           (hintMeshDraw.hintSequenceTexts.size() > 200 ||
+                                            focusedHintKeySequence.isEmpty() ||
+                                            fontShadowOpacity != 0 && shadowOutlineStepCount > 1);
             if (hintMeshMustBeCached) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
@@ -1484,13 +1487,13 @@ public class WindowsOverlay {
     }
 
     private static Gdiplus.GdiplusRectF hintKeyBoundingBox(PointerByReference graphics,
-                                                     PointerByReference normalFont,
-                                                     Key key,
-                                                     Map<Key, Gdiplus.GdiplusRectF> normalFontBoundingBoxes,
-                                                     Gdiplus.GdiplusRectF layoutRect,
-                                                     PointerByReference stringFormat,
-                                                     PointerByReference region) {
-        return normalFontBoundingBoxes.computeIfAbsent(key,
+                                                           PointerByReference normalFont,
+                                                           Key key,
+                                                           Map<Key, Gdiplus.GdiplusRectF> boundingBoxes,
+                                                           Gdiplus.GdiplusRectF layoutRect,
+                                                           PointerByReference stringFormat,
+                                                           PointerByReference region) {
+        return boundingBoxes.computeIfAbsent(key,
                 key1 -> {
                     Gdiplus.GdiplusRectF boundingBox = new Gdiplus.GdiplusRectF();
                     measureString(key.hintLabel(), normalFont, graphics,
