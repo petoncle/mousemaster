@@ -830,9 +830,11 @@ public class WindowsOverlay {
             int createHighlightPathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, highlightPath);
             PointerByReference shadowOutlinePath = new PointerByReference();
             int createShadowOutlinePathStatus = Gdiplus.INSTANCE.GdipCreatePath(0, shadowOutlinePath);
-            List<PointerByReference> outlinePens = fontOutlineThickness == 0 ? List.of():
-                    createOutlinePens(fontOutlineThickness, fontOutlineThickness, fontOutlineHexColor,
-                            fontOutlineOpacity);
+            List<PointerByReference> outlinePens =
+                    fontOutlineThickness == 0 || fontOutlineOpacity == 0 ? List.of() :
+                            createOutlinePens(fontOutlineThickness, fontOutlineThickness,
+                                    fontOutlineHexColor,
+                                    fontOutlineOpacity);
             fontShadowStep = Math.min(fontShadowThickness, fontShadowStep);
             List<PointerByReference> shadowPens = fontShadowThickness == 0 ? List.of() :
                     createOutlinePens(fontShadowThickness, fontShadowStep, fontShadowHexColor,
