@@ -255,39 +255,29 @@ public class HintManager implements ModeListener, MousePositionListener {
                                          int layoutColumnCount, boolean layoutRowOriented) {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
-        double hintMeshWidth = fixedSizeHintGrid.hintMeshWidth();
-        double hintMeshHeight = fixedSizeHintGrid.hintMeshHeight();
         double hintMeshX = fixedSizeHintGrid.hintMeshX();
         double hintMeshY = fixedSizeHintGrid.hintMeshY();
         double cellWidth = fixedSizeHintGrid.cellWidth;
         double cellHeight = fixedSizeHintGrid.cellHeight;
-        int spareWidthPixelCount = (int) (hintMeshWidth - cellWidth * columnCount);
-        int spareHeightPixelCount = (int) (hintMeshHeight - cellHeight * rowCount);
-        boolean[] rowExtraPixelDistribution = distributeTrueUniformly(rowCount, spareHeightPixelCount);
-        boolean[] columnExtraPixelDistribution = distributeTrueUniformly(columnCount, spareWidthPixelCount);
         int gridHintCount = rowCount * columnCount;
         List<Hint> hints = new ArrayList<>(gridHintCount);
         int hintIndex = beginHintIndex;
         double rowHeightOffset = 0;
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            double cellHeightWithExtra =
-                    cellHeight + (rowExtraPixelDistribution[rowIndex] ? 1 : 0);
             double columnWidthOffset = 0;
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                 List<Key> keySequence = hintKeySequence(selectionKeys, hintCount, hintIndex,
                         rowIndex, columnIndex, rowCount, columnCount, layoutRowCount, layoutColumnCount, layoutRowOriented);
-                double cellWidthWithExtra =
-                        cellWidth + (columnExtraPixelDistribution[columnIndex] ? 1 : 0);
-                double hintCenterX = hintMeshX + columnWidthOffset + cellWidthWithExtra / 2d;
-                double hintCenterY = hintMeshY + rowHeightOffset + cellHeightWithExtra / 2d;
+                double hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2d;
+                double hintCenterY = hintMeshY + rowHeightOffset + cellHeight / 2d;
                 hints.add(new Hint(hintCenterX, hintCenterY,
-                        cellWidthWithExtra,
-                        cellHeightWithExtra,
+                        cellWidth,
+                        cellHeight,
                         keySequence));
                 hintIndex++;
-                columnWidthOffset += cellWidthWithExtra;
+                columnWidthOffset += cellWidth;
             }
-            rowHeightOffset += cellHeightWithExtra;
+            rowHeightOffset += cellHeight;
         }
         return hints;
     }

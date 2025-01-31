@@ -669,8 +669,7 @@ public class WindowsOverlay {
     private record HintMeshDraw(List<WinDef.RECT> boxRects,
                                 List<WinDef.RECT> cellRects,
                                 List<HintSequenceText> hintSequenceTexts,
-                                int[] pixelData,
-                                double offsetX, double offsetY) {
+                                int[] pixelData) {
     }
 
     static {
@@ -780,12 +779,13 @@ public class WindowsOverlay {
             throw new RuntimeException("Failed to clear graphics with box color. Status: " + clearStatus);
         }
 
-        List<Hint> roundedHints = new ArrayList<>(normalizedHintMesh.hints().size());
-        for (Hint hint : normalizedHintMesh.hints()) {
-            roundedHints.add(new Hint(Math.round(hint.centerX()), Math.round(hint.centerY()), Math.round(hint.cellWidth()),
-                    Math.round(hint.cellHeight()), hint.keySequence()));
-        }
-        HintMesh roundedNormalizedHintMesh = normalizedHintMesh.builder().hints(roundedHints).build();
+//        List<Hint> roundedHints = new ArrayList<>(normalizedHintMesh.hints().size());
+//        for (Hint hint : normalizedHintMesh.hints()) {
+//            roundedHints.add(new Hint(Math.round(hint.centerX()), Math.round(hint.centerY()), Math.round(hint.cellWidth()),
+//                    Math.round(hint.cellHeight()), hint.keySequence()));
+//        }
+//        HintMesh roundedNormalizedHintMesh = normalizedHintMesh.builder().hints(roundedHints).build();
+        HintMesh roundedNormalizedHintMesh = normalizedHintMesh;
         HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.get(
                 roundedNormalizedHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
@@ -1105,11 +1105,13 @@ public class WindowsOverlay {
 
     private static int[] offsetPixelData(HintMeshDraw hintMeshDraw,
                                          int windowWidth, int windowHeight,
-                                         int offsetX, int offsetY) {
+                                         double offsetX, double offsetY) {
+        int offsetXInt = (int) Math.floor(offsetX);
+        int offsetYInt = (int) Math.floor(offsetY);
         int[] pixelData = new int[hintMeshDraw.pixelData.length];
-        for (int x = offsetX; x < windowWidth; x++) {
-            for (int y = offsetY; y < windowHeight; y++) {
-                int source = (y - offsetY) * windowWidth + (x - offsetX);
+        for (int x = offsetXInt; x < windowWidth; x++) {
+            for (int y = offsetYInt; y < windowHeight; y++) {
+                int source = (y - offsetYInt) * windowWidth + (x - offsetXInt);
                 int destination = y * windowWidth + x;
                 pixelData[destination] = hintMeshDraw.pixelData[source];
             }
@@ -1232,7 +1234,7 @@ public class WindowsOverlay {
         }
     }
 
-    private record NormalizedHints(List<Hint> hints, int offsetX, int offsetY) {
+    private record NormalizedHints(List<Hint> hints, double offsetX, double offsetY) {
 
     }
 
@@ -1262,8 +1264,9 @@ public class WindowsOverlay {
                     zoomPercent() * hint.cellHeight());
             minHintCellY = Math.min(minHintCellY, zoomedY(hint.centerY()) - cellHeight / 2);
         }
-        int offsetX = Math.max(screen.rectangle().x(), (int) (minHintCellX - boxBorderThickness / 2d));
-        int offsetY = Math.max(screen.rectangle().y(), (int) (minHintCellY - boxBorderThickness / 2d));
+        double offsetX = Math.max(screen.rectangle().x(), (minHintCellX - boxBorderThickness / 2d));
+        double offsetY = Math.max(screen.rectangle().y(), (minHintCellY - boxBorderThickness / 2d));
+//        offsetX = offsetY = 0;
 //        int offsetX = (int) (minHintCellX - boxBorderThickness / 2d);
 //        int offsetY = (int) (minHintCellY - boxBorderThickness / 2d);
         List<Hint> hints = new ArrayList<>();
@@ -1449,8 +1452,7 @@ public class WindowsOverlay {
             cellRects.add(cellRect); // TODO only if between box is non transparent
             boxRects.add(boxRect);
         }
-        return new HintMeshDraw(boxRects, cellRects, hintSequenceTexts, new int[windowWidth * windowHeight],
-                normalizedHints.offsetX, normalizedHints.offsetY);
+        return new HintMeshDraw(boxRects, cellRects, hintSequenceTexts, new int[windowWidth * windowHeight]);
     }
 
     private static HintBoundingBoxes hintCentersAndBoundingBoxes(
@@ -1607,7 +1609,7 @@ public class WindowsOverlay {
                                    double hintCenterX, double hintCenterY,
                                    double minHintCenterX, double maxHintCenterX,
                                    double minHintCenterY, double maxHintCenterY,
-                                   int offsetX, int offsetY) {
+                                   double offsetX, double offsetY) {
         double halfCellWidth = cellWidth / 2;
         double halfCellHeight = cellHeight / 2;
 
@@ -1623,13 +1625,13 @@ public class WindowsOverlay {
         int roundedBoxRight = (int) Math.ceil(boxRight);
         int roundedBoxBottom = (int) Math.ceil(boxBottom);
 
-        if (offsetX + roundedBoxLeft == screen.rectangle().x() + Math.ceil(boxBorderThickness / 2))
+        if (Math.abs(offsetX + roundedBoxLeft - (screen.rectangle().x() + Math.ceil(boxBorderThickness / 2))) < 1e-1)
             boxLeft += boxBorderThickness / 2;
-        if (offsetX + roundedBoxRight == screen.rectangle().x() + screen.rectangle().width() - Math.floor(boxBorderThickness / 2))
+        if (Math.abs(offsetX + roundedBoxRight - (screen.rectangle().x() + screen.rectangle().width() - Math.floor(boxBorderThickness / 2))) < 1e-1)
             boxRight -= boxBorderThickness / 2;
-        if (offsetY + roundedBoxTop == screen.rectangle().y() + Math.ceil(boxBorderThickness / 2))
+        if (Math.abs(offsetY + roundedBoxTop - (screen.rectangle().y() + Math.ceil(boxBorderThickness / 2))) < 1e-1)
             boxTop += boxBorderThickness / 2;
-        if (offsetY + roundedBoxBottom == screen.rectangle().y() + screen.rectangle().height() - Math.floor(boxBorderThickness / 2))
+        if (Math.abs(offsetY + roundedBoxBottom - (screen.rectangle().y() + screen.rectangle().height() - Math.floor(boxBorderThickness / 2))) < 1e-1)
             boxBottom -= boxBorderThickness / 2;
 
         roundedBoxLeft = (int) Math.ceil(boxLeft);
