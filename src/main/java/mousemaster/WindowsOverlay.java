@@ -785,7 +785,7 @@ public class WindowsOverlay {
                 roundedNormalizedHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
         if (hintMeshDrawIsCached) {
-            logger.info("hintMeshDraw is cached");
+            logger.trace("hintMeshDraw is cached");
             int[] pixelData;
             if (normalizedHints.offsetX != 0 || normalizedHints.offsetY != 0) {
                 pixelData = offsetPixelData(hintMeshDraw, windowWidth, windowHeight,
@@ -873,7 +873,7 @@ public class WindowsOverlay {
             if (hintMeshMustBeCached) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
-                logger.info("Caching new hintMeshDraw with " +
+                logger.trace("Caching new hintMeshDraw with " +
                              hintMeshDraw.hintSequenceTexts.size() + " visible hints");
                 hintMeshWindow.hintMeshDrawCache.put(roundedNormalizedHintMesh, hintMeshDraw);
             }
@@ -1259,8 +1259,9 @@ public class WindowsOverlay {
                     hint.cellHeight());
             minHintCellY = Math.min(minHintCellY, hint.centerY() - cellHeight / 2);
         }
-        double offsetX = Math.max(screen.rectangle().x(), (minHintCellX - boxBorderThickness / 2d));
-        double offsetY = Math.max(screen.rectangle().y(), (minHintCellY - boxBorderThickness / 2d));
+        double offsetX = Math.max(screen.rectangle().x(), Math.floor(minHintCellX - boxBorderThickness / 2d));
+        double offsetY = Math.max(screen.rectangle().y(), Math.floor(minHintCellY - boxBorderThickness / 2d));
+//        offsetY = offsetX = 0;
         List<Hint> hints = new ArrayList<>();
         for (Hint hint : originalHints) {
             if (!hint.startsWith(focusedHintKeySequence))
