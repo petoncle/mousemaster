@@ -20,17 +20,14 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             return;
         if (newMode.zoom().percent() == 1 && newMode.zoom().center() == ZoomCenter.SCREEN_CENTER)
             WindowsOverlay.setZoom(null);
-        else
+        else {
+            Point centerPoint = newMode.zoom().center().centerPoint(
+                    screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                    hintManager.lastSelectedHintPoint());
             WindowsOverlay.setZoom(new Zoom(newMode.zoom().percent(),
-                    centerPoint(newMode.zoom().center())));
-    }
-
-    private Point centerPoint(ZoomCenter center) {
-        return switch (center) {
-            case SCREEN_CENTER -> screenManager.activeScreen().rectangle().center();
-            case MOUSE -> new Point(mouseX, mouseY);
-            case LAST_SELECTED_HINT -> hintManager.lastSelectedHintPoint();
-        };
+                    centerPoint, screenManager.screenContaining(centerPoint.x(),
+                    centerPoint.y()).rectangle()));
+        }
     }
 
     @Override
@@ -43,8 +40,12 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         mouseX = x;
         mouseY = y;
         if (currentMode.zoom().center().equals(ZoomCenter.MOUSE)) {
+            Point centerPoint = currentMode.zoom().center().centerPoint(
+                    screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                    hintManager.lastSelectedHintPoint());
             WindowsOverlay.setZoom(new Zoom(currentMode.zoom().percent(),
-                    centerPoint(currentMode.zoom().center())));
+                    centerPoint, screenManager.screenContaining(centerPoint.x(),
+                    centerPoint.y()).rectangle()));
         }
     }
 }

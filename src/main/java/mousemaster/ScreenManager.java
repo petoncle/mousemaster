@@ -38,7 +38,7 @@ public class ScreenManager implements MousePositionListener {
         return WindowsScreen.findScreens();
     }
 
-    public Screen screenContaining(int x, int y) {
+    public Screen screenContaining(double x, double y) {
         for (Screen screen : screens()) {
             if (screen.rectangle().contains(x, y))
                 return screen;

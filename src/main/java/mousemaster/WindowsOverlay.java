@@ -31,7 +31,6 @@ public class WindowsOverlay {
     private static HintMesh currentHintMesh;
     private static ZoomWindow zoomWindow, standByZoomWindow;
     private static Zoom currentZoom;
-    private static Screen currentZoomScreen;
     private static boolean mustUpdateMagnifierSource;
 
     public static void update(double delta) {
@@ -45,12 +44,12 @@ public class WindowsOverlay {
             mustUpdateMagnifierSource = false;
             WinDef.RECT sourceRect = new WinDef.RECT();
             Zoom zoom = currentZoom;
-            Screen screen = currentZoomScreen;
+            Rectangle screenRectangle = zoom.screenRectangle();
             double zoomPercent = zoom.percent();
-            sourceRect.left = (int) (zoom.center().x() - screen.rectangle().width() / zoomPercent / 2);
-            sourceRect.top = (int) (zoom.center().y() - screen.rectangle().height() / zoomPercent / 2);
-            sourceRect.right = (int) (zoom.center().x() + screen.rectangle().width() / zoomPercent / 2);
-            sourceRect.bottom = (int) (zoom.center().y() + screen.rectangle().height() / zoomPercent / 2);
+            sourceRect.left = (int) (zoom.center().x() - screenRectangle.width() / zoomPercent / 2);
+            sourceRect.top = (int) (zoom.center().y() - screenRectangle.height() / zoomPercent / 2);
+            sourceRect.right = (int) (zoom.center().x() + screenRectangle.width() / zoomPercent / 2);
+            sourceRect.bottom = (int) (zoom.center().y() + screenRectangle.height() / zoomPercent / 2);
             // Calls to MagSetWindowSource are expensive and last about 10-20ms.
             if (!Magnification.INSTANCE.MagSetWindowSource(zoomWindow.hwnd(),
                     sourceRect)) {
@@ -178,17 +177,13 @@ public class WindowsOverlay {
     private static double zoomedX(double x) {
         if (currentZoom == null)
             return x;
-        return currentZoomScreen.rectangle().width() / 2d +
-                      (x - currentZoom.center().x()) *
-                      currentZoom.percent();
+        return currentZoom.zoomedX(x);
     }
 
     private static double zoomedY(double y) {
         if (currentZoom == null)
             return y;
-        return currentZoomScreen.rectangle().height() / 2d +
-                      (y - currentZoom.center().y()) *
-                      currentZoom.percent();
+        return currentZoom.zoomedY(y);
     }
 
     private static int bestIndicatorY() {
@@ -1258,11 +1253,11 @@ public class WindowsOverlay {
                             hintBoundingBoxes.normalFontBoundingBoxes,
                             hintBoundingBoxes.largeFontBoundingBoxes);
             double cellWidth = Math.max(hintFontBoundingBox.hintKeyTextTotalXAdvance,
-                    zoomPercent() * hint.cellWidth());
-            minHintCellX = Math.min(minHintCellX, zoomedX(hint.centerX()) - cellWidth / 2);
+                    hint.cellWidth());
+            minHintCellX = Math.min(minHintCellX, hint.centerX() - cellWidth / 2);
             double cellHeight = Math.max(hintFontBoundingBox.highestKeyHeight,
-                    zoomPercent() * hint.cellHeight());
-            minHintCellY = Math.min(minHintCellY, zoomedY(hint.centerY()) - cellHeight / 2);
+                    hint.cellHeight());
+            minHintCellY = Math.min(minHintCellY, hint.centerY() - cellHeight / 2);
         }
         double offsetX = Math.max(screen.rectangle().x(), (minHintCellX - boxBorderThickness / 2d));
         double offsetY = Math.max(screen.rectangle().y(), (minHintCellY - boxBorderThickness / 2d));
@@ -1274,10 +1269,10 @@ public class WindowsOverlay {
         for (Hint hint : originalHints) {
             if (!hint.startsWith(focusedHintKeySequence))
                 continue;
-            hint = new Hint(zoomedX(hint.centerX()) - offsetX,
-                    zoomedY(hint.centerY()) - offsetY,
-                    zoomPercent() * hint.cellWidth(),
-                    zoomPercent() * hint.cellHeight(), hint.keySequence());
+            hint = new Hint(hint.centerX() - offsetX,
+                    hint.centerY() - offsetY,
+                    hint.cellWidth(),
+                    hint.cellHeight(), hint.keySequence());
             hints.add(hint);
         }
         return new NormalizedHints(hints, offsetX, offsetY);
@@ -1725,10 +1720,7 @@ public class WindowsOverlay {
             // Because MagSetWindowTransform() will immediately show the new zoom area,
             // except only the zoom percent has been set so far (the new source will be updated by
             // MagSetWindowSource, next frame only).
-            Screen screen = WindowsScreen.findActiveScreen(new WinDef.POINT(
-                    (int) zoom.center().x(),
-                    (int) zoom.center().y()));
-            currentZoomScreen = screen;
+            Rectangle screenRectangle = zoom.screenRectangle();
             if (oldZoom == null || oldZoom.percent() != zoom.percent()) {
                 if (standByZoomWindow == null) {
                     standByZoomWindow = zoomWindow;
@@ -1747,12 +1739,12 @@ public class WindowsOverlay {
                                  Integer.toHexString(Native.getLastError()));
             }
             User32.INSTANCE.SetWindowPos(zoomWindow.hostHwnd(), null,
-                    screen.rectangle().x(), screen.rectangle().y(),
-                    screen.rectangle().width(), screen.rectangle().height(),
+                    screenRectangle.x(), screenRectangle.y(),
+                    screenRectangle.width(), screenRectangle.height(),
                     User32.SWP_NOZORDER);
             User32.INSTANCE.SetWindowPos(zoomWindow.hwnd(), null,
-                    screen.rectangle().x(), screen.rectangle().y(),
-                    screen.rectangle().width(), screen.rectangle().height(),
+                    screenRectangle.x(), screenRectangle.y(),
+                    screenRectangle.width(), screenRectangle.height(),
                     User32.SWP_NOZORDER);
         }
         if (indicatorWindow != null) {

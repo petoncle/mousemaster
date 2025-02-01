@@ -24,6 +24,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private boolean hintJustSelected = false;
     private int mouseX, mouseY;
     private Mode currentMode;
+    private Zoom currentZoom;
     private final List<Point> positionHistory = new ArrayList<>();
     private final int maxPositionHistorySize;
     private Point lastSelectedHintPoint;
@@ -105,7 +106,13 @@ public class HintManager implements ModeListener, MousePositionListener {
             previousHintMeshByTypeAndSelectionKeys.clear();
             WindowsOverlay.hideHintMesh();
         }
-        HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration);
+        Point zoomCenterPoint = newMode.zoom().center().centerPoint(
+                screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                lastSelectedHintPoint);
+        Zoom newZoom = new Zoom(newMode.zoom().percent(),
+                zoomCenterPoint, screenManager.screenContaining(zoomCenterPoint.x(),
+                zoomCenterPoint.y()).rectangle());
+        HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration, newZoom);
         if (currentMode != null && newMode.hintMesh().equals(currentMode.hintMesh()) &&
             newHintMesh.equals(hintMesh))
             return;
@@ -115,6 +122,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .flatMap(Collection::stream)
                                         .collect(Collectors.toSet());
         currentMode = newMode;
+        currentZoom = newZoom;
         previousHintMeshByTypeAndSelectionKeys.put(
                 hintMeshConfiguration.typeAndSelectionKeys(),
                 new HintMeshAndPreviousModeSelectedHintPoint(newHintMesh, lastSelectedHintPoint));
@@ -122,7 +130,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         WindowsOverlay.setHintMesh(hintMesh);
     }
 
-    private HintMesh buildHintMesh(HintMeshConfiguration hintMeshConfiguration) {
+    private HintMesh buildHintMesh(HintMeshConfiguration hintMeshConfiguration,
+                                   Zoom zoom) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
                 .type(hintMeshConfiguration.typeAndSelectionKeys().type())
@@ -196,8 +205,6 @@ public class HintManager implements ModeListener, MousePositionListener {
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle =
                         WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
-                Screen activeScreen = screenManager.activeScreen();
-                // TODO should active screen scale be taken into account?
                 Point gridCenter = activeWindowRectangle.center();
                 fixedSizeHintGrids.add(fixedSizeHintGrid(
                         activeWindowRectangle, gridCenter, hintGrid.maxRowCount(),
@@ -216,7 +223,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         hintMeshConfiguration.typeAndSelectionKeys().selectionKeys(),
                         hintCount,
                         beginHintIndex, hintGrid.layoutRowCount(),
-                        hintGrid.layoutColumnCount(), hintGrid.layoutRowOriented()));
+                        hintGrid.layoutColumnCount(), hintGrid.layoutRowOriented(),
+                        zoom));
             }
             hintMesh.hints(hints);
         }
@@ -230,7 +238,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         hintMeshConfiguration.typeAndSelectionKeys().selectionKeys(), hintCount,
                         idByPosition.get(point) % maxPositionHistorySize, -1, -1, -1,
                         -1, -1, -1, false);
-                hints.add(new Hint(point.x(), point.y(), -1, -1, keySequence));
+                Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
+                hints.add(new Hint(zoom1.zoomedX(point.x()), zoom1.zoomedY(point.y()), -1, -1, keySequence));
             }
             hintMesh.hints(hints);
         }
@@ -252,11 +261,13 @@ public class HintManager implements ModeListener, MousePositionListener {
     private static List<Hint> buildHints(FixedSizeHintGrid fixedSizeHintGrid,
                                          List<Key> selectionKeys, int hintCount,
                                          int beginHintIndex, int layoutRowCount,
-                                         int layoutColumnCount, boolean layoutRowOriented) {
+                                         int layoutColumnCount, boolean layoutRowOriented,
+                                         Zoom zoom) {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
-        double hintMeshX = fixedSizeHintGrid.hintMeshX();
-        double hintMeshY = fixedSizeHintGrid.hintMeshY();
+        Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
+        double hintMeshX = zoom1.zoomedX(fixedSizeHintGrid.hintMeshX());
+        double hintMeshY = zoom1.zoomedY(fixedSizeHintGrid.hintMeshY());
         double cellWidth = fixedSizeHintGrid.cellWidth;
         double cellHeight = fixedSizeHintGrid.cellHeight;
         int gridHintCount = rowCount * columnCount;
@@ -270,9 +281,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         rowIndex, columnIndex, rowCount, columnCount, layoutRowCount, layoutColumnCount, layoutRowOriented);
                 double hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2d;
                 double hintCenterY = hintMeshY + rowHeightOffset + cellHeight / 2d;
-                hints.add(new Hint(hintCenterX, hintCenterY,
-                        cellWidth,
-                        cellHeight,
+                hints.add(new Hint(hintCenterX, hintCenterY, cellWidth, cellHeight,
                         keySequence));
                 hintIndex++;
                 columnWidthOffset += cellWidth;
@@ -555,15 +564,18 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            lastSelectedHintPoint = new Point(Math.round(exactMatchHint.centerX()),
-                    Math.round(exactMatchHint.centerY()));
+            lastSelectedHintPoint =
+                    new Point(Math.round(currentZoom.unzoomedX(exactMatchHint.centerX())),
+                            Math.round(currentZoom.unzoomedY(exactMatchHint.centerY())));
             logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
              if (hintMeshConfiguration.moveMouse()) {
                  // After this moveTo call, the move is not fully completed.
                  // We need to wait until the jump completes before a click can be performed at
                  // the new position.
-                 mouseController.moveTo((int) exactMatchHint.centerX(),
-                         (int) exactMatchHint.centerY());
+                 mouseController.moveTo((int) Math.round(
+                                 currentZoom.unzoomedX(exactMatchHint.centerX())),
+                         (int) Math.round(
+                                 currentZoom.unzoomedY(exactMatchHint.centerY())));
              }
             finalizeHintSelection(exactMatchHint);
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
@@ -588,7 +600,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void finalizeHintSelection(Hint hint) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (hintMeshConfiguration.savePositionAfterSelection())
-            savePosition(new Point(Math.round(hint.centerX()), Math.round(hint.centerY())));
+            savePosition(new Point(Math.round(currentZoom.unzoomedX(hint.centerX())),
+                    Math.round(currentZoom.unzoomedY(hint.centerY()))));
         if (hintMeshConfiguration.modeAfterSelection() != null) {
             hintJustSelected = true;
             logger.trace("Hint " + hint.keySequence()
