@@ -785,7 +785,7 @@ public class WindowsOverlay {
                 roundedNormalizedHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
         if (hintMeshDrawIsCached) {
-            logger.trace("hintMeshDraw is cached");
+            logger.info("hintMeshDraw is cached");
             int[] pixelData;
             if (normalizedHints.offsetX != 0 || normalizedHints.offsetY != 0) {
                 pixelData = offsetPixelData(hintMeshDraw, windowWidth, windowHeight,
@@ -869,11 +869,11 @@ public class WindowsOverlay {
             boolean hintMeshMustBeCached = isHintGrid &&
                                            (hintMeshDraw.hintSequenceTexts.size() > 200 ||
                                             focusedHintKeySequence.isEmpty() ||
-                                            (fontShadowOpacity != 0 && shadowOutlineStepCount > 1) && hintMeshDraw.hintSequenceTexts.size() > 10);
+                                            fontShadowOpacity != 0 && shadowOutlineStepCount > 1);
             if (hintMeshMustBeCached) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
-                logger.trace("Caching new hintMeshDraw with " +
+                logger.info("Caching new hintMeshDraw with " +
                              hintMeshDraw.hintSequenceTexts.size() + " visible hints");
                 hintMeshWindow.hintMeshDrawCache.put(roundedNormalizedHintMesh, hintMeshDraw);
             }
@@ -1261,10 +1261,6 @@ public class WindowsOverlay {
         }
         double offsetX = Math.max(screen.rectangle().x(), (minHintCellX - boxBorderThickness / 2d));
         double offsetY = Math.max(screen.rectangle().y(), (minHintCellY - boxBorderThickness / 2d));
-        // With the 3rd hint grid zoomed at 30x, the offset brings too much floating point
-        // inaccuracy. The hints of the 3rd grid are often off by 1 pixel.
-        // By taking the offset out of the normalization, the caching is not as good.
-        offsetX = offsetY = 0;
         List<Hint> hints = new ArrayList<>();
         for (Hint hint : originalHints) {
             if (!hint.startsWith(focusedHintKeySequence))
