@@ -874,7 +874,7 @@ public class WindowsOverlay {
             boolean hintMeshMustBeCached = isHintGrid &&
                                            (hintMeshDraw.hintSequenceTexts.size() > 200 ||
                                             focusedHintKeySequence.isEmpty() ||
-                                            fontShadowOpacity != 0 && shadowOutlineStepCount > 1);
+                                            (fontShadowOpacity != 0 && shadowOutlineStepCount > 1) && hintMeshDraw.hintSequenceTexts.size() > 10);
             if (hintMeshMustBeCached) {
                 // The pixelData is a full screen int[][]. We don't want to cache too many
                 // of them.
@@ -1266,9 +1266,10 @@ public class WindowsOverlay {
         }
         double offsetX = Math.max(screen.rectangle().x(), (minHintCellX - boxBorderThickness / 2d));
         double offsetY = Math.max(screen.rectangle().y(), (minHintCellY - boxBorderThickness / 2d));
-//        offsetX = offsetY = 0;
-//        int offsetX = (int) (minHintCellX - boxBorderThickness / 2d);
-//        int offsetY = (int) (minHintCellY - boxBorderThickness / 2d);
+        // With the 3rd hint grid zoomed at 30x, the offset brings too much floating point
+        // inaccuracy. The hints of the 3rd grid are often off by 1 pixel.
+        // By taking the offset out of the normalization, the caching is not as good.
+        offsetX = offsetY = 0;
         List<Hint> hints = new ArrayList<>();
         for (Hint hint : originalHints) {
             if (!hint.startsWith(focusedHintKeySequence))
