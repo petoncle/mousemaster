@@ -239,7 +239,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                         idByPosition.get(point) % maxPositionHistorySize, -1, -1, -1,
                         -1, -1, -1, false);
                 Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
-                hints.add(new Hint(zoom1.zoomedX(point.x()), zoom1.zoomedY(point.y()), -1, -1, keySequence));
+                if (zoom1.screenRectangle().contains(point.x(), point.y()))
+                    hints.add(new Hint(zoom1.zoomedX(point.x()), zoom1.zoomedY(point.y()),
+                            -1, -1, keySequence));
+                else
+                    hints.add(new Hint(point.x(), point.y(), -1, -1, keySequence));
             }
             hintMesh.hints(hints);
         }
@@ -266,8 +270,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
         Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
-        double hintMeshX = zoom1.zoomedX(fixedSizeHintGrid.hintMeshX());
-        double hintMeshY = zoom1.zoomedY(fixedSizeHintGrid.hintMeshY());
+        double hintMeshX;
+        double hintMeshY;
+        if (zoom1.screenRectangle()
+                 .contains(fixedSizeHintGrid.hintMeshX() +
+                           fixedSizeHintGrid.hintMeshWidth / 2,
+                         fixedSizeHintGrid.hintMeshY() +
+                         fixedSizeHintGrid.hintMeshHeight / 2)) {
+            hintMeshX = zoom1.zoomedX(fixedSizeHintGrid.hintMeshX());
+            hintMeshY = zoom1.zoomedY(fixedSizeHintGrid.hintMeshY());
+        }
+        else {
+            hintMeshX = fixedSizeHintGrid.hintMeshX();
+            hintMeshY = fixedSizeHintGrid.hintMeshY();
+        }
         double cellWidth = fixedSizeHintGrid.cellWidth;
         double cellHeight = fixedSizeHintGrid.cellHeight;
         int gridHintCount = rowCount * columnCount;
@@ -564,18 +580,34 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
-            lastSelectedHintPoint =
-                    new Point(Math.round(currentZoom.unzoomedX(exactMatchHint.centerX())),
-                            Math.round(currentZoom.unzoomedY(exactMatchHint.centerY())));
+            boolean hintIsInZoom = currentZoom.screenRectangle()
+                                          .contains(exactMatchHint.centerX(),
+                                                  exactMatchHint.centerY());
+            if (hintIsInZoom) {
+                lastSelectedHintPoint =
+                        new Point(Math.round(currentZoom.unzoomedX(exactMatchHint.centerX())),
+                                Math.round(currentZoom.unzoomedY(exactMatchHint.centerY())));
+            }
+            else {
+                lastSelectedHintPoint =
+                        new Point(Math.round(exactMatchHint.centerX()),
+                                Math.round(exactMatchHint.centerY()));
+            }
             logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
              if (hintMeshConfiguration.moveMouse()) {
                  // After this moveTo call, the move is not fully completed.
                  // We need to wait until the jump completes before a click can be performed at
                  // the new position.
-                 mouseController.moveTo((int) Math.round(
-                                 currentZoom.unzoomedX(exactMatchHint.centerX())),
-                         (int) Math.round(
-                                 currentZoom.unzoomedY(exactMatchHint.centerY())));
+                 if (hintIsInZoom) {
+                     mouseController.moveTo((int) Math.round(
+                                     currentZoom.unzoomedX(exactMatchHint.centerX())),
+                             (int) Math.round(
+                                     currentZoom.unzoomedY(exactMatchHint.centerY())));
+                 }
+                 else {
+                     mouseController.moveTo((int) Math.round(exactMatchHint.centerX()),
+                             (int) Math.round(exactMatchHint.centerY()));
+                 }
              }
             finalizeHintSelection(exactMatchHint);
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
@@ -599,9 +631,16 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private void finalizeHintSelection(Hint hint) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
-        if (hintMeshConfiguration.savePositionAfterSelection())
-            savePosition(new Point(Math.round(currentZoom.unzoomedX(hint.centerX())),
-                    Math.round(currentZoom.unzoomedY(hint.centerY()))));
+        if (hintMeshConfiguration.savePositionAfterSelection()) {
+            if (currentZoom.screenRectangle().contains(hint.centerX(), hint.centerY())) {
+                savePosition(new Point(Math.round(currentZoom.unzoomedX(hint.centerX())),
+                        Math.round(currentZoom.unzoomedY(hint.centerY()))));
+            }
+            else {
+                savePosition(new Point(Math.round(hint.centerX()),
+                        Math.round(hint.centerY())));
+            }
+        }
         if (hintMeshConfiguration.modeAfterSelection() != null) {
             hintJustSelected = true;
             logger.trace("Hint " + hint.keySequence()
