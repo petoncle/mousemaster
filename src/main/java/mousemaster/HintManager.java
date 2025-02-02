@@ -599,15 +599,16 @@ public class HintManager implements ModeListener, MousePositionListener {
                  // We need to wait until the jump completes before a click can be performed at
                  // the new position.
                  if (hintIsInZoom) {
-                     mouseController.moveTo((int) Math.round(
-                                     currentZoom.unzoomedX(exactMatchHint.centerX())),
-                             (int) Math.round(
-                                     currentZoom.unzoomedY(exactMatchHint.centerY())));
+                     mouseX = (int) Math.round(
+                             currentZoom.unzoomedX(exactMatchHint.centerX()));
+                     mouseY = (int) Math.round(
+                             currentZoom.unzoomedY(exactMatchHint.centerY()));
                  }
                  else {
-                     mouseController.moveTo((int) Math.round(exactMatchHint.centerX()),
-                             (int) Math.round(exactMatchHint.centerY()));
+                     mouseX = (int) Math.round(exactMatchHint.centerX());
+                     mouseY = (int) Math.round(exactMatchHint.centerY());
                  }
+                 mouseController.moveTo(mouseX, mouseY);
              }
             finalizeHintSelection(exactMatchHint);
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
