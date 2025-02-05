@@ -885,7 +885,7 @@ public class WindowsOverlay {
             int[] shadowBodyPixelData = mustDrawShadow ? new int[hintMeshDraw.pixelData.length] : null;
             if (mustDrawShadow) {
 //                clearWindow(hdcTemp, windowRect, boxColor);
-                if (fontShadowThickness > 1) {
+                if (fontShadowThickness > 0) {
                     // No antialiasing for the shadow body.
                     Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(),
                             0); // 2= SmoothingModeAntiAlias
@@ -908,7 +908,7 @@ public class WindowsOverlay {
                 //drawAndFillPath(shadowPens, graphics, shadowOutlinePath, null);
                 drawAndFillPath(List.of(), graphics, shadowOutlinePath, shadowFontBrush);
                 dibSection.pixelPointer.read(0, shadowBodyPixelData, 0, shadowBodyPixelData.length);
-                if (fontShadowThickness > 1) {
+                if (fontShadowThickness > 0) {
                     Gdiplus.INSTANCE.GdipSetSmoothingMode(graphics.getValue(),
                             2); // 2= SmoothingModeAntiAlias
                 }
