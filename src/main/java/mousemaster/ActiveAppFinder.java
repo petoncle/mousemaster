@@ -34,7 +34,8 @@ public class ActiveAppFinder {
         }
         String executableName = Native.toString(executableNameBytes);
         Kernel32.INSTANCE.CloseHandle(processHandle);
-        return new App(executableName);
+        // Remove spaces from the name.
+        return new App(executableName.replaceAll(" ", ""));
     }
 
 }
