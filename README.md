@@ -9,8 +9,7 @@
 <p align="center">
 <a href="#demo">Demo</a> •
 <a href="#installation">Installation</a> •
-<a href="#features">Features</a> •
-<a href="#notes">Notes</a>
+<a href="#features">Features</a>
 </p>
 
 # Demo
@@ -24,17 +23,11 @@ https://github.com/user-attachments/assets/2c0765eb-5fa2-4604-a868-df7e9f25e32a
 </p>
 
 
-## Grid Demo (1/2)
+## Grid Demo
 https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
 
-## Grid Demo (2/2)
-https://github.com/petoncle/mousemaster/assets/39304282/105c6a2d-2849-4d23-b706-1fc9410ae680
-
-## Mouse Movements Demo (1/2)
+## Mouse Movements Demo
 https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
-
-## Mouse Movements Demo (2/2)
-https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-d905a8daba30
 
 # Installation
 
@@ -60,7 +53,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
 
 1. **Advanced key combinations (key combos):** mousemaster offers a high level
    of customization for key combinations. It allows for advanced key combos like "hold
-   alt for 1 second" or "press then release alt, twice in a row".
+   alt for 1 second", "press then release alt, twice in a row", or "hold alt while pressing A then B".
 2. **Custom modes:** Users have to define their own modes, with each mode
    having its own key combo-to-command map and mouse settings. There is only one
    predefined mode, the "idle-mode", which has no key combos predefined (this is the
@@ -94,19 +87,3 @@ https://github.com/petoncle/mousemaster/assets/39304282/a7e82696-a5c8-45c2-b100-
     different commands.
 13. **Position history hints:** absolute positions can be saved on the fly to make 
    it possible to move the mouse to them later.
-
-# Notes
-
-- I use mousemaster on a daily basis, along with [PowerToys](https://github.com/microsoft/PowerToys)
-  and the [Tridactyl](https://github.com/tridactyl/tridactyl) extension for
-  Firefox. I no longer use my physical mouse except for certain tasks like drawing. 
-- The two major differences between mousemaster and the existing alternatives (warpd and
-  mouseable), are the way key combos are defined (i.e. the distinction between key
-  presses and key releases), and the "create your own modes" approach.
-- The configuration of mousemaster is significantly more complex than warpd and mouseable,
-  mostly because you have to think in terms of key presses and key releases. This is a
-  conscious trade-off for greater flexibility.
-- Currently, mousemaster is Windows-only. I have not looked at making it cross-platform
-  only because my desktops are Windows based.
-- If you need help, have questions, or suggestions, 
-  don't hesitate to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues) or join the [Discord](https://discord.gg/GSB6MaKb2R).
