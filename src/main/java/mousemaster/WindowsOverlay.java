@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class WindowsOverlay {
 
@@ -265,13 +266,21 @@ public class WindowsOverlay {
                     double right = hint.centerX() + hint.cellWidth() / 2;
                     double top = hint.centerY() - hint.cellHeight() / 2;
                     double bottom = hint.centerY() + hint.cellHeight() / 2;
+                    if (left == screen.rectangle().x() + screen.rectangle().width() ||
+                        right == screen.rectangle().x() ||
+                        top == screen.rectangle().y() + screen.rectangle().height() ||
+                        bottom == screen.rectangle().y())
+                        // Assuming two screens: left and right, with right screen
+                        // at x = 1024. Hint's left is 1024.
+                        // Hint should be on second screen, not on left screen.
+                        continue;
                     if (!screen.rectangle().contains(left, top) &&
                         !screen.rectangle().contains(right, top) &&
                         !screen.rectangle().contains(left, bottom) &&
                         !screen.rectangle().contains(right, bottom))
                         continue;
                 }
-                hintsByScreen.computeIfAbsent(screen, monitor1 -> new ArrayList<>())
+                hintsByScreen.computeIfAbsent(screen, screen1 -> new ArrayList<>())
                               .add(hint);
                 break;
             }
@@ -289,17 +298,17 @@ public class WindowsOverlay {
             HintMeshWindow existingWindow = hintMeshWindows.get(screen);
             if (existingWindow == null) {
                 WinUser.WindowProc callback = WindowsOverlay::hintMeshWindowCallback;
-                WinDef.HWND hwnd = createWindow("HintMesh", screen.rectangle().x(),
+                int windowIndex = hintMeshWindows.size() + 1;
+                WinDef.HWND hwnd = createWindow("HintMesh" + windowIndex, screen.rectangle().x(),
                         screen.rectangle().y(), screen.rectangle().width(),
                         screen.rectangle().height(), callback);
-
                 WinDef.HWND transparentHwnd = User32.INSTANCE.CreateWindowEx(
                         User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
                         ExtendedUser32.WS_EX_NOACTIVATE
                         | ExtendedUser32.WS_EX_LAYERED
                         | ExtendedUser32.WS_EX_TRANSPARENT,
-                        "Mousemaster" + "HintMesh" + "ClassName",
-                        "Mousemaster" + "TransparentHintMesh" + "WindowName",
+                        "Mousemaster" + "HintMesh" + windowIndex + "ClassName",
+                        "Mousemaster" + "TransparentHintMesh" + windowIndex + "WindowName",
                         WinUser.WS_POPUP, screen.rectangle().x(),
                         screen.rectangle().y(), screen.rectangle().width(),
                         screen.rectangle().height(),
@@ -1229,6 +1238,9 @@ public class WindowsOverlay {
         }
     }
 
+    /**
+     * Offsets within the screen.
+     */
     private record NormalizedHints(List<Hint> hints, double offsetX, double offsetY) {
 
     }
@@ -1259,15 +1271,15 @@ public class WindowsOverlay {
                     hint.cellHeight());
             minHintCellY = Math.min(minHintCellY, hint.centerY() - cellHeight / 2);
         }
-        double offsetX = Math.max(screen.rectangle().x(), Math.floor(minHintCellX - boxBorderThickness / 2d));
-        double offsetY = Math.max(screen.rectangle().y(), Math.floor(minHintCellY - boxBorderThickness / 2d));
+        double offsetX = Math.max(0, Math.floor(minHintCellX - boxBorderThickness / 2d - screen.rectangle().x()));
+        double offsetY = Math.max(0, Math.floor(minHintCellY - boxBorderThickness / 2d - screen.rectangle().y()));
 //        offsetY = offsetX = 0;
         List<Hint> hints = new ArrayList<>();
         for (Hint hint : originalHints) {
             if (!hint.startsWith(focusedHintKeySequence))
                 continue;
-            hint = new Hint(hint.centerX() - offsetX,
-                    hint.centerY() - offsetY,
+            hint = new Hint(hint.centerX() - offsetX - screen.rectangle().x(),
+                    hint.centerY() - offsetY - screen.rectangle().y(),
                     hint.cellWidth(),
                     hint.cellHeight(), hint.keySequence());
             hints.add(hint);
@@ -1361,7 +1373,7 @@ public class WindowsOverlay {
                 if (doNotColAlign) {
                     // Extra is added between each letter (not to the left of the leftmost letter,
                     // nor to the right of the rightmost letter).
-                    left = hintCenterX - screen.rectangle().x() - (hintKeyTextTotalXAdvance + extraNotAlignedWidth) / 2
+                    left = hintCenterX - (hintKeyTextTotalXAdvance + extraNotAlignedWidth) / 2
                            + xAdvance
                            ;
                     xAdvance += boundingBox.width;// + boundingBox.x;
@@ -1375,13 +1387,13 @@ public class WindowsOverlay {
                                           - (hint.keySequence().size()-2) * boundingBox.x; // Similar to hintKeyTextTotalXAdvance
                     double fontBoxWidth2 = hint.cellWidth() * adjustedFontBoxWidthPercent;
                     double keySubcellWidth = fontBoxWidth2 / hint.keySequence().size();
-                    left = hintCenterX - screen.rectangle().x() - fontBoxWidth / 2
+                    left = hintCenterX - fontBoxWidth / 2
                            + xAdvance
                            + keySubcellWidth / 2
                            - (boundingBox.width) / 2 - boundingBox.x / 2;
                     xAdvance += keySubcellWidth - boundingBox.x;
                 }
-                double top = hintCenterY - screen.rectangle().y() -
+                double top = hintCenterY -
                              boundingBox.height / 2;
                 keyTexts.add(new HintKeyText(keyText, left, top, isPrefix, isSuffix,
                         isHighlight));
@@ -1404,10 +1416,10 @@ public class WindowsOverlay {
             double hintCenterY = hint.centerY();
             WinDef.RECT boxRect = new WinDef.RECT();
             double simpleBoxLeft =
-                    hintCenterX - screen.rectangle().x() - maxSimpleBoxWidth / 2;
+                    hintCenterX - maxSimpleBoxWidth / 2;
 
             double simpleBoxTop =
-                    hintCenterY - screen.rectangle().y() - highestKeyHeight / 2;
+                    hintCenterY - highestKeyHeight / 2;
 //            boxRect.left = (int) (simpleBoxLeft + boxBorderThickness);
 //            boxRect.top = (int) (simpleBoxTop + boxBorderThickness);
             boxRect.left = (int) (simpleBoxLeft + (hintCenterX > minHintCenterX ?
@@ -1415,7 +1427,7 @@ public class WindowsOverlay {
             boxRect.top = (int) (simpleBoxTop + (hintCenterY > minHintCenterY ?
                     boxBorderThickness : 0));
 
-            double simpleBoxRight = hintCenterX - screen.rectangle().x() + maxSimpleBoxWidth / 2;
+            double simpleBoxRight = hintCenterX + maxSimpleBoxWidth / 2;
             boxRect.right = (int) (simpleBoxRight - (hintCenterX <
                                                      maxHintCenterX ? 0 :
                     boxBorderThickness));
@@ -1609,22 +1621,22 @@ public class WindowsOverlay {
         halfCellWidth -= boxBorderThickness / 2;
         halfCellHeight -= boxBorderThickness / 2;
 
-        double boxLeft = hintCenterX - halfCellWidth - screen.rectangle().x();
-        double boxTop = hintCenterY - halfCellHeight - screen.rectangle().y();
-        double boxRight = hintCenterX + halfCellWidth - screen.rectangle().x();
-        double boxBottom = hintCenterY + halfCellHeight - screen.rectangle().y();
+        double boxLeft = hintCenterX - halfCellWidth;
+        double boxTop = hintCenterY - halfCellHeight;
+        double boxRight = hintCenterX + halfCellWidth;
+        double boxBottom = hintCenterY + halfCellHeight;
         int roundedBoxLeft = (int) Math.ceil(boxLeft);
         int roundedBoxTop = (int) Math.ceil(boxTop);
         int roundedBoxRight = (int) Math.ceil(boxRight);
         int roundedBoxBottom = (int) Math.ceil(boxBottom);
 
-        if (Math.abs(offsetX + roundedBoxLeft - (screen.rectangle().x() + Math.ceil(boxBorderThickness / 2))) < 1e-1)
+        if (Math.abs(offsetX + roundedBoxLeft - (Math.ceil(boxBorderThickness / 2))) < 1e-1)
             boxLeft += boxBorderThickness / 2;
-        if (Math.abs(offsetX + roundedBoxRight - (screen.rectangle().x() + screen.rectangle().width() - Math.floor(boxBorderThickness / 2))) < 1e-1)
+        if (Math.abs(offsetX + roundedBoxRight - (screen.rectangle().width() - Math.floor(boxBorderThickness / 2))) < 1e-1)
             boxRight -= boxBorderThickness / 2;
-        if (Math.abs(offsetY + roundedBoxTop - (screen.rectangle().y() + Math.ceil(boxBorderThickness / 2))) < 1e-1)
+        if (Math.abs(offsetY + roundedBoxTop - (Math.ceil(boxBorderThickness / 2))) < 1e-1)
             boxTop += boxBorderThickness / 2;
-        if (Math.abs(offsetY + roundedBoxBottom - (screen.rectangle().y() + screen.rectangle().height() - Math.floor(boxBorderThickness / 2))) < 1e-1)
+        if (Math.abs(offsetY + roundedBoxBottom - (screen.rectangle().height() - Math.floor(boxBorderThickness / 2))) < 1e-1)
             boxBottom -= boxBorderThickness / 2;
 
         roundedBoxLeft = (int) Math.ceil(boxLeft);
@@ -1740,7 +1752,7 @@ public class WindowsOverlay {
                     screenRectangle.width(), screenRectangle.height(),
                     User32.SWP_NOZORDER);
             User32.INSTANCE.SetWindowPos(zoomWindow.hwnd(), null,
-                    screenRectangle.x(), screenRectangle.y(),
+                    0, 0,
                     screenRectangle.width(), screenRectangle.height(),
                     User32.SWP_NOZORDER);
         }
