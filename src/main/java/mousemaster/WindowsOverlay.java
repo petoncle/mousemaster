@@ -262,10 +262,10 @@ public class WindowsOverlay {
                         continue;
                 }
                 else {
-                    double left = hint.centerX() - hint.cellWidth() / 2;
-                    double right = hint.centerX() + hint.cellWidth() / 2;
-                    double top = hint.centerY() - hint.cellHeight() / 2;
-                    double bottom = hint.centerY() + hint.cellHeight() / 2;
+                    int left = (int) Math.ceil(hint.centerX() - hint.cellWidth() / 2);
+                    int right = (int) Math.floor(hint.centerX() + hint.cellWidth() / 2);
+                    int top = (int) Math.ceil(hint.centerY() - hint.cellHeight() / 2);
+                    int bottom = (int) Math.floor(hint.centerY() + hint.cellHeight() / 2);
                     if (left == screen.rectangle().x() + screen.rectangle().width() ||
                         right == screen.rectangle().x() ||
                         top == screen.rectangle().y() + screen.rectangle().height() ||
