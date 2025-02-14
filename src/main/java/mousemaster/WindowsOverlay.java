@@ -1625,24 +1625,20 @@ public class WindowsOverlay {
         double boxTop = hintCenterY - halfCellHeight;
         double boxRight = hintCenterX + halfCellWidth;
         double boxBottom = hintCenterY + halfCellHeight;
+
+        if (Math.abs(offsetX + boxLeft - (Math.ceil(boxBorderThickness / 2))) < 1e-1)
+            boxLeft = offsetX + boxBorderThickness;
+        if (Math.abs(offsetX + boxRight - (screen.rectangle().width() - boxBorderThickness / 2)) < 1e-1)
+            boxRight = screen.rectangle().width() - offsetX - boxBorderThickness;
+        if (Math.abs(offsetY + boxTop - (Math.ceil(boxBorderThickness / 2))) < 1e-1)
+            boxTop = offsetY + boxBorderThickness;
+        if (Math.abs(offsetY + boxBottom - (screen.rectangle().height() - boxBorderThickness / 2)) < 1e-1)
+            boxBottom = screen.rectangle().height() - offsetY - boxBorderThickness;
+
         int roundedBoxLeft = (int) Math.ceil(boxLeft);
         int roundedBoxTop = (int) Math.ceil(boxTop);
         int roundedBoxRight = (int) Math.ceil(boxRight);
         int roundedBoxBottom = (int) Math.ceil(boxBottom);
-
-        if (Math.abs(offsetX + roundedBoxLeft - (Math.ceil(boxBorderThickness / 2))) < 1e-1)
-            boxLeft += boxBorderThickness / 2;
-        if (Math.abs(offsetX + roundedBoxRight - (screen.rectangle().width() - Math.floor(boxBorderThickness / 2))) < 1e-1)
-            boxRight -= boxBorderThickness / 2;
-        if (Math.abs(offsetY + roundedBoxTop - (Math.ceil(boxBorderThickness / 2))) < 1e-1)
-            boxTop += boxBorderThickness / 2;
-        if (Math.abs(offsetY + roundedBoxBottom - (screen.rectangle().height() - Math.floor(boxBorderThickness / 2))) < 1e-1)
-            boxBottom -= boxBorderThickness / 2;
-
-        roundedBoxLeft = (int) Math.ceil(boxLeft);
-        roundedBoxTop = (int) Math.ceil(boxTop);
-        roundedBoxRight = (int) Math.ceil(boxRight);
-        roundedBoxBottom = (int) Math.ceil(boxBottom);
         if (roundedBoxLeft < boxRect.left)
             boxRect.left = roundedBoxLeft;
         if (roundedBoxTop < boxRect.top)
