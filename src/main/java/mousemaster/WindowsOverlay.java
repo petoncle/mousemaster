@@ -30,7 +30,6 @@ public class WindowsOverlay {
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static boolean showingHintMesh;
     private static HintMesh currentHintMesh;
-    private static final Map<HintMesh, HintMeshDraw> hintMeshDrawCache = new HashMap<>();
     private static ZoomWindow zoomWindow, standByZoomWindow;
     private static Zoom currentZoom;
     private static boolean mustUpdateMagnifierSource;
@@ -153,7 +152,8 @@ public class WindowsOverlay {
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   WinDef.HWND transparentHwnd,
                                   WinUser.WindowProc callback,
-                                  List<Hint> hints) {
+                                  List<Hint> hints,
+                                  Map<HintMesh, HintMeshDraw> hintMeshDrawCache) {
 
     }
 
@@ -317,7 +317,7 @@ public class WindowsOverlay {
                 User32.INSTANCE.ShowWindow(transparentHwnd, WinUser.SW_SHOW);
                 hintMeshWindows.put(screen,
                         new HintMeshWindow(hwnd, transparentHwnd, callback,
-                                hintsInScreen));
+                                hintsInScreen, new HashMap<>()));
                 createdAtLeastOneWindow = true;
             }
             else {
@@ -325,7 +325,7 @@ public class WindowsOverlay {
                         new HintMeshWindow(existingWindow.hwnd,
                                 existingWindow.transparentHwnd,
                                 existingWindow.callback,
-                                hintsInScreen));
+                                hintsInScreen, existingWindow.hintMeshDrawCache));
             }
         }
         if (createdAtLeastOneWindow)
@@ -790,7 +790,7 @@ public class WindowsOverlay {
 //        }
 //        HintMesh roundedNormalizedHintMesh = normalizedHintMesh.builder().hints(roundedHints).build();
         HintMesh roundedNormalizedHintMesh = normalizedHintMesh;
-        HintMeshDraw hintMeshDraw = hintMeshDrawCache.get(
+        HintMeshDraw hintMeshDraw = hintMeshWindow.hintMeshDrawCache.get(
                 roundedNormalizedHintMesh);
         boolean hintMeshDrawIsCached = hintMeshDraw != null;
         if (hintMeshDrawIsCached) {
@@ -884,7 +884,7 @@ public class WindowsOverlay {
                 // of them.
                 logger.trace("Caching new hintMeshDraw with " +
                              hintMeshDraw.hintSequenceTexts.size() + " visible hints");
-                hintMeshDrawCache.put(roundedNormalizedHintMesh, hintMeshDraw);
+                hintMeshWindow.hintMeshDrawCache.put(roundedNormalizedHintMesh, hintMeshDraw);
             }
 
             int noColorColor = boxColor == 0 ? 1 : 0; // We need a placeholder color that is not used.
