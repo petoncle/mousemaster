@@ -10,13 +10,12 @@
 
 ![neo-mousekeys layout](https://github.com/user-attachments/assets/4aff87f3-7724-440c-aff2-ae58396e4bb9)
 
-## Normal Mode (_leftctrl + e_)
+## Normal Mode (hold _leftalt_ then press _e_, or hold _leftalt_ then press _capslock_)
 
 - Press mouse buttons with _k_ (left button), _;_ (middle button), _l_ (right button).
 - Toggle left mouse button with _n_.
 - Left click then deactivate with _._
 - Jump to screen edges with _rightalt + w_, _rightalt + a_, _rightalt + s_, _rightalt + d_.
-- Jump to screen center with _h_.
 - Scroll vertically or horizontally (wheel) with _m_, _,_ (comma), _i_, _o_.
 - Jump forward (teleport) by holding _j_ while moving.
 - Slow down mouse and scroll movement by holding _leftshift_ while moving.
