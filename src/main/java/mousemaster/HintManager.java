@@ -19,8 +19,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private ModeController modeController;
     private HintMesh hintMesh;
     private Set<Key> selectionKeySubset;
-    private final Map<HintMeshTypeAndSelectionKeys, HintMeshAndPreviousModeSelectedHintPoint>
-            previousHintMeshByTypeAndSelectionKeys = new HashMap<>();
+    private final Map<HintMeshKey, HintMeshState> hintMeshStates = new HashMap<>();
     private boolean hintJustSelected = false;
     private int mouseX, mouseY;
     private Mode currentMode;
@@ -35,15 +34,22 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int positionCycleIndex = 0;
 
-    public void moveToLastSelectedHint() {
-        if (lastSelectedHintPoint == null)
-            return;
-        mouseController.moveTo((int) lastSelectedHintPoint.x(),
-                (int) lastSelectedHintPoint.y());
+    /**
+     * It would be better to have an instance of Zoom instead of ZoomConfiguration
+     * (one ZoomConfiguration could lead to two different HintMeshes on two screens),
+     * but #modeChanged needs to create a HintMeshKey to alter lastSelectedHintPoint
+     * (this is arguably hacky, it is used for undoing the triple hint grid in the
+     * author's configuration),
+     * and that altered lastSelectedHintPoint is used to instantiate a Zoom object
+     * from the ZoomConfiguration.
+     */
+    private record HintMeshKey(HintMeshTypeAndSelectionKeys hintMeshTypeAndSelectionKeys,
+                               ZoomConfiguration zoom) {
+
     }
 
-    private record HintMeshAndPreviousModeSelectedHintPoint(HintMesh hintMesh,
-                                                            Point previousModeSelectedHintPoint) {
+    private record HintMeshState(HintMesh hintMesh,
+                                 Point previousModeSelectedHintPoint) {
 
     }
 
@@ -54,13 +60,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.mouseController = mouseController;
     }
 
+    public void setModeController(ModeController modeController) {
+        this.modeController = modeController;
+    }
+
     public Point lastSelectedHintPoint() {
         logger.trace("Zoom " + lastSelectedHintPoint);
         return lastSelectedHintPoint;
     }
 
-    public void setModeController(ModeController modeController) {
-        this.modeController = modeController;
+    public void moveToLastSelectedHint() {
+        if (lastSelectedHintPoint == null)
+            return;
+        mouseController.moveTo((int) lastSelectedHintPoint.x(),
+                (int) lastSelectedHintPoint.y());
     }
 
     @Override
@@ -78,32 +91,34 @@ public class HintManager implements ModeListener, MousePositionListener {
             // When going from hint2-1 to hint2-2, even if we already have been in hint2-2
             // before, we don't want the old state of hint2-2.
             hintJustSelected = false;
-            previousHintMeshByTypeAndSelectionKeys.remove(
-                    hintMeshConfiguration.typeAndSelectionKeys());
+            hintMeshStates.remove(
+                    new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
+                            newMode.zoom()));
         }
         else if (hintMeshConfiguration.typeAndSelectionKeys().type() instanceof HintMeshType.HintGrid hintGrid &&
-                         hintGrid.area() instanceof  ActiveScreenHintGridArea activeScreenHintGridArea &&
+                         hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea &&
                          activeScreenHintGridArea.center() == ActiveScreenHintGridAreaCenter.LAST_SELECTED_HINT) {
             // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
             // (Because currently, last selected hint is the hint selected by hint3-2.)
-            HintMeshAndPreviousModeSelectedHintPoint
-                    hintMeshAndPreviousModeSelectedHintPoint =
-                    previousHintMeshByTypeAndSelectionKeys.get(
-                            hintMeshConfiguration.typeAndSelectionKeys());
-            if (hintMeshAndPreviousModeSelectedHintPoint != null)
+            HintMeshState
+                    hintMeshState =
+                    hintMeshStates.get(
+                            new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
+                                    newMode.zoom()));
+            if (hintMeshState != null)
                 lastSelectedHintPoint =
-                        hintMeshAndPreviousModeSelectedHintPoint.previousModeSelectedHintPoint;
+                        hintMeshState.previousModeSelectedHintPoint;
         }
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
-            previousHintMeshByTypeAndSelectionKeys.clear();
+            hintMeshStates.clear();
             WindowsOverlay.hideHintMesh();
             return;
         }
         if (!hintMeshConfiguration.visible()) {
             // This makes the behavior of the hint different depending on whether it is visible.
             // An alternative would be a setting like hint.reset-focused-key-sequence-history-after-selection=true.
-            previousHintMeshByTypeAndSelectionKeys.clear();
+            hintMeshStates.clear();
             WindowsOverlay.hideHintMesh();
         }
         Point zoomCenterPoint = newMode.zoom().center().centerPoint(
@@ -112,7 +127,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         Zoom newZoom = new Zoom(newMode.zoom().percent(),
                 zoomCenterPoint, screenManager.screenContaining(zoomCenterPoint.x(),
                 zoomCenterPoint.y()).rectangle());
-        HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration, newZoom);
+        HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom);
         if (currentMode != null && newMode.hintMesh().equals(currentMode.hintMesh()) &&
             newHintMesh.equals(hintMesh))
             return;
@@ -123,15 +138,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .collect(Collectors.toSet());
         currentMode = newMode;
         currentZoom = newZoom;
-        previousHintMeshByTypeAndSelectionKeys.put(
-                hintMeshConfiguration.typeAndSelectionKeys(),
-                new HintMeshAndPreviousModeSelectedHintPoint(newHintMesh, lastSelectedHintPoint));
+        hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
+                newMode.zoom()), new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
         WindowsOverlay.setHintMesh(hintMesh);
     }
 
     private HintMesh buildHintMesh(HintMeshConfiguration hintMeshConfiguration,
-                                   Zoom zoom) {
+                                   ZoomConfiguration zoomConfiguration, Zoom zoom) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
                 .type(hintMeshConfiguration.typeAndSelectionKeys().type())
@@ -275,17 +289,16 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             hintMesh.hints(hints);
         }
-        HintMeshAndPreviousModeSelectedHintPoint
-                previousHintMeshAndPreviousModeSelectedHintPoint =
-                previousHintMeshByTypeAndSelectionKeys.get(
-                        hintMeshConfiguration.typeAndSelectionKeys());
-        if (previousHintMeshAndPreviousModeSelectedHintPoint != null &&
-            previousHintMeshAndPreviousModeSelectedHintPoint.hintMesh.hints()
-                                                                     .equals(hintMesh.hints())) {
+        HintMeshState previousHintMeshState = hintMeshStates.get(
+                new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
+                        zoomConfiguration));
+        if (previousHintMeshState != null &&
+            previousHintMeshState.hintMesh.hints()
+                                          .equals(hintMesh.hints())) {
             // Keep the old focusedKeySequence.
             // This is useful for hint-then-click-mode that extends hint-mode.
             hintMesh.focusedKeySequence(
-                    previousHintMeshAndPreviousModeSelectedHintPoint.hintMesh.focusedKeySequence());
+                    previousHintMeshState.hintMesh.focusedKeySequence());
         }
         return hintMesh.build();
     }
@@ -588,11 +601,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    .focusedKeySequence(focusedKeySequence.subList(0,
                                            focusedKeySequence.size() - 1))
                                    .build();
-                previousHintMeshByTypeAndSelectionKeys.put(
-                        hintMeshConfiguration.typeAndSelectionKeys(),
-                        new HintMeshAndPreviousModeSelectedHintPoint(
-                                hintMesh, previousHintMeshByTypeAndSelectionKeys.get(
-                                hintMeshConfiguration.typeAndSelectionKeys()).previousModeSelectedHintPoint
+                HintMeshKey hintMeshKey =
+                        new HintMeshKey(
+                                hintMeshConfiguration.typeAndSelectionKeys(),
+                                currentMode.zoom());
+                hintMeshStates.put(
+                        hintMeshKey,
+                        new HintMeshState(
+                                hintMesh, hintMeshStates.get(
+                                hintMeshKey).previousModeSelectedHintPoint
                         ));
                 WindowsOverlay.setHintMesh(hintMesh);
                 return PressKeyEventProcessing.hintUndo();
@@ -657,12 +674,15 @@ public class HintManager implements ModeListener, MousePositionListener {
         else {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
-            previousHintMeshByTypeAndSelectionKeys.put(
-                    hintMeshConfiguration.typeAndSelectionKeys(),
-                    new HintMeshAndPreviousModeSelectedHintPoint(
+            HintMeshKey hintMeshKey =
+                    new HintMeshKey(
+                            hintMeshConfiguration.typeAndSelectionKeys(),
+                            currentMode.zoom());
+            hintMeshStates.put(
+                    hintMeshKey,
+                    new HintMeshState(
                             hintMesh,
-                            previousHintMeshByTypeAndSelectionKeys.get(
-                                    hintMeshConfiguration.typeAndSelectionKeys()).previousModeSelectedHintPoint
+                            hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
                     ));
             WindowsOverlay.setHintMesh(hintMesh);
             return PressKeyEventProcessing.partOfHintPrefix();
@@ -694,11 +714,15 @@ public class HintManager implements ModeListener, MousePositionListener {
         else {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(List.of()).build();
-            previousHintMeshByTypeAndSelectionKeys.put(
-                    hintMeshConfiguration.typeAndSelectionKeys(),
-                    new HintMeshAndPreviousModeSelectedHintPoint(
-                            hintMesh, previousHintMeshByTypeAndSelectionKeys.get(
-                            hintMeshConfiguration.typeAndSelectionKeys()).previousModeSelectedHintPoint
+            HintMeshKey hintMeshKey =
+                    new HintMeshKey(
+                            hintMeshConfiguration.typeAndSelectionKeys(),
+                            currentMode.zoom());
+            hintMeshStates.put(
+                    hintMeshKey,
+                    new HintMeshState(
+                            hintMesh,
+                            hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
                     ));
             WindowsOverlay.setHintMesh(hintMesh);
         }
