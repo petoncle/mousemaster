@@ -93,3 +93,5 @@
  - Make hint cell size independent of zoom: HintManager creates hints in full-screen unzoomed coordinates, then when
    a hint is selected, it uses the current zoom to determine the actual position of the hint
 + hint.screen-prefix-selection-keys=1 2 (default to none)
++ hint-area-filter.leftscreen=1920x1080
+ + mode.hint.leftscreen.grid-cell-width
