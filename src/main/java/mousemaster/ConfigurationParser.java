@@ -297,6 +297,30 @@ public class ConfigurationParser {
         for (PropertyKey rootPropertyKey : rootPropertyKeys)
             rootPropertyNodes.add(recursivelyBuildPropertyNode(rootPropertyKey,
                     childPropertiesByParentProperty, alreadyBuiltPropertyNodeKeys));
+        for (PropertyNode rootPropertyNode : rootPropertyNodes) {
+            recursivelyExtendProperty(
+                    defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
+                    rootPropertyNode, propertyByKey, referencedModesByReferencerMode);
+        }
+        for (ModeBuilder mode : modeByName.values()) {
+            Set<String> referencedModes =
+                    referencedModesByReferencerMode.computeIfAbsent(mode.modeName,
+                            modeName_ -> new HashSet<>());
+            mode.comboMap.to.builder.values()
+                                    .stream()
+                                    .flatMap(Collection::stream)
+                                    .filter(SwitchMode.class::isInstance)
+                                    .map(SwitchMode.class::cast)
+                                    .map(SwitchMode::modeName)
+                                    .forEach(referencedModes::add);
+            if (mode.modeAfterUnhandledKeyPress.builder.get() != null)
+                referencedModes.add(mode.modeAfterUnhandledKeyPress.builder.get());
+            if (mode.hintMesh.builder.modeAfterSelection() != null)
+                referencedModes.add(mode.hintMesh.builder.modeAfterSelection());
+            if (mode.timeout.builder.modeName() != null)
+                referencedModes.add(mode.timeout.builder.modeName());
+        }
+
         Map<String, ModeNode> referenceNodeByName = new HashMap<>();
         ModeNode rootReferenceNode = recursivelyBuildReferenceNode(Mode.IDLE_MODE_NAME,
                 referencedModesByReferencerMode, referenceNodeByName);
@@ -310,10 +334,6 @@ public class ConfigurationParser {
 
             }
         }
-        for (PropertyNode rootPropertyNode : rootPropertyNodes)
-            recursivelyExtendProperty(
-                    defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
-                    rootPropertyNode, propertyByKey);
         for (ModeBuilder mode : modeByName.values())
             checkMissingProperties(mode);
         Set<Mode> modes = modeByName.values()
@@ -352,12 +372,9 @@ public class ConfigurationParser {
                 String modeAfterPressingUnhandledKeysOnly =
                         checkModeReference(propertyValue);
                 mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
-                        modeAfterPressingUnhandledKeysOnly, builder -> {
-                            builder.set(modeAfterPressingUnhandledKeysOnly);
-                            referencedModesByReferencerMode.computeIfAbsent(modeName,
-                                                                   modeName_ -> new HashSet<>())
-                                                           .add(modeAfterPressingUnhandledKeysOnly);
-                        }, childPropertiesByParentProperty, nonRootPropertyKeys);
+                        modeAfterPressingUnhandledKeysOnly, builder ->
+                                builder.set(modeAfterPressingUnhandledKeysOnly),
+                        childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "mouse" -> {
                 if (keyMatcher.group(3) == null)
@@ -607,11 +624,7 @@ public class ConfigurationParser {
                             String modeAfterSelection = propertyValue;
                             modeReferences.add(
                                     checkModeReference(modeAfterSelection));
-                            referencedModesByReferencerMode.computeIfAbsent(modeName,
-                                                                       modeName_ -> new HashSet<>())
-                                                           .add(modeAfterSelection);
-                            mode.hintMesh.builder.modeAfterSelection(
-                                    modeAfterSelection);
+                            mode.hintMesh.builder.modeAfterSelection(modeAfterSelection);
                         }
                         case "swallow-hint-end-key-press" ->
                                 mode.hintMesh.builder.swallowHintEndKeyPress(
@@ -635,8 +648,6 @@ public class ConfigurationParser {
                 else {
                     String newModeName = keyMatcher.group(4);
                     modeReferences.add(checkModeReference(newModeName));
-                    referencedModesByReferencerMode.computeIfAbsent(modeName,
-                            modeName_ -> new HashSet<>()).add(newModeName);
                     setCommand(mode.comboMap.to.builder, propertyValue,
                             new SwitchMode(newModeName), defaultComboMoveDuration,
                             keyAliases, appAliases);
@@ -685,9 +696,6 @@ public class ConfigurationParser {
                             mode.timeout.builder.modeName(timeoutModeName);
                             modeReferences.add(
                                     checkModeReference(timeoutModeName));
-                            referencedModesByReferencerMode.computeIfAbsent(modeName,
-                                                                       modeName_ -> new HashSet<>())
-                                                           .add(timeoutModeName);
                         }
                         case "only-if-idle" -> mode.timeout.builder.onlyIfIdle(
                                 Boolean.parseBoolean(propertyValue));
@@ -1198,7 +1206,8 @@ public class ConfigurationParser {
     }
 
     private static void recursivelyExtendProperty(Property<?> parentProperty, PropertyNode propertyNode,
-                                                  Map<PropertyKey, Property<?>> propertyByKey) {
+                                                  Map<PropertyKey, Property<?>> propertyByKey,
+                                                  Map<String, Set<String>> referencedModesByReferencerMode) {
         Property<?> property = propertyByKey.get(propertyNode.propertyKey);
         // I believe there are some valid use cases for inheritance chains:
         // hint2-2-then-click-mode.hint -> hint2-2-mode.hint -> hint1.mode.hint
@@ -1214,7 +1223,8 @@ public class ConfigurationParser {
 */
         property.extend(parentProperty.builder);
         for (PropertyNode childPropertyNode : propertyNode.childProperties)
-            recursivelyExtendProperty(property, childPropertyNode, propertyByKey);
+            recursivelyExtendProperty(property, childPropertyNode, propertyByKey,
+                    referencedModesByReferencerMode);
     }
 
     private static PropertyNode recursivelyBuildPropertyNode(PropertyKey propertyKey,
