@@ -76,13 +76,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (moving()) {
             WindowsMouse.beginMove();
             moveDuration += delta;
-            double scaledMaxVelocity = mouse.maxVelocity() / screenManager.activeScreen().scale();
-            double scaledInitialVelocity = mouse.initialVelocity() / screenManager.activeScreen().scale();
-            double scaledAcceleration = mouse.acceleration() / screenManager.activeScreen().scale();
-            double moveVelocity = Math.min(scaledMaxVelocity, scaledInitialVelocity +
-                                                              scaledAcceleration *
-                                                              Math.pow(moveDuration,
-                                                                        1));
+            double moveVelocity = moveVelocity();
             boolean deltaBigEnough;
             if (!xMoveForwardStack.isEmpty() && !yMoveForwardStack.isEmpty()) {
                 deltaDistanceX += moveVelocity * delta / Math.sqrt(2);
@@ -149,14 +143,27 @@ public class MouseController implements ModeListener, MousePositionListener {
         }
         if (wheeling()) {
             wheelDuration += delta;
-            double wheelVelocity = Math.min(wheel.maxVelocity(),
-                    wheel.initialVelocity() + wheel.acceleration() * wheelDuration);
+            double wheelVelocity = wheelVelocity();
             double deltaDistance = wheelVelocity * delta;
             if (!xWheelForwardStack.isEmpty())
                 WindowsMouse.wheelHorizontallyBy(xWheelForwardStack.peek(), deltaDistance);
             if (!yWheelForwardStack.isEmpty())
                 WindowsMouse.wheelVerticallyBy(yWheelForwardStack.peek(), deltaDistance);
         }
+    }
+
+    private double moveVelocity() {
+        double scaledMaxVelocity = mouse.maxVelocity() / screenManager.activeScreen().scale();
+        double scaledInitialVelocity = mouse.initialVelocity() / screenManager.activeScreen().scale();
+        double scaledAcceleration = mouse.acceleration() / screenManager.activeScreen().scale();
+        return Math.min(scaledMaxVelocity, scaledInitialVelocity +
+                                                          scaledAcceleration *
+                                                          Math.pow(moveDuration, 1));
+    }
+
+    private double wheelVelocity() {
+        return Math.min(wheel.maxVelocity(),
+                wheel.initialVelocity() + wheel.acceleration() * wheelDuration);
     }
 
     public void startMoveUp() {
@@ -418,6 +425,20 @@ public class MouseController implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
+        if (mouse != null && moveDuration != 0) {
+            double moveVelocity = moveVelocity();
+            Mouse newMouse = newMode.mouse();
+            double newScaledInitialVelocity = newMouse.initialVelocity() / screenManager.activeScreen().scale();
+            double newScaledAcceleration = newMouse.acceleration() / screenManager.activeScreen().scale();
+            // moveVelocity = min(scaledMaxVelocity, scaledInitialVelocity + scaledAcceleration * moveDuration)
+            // We want to find moveDuration such that any change to moveVelocity feels continuous.
+            moveDuration = Math.max(0, (moveVelocity - newScaledInitialVelocity) / newScaledAcceleration);
+            deltaDistanceX = deltaDistanceY = 0;
+        }
+        if (wheel != null && wheelDuration != 0) {
+            Wheel newWheel = newMode.wheel();
+            wheelDuration = Math.max(0, (wheelVelocity() - newWheel.initialVelocity()) / newWheel.acceleration());
+        }
         setMouse(newMode.mouse());
         setWheel(newMode.wheel());
         if (jumping && !mouse.smoothJumpEnabled()) {
