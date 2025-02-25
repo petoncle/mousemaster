@@ -418,15 +418,6 @@ public class MouseController implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
-        if (!newMode.mouse().equals(mouse)) {
-            // When going from slow-mode to normal-mode, if we are already moving,
-            // we should start from the initial velocity of normal-mode.
-            moveDuration = 0;
-            deltaDistanceX = deltaDistanceY = 0;
-        }
-        if (!newMode.wheel().equals(wheel)) {
-            wheelDuration = 0;
-        }
         setMouse(newMode.mouse());
         setWheel(newMode.wheel());
         if (jumping && !mouse.smoothJumpEnabled()) {
