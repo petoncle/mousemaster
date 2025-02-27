@@ -2,7 +2,7 @@ package mousemaster;
 
 public record GridConfiguration(GridArea area, Synchronization synchronization, int rowCount,
                                 int columnCount, boolean lineVisible,
-                                String lineHexColor, int lineThickness) {
+                                String lineHexColor, double lineThickness) {
 
     public static class GridConfigurationBuilder {
         private GridArea.GridAreaBuilder area = new GridArea.GridAreaBuilder();
@@ -11,7 +11,7 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
         private Integer columnCount;
         private Boolean lineVisible;
         private String lineHexColor;
-        private Integer lineThickness;
+        private Double lineThickness;
 
         public GridConfigurationBuilder synchronization(Synchronization synchronization) {
             this.synchronization = synchronization;
@@ -38,7 +38,7 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return this;
         }
 
-        public GridConfigurationBuilder lineThickness(int lineThickness) {
+        public GridConfigurationBuilder lineThickness(double lineThickness) {
             this.lineThickness = lineThickness;
             return this;
         }
@@ -67,7 +67,7 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return lineHexColor;
         }
 
-        public Integer lineThickness() {
+        public Double lineThickness() {
             return lineThickness;
         }
 

@@ -481,7 +481,7 @@ public class ConfigurationParser {
                         case "line-color" -> mode.grid.builder.lineHexColor(
                                 checkColorFormat(propertyValue));
                         case "line-thickness" -> mode.grid.builder.lineThickness(
-                                Integer.parseUnsignedInt(propertyValue));
+                                parseDouble(propertyValue, false, 0, 1000));
                         default -> throw new IllegalArgumentException(
                                 "Invalid grid property key");
                     }

@@ -1,7 +1,7 @@
 package mousemaster;
 
 public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
-                   boolean lineVisible, String lineHexColor, int lineThickness) {
+                   boolean lineVisible, String lineHexColor, double lineThickness) {
 
     public GridBuilder builder() {
         return new GridBuilder(this);
@@ -16,7 +16,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         private int columnCount;
         private boolean lineVisible;
         private String lineHexColor;
-        private int lineThickness;
+        private double lineThickness;
 
         public GridBuilder() {
         }
@@ -65,7 +65,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return lineHexColor;
         }
 
-        public int lineThickness() {
+        public double lineThickness() {
             return lineThickness;
         }
 
@@ -109,7 +109,7 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
-        public GridBuilder lineThickness(int lineThickness) {
+        public GridBuilder lineThickness(double lineThickness) {
             this.lineThickness = lineThickness;
             return this;
         }
