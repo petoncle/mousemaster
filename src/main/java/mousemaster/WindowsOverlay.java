@@ -572,9 +572,7 @@ public class WindowsOverlay {
         int[] polyCounts = new int[rowCount + 1 + columnCount + 1];
         WinDef.POINT[] points =
                 (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
-        Screen screen = WindowsScreen.findActiveScreen(
-                new WinDef.POINT(currentGrid.x(), currentGrid.y()));
-        int scaledLineThickness = scaledPixels(currentGrid.lineThickness(), screen.scale());
+        int scaledLineThickness = scaledPixels(currentGrid.lineThickness(), 1);
         // Vertical lines
         for (int lineIndex = 0; lineIndex <= columnCount; lineIndex++) {
             int x = lineIndex == columnCount ? windowRect.right :
@@ -708,7 +706,7 @@ public class WindowsOverlay {
 
         double fontSize = currentHintMesh.fontSize();
         int dpi = screen.dpi();
-        float normalGdipFontSize = (float) (fontSize * dpi / 72);
+        float normalGdipFontSize = (float) (fontSize * screen.scale() * dpi / 72);
         WindowsFont.WindowsFontFamilyAndStyle
                 fontFamilyAndStyle = WindowsFont.fontFamilyAndStyle(currentHintMesh.fontName());
         double highlightFontScale = currentHintMesh.highlightFontScale();
@@ -930,13 +928,13 @@ public class WindowsOverlay {
             clearWindow(hdcTemp, windowRect, noColorColor); // Clears the shadow body.
             dibSection.pixelPointer.read(0, hintMeshDraw.pixelData, 0, hintMeshDraw.pixelData.length); // TODO remove?
             int borderLengthPixels =
-                    Math.max((int) Math.floor(boxBorderLength * 1), (int) boxBorderThickness);
+                    Math.max((int) Math.floor(boxBorderLength * screen.scale()), (int) boxBorderThickness);
             int colorBetweenSubBoxes =
                     hexColorStringToRgb(subgridBorderHexColor, subgridBorderOpacity) |
                     ((int) (255 * subgridBorderOpacity) << 24);
             int scaledSubgridBorderThickness = (int) Math.floor(subgridBorderThickness);
             int subgridBorderLengthPixels =
-                    Math.max((int) Math.floor(subgridBorderLength * 1), scaledSubgridBorderThickness);
+                    Math.max((int) Math.floor(subgridBorderLength * screen.scale()), scaledSubgridBorderThickness);
             for (int cellIndex = 0; cellIndex < hintMeshDraw.cellRects().size(); cellIndex++) {
                 // A box and its corresponding cell are handled within the same iteration.
                 // If we handle all the boxes first, then all the cells, the problem is that

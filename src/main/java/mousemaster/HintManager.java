@@ -195,8 +195,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 logger.trace("Grid center " + gridCenter);
                 fixedSizeHintGrids.add(fixedSizeHintGrid(
                         screenManager.activeScreen().rectangle(), gridCenter, hintGrid.maxRowCount(),
-                        hintGrid.maxColumnCount(), hintGrid.cellWidth(),
-                        hintGrid.cellHeight()));
+                        hintGrid.maxColumnCount(), hintGrid.cellWidth() * screenManager.activeScreen().scale(),
+                        hintGrid.cellHeight() * screenManager.activeScreen().scale()));
             }
             else if (hintGrid.area() instanceof AllScreensHintGridArea allScreensHintGridArea) {
                 List<Screen> sortedScreens = //
@@ -212,18 +212,20 @@ public class HintManager implements ModeListener, MousePositionListener {
                     fixedSizeHintGrids.add(
                             fixedSizeHintGrid(screen.rectangle(),
                                     gridCenter, hintGrid.maxRowCount(),
-                                    hintGrid.maxColumnCount(), hintGrid.cellWidth(),
-                                    hintGrid.cellHeight()));
+                                    hintGrid.maxColumnCount(), hintGrid.cellWidth() * screen.scale(),
+                                    hintGrid.cellHeight() * screen.scale()));
                 }
             }
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle =
                         WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                 Point gridCenter = activeWindowRectangle.center();
+                Screen screen =
+                        screenManager.screenContaining(gridCenter.x(), gridCenter.y());
                 fixedSizeHintGrids.add(fixedSizeHintGrid(
                         activeWindowRectangle, gridCenter, hintGrid.maxRowCount(),
-                        hintGrid.maxColumnCount(), hintGrid.cellWidth(),
-                        hintGrid.cellHeight()));
+                        hintGrid.maxColumnCount(), hintGrid.cellWidth() * screen.scale(),
+                        hintGrid.cellHeight() * screen.scale()));
             }
             else
                 throw new IllegalStateException();
