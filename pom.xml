@@ -45,6 +45,16 @@
             <artifactId>jna-platform</artifactId>
             <version>${jna.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.qtjambi</groupId>
+            <artifactId>qtjambi</artifactId>
+            <version>6.8.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.qtjambi</groupId>
+            <artifactId>qtjambi-native-windows-x64</artifactId>
+            <version>6.8.2</version>
+        </dependency>
     </dependencies>
 
     <profiles>
