@@ -32,6 +32,7 @@ public class Mousemaster {
         this.configurationPath = configurationPath;
         this.platform = platform;
         this.activeKeyboardLayout = platform.activeKeyboardLayout();
+        QtManager.initialize();
         loadConfiguration(true);
         watchService = FileSystems.getDefault().newWatchService();
         configurationPath.toAbsolutePath()
@@ -57,6 +58,7 @@ public class Mousemaster {
             long updateActiveKeyboardLayoutDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.windowsMessagePump();
             timeBeforeOp = timeAfterOp;
+            QtManager.processEvents();
             platform.update(delta);
             timeAfterOp = System.nanoTime();
             long platformDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
