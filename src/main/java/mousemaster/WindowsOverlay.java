@@ -4,7 +4,11 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import io.qt.core.Qt;
+import io.qt.gui.QFont;
+import io.qt.widgets.QApplication;
 import io.qt.widgets.QLabel;
+import io.qt.widgets.QVBoxLayout;
+import io.qt.widgets.QWidget;
 import mousemaster.WindowsMouse.MouseSize;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
@@ -309,7 +313,6 @@ public class WindowsOverlay {
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
                 setHintMeshWindow(hintMeshWindow);
-                window.show();
             }
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
@@ -317,7 +320,6 @@ public class WindowsOverlay {
                         hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
                 setHintMeshWindow(hintMeshWindow);
-                existingWindow.window.show();
             }
         }
         if (createdAtLeastOneWindow)
@@ -327,9 +329,33 @@ public class WindowsOverlay {
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow) {
         TransparentWindow window = hintMeshWindow.window;
         window.clearWindow();
-        QLabel label2 = new QLabel("Label " + ThreadLocalRandom.current().nextInt(10000), window);
-        label2.setGeometry(200, 100, 150, 40);
-        label2.show();
+        HintBox hintBox = new HintBox("Label " + ThreadLocalRandom.current().nextInt(100000));
+        hintBox.setParent(window);
+        hintBox.setGeometry(200, 100, 400, 400);
+        hintBox.show();
+        window.show();
+    }
+
+    public static class HintBox extends QWidget {
+
+        public HintBox(String hintText) {
+            super();
+            setAutoFillBackground(true);
+            setStyleSheet("background-color: rgba(0, 0, 0, 77); " +
+                          "border: 5px solid yellow; " +
+                          "border-radius: 10px; " +
+                          "padding: 10px;");
+//            setStyleSheet("background-color: " + "blue" + "; border-radius: 10px; padding: 10px;");
+            QLabel label = new QLabel(hintText);
+            label.setFont(new QFont("Consolas", 14));
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter);
+//            label.setStyleSheet("background: transparent; color: white;");
+//            label.setStyleSheet("background: blue; color: white;");
+            QVBoxLayout layout = new QVBoxLayout();
+            layout.addWidget(label);
+            setLayout(layout);
+        }
+
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
@@ -789,7 +815,7 @@ public class WindowsOverlay {
             return;
         showingHintMesh = false;
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
-            hintMeshWindow.window.hide();
+            hintMeshWindow.window.hideChildren();
         }
     }
 
