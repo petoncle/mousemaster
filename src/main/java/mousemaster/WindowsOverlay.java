@@ -3,12 +3,15 @@ package mousemaster;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import io.qt.core.Qt;
+import io.qt.widgets.QLabel;
 import mousemaster.WindowsMouse.MouseSize;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class WindowsOverlay {
 
@@ -302,20 +305,31 @@ public class WindowsOverlay {
                         new Pointer(newStyle));
                 window.move(screen.rectangle().x(), screen.rectangle().y());
                 window.resize(screen.rectangle().width(), screen.rectangle().height());
-                window.show();
-                hintMeshWindows.put(screen,
-                        new HintMeshWindow(hwnd, window, hintsInScreen));
+                HintMeshWindow hintMeshWindow = new HintMeshWindow(hwnd, window, hintsInScreen);
+                hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
+                setHintMeshWindow(hintMeshWindow);
+                window.show();
             }
             else {
-                hintMeshWindows.put(screen,
-                        new HintMeshWindow(existingWindow.hwnd,
-                                existingWindow.window,
-                                hintsInScreen));
+                HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
+                        existingWindow.window,
+                        hintsInScreen);
+                hintMeshWindows.put(screen, hintMeshWindow);
+                setHintMeshWindow(hintMeshWindow);
+                existingWindow.window.show();
             }
         }
         if (createdAtLeastOneWindow)
             updateZoomExcludedWindows();
+    }
+
+    private static void setHintMeshWindow(HintMeshWindow hintMeshWindow) {
+        TransparentWindow window = hintMeshWindow.window;
+        window.clearWindow();
+        QLabel label2 = new QLabel("Label " + ThreadLocalRandom.current().nextInt(10000), window);
+        label2.setGeometry(200, 100, 150, 40);
+        label2.show();
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
@@ -757,8 +771,9 @@ public class WindowsOverlay {
         createOrUpdateHintMeshWindows(currentHintMesh.hints());
         showingHintMesh = true;
         if (!waitForZoomBeforeRepainting) {
-            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
-                requestWindowRepaint(hintMeshWindow.hwnd);
+            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+//                requestWindowRepaint(hintMeshWindow.hwnd);
+            }
         }
     }
 
@@ -773,8 +788,9 @@ public class WindowsOverlay {
         if (!showingHintMesh)
             return;
         showingHintMesh = false;
-        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
-            requestWindowRepaint(hintMeshWindow.hwnd);
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+            hintMeshWindow.window.hide();
+        }
     }
 
     private static void requestWindowRepaint(WinDef.HWND hwnd) {
