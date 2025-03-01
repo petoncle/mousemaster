@@ -31,8 +31,6 @@ public class QtManager {
             "qt/plugins/platforms/qwindows.dll",
             "qt/plugins/platforms/qwindowsd.dll"
     );
-    private static final org.slf4j.Logger log =
-            LoggerFactory.getLogger(QtManager.class);
 
     public static void initialize() throws IOException {
         File extractDirectory = createExtractDirectory();
