@@ -4,8 +4,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import io.qt.core.Qt;
-import io.qt.gui.QFont;
-import io.qt.widgets.QApplication;
+import io.qt.gui.*;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QVBoxLayout;
 import io.qt.widgets.QWidget;
@@ -331,31 +330,57 @@ public class WindowsOverlay {
         window.clearWindow();
         HintBox hintBox = new HintBox("Label " + ThreadLocalRandom.current().nextInt(100000));
         hintBox.setParent(window);
-        hintBox.setGeometry(200, 100, 400, 400);
+        hintBox.setGeometry(0, 100, 400, 400);
         hintBox.show();
         window.show();
     }
 
     public static class HintBox extends QWidget {
 
+        private int borderLength = 10;
+        private int borderThickness = 5;
+        private int borderRadius = 0;
+        private QColor backgroundColor = new QColor(0, 0, 0, 77);
+        private QColor borderColor = new QColor(255, 255, 0, 77);
+
         public HintBox(String hintText) {
             super();
-            setAutoFillBackground(true);
-            setStyleSheet("background-color: rgba(0, 0, 0, 77); " +
-                          "border: 5px solid yellow; " +
-                          "border-radius: 10px; " +
-                          "padding: 10px;");
-//            setStyleSheet("background-color: " + "blue" + "; border-radius: 10px; padding: 10px;");
             QLabel label = new QLabel(hintText);
             label.setFont(new QFont("Consolas", 14));
             label.setAlignment(Qt.AlignmentFlag.AlignCenter);
-//            label.setStyleSheet("background: transparent; color: white;");
-//            label.setStyleSheet("background: blue; color: white;");
             QVBoxLayout layout = new QVBoxLayout();
             layout.addWidget(label);
             setLayout(layout);
         }
 
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            QPainter painter = new QPainter(this);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            // Draw background.
+            painter.setBrush(new QBrush(backgroundColor));
+            painter.setPen(Qt.PenStyle.NoPen);
+            painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
+            // Draw borders.
+            borderLength = 1000;
+            borderThickness = 1;
+            QPen pen = new QPen(borderColor);
+            pen.setWidth(borderThickness);
+            painter.setPen(pen);
+            // Top left.
+            painter.drawLine(borderThickness / 2, borderThickness / 2, borderThickness / 2 + borderLength, borderThickness / 2);
+            painter.drawLine(borderThickness / 2, borderThickness / 2, borderThickness / 2, borderThickness / 2 + borderLength);
+            // Top right.
+            painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2 - borderLength, borderThickness / 2);
+            painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2, borderThickness / 2 + borderLength);
+            // Bottom left.
+            painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2 + borderLength, height() - borderThickness / 2);
+            painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2, height() - borderThickness / 2 - borderLength);
+            // Bottom right.
+            painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2 - borderLength, height() - borderThickness / 2);
+            painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2, height() - borderThickness / 2 - borderLength);
+            painter.end();
+        }
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
