@@ -42,11 +42,11 @@ public class WindowsPlatform implements Platform {
     private Set<Key> extendedKeys = new HashSet<>();
     private Mode currentMode;
 
-    public WindowsPlatform(boolean keyRegurgitationEnabled) {
+    public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
         WindowsMouse.windowsPlatform = this; // TODO Get rid of this.
         WindowsUiAccess.checkAndTryToGetUiAccess(); // Done before acquiring the single instance mutex.
-        if (!acquireSingleInstanceMutex())
+        if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
         installHooks();

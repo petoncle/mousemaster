@@ -48,6 +48,13 @@ public class MousemasterApplication {
                                        .findFirst()
                                        .map(Paths::get)
                                        .orElse(Paths.get("mousemaster.properties"));
+        boolean multipleInstancesAllowed =
+                Stream.of(args)
+                      .filter(arg -> arg.startsWith("--multiple-instances-allowed="))
+                      .map(arg -> arg.split("=")[1])
+                      .findFirst()
+                      .map(Boolean::parseBoolean)
+                      .orElse(false);
         boolean keyRegurgitationEnabled = // Feature flag.
                 Stream.of(args)
                       .filter(arg -> arg.startsWith("--key-regurgitation-enabled="))
@@ -66,7 +73,7 @@ public class MousemasterApplication {
                 System.exit(0);
             }).start();
         }
-        WindowsPlatform platform = platform(keyRegurgitationEnabled, pauseOnError);
+        WindowsPlatform platform = platform(multipleInstancesAllowed, keyRegurgitationEnabled, pauseOnError);
         logger.info("mousemaster v" + version);
         if (platform == null)
             return;
@@ -78,10 +85,11 @@ public class MousemasterApplication {
         }
     }
 
-    private static WindowsPlatform platform(boolean keyRegurgitationEnabled,
+    private static WindowsPlatform platform(boolean multipleInstancesAllowed,
+                                            boolean keyRegurgitationEnabled,
                                             boolean pauseOnError) {
         try {
-            return new WindowsPlatform(keyRegurgitationEnabled);
+            return new WindowsPlatform(multipleInstancesAllowed, keyRegurgitationEnabled);
         } catch (Exception e) {
             shutdownAfterException(e, null, false, pauseOnError);
         }
