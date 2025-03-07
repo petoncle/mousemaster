@@ -5,16 +5,14 @@ import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import io.qt.core.Qt;
 import io.qt.gui.*;
-import io.qt.widgets.QLabel;
-import io.qt.widgets.QVBoxLayout;
-import io.qt.widgets.QWidget;
+import io.qt.widgets.*;
 import mousemaster.WindowsMouse.MouseSize;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 public class WindowsOverlay {
 
@@ -253,10 +251,10 @@ public class WindowsOverlay {
         updateZoomExcludedWindows();
     }
 
-    private static void createOrUpdateHintMeshWindows(List<Hint> hints) {
+    private static void createOrUpdateHintMeshWindows(HintMesh hintMesh) {
         Set<Screen> screens = WindowsScreen.findScreens();
         Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
-        for (Hint hint : hints) {
+        for (Hint hint : hintMesh.hints()) {
             for (Screen screen : screens) {
                 if (hint.cellWidth() == -1) {
                     if (!screen.rectangle().contains((int) hint.centerX(), (int) hint.centerY()))
@@ -311,43 +309,85 @@ public class WindowsOverlay {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(hwnd, window, hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
-                setHintMeshWindow(hintMeshWindow);
+                setHintMeshWindow(hintMeshWindow, hintMesh);
             }
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
                         existingWindow.window,
                         hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
-                setHintMeshWindow(hintMeshWindow);
+                setHintMeshWindow(hintMeshWindow, hintMesh);
             }
         }
         if (createdAtLeastOneWindow)
             updateZoomExcludedWindows();
     }
 
-    private static void setHintMeshWindow(HintMeshWindow hintMeshWindow) {
+    private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
+                                          HintMesh hintMesh) {
+        QScreen screen = QApplication.primaryScreen();
+        double qtScaleFactor = screen.devicePixelRatio(); // Get screen scaling factor
         TransparentWindow window = hintMeshWindow.window;
         window.clearWindow();
-        HintBox hintBox = new HintBox("Label " + ThreadLocalRandom.current().nextInt(100000));
-        hintBox.setParent(window);
-        hintBox.setGeometry(0, 100, 400, 400);
-        hintBox.show();
+        QWidget container = new QWidget();
+        container.setFixedSize(window.width(), window.height());
+        container.setParent(window);
+        if (windowPixmap != null) {
+            QLabel pixmapLabel = new QLabel(container);
+            pixmapLabel.setPixmap(windowPixmap);
+            pixmapLabel.setGeometry(0, 0, window.width(), window.height());
+            pixmapLabel.show();
+        }
+        else {
+            for (Hint hint : hintMeshWindow.hints) {
+                if (!hint.startsWith(hintMesh.focusedKeySequence()))
+                    continue;
+                HintBox hintBox = new HintBox(hint, hintMesh);
+                hintBox.setParent(container);
+                int x = (int) Math.floor(
+                        (hint.centerX() - hint.cellWidth() / 2) / qtScaleFactor);
+                int y = (int) Math.floor(
+                        (hint.centerY() - hint.cellHeight() / 2) / qtScaleFactor);
+                int width = (int) Math.ceil(hint.cellWidth() / qtScaleFactor);
+                int height = (int) Math.ceil(hint.cellHeight() / qtScaleFactor);
+                hintBox.setGeometry(x, y, width, height);
+                hintBox.show();
+            }
+        }
+
+        container.show();
         window.show();
+        if (windowPixmap == null)
+            windowPixmap = window.grab();
     }
+    static QPixmap windowPixmap = null;
 
     public static class HintBox extends QWidget {
 
         private int borderLength = 10;
         private int borderThickness = 5;
         private int borderRadius = 0;
-        private QColor backgroundColor = new QColor(0, 0, 0, 77);
+        private QColor color = new QColor(0, 0, 0, 77);
         private QColor borderColor = new QColor(255, 255, 0, 77);
 
-        public HintBox(String hintText) {
-            super();
-            QLabel label = new QLabel(hintText);
-            label.setFont(new QFont("Consolas", 14));
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter);
+        public HintBox(Hint hint, HintMesh hintMesh) {
+            String hintText = hint.keySequence()
+                                  .stream()
+                                  .map(Key::name)
+                                  .map(String::toUpperCase)
+                                  .collect(Collectors.joining());
+//            QLabel label = new QLabel(hintText);
+//            label.setFont(new QFont("Consolas", (int) Math.round(hintMesh.fontSize())));
+//            label.setAlignment(Qt.AlignmentFlag.AlignCenter);
+            QLabel label = new CachedLabel(hintText, "Consolas",
+                    (int) Math.round(hintMesh.fontSize()));
+
+            QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
+            shadow.setBlurRadius(20);
+            shadow.setOffset(0, 0);
+            shadow.setColor(new QColor(Qt.GlobalColor.black));
+            label.setGraphicsEffect(shadow);
+
             QVBoxLayout layout = new QVBoxLayout();
             layout.addWidget(label);
             setLayout(layout);
@@ -356,14 +396,18 @@ public class WindowsOverlay {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             // Draw background.
-            painter.setBrush(new QBrush(backgroundColor));
+            painter.setBrush(new QBrush(color));
             painter.setPen(Qt.PenStyle.NoPen);
             painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
             // Draw borders.
-            borderLength = 1000;
-            borderThickness = 1;
+            borderLength = 10;
+            borderThickness = 2;
+            if (borderThickness % 2 == 1)
+                painter.translate(0.5d, 0.5d);
+            // TODO if x = left of screen, then moveby +thickness/2
             QPen pen = new QPen(borderColor);
             pen.setWidth(borderThickness);
             painter.setPen(pen);
@@ -373,12 +417,72 @@ public class WindowsOverlay {
             // Top right.
             painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2 - borderLength, borderThickness / 2);
             painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2, borderThickness / 2 + borderLength);
+//            if (borderThickness % 2 == 1)
+//                painter.translate(0, -0.5d);
             // Bottom left.
             painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2 + borderLength, height() - borderThickness / 2);
             painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2, height() - borderThickness / 2 - borderLength);
+//            if (borderThickness % 2 == 1)
+//                painter.translate(-0.5d, 0);
             // Bottom right.
             painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2 - borderLength, height() - borderThickness / 2);
             painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2, height() - borderThickness / 2 - borderLength);
+            painter.end();
+        }
+    }
+
+    public static class CachedLabel extends QLabel {
+
+        private int textWidth;
+        private int textHeight;
+        private QStaticText cachedStaticText;
+        private QPainterPath cachedOutlinePath;
+        private int ascent;
+
+        public CachedLabel(String text, String fontFamily, int fontSize) {
+            super(text);
+            QFont font = new QFont(fontFamily, fontSize);
+//            font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 30);
+            setFont(font);
+            setAlignment(Qt.AlignmentFlag.AlignCenter);
+            updateCache();
+        }
+
+        private void updateCache() {
+            QFont font = this.font();
+            QFontMetrics metrics = new QFontMetrics(font);
+            textWidth = metrics.horizontalAdvance(this.text());
+            textHeight = metrics.height();
+            ascent = metrics.ascent();
+
+            cachedStaticText = new QStaticText(text());
+            cachedStaticText.setTextFormat(Qt.TextFormat.PlainText);
+            cachedStaticText.setPerformanceHint(QStaticText.PerformanceHint.AggressiveCaching);
+
+            cachedOutlinePath = new QPainterPath();
+            cachedOutlinePath.addText(0, 0, font, text());
+        }
+
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            QPainter painter = new QPainter(this);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
+            int x = (width() - textWidth) / 2;
+            int y = (height() - textHeight) / 2;
+
+            QPen outlinePen = new QPen(new QColor(Qt.GlobalColor.black));
+            outlinePen.setWidth(1);
+            outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
+            painter.setPen(outlinePen);
+            painter.drawPath(cachedOutlinePath.translated(x, y + ascent));
+
+            // Avoid blending the text with the outline. Text should override the outline.
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+
+            painter.setPen(new QColor(255, 255, 255, 255));
+            painter.drawStaticText(x, y, cachedStaticText);
+
             painter.end();
         }
     }
@@ -819,7 +923,7 @@ public class WindowsOverlay {
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return;
         currentHintMesh = hintMesh;
-        createOrUpdateHintMeshWindows(currentHintMesh.hints());
+        createOrUpdateHintMeshWindows(currentHintMesh);
         showingHintMesh = true;
         if (!waitForZoomBeforeRepainting) {
             for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
