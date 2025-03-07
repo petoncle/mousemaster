@@ -339,17 +339,22 @@ public class WindowsOverlay {
             pixmapLabel.show();
         }
         else {
-            for (Hint hint : hintMeshWindow.hints) {
+            int hintGridColumnCount = hintGridColumnCount(hintMesh);
+            List<Hint> hints = hintMeshWindow.hints;
+            for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
+                Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
                     continue;
                 HintBox hintBox = new HintBox(hint, hintMesh);
                 hintBox.setParent(container);
-                int x = (int) Math.floor(
-                        (hint.centerX() - hint.cellWidth() / 2) / qtScaleFactor);
-                int y = (int) Math.floor(
-                        (hint.centerY() - hint.cellHeight() / 2) / qtScaleFactor);
-                int width = (int) Math.ceil(hint.cellWidth() / qtScaleFactor);
-                int height = (int) Math.ceil(hint.cellHeight() / qtScaleFactor);
+                int x = hintRoundedX(hint, qtScaleFactor);
+                int y = hintRoundedY(hint, qtScaleFactor);
+                int width = (int) Math.round(hint.cellWidth() / qtScaleFactor);
+                int height = (int) Math.round(hint.cellHeight() / qtScaleFactor);
+                if (hintIndex + 1 < hints.size() && hintRoundedX(hints.get(hintIndex + 1), qtScaleFactor) > x + width)
+                    width++;
+                if (hintIndex + hintGridColumnCount < hints.size() && hintRoundedY(hints.get(hintIndex + hintGridColumnCount), qtScaleFactor) > y + height)
+                    height++;
                 hintBox.setGeometry(x, y, width, height);
                 hintBox.show();
             }
@@ -360,6 +365,24 @@ public class WindowsOverlay {
         if (windowPixmap == null)
             windowPixmap = window.grab();
     }
+
+    private static int hintGridColumnCount(HintMesh hintMesh) {
+        double left = hintMesh.hints().getFirst().centerX();
+        for (int i = 1; i < hintMesh.hints().size(); i++) {
+            if (left == hintMesh.hints().get(i).centerX())
+                return i;
+        }
+        throw new IllegalStateException();
+    }
+
+    private static int hintRoundedX(Hint hint, double qtScaleFactor) {
+        return (int) Math.round((hint.centerX() - hint.cellWidth() / 2) / qtScaleFactor);
+    }
+
+    private static int hintRoundedY(Hint hint, double qtScaleFactor) {
+        return (int) Math.round((hint.centerY() - hint.cellHeight() / 2) / qtScaleFactor);
+    }
+
     static QPixmap windowPixmap = null;
 
     public static class HintBox extends QWidget {
@@ -368,7 +391,7 @@ public class WindowsOverlay {
         private int borderThickness = 5;
         private int borderRadius = 0;
         private QColor color = new QColor(0, 0, 0, 77);
-        private QColor borderColor = new QColor(255, 255, 0, 77);
+        private QColor borderColor = new QColor(255, 255, 0, 100);
 
         public HintBox(Hint hint, HintMesh hintMesh) {
             String hintText = hint.keySequence()
@@ -383,7 +406,7 @@ public class WindowsOverlay {
                     (int) Math.round(hintMesh.fontSize()));
 
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
-            shadow.setBlurRadius(20);
+            shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
             shadow.setColor(new QColor(Qt.GlobalColor.black));
             label.setGraphicsEffect(shadow);
@@ -403,11 +426,8 @@ public class WindowsOverlay {
             painter.setPen(Qt.PenStyle.NoPen);
             painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
             // Draw borders.
-            borderLength = 10;
-            borderThickness = 2;
-            if (borderThickness % 2 == 1)
-                painter.translate(0.5d, 0.5d);
-            // TODO if x = left of screen, then moveby +thickness/2
+            borderLength = 1000;
+            borderThickness = 1;
             QPen pen = new QPen(borderColor);
             pen.setWidth(borderThickness);
             painter.setPen(pen);
@@ -417,13 +437,9 @@ public class WindowsOverlay {
             // Top right.
             painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2 - borderLength, borderThickness / 2);
             painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2, borderThickness / 2 + borderLength);
-//            if (borderThickness % 2 == 1)
-//                painter.translate(0, -0.5d);
             // Bottom left.
             painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2 + borderLength, height() - borderThickness / 2);
             painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2, height() - borderThickness / 2 - borderLength);
-//            if (borderThickness % 2 == 1)
-//                painter.translate(-0.5d, 0);
             // Bottom right.
             painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2 - borderLength, height() - borderThickness / 2);
             painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2, height() - borderThickness / 2 - borderLength);
