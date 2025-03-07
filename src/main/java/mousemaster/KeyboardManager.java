@@ -87,6 +87,17 @@ public class KeyboardManager {
                     !processingSet.isHint()) {
                     keysToRegurgitate = regurgitatePressedKeys(null);
                 }
+                else if (processingSet.isPartOfComboSequence()) {
+                    // Regurgitate pressed keys that are not in any of the combos
+                    // associated to the key that triggered the current event.
+                    Set<Combo> currentCombos = processingSet.processingByCombo().keySet();
+                    keysToRegurgitate = new HashSet<>();
+                    for (Map.Entry<Key, PressKeyEventProcessingSet> entry : currentlyPressedKeys.entrySet()) {
+                        if (entry.getValue().processingByCombo().keySet().stream().anyMatch(currentCombos::contains))
+                            continue;
+                        regurgitate(entry.getValue(), keysToRegurgitate, entry.getKey());
+                    }
+                }
                 currentlyPressedKeys.put(key, processingSet);
                 if (processingSet.isPartOfCompletedComboSequence()) {
                     markOtherKeysOfTheseCombosAsCompleted(processingSet.completedCombos());
@@ -170,27 +181,32 @@ public class KeyboardManager {
             if (releasedKey != null && !eatenKey.equals(releasedKey))
                 continue;
             PressKeyEventProcessingSet processingSet = setEntry.getValue();
-            // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
-            if (processingSet.mustBeEaten() &&
-                !processingSet.isPartOfCompletedComboSequenceMustBeEaten() &&
-                !processingSet.isHint()) {
-                keysToRegurgitate.add(eatenKey);
-                // Change the key's processing to must not be eaten
-                // so that it cannot be regurgitated a second time.
-                for (Map.Entry<Combo, PressKeyEventProcessing> entry : Set.copyOf(
-                        processingSet.processingByCombo().entrySet())) {
-                    Combo combo = entry.getKey();
-                    PressKeyEventProcessing processing = entry.getValue();
-                    if (processing.isPartOfComboSequence())
-                        processingSet.processingByCombo()
-                                     .put(combo,
-                                             PressKeyEventProcessing.partOfComboSequence(
-                                                     false,
-                                                     processing.isPartOfCompletedComboSequence()));
-                }
-            }
+            regurgitate(processingSet, keysToRegurgitate, eatenKey);
         }
         return keysToRegurgitate;
+    }
+
+    private void regurgitate(PressKeyEventProcessingSet processingSet,
+                           Set<Key> keysToRegurgitate, Key eatenKey) {
+        // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
+        if (processingSet.mustBeEaten() &&
+            !processingSet.isPartOfCompletedComboSequenceMustBeEaten() &&
+            !processingSet.isHint()) {
+            keysToRegurgitate.add(eatenKey);
+            // Change the key's processing to must not be eaten
+            // so that it cannot be regurgitated a second time.
+            for (Map.Entry<Combo, PressKeyEventProcessing> entry : Set.copyOf(
+                    processingSet.processingByCombo().entrySet())) {
+                Combo combo = entry.getKey();
+                PressKeyEventProcessing processing = entry.getValue();
+                if (processing.isPartOfComboSequence())
+                    processingSet.processingByCombo()
+                                 .put(combo,
+                                         PressKeyEventProcessing.partOfComboSequence(
+                                                 false,
+                                                 processing.isPartOfCompletedComboSequence()));
+            }
+        }
     }
 
     private static EatAndRegurgitates eatAndRegurgitates(boolean mustBeEaten,

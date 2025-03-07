@@ -29,6 +29,12 @@ public class MousemasterApplication {
               .map(arg -> arg.split("=")[1])
               .findFirst()
               .ifPresent(MousemasterApplication::setLogLevel);
+        boolean pauseOnError = Stream.of(args)
+                                     .filter(arg -> arg.startsWith("--pause-on-error="))
+                                     .map(arg -> arg.split("=")[1])
+                                     .findFirst()
+                                     .map(Boolean::parseBoolean)
+                                     .orElse(true);
         String version;
         try (InputStream versionInputStream = MousemasterApplication.class.getClassLoader().getResourceAsStream("application.properties")) {
             Properties versionProp = new Properties();
@@ -42,6 +48,13 @@ public class MousemasterApplication {
                                        .findFirst()
                                        .map(Paths::get)
                                        .orElse(Paths.get("mousemaster.properties"));
+        boolean multipleInstancesAllowed =
+                Stream.of(args)
+                      .filter(arg -> arg.startsWith("--multiple-instances-allowed="))
+                      .map(arg -> arg.split("=")[1])
+                      .findFirst()
+                      .map(Boolean::parseBoolean)
+                      .orElse(false);
         boolean keyRegurgitationEnabled = // Feature flag.
                 Stream.of(args)
                       .filter(arg -> arg.startsWith("--key-regurgitation-enabled="))
@@ -60,34 +73,40 @@ public class MousemasterApplication {
                 System.exit(0);
             }).start();
         }
-        WindowsPlatform platform = platform(keyRegurgitationEnabled);
+        WindowsPlatform platform = platform(multipleInstancesAllowed, keyRegurgitationEnabled, pauseOnError);
         logger.info("mousemaster v" + version);
         if (platform == null)
             return;
         try {
-            Native.setCallbackExceptionHandler((c, e) -> shutdownAfterException(e, platform, true));
+            Native.setCallbackExceptionHandler((c, e) -> shutdownAfterException(e, platform, true, pauseOnError));
             new Mousemaster(configurationPath, platform).run();
         } catch (Throwable e) {
-            shutdownAfterException(e, platform, false);
+            shutdownAfterException(e, platform, false, pauseOnError);
         }
     }
 
-    private static WindowsPlatform platform(boolean keyRegurgitationEnabled) {
+    private static WindowsPlatform platform(boolean multipleInstancesAllowed,
+                                            boolean keyRegurgitationEnabled,
+                                            boolean pauseOnError) {
         try {
-            return new WindowsPlatform(keyRegurgitationEnabled);
+            return new WindowsPlatform(multipleInstancesAllowed, keyRegurgitationEnabled);
         } catch (Exception e) {
-            shutdownAfterException(e, null, false);
+            shutdownAfterException(e, null, false, pauseOnError);
         }
         return null;
     }
 
-    private static void shutdownAfterException(Throwable e, Platform platform, boolean jnaCallback) {
+    private static void shutdownAfterException(Throwable e, Platform platform,
+                                               boolean jnaCallback,
+                                               boolean pauseOnError) {
         if (platform != null)
             platform.shutdown();
         logger.error(jnaCallback ? "Error in JNA callback" : "", e);
-        logger.info(
-                "An error has occurred. The details of the error should be right above this message. Press Enter in this window to close mousemaster.");
-        new Scanner(System.in).nextLine();
+        if (pauseOnError) {
+            logger.info(
+                    "An error has occurred. The details of the error should be right above this message. Press Enter in this window to close mousemaster.");
+            new Scanner(System.in).nextLine();
+        }
         System.exit(1);
     }
 

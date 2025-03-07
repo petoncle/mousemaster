@@ -333,7 +333,7 @@ public enum WindowsVirtualKey {
                 Map.entry(Key.tab, VK_TAB),
                 Map.entry(Key.enter, VK_RETURN),
                 Map.entry(Key.pause, VK_PAUSE),
-                Map.entry(Key.scrolllock, VK_SCRLK),
+                Map.entry(Key.scrolllock, VK_SCROLL),
                 Map.entry(Key.capslock, VK_CAPITAL),
                 Map.entry(Key.esc, VK_ESCAPE),
                 Map.entry(Key.space, VK_SPACE),
