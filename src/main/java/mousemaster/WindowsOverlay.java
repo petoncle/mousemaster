@@ -451,11 +451,12 @@ public class WindowsOverlay {
             this.color = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
             this.borderColor = qColor(hintMesh.boxBorderHexColor(),
                     hintMesh.boxBorderOpacity());
-            HintLabel label = new HintLabel(hint, font, xAdvancesByString, boxWidth,
+            HintLabel label = new HintLabel(hint, font, xAdvancesByString, boxWidth, boxHeight,
                     qColor(hintMesh.fontHexColor(), hintMesh.fontOpacity()),
                     qColor(hintMesh.prefixFontHexColor(), hintMesh.fontOpacity()),
                     qColor(hintMesh.fontOutlineHexColor(), hintMesh.fontOutlineOpacity()),
-                    hintMesh.focusedKeySequence());
+                    hintMesh.focusedKeySequence(),
+                    hintMesh.fontSpacingPercent());
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
             shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
@@ -531,33 +532,42 @@ public class WindowsOverlay {
 
     public static class HintLabel extends QLabel {
 
-        private final Hint hint;
-        private final Map<String, Integer> xAdvancesByString;
-        private final int boxWidth;
         private final QColor fontColor;
         private final QColor prefixColor;
         private final QColor outlineColor;
-        private final List<Key> focusedKeySequence;
+        private final List<HintKeyText> keyTexts;
 
         public HintLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
-                         QColor fontColor, QColor prefixColor,
+                         int boxHeight, QColor fontColor, QColor prefixColor,
                          QColor outlineColor,
-                         List<Key> focusedKeySequence) {
+                         List<Key> focusedKeySequence, double fontSpacingPercent) {
             super(hint.keySequence()
                       .stream()
                       .map(Key::name)
                       .map(String::toUpperCase)
                       .collect(Collectors.joining()));
-            this.hint = hint;
-            this.xAdvancesByString = xAdvancesByString;
-            this.boxWidth = boxWidth;
             this.fontColor = fontColor;
             this.prefixColor = prefixColor;
             this.outlineColor = outlineColor;
-            this.focusedKeySequence = focusedKeySequence;
-//            font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 30);
             setFont(font);
+
+            QFontMetrics metrics = new QFontMetrics(font());
+            int y = (boxHeight + metrics.ascent() - metrics.descent()) / 2;
+
+            List<Key> keySequence = hint.keySequence();
+            keyTexts = new ArrayList<>(keySequence.size());
+            for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
+                Key key = keySequence.get(keyIndex);
+                String keyText = key.name().toUpperCase();
+                int textWidth =
+                        xAdvancesByString.computeIfAbsent(keyText,
+                                metrics::horizontalAdvance);
+                int keyBoxWidth = boxWidth / keySequence.size();
+                int x = keyBoxWidth * keyIndex + (keyBoxWidth - textWidth) / 2;
+                keyTexts.add(new HintKeyText(keyText, x, y,
+                        keyIndex <= focusedKeySequence.size() - 1));
+            }
         }
 
         @Override
@@ -572,23 +582,8 @@ public class WindowsOverlay {
             painter.setPen(outlinePen);
             painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
             QPainterPath outlinePath = new QPainterPath();
-
-            QFontMetrics metrics = new QFontMetrics(font());
-            int y = (height() + metrics.ascent() - metrics.descent()) / 2;
-
-            List<Key> keySequence = hint.keySequence();
-            List<HintKeyText> keyTexts = new ArrayList<>(keySequence.size());
-            for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
-                Key key = keySequence.get(keyIndex);
-                String keyText = key.name().toUpperCase();
-                int textWidth =
-                        xAdvancesByString.computeIfAbsent(keyText,
-                                metrics::horizontalAdvance);
-                int keyBoxWidth = boxWidth / keySequence.size();
-                int x = keyBoxWidth * keyIndex + (keyBoxWidth - textWidth) / 2;
-                outlinePath.addText(x, y, font(), keyText);
-                keyTexts.add(new HintKeyText(keyText, x, y,
-                        keyIndex <= focusedKeySequence.size() - 1));
+            for (HintKeyText keyText : keyTexts) {
+                outlinePath.addText(keyText.x(), keyText.y(), font(), keyText.text());
             }
             painter.drawPath(outlinePath);
 
@@ -596,7 +591,7 @@ public class WindowsOverlay {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
                 painter.setPen(keyText.isPrefix() ? prefixColor : fontColor);
-                painter.drawText(keyText.x(), y, keyText.text());
+                painter.drawText(keyText.x(), keyText.y(), keyText.text());
             }
 
             painter.end();
