@@ -3,6 +3,7 @@ package mousemaster;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import io.qt.core.QRect;
 import io.qt.core.Qt;
 import io.qt.gui.*;
 import io.qt.widgets.*;
@@ -30,6 +31,7 @@ public class WindowsOverlay {
     private static Grid currentGrid;
     private static final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
+    private static final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private static boolean showingHintMesh;
     private static HintMesh currentHintMesh;
     private static ZoomWindow zoomWindow, standByZoomWindow;
@@ -326,17 +328,24 @@ public class WindowsOverlay {
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                           HintMesh hintMesh) {
         QScreen screen = QApplication.primaryScreen();
+        // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
+        // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = screen.devicePixelRatio();
         TransparentWindow window = hintMeshWindow.window;
         window.clearWindow();
         QWidget container = new QWidget();
         container.setFixedSize(window.width(), window.height());
         container.setParent(window);
-        if (windowPixmap != null) {
+        PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMesh);
+        if (pixmapAndPosition != null) {
+            logger.info("Using cached pixmap " + pixmapAndPosition);
             QLabel pixmapLabel = new QLabel(container);
-            pixmapLabel.setPixmap(windowPixmap);
-            pixmapLabel.setGeometry(0, 0, window.width(), window.height());
+            pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
+            pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(),
+                    pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             pixmapLabel.show();
+            container.show();
+            window.show();
         }
         else {
             boolean isHintPartOfGrid = hintMesh.hints().getFirst().cellWidth() != -1;
@@ -349,6 +358,10 @@ public class WindowsOverlay {
                 maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
             }
             List<Hint> hints = hintMeshWindow.hints;
+            int minHintLeft = Integer.MAX_VALUE;
+            int minHintTop = Integer.MAX_VALUE;
+            int maxHintRight = Integer.MIN_VALUE;
+            int maxHintBottom = Integer.MIN_VALUE;
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
@@ -365,15 +378,33 @@ public class WindowsOverlay {
                     && hint.centerX() != maxHintCenterX
                     && hintIndex + 1 < hints.size() && hintRoundedX(hints.get(hintIndex + 1), qtScaleFactor) < x + width)
                     width--;
+                minHintLeft = Math.min(minHintLeft, x);
+                minHintTop = Math.min(minHintTop, y);
+                maxHintRight = Math.max(maxHintRight, x + width);
+                maxHintBottom = Math.max(maxHintBottom, y + height);
                 hintBox.setGeometry(x, y, width, height);
                 hintBox.show();
             }
+            container.show();
+            window.show();
+            if (isHintPartOfGrid) {
+                QPixmap pixmap = window.grab(new QRect(minHintLeft, minHintTop,
+                        maxHintRight - minHintLeft + 1, maxHintBottom - minHintTop + 1));
+                PixmapAndPosition pixmapAndPosition1 =
+                        new PixmapAndPosition(pixmap, minHintLeft, minHintTop);
+                logger.info("Caching " + pixmapAndPosition1 + ", cache size is " + hintMeshPixmaps.size());
+                hintMeshPixmaps.put(hintMesh,
+                        pixmapAndPosition1);
+            }
         }
+    }
 
-        container.show();
-        window.show();
-//        if (windowPixmap == null)
-//            windowPixmap = window.grab();
+    private record PixmapAndPosition(QPixmap pixmap, int x, int y) {
+        @Override
+        public String toString() {
+            return "PixmapAndPosition[" + x + ", " + y + ", "
+                   + pixmap.width() + ", " + pixmap.height() + "]";
+        }
     }
 
     private static int hintGridColumnCount(HintMesh hintMesh) {
@@ -392,8 +423,6 @@ public class WindowsOverlay {
     private static int hintRoundedY(Hint hint, double qtScaleFactor) {
         return (int) Math.round((hint.centerY() - hint.cellHeight() / 2) / qtScaleFactor);
     }
-
-    static QPixmap windowPixmap = null;
 
     public static class HintBox extends QWidget {
 
