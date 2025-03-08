@@ -84,7 +84,7 @@ public class ConfigurationParser {
                                         .map(Key::ofName)
                                         .toList())
                 .undoKeys(Set.of())
-                .fontName("Consolas Bold")
+                .fontName("Consolas")
                 .fontSize(18f)
                 .fontSpacingPercent(0.6f)
                 .fontHexColor("#FFFFFF")

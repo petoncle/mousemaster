@@ -450,12 +450,8 @@ public class WindowsOverlay {
                                   .map(Key::name)
                                   .map(String::toUpperCase)
                                   .collect(Collectors.joining());
-//            QLabel label = new QLabel(hintText);
-//            label.setFont(new QFont("Consolas", (int) Math.round(hintMesh.fontSize())));
-//            label.setAlignment(Qt.AlignmentFlag.AlignCenter);
-            QLabel label = new CachedLabel(hintText, "Consolas",
+            QLabel label = new CachedLabel(hintText, hintMesh.fontName(),
                     (int) Math.round(hintMesh.fontSize()));
-
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
             shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
