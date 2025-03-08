@@ -326,7 +326,7 @@ public class WindowsOverlay {
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                           HintMesh hintMesh) {
         QScreen screen = QApplication.primaryScreen();
-        double qtScaleFactor = screen.devicePixelRatio(); // Get screen scaling factor
+        double qtScaleFactor = screen.devicePixelRatio();
         TransparentWindow window = hintMeshWindow.window;
         window.clearWindow();
         QWidget container = new QWidget();
@@ -345,14 +345,15 @@ public class WindowsOverlay {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
                     continue;
-                HintBox hintBox = new HintBox(hint, hintMesh);
+                HintBox hintBox = new HintBox(hint, hintMesh, qtScaleFactor);
                 hintBox.setParent(container);
                 int x = hintRoundedX(hint, qtScaleFactor);
                 int y = hintRoundedY(hint, qtScaleFactor);
                 int width = (int) Math.round(hint.cellWidth() / qtScaleFactor);
                 int height = (int) Math.round(hint.cellHeight() / qtScaleFactor);
-                if (hintIndex + 1 < hints.size() && hintRoundedX(hints.get(hintIndex + 1), qtScaleFactor) > x + width)
-                    width++;
+                if (((hintIndex + 1) % hintGridColumnCount != 0) // Exclude last column
+                    && hintIndex + 1 < hints.size() && hintRoundedX(hints.get(hintIndex + 1), qtScaleFactor) < x + width)
+                    width--;
                 if (hintIndex + hintGridColumnCount < hints.size() && hintRoundedY(hints.get(hintIndex + hintGridColumnCount), qtScaleFactor) > y + height)
                     height++;
                 hintBox.setGeometry(x, y, width, height);
@@ -362,8 +363,8 @@ public class WindowsOverlay {
 
         container.show();
         window.show();
-        if (windowPixmap == null)
-            windowPixmap = window.grab();
+//        if (windowPixmap == null)
+//            windowPixmap = window.grab();
     }
 
     private static int hintGridColumnCount(HintMesh hintMesh) {
@@ -387,13 +388,15 @@ public class WindowsOverlay {
 
     public static class HintBox extends QWidget {
 
+        private final double qtScaleFactor;
         private int borderLength = 10;
         private int borderThickness = 5;
         private int borderRadius = 0;
         private QColor color = new QColor(0, 0, 0, 77);
-        private QColor borderColor = new QColor(255, 255, 0, 100);
+        private QColor borderColor = new QColor(255, 255, 0, 255);
 
-        public HintBox(Hint hint, HintMesh hintMesh) {
+        public HintBox(Hint hint, HintMesh hintMesh, double qtScaleFactor) {
+            this.qtScaleFactor = qtScaleFactor;
             String hintText = hint.keySequence()
                                   .stream()
                                   .map(Key::name)
@@ -409,7 +412,7 @@ public class WindowsOverlay {
             shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
             shadow.setColor(new QColor(Qt.GlobalColor.black));
-            label.setGraphicsEffect(shadow);
+//            label.setGraphicsEffect(shadow);
 
             QVBoxLayout layout = new QVBoxLayout();
             layout.addWidget(label);
@@ -420,29 +423,41 @@ public class WindowsOverlay {
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             // Draw background.
             painter.setBrush(new QBrush(color));
             painter.setPen(Qt.PenStyle.NoPen);
             painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
             // Draw borders.
             borderLength = 1000;
-            borderThickness = 1;
+            int borderThickness = 1;// / qtScaleFactor;
+            // With QT_ENABLE_HIGHDPI_SCALING=0:
+            // draw vertical line thickness 1 at x=0: x=0
+            // draw vertical line thickness 2 at x=0: x=0, x=-1
+            // draw vertical line thickness 3 at x=0: x=0, x=1, x=-1
+            // draw vertical line thickness 4 at x=0: x=0, x=1, x=-1, x=-2
+            // draw vertical line thickness 3 at x=0: x=0, x=1, x=2, x=-1, x=-2
             QPen pen = new QPen(borderColor);
-            pen.setWidth(borderThickness);
+            // Default is square cap.
+            pen.setCapStyle(Qt.PenCapStyle.FlatCap);
+            pen.setWidthF(borderThickness);
             painter.setPen(pen);
+            int top = borderThickness / 2;
+            int bottom = height() - borderThickness / 2;
+            int left = 0;// borderThickness / 2;
+            int right = width() - 1;// - borderThickness / 2;
             // Top left.
-            painter.drawLine(borderThickness / 2, borderThickness / 2, borderThickness / 2 + borderLength, borderThickness / 2);
-            painter.drawLine(borderThickness / 2, borderThickness / 2, borderThickness / 2, borderThickness / 2 + borderLength);
+//            painter.drawLine(left, top, left + borderLength, top);
+            painter.drawLine(left, top, left, top + borderLength);
             // Top right.
-            painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2 - borderLength, borderThickness / 2);
-            painter.drawLine(width() - borderThickness / 2, borderThickness / 2, width() - borderThickness / 2, borderThickness / 2 + borderLength);
+//            painter.drawLine(right, top, right - borderLength, top);
+            painter.drawLine(right, top, right, top + borderLength);
             // Bottom left.
-            painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2 + borderLength, height() - borderThickness / 2);
-            painter.drawLine(borderThickness / 2, height() - borderThickness / 2, borderThickness / 2, height() - borderThickness / 2 - borderLength);
+//            painter.drawLine(left, bottom, left + borderLength, bottom);
+//            painter.drawLine(left, bottom, left, bottom - borderLength);
             // Bottom right.
-            painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2 - borderLength, height() - borderThickness / 2);
-            painter.drawLine(width() - borderThickness / 2, height() - borderThickness / 2, width() - borderThickness / 2, height() - borderThickness / 2 - borderLength);
+//            painter.drawLine(right, bottom, right - borderLength, bottom);
+//            painter.drawLine(right, bottom, right, bottom - borderLength);
             painter.end();
         }
     }
@@ -491,7 +506,7 @@ public class WindowsOverlay {
             outlinePen.setWidth(1);
             outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
             painter.setPen(outlinePen);
-            painter.drawPath(cachedOutlinePath.translated(x, y + ascent));
+//            painter.drawPath(cachedOutlinePath.translated(x, y + ascent));
 
             // Avoid blending the text with the outline. Text should override the outline.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);

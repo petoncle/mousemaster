@@ -1,5 +1,6 @@
 package mousemaster;
 
+import io.qt.QtUtilities;
 import io.qt.widgets.QApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,12 @@ public class QtManager {
         }
         logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
         System.setProperty("io.qt.library-path-override", extractDirectory.getAbsolutePath() + "/qt/bin");
+//        System.setProperty("QT_ENABLE_HIGHDPI_SCALING", "0");
+//        setEnv("QT_ENABLE_HIGHDPI_SCALING", "0");
+//        System.setProperty("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
+//        System.setProperty("QT_SCALE_FACTOR", "1");
+        // https://forum.qt.io/topic/141511/qt_enable_highdpi_scaling-has-no-effect
+        QtUtilities.putenv("QT_ENABLE_HIGHDPI_SCALING", "0"); // Only works on Windows?
         QApplication.initialize(new String[]{});
     }
 
