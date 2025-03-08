@@ -6,7 +6,10 @@ import com.sun.jna.platform.win32.*;
 import io.qt.core.QRect;
 import io.qt.core.Qt;
 import io.qt.gui.*;
-import io.qt.widgets.*;
+import io.qt.widgets.QApplication;
+import io.qt.widgets.QGraphicsDropShadowEffect;
+import io.qt.widgets.QLabel;
+import io.qt.widgets.QWidget;
 import mousemaster.WindowsMouse.MouseSize;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
@@ -362,14 +365,15 @@ public class WindowsOverlay {
             int minHintTop = Integer.MAX_VALUE;
             int maxHintRight = Integer.MIN_VALUE;
             int maxHintBottom = Integer.MIN_VALUE;
+            Map<String, Integer> xAdvancesByString = new HashMap<>();
+            QFont font =
+                    new QFont(hintMesh.fontName(), (int) Math.round(hintMesh.fontSize()));
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
                     continue;
                 boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX;
                 boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY;
-                HintBox hintBox = new HintBox(hint, hintMesh, gridRightEdge, gridBottomEdge, qtScaleFactor);
-                hintBox.setParent(container);
                 int x = hintRoundedX(hint, qtScaleFactor);
                 int y = hintRoundedY(hint, qtScaleFactor);
                 int width = (int) Math.round(hint.cellWidth() / qtScaleFactor);
@@ -382,6 +386,10 @@ public class WindowsOverlay {
                 minHintTop = Math.min(minHintTop, y);
                 maxHintRight = Math.max(maxHintRight, x + width);
                 maxHintBottom = Math.max(maxHintBottom, y + height);
+                HintBox hintBox =
+                        new HintBox(hint, hintMesh, gridRightEdge, gridBottomEdge, width,
+                                height, font, xAdvancesByString, qtScaleFactor);
+                hintBox.setParent(container);
                 hintBox.setGeometry(x, y, width, height);
                 hintBox.show();
             }
@@ -393,8 +401,7 @@ public class WindowsOverlay {
                 PixmapAndPosition pixmapAndPosition1 =
                         new PixmapAndPosition(pixmap, minHintLeft, minHintTop);
                 logger.info("Caching " + pixmapAndPosition1 + ", cache size is " + hintMeshPixmaps.size());
-                hintMeshPixmaps.put(hintMesh,
-                        pixmapAndPosition1);
+//                hintMeshPixmaps.put(hintMesh, pixmapAndPosition1);
             }
         }
     }
@@ -436,7 +443,8 @@ public class WindowsOverlay {
         private QColor borderColor;
 
         public HintBox(Hint hint, HintMesh hintMesh, boolean gridRightEdge,
-                       boolean gridBottomEdge, double qtScaleFactor) {
+                       boolean gridBottomEdge, int boxWidth, int boxHeight,
+                       QFont font, Map<String, Integer> xAdvancesByString, double qtScaleFactor) {
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
@@ -445,22 +453,20 @@ public class WindowsOverlay {
             this.borderColor = QColor.fromRgba(
                     hexColorStringToRgba(hintMesh.boxBorderHexColor(),
                             hintMesh.boxBorderOpacity()));
-            String hintText = hint.keySequence()
-                                  .stream()
-                                  .map(Key::name)
-                                  .map(String::toUpperCase)
-                                  .collect(Collectors.joining());
-            QLabel label = new CachedLabel(hintText, hintMesh.fontName(),
-                    (int) Math.round(hintMesh.fontSize()));
+            CachedLabel label = new CachedLabel(hint, font, xAdvancesByString, boxWidth);
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
             shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
             shadow.setColor(new QColor(Qt.GlobalColor.black));
 //            label.setGraphicsEffect(shadow);
-
-            QVBoxLayout layout = new QVBoxLayout();
-            layout.addWidget(label);
-            setLayout(layout);
+//            QVBoxLayout layout = new QVBoxLayout();
+//            layout.addWidget(label);
+//            setLayout(layout);
+            // **Set parent manually**
+            label.setParent(this);
+            label.setFixedSize(boxWidth, boxHeight);
+            label.move(0, 0);
+            label.show();
         }
 
         @Override
@@ -519,34 +525,23 @@ public class WindowsOverlay {
 
     public static class CachedLabel extends QLabel {
 
+        private final Map<String, Integer> xAdvancesByString;
+        private final int boxWidth;
         private int textWidth;
-        private int textHeight;
-        private QStaticText cachedStaticText;
-        private QPainterPath cachedOutlinePath;
-        private int ascent;
 
-        public CachedLabel(String text, String fontFamily, int fontSize) {
-            super(text);
-            QFont font = new QFont(fontFamily, fontSize);
+        public CachedLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
+                           int boxWidth) {
+            super(hint.keySequence()
+                      .stream()
+                      .map(Key::name)
+                      .map(String::toUpperCase)
+                      .collect(Collectors.joining()));
+            this.xAdvancesByString = xAdvancesByString;
+            this.boxWidth = boxWidth;
 //            font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 30);
             setFont(font);
-            setAlignment(Qt.AlignmentFlag.AlignCenter);
-            updateCache();
-        }
-
-        private void updateCache() {
-            QFont font = this.font();
-            QFontMetrics metrics = new QFontMetrics(font);
-            textWidth = metrics.horizontalAdvance(this.text());
-            textHeight = metrics.height();
-            ascent = metrics.ascent();
-
-            cachedStaticText = new QStaticText(text());
-            cachedStaticText.setTextFormat(Qt.TextFormat.PlainText);
-            cachedStaticText.setPerformanceHint(QStaticText.PerformanceHint.AggressiveCaching);
-
-            cachedOutlinePath = new QPainterPath();
-            cachedOutlinePath.addText(0, 0, font, text());
+            QFontMetrics metrics = new QFontMetrics(font());
+            textWidth = xAdvancesByString.computeIfAbsent(text(), metrics::horizontalAdvance);
         }
 
         @Override
@@ -554,20 +549,24 @@ public class WindowsOverlay {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
-            int x = (width() - textWidth) / 2;
-            int y = (height() - textHeight) / 2;
 
+            int x = (boxWidth - textWidth) / 2;
+            QFontMetrics metrics = new QFontMetrics(font());
+            int y = (height() + metrics.ascent() - metrics.descent()) / 2;
             QPen outlinePen = new QPen(new QColor(Qt.GlobalColor.black));
-            outlinePen.setWidth(1);
+            outlinePen.setWidth(3);
             outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
             painter.setPen(outlinePen);
-//            painter.drawPath(cachedOutlinePath.translated(x, y + ascent));
+            painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
+            QPainterPath outlinePath = new QPainterPath();
+            outlinePath.addText(x, y, font(), text());
+            painter.drawPath(outlinePath);
 
             // Avoid blending the text with the outline. Text should override the outline.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
 
             painter.setPen(new QColor(255, 255, 255, 255));
-            painter.drawStaticText(x, y, cachedStaticText);
+            painter.drawText(x, y, text());
 
             painter.end();
         }
