@@ -430,22 +430,25 @@ public class WindowsOverlay {
             painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
             // Draw borders.
             borderLength = 1000;
-            int borderThickness = 1;// / qtScaleFactor;
+            int borderThickness = 2;// / qtScaleFactor;
             // With QT_ENABLE_HIGHDPI_SCALING=0:
-            // draw vertical line thickness 1 at x=0: x=0
+            // draw vertical line thickness 1 at x=0: x=0 (0 is the widget's left)
             // draw vertical line thickness 2 at x=0: x=0, x=-1
             // draw vertical line thickness 3 at x=0: x=0, x=1, x=-1
             // draw vertical line thickness 4 at x=0: x=0, x=1, x=-1, x=-2
-            // draw vertical line thickness 3 at x=0: x=0, x=1, x=2, x=-1, x=-2
+            // draw vertical line thickness 5 at x=0: x=0, x=1, x=2, x=-1, x=-2
+            // Qt won't draw anything x < 0, but will draw x >= width().
+            // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
+            int penOffset = borderThickness / 2;
             QPen pen = new QPen(borderColor);
             // Default is square cap.
             pen.setCapStyle(Qt.PenCapStyle.FlatCap);
-            pen.setWidthF(borderThickness);
+            pen.setWidth(borderThickness);
             painter.setPen(pen);
-            int top = borderThickness / 2;
+            int top = 0;
             int bottom = height() - borderThickness / 2;
-            int left = 0;// borderThickness / 2;
-            int right = width() - 1;// - borderThickness / 2;
+            int left = 0 + penOffset;
+            int right = width() - 1 - (borderThickness - 1) + penOffset;
             // Top left.
 //            painter.drawLine(left, top, left + borderLength, top);
             painter.drawLine(left, top, left, top + borderLength);
