@@ -368,6 +368,7 @@ public class WindowsOverlay {
             Map<String, Integer> xAdvancesByString = new HashMap<>();
             QFont font =
                     new QFont(hintMesh.fontName(), (int) Math.round(hintMesh.fontSize()));
+            QFontMetrics metrics = new QFontMetrics(font);
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
@@ -378,9 +379,31 @@ public class WindowsOverlay {
                 int y = hintRoundedY(hint, qtScaleFactor);
                 int width = (int) Math.round(hint.cellWidth() / qtScaleFactor);
                 int height = (int) Math.round(hint.cellHeight() / qtScaleFactor);
+                int totalXAdvance = metrics.horizontalAdvance(hint.keySequence()
+                                                                  .stream()
+                                                                  .map(Key::name)
+                                                                  .map(String::toUpperCase)
+                                                                  .collect(
+                                                                          Collectors.joining()));
+                if (width < totalXAdvance) {
+                    // Size of cell for screen selection hint is not configured by user.
+                    // The default size is used and it is too small.
+                    width = totalXAdvance;
+                    x = hintRoundedX(new Hint(hint.centerX(), hint.centerY(), width,
+                            hint.cellHeight(), hint.keySequence()), qtScaleFactor);
+                }
+                if (height < metrics.height()) {
+                    height = metrics.height();
+                    y = hintRoundedY(new Hint(hint.centerX(), hint.centerY(),
+                            hint.cellWidth(),
+                            height, hint.keySequence()), qtScaleFactor);
+                }
                 if (isHintPartOfGrid
                     && hint.centerX() != maxHintCenterX
                     && hintIndex + 1 < hints.size() && hintRoundedX(hints.get(hintIndex + 1), qtScaleFactor) < x + width)
+                    // Avoid overlap between hint boxes.
+                    // With border thickness 1, some vertical border lines would be overwritten
+                    // by the next border's (background) color.
                     width--;
                 minHintLeft = Math.min(minHintLeft, x);
                 minHintTop = Math.min(minHintTop, y);
