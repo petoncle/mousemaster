@@ -354,8 +354,6 @@ public class WindowsOverlay {
                 if (((hintIndex + 1) % hintGridColumnCount != 0) // Exclude last column
                     && hintIndex + 1 < hints.size() && hintRoundedX(hints.get(hintIndex + 1), qtScaleFactor) < x + width)
                     width--;
-                if (hintIndex + hintGridColumnCount < hints.size() && hintRoundedY(hints.get(hintIndex + hintGridColumnCount), qtScaleFactor) > y + height)
-                    height++;
                 hintBox.setGeometry(x, y, width, height);
                 hintBox.show();
             }
@@ -445,22 +443,22 @@ public class WindowsOverlay {
             pen.setCapStyle(Qt.PenCapStyle.FlatCap);
             pen.setWidth(borderThickness);
             painter.setPen(pen);
-            int top = 0;
-            int bottom = height() - borderThickness / 2;
+            int top = 0 + penOffset;
+            int bottom = height() - 1 - (borderThickness - 1) + penOffset;
             int left = 0 + penOffset;
             int right = width() - 1 - (borderThickness - 1) + penOffset;
             // Top left.
-//            painter.drawLine(left, top, left + borderLength, top);
+            painter.drawLine(left, top, left + borderLength, top);
             painter.drawLine(left, top, left, top + borderLength);
             // Top right.
-//            painter.drawLine(right, top, right - borderLength, top);
+            painter.drawLine(right, top, right - borderLength, top);
             painter.drawLine(right, top, right, top + borderLength);
             // Bottom left.
-//            painter.drawLine(left, bottom, left + borderLength, bottom);
-//            painter.drawLine(left, bottom, left, bottom - borderLength);
+            painter.drawLine(left, bottom, left + borderLength, bottom);
+            painter.drawLine(left, bottom, left, bottom - borderLength);
             // Bottom right.
-//            painter.drawLine(right, bottom, right - borderLength, bottom);
-//            painter.drawLine(right, bottom, right, bottom - borderLength);
+            painter.drawLine(right, bottom, right - borderLength, bottom);
+            painter.drawLine(right, bottom, right, bottom - borderLength);
             painter.end();
         }
     }
