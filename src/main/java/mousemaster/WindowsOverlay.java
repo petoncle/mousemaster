@@ -448,12 +448,12 @@ public class WindowsOverlay {
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
-            this.color = QColor.fromRgba(
-                    hexColorStringToRgba(hintMesh.boxHexColor(), hintMesh.boxOpacity()));
-            this.borderColor = QColor.fromRgba(
-                    hexColorStringToRgba(hintMesh.boxBorderHexColor(),
-                            hintMesh.boxBorderOpacity()));
-            CachedLabel label = new CachedLabel(hint, font, xAdvancesByString, boxWidth);
+            this.color = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
+            this.borderColor = qColor(hintMesh.boxBorderHexColor(),
+                    hintMesh.boxBorderOpacity());
+            CachedLabel label = new CachedLabel(hint, font, xAdvancesByString, boxWidth,
+                    qColor(hintMesh.fontHexColor(), hintMesh.fontOpacity()),
+                    qColor(hintMesh.fontOutlineHexColor(), hintMesh.fontOutlineOpacity()));
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
             shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
@@ -523,14 +523,19 @@ public class WindowsOverlay {
         }
     }
 
+    private static QColor qColor(String hexColor, double opacity) {
+        return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
+    }
+
     public static class CachedLabel extends QLabel {
 
         private final Map<String, Integer> xAdvancesByString;
         private final int boxWidth;
-        private int textWidth;
+        private final QColor fontColor;
+        private final QColor outlineColor;
 
         public CachedLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
-                           int boxWidth) {
+                           int boxWidth, QColor fontColor, QColor outlineColor) {
             super(hint.keySequence()
                       .stream()
                       .map(Key::name)
@@ -538,10 +543,10 @@ public class WindowsOverlay {
                       .collect(Collectors.joining()));
             this.xAdvancesByString = xAdvancesByString;
             this.boxWidth = boxWidth;
+            this.fontColor = fontColor;
+            this.outlineColor = outlineColor;
 //            font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 30);
             setFont(font);
-            QFontMetrics metrics = new QFontMetrics(font());
-            textWidth = xAdvancesByString.computeIfAbsent(text(), metrics::horizontalAdvance);
         }
 
         @Override
@@ -550,10 +555,12 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
 
-            int x = (boxWidth - textWidth) / 2;
             QFontMetrics metrics = new QFontMetrics(font());
+            int textWidth =
+                    xAdvancesByString.computeIfAbsent(text(), metrics::horizontalAdvance);
+            int x = (boxWidth - textWidth) / 2;
             int y = (height() + metrics.ascent() - metrics.descent()) / 2;
-            QPen outlinePen = new QPen(new QColor(Qt.GlobalColor.black));
+            QPen outlinePen = new QPen(outlineColor);
             outlinePen.setWidth(3);
             outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
             painter.setPen(outlinePen);
@@ -564,8 +571,7 @@ public class WindowsOverlay {
 
             // Avoid blending the text with the outline. Text should override the outline.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-
-            painter.setPen(new QColor(255, 255, 255, 255));
+            painter.setPen(fontColor);
             painter.drawText(x, y, text());
 
             painter.end();
