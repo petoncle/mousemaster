@@ -390,11 +390,16 @@ public class WindowsOverlay {
         private int borderLength = 10;
         private int borderThickness = 5;
         private int borderRadius = 0;
-        private QColor color = new QColor(0, 0, 0, 77);
-        private QColor borderColor = new QColor(255, 255, 0, 255);
+        private QColor color;
+        private QColor borderColor;
 
         public HintBox(Hint hint, HintMesh hintMesh, double qtScaleFactor) {
             this.qtScaleFactor = qtScaleFactor;
+            this.color = QColor.fromRgba(
+                    hexColorStringToRgba(hintMesh.boxHexColor(), hintMesh.boxOpacity()));
+            this.borderColor = QColor.fromRgba(
+                    hexColorStringToRgba(hintMesh.boxBorderHexColor(),
+                            hintMesh.boxBorderOpacity()));
             String hintText = hint.keySequence()
                                   .stream()
                                   .map(Key::name)
@@ -428,7 +433,7 @@ public class WindowsOverlay {
             painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
             // Draw borders.
             borderLength = 1000;
-            int borderThickness = 2;// / qtScaleFactor;
+            int borderThickness = 1;// / qtScaleFactor;
             // With QT_ENABLE_HIGHDPI_SCALING=0:
             // draw vertical line thickness 1 at x=0: x=0 (0 is the widget's left)
             // draw vertical line thickness 2 at x=0: x=0, x=-1
@@ -755,6 +760,17 @@ public class WindowsOverlay {
         int green = (colorInt >> 8) & 0xFF;
         int blue = colorInt & 0xFF;
         return (blue << 16) | (green << 8) | red;
+    }
+
+    private static int hexColorStringToRgba(String hexColor, double opacity) {
+        if (hexColor.startsWith("#"))
+            hexColor = hexColor.substring(1);
+        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
+        int red = (colorInt >> 16) & 0xFF;
+        int green = (colorInt >> 8) & 0xFF;
+        int blue = colorInt & 0xFF;
+        int alpha = (int) (opacity * 255) & 0xFF;
+        return (alpha << 24) | (red << 16) | (green << 8) | blue;
     }
 
     private static int hexColorStringToRgb(String hexColor, double opacity) {
