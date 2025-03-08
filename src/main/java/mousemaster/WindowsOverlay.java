@@ -339,19 +339,30 @@ public class WindowsOverlay {
             pixmapLabel.show();
         }
         else {
-            int hintGridColumnCount = hintGridColumnCount(hintMesh);
+            boolean isHintPartOfGrid = hintMesh.hints().getFirst().cellWidth() != -1;
+            double maxHintCenterX = 0;
+            double maxHintCenterY = 0;
+            for (Hint hint : hintMesh.hints()) {
+                if (!hint.startsWith(hintMesh.focusedKeySequence()))
+                    continue;
+                maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
+                maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
+            }
             List<Hint> hints = hintMeshWindow.hints;
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
                     continue;
-                HintBox hintBox = new HintBox(hint, hintMesh, qtScaleFactor);
+                boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX;
+                boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY;
+                HintBox hintBox = new HintBox(hint, hintMesh, gridRightEdge, gridBottomEdge, qtScaleFactor);
                 hintBox.setParent(container);
                 int x = hintRoundedX(hint, qtScaleFactor);
                 int y = hintRoundedY(hint, qtScaleFactor);
                 int width = (int) Math.round(hint.cellWidth() / qtScaleFactor);
                 int height = (int) Math.round(hint.cellHeight() / qtScaleFactor);
-                if (((hintIndex + 1) % hintGridColumnCount != 0) // Exclude last column
+                if (isHintPartOfGrid
+                    && hint.centerX() != maxHintCenterX
                     && hintIndex + 1 < hints.size() && hintRoundedX(hints.get(hintIndex + 1), qtScaleFactor) < x + width)
                     width--;
                 hintBox.setGeometry(x, y, width, height);
@@ -386,6 +397,8 @@ public class WindowsOverlay {
 
     public static class HintBox extends QWidget {
 
+        private final boolean gridRightEdge;
+        private final boolean gridBottomEdge;
         private final double qtScaleFactor;
         private int borderLength = 10;
         private int borderThickness = 5;
@@ -393,7 +406,10 @@ public class WindowsOverlay {
         private QColor color;
         private QColor borderColor;
 
-        public HintBox(Hint hint, HintMesh hintMesh, double qtScaleFactor) {
+        public HintBox(Hint hint, HintMesh hintMesh, boolean gridRightEdge,
+                       boolean gridBottomEdge, double qtScaleFactor) {
+            this.gridRightEdge = gridRightEdge;
+            this.gridBottomEdge = gridBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
             this.color = QColor.fromRgba(
                     hexColorStringToRgba(hintMesh.boxHexColor(), hintMesh.boxOpacity()));
@@ -452,18 +468,26 @@ public class WindowsOverlay {
             int bottom = height() - 1 - (borderThickness - 1) + penOffset;
             int left = 0 + penOffset;
             int right = width() - 1 - (borderThickness - 1) + penOffset;
-            // Top left.
+            // Top left corner.
             painter.drawLine(left, top, left + borderLength, top);
             painter.drawLine(left, top, left, top + borderLength);
-            // Top right.
+            // Top right corner.
             painter.drawLine(right, top, right - borderLength, top);
-            painter.drawLine(right, top, right, top + borderLength);
-            // Bottom left.
-            painter.drawLine(left, bottom, left + borderLength, bottom);
+            if (gridRightEdge) {
+                painter.drawLine(right, top, right, top + borderLength);
+            }
+            // Bottom left corner.
             painter.drawLine(left, bottom, left, bottom - borderLength);
-            // Bottom right.
-            painter.drawLine(right, bottom, right - borderLength, bottom);
-            painter.drawLine(right, bottom, right, bottom - borderLength);
+            if (gridBottomEdge) {
+                painter.drawLine(left, bottom, left + borderLength, bottom);
+            }
+            // Bottom right corner.
+            if (gridBottomEdge) {
+                painter.drawLine(right, bottom, right - borderLength, bottom);
+            }
+            if (gridRightEdge) {
+                painter.drawLine(right, bottom, right, bottom - borderLength);
+            }
             painter.end();
         }
     }
