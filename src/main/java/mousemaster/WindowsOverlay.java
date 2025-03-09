@@ -440,8 +440,8 @@ public class WindowsOverlay {
                     hintBox.setGeometry(x, y, width, height);
                 }
                 else {
-                    hintBox.setGeometry(x + hintBox.label.simpleBoxLeft, y + hintBox.label.simpleBoxTop,
-                            hintBox.label.simpleBoxWidth, hintBox.label.simpleBoxHeight);
+                    hintBox.setGeometry(x + hintBox.label.tightHintBoxLeft, y + hintBox.label.tightHintBoxTop,
+                            hintBox.label.tightHintBoxWidth, hintBox.label.tightHintBoxHeight);
                 }
                 hintBox.show();
             }
@@ -532,7 +532,7 @@ public class WindowsOverlay {
                 label.setFixedSize(boxWidth, boxHeight);
             }
             else {
-                label.setFixedSize(label.simpleBoxWidth, label.simpleBoxHeight);
+                label.setFixedSize(label.tightHintBoxWidth, label.tightHintBoxHeight);
             }
             label.move(0, 0);
         }
@@ -668,10 +668,10 @@ public class WindowsOverlay {
         private final QColor outlineColor;
         private final boolean expandBoxes;
         private final List<HintKeyText> keyTexts;
-        private int simpleBoxLeft;
-        private int simpleBoxTop;
-        private int simpleBoxWidth;
-        private int simpleBoxHeight;
+        private int tightHintBoxLeft;
+        private int tightHintBoxTop;
+        private int tightHintBoxWidth;
+        private int tightHintBoxHeight;
 
         public HintLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
@@ -724,7 +724,7 @@ public class WindowsOverlay {
                                                    + xAdvance
                     );
                     if (keyIndex == keySequence.size() - 1) {
-                        simpleBoxWidth = xAdvance + textWidth;
+                        tightHintBoxWidth = xAdvance + textWidth;
                     }
                     xAdvance += textWidth;
                     if (keyIndex != hint.keySequence().size() - 1)
@@ -741,15 +741,15 @@ public class WindowsOverlay {
                     x = (int) (unusedBoxWidth / 2 + keyBoxWidth * keyIndex + (keyBoxWidth - textWidth) / 2);
                     keyWidth = (int) keyBoxWidth;
                     if (keyIndex == keySequence.size() - 1)
-                        simpleBoxWidth = (int) (keyBoxWidth * (keySequence.size())
-                                                - (keyBoxWidth - metrics.boundingRect(keyText).width()) / 2);
+                        tightHintBoxWidth = (int) (keyBoxWidth * (keySequence.size())
+                                                   - (keyBoxWidth - metrics.boundingRect(keyText).width()) / 2);
                 }
                 keyTexts.add(new HintKeyText(keyText, x, y, keyWidth,
                         keyIndex <= focusedKeySequence.size() - 1));
             }
-            simpleBoxLeft = keyTexts.getFirst().x();
-            simpleBoxTop = y - metrics.ascent();
-            simpleBoxHeight = metrics.height();
+            tightHintBoxLeft = keyTexts.getFirst().x();
+            tightHintBoxTop = y - metrics.ascent();
+            tightHintBoxHeight = metrics.height();
         }
 
         @Override
@@ -766,7 +766,8 @@ public class WindowsOverlay {
             QPainterPath outlinePath = new QPainterPath();
             for (HintKeyText keyText : keyTexts) {
                 if (!expandBoxes)
-                    outlinePath.addText(keyText.x() - simpleBoxLeft, keyText.y() - simpleBoxTop, font(), keyText.text());
+                    outlinePath.addText(keyText.x() - tightHintBoxLeft, keyText.y() -
+                                                                        tightHintBoxTop, font(), keyText.text());
                 else
                     outlinePath.addText(keyText.x(), keyText.y(), font(), keyText.text());
             }
@@ -777,7 +778,8 @@ public class WindowsOverlay {
             for (HintKeyText keyText : keyTexts) {
                 painter.setPen(keyText.isPrefix() ? prefixColor : fontColor);
                 if (!expandBoxes)
-                    painter.drawText(keyText.x() - simpleBoxLeft, keyText.y() - simpleBoxTop, keyText.text());
+                    painter.drawText(keyText.x() - tightHintBoxLeft, keyText.y() -
+                                                                     tightHintBoxTop, keyText.text());
                 else
                     painter.drawText(keyText.x(), keyText.y(), keyText.text());
             }
