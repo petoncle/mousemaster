@@ -388,10 +388,10 @@ public class WindowsOverlay {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
                     continue;
-                boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX;
-                boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY;
-                boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX;
-                boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY;
+                boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || !hintMesh.expandBoxes();
+                boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || !hintMesh.expandBoxes();
+                boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || !hintMesh.expandBoxes();
+                boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || !hintMesh.expandBoxes();
                 int x = hintRoundedX(hint, qtScaleFactor);
                 int y = hintRoundedY(hint, qtScaleFactor);
                 int width = (int) Math.round(hint.cellWidth() / qtScaleFactor);
@@ -436,7 +436,13 @@ public class WindowsOverlay {
                         new HintBox(hint, hintMesh, gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge, width,
                                 height, font, xAdvancesByString, totalXAdvance, hintKeyMaxWidth, qtScaleFactor);
                 hintBox.setParent(container);
-                hintBox.setGeometry(x, y, width, height);
+                if (hintMesh.expandBoxes()) {
+                    hintBox.setGeometry(x, y, width, height);
+                }
+                else {
+                    hintBox.setGeometry(x + hintBox.label.simpleBoxLeft, y + hintBox.label.simpleBoxTop,
+                            hintBox.label.simpleBoxWidth, hintBox.label.simpleBoxHeight);
+                }
                 hintBox.show();
             }
             container.show();
@@ -491,6 +497,7 @@ public class WindowsOverlay {
         private final int borderRadius = 0;
         private QColor color;
         private QColor borderColor;
+        private HintLabel label;
 
         public HintBox(Hint hint, HintMesh hintMesh,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
@@ -507,12 +514,13 @@ public class WindowsOverlay {
             this.color = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
             this.borderColor = qColor(hintMesh.boxBorderHexColor(),
                     hintMesh.boxBorderOpacity());
-            HintLabel label = new HintLabel(hint, font, xAdvancesByString, boxWidth, boxHeight, totalXAdvance,
+            this.label = new HintLabel(hint, font, xAdvancesByString, boxWidth, boxHeight, totalXAdvance,
                     qColor(hintMesh.fontHexColor(), hintMesh.fontOpacity()),
                     qColor(hintMesh.prefixFontHexColor(), hintMesh.fontOpacity()),
                     qColor(hintMesh.fontOutlineHexColor(), hintMesh.fontOutlineOpacity()),
                     hintMesh.focusedKeySequence(),
                     hintMesh.fontSpacingPercent(),
+                    hintMesh.expandBoxes(),
                     hintKeyMaxWidth);
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
             shadow.setBlurRadius(10);
@@ -520,9 +528,13 @@ public class WindowsOverlay {
             shadow.setColor(new QColor(Qt.GlobalColor.black));
 //            label.setGraphicsEffect(shadow);
             label.setParent(this);
-            label.setFixedSize(boxWidth, boxHeight);
+            if (hintMesh.expandBoxes()) {
+                label.setFixedSize(boxWidth, boxHeight);
+            }
+            else {
+                label.setFixedSize(label.simpleBoxWidth, label.simpleBoxHeight);
+            }
             label.move(0, 0);
-            label.show();
         }
 
         @Override
@@ -534,6 +546,12 @@ public class WindowsOverlay {
             painter.setBrush(new QBrush(color));
             painter.setPen(Qt.PenStyle.NoPen);
             painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
+            if (borderThickness != 0)
+                drawBorders(painter);
+            painter.end();
+        }
+
+        private void drawBorders(QPainter painter) {
             // Draw borders.
             // With QT_ENABLE_HIGHDPI_SCALING=0:
             // draw vertical line penwidth 1 at x=0: x=0 (0 is the widget's left)
@@ -588,20 +606,20 @@ public class WindowsOverlay {
             }
             if (gridTopEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(right - borderLength, top + penOffset, right +1, top + penOffset); // Horizontal line
+                painter.drawLine(right - borderLength, top + penOffset, right + 1, top + penOffset); // Horizontal line
             }
             else {
                 painter.setPen(horizontalTopPen);
-                painter.drawLine(right - borderLength, top + insidePenOffset, right +1, top + insidePenOffset); // Horizontal line
+                painter.drawLine(right - borderLength, top + insidePenOffset, right + 1, top + insidePenOffset); // Horizontal line
             }
             // Bottom left corner.
             if (gridLeftEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(left + penOffset, bottom - borderLength, left + penOffset, bottom +1); // Vertical line
+                painter.drawLine(left + penOffset, bottom - borderLength, left + penOffset, bottom + 1); // Vertical line
             }
             else {
                 painter.setPen(verticalLeftPen);
-                painter.drawLine(left + insidePenOffset, bottom - borderLength, left + insidePenOffset, bottom +1); // Vertical line
+                painter.drawLine(left + insidePenOffset, bottom - borderLength, left + insidePenOffset, bottom + 1); // Vertical line
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
@@ -614,21 +632,20 @@ public class WindowsOverlay {
             // Bottom right corner.
             if (gridRightEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength, right + penOffset - (borderThickness - 1), bottom +1); // Vertical line
+                painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength, right + penOffset - (borderThickness - 1), bottom + 1); // Vertical line
             }
             else {
                 painter.setPen(verticalRightPen);
-                painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - borderLength, right + insidePenOffset - (verticalRightThickness - 1), bottom +1); // Vertical line
+                painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - borderLength, right + insidePenOffset - (verticalRightThickness - 1), bottom + 1); // Vertical line
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(right - borderLength, bottom + penOffset - (borderThickness - 1), right +1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
+                painter.drawLine(right - borderLength, bottom + penOffset - (borderThickness - 1), right + 1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
             }
             else {
                 painter.setPen(horizontalBottomPen);
-                painter.drawLine(right - borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1), right +1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+                painter.drawLine(right - borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1), right + 1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
             }
-            painter.end();
         }
 
         private QPen createPen(QColor color, int penWidth) {
@@ -649,14 +666,19 @@ public class WindowsOverlay {
         private final QColor fontColor;
         private final QColor prefixColor;
         private final QColor outlineColor;
+        private final boolean expandBoxes;
         private final List<HintKeyText> keyTexts;
+        private int simpleBoxLeft;
+        private int simpleBoxTop;
+        private int simpleBoxWidth;
+        private int simpleBoxHeight;
 
         public HintLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
                          int boxHeight, int totalXAdvance, QColor fontColor, QColor prefixColor,
                          QColor outlineColor,
                          List<Key> focusedKeySequence, double fontSpacingPercent,
-                         int hintKeyMaxWidth) {
+                         boolean expandBoxes, int hintKeyMaxWidth) {
             super(hint.keySequence()
                       .stream()
                       .map(Key::name)
@@ -665,6 +687,7 @@ public class WindowsOverlay {
             this.fontColor = fontColor;
             this.prefixColor = prefixColor;
             this.outlineColor = outlineColor;
+            this.expandBoxes = expandBoxes;
             setFont(font);
 
             QFontMetrics metrics = new QFontMetrics(font());
@@ -677,7 +700,7 @@ public class WindowsOverlay {
             double adjustedFontBoxWidthPercent = fontSpacingPercent < 0.5d ?
                     (fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
                     : smallestColAlignedFontBoxWidthPercent + (fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
-            boolean doNotColAlign = /*hint.cellWidth() == -1 ||*/ hint.keySequence().size() == 1 ||
+            boolean doNotColAlign = hint.keySequence().size() == 1 ||
                                     adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth -
                                           totalXAdvance;
@@ -685,7 +708,6 @@ public class WindowsOverlay {
 
             List<Key> keySequence = hint.keySequence();
             keyTexts = new ArrayList<>(keySequence.size());
-//            logger.info("hint = " + hint.keySequence() + ", boxWidth = " + boxWidth);
             int xAdvance = 0;
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
                 Key key = keySequence.get(keyIndex);
@@ -694,38 +716,40 @@ public class WindowsOverlay {
                         xAdvancesByString.computeIfAbsent(keyText,
                                 metrics::horizontalAdvance);
                 int x;
+                int keyWidth;
                 if (doNotColAlign) {
                     // Extra is added between each letter (not to the left of the leftmost letter,
                     // nor to the right of the rightmost letter).
                     x = (int) (boxWidth / 2d - (totalXAdvance + extraNotAlignedWidth) / 2
-//                               - textWidth/2d
                                                    + xAdvance
                     );
-//                    xAdvance += boundingBox.width;// + boundingBox.x;
+                    if (keyIndex == keySequence.size() - 1) {
+                        simpleBoxWidth = xAdvance + textWidth;
+                    }
                     xAdvance += textWidth;
                     if (keyIndex != hint.keySequence().size() - 1)
                         xAdvance +=
                                 (int) (extraNotAlignedWidth / (keySequence.size() - 1));
+                    keyWidth = textWidth;
                 }
                 else {
                     // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
                     // If we are here, hint.keySequence().size() is 2 or more (else, doNotColAlign would be true).
-                    double fontBoxWidth = boxWidth * adjustedFontBoxWidthPercent
-                                          - (hint.keySequence().size()-2) * 0/*boundingBox.x*/; // Similar to hintKeyTextTotalXAdvance
-                    double fontBoxWidth2 = boxWidth * adjustedFontBoxWidthPercent;
-                    double unusedBoxWidth = boxWidth - fontBoxWidth2;
-//                    double keySubcellWidth = fontBoxWidth2 / hint.keySequence().size();
-//                    left = hintCenterX - fontBoxWidth / 2
-//                           + xAdvance
-//                           + keySubcellWidth / 2
-//                           - (boundingBox.width) / 2 - boundingBox.x / 2;
-//                    xAdvance += keySubcellWidth - boundingBox.x;
-                    double keyBoxWidth = fontBoxWidth2 / keySequence.size();
+                    double fontBoxWidth = boxWidth * adjustedFontBoxWidthPercent;
+                    double unusedBoxWidth = boxWidth - fontBoxWidth;
+                    double keyBoxWidth = fontBoxWidth / keySequence.size();
                     x = (int) (unusedBoxWidth / 2 + keyBoxWidth * keyIndex + (keyBoxWidth - textWidth) / 2);
+                    keyWidth = (int) keyBoxWidth;
+                    if (keyIndex == keySequence.size() - 1)
+                        simpleBoxWidth = (int) (keyBoxWidth * (keySequence.size())
+                                                - (keyBoxWidth - metrics.boundingRect(keyText).width()) / 2);
                 }
-                keyTexts.add(new HintKeyText(keyText, x, y,
+                keyTexts.add(new HintKeyText(keyText, x, y, keyWidth,
                         keyIndex <= focusedKeySequence.size() - 1));
             }
+            simpleBoxLeft = keyTexts.getFirst().x();
+            simpleBoxTop = y - metrics.ascent();
+            simpleBoxHeight = metrics.height();
         }
 
         @Override
@@ -741,7 +765,10 @@ public class WindowsOverlay {
             painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
             QPainterPath outlinePath = new QPainterPath();
             for (HintKeyText keyText : keyTexts) {
-                outlinePath.addText(keyText.x(), keyText.y(), font(), keyText.text());
+                if (!expandBoxes)
+                    outlinePath.addText(keyText.x() - simpleBoxLeft, keyText.y() - simpleBoxTop, font(), keyText.text());
+                else
+                    outlinePath.addText(keyText.x(), keyText.y(), font(), keyText.text());
             }
             painter.drawPath(outlinePath);
 
@@ -749,14 +776,16 @@ public class WindowsOverlay {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
                 painter.setPen(keyText.isPrefix() ? prefixColor : fontColor);
-                painter.drawText(keyText.x(), keyText.y(), keyText.text());
+                if (!expandBoxes)
+                    painter.drawText(keyText.x() - simpleBoxLeft, keyText.y() - simpleBoxTop, keyText.text());
+                else
+                    painter.drawText(keyText.x(), keyText.y(), keyText.text());
             }
-
             painter.end();
         }
     }
 
-    private record HintKeyText(String text, int x, int y, boolean isPrefix) {
+    private record HintKeyText(String text, int x, int y, int width, boolean isPrefix) {
 
     }
 
