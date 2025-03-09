@@ -461,6 +461,8 @@ public class WindowsOverlay {
     }
 
     private static int hintGridColumnCount(HintMesh hintMesh) {
+        if (hintMesh.hints().size() == 1)
+            return 1;
         double left = hintMesh.hints().getFirst().centerX();
         for (int i = 1; i < hintMesh.hints().size(); i++) {
             if (left == hintMesh.hints().get(i).centerX())
