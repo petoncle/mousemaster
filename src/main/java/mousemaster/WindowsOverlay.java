@@ -479,7 +479,7 @@ public class WindowsOverlay {
         public HintBox(Hint hint, HintMesh hintMesh, boolean gridRightEdge,
                        boolean gridBottomEdge, int boxWidth, int boxHeight,
                        QFont font, Map<String, Integer> xAdvancesByString,
-                       int hintKeyMaxWidth, int totalXAdvance, double qtScaleFactor) {
+                       int totalXAdvance, int hintKeyMaxWidth, double qtScaleFactor) {
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
@@ -594,7 +594,7 @@ public class WindowsOverlay {
 
             double smallestColAlignedFontBoxWidth = hintKeyMaxWidth * hint.keySequence().size();
             double smallestColAlignedFontBoxWidthPercent =
-                    smallestColAlignedFontBoxWidth / hint.cellWidth();
+                    smallestColAlignedFontBoxWidth / boxWidth;
             // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
             double adjustedFontBoxWidthPercent = fontSpacingPercent < 0.5d ?
                     (fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
@@ -608,15 +608,26 @@ public class WindowsOverlay {
             List<Key> keySequence = hint.keySequence();
             keyTexts = new ArrayList<>(keySequence.size());
 //            logger.info("hint = " + hint.keySequence() + ", boxWidth = " + boxWidth);
+            int xAdvance = 0;
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
                 Key key = keySequence.get(keyIndex);
                 String keyText = key.name().toUpperCase();
                 int textWidth =
                         xAdvancesByString.computeIfAbsent(keyText,
                                 metrics::horizontalAdvance);
-                int x = 0;
+                int x;
                 if (doNotColAlign) {
-
+                    // Extra is added between each letter (not to the left of the leftmost letter,
+                    // nor to the right of the rightmost letter).
+                    x = (int) (boxWidth / 2d - (totalXAdvance + extraNotAlignedWidth) / 2
+//                               - textWidth/2d
+                                                   + xAdvance
+                    );
+//                    xAdvance += boundingBox.width;// + boundingBox.x;
+                    xAdvance += textWidth;
+                    if (keyIndex != hint.keySequence().size() - 1)
+                        xAdvance +=
+                                (int) (extraNotAlignedWidth / (keySequence.size() - 1));
                 }
                 else {
                     // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
