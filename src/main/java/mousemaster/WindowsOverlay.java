@@ -383,7 +383,7 @@ public class WindowsOverlay {
                     hintKeyMaxWidth = Math.max(hintKeyMaxWidth, xAdvance);
                 }
             }
-            int hintGridColumnCount = hintGridColumnCount(hintMesh);
+            int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMesh) : -1;
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
@@ -546,82 +546,86 @@ public class WindowsOverlay {
             int right = width() - 1;
             // Full thickness if grid edge.
             // Otherwise, half thickness: thickness/2 + thickness%2 for top and left, thickness/2 for bottom and right
-            int topAndLeftThickness = borderThickness / 2 + borderThickness % 2;
-            int bottomAndRightThickness = borderThickness / 2;
+            int verticalLeftThickness = borderThickness / 2 + borderThickness % 2;
+            int verticalRightThickness = borderThickness / 2;
+            int horizontalTopThickness = verticalLeftThickness;
+            int horizontalBottomThickness = verticalRightThickness;
             QPen gridEdgePen = createPen(borderColor, borderThickness);
-            QPen insideTopAndLeftPen = createPen(borderColor, topAndLeftThickness);
-            QPen insideBottomAndRightPen = createPen(borderColor, bottomAndRightThickness);
+            QPen verticalLeftPen = createPen(borderColor, verticalLeftThickness);
+            QPen verticalRightPen = createPen(borderColor, verticalRightThickness);
+            QPen horizontalTopPen = verticalLeftPen;
+            QPen horizontalBottomPen = verticalRightPen;
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
             int penOffset = borderThickness / 2;
+            int insidePenOffset = borderThickness / 4;
             // Top left corner.
             if (gridLeftEdge) {
                 painter.setPen(gridEdgePen);
                 painter.drawLine(left + penOffset, top, left + penOffset, top + borderLength); // Vertical line
             }
             else {
-//                painter.setPen(insideTopAndLeftPen);
-//                painter.drawLine(left, top + penOffset, left + borderLength, top + penOffset); // Horizontal line
-//                painter.drawLine(left + penOffset, top, left + penOffset, top + borderLength); // Vertical line
+                painter.setPen(verticalLeftPen);
+                painter.drawLine(left + insidePenOffset, top, left + insidePenOffset, top + borderLength); // Vertical line
+                if (!gridTopEdge) {
+                    painter.setPen(horizontalTopPen);
+                    painter.drawLine(left, top + insidePenOffset, left + borderLength, top + insidePenOffset); // Horizontal line
+                }
             }
             if (gridTopEdge) {
                 painter.setPen(gridEdgePen);
                 painter.drawLine(left, top + penOffset, left + borderLength, top + penOffset); // Horizontal line
             }
             // Top right corner.
-            if (gridTopEdge) {
-                painter.setPen(gridEdgePen);
-                painter.drawLine(right - borderLength, top + penOffset, right +1, top + penOffset); // Horizontal line
-            }
             if (gridRightEdge) {
                 painter.setPen(gridEdgePen);
                 painter.drawLine(right + penOffset - (borderThickness - 1), top, right + penOffset - (borderThickness - 1), top + borderLength); // Vertical line
             }
-//            if (gridRightEdge)
-//                painter.drawLine(right - borderLength, top + penOffset, right +1, top + penOffset); // Horizontal line
-//            else
-//                painter.drawLine(right - borderLength + borderThickness, top + penOffset, right +1, top + penOffset); // Horizontal line
-//            if (gridRightEdge) {
-//                painter.drawLine(right + penOffset - (borderThickness - 1), top, right + penOffset - (borderThickness - 1), top + borderLength); // Vertical line
-//            }
-//            // Bottom left corner.
+            else {
+                painter.setPen(verticalRightPen);
+                painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), top, right + insidePenOffset - (verticalRightThickness - 1), top + borderLength); // Vertical line
+                if (!gridTopEdge) {
+                    painter.setPen(horizontalTopPen);
+                    painter.drawLine(right - borderLength, top + insidePenOffset, right +1, top + insidePenOffset); // Horizontal line
+                }
+            }
+            if (gridTopEdge) {
+                painter.setPen(gridEdgePen);
+                painter.drawLine(right - borderLength, top + penOffset, right +1, top + penOffset); // Horizontal line
+            }
+            // Bottom left corner.
             if (gridLeftEdge) {
                 painter.setPen(gridEdgePen);
                 painter.drawLine(left + penOffset, bottom - borderLength, left + penOffset, bottom +1); // Vertical line
+            }
+            else {
+                painter.setPen(verticalLeftPen);
+                painter.drawLine(left + insidePenOffset, bottom - borderLength, left + insidePenOffset, bottom +1); // Vertical line
+                if (!gridBottomEdge) {
+                    painter.setPen(horizontalBottomPen);
+                    painter.drawLine(left, bottom + insidePenOffset - (horizontalBottomThickness - 1), left + borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+                }
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
                 painter.drawLine(left, bottom + penOffset - (borderThickness - 1), left + borderLength, bottom + penOffset - (borderThickness - 1)); // Horizontal line
             }
-//            if (gridBottomEdge)
-//                painter.drawLine(left + penOffset, bottom - borderLength, left + penOffset, bottom +1); // Vertical line
-//            else
-//                painter.drawLine(left + penOffset, bottom - borderLength + borderThickness, left + penOffset, bottom +1); // Vertical line
-//
-//            if (gridBottomEdge) {
-//                painter.drawLine(left, bottom + penOffset - (borderThickness - 1), left + borderLength, bottom + penOffset - (borderThickness - 1)); // Horizontal line
-//            }
-//            // Bottom right corner.
+            // Bottom right corner.
             if (gridRightEdge) {
                 painter.setPen(gridEdgePen);
-//                 painter.drawLine(left + penOffset, top, left + penOffset, top + borderLength); // Vertical line
-                 painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength, right + penOffset - (borderThickness - 1), bottom +1); // Vertical line
+                painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength, right + penOffset - (borderThickness - 1), bottom +1); // Vertical line
+            }
+            else {
+                painter.setPen(verticalRightPen);
+                painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - borderLength, right + insidePenOffset - (verticalRightThickness - 1), bottom +1); // Vertical line
+                if (!gridBottomEdge) {
+                    painter.setPen(horizontalBottomPen);
+                    painter.drawLine(right - borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1), right +1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+                }
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
                 painter.drawLine(right - borderLength, bottom + penOffset - (borderThickness - 1), right +1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
             }
-//            if (gridBottomEdge) {
-//                if (gridRightEdge)
-//                    painter.drawLine(right - borderLength, bottom + penOffset - (borderThickness - 1), right +1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
-//                else
-//                    painter.drawLine(right - borderLength + borderThickness, bottom + penOffset - (borderThickness - 1), right +1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
-//            }
-//            if (gridRightEdge) {
-//                if (gridBottomEdge)
-//                    painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength, right + penOffset - (borderThickness - 1), bottom); // Vertical line
-//                else
-//                    painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength + borderThickness, right + penOffset - (borderThickness - 1), bottom +1); // Vertical line
-//            }
             painter.end();
         }
 
