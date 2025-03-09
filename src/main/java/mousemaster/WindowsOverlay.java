@@ -373,14 +373,14 @@ public class WindowsOverlay {
             QFont font =
                     new QFont(hintMesh.fontName(), (int) Math.round(hintMesh.fontSize()));
             QFontMetrics metrics = new QFontMetrics(font);
-            int hintKeyMaxWidth = 0;
+            int hintKeyMaxXAdvance = 0;
             for (Hint hint : hints) {
                 List<Key> keySequence = hint.keySequence();
                 for (Key key : keySequence) {
                     String keyText = key.name().toUpperCase();
                     int xAdvance = xAdvancesByString.computeIfAbsent(keyText,
                             metrics::horizontalAdvance);
-                    hintKeyMaxWidth = Math.max(hintKeyMaxWidth, xAdvance);
+                    hintKeyMaxXAdvance = Math.max(hintKeyMaxXAdvance, xAdvance);
                 }
             }
             int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMesh) : -1;
@@ -434,7 +434,7 @@ public class WindowsOverlay {
                 maxHintBottom = Math.max(maxHintBottom, y + height);
                 HintBox hintBox =
                         new HintBox(hint, hintMesh, gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge, width,
-                                height, font, xAdvancesByString, totalXAdvance, hintKeyMaxWidth, qtScaleFactor);
+                                height, font, xAdvancesByString, totalXAdvance, hintKeyMaxXAdvance, qtScaleFactor);
                 hintBox.setParent(container);
                 if (hintMesh.expandBoxes()) {
                     hintBox.setGeometry(x, y, width, height);
@@ -503,7 +503,7 @@ public class WindowsOverlay {
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        int boxWidth, int boxHeight,
                        QFont font, Map<String, Integer> xAdvancesByString,
-                       int totalXAdvance, int hintKeyMaxWidth, double qtScaleFactor) {
+                       int totalXAdvance, int hintKeyMaxXAdvance, double qtScaleFactor) {
             this.gridLeftEdge = gridLeftEdge;
             this.gridTopEdge = gridTopEdge;
             this.gridRightEdge = gridRightEdge;
@@ -521,7 +521,7 @@ public class WindowsOverlay {
                     hintMesh.focusedKeySequence(),
                     hintMesh.fontSpacingPercent(),
                     hintMesh.expandBoxes(),
-                    hintKeyMaxWidth);
+                    hintKeyMaxXAdvance);
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
             shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
@@ -678,7 +678,7 @@ public class WindowsOverlay {
                          int boxHeight, int totalXAdvance, QColor fontColor, QColor prefixColor,
                          QColor outlineColor,
                          List<Key> focusedKeySequence, double fontSpacingPercent,
-                         boolean expandBoxes, int hintKeyMaxWidth) {
+                         boolean expandBoxes, int hintKeyMaxXAdvance) {
             super(hint.keySequence()
                       .stream()
                       .map(Key::name)
@@ -693,7 +693,7 @@ public class WindowsOverlay {
             QFontMetrics metrics = new QFontMetrics(font());
             int y = (boxHeight + metrics.ascent() - metrics.descent()) / 2;
 
-            double smallestColAlignedFontBoxWidth = hintKeyMaxWidth * hint.keySequence().size();
+            double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * hint.keySequence().size();
             double smallestColAlignedFontBoxWidthPercent =
                     smallestColAlignedFontBoxWidth / boxWidth;
             // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
