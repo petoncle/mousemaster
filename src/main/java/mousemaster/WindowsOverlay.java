@@ -369,6 +369,16 @@ public class WindowsOverlay {
             QFont font =
                     new QFont(hintMesh.fontName(), (int) Math.round(hintMesh.fontSize()));
             QFontMetrics metrics = new QFontMetrics(font);
+            int hintKeyMaxWidth = 0;
+            for (Hint hint : hints) {
+                List<Key> keySequence = hint.keySequence();
+                for (Key key : keySequence) {
+                    String keyText = key.name().toUpperCase();
+                    int xAdvance = xAdvancesByString.computeIfAbsent(keyText,
+                            metrics::horizontalAdvance);
+                    hintKeyMaxWidth = Math.max(hintKeyMaxWidth, xAdvance);
+                }
+            }
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
@@ -404,14 +414,15 @@ public class WindowsOverlay {
                     // Avoid overlap between hint boxes.
                     // With border thickness 1, some vertical border lines would be overwritten
                     // by the next border's (background) color.
-                    width--;
+                    // Edit: This would slightly offset hints TT, TB, ... when selecting T.
+                    ;//width--;
                 minHintLeft = Math.min(minHintLeft, x);
                 minHintTop = Math.min(minHintTop, y);
                 maxHintRight = Math.max(maxHintRight, x + width);
                 maxHintBottom = Math.max(maxHintBottom, y + height);
                 HintBox hintBox =
                         new HintBox(hint, hintMesh, gridRightEdge, gridBottomEdge, width,
-                                height, font, xAdvancesByString, qtScaleFactor);
+                                height, font, xAdvancesByString, totalXAdvance, hintKeyMaxWidth, qtScaleFactor);
                 hintBox.setParent(container);
                 hintBox.setGeometry(x, y, width, height);
                 hintBox.show();
@@ -467,19 +478,21 @@ public class WindowsOverlay {
 
         public HintBox(Hint hint, HintMesh hintMesh, boolean gridRightEdge,
                        boolean gridBottomEdge, int boxWidth, int boxHeight,
-                       QFont font, Map<String, Integer> xAdvancesByString, double qtScaleFactor) {
+                       QFont font, Map<String, Integer> xAdvancesByString,
+                       int hintKeyMaxWidth, int totalXAdvance, double qtScaleFactor) {
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
             this.color = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
             this.borderColor = qColor(hintMesh.boxBorderHexColor(),
                     hintMesh.boxBorderOpacity());
-            HintLabel label = new HintLabel(hint, font, xAdvancesByString, boxWidth, boxHeight,
+            HintLabel label = new HintLabel(hint, font, xAdvancesByString, boxWidth, boxHeight, totalXAdvance,
                     qColor(hintMesh.fontHexColor(), hintMesh.fontOpacity()),
                     qColor(hintMesh.prefixFontHexColor(), hintMesh.fontOpacity()),
                     qColor(hintMesh.fontOutlineHexColor(), hintMesh.fontOutlineOpacity()),
                     hintMesh.focusedKeySequence(),
-                    hintMesh.fontSpacingPercent());
+                    hintMesh.fontSpacingPercent(),
+                    hintKeyMaxWidth);
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
             shadow.setBlurRadius(10);
             shadow.setOffset(0, 0);
@@ -562,9 +575,10 @@ public class WindowsOverlay {
 
         public HintLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
-                         int boxHeight, QColor fontColor, QColor prefixColor,
+                         int boxHeight, int totalXAdvance, QColor fontColor, QColor prefixColor,
                          QColor outlineColor,
-                         List<Key> focusedKeySequence, double fontSpacingPercent) {
+                         List<Key> focusedKeySequence, double fontSpacingPercent,
+                         int hintKeyMaxWidth) {
             super(hint.keySequence()
                       .stream()
                       .map(Key::name)
@@ -578,16 +592,48 @@ public class WindowsOverlay {
             QFontMetrics metrics = new QFontMetrics(font());
             int y = (boxHeight + metrics.ascent() - metrics.descent()) / 2;
 
+            double smallestColAlignedFontBoxWidth = hintKeyMaxWidth * hint.keySequence().size();
+            double smallestColAlignedFontBoxWidthPercent =
+                    smallestColAlignedFontBoxWidth / hint.cellWidth();
+            // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
+            double adjustedFontBoxWidthPercent = fontSpacingPercent < 0.5d ?
+                    (fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
+                    : smallestColAlignedFontBoxWidthPercent + (fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
+            boolean doNotColAlign = /*hint.cellWidth() == -1 ||*/ hint.keySequence().size() == 1 ||
+                                    adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
+            double extraNotAlignedWidth = smallestColAlignedFontBoxWidth -
+                                          totalXAdvance;
+            extraNotAlignedWidth = adjustedFontBoxWidthPercent * extraNotAlignedWidth;
+
             List<Key> keySequence = hint.keySequence();
             keyTexts = new ArrayList<>(keySequence.size());
+//            logger.info("hint = " + hint.keySequence() + ", boxWidth = " + boxWidth);
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
                 Key key = keySequence.get(keyIndex);
                 String keyText = key.name().toUpperCase();
                 int textWidth =
                         xAdvancesByString.computeIfAbsent(keyText,
                                 metrics::horizontalAdvance);
-                int keyBoxWidth = boxWidth / keySequence.size();
-                int x = keyBoxWidth * keyIndex + (keyBoxWidth - textWidth) / 2;
+                int x = 0;
+                if (doNotColAlign) {
+
+                }
+                else {
+                    // 0.8d adjustedFontBoxWidthPercent means characters spread over 80% of the cell width.
+                    // If we are here, hint.keySequence().size() is 2 or more (else, doNotColAlign would be true).
+                    double fontBoxWidth = boxWidth * adjustedFontBoxWidthPercent
+                                          - (hint.keySequence().size()-2) * 0/*boundingBox.x*/; // Similar to hintKeyTextTotalXAdvance
+                    double fontBoxWidth2 = boxWidth * adjustedFontBoxWidthPercent;
+                    double unusedBoxWidth = boxWidth - fontBoxWidth2;
+//                    double keySubcellWidth = fontBoxWidth2 / hint.keySequence().size();
+//                    left = hintCenterX - fontBoxWidth / 2
+//                           + xAdvance
+//                           + keySubcellWidth / 2
+//                           - (boundingBox.width) / 2 - boundingBox.x / 2;
+//                    xAdvance += keySubcellWidth - boundingBox.x;
+                    double keyBoxWidth = fontBoxWidth2 / keySequence.size();
+                    x = (int) (unusedBoxWidth / 2 + keyBoxWidth * keyIndex + (keyBoxWidth - textWidth) / 2);
+                }
                 keyTexts.add(new HintKeyText(keyText, x, y,
                         keyIndex <= focusedKeySequence.size() - 1));
             }
