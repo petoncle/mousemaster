@@ -470,9 +470,9 @@ public class WindowsOverlay {
         private final boolean gridRightEdge;
         private final boolean gridBottomEdge;
         private final double qtScaleFactor;
-        private int borderLength = 10;
-        private int borderThickness = 5;
-        private int borderRadius = 0;
+        private final int borderLength;
+        private final int borderThickness;
+        private final int borderRadius = 0;
         private QColor color;
         private QColor borderColor;
 
@@ -483,6 +483,8 @@ public class WindowsOverlay {
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
+            this.borderLength = (int) Math.round(hintMesh.boxBorderLength());
+            this.borderThickness = (int) Math.round(hintMesh.boxBorderThickness());
             this.color = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
             this.borderColor = qColor(hintMesh.boxBorderHexColor(),
                     hintMesh.boxBorderOpacity());
@@ -498,10 +500,6 @@ public class WindowsOverlay {
             shadow.setOffset(0, 0);
             shadow.setColor(new QColor(Qt.GlobalColor.black));
 //            label.setGraphicsEffect(shadow);
-//            QVBoxLayout layout = new QVBoxLayout();
-//            layout.addWidget(label);
-//            setLayout(layout);
-            // **Set parent manually**
             label.setParent(this);
             label.setFixedSize(boxWidth, boxHeight);
             label.move(0, 0);
@@ -518,8 +516,6 @@ public class WindowsOverlay {
             painter.setPen(Qt.PenStyle.NoPen);
             painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
             // Draw borders.
-            borderLength = 1000;
-            int borderThickness = 1;// / qtScaleFactor;
             // With QT_ENABLE_HIGHDPI_SCALING=0:
             // draw vertical line thickness 1 at x=0: x=0 (0 is the widget's left)
             // draw vertical line thickness 2 at x=0: x=0, x=-1
@@ -534,29 +530,29 @@ public class WindowsOverlay {
             pen.setCapStyle(Qt.PenCapStyle.FlatCap);
             pen.setWidth(borderThickness);
             painter.setPen(pen);
-            int top = 0 + penOffset;
-            int bottom = height() - 1 - (borderThickness - 1) + penOffset;
-            int left = 0 + penOffset;
-            int right = width() - 1 - (borderThickness - 1) + penOffset;
+            int top = 0 /*+ penOffset*/;
+            int bottom = height() - 1 - (borderThickness - 1) /*+ penOffset*/;
+            int left = 0 /*+ penOffset*/;
+            int right = width() - 1 - (borderThickness - 1) /*+ penOffset*/;
             // Top left corner.
-            painter.drawLine(left, top, left + borderLength, top);
-            painter.drawLine(left, top, left, top + borderLength);
+            painter.drawLine(left, top + penOffset, left + borderLength, top + penOffset ); // Horizontal line
+            painter.drawLine(left + penOffset, top, left + penOffset, top + borderLength); // Vertical line
             // Top right corner.
-            painter.drawLine(right, top, right - borderLength, top);
+            painter.drawLine(right - borderLength + borderThickness, top + penOffset, right + borderThickness, top + penOffset); // Horizontal line
             if (gridRightEdge) {
-                painter.drawLine(right, top, right, top + borderLength);
+                painter.drawLine(right + penOffset, top, right + penOffset, top + borderLength); // Vertical line
             }
             // Bottom left corner.
-            painter.drawLine(left, bottom, left, bottom - borderLength);
+            painter.drawLine(left + penOffset, bottom - borderLength + borderThickness, left + penOffset, bottom + borderThickness); // Vertical line
             if (gridBottomEdge) {
-                painter.drawLine(left, bottom, left + borderLength, bottom);
+                painter.drawLine(left, bottom + penOffset, left + borderLength, bottom + penOffset); // Horizontal line
             }
             // Bottom right corner.
             if (gridBottomEdge) {
-                painter.drawLine(right, bottom, right - borderLength, bottom);
+                painter.drawLine(right - borderLength + borderThickness, bottom + penOffset, right + borderThickness, bottom + penOffset); // Horizontal line
             }
             if (gridRightEdge) {
-                painter.drawLine(right, bottom, right, bottom - borderLength);
+                painter.drawLine(right + penOffset, bottom - borderLength + borderThickness, right + penOffset, bottom + borderThickness); // Vertical line
             }
             painter.end();
         }
