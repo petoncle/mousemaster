@@ -428,24 +428,38 @@ public class WindowsOverlay {
                     && hintRoundedY(hints.get(hintIndex + hintGridColumnCount), qtScaleFactor) > y + fullBoxHeight) {
                     fullBoxHeight++;
                 }
+                HintLabel hintLabel =
+                        new HintLabel(hint, font, xAdvancesByString, fullBoxWidth,
+                                fullBoxHeight, totalXAdvance,
+                                qColor(hintMesh.fontHexColor(),
+                                        hintMesh.fontOpacity()),
+                                qColor(hintMesh.prefixFontHexColor(),
+                                        hintMesh.fontOpacity()),
+                                qColor(hintMesh.fontOutlineHexColor(),
+                                        hintMesh.fontOutlineOpacity()),
+                                hintMesh.focusedKeySequence(),
+                                hintMesh.fontSpacingPercent(),
+                                hintKeyMaxXAdvance);
                 HintBox hintBox =
-                        new HintBox(hint, hintMesh, gridLeftEdge, gridTopEdge,
-                                gridRightEdge, gridBottomEdge, fullBoxWidth,
-                                fullBoxHeight, font, xAdvancesByString, totalXAdvance,
-                                hintKeyMaxXAdvance, qtScaleFactor);
-                int boxWidth = Math.max(hintBox.label.tightHintBoxWidth, (int) (fullBoxWidth * hintMesh.boxWidthPercent()));
-                int boxHeight = Math.max(hintBox.label.tightHintBoxHeight, (int) (fullBoxHeight * hintMesh.boxHeightPercent()));
-                hintBox.label.left = boxWidth == hintBox.label.tightHintBoxWidth ? hintBox.label.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
-                hintBox.label.top = boxHeight == hintBox.label.tightHintBoxHeight ? hintBox.label.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
-                x += hintBox.label.left;
-                y += hintBox.label.top;
+                        new HintBox(hintMesh, gridLeftEdge, gridTopEdge,
+                                gridRightEdge, gridBottomEdge,
+                                qtScaleFactor
+                        );
+                hintLabel.setParent(hintBox);
+                hintLabel.move(0, 0);
+                int boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * hintMesh.boxWidthPercent()));
+                int boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * hintMesh.boxHeightPercent()));
+                hintLabel.left = boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
+                hintLabel.top = boxHeight == hintLabel.tightHintBoxHeight ? hintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
+                x += hintLabel.left;
+                y += hintLabel.top;
                 minHintLeft = Math.min(minHintLeft, x);
                 minHintTop = Math.min(minHintTop, y);
                 maxHintRight = Math.max(maxHintRight, x + fullBoxWidth);
                 maxHintBottom = Math.max(maxHintBottom, y + fullBoxHeight);
                 hintBox.setParent(container);
                 hintBox.setGeometry(x, y, boxWidth, boxHeight);
-                hintBox.label.setFixedSize(boxWidth, boxHeight);
+                hintLabel.setFixedSize(boxWidth, boxHeight);
                 hintBox.show();
             }
             container.show();
@@ -500,13 +514,9 @@ public class WindowsOverlay {
         private final int borderRadius = 0;
         private QColor color;
         private QColor borderColor;
-        private HintLabel label;
 
-        public HintBox(Hint hint, HintMesh hintMesh,
+        public HintBox(HintMesh hintMesh,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
-                       int fullBoxWidth, int fullBoxHeight,
-                       QFont font, Map<String, Integer> xAdvancesByString,
-                       int totalXAdvance, int hintKeyMaxXAdvance,
                        double qtScaleFactor) {
             this.gridLeftEdge = gridLeftEdge;
             this.gridTopEdge = gridTopEdge;
@@ -518,20 +528,6 @@ public class WindowsOverlay {
             this.color = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
             this.borderColor = qColor(hintMesh.boxBorderHexColor(),
                     hintMesh.boxBorderOpacity());
-            this.label = new HintLabel(hint, font, xAdvancesByString, fullBoxWidth, fullBoxHeight, totalXAdvance,
-                    qColor(hintMesh.fontHexColor(), hintMesh.fontOpacity()),
-                    qColor(hintMesh.prefixFontHexColor(), hintMesh.fontOpacity()),
-                    qColor(hintMesh.fontOutlineHexColor(), hintMesh.fontOutlineOpacity()),
-                    hintMesh.focusedKeySequence(),
-                    hintMesh.fontSpacingPercent(),
-                    hintKeyMaxXAdvance);
-            QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
-            shadow.setBlurRadius(10);
-            shadow.setOffset(0, 0);
-            shadow.setColor(new QColor(Qt.GlobalColor.black));
-//            label.setGraphicsEffect(shadow);
-            label.setParent(this);
-            label.move(0, 0);
         }
 
         @Override
@@ -686,6 +682,11 @@ public class WindowsOverlay {
             this.prefixColor = prefixColor;
             this.outlineColor = outlineColor;
             setFont(font);
+            QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
+            shadow.setBlurRadius(10);
+            shadow.setOffset(0, 0);
+            shadow.setColor(new QColor(Qt.GlobalColor.black));
+//            label.setGraphicsEffect(shadow);
 
             QFontMetrics metrics = new QFontMetrics(font());
             int y = (boxHeight + metrics.ascent() - metrics.descent()) / 2;
