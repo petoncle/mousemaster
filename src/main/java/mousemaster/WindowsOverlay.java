@@ -676,8 +676,6 @@ public class WindowsOverlay {
             }
             else {
                 painter.setPen(verticalLeftPen);
-                int newPenWidth = 5;
-                painter.setPen(createPen(new QColor(Qt.GlobalColor.blue), newPenWidth));
                 if (drawGridEdgeBorders || !gridBottomEdge)
                     painter.drawLine(left + insidePenOffset, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, left + insidePenOffset, bottom + 1); // Vertical line
             }
@@ -699,8 +697,6 @@ public class WindowsOverlay {
             }
             else {
                 painter.setPen(verticalRightPen);
-                int newPenWidth = 5;
-                painter.setPen(createPen(new QColor(Qt.GlobalColor.yellow), newPenWidth));
                 if (drawGridEdgeBorders || !gridBottomEdge)
                     painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, right + insidePenOffset - (verticalRightThickness - 1), bottom + 1); // Vertical line
             }
