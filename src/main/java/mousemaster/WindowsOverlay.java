@@ -306,7 +306,7 @@ public class WindowsOverlay {
                 long currentStyle =
                         User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
                                        .longValue();
-                long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE;
+                long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE | ExtendedUser32.WS_EX_TOOLWINDOW;
                 User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                         new Pointer(newStyle));
                 window.move(screen.rectangle().x(), screen.rectangle().y());
