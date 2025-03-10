@@ -661,23 +661,25 @@ public class WindowsOverlay {
             if (gridTopEdge) {
                 painter.setPen(gridEdgePen);
                 if (drawGridEdgeBorders)
-                    painter.drawLine(right - gridRightEdgeExtraHorizontal - borderLength/2, top + penOffset, right + 1, top + penOffset); // Horizontal line
+                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, top + penOffset, right + 1, top + penOffset); // Horizontal line
             }
             else {
                 painter.setPen(horizontalTopPen);
                 if (drawGridEdgeBorders || !gridRightEdge)
-                    painter.drawLine(right - gridRightEdgeExtraHorizontal - borderLength/2, top + insidePenOffset, right + 1, top + insidePenOffset); // Horizontal line
+                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, top + insidePenOffset, right + 1, top + insidePenOffset); // Horizontal line
             }
             // Bottom left corner.
             if (gridLeftEdge) {
                 painter.setPen(gridEdgePen);
                 if (drawGridEdgeBorders)
-                    painter.drawLine(left + penOffset, bottom - gridBottomEdgeExtraVertical - borderLength/2, left + penOffset, bottom + 1); // Vertical line
+                    painter.drawLine(left + penOffset, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, left + penOffset, bottom + 1); // Vertical line
             }
             else {
                 painter.setPen(verticalLeftPen);
+                int newPenWidth = 5;
+                painter.setPen(createPen(new QColor(Qt.GlobalColor.blue), newPenWidth));
                 if (drawGridEdgeBorders || !gridBottomEdge)
-                    painter.drawLine(left + insidePenOffset, bottom - gridBottomEdgeExtraVertical - borderLength/2, left + insidePenOffset, bottom + 1); // Vertical line
+                    painter.drawLine(left + insidePenOffset, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, left + insidePenOffset, bottom + 1); // Vertical line
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
@@ -693,22 +695,24 @@ public class WindowsOverlay {
             if (gridRightEdge) {
                 painter.setPen(gridEdgePen);
                 if (drawGridEdgeBorders)
-                    painter.drawLine(right + penOffset - (borderThickness - 1), bottom - gridBottomEdgeExtraVertical - borderLength/2, right + penOffset - (borderThickness - 1), bottom + 1); // Vertical line
+                    painter.drawLine(right + penOffset - (borderThickness - 1), bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, right + penOffset - (borderThickness - 1), bottom + 1); // Vertical line
             }
             else {
                 painter.setPen(verticalRightPen);
+                int newPenWidth = 5;
+                painter.setPen(createPen(new QColor(Qt.GlobalColor.yellow), newPenWidth));
                 if (drawGridEdgeBorders || !gridBottomEdge)
-                    painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - gridBottomEdgeExtraVertical - borderLength/2, right + insidePenOffset - (verticalRightThickness - 1), bottom + 1); // Vertical line
+                    painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, right + insidePenOffset - (verticalRightThickness - 1), bottom + 1); // Vertical line
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
                 if (drawGridEdgeBorders)
-                    painter.drawLine(right - gridRightEdgeExtraHorizontal - borderLength/2, bottom + penOffset - (borderThickness - 1), right + 1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
+                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, bottom + penOffset - (borderThickness - 1), right + 1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
             }
             else {
                 painter.setPen(horizontalBottomPen);
                 if (drawGridEdgeBorders || !gridRightEdge)
-                    painter.drawLine(right - gridRightEdgeExtraHorizontal - borderLength/2, bottom + insidePenOffset - (horizontalBottomThickness - 1), right + 1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, bottom + insidePenOffset - (horizontalBottomThickness - 1), right + 1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
             }
             verticalLeftPen.dispose();
             verticalRightPen.dispose();
