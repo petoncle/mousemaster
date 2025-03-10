@@ -33,18 +33,23 @@ public class QtManager {
             "qt/plugins/platforms/qwindowsd.dll"
     );
 
+    private static final List<String> qtJambiPaths = List.of(
+            "bin/QtJambi6.dll",
+            "bin/QtJambiCore6.dll",
+            "bin/QtJambiGui6.dll",
+            "bin/QtJambiWidgets6.dll"
+    );
+
     public static void initialize() throws IOException {
         File extractDirectory = createExtractDirectory();
         for (String resourcesPath : windowsResourcesPaths) {
             Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath);
             Files.createDirectories(extractPath.getParent());
-            try (InputStream inputStream = MousemasterApplication.class.getClassLoader().getResourceAsStream(resourcesPath)) {
-                try (OutputStream outputStream = Files.newOutputStream(extractPath,
-                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
-                        StandardOpenOption.WRITE)) {
-                    inputStream.transferTo(outputStream);
-                }
-            }
+            extractResourceFile(resourcesPath, extractPath);
+        }
+        for (String qtJambiPath : qtJambiPaths) {
+            Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/qt/" + qtJambiPath);
+            extractResourceFile(qtJambiPath, extractPath);
         }
         logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
         System.setProperty("io.qt.library-path-override", extractDirectory.getAbsolutePath() + "/qt/bin");
@@ -55,6 +60,18 @@ public class QtManager {
         // https://forum.qt.io/topic/141511/qt_enable_highdpi_scaling-has-no-effect
         QtUtilities.putenv("QT_ENABLE_HIGHDPI_SCALING", "0"); // Only works on Windows?
         QApplication.initialize(new String[]{});
+    }
+
+    private static void extractResourceFile(String resourcesPath, Path extractPath)
+            throws IOException {
+        try (InputStream inputStream = MousemasterApplication.class.getClassLoader().getResourceAsStream(
+                resourcesPath)) {
+            try (OutputStream outputStream = Files.newOutputStream(extractPath,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE)) {
+                inputStream.transferTo(outputStream);
+            }
+        }
     }
 
     public static void stop() {

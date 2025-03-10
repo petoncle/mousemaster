@@ -21,6 +21,11 @@ public class MousemasterApplication {
     static {
         System.setProperty("slf4j.internal.verbosity", "WARN");
         logger = (Logger) LoggerFactory.getLogger(MousemasterApplication.class);
+        // See io/qtjambi/qtjambi/6.8.2/qtjambi-6.8.2-sources.jar!/io/qt/internal/ResourceUtility.java
+        // It tries to use jrt which is not implemented in graalvm native, throws and logs an exception,
+        // but that does not seem to prevent it from working.
+        java.util.logging.Logger.getLogger("io.qt.internal.fileengine").setLevel(
+                java.util.logging.Level.OFF);
     }
 
     public static void main(String[] args) throws InterruptedException, IOException {

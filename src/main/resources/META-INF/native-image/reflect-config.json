@@ -83,6 +83,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.sun.jna.platform.win32.BaseTSD$LONG_PTR",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"com.sun.jna.Structure$FFIType",
   "allDeclaredFields":true,
   "queryAllPublicConstructors":true,
@@ -404,14 +408,132 @@
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
 },
 {
+  "name":"io.qt.QFlags",
+  "allDeclaredClasses":true
+},
+{
+  "name":"io.qt.core.QCoreApplication",
+  "fields":[{"name":"aboutToQuit"}, {"name":"applicationNameChanged"}, {"name":"applicationVersionChanged"}, {"name":"organizationDomainChanged"}, {"name":"organizationNameChanged"}]
+},
+{
+  "name":"io.qt.core.QMetaObject$DisposedSignal",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Class"] }]
+},
+{
+  "name":"io.qt.core.QObject",
+  "queryAllDeclaredMethods":true,
+  "fields":[{"name":"destroyed"}, {"name":"objectNameChanged"}],
+  "methods":[{"name":"childEvent","parameterTypes":["io.qt.core.QChildEvent"] }, {"name":"connectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"customEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"disconnectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"eventFilter","parameterTypes":["io.qt.core.QObject","io.qt.core.QEvent"] }, {"name":"timerEvent","parameterTypes":["io.qt.core.QTimerEvent"] }]
+},
+{
+  "name":"io.qt.core.QThread",
+  "fields":[{"name":"finished"}, {"name":"started"}]
+},
+{
+  "name":"io.qt.core.QtJambi_LibraryUtilities",
+  "methods":[{"name":"initialize","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.gui.QGuiApplication",
+  "fields":[{"name":"applicationDisplayNameChanged"}, {"name":"applicationStateChanged"}, {"name":"commitDataRequest"}, {"name":"focusObjectChanged"}, {"name":"focusWindowChanged"}, {"name":"fontChanged"}, {"name":"fontDatabaseChanged"}, {"name":"lastWindowClosed"}, {"name":"layoutDirectionChanged"}, {"name":"paletteChanged"}, {"name":"primaryScreenChanged"}, {"name":"saveStateRequest"}, {"name":"screenAdded"}, {"name":"screenRemoved"}]
+},
+{
+  "name":"io.qt.gui.QScreen",
+  "fields":[{"name":"availableGeometryChanged"}, {"name":"geometryChanged"}, {"name":"logicalDotsPerInchChanged"}, {"name":"orientationChanged"}, {"name":"physicalDotsPerInchChanged"}, {"name":"physicalSizeChanged"}, {"name":"primaryOrientationChanged"}, {"name":"refreshRateChanged"}, {"name":"virtualGeometryChanged"}]
+},
+{
+  "name":"io.qt.gui.QtJambi_LibraryUtilities",
+  "methods":[{"name":"initialize","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.internal.NativeUtility$AssociativeReference",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"enqueue","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.internal.NativeUtility$AssociativeReference$1"
+},
+{
+  "name":"io.qt.internal.NativeUtility$AssociativeReference$WhenMappings"
+},
+{
+  "name":"io.qt.internal.NativeUtility$QueuedCleaner",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"io.qt.internal.NativeUtility$QueuedCleaner$1"
+},
+{
+  "name":"io.qt.internal.NativeUtility$QueuedCleaner$WhenMappings"
+},
+{
+  "name":"io.qt.qml.QQmlListProperty"
+},
+{
+  "name":"io.qt.widgets.QApplication",
+  "fields":[{"name":"focusChanged"}]
+},
+{
+  "name":"io.qt.widgets.QFrame",
+  "queryAllDeclaredMethods":true,
+  "methods":[{"name":"initStyleOption","parameterTypes":["io.qt.widgets.QStyleOptionFrame"] }]
+},
+{
+  "name":"io.qt.widgets.QGraphicsDropShadowEffect",
+  "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}]
+},
+{
+  "name":"io.qt.widgets.QGraphicsEffect",
+  "fields":[{"name":"enabledChanged"}]
+},
+{
+  "name":"io.qt.widgets.QLabel",
+  "queryAllDeclaredMethods":true,
+  "fields":[{"name":"linkActivated"}, {"name":"linkHovered"}],
+  "methods":[{"name":"changeEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"contextMenuEvent","parameterTypes":["io.qt.gui.QContextMenuEvent"] }, {"name":"event","parameterTypes":["io.qt.core.QEvent"] }, {"name":"focusInEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"focusNextPrevChild","parameterTypes":["boolean"] }, {"name":"focusOutEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"heightForWidth","parameterTypes":["int"] }, {"name":"keyPressEvent","parameterTypes":["io.qt.gui.QKeyEvent"] }, {"name":"minimumSizeHint","parameterTypes":[] }, {"name":"mouseMoveEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mousePressEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mouseReleaseEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"sizeHint","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.widgets.QWidget",
+  "queryAllDeclaredMethods":true,
+  "fields":[{"name":"customContextMenuRequested"}, {"name":"windowIconChanged"}, {"name":"windowIconTextChanged"}, {"name":"windowTitleChanged"}],
+  "methods":[{"name":"actionEvent","parameterTypes":["io.qt.gui.QActionEvent"] }, {"name":"changeEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"clearWindow","parameterTypes":[] }, {"name":"closeEvent","parameterTypes":["io.qt.gui.QCloseEvent"] }, {"name":"contextMenuEvent","parameterTypes":["io.qt.gui.QContextMenuEvent"] }, {"name":"dragEnterEvent","parameterTypes":["io.qt.gui.QDragEnterEvent"] }, {"name":"dragLeaveEvent","parameterTypes":["io.qt.gui.QDragLeaveEvent"] }, {"name":"dragMoveEvent","parameterTypes":["io.qt.gui.QDragMoveEvent"] }, {"name":"dropEvent","parameterTypes":["io.qt.gui.QDropEvent"] }, {"name":"enterEvent","parameterTypes":["io.qt.gui.QEnterEvent"] }, {"name":"event","parameterTypes":["io.qt.core.QEvent"] }, {"name":"focusInEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"focusNextPrevChild","parameterTypes":["boolean"] }, {"name":"focusOutEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"hasHeightForWidth","parameterTypes":[] }, {"name":"heightForWidth","parameterTypes":["int"] }, {"name":"hideChildren","parameterTypes":[] }, {"name":"hideEvent","parameterTypes":["io.qt.gui.QHideEvent"] }, {"name":"initPainter","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"inputMethodEvent","parameterTypes":["io.qt.gui.QInputMethodEvent"] }, {"name":"inputMethodQuery","parameterTypes":["io.qt.core.Qt$InputMethodQuery"] }, {"name":"keyPressEvent","parameterTypes":["io.qt.gui.QKeyEvent"] }, {"name":"keyReleaseEvent","parameterTypes":["io.qt.gui.QKeyEvent"] }, {"name":"leaveEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"metric","parameterTypes":["io.qt.gui.QPaintDevice$PaintDeviceMetric"] }, {"name":"minimumSizeHint","parameterTypes":[] }, {"name":"mouseDoubleClickEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mouseMoveEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mousePressEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mouseReleaseEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"moveEvent","parameterTypes":["io.qt.gui.QMoveEvent"] }, {"name":"paintEngine","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"redirected","parameterTypes":["io.qt.core.QPoint"] }, {"name":"resizeEvent","parameterTypes":["io.qt.gui.QResizeEvent"] }, {"name":"setVisible","parameterTypes":["boolean"] }, {"name":"sharedPainter","parameterTypes":[] }, {"name":"showEvent","parameterTypes":["io.qt.gui.QShowEvent"] }, {"name":"sizeHint","parameterTypes":[] }, {"name":"tabletEvent","parameterTypes":["io.qt.gui.QTabletEvent"] }, {"name":"wheelEvent","parameterTypes":["io.qt.gui.QWheelEvent"] }]
+},
+{
+  "name":"io.qt.widgets.QtJambi_LibraryUtilities",
+  "methods":[{"name":"initialize","parameterTypes":[] }]
+},
+{
   "name":"java.io.FilePermission"
 },
 {
   "name":"java.lang.Object",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
   "methods":[{"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"toString","parameterTypes":[] }]
 },
 {
+  "name":"java.lang.Object$1"
+},
+{
+  "name":"java.lang.Object$WhenMappings"
+},
+{
+  "name":"java.lang.QtJambi_LibraryUtilities"
+},
+{
   "name":"java.lang.RuntimePermission"
+},
+{
+  "name":"java.lang.Thread",
+  "allDeclaredFields":true
 },
 {
   "name":"java.lang.Throwable",
@@ -432,6 +554,38 @@
 {
   "name":"java.lang.invoke.MethodType",
   "methods":[{"name":"methodType","parameterTypes":["java.lang.Class","java.lang.Class[]"] }]
+},
+{
+  "name":"java.lang.ref.QtJambi_LibraryUtilities"
+},
+{
+  "name":"java.lang.ref.Reference",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"java.lang.ref.Reference$1"
+},
+{
+  "name":"java.lang.ref.Reference$2"
+},
+{
+  "name":"java.lang.ref.Reference$WhenMappings"
+},
+{
+  "name":"java.lang.ref.WeakReference",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"java.lang.ref.WeakReference$1"
+},
+{
+  "name":"java.lang.ref.WeakReference$WhenMappings"
 },
 {
   "name":"java.lang.reflect.Method",
@@ -461,6 +615,10 @@
 },
 {
   "name":"java.util.PropertyPermission"
+},
+{
+  "name":"java.util.concurrent.ForkJoinTask",
+  "fields":[{"name":"aux"}, {"name":"status"}]
 },
 {
   "name":"java.util.concurrent.atomic.AtomicBoolean",
@@ -494,6 +652,9 @@
   "allDeclaredFields":true,
   "queryAllPublicConstructors":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"jdk.internal.misc.Unsafe"
 },
 {
   "name":"mousemaster.ExtendedUser32$CURSORINFO",
@@ -530,12 +691,60 @@
   "allDeclaredFields":true
 },
 {
+  "name":"mousemaster.QtJambi_LibraryUtilities"
+},
+{
   "name":"mousemaster.Shcore$MONITOR_DPI_TYPE",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.WindowsOverlay$HintBox",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintBox$1"
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintBox$WhenMappings"
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintLabel",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintLabel$1"
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintLabel$WhenMappings"
+},
+{
   "name":"mousemaster.WindowsScreen$1",
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
+},
+{
+  "name":"mousemaster.qt.QtJambi_LibraryUtilities"
+},
+{
+  "name":"mousemaster.qt.TransparentWindow",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.qt.TransparentWindow$1"
+},
+{
+  "name":"mousemaster.qt.TransparentWindow$WhenMappings"
 },
 {
   "name":"sun.security.provider.DRBG",

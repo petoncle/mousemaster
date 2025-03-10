@@ -124,6 +124,9 @@
                                 <resource>
                                     <directory>src/main/resources</directory>
                                     <filtering>true</filtering>
+                                    <excludes>
+                                        <exclude>**/*.dll</exclude> <!-- Exclude DLLs from filtering. -->
+                                    </excludes>
                                 </resource>
                             </resources>
                         </configuration>

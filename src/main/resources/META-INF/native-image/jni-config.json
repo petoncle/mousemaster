@@ -3,6 +3,9 @@
   "name":"[Ljava.lang.Object;"
 },
 {
+  "name":"[Ljava.lang.String;"
+},
+{
   "name":"com.sun.jna.Callback"
 },
 {
@@ -65,52 +68,411 @@
   "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]
 },
 {
+  "name":"io.qt.QFlags",
+  "methods":[{"name":"intValue","parameterTypes":[] }, {"name":"setIntValue","parameterTypes":["int"] }]
+},
+{
+  "name":"io.qt.QNativePointer",
+  "methods":[{"name":"<init>","parameterTypes":["int","long","int","boolean"] }, {"name":"<init>","parameterTypes":["java.nio.Buffer","long","long"] }, {"name":"fromNative","parameterTypes":["long","int","long","int","boolean"] }, {"name":"indirections","parameterTypes":[] }, {"name":"invalidate","parameterTypes":[] }, {"name":"isReadOnly","parameterTypes":[] }, {"name":"knownSize","parameterTypes":[] }, {"name":"pointer","parameterTypes":[] }, {"name":"setVerificationEnabled","parameterTypes":["boolean"] }]
+},
+{
+  "name":"io.qt.QtEnumerator",
+  "methods":[{"name":"comparator","parameterTypes":[] }, {"name":"value","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.QtObject"
+},
+{
+  "name":"io.qt.QtObjectInterface",
+  "methods":[{"name":"dispose","parameterTypes":[] }, {"name":"isDisposed","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.QtUtilities",
+  "methods":[{"name":"initializePackage","parameterTypes":["java.lang.Class"] }]
+},
+{
+  "name":"io.qt.core.AbstractContainer",
+  "fields":[{"name":"__rcContainer"}]
+},
+{
+  "name":"io.qt.core.QCoreApplication",
+  "fields":[{"name":"__qt_isInitializing"}, {"name":"aboutToQuit"}, {"name":"applicationNameChanged"}, {"name":"applicationVersionChanged"}, {"name":"organizationDomainChanged"}, {"name":"organizationNameChanged"}],
+  "methods":[{"name":"execPostRoutines","parameterTypes":[] }, {"name":"execPreRoutines","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.core.QFactoryInterface"
+},
+{
+  "name":"io.qt.core.QList",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"<init>","parameterTypes":["io.qt.core.QMetaType","java.util.Collection"] }]
+},
+{
+  "name":"io.qt.core.QMessageLogContext",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.core.QMetaMethod",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.core.QMetaObject",
+  "fields":[{"name":"metaObjectPointer"}],
+  "methods":[{"name":"<init>","parameterTypes":["long"] }]
+},
+{
+  "name":"io.qt.core.QMetaObject$Connection"
+},
+{
+  "name":"io.qt.core.QObject",
+  "fields":[{"name":"destroyed"}, {"name":"objectNameChanged"}],
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"childEvent","parameterTypes":["io.qt.core.QChildEvent"] }, {"name":"connectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"customEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"disconnectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"eventFilter","parameterTypes":["io.qt.core.QObject","io.qt.core.QEvent"] }, {"name":"timerEvent","parameterTypes":["io.qt.core.QTimerEvent"] }]
+},
+{
+  "name":"io.qt.core.QObject$QDeclarativeConstructor"
+},
+{
+  "name":"io.qt.core.QPoint"
+},
+{
+  "name":"io.qt.core.QPointF"
+},
+{
+  "name":"io.qt.core.QRunnable"
+},
+{
+  "name":"io.qt.core.QSequentialConstIterator",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor","io.qt.QtObject"] }]
+},
+{
+  "name":"io.qt.core.QSize"
+},
+{
+  "name":"io.qt.core.QThread",
+  "fields":[{"name":"finished"}, {"name":"javaThread"}, {"name":"started"}],
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"getJavaThreadReference","parameterTypes":[] }, {"name":"setJavaThreadReference","parameterTypes":["java.lang.Thread"] }]
+},
+{
+  "name":"io.qt.core.QVariant",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.core.QVariant$Null",
+  "methods":[{"name":"metaTypeID","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.core.Qt$BrushStyle",
+  "methods":[{"name":"resolve","parameterTypes":["int"] }]
+},
+{
+  "name":"io.qt.core.Qt$GlobalColor"
+},
+{
+  "name":"io.qt.core.Qt$ImageConversionFlags"
+},
+{
+  "name":"io.qt.core.Qt$PenCapStyle"
+},
+{
+  "name":"io.qt.core.Qt$PenJoinStyle"
+},
+{
+  "name":"io.qt.core.Qt$PenStyle"
+},
+{
+  "name":"io.qt.core.Qt$WindowFlags"
+},
+{
+  "name":"io.qt.gui.QAbstractUndoItem"
+},
+{
+  "name":"io.qt.gui.QAccessible$ActivationObserver"
+},
+{
+  "name":"io.qt.gui.QAccessibleActionInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleAttributesInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleEditableTextInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleHyperlinkInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleImageInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleSelectionInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleTableCellInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleTableInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleTextInterface"
+},
+{
+  "name":"io.qt.gui.QAccessibleValueInterface"
+},
+{
+  "name":"io.qt.gui.QColor",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.gui.QColor$Spec"
+},
+{
+  "name":"io.qt.gui.QFont",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.gui.QGradient"
+},
+{
+  "name":"io.qt.gui.QGuiApplication",
+  "fields":[{"name":"applicationDisplayNameChanged"}, {"name":"applicationStateChanged"}, {"name":"commitDataRequest"}, {"name":"focusObjectChanged"}, {"name":"focusWindowChanged"}, {"name":"fontChanged"}, {"name":"fontDatabaseChanged"}, {"name":"lastWindowClosed"}, {"name":"layoutDirectionChanged"}, {"name":"paletteChanged"}, {"name":"primaryScreenChanged"}, {"name":"saveStateRequest"}, {"name":"screenAdded"}, {"name":"screenRemoved"}]
+},
+{
+  "name":"io.qt.gui.QImage"
+},
+{
+  "name":"io.qt.gui.QPagedPaintDevice"
+},
+{
+  "name":"io.qt.gui.QPaintDevice"
+},
+{
+  "name":"io.qt.gui.QPaintDevice$Impl"
+},
+{
+  "name":"io.qt.gui.QPaintDevice$Impl$ConcreteWrapper",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.gui.QPaintDeviceWindow"
+},
+{
+  "name":"io.qt.gui.QPaintEvent",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.gui.QPainter",
+  "methods":[{"name":"beginPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }, {"name":"endPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }]
+},
+{
+  "name":"io.qt.gui.QPdfWriter"
+},
+{
+  "name":"io.qt.gui.QPicture"
+},
+{
+  "name":"io.qt.gui.QPixmap",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.gui.QRegion"
+},
+{
+  "name":"io.qt.gui.QRgba64"
+},
+{
+  "name":"io.qt.gui.QScreen",
+  "fields":[{"name":"availableGeometryChanged"}, {"name":"geometryChanged"}, {"name":"logicalDotsPerInchChanged"}, {"name":"orientationChanged"}, {"name":"physicalDotsPerInchChanged"}, {"name":"physicalSizeChanged"}, {"name":"primaryOrientationChanged"}, {"name":"refreshRateChanged"}, {"name":"virtualGeometryChanged"}],
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.gui.QSurface"
+},
+{
+  "name":"io.qt.gui.QTextObjectInterface"
+},
+{
+  "name":"io.qt.gui.nativeinterface.QWGLContext"
+},
+{
+  "name":"io.qt.gui.nativeinterface.QWindowsApplication"
+},
+{
+  "name":"io.qt.gui.nativeinterface.QWindowsScreen"
+},
+{
+  "name":"io.qt.gui.nativeinterface.QWindowsWindow"
+},
+{
+  "name":"io.qt.internal.AccessUtility",
+  "fields":[{"name":"instance"}]
+},
+{
+  "name":"io.qt.internal.ClassAnalyzerUtility",
+  "methods":[{"name":"checkImplementation","parameterTypes":["java.lang.Class","java.lang.Class"] }, {"name":"findGeneratedSuperclass","parameterTypes":["java.lang.Class"] }, {"name":"getImplementedInterfaceInfo","parameterTypes":["java.lang.Class"] }, {"name":"isGeneratedClass","parameterTypes":["java.lang.Class"] }, {"name":"isImplementedInJava","parameterTypes":["boolean","java.lang.reflect.Method","java.lang.Class"] }, {"name":"objectToString","parameterTypes":["java.lang.Object"] }]
+},
+{
+  "name":"io.qt.internal.LibraryUtility",
+  "methods":[{"name":"clear","parameterTypes":[] }, {"name":"extractContainerAccessLib","parameterTypes":["java.lang.String"] }, {"name":"isNativeDeployment","parameterTypes":[] }, {"name":"pluginPaths","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.internal.MetaObjectData",
+  "fields":[{"name":"constructorMetaTypes"}, {"name":"constructors"}, {"name":"hasStaticMembers"}, {"name":"intData"}, {"name":"metaTypes"}, {"name":"methodMetaTypes"}, {"name":"methods"}, {"name":"propertyBindables"}, {"name":"propertyClassTypes"}, {"name":"propertyMemberFields"}, {"name":"propertyMetaTypes"}, {"name":"propertyNotifies"}, {"name":"propertyQPropertyFields"}, {"name":"propertyReaders"}, {"name":"propertyResetters"}, {"name":"propertyWriters"}, {"name":"relatedMetaObjects"}, {"name":"signalInfos"}, {"name":"stringData"}, {"name":"switchTableFields"}]
+},
+{
+  "name":"io.qt.internal.MetaObjectData$IntArray",
+  "fields":[{"name":"array"}, {"name":"size"}]
+},
+{
+  "name":"io.qt.internal.MetaObjectData$MetaTypeInfo",
+  "fields":[{"name":"metaTypeId"}, {"name":"typeName"}]
+},
+{
+  "name":"io.qt.internal.MetaObjectUtility",
+  "methods":[{"name":"analyze","parameterTypes":["java.lang.Class"] }]
+},
+{
+  "name":"io.qt.internal.MetaTypeUtility",
+  "methods":[{"name":"analyzeExpectedTemplateName","parameterTypes":["java.lang.Class","io.qt.core.QMetaType[]"] }, {"name":"debugObject","parameterTypes":["io.qt.core.QDebug","java.lang.Object"] }, {"name":"readSerializableJavaObject","parameterTypes":["io.qt.core.QDataStream"] }, {"name":"writeSerializableJavaObject","parameterTypes":["io.qt.core.QDataStream","java.lang.Object"] }]
+},
+{
+  "name":"io.qt.internal.NativeUtility",
+  "methods":[{"name":"createAssociation","parameterTypes":["java.lang.Object","java.lang.Object"] }, {"name":"deleteAssociation","parameterTypes":["java.lang.Object"] }, {"name":"deleteAssociationByHashCode","parameterTypes":["int"] }, {"name":"findAndAssignInterfaceLink","parameterTypes":["io.qt.QtObjectInterface","boolean","boolean","long"] }, {"name":"findAssociation","parameterTypes":["java.lang.Object"] }, {"name":"findInterfaceLink","parameterTypes":["io.qt.QtObjectInterface","boolean","boolean"] }, {"name":"getGlobalReference","parameterTypes":["long"] }, {"name":"getWeakGlobalReference","parameterTypes":["long"] }, {"name":"nativeId","parameterTypes":["io.qt.QtObjectInterface"] }, {"name":"nativeId","parameterTypes":["io.qt.internal.NativeUtility$Object"] }, {"name":"pushGlobalReference","parameterTypes":["long","java.lang.Object"] }, {"name":"pushWeakGlobalReference","parameterTypes":["long","java.lang.Object"] }, {"name":"releaseGlobalReference","parameterTypes":["long"] }, {"name":"releaseWeakGlobalReference","parameterTypes":["long"] }, {"name":"terminateCleanupThread","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.internal.NativeUtility$AssociativeReference",
+  "methods":[{"name":"enqueue","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.internal.NativeUtility$NativeLink",
+  "methods":[{"name":"assignNativeId","parameterTypes":["long"] }, {"name":"detach","parameterTypes":["long","boolean"] }, {"name":"detachForID","parameterTypes":["long","boolean"] }, {"name":"get","parameterTypes":[] }, {"name":"getForID","parameterTypes":["long"] }, {"name":"initialize","parameterTypes":["long"] }, {"name":"nativeId","parameterTypes":[] }, {"name":"releaseOwnership","parameterTypes":[] }, {"name":"releaseOwnershipForID","parameterTypes":["long"] }, {"name":"reset","parameterTypes":["long","boolean"] }, {"name":"resetForID","parameterTypes":["long","boolean"] }, {"name":"takeOwnership","parameterTypes":[] }, {"name":"takeOwnershipForID","parameterTypes":["long"] }]
+},
+{
+  "name":"io.qt.internal.NativeUtility$Object",
+  "fields":[{"name":"nativeLink"}],
+  "methods":[{"name":"assignNativeLink","parameterTypes":["long"] }]
+},
+{
+  "name":"io.qt.internal.ReferenceUtility$RCSet",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.internal.ResourceUtility",
+  "methods":[{"name":"cleanupOnShutdown","parameterTypes":[] }, {"name":"resolveFileToJarResource","parameterTypes":["java.lang.String"] }, {"name":"resolveUrlFromPath","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"io.qt.internal.SignalUtility",
+  "methods":[{"name":"resolveSignal","parameterTypes":["java.lang.Object","boolean[]","boolean[]"] }]
+},
+{
+  "name":"io.qt.internal.SignalUtility$AbstractSignal",
+  "methods":[{"name":"initializeSignal","parameterTypes":["java.lang.Class","java.util.List","int","long"] }]
+},
+{
+  "name":"io.qt.internal.ThreadUtility",
+  "methods":[{"name":"setThreadInterruptible","parameterTypes":["io.qt.core.QThread","java.lang.Thread","boolean"] }]
+},
+{
+  "name":"io.qt.widgets.QApplication",
+  "fields":[{"name":"focusChanged"}]
+},
+{
+  "name":"io.qt.widgets.QFrame",
+  "methods":[{"name":"initStyleOption","parameterTypes":["io.qt.widgets.QStyleOptionFrame"] }]
+},
+{
+  "name":"io.qt.widgets.QGraphicsDropShadowEffect",
+  "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}]
+},
+{
+  "name":"io.qt.widgets.QGraphicsEffect",
+  "fields":[{"name":"enabledChanged"}]
+},
+{
+  "name":"io.qt.widgets.QGraphicsItem"
+},
+{
+  "name":"io.qt.widgets.QGraphicsLayoutItem"
+},
+{
+  "name":"io.qt.widgets.QItemEditorCreatorBase"
+},
+{
+  "name":"io.qt.widgets.QLabel",
+  "fields":[{"name":"linkActivated"}, {"name":"linkHovered"}],
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"changeEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"contextMenuEvent","parameterTypes":["io.qt.gui.QContextMenuEvent"] }, {"name":"event","parameterTypes":["io.qt.core.QEvent"] }, {"name":"focusInEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"focusNextPrevChild","parameterTypes":["boolean"] }, {"name":"focusOutEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"heightForWidth","parameterTypes":["int"] }, {"name":"keyPressEvent","parameterTypes":["io.qt.gui.QKeyEvent"] }, {"name":"minimumSizeHint","parameterTypes":[] }, {"name":"mouseMoveEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mousePressEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mouseReleaseEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"sizeHint","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.widgets.QLayoutItem"
+},
+{
+  "name":"io.qt.widgets.QWidget",
+  "fields":[{"name":"customContextMenuRequested"}, {"name":"windowIconChanged"}, {"name":"windowIconTextChanged"}, {"name":"windowTitleChanged"}],
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"actionEvent","parameterTypes":["io.qt.gui.QActionEvent"] }, {"name":"changeEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"closeEvent","parameterTypes":["io.qt.gui.QCloseEvent"] }, {"name":"contextMenuEvent","parameterTypes":["io.qt.gui.QContextMenuEvent"] }, {"name":"dragEnterEvent","parameterTypes":["io.qt.gui.QDragEnterEvent"] }, {"name":"dragLeaveEvent","parameterTypes":["io.qt.gui.QDragLeaveEvent"] }, {"name":"dragMoveEvent","parameterTypes":["io.qt.gui.QDragMoveEvent"] }, {"name":"dropEvent","parameterTypes":["io.qt.gui.QDropEvent"] }, {"name":"enterEvent","parameterTypes":["io.qt.gui.QEnterEvent"] }, {"name":"event","parameterTypes":["io.qt.core.QEvent"] }, {"name":"focusInEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"focusNextPrevChild","parameterTypes":["boolean"] }, {"name":"focusOutEvent","parameterTypes":["io.qt.gui.QFocusEvent"] }, {"name":"hasHeightForWidth","parameterTypes":[] }, {"name":"heightForWidth","parameterTypes":["int"] }, {"name":"hideEvent","parameterTypes":["io.qt.gui.QHideEvent"] }, {"name":"initPainter","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"inputMethodEvent","parameterTypes":["io.qt.gui.QInputMethodEvent"] }, {"name":"inputMethodQuery","parameterTypes":["io.qt.core.Qt$InputMethodQuery"] }, {"name":"keyPressEvent","parameterTypes":["io.qt.gui.QKeyEvent"] }, {"name":"keyReleaseEvent","parameterTypes":["io.qt.gui.QKeyEvent"] }, {"name":"leaveEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"metric","parameterTypes":["io.qt.gui.QPaintDevice$PaintDeviceMetric"] }, {"name":"minimumSizeHint","parameterTypes":[] }, {"name":"mouseDoubleClickEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mouseMoveEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mousePressEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"mouseReleaseEvent","parameterTypes":["io.qt.gui.QMouseEvent"] }, {"name":"moveEvent","parameterTypes":["io.qt.gui.QMoveEvent"] }, {"name":"paintEngine","parameterTypes":[] }, {"name":"redirected","parameterTypes":["io.qt.core.QPoint"] }, {"name":"resizeEvent","parameterTypes":["io.qt.gui.QResizeEvent"] }, {"name":"setVisible","parameterTypes":["boolean"] }, {"name":"sharedPainter","parameterTypes":[] }, {"name":"showEvent","parameterTypes":["io.qt.gui.QShowEvent"] }, {"name":"sizeHint","parameterTypes":[] }, {"name":"tabletEvent","parameterTypes":["io.qt.gui.QTabletEvent"] }, {"name":"wheelEvent","parameterTypes":["io.qt.gui.QWheelEvent"] }]
+},
+{
   "name":"java.lang.Boolean",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["boolean"] }, {"name":"getBoolean","parameterTypes":["java.lang.String"] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean"] }, {"name":"booleanValue","parameterTypes":[] }, {"name":"getBoolean","parameterTypes":["java.lang.String"] }, {"name":"valueOf","parameterTypes":["boolean"] }]
 },
 {
   "name":"java.lang.Byte",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["byte"] }]
+  "methods":[{"name":"<init>","parameterTypes":["byte"] }, {"name":"valueOf","parameterTypes":["byte"] }]
 },
 {
   "name":"java.lang.Character",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["char"] }]
+  "methods":[{"name":"<init>","parameterTypes":["char"] }, {"name":"charValue","parameterTypes":[] }, {"name":"valueOf","parameterTypes":["char"] }]
 },
 {
   "name":"java.lang.Class",
-  "methods":[{"name":"getComponentType","parameterTypes":[] }]
+  "methods":[{"name":"cast","parameterTypes":["java.lang.Object"] }, {"name":"getAnnotation","parameterTypes":["java.lang.Class"] }, {"name":"getClassLoader","parameterTypes":[] }, {"name":"getComponentType","parameterTypes":[] }, {"name":"getDeclaredField","parameterTypes":["java.lang.String"] }, {"name":"getDeclaredMethod","parameterTypes":["java.lang.String","java.lang.Class[]"] }, {"name":"getDeclaredMethods","parameterTypes":[] }, {"name":"getEnumConstants","parameterTypes":[] }, {"name":"getInterfaces","parameterTypes":[] }, {"name":"getMethod","parameterTypes":["java.lang.String","java.lang.Class[]"] }, {"name":"getModifiers","parameterTypes":[] }, {"name":"getName","parameterTypes":[] }, {"name":"getTypeParameters","parameterTypes":[] }, {"name":"isAnnotationPresent","parameterTypes":["java.lang.Class"] }, {"name":"isArray","parameterTypes":[] }, {"name":"isInterface","parameterTypes":[] }, {"name":"isPrimitive","parameterTypes":[] }, {"name":"isSynthetic","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.Cloneable"
 },
 {
   "name":"java.lang.Double",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["double"] }]
+  "methods":[{"name":"<init>","parameterTypes":["double"] }, {"name":"valueOf","parameterTypes":["double"] }]
+},
+{
+  "name":"java.lang.Enum",
+  "methods":[{"name":"name","parameterTypes":[] }, {"name":"ordinal","parameterTypes":[] }]
 },
 {
   "name":"java.lang.Float",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["float"] }]
+  "methods":[{"name":"<init>","parameterTypes":["float"] }, {"name":"valueOf","parameterTypes":["float"] }]
 },
 {
   "name":"java.lang.Integer",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["int"] }]
+  "methods":[{"name":"<init>","parameterTypes":["int"] }, {"name":"valueOf","parameterTypes":["int"] }]
+},
+{
+  "name":"java.lang.Iterable",
+  "methods":[{"name":"iterator","parameterTypes":[] }]
 },
 {
   "name":"java.lang.Long",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["long"] }]
+  "methods":[{"name":"<init>","parameterTypes":["long"] }, {"name":"hashCode","parameterTypes":["long"] }, {"name":"valueOf","parameterTypes":["long"] }]
+},
+{
+  "name":"java.lang.Number",
+  "methods":[{"name":"byteValue","parameterTypes":[] }, {"name":"doubleValue","parameterTypes":[] }, {"name":"floatValue","parameterTypes":[] }, {"name":"intValue","parameterTypes":[] }, {"name":"longValue","parameterTypes":[] }, {"name":"shortValue","parameterTypes":[] }]
 },
 {
   "name":"java.lang.Object",
-  "methods":[{"name":"toString","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":[] }, {"name":"clone","parameterTypes":[] }, {"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"toString","parameterTypes":[] }]
 },
 {
   "name":"java.lang.Short",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
-  "methods":[{"name":"<init>","parameterTypes":["short"] }]
+  "methods":[{"name":"<init>","parameterTypes":["short"] }, {"name":"valueOf","parameterTypes":["short"] }]
 },
 {
   "name":"java.lang.String",
@@ -118,7 +480,11 @@
 },
 {
   "name":"java.lang.System",
-  "methods":[{"name":"getProperty","parameterTypes":["java.lang.String"] }]
+  "methods":[{"name":"gc","parameterTypes":[] }, {"name":"getProperty","parameterTypes":["java.lang.String"] }, {"name":"getProperty","parameterTypes":["java.lang.String","java.lang.String"] }, {"name":"identityHashCode","parameterTypes":["java.lang.Object"] }, {"name":"setProperty","parameterTypes":["java.lang.String","java.lang.String"] }]
+},
+{
+  "name":"java.lang.Thread",
+  "methods":[{"name":"currentThread","parameterTypes":[] }, {"name":"dumpStack","parameterTypes":[] }, {"name":"getContextClassLoader","parameterTypes":[] }, {"name":"getId","parameterTypes":[] }, {"name":"getName","parameterTypes":[] }, {"name":"getStackTrace","parameterTypes":[] }, {"name":"getThreadGroup","parameterTypes":[] }, {"name":"getUncaughtExceptionHandler","parameterTypes":[] }, {"name":"interrupt","parameterTypes":[] }, {"name":"isAlive","parameterTypes":[] }, {"name":"isDaemon","parameterTypes":[] }, {"name":"setContextClassLoader","parameterTypes":["java.lang.ClassLoader"] }, {"name":"setName","parameterTypes":["java.lang.String"] }, {"name":"setUncaughtExceptionHandler","parameterTypes":["java.lang.Thread$UncaughtExceptionHandler"] }]
 },
 {
   "name":"java.lang.UnsatisfiedLinkError",
@@ -129,8 +495,28 @@
   "fields":[{"name":"TYPE"}]
 },
 {
+  "name":"java.lang.invoke.MethodHandles$Lookup",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Class"] }]
+},
+{
+  "name":"java.lang.reflect.Executable",
+  "methods":[{"name":"getModifiers","parameterTypes":[] }, {"name":"getParameterTypes","parameterTypes":[] }]
+},
+{
   "name":"java.lang.reflect.Method",
-  "methods":[{"name":"getParameterTypes","parameterTypes":[] }, {"name":"getReturnType","parameterTypes":[] }]
+  "methods":[{"name":"getDeclaringClass","parameterTypes":[] }, {"name":"getName","parameterTypes":[] }, {"name":"getParameterTypes","parameterTypes":[] }, {"name":"getReturnType","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.reflect.Modifier",
+  "methods":[{"name":"isAbstract","parameterTypes":["int"] }, {"name":"isFinal","parameterTypes":["int"] }, {"name":"isNative","parameterTypes":["int"] }, {"name":"isStatic","parameterTypes":["int"] }]
+},
+{
+  "name":"java.net.URL",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }, {"name":"openConnection","parameterTypes":[] }]
+},
+{
+  "name":"java.net.URLConnection",
+  "methods":[{"name":"getContentLengthLong","parameterTypes":[] }, {"name":"getDoInput","parameterTypes":[] }, {"name":"getDoOutput","parameterTypes":[] }, {"name":"getInputStream","parameterTypes":[] }, {"name":"getOutputStream","parameterTypes":[] }]
 },
 {
   "name":"java.nio.Buffer",
@@ -165,7 +551,35 @@
   "methods":[{"name":"array","parameterTypes":[] }, {"name":"arrayOffset","parameterTypes":[] }]
 },
 {
+  "name":"java.util.ArrayList",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"java.util.Collection",
+  "methods":[{"name":"add","parameterTypes":["java.lang.Object"] }, {"name":"addAll","parameterTypes":["java.util.Collection"] }, {"name":"clear","parameterTypes":[] }, {"name":"contains","parameterTypes":["java.lang.Object"] }, {"name":"iterator","parameterTypes":[] }, {"name":"remove","parameterTypes":["java.lang.Object"] }, {"name":"size","parameterTypes":[] }, {"name":"toArray","parameterTypes":[] }]
+},
+{
+  "name":"java.util.Iterator",
+  "methods":[{"name":"hasNext","parameterTypes":[] }, {"name":"next","parameterTypes":[] }, {"name":"remove","parameterTypes":[] }]
+},
+{
+  "name":"java.util.List",
+  "methods":[{"name":"get","parameterTypes":["int"] }, {"name":"remove","parameterTypes":["int"] }, {"name":"remove","parameterTypes":["java.lang.Object"] }, {"name":"set","parameterTypes":["int","java.lang.Object"] }]
+},
+{
   "name":"mousemaster.MousemasterApplication",
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintBox",
+  "methods":[{"name":"drawBorders","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintLabel",
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.qt.TransparentWindow",
+  "methods":[{"name":"clearWindow","parameterTypes":[] }, {"name":"hideChildren","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 }
 ]

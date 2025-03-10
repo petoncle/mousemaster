@@ -1,11 +1,19 @@
 {
   "resources":{
   "includes":[{
+    "pattern":"\\QMETA-INF/MANIFEST.MF\\E"
+  }, {
+    "pattern":"\\QMETA-INF/qtjambi-deployment.xml\\E"
+  }, {
     "pattern":"\\QMETA-INF/services/ch.qos.logback.classic.spi.Configurator\\E"
   }, {
     "pattern":"\\QMETA-INF/services/java.lang.System$LoggerFinder\\E"
   }, {
     "pattern":"\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.util.prefs.PreferencesFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
   }, {
     "pattern":"\\QMETA-INF/services/javax.xml.parsers.SAXParserFactory\\E"
   }, {
@@ -13,9 +21,11 @@
   }, {
     "pattern":"\\Qapplication.properties\\E"
   }, {
+    "pattern":"\\Qcom/sun/jna/win32-x86-64/jnidispatch.dll\\E"
+  }, {
     "pattern":"\\Qdefault-key-aliases.properties\\E"
   }, {
-    "pattern":"\\Qcom/sun/jna/win32-x86-64/jnidispatch.dll\\E"
+    "pattern":"\\Qio/qt/internal/LibraryUtility.class\\E"
   }, {
     "pattern":"\\Qlogback-test.scmo\\E"
   }, {
@@ -24,6 +34,36 @@
     "pattern":"\\Qlogback.scmo\\E"
   }, {
     "pattern":"\\Qlogback.xml\\E"
+  }, {
+    "pattern":"\\Qbin/QtJambi6.dll\\E"
+  }, {
+    "pattern":"\\Qbin/QtJambiCore6.dll\\E"
+  }, {
+    "pattern":"\\Qbin/QtJambiGui6.dll\\E"
+  }, {
+    "pattern":"\\Qbin/QtJambiWidgets6.dll\\E"
+  }, {
+    "pattern":"\\Qqt/bin/Qt6Core.dll\\E"
+  }, {
+    "pattern":"\\Qqt/bin/Qt6Gui.dll\\E"
+  }, {
+    "pattern":"\\Qqt/bin/Qt6Widgets.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qdirect2d.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qdirect2dd.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qminimal.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qminimald.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qoffscreen.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qoffscreend.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qwindows.dll\\E"
+  }, {
+    "pattern":"\\Qqt/plugins/platforms/qwindowsd.dll\\E"
   }]},
   "bundles":[]
 }
