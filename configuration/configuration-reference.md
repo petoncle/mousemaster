@@ -225,14 +225,12 @@ hint1-mode.hint.font-outline-thickness=2
 hint1-mode.hint.font-outline-color=#000000
 hint1-mode.hint.font-outline-opacity=0.5
 hint1-mode.hint.prefix-font-color=#A3A3A3
-hint1-mode.hint.highlight-font-scale=1
 hint1-mode.hint.box-color=#000000
 hint1-mode.hint.box-opacity=0.4
 hint1-mode.hint.box-border-thickness=1
 hint1-mode.hint.box-border-length=1000
 hint1-mode.hint.box-border-color=#FFFFFF
 hint1-mode.hint.box-border-opacity=0.4
-hint1-mode.hint.expand-boxes=true
 ```
 
 - `type` can either be `grid` or `position-history`.
@@ -252,11 +250,9 @@ hint1-mode.hint.expand-boxes=true
   entire box, and 0.5 represents the smallest spacing while maintaining column alignment
   for the characters.
 - `prefix-font-color` is the color of the letters of the hint that have already been selected.
-- `highlight-font-scale` can be used to make the next letter that needs to be pressed bigger.
 - `box-border-length` controls the hint grid lines. A higher value results in the hint
   boxes being separated by lines, while a value of 1 pixel results in the hint boxes being
   separated by dots.
-- `expand-boxes` can be set to false to have small hint boxes (Vimium-like).
 
 ### Grid properties (not to be confused with the hint grid)
 

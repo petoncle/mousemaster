@@ -165,7 +165,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .fontShadowVerticalOffset(hintMeshConfiguration.fontShadowVerticalOffset())
                 .prefixFontHexColor(
                         hintMeshConfiguration.prefixFontHexColor())
-                .highlightFontScale(hintMeshConfiguration.highlightFontScale())
                 .boxHexColor(hintMeshConfiguration.boxHexColor())
                 .boxOpacity(hintMeshConfiguration.boxOpacity())
                 .boxBorderThickness(hintMeshConfiguration.boxBorderThickness())

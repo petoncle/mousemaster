@@ -14,7 +14,6 @@ public record HintMeshConfiguration(boolean enabled,
                                     double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                                     double fontShadowBlurRadius, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
                                     String prefixFontHexColor,
-                                    double highlightFontScale,
                                     String boxHexColor,
                                     double boxOpacity,
                                     double boxBorderThickness,
@@ -55,7 +54,6 @@ public record HintMeshConfiguration(boolean enabled,
         private Double fontShadowHorizontalOffset;
         private Double fontShadowVerticalOffset;
         private String prefixFontHexColor;
-        private Double highlightFontScale;
         private String boxHexColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
@@ -172,12 +170,6 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfigurationBuilder prefixFontHexColor(
                 String prefixFontHexColor) {
             this.prefixFontHexColor = prefixFontHexColor;
-            return this;
-        }
-
-        public HintMeshConfigurationBuilder highlightFontScale(
-                Double highlightFontScale) {
-            this.highlightFontScale = highlightFontScale;
             return this;
         }
 
@@ -353,10 +345,6 @@ public record HintMeshConfiguration(boolean enabled,
             return prefixFontHexColor;
         }
 
-        public Double highlightFontScale() {
-            return highlightFontScale;
-        }
-
         public String boxHexColor() {
             return boxHexColor;
         }
@@ -433,7 +421,6 @@ public record HintMeshConfiguration(boolean enabled,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     fontShadowBlurRadius, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
                     prefixFontHexColor,
-                    highlightFontScale,
                     boxHexColor, boxOpacity, boxBorderThickness,
                     boxBorderLength,
                     boxBorderHexColor, boxBorderOpacity,

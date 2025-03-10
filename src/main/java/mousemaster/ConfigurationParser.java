@@ -99,7 +99,6 @@ public class ConfigurationParser {
                 .fontShadowHorizontalOffset(1)
                 .fontShadowVerticalOffset(1)
                 .prefixFontHexColor("#AAAAAA")
-                .highlightFontScale(1d)
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
                 .boxBorderThickness(1)
@@ -588,9 +587,6 @@ public class ConfigurationParser {
                         case "prefix-font-color" ->
                                 mode.hintMesh.builder.prefixFontHexColor(
                                         checkColorFormat(propertyValue));
-                        case "highlight-font-scale" ->
-                                mode.hintMesh.builder.highlightFontScale(
-                                        parseNonZeroPercent(propertyValue, 2));
                         case "box-color" -> mode.hintMesh.builder.boxHexColor(
                                 checkColorFormat(propertyValue));
                         case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
@@ -1628,8 +1624,6 @@ public class ConfigurationParser {
                         builder.fontShadowVerticalOffset(parent.fontShadowVerticalOffset());
                     if (builder.prefixFontHexColor() == null)
                         builder.prefixFontHexColor(parent.prefixFontHexColor());
-                    if (builder.highlightFontScale() == null)
-                        builder.highlightFontScale(parent.highlightFontScale());
                     if (builder.boxHexColor() == null)
                         builder.boxHexColor(parent.boxHexColor());
                     if (builder.boxOpacity() == null)

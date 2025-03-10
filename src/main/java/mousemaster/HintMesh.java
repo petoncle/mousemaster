@@ -10,7 +10,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                        double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                        double fontShadowBlurRadius, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
-                       String prefixFontHexColor, double highlightFontScale,
+                       String prefixFontHexColor,
                        String boxHexColor, double boxOpacity,
                        double boxBorderThickness,
                        double boxBorderLength,
@@ -48,7 +48,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double fontShadowHorizontalOffset;
         private double fontShadowVerticalOffset;
         private String prefixFontHexColor;
-        private double highlightFontScale;
         private String boxHexColor;
         private double boxOpacity;
         private double boxBorderThickness;
@@ -87,7 +86,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.fontShadowHorizontalOffset = hintMesh.fontShadowHorizontalOffset;
             this.fontShadowVerticalOffset = hintMesh.fontShadowVerticalOffset;
             this.prefixFontHexColor = hintMesh.prefixFontHexColor;
-            this.highlightFontScale = hintMesh.highlightFontScale;
             this.boxHexColor = hintMesh.boxHexColor;
             this.boxOpacity = hintMesh.boxOpacity;
             this.boxBorderThickness = hintMesh.boxBorderThickness;
@@ -179,10 +177,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public String prefixFontHexColor() {
             return prefixFontHexColor;
-        }
-
-        public double highlightFontScale() {
-            return highlightFontScale;
         }
 
         public String boxHexColor() {
@@ -337,12 +331,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder highlightFontScale(
-                double highlightFontScale) {
-            this.highlightFontScale = highlightFontScale;
-            return this;
-        }
-
         public HintMeshBuilder boxHexColor(String boxHexColor) {
             this.boxHexColor = boxHexColor;
             return this;
@@ -418,7 +406,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     fontShadowBlurRadius, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
-                    prefixFontHexColor, highlightFontScale,
+                    prefixFontHexColor,
                     boxHexColor, boxOpacity,
                     boxBorderThickness,
                     boxBorderLength,
