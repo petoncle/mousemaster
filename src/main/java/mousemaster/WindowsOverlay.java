@@ -441,7 +441,11 @@ public class WindowsOverlay {
                                 hintMesh.fontSpacingPercent(),
                                 hintKeyMaxXAdvance);
                 HintBox hintBox =
-                        new HintBox(hintMesh, gridLeftEdge, gridTopEdge,
+                        new HintBox((int) Math.round(hintMesh.boxBorderLength()),
+                                (int) Math.round(hintMesh.boxBorderThickness()),
+                                qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity()),
+                                qColor(hintMesh.boxBorderHexColor(),
+                                        hintMesh.boxBorderOpacity()), gridLeftEdge, gridTopEdge,
                                 gridRightEdge, gridBottomEdge,
                                 qtScaleFactor
                         );
@@ -515,19 +519,18 @@ public class WindowsOverlay {
         private QColor color;
         private QColor borderColor;
 
-        public HintBox(HintMesh hintMesh,
-                       boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
+        public HintBox(int borderLength, int borderThickness, QColor color,
+                       QColor borderColor, boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        double qtScaleFactor) {
             this.gridLeftEdge = gridLeftEdge;
             this.gridTopEdge = gridTopEdge;
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
-            this.borderLength = (int) Math.round(hintMesh.boxBorderLength());
-            this.borderThickness = (int) Math.round(hintMesh.boxBorderThickness());
-            this.color = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
-            this.borderColor = qColor(hintMesh.boxBorderHexColor(),
-                    hintMesh.boxBorderOpacity());
+            this.borderLength = borderLength;
+            this.borderThickness = borderThickness;
+            this.color = color;
+            this.borderColor = borderColor;
         }
 
         @Override
