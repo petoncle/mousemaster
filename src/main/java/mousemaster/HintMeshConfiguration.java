@@ -20,7 +20,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     double boxBorderLength,
                                     String boxBorderHexColor,
                                     double boxBorderOpacity,
-                                    boolean expandBoxes,
+                                    double boxWidthPercent,
+                                    double boxHeightPercent,
                                     int subgridRowCount,
                                     int subgridColumnCount,
                                     double subgridBorderThickness,
@@ -60,7 +61,8 @@ public record HintMeshConfiguration(boolean enabled,
         private Double boxBorderLength;
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
-        private Boolean expandBoxes;
+        private Double boxWidthPercent;
+        private Double boxHeightPercent;
         private Integer subgridRowCount;
         private Integer subgridColumnCount;
         private Double subgridBorderThickness;
@@ -208,8 +210,13 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder expandBoxes(boolean expandBoxes) {
-            this.expandBoxes = expandBoxes;
+        public HintMeshConfigurationBuilder boxWidthPercent(double boxWidthPercent) {
+            this.boxWidthPercent = boxWidthPercent;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder boxHeightPercent(double boxHeightPercent) {
+            this.boxHeightPercent = boxHeightPercent;
             return this;
         }
 
@@ -373,8 +380,12 @@ public record HintMeshConfiguration(boolean enabled,
             return boxBorderOpacity;
         }
 
-        public Boolean expandBoxes() {
-            return expandBoxes;
+        public Double boxWidthPercent() {
+            return boxWidthPercent;
+        }
+
+        public Double boxHeightPercent() {
+            return boxHeightPercent;
         }
 
         public Integer subgridRowCount() {
@@ -425,7 +436,8 @@ public record HintMeshConfiguration(boolean enabled,
                     boxHexColor, boxOpacity, boxBorderThickness,
                     boxBorderLength,
                     boxBorderHexColor, boxBorderOpacity,
-                    expandBoxes,
+                    boxWidthPercent,
+                    boxHeightPercent,
                     subgridRowCount,
                     subgridColumnCount,
                     subgridBorderThickness,

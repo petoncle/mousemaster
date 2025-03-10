@@ -106,7 +106,8 @@ public class ConfigurationParser {
                 .boxBorderLength(10_000)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
-                .expandBoxes(true)
+                .boxWidthPercent(1)
+                .boxHeightPercent(1)
                 .subgridRowCount(1)
                 .subgridColumnCount(1)
                 .subgridBorderThickness(1)
@@ -606,8 +607,10 @@ public class ConfigurationParser {
                                 checkColorFormat(propertyValue));
                         case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "expand-boxes" -> mode.hintMesh.builder.expandBoxes(
-                                Boolean.parseBoolean(propertyValue));
+                        case "box-width-percent" -> mode.hintMesh.builder.boxWidthPercent(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "box-height-percent" -> mode.hintMesh.builder.boxHeightPercent(
+                                parseDouble(propertyValue, true, 0, 1));
                         case "subgrid-row-count" -> mode.hintMesh.builder.subgridRowCount(parseUnsignedInteger(
                                 propertyValue, 1, 1_000));
                         case "subgrid-column-count" -> mode.hintMesh.builder.subgridColumnCount(parseUnsignedInteger(
@@ -1640,8 +1643,10 @@ public class ConfigurationParser {
                         builder.boxBorderHexColor(parent.boxBorderHexColor());
                     if (builder.boxBorderOpacity() == null)
                         builder.boxBorderOpacity(parent.boxBorderOpacity());
-                    if (builder.expandBoxes() == null)
-                        builder.expandBoxes(parent.expandBoxes());
+                    if (builder.boxWidthPercent() == null)
+                        builder.boxWidthPercent(parent.boxWidthPercent());
+                    if (builder.boxHeightPercent() == null)
+                        builder.boxHeightPercent(parent.boxHeightPercent());
                     if (builder.subgridRowCount() == null)
                         builder.subgridRowCount(parent.subgridRowCount());
                     if (builder.subgridColumnCount() == null)

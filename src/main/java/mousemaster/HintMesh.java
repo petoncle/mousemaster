@@ -15,7 +15,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                        double boxBorderThickness,
                        double boxBorderLength,
                        String boxBorderHexColor, double boxBorderOpacity,
-                       boolean expandBoxes,
+                       double boxWidthPercent,
+                       double boxHeightPercent,
                        int subgridRowCount,
                        int subgridColumnCount,
                        double subgridBorderThickness,
@@ -54,7 +55,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private double boxBorderLength;
         private String boxBorderHexColor;
         private double boxBorderOpacity;
-        private boolean expandBoxes;
+        private double boxWidthPercent;
+        private double boxHeightPercent;
         private int subgridRowCount;
         private int subgridColumnCount;
         private double subgridBorderThickness;
@@ -92,7 +94,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.boxBorderLength = hintMesh.boxBorderLength;
             this.boxBorderHexColor = hintMesh.boxBorderHexColor;
             this.boxBorderOpacity = hintMesh.boxBorderOpacity;
-            this.expandBoxes = hintMesh.expandBoxes;
+            this.boxWidthPercent = hintMesh.boxWidthPercent;
+            this.boxHeightPercent = hintMesh.boxHeightPercent;
             this.subgridRowCount = hintMesh.subgridRowCount;
             this.subgridColumnCount = hintMesh.subgridColumnCount;
             this.subgridBorderThickness = hintMesh.subgridBorderThickness;
@@ -206,8 +209,12 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return boxBorderOpacity;
         }
 
-        public boolean expandBoxes() {
-            return expandBoxes;
+        public double boxWidthPercent() {
+            return boxWidthPercent;
+        }
+
+        public double boxHeightPercent() {
+            return boxHeightPercent;
         }
 
         public int subgridRowCount() {
@@ -366,8 +373,13 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             return this;
         }
 
-        public HintMeshBuilder expandBoxes(boolean expandBoxes) {
-            this.expandBoxes = expandBoxes;
+        public HintMeshBuilder boxWidthPercent(double boxWidthPercent) {
+            this.boxWidthPercent = boxWidthPercent;
+            return this;
+        }
+
+        public HintMeshBuilder boxHeightPercent(double boxHeightPercent) {
+            this.boxHeightPercent = boxHeightPercent;
             return this;
         }
 
@@ -411,7 +423,8 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
                     boxBorderThickness,
                     boxBorderLength,
                     boxBorderHexColor, boxBorderOpacity,
-                    expandBoxes,
+                    boxWidthPercent,
+                    boxHeightPercent,
                     subgridRowCount,
                     subgridColumnCount,
                     subgridBorderThickness,
