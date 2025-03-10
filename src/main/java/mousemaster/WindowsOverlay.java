@@ -494,7 +494,7 @@ public class WindowsOverlay {
                 PixmapAndPosition pixmapAndPosition1 =
                         new PixmapAndPosition(pixmap, minHintLeft, minHintTop);
                 logger.info("Caching " + pixmapAndPosition1 + ", cache size is " + hintMeshPixmaps.size());
-//                hintMeshPixmaps.put(hintMesh, pixmapAndPosition1);
+                hintMeshPixmaps.put(hintMesh, pixmapAndPosition1);
             }
         }
     }
