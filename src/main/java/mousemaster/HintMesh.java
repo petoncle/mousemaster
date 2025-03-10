@@ -6,7 +6,7 @@ import java.util.List;
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
 public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
-                       String fontName,
+                       String fontName, FontWeight fontWeight,
                        double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                        double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                        double fontShadowBlurRadius, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
@@ -34,6 +34,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         private List<Hint> hints;
         private List<Key> focusedKeySequence = List.of();
         private String fontName;
+        private FontWeight fontWeight;
         private double fontSize;
         private double fontSpacingPercent;
         private String fontHexColor;
@@ -72,6 +73,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.hints = hintMesh.hints;
             this.focusedKeySequence = hintMesh.focusedKeySequence;
             this.fontName = hintMesh.fontName;
+            this.fontWeight = hintMesh.fontWeight;
             this.fontSize = hintMesh.fontSize;
             this.fontSpacingPercent = hintMesh.fontSpacingPercent;
             this.fontHexColor = hintMesh.fontHexColor;
@@ -121,6 +123,10 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public String fontName() {
             return fontName;
+        }
+
+        public FontWeight fontWeight() {
+            return fontWeight;
         }
 
         public double fontSize() {
@@ -257,6 +263,11 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public HintMeshBuilder fontName(String fontName) {
             this.fontName = fontName;
+            return this;
+        }
+
+        public HintMeshBuilder fontWeight(FontWeight fontWeight) {
+            this.fontWeight = fontWeight;
             return this;
         }
 
@@ -403,7 +414,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         }
 
         public HintMesh build() {
-            return new HintMesh(visible, type, hints, focusedKeySequence, fontName,
+            return new HintMesh(visible, type, hints, focusedKeySequence, fontName, fontWeight,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     fontShadowBlurRadius, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,

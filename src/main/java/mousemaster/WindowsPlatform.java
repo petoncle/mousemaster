@@ -104,7 +104,6 @@ public class WindowsPlatform implements Platform {
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
         Set<Key> allComboAndRemappingKeys = new HashSet<>();
-        Set<String> hintFontNames = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
             for (Map.Entry<Combo, List<Command>> entry : mode.comboMap()
                                                              .commandsByCombo()
@@ -136,9 +135,7 @@ public class WindowsPlatform implements Platform {
                     }
                 }
             }
-            hintFontNames.add(mode.hintMesh().fontName());
         }
-        WindowsFont.setFontPool(hintFontNames);
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboAndRemappingKeys, keyboardLayout);
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         mousePositionListeners.forEach(

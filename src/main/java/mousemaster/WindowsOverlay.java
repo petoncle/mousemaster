@@ -370,7 +370,8 @@ public class WindowsOverlay {
             int maxHintBottom = Integer.MIN_VALUE;
             Map<String, Integer> xAdvancesByString = new HashMap<>();
             QFont font =
-                    new QFont(hintMesh.fontName(), (int) Math.round(hintMesh.fontSize()));
+                    new QFont(hintMesh.fontName(), (int) Math.round(hintMesh.fontSize()),
+                            hintMesh.fontWeight().qtWeight().value());
             QFontMetrics metrics = new QFontMetrics(font);
             int hintKeyMaxXAdvance = 0;
             for (Hint hint : hints) {

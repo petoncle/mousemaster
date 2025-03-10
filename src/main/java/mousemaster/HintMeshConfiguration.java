@@ -8,7 +8,8 @@ import java.util.Set;
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean moveMouse,
-                                    HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Set<Key> undoKeys, String fontName,
+                                    HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Set<Key> undoKeys,
+                                    String fontName, FontWeight fontWeight,
                                     double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                                     double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                                     double fontShadowBlurRadius, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
@@ -40,6 +41,7 @@ public record HintMeshConfiguration(boolean enabled,
         private List<Key> selectionKeys;
         private Set<Key> undoKeys;
         private String fontName;
+        private FontWeight fontWeight;
         private Double fontSize;
         private Double fontSpacingPercent;
         private String fontHexColor;
@@ -99,6 +101,11 @@ public record HintMeshConfiguration(boolean enabled,
 
         public HintMeshConfigurationBuilder fontName(String fontName) {
             this.fontName = fontName;
+            return this;
+        }
+
+        public HintMeshConfigurationBuilder fontWeight(FontWeight fontWeight) {
+            this.fontWeight = fontWeight;
             return this;
         }
 
@@ -290,6 +297,10 @@ public record HintMeshConfiguration(boolean enabled,
             return fontName;
         }
 
+        public FontWeight fontWeight() {
+            return fontWeight;
+        }
+
         public Double fontSize() {
             return fontSize;
         }
@@ -417,7 +428,7 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     new HintMeshTypeAndSelectionKeys(type.build(), selectionKeys),
-                    undoKeys, fontName,
+                    undoKeys, fontName, fontWeight,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     fontShadowBlurRadius, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,

@@ -85,6 +85,7 @@ public class ConfigurationParser {
                                         .toList())
                 .undoKeys(Set.of())
                 .fontName("Consolas")
+                .fontWeight(FontWeight.BOLD)
                 .fontSize(18f)
                 .fontSpacingPercent(0.6f)
                 .fontHexColor("#FFFFFF")
@@ -559,6 +560,7 @@ public class ConfigurationParser {
                                 mode.hintMesh.builder.undoKeys(parseKeyOrAlias(
                                         propertyValue, keyAliases));
                         case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
+                        case "font-weight" -> mode.hintMesh.builder.fontWeight(FontWeight.of(propertyValue));
                         case "font-size" -> mode.hintMesh.builder.fontSize(
                                 parseDouble(propertyValue, false, 0, 1000));
                         case "font-spacing-percent" -> mode.hintMesh.builder.fontSpacingPercent(
@@ -1598,6 +1600,8 @@ public class ConfigurationParser {
                         builder.undoKeys(parent.undoKeys());
                     if (builder.fontName() == null)
                         builder.fontName(parent.fontName());
+                    if (builder.fontWeight() == null)
+                        builder.fontWeight(parent.fontWeight());
                     if (builder.fontSize() == null)
                         builder.fontSize(parent.fontSize());
                     if (builder.fontSpacingPercent() == null)
