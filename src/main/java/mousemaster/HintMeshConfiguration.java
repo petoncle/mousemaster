@@ -11,7 +11,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     HintMeshTypeAndSelectionKeys typeAndSelectionKeys, Set<Key> undoKeys, String fontName,
                                     double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                                     double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
-                                    double fontShadowThickness, double fontShadowStep, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
+                                    double fontShadowBlurRadius, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
                                     String prefixFontHexColor,
                                     double highlightFontScale,
                                     String boxHexColor,
@@ -47,8 +47,7 @@ public record HintMeshConfiguration(boolean enabled,
         private Double fontOutlineThickness;
         private String fontOutlineHexColor;
         private Double fontOutlineOpacity;
-        private Double fontShadowThickness;
-        private Double fontShadowStep;
+        private Double fontShadowBlurRadius;
         private String fontShadowHexColor;
         private Double fontShadowOpacity;
         private Double fontShadowHorizontalOffset;
@@ -138,13 +137,8 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder fontShadowThickness(double fontShadowThickness) {
-            this.fontShadowThickness = fontShadowThickness;
-            return this;
-        }
-
-        public HintMeshConfigurationBuilder fontShadowStep(double fontShadowStep) {
-            this.fontShadowStep = fontShadowStep;
+        public HintMeshConfigurationBuilder fontShadowBlurRadius(double fontShadowBlurRadius) {
+            this.fontShadowBlurRadius = fontShadowBlurRadius;
             return this;
         }
 
@@ -324,12 +318,8 @@ public record HintMeshConfiguration(boolean enabled,
             return fontOutlineOpacity;
         }
 
-        public Double fontShadowThickness() {
-            return fontShadowThickness;
-        }
-
-        public Double fontShadowStep() {
-            return fontShadowStep;
+        public Double fontShadowBlurRadius() {
+            return fontShadowBlurRadius;
         }
 
         public String fontShadowHexColor() {
@@ -430,7 +420,7 @@ public record HintMeshConfiguration(boolean enabled,
                     undoKeys, fontName,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
-                    fontShadowThickness, fontShadowStep, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
+                    fontShadowBlurRadius, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
                     prefixFontHexColor,
                     highlightFontScale,
                     boxHexColor, boxOpacity, boxBorderThickness,

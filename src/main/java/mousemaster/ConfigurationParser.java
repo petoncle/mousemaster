@@ -92,8 +92,7 @@ public class ConfigurationParser {
                 .fontOutlineThickness(0)
                 .fontOutlineHexColor("#000000")
                 .fontOutlineOpacity(0.5d)
-                .fontShadowThickness(2)
-                .fontShadowStep(1000)
+                .fontShadowBlurRadius(10)
                 .fontShadowHexColor("#000000")
                 .fontShadowOpacity(0.4d)
                 .fontShadowHorizontalOffset(1)
@@ -574,10 +573,8 @@ public class ConfigurationParser {
                                 checkColorFormat(propertyValue));
                         case "font-outline-opacity" -> mode.hintMesh.builder.fontOutlineOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-thickness" -> mode.hintMesh.builder.fontShadowThickness(
+                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.fontShadowBlurRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "font-shadow-step" -> mode.hintMesh.builder.fontShadowStep(
-                                parseDouble(propertyValue, true, 1, 1000));
                         case "font-shadow-color" -> mode.hintMesh.builder.fontShadowHexColor(
                                 checkColorFormat(propertyValue));
                         case "font-shadow-opacity" -> mode.hintMesh.builder.fontShadowOpacity(
@@ -1615,10 +1612,8 @@ public class ConfigurationParser {
                         builder.fontOutlineHexColor(parent.fontOutlineHexColor());
                     if (builder.fontOutlineOpacity() == null)
                         builder.fontOutlineOpacity(parent.fontOutlineOpacity());
-                    if (builder.fontShadowThickness() == null)
-                        builder.fontShadowThickness(parent.fontShadowThickness());
-                    if (builder.fontShadowStep() == null)
-                        builder.fontShadowStep(parent.fontShadowStep());
+                    if (builder.fontShadowBlurRadius() == null)
+                        builder.fontShadowBlurRadius(parent.fontShadowBlurRadius());
                     if (builder.fontShadowHexColor() == null)
                         builder.fontShadowHexColor(parent.fontShadowHexColor());
                     if (builder.fontShadowOpacity() == null)

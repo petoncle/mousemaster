@@ -314,14 +314,14 @@ public class WindowsOverlay {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(hwnd, window, hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
-                setHintMeshWindow(hintMeshWindow, hintMesh);
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale());
             }
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
                         existingWindow.window,
                         hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
-                setHintMeshWindow(hintMeshWindow, hintMesh);
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale());
             }
         }
         if (createdAtLeastOneWindow)
@@ -329,11 +329,10 @@ public class WindowsOverlay {
     }
 
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
-                                          HintMesh hintMesh) {
-        QScreen screen = QApplication.primaryScreen();
+                                          HintMesh hintMesh, double screenScale) {
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
-        double qtScaleFactor = screen.devicePixelRatio();
+        double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
         TransparentWindow window = hintMeshWindow.window;
         window.clearWindow();
         QWidget container = new QWidget();
@@ -437,6 +436,12 @@ public class WindowsOverlay {
                                         hintMesh.fontOpacity()),
                                 qColor(hintMesh.fontOutlineHexColor(),
                                         hintMesh.fontOutlineOpacity()),
+                                (int) Math.round(hintMesh.fontOutlineThickness() * screenScale),
+                                qColor(hintMesh.fontShadowHexColor(),
+                                        hintMesh.fontShadowOpacity()),
+                                hintMesh.fontShadowBlurRadius(),
+                                hintMesh.fontShadowHorizontalOffset() * screenScale,
+                                hintMesh.fontShadowVerticalOffset() * screenScale,
                                 hintMesh.focusedKeySequence(),
                                 hintMesh.fontSpacingPercent(),
                                 hintKeyMaxXAdvance);
@@ -732,6 +737,7 @@ public class WindowsOverlay {
         private final QColor fontColor;
         private final QColor prefixColor;
         private final QColor outlineColor;
+        private final int outlineThickness;
         private final List<HintKeyText> keyTexts;
         private final int tightHintBoxLeft;
         private final int tightHintBoxTop;
@@ -744,7 +750,8 @@ public class WindowsOverlay {
                          int boxWidth,
                          int boxHeight, int totalXAdvance, QColor fontColor, QColor prefixColor,
                          QColor outlineColor,
-                         List<Key> focusedKeySequence, double fontSpacingPercent,
+                         int outlineThickness, QColor shadowColor, double shadowBlurRadius,
+                         double shadowHorizontalOffset, double shadowVerticalOffset, List<Key> focusedKeySequence, double fontSpacingPercent,
                          int hintKeyMaxXAdvance) {
             super(hint.keySequence()
                       .stream()
@@ -754,12 +761,13 @@ public class WindowsOverlay {
             this.fontColor = fontColor;
             this.prefixColor = prefixColor;
             this.outlineColor = outlineColor;
+            this.outlineThickness = outlineThickness;
             setFont(font);
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
-            shadow.setBlurRadius(10);
-            shadow.setOffset(0, 0);
-            shadow.setColor(new QColor(Qt.GlobalColor.black));
-//            label.setGraphicsEffect(shadow);
+            shadow.setBlurRadius(shadowBlurRadius);
+            shadow.setOffset(shadowHorizontalOffset, shadowVerticalOffset);
+            shadow.setColor(shadowColor);
+            setGraphicsEffect(shadow);
 
             QFontMetrics metrics = new QFontMetrics(font());
             int y = (boxHeight + metrics.ascent() - metrics.descent()) / 2;
@@ -840,16 +848,19 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
 
-            QPen outlinePen = new QPen(outlineColor);
-            outlinePen.setWidth(3);
-            outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
-            painter.setPen(outlinePen);
-            painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
-            QPainterPath outlinePath = new QPainterPath();
-            for (HintKeyText keyText : keyTexts) {
-                outlinePath.addText(keyText.x() - left, keyText.y() - top, font(), keyText.text());
+            if (outlineThickness != 0) {
+                QPen outlinePen = new QPen(outlineColor);
+                outlinePen.setWidth(outlineThickness);
+                outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
+                painter.setPen(outlinePen);
+                painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
+                QPainterPath outlinePath = new QPainterPath();
+                for (HintKeyText keyText : keyTexts) {
+                    outlinePath.addText(keyText.x() - left, keyText.y() - top, font(),
+                            keyText.text());
+                }
+                painter.drawPath(outlinePath);
             }
-            painter.drawPath(outlinePath);
 
             // Avoid blending the text with the outline. Text should override the outline.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
