@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class QtManager {
 
@@ -70,6 +71,9 @@ public class QtManager {
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE)) {
                 inputStream.transferTo(outputStream);
+            } catch (IOException e) {
+                // java.nio.file.FileSystemException: C:\Users\x\AppData\Local\Temp\mousemaster-110364797\qt\bin\Qt6Core.dll: The process cannot access the file because it is being used by another process
+                // logger.debug("Unable to extract resource file " + resourcesPath, e);
             }
         }
     }
