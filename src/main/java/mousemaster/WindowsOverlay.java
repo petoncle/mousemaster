@@ -447,8 +447,9 @@ public class WindowsOverlay {
                                 qColor(hintMesh.boxBorderHexColor(),
                                         hintMesh.boxBorderOpacity()), gridLeftEdge, gridTopEdge,
                                 gridRightEdge, gridBottomEdge,
-                                qtScaleFactor
+                                true, qtScaleFactor
                         );
+                HintBox[][] subgridBoxes = addSubgridBoxes(hintBox, hintMesh, qtScaleFactor);
                 hintLabel.setParent(hintBox);
                 hintLabel.move(0, 0);
                 int boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * hintMesh.boxWidthPercent()));
@@ -464,6 +465,19 @@ public class WindowsOverlay {
                 hintBox.setParent(container);
                 hintBox.setGeometry(x, y, boxWidth, boxHeight);
                 hintLabel.setFixedSize(boxWidth, boxHeight);
+                for (int subgridRowIndex = 0;
+                     subgridRowIndex < hintMesh.subgridRowCount(); subgridRowIndex++) {
+                    for (int subgridColumnIndex = 0; subgridColumnIndex <
+                                                     hintMesh.subgridColumnCount(); subgridColumnIndex++) {
+                        HintBox subBox =
+                                subgridBoxes[subgridRowIndex][subgridColumnIndex];
+                        int subBoxWidth = boxWidth / hintMesh.subgridColumnCount();
+                        int subBoxHeight = boxHeight / hintMesh.subgridRowCount();
+                        int subBoxX = subBoxWidth * subgridColumnIndex;
+                        int subBoxY = subBoxHeight * subgridRowIndex;
+                        subBox.setGeometry(subBoxX, subBoxY, subBoxWidth, subBoxHeight);
+                    }
+                }
                 hintBox.show();
             }
             container.show();
@@ -477,6 +491,34 @@ public class WindowsOverlay {
 //                hintMeshPixmaps.put(hintMesh, pixmapAndPosition1);
             }
         }
+    }
+
+    private static HintBox[][] addSubgridBoxes(HintBox hintBox, HintMesh hintMesh,
+                                               double qtScaleFactor) {
+        HintBox[][] hintBoxes = new HintBox[hintMesh.subgridRowCount()][hintMesh.subgridColumnCount()];
+        for (int subgridRowIndex = 0; subgridRowIndex <
+                                      hintMesh.subgridRowCount(); subgridRowIndex++) {
+            for (int subgridColumnIndex = 0; subgridColumnIndex <
+                                             hintMesh.subgridColumnCount(); subgridColumnIndex++) {
+                boolean gridLeftEdge = subgridColumnIndex == 0;
+                boolean gridTopEdge = subgridRowIndex == 0;
+                boolean gridRightEdge = subgridColumnIndex == hintMesh.subgridColumnCount() - 1;
+                boolean gridBottomEdge = subgridRowIndex == hintMesh.subgridRowCount() - 1;
+                HintBox subBox = new HintBox(
+                        (int) Math.round(hintMesh.subgridBorderLength()),
+                        (int) Math.round(hintMesh.subgridBorderThickness()),
+                        qColor("#000000", 0), // Transparent.
+                        qColor(hintMesh.subgridBorderHexColor(),
+                                hintMesh.subgridBorderOpacity()), gridLeftEdge,
+                        gridTopEdge,
+                        gridRightEdge, gridBottomEdge,
+                        false, qtScaleFactor
+                );
+                subBox.setParent(hintBox);
+                hintBoxes[subgridRowIndex][subgridColumnIndex] = subBox;
+            }
+        }
+        return hintBoxes;
     }
 
     private record PixmapAndPosition(QPixmap pixmap, int x, int y) {
@@ -512,6 +554,7 @@ public class WindowsOverlay {
         private final boolean gridTopEdge;
         private final boolean gridRightEdge;
         private final boolean gridBottomEdge;
+        private final boolean drawGridEdgeBorders;
         private final double qtScaleFactor;
         private final int borderLength;
         private final int borderThickness;
@@ -521,11 +564,13 @@ public class WindowsOverlay {
 
         public HintBox(int borderLength, int borderThickness, QColor color,
                        QColor borderColor, boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
+                       boolean drawGridEdgeBorders,
                        double qtScaleFactor) {
             this.gridLeftEdge = gridLeftEdge;
             this.gridTopEdge = gridTopEdge;
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
+            this.drawGridEdgeBorders = drawGridEdgeBorders;
             this.qtScaleFactor = qtScaleFactor;
             this.borderLength = borderLength;
             this.borderThickness = borderThickness;
@@ -539,9 +584,12 @@ public class WindowsOverlay {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             // Draw background.
-            painter.setBrush(new QBrush(color));
-            painter.setPen(Qt.PenStyle.NoPen);
-            painter.drawRoundedRect(0, 0, width(), height(), borderRadius, borderRadius);
+            if (color.alpha() != 0) {
+                painter.setBrush(new QBrush(color));
+                painter.setPen(Qt.PenStyle.NoPen);
+                painter.drawRoundedRect(0, 0, width(), height(), borderRadius,
+                        borderRadius);
+            }
             if (borderThickness != 0)
                 drawBorders(painter);
             painter.end();
@@ -577,71 +625,89 @@ public class WindowsOverlay {
             // Top left corner.
             if (gridLeftEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(left + penOffset, top, left + penOffset, top + borderLength); // Vertical line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(left + penOffset, top, left + penOffset, top + borderLength); // Vertical line
             }
             else {
                 painter.setPen(verticalLeftPen);
-                painter.drawLine(left + insidePenOffset, top, left + insidePenOffset, top + borderLength); // Vertical line
+                if (drawGridEdgeBorders || !gridTopEdge)
+                    painter.drawLine(left + insidePenOffset, top, left + insidePenOffset, top + borderLength); // Vertical line
             }
             if (gridTopEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(left, top + penOffset, left + borderLength, top + penOffset); // Horizontal line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(left, top + penOffset, left + borderLength, top + penOffset); // Horizontal line
             }
             else {
                 painter.setPen(horizontalTopPen);
-                painter.drawLine(left, top + insidePenOffset, left + borderLength, top + insidePenOffset); // Horizontal line
+                if (drawGridEdgeBorders || !gridLeftEdge)
+                    painter.drawLine(left, top + insidePenOffset, left + borderLength, top + insidePenOffset); // Horizontal line
             }
             // Top right corner.
             if (gridRightEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(right + penOffset - (borderThickness - 1), top, right + penOffset - (borderThickness - 1), top + borderLength); // Vertical line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(right + penOffset - (borderThickness - 1), top, right + penOffset - (borderThickness - 1), top + borderLength); // Vertical line
             }
             else {
                 painter.setPen(verticalRightPen);
-                painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), top, right + insidePenOffset - (verticalRightThickness - 1), top + borderLength); // Vertical line
+                if (drawGridEdgeBorders || !gridTopEdge)
+                    painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), top, right + insidePenOffset - (verticalRightThickness - 1), top + borderLength); // Vertical line
             }
             if (gridTopEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(right - borderLength, top + penOffset, right + 1, top + penOffset); // Horizontal line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(right - borderLength, top + penOffset, right + 1, top + penOffset); // Horizontal line
             }
             else {
                 painter.setPen(horizontalTopPen);
-                painter.drawLine(right - borderLength, top + insidePenOffset, right + 1, top + insidePenOffset); // Horizontal line
+                if (drawGridEdgeBorders || !gridRightEdge)
+                    painter.drawLine(right - borderLength, top + insidePenOffset, right + 1, top + insidePenOffset); // Horizontal line
             }
             // Bottom left corner.
             if (gridLeftEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(left + penOffset, bottom - borderLength, left + penOffset, bottom + 1); // Vertical line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(left + penOffset, bottom - borderLength, left + penOffset, bottom + 1); // Vertical line
             }
             else {
                 painter.setPen(verticalLeftPen);
-                painter.drawLine(left + insidePenOffset, bottom - borderLength, left + insidePenOffset, bottom + 1); // Vertical line
+                if (drawGridEdgeBorders || !gridBottomEdge)
+                    painter.drawLine(left + insidePenOffset, bottom - borderLength, left + insidePenOffset, bottom + 1); // Vertical line
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(left, bottom + penOffset - (borderThickness - 1), left + borderLength, bottom + penOffset - (borderThickness - 1)); // Horizontal line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(left, bottom + penOffset - (borderThickness - 1), left + borderLength, bottom + penOffset - (borderThickness - 1)); // Horizontal line
             }
             else {
                 painter.setPen(horizontalBottomPen);
-                painter.drawLine(left, bottom + insidePenOffset - (horizontalBottomThickness - 1), left + borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+                if (drawGridEdgeBorders || !gridLeftEdge)
+                    painter.drawLine(left, bottom + insidePenOffset - (horizontalBottomThickness - 1), left + borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
             }
             // Bottom right corner.
             if (gridRightEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength, right + penOffset - (borderThickness - 1), bottom + 1); // Vertical line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(right + penOffset - (borderThickness - 1), bottom - borderLength, right + penOffset - (borderThickness - 1), bottom + 1); // Vertical line
             }
             else {
                 painter.setPen(verticalRightPen);
-                painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - borderLength, right + insidePenOffset - (verticalRightThickness - 1), bottom + 1); // Vertical line
+                if (drawGridEdgeBorders || !gridBottomEdge)
+                    painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - borderLength, right + insidePenOffset - (verticalRightThickness - 1), bottom + 1); // Vertical line
             }
             if (gridBottomEdge) {
                 painter.setPen(gridEdgePen);
-                painter.drawLine(right - borderLength, bottom + penOffset - (borderThickness - 1), right + 1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
+                if (drawGridEdgeBorders)
+                    painter.drawLine(right - borderLength, bottom + penOffset - (borderThickness - 1), right + 1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
             }
             else {
                 painter.setPen(horizontalBottomPen);
-                painter.drawLine(right - borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1), right + 1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+                if (drawGridEdgeBorders || !gridRightEdge)
+                    painter.drawLine(right - borderLength, bottom + insidePenOffset - (horizontalBottomThickness - 1), right + 1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
             }
+            verticalLeftPen.dispose();
+            verticalRightPen.dispose();
         }
 
         private QPen createPen(QColor color, int penWidth) {
