@@ -45,11 +45,11 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key numpad7 = new Key("numpad7", "7", null);
     public static final Key numpad8 = new Key("numpad8", "8", null);
     public static final Key numpad9 = new Key("numpad9", "9", null);
-    public static final Key numpadmultiply = new Key("numpadmultiply", null, null);
-    public static final Key numpadadd = new Key("numpadadd", null, null);
-    public static final Key numpadsubtract = new Key("numpadsubtract", null, null);
-    public static final Key numpaddecimal = new Key("numpaddecimal", null, null);
-    public static final Key numpaddivide = new Key("numpaddivide", null, null);
+    public static final Key numpadmultiply = new Key("numpadmultiply", "*", null);
+    public static final Key numpadadd = new Key("numpadadd", "+", null);
+    public static final Key numpadsubtract = new Key("numpadsubtract", "-", null);
+    public static final Key numpaddecimal = new Key("numpaddecimal", ".", null);
+    public static final Key numpaddivide = new Key("numpaddivide", "/", null);
     public static final Key f1 = new Key("f1", null, null);
     public static final Key f2 = new Key("f2", null, null);
     public static final Key f3 = new Key("f3", null, null);
