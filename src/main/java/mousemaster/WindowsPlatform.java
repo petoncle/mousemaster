@@ -24,6 +24,7 @@ public class WindowsPlatform implements Platform {
     private MouseController mouseController;
     private KeyboardManager keyboardManager;
     private List<MousePositionListener> mousePositionListeners;
+    private ModeMap modeMap;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -98,13 +99,22 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void reset(MouseController mouseController, KeyboardManager keyboardManager,
-                      KeyboardLayout keyboardLayout, ModeMap modeMap,
+                      KeyboardLayout keyboardLayout, ModeMap newModeMap,
                       List<MousePositionListener> mousePositionListeners) {
+        ModeMap oldModeMap = this.modeMap;
+        Set<HintMeshConfiguration> oldHintMeshConfigurations = new HashSet<>();
+        if (oldModeMap != null) {
+            oldModeMap.modes()
+                      .stream()
+                      .map(Mode::hintMesh)
+                      .forEach(oldHintMeshConfigurations::add);
+        }
         this.mouseController = mouseController;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
         Set<Key> allComboAndRemappingKeys = new HashSet<>();
-        for (Mode mode : modeMap.modes()) {
+        Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
+        for (Mode mode : newModeMap.modes()) {
             for (Map.Entry<Combo, List<Command>> entry : mode.comboMap()
                                                              .commandsByCombo()
                                                              .entrySet()) {
@@ -135,7 +145,14 @@ public class WindowsPlatform implements Platform {
                     }
                 }
             }
+            newHintMeshConfigurations.add(mode.hintMesh());
         }
+        if (oldModeMap != null && !newHintMeshConfigurations.equals(oldHintMeshConfigurations)) {
+            logger.debug(
+                    "Flushing overlay cache because hint mesh configurations have changed");
+            WindowsOverlay.flushCache();
+        }
+        this.modeMap = newModeMap;
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboAndRemappingKeys, keyboardLayout);
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         mousePositionListeners.forEach(

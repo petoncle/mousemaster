@@ -74,6 +74,12 @@ public class WindowsOverlay {
         setTopmost();
     }
 
+    public static void flushCache() {
+        for (PixmapAndPosition pixmapAndPosition : hintMeshPixmaps.values())
+            pixmapAndPosition.pixmap().dispose();
+        hintMeshPixmaps.clear();
+    }
+
     public static Rectangle activeWindowRectangle(double windowWidthPercent,
                                                   double windowHeightPercent,
                                                   int scaledTopInset,
