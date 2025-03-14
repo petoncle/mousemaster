@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class QtManager {
 
@@ -42,7 +41,8 @@ public class QtManager {
     );
 
     public static void initialize() throws IOException {
-        File extractDirectory = createExtractDirectory();
+        File extractDirectory = createExtractDirectory(
+                MousemasterApplication.tempDirectory);
         for (String resourcesPath : windowsResourcesPaths) {
             Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath);
             Files.createDirectories(extractPath.getParent());
@@ -53,14 +53,20 @@ public class QtManager {
             extractResourceFile(qtJambiPath, extractPath);
         }
         logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
-        System.setProperty("io.qt.library-path-override", extractDirectory.getAbsolutePath() + "/qt/bin");
+        System.setProperty("io.qt.library-path-override",
+                extractDirectory.getAbsolutePath() + "/qt/bin");
+        // QtJambi expects DLLs in io.qt.library-path-override, and io.qt.library-path-override/../plugins/platforms
+
 //        System.setProperty("QT_ENABLE_HIGHDPI_SCALING", "0");
 //        setEnv("QT_ENABLE_HIGHDPI_SCALING", "0");
 //        System.setProperty("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
 //        System.setProperty("QT_SCALE_FACTOR", "1");
         // https://forum.qt.io/topic/141511/qt_enable_highdpi_scaling-has-no-effect
         QtUtilities.putenv("QT_ENABLE_HIGHDPI_SCALING", "0"); // Only works on Windows?
-        QApplication.initialize(new String[]{});
+        logger.trace("highDpiScaleFactorRoundingPolicy is " + QApplication.highDpiScaleFactorRoundingPolicy());
+        // Default font engine on Windows is directwrite. Antialiasing seems better with gdi.
+        QApplication.initialize(new String[] { "-platform", "windows:fontengine=gdi" });
+//        QApplication.initialize(new String[] { });
     }
 
     private static void extractResourceFile(String resourcesPath, Path extractPath)
@@ -86,15 +92,13 @@ public class QtManager {
         QApplication.processEvents();
     }
 
-    private static File createExtractDirectory() throws IOException {
-        // See com.sun.jna.Native.getTempDir.
-        File tmp = new File(System.getProperty("java.io.tmpdir"));
-        File qtTmp = new File(tmp, "mousemaster-" + System.getProperty("user.name").hashCode());
-        qtTmp.mkdirs();
-        if (!qtTmp.canWrite()) {
-            throw new IOException("Qt extract directory '" + qtTmp + "' is not writable");
+    private static File createExtractDirectory(String tempDirectory) throws IOException {
+        File tempDirectoryFile = new File(tempDirectory);
+        tempDirectoryFile.mkdirs();
+        if (!tempDirectoryFile.canWrite()) {
+            throw new IOException("Qt extract directory '" + tempDirectoryFile + "' is not writable");
         }
-        return qtTmp;
+        return tempDirectoryFile;
     }
 
 }

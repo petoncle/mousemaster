@@ -10,9 +10,10 @@ import java.util.stream.Collectors;
 
 public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
 
-    public static List<Combo> of(String string, ComboMoveDuration defaultMoveDuration,
-                                 Map<String, KeyAlias> keyAliases,
-                                 Map<String, AppAlias> appAliases) {
+    public static List<AliasResolvedCombo> of(String string,
+                                              ComboMoveDuration defaultMoveDuration,
+                                              Map<String, KeyAlias> keyAliases,
+                                              Map<String, AppAlias> appAliases) {
         Matcher mustNotMatcher = Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
         String mustNotBeActiveAppsString = null;
         Set<App> mustNotBeActiveApps = Set.of();
@@ -75,15 +76,17 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         }
         if (sequenceString.isEmpty())
             return List.of(
-                    of(string, new ComboSequence(List.of()), unpressedKeySet,
-                            unpressedKeySetString, sequenceString,
-                            pressedKeySets, pressedKeySetsString,
-                            mustNotBeActiveApps, mustBeActiveApps));
+                    new AliasResolvedCombo(new AliasResolution(Map.of()),
+                            of(string, new ComboSequence(List.of()), unpressedKeySet,
+                                    unpressedKeySetString, sequenceString,
+                                    pressedKeySets, pressedKeySetsString,
+                                    mustNotBeActiveApps, mustBeActiveApps)));
         else {
             ExpandableSequence expandableSequence =
                     ExpandableSequence.parseSequence(sequenceString, defaultMoveDuration,
                             keyAliases);
-            List<ComboSequence> expandedSequences = expandableSequence.expand(keyAliases);
+            Map<AliasResolution, ComboSequence> expandedSequences =
+                    expandableSequence.expand(keyAliases);
             return ofExpandedSequences(string, expandedSequences,
                     unpressedKeySet,
                     unpressedKeySetString, sequenceString,
@@ -92,8 +95,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         }
     }
 
-    private static List<Combo> ofExpandedSequences(String string,
-                                                   List<ComboSequence> expandedSequences,
+    private static List<AliasResolvedCombo> ofExpandedSequences(String string,
+                                                   Map<AliasResolution, ComboSequence> expandedSequences,
                                                    Set<Key> unpressedKeySet,
                                                    String unpressedKeySetString,
                                                    String sequenceString,
@@ -101,15 +104,20 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                                    String pressedKeySetsString,
                                                    Set<App> mustNotBeActiveApps,
                                                    Set<App> mustBeActiveApps) {
-        return expandedSequences.stream()
-                                .map(sequence -> of(string, sequence,
-                                        unpressedKeySet,
-                                        unpressedKeySetString,
-                                        sequenceString,
-                                        pressedKeySets,
-                                        pressedKeySetsString,
-                                        mustNotBeActiveApps, mustBeActiveApps))
-                                .toList();
+        List<AliasResolvedCombo> aliasResolvedCombos = new ArrayList<>();
+        for (Map.Entry<AliasResolution, ComboSequence> entry : expandedSequences.entrySet()) {
+            AliasResolution aliasResolution = entry.getKey();
+            ComboSequence sequence = entry.getValue();
+            Combo combo = of(string, sequence,
+                    unpressedKeySet,
+                    unpressedKeySetString,
+                    sequenceString,
+                    pressedKeySets,
+                    pressedKeySetsString,
+                    mustNotBeActiveApps, mustBeActiveApps);
+            aliasResolvedCombos.add(new AliasResolvedCombo(aliasResolution, combo));
+        }
+        return aliasResolvedCombos;
     }
 
     private static Set<App> parseMustNotBeActiveApps(String appSetString,
@@ -277,17 +285,17 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         current.remove(originalList.get(index));
     }
 
-    public static List<Combo> multiCombo(String multiComboString,
-                                         ComboMoveDuration defaultMoveDuration,
-                                         Map<String, KeyAlias> keyAliases,
-                                         Map<String, AppAlias> appAliases) {
+    public static List<AliasResolvedCombo> multiCombo(String multiComboString,
+                                                      ComboMoveDuration defaultMoveDuration,
+                                                      Map<String, KeyAlias> keyAliases,
+                                                      Map<String, AppAlias> appAliases) {
         // One combo is: ^{key|...} _{key|...} move1 move2 ...
         // Two combos: ^{key|...} _{key|...} move1 move2 ... | ^{key|...} _{key|...} move ...
         // Combo with mustBeActiveApps: _{firefox.exe|chrome.exe} ^{key|...} _{key|...} move1 move2 ...
         // Combo with mustNotBeActiveApps: ^{firefox.exe chrome.exe} ^{key|...} _{key|...} move1 move2 ...
         int comboBeginIndex = 0;
         boolean rightBraceExpected = false;
-        List<Combo> combos = new ArrayList<>();
+        List<AliasResolvedCombo> aliasResolvedCombos = new ArrayList<>();
         for (int charIndex = 0; charIndex < multiComboString.length(); charIndex++) {
             char character = multiComboString.charAt(charIndex);
             if (character == '{') {
@@ -303,15 +311,15 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 rightBraceExpected = false;
             }
             else if (character == '|' && !rightBraceExpected) {
-                combos.addAll(
+                aliasResolvedCombos.addAll(
                         of(multiComboString.substring(comboBeginIndex, charIndex).strip(),
                                 defaultMoveDuration, keyAliases, appAliases));
                 comboBeginIndex = charIndex + 1;
             }
         }
-        combos.addAll(of(multiComboString.substring(comboBeginIndex).strip(),
+        aliasResolvedCombos.addAll(of(multiComboString.substring(comboBeginIndex).strip(),
                 defaultMoveDuration, keyAliases, appAliases));
-        return List.copyOf(combos);
+        return List.copyOf(aliasResolvedCombos);
     }
 
     @Override

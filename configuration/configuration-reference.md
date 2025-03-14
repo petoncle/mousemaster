@@ -218,12 +218,17 @@ hint1-mode.hint.move-mouse=false
 hint1-mode.hint.swallow-hint-end-key-press=true
 hint1-mode.hint.font-name=Consolas
 hint1-mode.hint.font-size=18
-hint1-mode.hint.font-spacing-percent=0.6
+hint1-mode.hint.font-spacing-percent=0.7
 hint1-mode.hint.font-color=#FFFFFF
 hint1-mode.hint.font-opacity=1
-hint1-mode.hint.font-outline-thickness=2
+hint1-mode.hint.font-outline-thickness=0
 hint1-mode.hint.font-outline-color=#000000
 hint1-mode.hint.font-outline-opacity=0.5
+hint1-mode.hint.font-shadow-blur-radius=0
+hint1-mode.hint.font-shadow-color=#000000
+hint1-mode.hint.font-shadow-opacity=1
+hint1-mode.hint.font-shadow-horizontal-offset=0
+hint1-mode.hint.font-shadow-vertical-offset=0
 hint1-mode.hint.prefix-font-color=#A3A3A3
 hint1-mode.hint.box-color=#000000
 hint1-mode.hint.box-opacity=0.4
@@ -231,6 +236,8 @@ hint1-mode.hint.box-border-thickness=1
 hint1-mode.hint.box-border-length=1000
 hint1-mode.hint.box-border-color=#FFFFFF
 hint1-mode.hint.box-border-opacity=0.4
+hint1-mode.hint.box-width-percent=1.0
+hint1-mode.hint.box-height-percent=1.0
 ```
 
 - `type` can either be `grid` or `position-history`.

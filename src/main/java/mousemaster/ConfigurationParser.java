@@ -1,5 +1,6 @@
 package mousemaster;
 
+import io.qt.gui.QFontDatabase;
 import mousemaster.GridArea.GridAreaType;
 import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
@@ -87,18 +88,18 @@ public class ConfigurationParser {
                 .fontName("Consolas")
                 .fontWeight(FontWeight.BOLD)
                 .fontSize(18f)
-                .fontSpacingPercent(0.6f)
+                .fontSpacingPercent(0.7f)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
                 .fontOutlineThickness(0)
                 .fontOutlineHexColor("#000000")
                 .fontOutlineOpacity(0.5d)
-                .fontShadowBlurRadius(10)
+                .fontShadowBlurRadius(0)
                 .fontShadowHexColor("#000000")
                 .fontShadowOpacity(0.4d)
-                .fontShadowHorizontalOffset(1)
-                .fontShadowVerticalOffset(1)
-                .prefixFontHexColor("#AAAAAA")
+                .fontShadowHorizontalOffset(2)
+                .fontShadowVerticalOffset(2)
+                .prefixFontHexColor("#CCCCCC")
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
                 .boxBorderThickness(1)
@@ -267,7 +268,7 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys,
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases,
                         modeReferences, defaultComboMoveDuration, appAliases,
-                        finalDefaultComboMoveDuration);
+                        finalDefaultComboMoveDuration, QFontDatabase::hasFamily);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
                         new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
@@ -354,7 +355,8 @@ public class ConfigurationParser {
                                   Set<String> modeReferences,
                                   ComboMoveDuration defaultComboMoveDuration,
                                   Map<String, AppAlias> appAliases,
-                                  ComboMoveDuration finalDefaultComboMoveDuration) {
+                                  ComboMoveDuration finalDefaultComboMoveDuration,
+                                  Predicate<String> fontAvailability) {
         switch (group2) {
             case "stop-commands-from-previous-mode" ->
                     mode.stopCommandsFromPreviousMode.parseReferenceOr(propertyKey,
@@ -558,8 +560,8 @@ public class ConfigurationParser {
                         case "undo" ->
                                 mode.hintMesh.builder.undoKeys(parseKeyOrAlias(
                                         propertyValue, keyAliases));
-                        case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
                         case "font-weight" -> mode.hintMesh.builder.fontWeight(FontWeight.of(propertyValue));
+                        case "font-name" -> mode.hintMesh.builder.fontName(parseFontName(propertyValue, fontAvailability));
                         case "font-size" -> mode.hintMesh.builder.fontSize(
                                 parseDouble(propertyValue, false, 0, 1000));
                         case "font-spacing-percent" -> mode.hintMesh.builder.fontSpacingPercent(
@@ -667,10 +669,46 @@ public class ConfigurationParser {
                     if (split.length != 2)
                         throw new IllegalArgumentException(
                                 "Invalid remapping: " + propertyValue);
-                    Remapping remapping = Remapping.of(remappingName, split[1]);
-                    setCommand(mode.comboMap.remapping.builder, split[0],
-                            new RemappingCommand(remapping), defaultComboMoveDuration,
-                            keyAliases, appAliases);
+                    List<AliasResolvedCombo> aliasResolvedCombos =
+                            Combo.multiCombo(split[0], defaultComboMoveDuration,
+                                    keyAliases,
+                                    appAliases);
+                    // Aliases used in the remapping must be used in all of the
+                    // combos of that multi combo.
+                    Set<String> comboAliasNameIntersection = new HashSet<>(
+                            aliasResolvedCombos.getFirst()
+                                               .aliasResolution()
+                                               .keyByAliasName()
+                                               .keySet());
+                    for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
+                        comboAliasNameIntersection.retainAll(
+                                aliasResolvedCombo.aliasResolution()
+                                                  .keyByAliasName()
+                                                  .keySet());
+                    }
+                    for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
+                        String remappingOutput = split[1];
+                        Set<String> aliasNamesUsedInRemappingOutput =
+                                Remapping.aliasNamesUsedInRemappingOutput(remappingOutput,
+                                        keyAliases.keySet());
+                        if (!comboAliasNameIntersection.containsAll(
+                                aliasNamesUsedInRemappingOutput)) {
+                            Set<String> aliasesNotUsedInComboSequence =
+                                    new HashSet<>(aliasNamesUsedInRemappingOutput);
+                            aliasNamesUsedInRemappingOutput.removeAll(
+                                    comboAliasNameIntersection);
+                            throw new IllegalArgumentException(
+                                    "Key aliases " + aliasesNotUsedInComboSequence +
+                                    " cannot be used in the remapping output because they are not used in the combo sequence");
+                        }
+                        Remapping remapping = Remapping.of(remappingName, remappingOutput,
+                                    aliasResolvedCombo.aliasResolution());
+                        // One remapping command per resolved alias.
+                        Command command = new RemappingCommand(remapping);
+                        for (Combo combo : List.of(aliasResolvedCombo.combo()))
+                            mode.comboMap.remapping.builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
+                                                           .add(command);
+                    }
                 }
             }
             case "timeout" -> {
@@ -1017,6 +1055,12 @@ public class ConfigurationParser {
             default -> throw new IllegalArgumentException(
                     "Invalid mode property key");
         }
+    }
+
+    private static String parseFontName(String fontName, Predicate<String> fontAvailability) {
+        if (!fontAvailability.test(fontName))
+            throw new IllegalArgumentException("Unable to find a font named " + fontName);
+        return fontName;
     }
 
     private static Map<String, KeyAlias> mergeDefaultAndConfigurationKeyAliases(
@@ -1421,20 +1465,11 @@ public class ConfigurationParser {
                                    ComboMoveDuration defaultComboMoveDuration,
                                    Map<String, KeyAlias> keyAliases,
                                    Map<String, AppAlias> appAliases) {
-        Iterator<List<Command>> existingCommandsIterator =
-                commandsByCombo.values().iterator();
-        // mode1.start-move.up=x
-        // mode2.start-move=mode1.start-move
-        // mode2.start-move.up=y
-        while (existingCommandsIterator.hasNext()) {
-            List<Command> existingCommands = existingCommandsIterator.next();
-            existingCommands.removeIf(Predicate.isEqual(command));
-            if (existingCommands.isEmpty())
-                existingCommandsIterator.remove();
-        }
-        List<Combo> combos =
+        List<AliasResolvedCombo> aliasResolvedCombos =
                 Combo.multiCombo(multiComboString, defaultComboMoveDuration, keyAliases,
                         appAliases);
+        List<Combo> combos =
+                aliasResolvedCombos.stream().map(AliasResolvedCombo::combo).toList();
         for (Combo combo : combos)
             commandsByCombo.computeIfAbsent(combo, combo1 -> new ArrayList<>())
                            .add(command);

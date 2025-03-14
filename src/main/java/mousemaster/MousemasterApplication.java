@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 public class MousemasterApplication {
 
     private static final Logger logger;
+    public static String tempDirectory;
 
     static {
         System.setProperty("slf4j.internal.verbosity", "WARN");
@@ -29,6 +30,11 @@ public class MousemasterApplication {
     }
 
     public static void main(String[] args) throws InterruptedException, IOException {
+        String tempDirectory = Stream.of(args)
+                                     .filter(arg -> arg.startsWith("--temp-directory="))
+                                     .map(arg -> arg.split("=")[1])
+                                     .findFirst().orElse(null);
+        setTempDirectory(tempDirectory);
         Stream.of(args)
               .filter(arg -> arg.startsWith("--log-level="))
               .map(arg -> arg.split("=")[1])
@@ -90,6 +96,25 @@ public class MousemasterApplication {
         }
     }
 
+    private static void setTempDirectory(String tempDirectory) {
+        if (tempDirectory != null)
+            MousemasterApplication.tempDirectory = tempDirectory;
+        else {
+            String os = System.getProperty("os.name").toLowerCase();
+            if (os.contains("win")) {
+                boolean userNameIsAscii =
+                        System.getProperty("user.name").matches("[\\x00-\\x7F]+");
+                if (!userNameIsAscii) {
+                    // https://github.com/oracle/graal/issues/8095
+                    MousemasterApplication.tempDirectory = "mousemaster-temp";
+                }
+            }
+        }
+        if (MousemasterApplication.tempDirectory == null)
+            MousemasterApplication.tempDirectory = System.getProperty("java.io.tmpdir") + "mousemaster-" + System.getProperty("user.name").hashCode();
+        System.setProperty("jna.tmpdir", MousemasterApplication.tempDirectory + "/jna");
+    }
+
     private static WindowsPlatform platform(boolean multipleInstancesAllowed,
                                             boolean keyRegurgitationEnabled,
                                             boolean pauseOnError) {
@@ -116,8 +141,8 @@ public class MousemasterApplication {
     }
 
     public static void setLogLevel(String level) {
-       Logger logger = (Logger) LoggerFactory.getLogger("mousemaster");
-       logger.setLevel(Level.valueOf(level));
+        Logger logger = (Logger) LoggerFactory.getLogger("mousemaster");
+        logger.setLevel(Level.valueOf(level));
     }
 
 }
