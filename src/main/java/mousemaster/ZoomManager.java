@@ -24,9 +24,10 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             Point centerPoint = newMode.zoom().center().centerPoint(
                     screenManager.activeScreen().rectangle(), mouseX, mouseY,
                     hintManager.lastSelectedHintPoint());
+            Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
+                    centerPoint.y());
             WindowsOverlay.setZoom(new Zoom(newMode.zoom().percent(),
-                    centerPoint, screenManager.screenContaining(centerPoint.x(),
-                    centerPoint.y()).rectangle()));
+                    centerPoint, screen.rectangle()));
         }
     }
 
@@ -43,9 +44,10 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             Point centerPoint = currentMode.zoom().center().centerPoint(
                     screenManager.activeScreen().rectangle(), mouseX, mouseY,
                     hintManager.lastSelectedHintPoint());
+            Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
+                    centerPoint.y());
             WindowsOverlay.setZoom(new Zoom(currentMode.zoom().percent(),
-                    centerPoint, screenManager.screenContaining(centerPoint.x(),
-                    centerPoint.y()).rectangle()));
+                    centerPoint, screen.rectangle()));
         }
     }
 }
