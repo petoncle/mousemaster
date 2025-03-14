@@ -43,25 +43,28 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
         return new ExpandableSequence(moves);
     }
 
-    public List<ComboSequence> expand(Map<String, KeyAlias> aliases) {
+    public Map<AliasResolution, ComboSequence> expand(Map<String, KeyAlias> aliases) {
         // alias1=key11 key12
         // alias2=key21 key22
         // +alias1 -alias1 +alias2 = +key11 -key11 +key21 | +key11 -key11 +key22 | +key12 ...
-        List<String> aliasOrKeyNames =
-                moves.stream().map(ComboAliasMove::aliasOrKeyName).distinct().toList();
-        ArrayList<ComboSequence> sequences = new ArrayList<>();
-        recursivelyExpand(new HashMap<>(), aliasOrKeyNames, sequences, aliases);
-        return sequences;
+        List<String> aliasNames =
+                moves.stream().map(ComboAliasMove::aliasOrKeyName)
+                     .filter(aliases.keySet()::contains).distinct().toList();
+        Map<AliasResolution, ComboSequence> sequenceByAliasResolution = new HashMap<>();
+        recursivelyExpand(new HashMap<>(), aliasNames, sequenceByAliasResolution, aliases);
+        return sequenceByAliasResolution;
     }
 
     private void recursivelyExpand(Map<String, Key> fixedKeyByAliasName,
-                                   List<String> aliasOrKeyNames,
-                                   List<ComboSequence> sequences,
+                                   List<String> aliasNames,
+                                   Map<AliasResolution, ComboSequence> sequenceByAliasResolution,
                                    Map<String, KeyAlias> aliasByName) {
-        if (fixedKeyByAliasName.size() == aliasOrKeyNames.size()) {
+        if (fixedKeyByAliasName.size() == aliasNames.size()) {
             List<ComboMove> moves = new ArrayList<>();
             for (ComboAliasMove aliasMove : this.moves) {
-                Key key = fixedKeyByAliasName.get(aliasMove.aliasOrKeyName());
+                Key aliasKey = fixedKeyByAliasName.get(aliasMove.aliasOrKeyName());
+                Key key = aliasKey == null ? Key.ofName(aliasMove.aliasOrKeyName()) :
+                        aliasKey;
                 moves.add(switch (aliasMove) {
                     case ComboAliasMove.PressComboAliasMove pressComboAliasMove ->
                             new ComboMove.PressComboMove(key,
@@ -72,16 +75,15 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
                 });
             }
             ComboSequence sequence = new ComboSequence(moves);
-            sequences.add(sequence);
+            sequenceByAliasResolution.put(
+                    new AliasResolution(Map.copyOf(fixedKeyByAliasName)), sequence);
             return;
         }
-        String fixedAliasOrKeyName = aliasOrKeyNames.get(fixedKeyByAliasName.size());
+        String fixedAliasOrKeyName = aliasNames.get(fixedKeyByAliasName.size());
         KeyAlias alias = aliasByName.get(fixedAliasOrKeyName);
-        List<Key> aliasKeys =
-                alias == null ? List.of(Key.ofName(fixedAliasOrKeyName)) : alias.keys();
-        for (Key fixedKey : aliasKeys) {
+        for (Key fixedKey : alias.keys()) {
             fixedKeyByAliasName.put(fixedAliasOrKeyName, fixedKey);
-            recursivelyExpand(fixedKeyByAliasName, aliasOrKeyNames, sequences,
+            recursivelyExpand(fixedKeyByAliasName, aliasNames, sequenceByAliasResolution,
                     aliasByName);
             fixedKeyByAliasName.remove(fixedAliasOrKeyName);
         }

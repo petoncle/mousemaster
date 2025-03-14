@@ -669,10 +669,46 @@ public class ConfigurationParser {
                     if (split.length != 2)
                         throw new IllegalArgumentException(
                                 "Invalid remapping: " + propertyValue);
-                    Remapping remapping = Remapping.of(remappingName, split[1]);
-                    setCommand(mode.comboMap.remapping.builder, split[0],
-                            new RemappingCommand(remapping), defaultComboMoveDuration,
-                            keyAliases, appAliases);
+                    List<AliasResolvedCombo> aliasResolvedCombos =
+                            Combo.multiCombo(split[0], defaultComboMoveDuration,
+                                    keyAliases,
+                                    appAliases);
+                    // Aliases used in the remapping must be used in all of the
+                    // combos of that multi combo.
+                    Set<String> comboAliasNameIntersection = new HashSet<>(
+                            aliasResolvedCombos.getFirst()
+                                               .aliasResolution()
+                                               .keyByAliasName()
+                                               .keySet());
+                    for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
+                        comboAliasNameIntersection.retainAll(
+                                aliasResolvedCombo.aliasResolution()
+                                                  .keyByAliasName()
+                                                  .keySet());
+                    }
+                    for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
+                        String remappingOutput = split[1];
+                        Set<String> aliasNamesUsedInRemappingOutput =
+                                Remapping.aliasNamesUsedInRemappingOutput(remappingOutput,
+                                        keyAliases.keySet());
+                        if (!comboAliasNameIntersection.containsAll(
+                                aliasNamesUsedInRemappingOutput)) {
+                            Set<String> aliasesNotUsedInComboSequence =
+                                    new HashSet<>(aliasNamesUsedInRemappingOutput);
+                            aliasNamesUsedInRemappingOutput.removeAll(
+                                    comboAliasNameIntersection);
+                            throw new IllegalArgumentException(
+                                    "Key aliases " + aliasesNotUsedInComboSequence +
+                                    " cannot be used in the remapping output because they are not used in the combo sequence");
+                        }
+                        Remapping remapping = Remapping.of(remappingName, remappingOutput,
+                                    aliasResolvedCombo.aliasResolution());
+                        // One remapping command per resolved alias.
+                        Command command = new RemappingCommand(remapping);
+                        for (Combo combo : List.of(aliasResolvedCombo.combo()))
+                            mode.comboMap.remapping.builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
+                                                           .add(command);
+                    }
                 }
             }
             case "timeout" -> {
@@ -1423,20 +1459,11 @@ public class ConfigurationParser {
                                    ComboMoveDuration defaultComboMoveDuration,
                                    Map<String, KeyAlias> keyAliases,
                                    Map<String, AppAlias> appAliases) {
-        Iterator<List<Command>> existingCommandsIterator =
-                commandsByCombo.values().iterator();
-        // mode1.start-move.up=x
-        // mode2.start-move=mode1.start-move
-        // mode2.start-move.up=y
-        while (existingCommandsIterator.hasNext()) {
-            List<Command> existingCommands = existingCommandsIterator.next();
-            existingCommands.removeIf(Predicate.isEqual(command));
-            if (existingCommands.isEmpty())
-                existingCommandsIterator.remove();
-        }
-        List<Combo> combos =
+        List<AliasResolvedCombo> aliasResolvedCombos =
                 Combo.multiCombo(multiComboString, defaultComboMoveDuration, keyAliases,
                         appAliases);
+        List<Combo> combos =
+                aliasResolvedCombos.stream().map(AliasResolvedCombo::combo).toList();
         for (Combo combo : combos)
             commandsByCombo.computeIfAbsent(combo, combo1 -> new ArrayList<>())
                            .add(command);
