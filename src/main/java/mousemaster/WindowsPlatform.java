@@ -406,6 +406,20 @@ public class WindowsPlatform implements Platform {
         if (nCode >= 0) {
             WinDef.POINT mousePosition = info.pt;
             mousePositionQueue.add(mousePosition);
+            if ((info.flags & ExtendedUser32.LLMHF_INJECTED) ==
+                ExtendedUser32.LLMHF_INJECTED) {
+                // SendInput from another app (or from mousemaster).
+            }
+            else {
+                int WM_MOUSEMOVE = 0x0200;
+                if (wParam.intValue() != WM_MOUSEMOVE) {
+                    if (keyboardManager.pressingKeys()) {
+                        logger.info(
+                                "Regurgitating pressed keys because physical mouse buttons are being used");
+                        keyboardManager.regurgitatePressedKeys();
+                    }
+                }
+            }
         }
         return ExtendedUser32.INSTANCE.CallNextHookEx(mouseHook, nCode, wParam, info);
     }
