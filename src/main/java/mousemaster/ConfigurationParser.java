@@ -212,6 +212,8 @@ public class ConfigurationParser {
         Map<String, Set<String>> referencedModesByReferencerMode = new HashMap<>();
         Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty =
                 new HashMap<>();
+        Set<String> nonRootModes = new HashSet<>();
+        Map<String, Set<String>> childModesByParentMode = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
         for (String line : lines) {
             if (!checkPropertyLineCorrectness(line, visitedPropertyKeys))
@@ -239,7 +241,7 @@ public class ConfigurationParser {
                 continue;
             }
             Pattern modeKeyPattern =
-                    Pattern.compile("([^.]+-mode)\\.([^.]+)(\\.([^.]+))?");
+                    Pattern.compile("([^.]+-mode)(\\.([^.]+)(\\.([^.]+))?)?");
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
             if (!keyMatcher.matches())
                 continue;
@@ -260,10 +262,11 @@ public class ConfigurationParser {
             ModeBuilder mode =
                     modeByName.computeIfAbsent(modeName,
                             modeName1 -> new ModeBuilder(modeName1, propertyByKey));
-            String group2 = keyMatcher.group(2);
+            String group2 = keyMatcher.group(3);
             ComboMoveDuration finalDefaultComboMoveDuration = defaultComboMoveDuration;
             try {
                 parseLine(group2, mode, propertyKey, propertyValue,
+                        childModesByParentMode, nonRootModes,
                         childPropertiesByParentProperty, nonRootPropertyKeys,
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases,
                         modeReferences, defaultComboMoveDuration, appAliases,
@@ -289,6 +292,8 @@ public class ConfigurationParser {
             idleMode.stopCommandsFromPreviousMode.builder.set(true);
         Set<PropertyKey> rootPropertyKeys = propertyByKey.keySet()
                                                          .stream()
+                                                         .filter(propertyKey -> !nonRootModes.contains(
+                                                                 propertyKey.modeName()))
                                                          .filter(Predicate.not(
                                                                  nonRootPropertyKeys::contains))
                                                          .collect(Collectors.toSet());;
@@ -296,7 +301,9 @@ public class ConfigurationParser {
         Set<PropertyNode> rootPropertyNodes = new HashSet<>();
         for (PropertyKey rootPropertyKey : rootPropertyKeys)
             rootPropertyNodes.add(recursivelyBuildPropertyNode(rootPropertyKey,
-                    childPropertiesByParentProperty, alreadyBuiltPropertyNodeKeys));
+                    childPropertiesByParentProperty,
+                    childModesByParentMode, nonRootPropertyKeys,
+                    alreadyBuiltPropertyNodeKeys));
         for (PropertyNode rootPropertyNode : rootPropertyNodes) {
             recursivelyExtendProperty(
                     defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
@@ -346,6 +353,8 @@ public class ConfigurationParser {
 
     private static void parseLine(String group2, ModeBuilder mode, String propertyKey,
                                   String propertyValue,
+                                  Map<String, Set<String>> childModesByParentMode,
+                                  Set<String> nonRootModes,
                                   Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty,
                                   Set<PropertyKey> nonRootPropertyKeys,
                                   Map<String, Set<String>> referencedModesByReferencerMode,
@@ -355,6 +364,14 @@ public class ConfigurationParser {
                                   ComboMoveDuration defaultComboMoveDuration,
                                   Map<String, AppAlias> appAliases,
                                   ComboMoveDuration finalDefaultComboMoveDuration) {
+        if (group2 == null) {
+            // Mode reference.
+            parseModeReference(propertyKey, propertyValue, childModesByParentMode,
+                    nonRootModes);
+            return;
+        }
+        final int group3 = 4;
+        final int group4 = 5;
         switch (group2) {
             case "stop-commands-from-previous-mode" ->
                     mode.stopCommandsFromPreviousMode.parseReferenceOr(propertyKey,
@@ -377,15 +394,15 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "mouse" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.mouse.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid mouse property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "initial-velocity" -> mode.mouse.builder.initialVelocity(
                                 Double.parseDouble(propertyValue));
                         case "max-velocity" -> mode.mouse.builder.maxVelocity(
@@ -402,15 +419,15 @@ public class ConfigurationParser {
                 }
             }
             case "wheel" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.wheel.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid wheel property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "acceleration" -> mode.wheel.builder.acceleration(
                                 Double.parseDouble(propertyValue));
                         case "initial-velocity" -> mode.wheel.builder.initialVelocity(
@@ -423,15 +440,15 @@ public class ConfigurationParser {
                 }
             }
             case "grid" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.grid.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid grid property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "area" -> mode.grid.builder.area()
                                                         .type(parseGridAreaType(
                                                                 propertyKey,
@@ -488,17 +505,17 @@ public class ConfigurationParser {
                 }
             }
             case "hint" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.hintMesh.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid hint property key");
                 else {
                     if (mode.hintMesh.builder.enabled() == null)
                         mode.hintMesh.builder.enabled(true);
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "enabled" -> mode.hintMesh.builder.enabled(
                                 Boolean.parseBoolean(propertyValue));
                         case "visible" -> mode.hintMesh.builder.visible(
@@ -638,15 +655,15 @@ public class ConfigurationParser {
                 }
             }
             case "to" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.to.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid to (mode switch) property key");
                 else {
-                    String newModeName = keyMatcher.group(4);
+                    String newModeName = keyMatcher.group(group4);
                     modeReferences.add(checkModeReference(newModeName));
                     setCommand(mode.comboMap.to.builder, propertyValue,
                             new SwitchMode(newModeName), defaultComboMoveDuration,
@@ -654,16 +671,16 @@ public class ConfigurationParser {
                 }
             }
             case "remapping" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.remapping.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid remapping property key");
                 else {
-                    String remappingName = keyMatcher.group(4);
+                    String remappingName = keyMatcher.group(group4);
                     String remappingString = propertyValue;
                     String[] split = remappingString.split("\\s*->\\s*");
                     if (split.length != 2)
@@ -712,17 +729,17 @@ public class ConfigurationParser {
                 }
             }
             case "timeout" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.timeout.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid timeout property key");
                 else {
                     if (mode.timeout.builder.enabled() == null)
                         mode.timeout.builder.enabled(true);
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "enabled" -> mode.timeout.builder.enabled(
                                 Boolean.parseBoolean(propertyValue));
                         case "duration-millis" -> mode.timeout.builder.duration(
@@ -741,17 +758,17 @@ public class ConfigurationParser {
                 }
             }
             case "indicator" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.indicator.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid indicator property key");
                 else {
                     if (mode.indicator.builder.enabled() == null)
                         mode.indicator.builder.enabled(true);
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "enabled" -> mode.indicator.builder.enabled(
                                 Boolean.parseBoolean(propertyValue));
                         case "size" -> mode.indicator.builder.size(
@@ -783,17 +800,17 @@ public class ConfigurationParser {
                 }
             }
             case "hide-cursor" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.hideCursor.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid hide-cursor property key");
                 else {
                     if (mode.hideCursor.builder.enabled() == null)
                         mode.hideCursor.builder.enabled(true);
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "enabled" -> mode.hideCursor.builder.enabled(
                                 Boolean.parseBoolean(propertyValue));
                         case "idle-duration-millis" ->
@@ -805,15 +822,15 @@ public class ConfigurationParser {
                 }
             }
             case "zoom" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.zoom.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid zoom property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         case "percent" -> mode.zoom.builder.percent(
                                 parseDouble(propertyValue, true, 1, 100));
                         case "center" ->
@@ -825,16 +842,16 @@ public class ConfigurationParser {
                 }
             }
             case "start-move" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.startMove.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid start-move property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "up" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveUp(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "down" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveDown(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -845,16 +862,16 @@ public class ConfigurationParser {
                 }
             }
             case "stop-move" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.stopMove.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid stop-move property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "up" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveUp(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "down" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveDown(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -865,15 +882,15 @@ public class ConfigurationParser {
                 }
             }
             case "press" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.press.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid press property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "left" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressLeft(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "middle" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -883,16 +900,16 @@ public class ConfigurationParser {
                 }
             }
             case "release" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.release.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid release property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "left" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseLeft(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "middle" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -902,16 +919,16 @@ public class ConfigurationParser {
                 }
             }
             case "toggle" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.toggle.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid toggle property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "left" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleLeft(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "middle" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleMiddle(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -921,16 +938,16 @@ public class ConfigurationParser {
                 }
             }
             case "start-wheel" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.startWheel.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid start-wheel property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "up" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelUp(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "down" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelDown(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -941,16 +958,16 @@ public class ConfigurationParser {
                 }
             }
             case "stop-wheel" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.stopWheel.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid stop-wheel property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "up" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelUp(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "down" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelDown(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -961,15 +978,15 @@ public class ConfigurationParser {
                 }
             }
             case "snap" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.snap.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid snap property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "up" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapUp(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "down" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapDown(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -980,16 +997,16 @@ public class ConfigurationParser {
                 }
             }
             case "shrink-grid" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.shrinkGrid.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid shrink-grid property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "up" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridUp(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "down" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridDown(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -1000,16 +1017,16 @@ public class ConfigurationParser {
                 }
             }
             case "move-grid" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.comboMap.moveGrid.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid move-grid property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "up" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridUp(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "down" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridDown(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -1020,15 +1037,15 @@ public class ConfigurationParser {
                 }
             }
             case "position-history" -> {
-                if (keyMatcher.group(3) == null)
+                if (keyMatcher.group(group3) == null)
                     mode.wheel.parsePropertyReference(propertyKey, propertyValue,
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-                else if (keyMatcher.group(4) == null)
+                else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid position-history property key");
                 else {
-                    switch (keyMatcher.group(4)) {
+                    switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -1055,6 +1072,27 @@ public class ConfigurationParser {
             default -> throw new IllegalArgumentException(
                     "Invalid mode property key");
         }
+    }
+
+    private static void parseModeReference(String propertyKey, String propertyValue,
+                                           Map<String, Set<String>> childModesByParentMode,
+                                           Set<String> nonRootModes) {
+        String propertyKeyMode = propertyKey;
+        // x-mode=normal-mode
+        String propertyValueMode = propertyValue;
+        if (propertyValueMode.equals(propertyKeyMode))
+            throw new IllegalArgumentException(
+                    "Invalid mode reference " + propertyKey + "=" +
+                    propertyValue + ": a mode cannot reference itself");
+        childModesByParentMode.computeIfAbsent(propertyValueMode,
+                mode -> new HashSet<>()).add(propertyKeyMode);
+        nonRootModes.add(propertyKeyMode);
+    }
+
+    private static String parseFontName(String fontName, Predicate<String> fontAvailability) {
+        if (!fontAvailability.test(fontName))
+            throw new IllegalArgumentException("Unable to find a font named " + fontName);
+        return fontName;
     }
 
     private static Map<String, KeyAlias> mergeDefaultAndConfigurationKeyAliases(
@@ -1265,41 +1303,53 @@ public class ConfigurationParser {
 
     private static PropertyNode recursivelyBuildPropertyNode(PropertyKey propertyKey,
                                                              Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty,
+                                                             Map<String, Set<String>> childModesByParentMode,
+                                                             Set<PropertyKey> nonRootPropertyKeys,
                                                              Set<PropertyKey> alreadyBuiltPropertyNodeKeys) {
         if (!alreadyBuiltPropertyNodeKeys.add(propertyKey))
             throw new IllegalArgumentException(
                     "Found property dependency cycle involving property key " +
                     propertyKey);
         List<PropertyNode> childrenProperties = new ArrayList<>();
-        Set<PropertyKey> childPropertyKeys =
-                childPropertiesByParentProperty.get(propertyKey);
-        if (childPropertyKeys != null) {
-            for (PropertyKey childPropertyKey : childPropertyKeys)
-                childrenProperties.add(recursivelyBuildPropertyNode(childPropertyKey,
-                        childPropertiesByParentProperty, alreadyBuiltPropertyNodeKeys));
+        Set<PropertyKey> childPropertyKeys = new HashSet<>();
+        Set<String> childModes = childModesByParentMode.getOrDefault(propertyKey.modeName, Set.of());
+        for (String childMode : childModes) {
+            // x2-mode=x1-mode
+            // x2-mode.to=y-mode.to
+            // x2-mode should not have any of the x1-mode.to. Instead, x2-mode.to should be exactly y-mode.to.
+            // Assuming that here, propertyKey.modeName == x1-mode,
+            // Only create childPropertyKey(x2-mode, to) if there is no x2-mode.to=y-mode.to
+            PropertyKey childPropertyKey = new PropertyKey(childMode, propertyKey.propertyName);
+            if (!nonRootPropertyKeys.contains(childPropertyKey))
+                childPropertyKeys.add(childPropertyKey);
         }
+        childPropertyKeys.addAll(childPropertiesByParentProperty.getOrDefault(propertyKey, Set.of()));
+        for (PropertyKey childPropertyKey : childPropertyKeys)
+            childrenProperties.add(recursivelyBuildPropertyNode(childPropertyKey,
+                    childPropertiesByParentProperty, childModesByParentMode,
+                    nonRootPropertyKeys, alreadyBuiltPropertyNodeKeys));
         return new PropertyNode(propertyKey, childrenProperties);
     }
 
     private static ModeNode recursivelyBuildReferenceNode(String modeName,
-                                                            Map<String, Set<String>> childrenModeNamesByParentMode,
+                                                            Map<String, Set<String>> referencedModesByReferencerMode,
                                                             Map<String, ModeNode> nodeByName) {
         ModeNode modeNode = nodeByName.computeIfAbsent(modeName,
                 modeName_ -> new ModeNode(modeName, new ArrayList<>()));
-        List<ModeNode> subModes = modeNode.childModes;
-        Set<String> childrenModeNames = childrenModeNamesByParentMode.get(modeName);
-        if (childrenModeNames != null) {
-            for (String childModeName : childrenModeNames) {
-                if (childModeName.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER))
+        List<ModeNode> referencedModes = modeNode.referencedModes;
+        Set<String> referencedModeNames = referencedModesByReferencerMode.get(modeName);
+        if (referencedModeNames != null) {
+            for (String referencedModeName : referencedModeNames) {
+                if (referencedModeName.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER))
                     continue;
-                ModeNode childNode = nodeByName.get(childModeName);
-                if (childNode == null)
-                    childNode = recursivelyBuildReferenceNode(childModeName,
-                            childrenModeNamesByParentMode, nodeByName);
-                subModes.add(childNode);
+                ModeNode referencedNode = nodeByName.get(referencedModeName);
+                if (referencedNode == null)
+                    referencedNode = recursivelyBuildReferenceNode(referencedModeName,
+                            referencedModesByReferencerMode, nodeByName);
+                referencedModes.add(referencedNode);
             }
         }
-        return new ModeNode(modeName, subModes);
+        return new ModeNode(modeName, referencedModes);
     }
 
     private static String checkColorFormat(String propertyValue) {
@@ -1472,7 +1522,7 @@ public class ConfigurationParser {
     /**
      * Dependency tree.
      */
-    private record ModeNode(String modeName, List<ModeNode> childModes) {
+    private record ModeNode(String modeName, List<ModeNode> referencedModes) {
     }
 
     private record PropertyNode(PropertyKey propertyKey,
