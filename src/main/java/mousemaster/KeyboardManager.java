@@ -36,16 +36,25 @@ public class KeyboardManager {
                 markOtherKeysOfTheseCombosAsCompleted(
                         watcherUpdateResult.completedWaitingCombos());
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
-                for (Key keyToRegurgitate : regurgitatePressedKeys(null)) {
-                    keyRegurgitator.regurgitate(keyToRegurgitate, true, false);
-                }
+                regurgitatePressedKeys();
             }
         }
     }
 
+    public boolean pressingKeys() {
+        return !currentlyPressedKeys.isEmpty();
+    }
+
     public void reset() {
+        regurgitatePressedKeys();
         currentlyPressedKeys.clear();
         comboWatcher.reset();
+    }
+
+    public void regurgitatePressedKeys() {
+        for (Key keyToRegurgitate : regurgitatePressedKeys(null)) {
+            keyRegurgitator.regurgitate(keyToRegurgitate, true, false);
+        }
     }
 
     record EatAndRegurgitates(boolean mustBeEaten, Set<Key> keysToRegurgitate) {

@@ -31,6 +31,7 @@ public interface ExtendedUser32 extends User32 {
     int MOUSEEVENTF_HWHEEL = 0x01000;
 
     int LLKHF_INJECTED = 0x00000010;
+    int LLMHF_INJECTED = 0x00000001;
 
     boolean GetCursorInfo(CURSORINFO pci);
 
