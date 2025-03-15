@@ -307,6 +307,10 @@ public class WindowsOverlay {
             List<Hint> hintsInScreen = entry.getValue();
             HintMeshWindow existingWindow = hintMeshWindows.get(screen);
             if (existingWindow == null) {
+//                for (QScreen qScreen : QGuiApplication.screens()) {
+//                    QRect availableGeometry = qScreen.availableGeometry();
+//                    logger.info("QScreen " + availableGeometry.x() + " " + availableGeometry.y() + " " + availableGeometry.width() + " " + availableGeometry.height());
+//                }
                 TransparentWindow window = new TransparentWindow();
                 WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
                 long currentStyle =
@@ -322,6 +326,7 @@ public class WindowsOverlay {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(hwnd, window, hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
+//                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
                 setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale());
             }
             else {
@@ -329,6 +334,8 @@ public class WindowsOverlay {
                         existingWindow.window,
                         hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
+//                TransparentWindow window = existingWindow.window;
+//                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
                 setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale());
             }
         }
@@ -499,7 +506,7 @@ public class WindowsOverlay {
                 maxHintRight = Math.max(maxHintRight, x + fullBoxWidth);
                 maxHintBottom = Math.max(maxHintBottom, y + fullBoxHeight);
                 hintBox.setParent(container);
-                hintBox.setGeometry(x, y, boxWidth, boxHeight);
+                hintBox.setGeometry(x - hintMeshWindow.window().x(), y - hintMeshWindow.window.y(), boxWidth, boxHeight);
                 hintLabel.setFixedSize(boxWidth, boxHeight);
                 for (int subgridRowIndex = 0;
                      subgridRowIndex < hintMesh.subgridRowCount(); subgridRowIndex++) {
@@ -519,10 +526,13 @@ public class WindowsOverlay {
             container.show();
             window.show();
             if (isHintPartOfGrid) {
-                QPixmap pixmap = window.grab(new QRect(minHintLeft, minHintTop,
+                QPixmap pixmap = window.grab(new QRect(minHintLeft - hintMeshWindow.window.x(),
+                        minHintTop - hintMeshWindow.window.y(),
                         maxHintRight - minHintLeft + 1, maxHintBottom - minHintTop + 1));
                 PixmapAndPosition pixmapAndPosition1 =
-                        new PixmapAndPosition(pixmap, minHintLeft, minHintTop);
+                        new PixmapAndPosition(pixmap,
+                                minHintLeft - hintMeshWindow.window.x(),
+                                minHintTop - hintMeshWindow.window.y());
                 logger.debug("Caching " + pixmapAndPosition1 + ", cache size is " + hintMeshPixmaps.size());
                 hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition1);
             }

@@ -134,6 +134,10 @@
   "name":"io.qt.core.QPoint"
 },
 {
+  "name":"io.qt.core.QRect",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
   "name":"io.qt.core.QPointF"
 },
 {
