@@ -1084,6 +1084,10 @@ public class ConfigurationParser {
             throw new IllegalArgumentException(
                     "Invalid mode reference " + propertyKey + "=" +
                     propertyValue + ": a mode cannot reference itself");
+        if (!propertyValueMode.endsWith("-mode"))
+            throw new IllegalArgumentException(
+                    "Invalid parent mode name " + propertyValueMode +
+                    ": mode names should end with -mode");
         childModesByParentMode.computeIfAbsent(propertyValueMode,
                 mode -> new HashSet<>()).add(propertyKeyMode);
         nonRootModes.add(propertyKeyMode);
