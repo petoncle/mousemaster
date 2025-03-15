@@ -429,30 +429,19 @@ public class WindowsOverlay {
                                                                   .map(Key::hintLabel)
                                                                   .collect(
                                                                           Collectors.joining()));
-                double cellWidth = hint.cellWidth() != -1 ? hint.cellWidth() :
+                // Size of cell for screen selection hint is not configured by user.
+                // The default size is used and it is too small (and will be less than totalXAdvance).
+                double cellWidth = hint.cellWidth() != -1 ?
+                        Math.max(totalXAdvance, hint.cellWidth()) :
                         totalXAdvance;
-                double cellHeight = hint.cellHeight() != -1 ? hint.cellHeight() :
-                        metrics.ascent() - metrics.descent();
+                int lineHeight = metrics.height();
+                double cellHeight = hint.cellHeight() != -1 ?
+                        Math.max(lineHeight, hint.cellHeight()) :
+                        lineHeight;
+                int fullBoxWidth = (int) cellWidth;
+                int fullBoxHeight = (int) cellHeight;
                 int x = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
                 int y = hintRoundedY(hint.centerY(), cellHeight, qtScaleFactor);
-                int fullBoxWidth = (int) Math.round(cellWidth / qtScaleFactor);
-                int fullBoxHeight = (int) Math.round(cellHeight / qtScaleFactor);
-                if (fullBoxWidth < totalXAdvance) {
-                    // Size of cell for screen selection hint is not configured by user.
-                    // The default size is used and it is too small.
-                    fullBoxWidth = totalXAdvance;
-                    Hint fullBoxHint =
-                            new Hint(hint.centerX(), hint.centerY(), fullBoxWidth,
-                                    cellHeight, hint.keySequence());
-                    x = hintRoundedX(fullBoxHint.centerX(), cellWidth, qtScaleFactor);
-                }
-                if (fullBoxHeight < metrics.height()) {
-                    fullBoxHeight = metrics.height();
-                    Hint fullBoxHint = new Hint(hint.centerX(), hint.centerY(),
-                            cellWidth,
-                            fullBoxHeight, hint.keySequence());
-                    y = hintRoundedY(fullBoxHint.centerY(), cellHeight, qtScaleFactor);
-                }
                 if (isHintPartOfGrid
                     && hintIndex + 1 < hints.size()
                     && hintRoundedX(hints.get(hintIndex + 1).centerX(),
