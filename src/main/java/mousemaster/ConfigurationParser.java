@@ -1872,6 +1872,13 @@ public class ConfigurationParser {
             void extend(Object parent_) {
                 Map<Combo, List<Command>> parent =
                         (Map<Combo, List<Command>>) parent_;
+                for (Map.Entry<Combo, List<Command>> parentEntry : parent.entrySet()) {
+                    // mode1.start-move.up=x
+                    // mode2.start-move=mode1.start-move
+                    // mode2.start-move.up=y
+                    if (!builder.containsKey(parentEntry.getKey()))
+                        builder.put(parentEntry.getKey(), parentEntry.getValue());
+                }
                 builder.putAll(parent);
             }
         }
