@@ -1146,47 +1146,60 @@ public class ConfigurationParser {
             lineMatcher.matches();
             String propertyKey = lineMatcher.group(1).strip();
             String propertyValue = lineMatcher.group(2).strip();
-            if (propertyKey.startsWith("app-alias.")) {
-                String aliasName = propertyKey.substring("app-alias.".length());
-                Set<App> apps = Arrays.stream(propertyValue.split("\\s+"))
-                                      .map(App::new)
-                                      .collect(Collectors.toSet());
-                appAliasByName.put(aliasName, new AppAlias(aliasName, apps));
-            }
-            else if (propertyKey.startsWith("key-alias.")) {
-                // key-alias.left=a
-                // key-alias.us-qwerty=a
-                Pattern modeKeyPattern = Pattern.compile("key-alias\\.([^.]+)(\\.([^.]+))?");
-                Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
-                if (!keyMatcher.matches())
-                    throw new IllegalArgumentException(
-                            "Invalid key-alias property key");
-                // List and not Set because hint.selection-keys=hintkeys needs ordering.
-                List<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
-                                       .map(Key::ofName)
-                                       .toList();
-                String aliasName = keyMatcher.group(1);
-                if (keyMatcher.group(2) == null) {
-                    layoutKeyAliasByName.computeIfAbsent(aliasName,
-                            name -> new LayoutKeyAlias()).noLayoutAlias =
-                            new KeyAlias(aliasName, keys);
-                }
-                else {
-                    String layoutName = keyMatcher.group(3);
-                    KeyboardLayout layout =
-                            KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
-                    if (layout == null)
-                        throw new IllegalArgumentException(
-                                "Invalid keyboard layout: " + layoutName +
-                                ", available keyboard layouts: " +
-                                KeyboardLayout.keyboardLayoutByShortName.keySet());
-                    layoutKeyAliasByName.computeIfAbsent(aliasName,
-                                                name -> new LayoutKeyAlias())
-                            .aliasByLayout.put(layout, new KeyAlias(aliasName, keys));
-                }
+            try {
+                parseAlias(propertyKey, propertyValue, appAliasByName, layoutKeyAliasByName);
+            } catch (IllegalArgumentException e) {
+                IllegalArgumentException e2 =
+                        new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
+                e2.setStackTrace(e.getStackTrace());
+                throw e2;
             }
         }
         return new Aliases(layoutKeyAliasByName, appAliasByName);
+    }
+
+    private static void parseAlias(String propertyKey, String propertyValue,
+                                  Map<String, AppAlias> appAliasByName,
+                                  Map<String, LayoutKeyAlias> layoutKeyAliasByName) {
+        if (propertyKey.startsWith("app-alias.")) {
+            String aliasName = propertyKey.substring("app-alias.".length());
+            Set<App> apps = Arrays.stream(propertyValue.split("\\s+"))
+                                  .map(App::new)
+                                  .collect(Collectors.toSet());
+            appAliasByName.put(aliasName, new AppAlias(aliasName, apps));
+        }
+        else if (propertyKey.startsWith("key-alias.")) {
+            // key-alias.left=a
+            // key-alias.us-qwerty=a
+            Pattern modeKeyPattern = Pattern.compile("key-alias\\.([^.]+)(\\.([^.]+))?");
+            Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
+            if (!keyMatcher.matches())
+                throw new IllegalArgumentException(
+                        "Invalid key-alias property key");
+            // List and not Set because hint.selection-keys=hintkeys needs ordering.
+            List<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
+                                   .map(Key::ofName)
+                                   .toList();
+            String aliasName = keyMatcher.group(1);
+            if (keyMatcher.group(2) == null) {
+                layoutKeyAliasByName.computeIfAbsent(aliasName,
+                        name -> new LayoutKeyAlias()).noLayoutAlias =
+                        new KeyAlias(aliasName, keys);
+            }
+            else {
+                String layoutName = keyMatcher.group(3);
+                KeyboardLayout layout =
+                        KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
+                if (layout == null)
+                    throw new IllegalArgumentException(
+                            "Invalid keyboard layout: " + layoutName +
+                            ", available keyboard layouts: " +
+                            KeyboardLayout.keyboardLayoutByShortName.keySet());
+                layoutKeyAliasByName.computeIfAbsent(aliasName,
+                                            name -> new LayoutKeyAlias())
+                        .aliasByLayout.put(layout, new KeyAlias(aliasName, keys));
+            }
+        }
     }
 
     private static boolean checkPropertyLineCorrectness(String line, Set<String> visitedPropertyKeys) {
