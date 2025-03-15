@@ -401,6 +401,9 @@ public class WindowsPlatform implements Platform {
                     wParamString);
     }
 
+    /**
+     * Note: this method is called from the mouse-hook thread.
+     */
     private WinDef.LRESULT mouseHookCallback(int nCode, WinDef.WPARAM wParam,
                                              WinUser.MSLLHOOKSTRUCT info) {
         if (nCode >= 0) {
@@ -413,6 +416,9 @@ public class WindowsPlatform implements Platform {
             else {
                 int WM_MOUSEMOVE = 0x0200;
                 if (wParam.intValue() != WM_MOUSEMOVE) {
+                    // This is racy, but regurgitating from the event loop (where
+                    // mousePositionQueue is consumed) is too late and a shift click
+                    // cannot be done if shift is the key being eaten.
                     if (keyboardManager.pressingKeys()) {
                         logger.info(
                                 "Regurgitating pressed keys because physical mouse buttons are being used");

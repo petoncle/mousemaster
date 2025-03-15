@@ -1170,7 +1170,7 @@ public class ConfigurationParser {
         }
         else if (propertyKey.startsWith("key-alias.")) {
             // key-alias.left=a
-            // key-alias.us-qwerty=a
+            // key-alias.left.us-qwerty=a
             Pattern modeKeyPattern = Pattern.compile("key-alias\\.([^.]+)(\\.([^.]+))?");
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
             if (!keyMatcher.matches())
