@@ -348,7 +348,7 @@ public class WindowsOverlay {
         container.setParent(window);
         HintMesh hintMeshKey = new HintMesh.HintMeshBuilder(hintMesh)
                 .type(null) // last-selected-hint or screen-center can lead to same drawings.
-                .hints(trimmedHints(hintMesh.hints(), hintMesh.focusedKeySequence()))
+                .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.focusedKeySequence()))
                 .build();
         PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMeshKey);
         if (pixmapAndPosition != null) {
@@ -362,12 +362,12 @@ public class WindowsOverlay {
             window.show();
         }
         else {
-            boolean isHintPartOfGrid = hintMesh.hints().getFirst().cellWidth() != -1;
+            boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
             double minHintCenterX = Double.MAX_VALUE;
             double minHintCenterY = Double.MAX_VALUE;
             double maxHintCenterX = 0;
             double maxHintCenterY = 0;
-            for (Hint hint : hintMesh.hints()) {
+            for (Hint hint : hintMeshWindow.hints()) {
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
                     continue;
                 minHintCenterX = Math.min(minHintCenterX, hint.centerX());
@@ -408,7 +408,7 @@ public class WindowsOverlay {
             QColor subgridBoxColor = qColor("#000000", 0);
             QColor subgridBoxBorderColor = qColor(hintMesh.subgridBorderHexColor(),
                     hintMesh.subgridBorderOpacity());
-            int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMesh) : -1;
+            int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
@@ -592,12 +592,12 @@ public class WindowsOverlay {
         }
     }
 
-    private static int hintGridColumnCount(HintMesh hintMesh) {
-        if (hintMesh.hints().size() == 1)
+    private static int hintGridColumnCount(List<Hint> hints) {
+        if (hints.size() == 1)
             return 1;
-        double left = hintMesh.hints().getFirst().centerX();
-        for (int i = 1; i < hintMesh.hints().size(); i++) {
-            if (left == hintMesh.hints().get(i).centerX())
+        double left = hints.getFirst().centerX();
+        for (int i = 1; i < hints.size(); i++) {
+            if (left == hints.get(i).centerX())
                 return i;
         }
         throw new IllegalStateException();
