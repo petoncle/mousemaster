@@ -43,7 +43,7 @@ public class HintManager implements ModeListener, MousePositionListener {
      * and that altered lastSelectedHintPoint is used to instantiate a Zoom object
      * from the ZoomConfiguration.
      */
-    private record HintMeshKey(HintMeshTypeAndSelectionKeys hintMeshTypeAndSelectionKeys,
+    private record HintMeshKey(HintMeshType type, List<Key> selectionKeys,
                                ZoomConfiguration zoom) {
 
     }
@@ -92,10 +92,10 @@ public class HintManager implements ModeListener, MousePositionListener {
             // before, we don't want the old state of hint2-2.
             hintJustSelected = false;
             hintMeshStates.remove(
-                    new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
-                            newMode.zoom()));
+                    new HintMeshKey(hintMeshConfiguration.type(),
+                            hintMeshConfiguration.selectionKeys(), newMode.zoom()));
         }
-        else if (hintMeshConfiguration.typeAndSelectionKeys().type() instanceof HintMeshType.HintGrid hintGrid &&
+        else if (hintMeshConfiguration.type() instanceof HintMeshType.HintGrid hintGrid &&
                          hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea &&
                          activeScreenHintGridArea.center() == ActiveScreenHintGridAreaCenter.LAST_SELECTED_HINT) {
             // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
@@ -103,7 +103,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMeshState
                     hintMeshState =
                     hintMeshStates.get(
-                            new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
+                            new HintMeshKey(hintMeshConfiguration.type(),
+                                    hintMeshConfiguration.selectionKeys(),
                                     newMode.zoom()));
             if (hintMeshState != null)
                 lastSelectedHintPoint =
@@ -138,8 +139,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .collect(Collectors.toSet());
         currentMode = newMode;
         currentZoom = newZoom;
-        hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
-                newMode.zoom()), new HintMeshState(newHintMesh, lastSelectedHintPoint));
+        hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(),
+                        hintMeshConfiguration.selectionKeys(), newMode.zoom()),
+                new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
         WindowsOverlay.setHintMesh(hintMesh);
     }
@@ -179,7 +181,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .subgridBorderHexColor(hintMeshConfiguration.subgridBorderHexColor())
                 .subgridBorderOpacity(hintMeshConfiguration.subgridBorderOpacity())
         ;
-        HintMeshType type = hintMeshConfiguration.typeAndSelectionKeys().type();
+        HintMeshType type = hintMeshConfiguration.type();
         int layoutRowCount;
         int layoutColumnCount;
         boolean layoutRowOriented;
@@ -270,8 +272,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                                  layoutRowCount,
                                                                  layoutColumnCount))
                                                  .sum();
-            List<Key> selectionKeys =
-                    hintMeshConfiguration.typeAndSelectionKeys().selectionKeys();
+            List<Key> selectionKeys = hintMeshConfiguration.selectionKeys();
             List<Hint> hints = new ArrayList<>();
             int beginSubgridIndex = 0;
             for (FixedSizeHintGrid fixedSizeHintGrid : fixedSizeHintGrids) {
@@ -296,7 +297,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             List<Hint> hints = new ArrayList<>(hintCount);
             for (Point point : positionHistory) {
                 List<Key> keySequence = hintKeySequence(
-                        hintMeshConfiguration.typeAndSelectionKeys().selectionKeys(),
+                        hintMeshConfiguration.selectionKeys(),
                         hintCount,
                         0, -1, idByPosition.get(point) % maxPositionHistorySize,
                         -1, -1,
@@ -312,8 +313,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints);
         }
         HintMeshState previousHintMeshState = hintMeshStates.get(
-                new HintMeshKey(hintMeshConfiguration.typeAndSelectionKeys(),
-                        zoomConfiguration));
+                new HintMeshKey(hintMeshConfiguration.type(),
+                        hintMeshConfiguration.selectionKeys(), zoomConfiguration));
         if (previousHintMeshState != null &&
             previousHintMeshState.hintMesh.hints()
                                           .equals(hintMesh.hints())) {
@@ -624,8 +625,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                            focusedKeySequence.size() - 1))
                                    .build();
                 HintMeshKey hintMeshKey =
-                        new HintMeshKey(
-                                hintMeshConfiguration.typeAndSelectionKeys(),
+                        new HintMeshKey(hintMeshConfiguration.type(),
+                                hintMeshConfiguration.selectionKeys(),
                                 currentMode.zoom());
                 hintMeshStates.put(
                         hintMeshKey,
@@ -697,9 +698,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
             HintMeshKey hintMeshKey =
-                    new HintMeshKey(
-                            hintMeshConfiguration.typeAndSelectionKeys(),
-                            currentMode.zoom());
+                    new HintMeshKey(hintMeshConfiguration.type(),
+                            hintMeshConfiguration.selectionKeys(), currentMode.zoom());
             hintMeshStates.put(
                     hintMeshKey,
                     new HintMeshState(
@@ -737,9 +737,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh =
                     hintMesh.builder().focusedKeySequence(List.of()).build();
             HintMeshKey hintMeshKey =
-                    new HintMeshKey(
-                            hintMeshConfiguration.typeAndSelectionKeys(),
-                            currentMode.zoom());
+                    new HintMeshKey(hintMeshConfiguration.type(),
+                            hintMeshConfiguration.selectionKeys(), currentMode.zoom());
             hintMeshStates.put(
                     hintMeshKey,
                     new HintMeshState(
