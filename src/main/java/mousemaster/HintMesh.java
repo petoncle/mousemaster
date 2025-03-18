@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
-public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, List<Key> focusedKeySequence,
+public record HintMesh(boolean visible, List<Hint> hints, List<Key> focusedKeySequence,
                        String fontName, FontWeight fontWeight,
                        double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                        double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
@@ -30,7 +30,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
     public static class HintMeshBuilder {
         private boolean visible;
-        private HintMeshType type;
         private List<Hint> hints;
         private List<Key> focusedKeySequence = List.of();
         private String fontName;
@@ -68,7 +67,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public HintMeshBuilder(HintMesh hintMesh) {
             this.visible = hintMesh.visible;
-            this.type = hintMesh.type;
             this.hints = hintMesh.hints;
             this.focusedKeySequence = hintMesh.focusedKeySequence;
             this.fontName = hintMesh.fontName;
@@ -102,10 +100,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
             this.subgridBorderOpacity = hintMesh.subgridBorderOpacity;
         }
 
-
-        public HintMeshType type() {
-            return type;
-        }
 
         public boolean visible() {
             return visible;
@@ -233,11 +227,6 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
 
         public double subgridBorderOpacity() {
             return subgridBorderOpacity;
-        }
-
-        public HintMeshBuilder type(HintMeshType type) {
-            this.type = type;
-            return this;
         }
 
         public HintMeshBuilder visible(boolean visible) {
@@ -402,7 +391,7 @@ public record HintMesh(boolean visible, HintMeshType type, List<Hint> hints, Lis
         }
 
         public HintMesh build() {
-            return new HintMesh(visible, type, hints, focusedKeySequence, fontName, fontWeight,
+            return new HintMesh(visible, hints, focusedKeySequence, fontName, fontWeight,
                     fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
                     fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
                     fontShadowBlurRadius, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,

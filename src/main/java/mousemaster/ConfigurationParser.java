@@ -29,6 +29,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static mousemaster.Command.*;
+import static mousemaster.ViewportFilter.*;
 
 public class ConfigurationParser {
 
@@ -119,10 +120,11 @@ public class ConfigurationParser {
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         // On a 1920x1080 screen 73x41 cell size can accommodate up to 26x26 hints.
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
-                           .gridMaxRowCount(200)
-                           .gridMaxColumnCount(200)
-                           .gridCellWidth(73d)
-                           .gridCellHeight(41d)
+                           .gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER)
+                           .maxRowCount(200)
+                           .maxColumnCount(200)
+                           .cellWidth(73d)
+                           .cellHeight(41d)
                            .layoutRowCount(1_000_000)
                            .layoutColumnCount(1)
                            .layoutRowOriented(true);
@@ -173,6 +175,7 @@ public class ConfigurationParser {
                 new Property<>("move-grid-to-center", Map.of()),
                 new Property<>("move-to-last-selected-hint", Map.of()),
                 new Property<>("save-position", Map.of()),
+                new Property<>("unsave-position", Map.of()),
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
@@ -241,8 +244,10 @@ public class ConfigurationParser {
                         parseUnsignedInteger(propertyValue, 1, 100);
                 continue;
             }
+            // a-mode.hint.grid-cell-width
+            // a-mode.hint.grid-cell-width.1920x1080-100%
             Pattern modeKeyPattern =
-                    Pattern.compile("([^.]+-mode)(\\.([^.]+)(\\.([^.]+))?)?");
+                    Pattern.compile("([^.]+-mode)(\\.([^.]+)(\\.([^.]+))?(\\.([^.]+))?)?");
             Matcher keyMatcher = modeKeyPattern.matcher(propertyKey);
             if (!keyMatcher.matches())
                 continue;
@@ -374,6 +379,7 @@ public class ConfigurationParser {
         }
         final int group3 = 4;
         final int group4 = 5;
+        final int group5 = 7;
         switch (group2) {
             case "stop-commands-from-previous-mode" ->
                     mode.stopCommandsFromPreviousMode.parseReferenceOr(propertyKey,
@@ -517,6 +523,9 @@ public class ConfigurationParser {
                 else {
                     if (mode.hintMesh.builder.enabled() == null)
                         mode.hintMesh.builder.enabled(true);
+                    ViewportFilter viewportFilter = keyMatcher.group(group5) == null ?
+                            AnyViewportFilter.ANY_VIEWPORT_FILTER :
+                            parseViewportFilter(keyMatcher.group(group5));
                     switch (keyMatcher.group(group4)) {
                         case "enabled" -> mode.hintMesh.builder.enabled(
                                 Boolean.parseBoolean(propertyValue));
@@ -541,17 +550,20 @@ public class ConfigurationParser {
                                                                      propertyKey,
                                                                      propertyValue));
                         case "grid-max-row-count" -> mode.hintMesh.builder.type()
-                                                                          .gridMaxRowCount(
+                                                                          .gridLayout(viewportFilter)
+                                                                          .maxRowCount(
                                                                                        parseUnsignedInteger(
                                                                                                propertyValue, 1, 200));
                         case "grid-max-column-count" -> mode.hintMesh.builder.type()
-                                                                             .gridMaxColumnCount(
+                                                                             .gridLayout(viewportFilter)
+                                                                             .maxColumnCount(
                                                                                      parseUnsignedInteger(
                                                                                              propertyValue,
                                                                                              1,
                                                                                              200));
                         case "grid-cell-width" -> mode.hintMesh.builder.type()
-                                                                       .gridCellWidth(
+                                                                       .gridLayout(viewportFilter)
+                                                                       .cellWidth(
                                                                                parseDouble(
                                                                                        propertyValue,
                                                                                        false,
@@ -559,19 +571,23 @@ public class ConfigurationParser {
                                                                                        10_000
                                                                                ));
                         case "grid-cell-height" -> mode.hintMesh.builder.type()
-                                                                        .gridCellHeight(
+                                                                        .gridLayout(viewportFilter)
+                                                                        .cellHeight(
                                                                                  parseDouble(
                                                                                          propertyValue,
                                                                                          false,
                                                                                          0,
                                                                                          10_000
                                                                                  ));
-                        case "layout-row-count" -> mode.hintMesh.builder.type().layoutRowCount(parseUnsignedInteger(
-                                propertyValue, 1, 1_000_000_000));
-                        case "layout-column-count" -> mode.hintMesh.builder.type().layoutColumnCount(parseUnsignedInteger(
-                                propertyValue, 1, 1_000_000_000));
-                        case "layout-row-oriented" -> mode.hintMesh.builder.type().layoutRowOriented(Boolean.parseBoolean(
-                                propertyValue));
+                        case "layout-row-count" -> mode.hintMesh.builder.type()
+                                                                        .gridLayout(viewportFilter)
+                                                                        .layoutRowCount(parseUnsignedInteger(propertyValue, 1, 1_000_000_000));
+                        case "layout-column-count" -> mode.hintMesh.builder.type()
+                                                                           .gridLayout(viewportFilter)
+                                                                           .layoutColumnCount(parseUnsignedInteger(propertyValue, 1, 1_000_000_000));
+                        case "layout-row-oriented" -> mode.hintMesh.builder.type()
+                                                                           .gridLayout(viewportFilter)
+                                                                           .layoutRowOriented(Boolean.parseBoolean(propertyValue));
                         case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
                                 parseHintKeys(propertyValue, keyAliases));
                         case "undo" ->
@@ -1048,6 +1064,7 @@ public class ConfigurationParser {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "unsave-position" -> setCommand(mode.comboMap.unsavePosition.builder,  propertyValue, new UnsavePosition(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -1074,6 +1091,22 @@ public class ConfigurationParser {
         }
     }
 
+    private static ViewportFilter parseViewportFilter(String string) {
+        if (string == null)
+            return AnyViewportFilter.ANY_VIEWPORT_FILTER;
+        // 1920x1080-100%
+        Matcher matcher = Pattern.compile("(\\d+)x(\\d+)-(\\d+)%").matcher(string);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid viewport filter " + string +
+                                               ": expected format 1920x1080-100%");
+        }
+        return new FixedViewportFilter(new Viewport(
+                Integer.parseUnsignedInt(matcher.group(1)),
+                Integer.parseUnsignedInt(matcher.group(2)),
+                Integer.parseUnsignedInt(matcher.group(3)) / 100d
+        ));
+    }
+
     private static void parseModeReference(String propertyKey, String propertyValue,
                                            Map<String, Set<String>> childModesByParentMode,
                                            Set<String> nonRootModes) {
@@ -1084,6 +1117,10 @@ public class ConfigurationParser {
             throw new IllegalArgumentException(
                     "Invalid mode reference " + propertyKey + "=" +
                     propertyValue + ": a mode cannot reference itself");
+        if (!propertyValueMode.endsWith("-mode"))
+            throw new IllegalArgumentException(
+                    "Invalid parent mode name " + propertyValueMode +
+                    ": mode names should end with -mode");
         childModesByParentMode.computeIfAbsent(propertyValueMode,
                 mode -> new HashSet<>()).add(propertyKeyMode);
         nonRootModes.add(propertyKeyMode);
@@ -1247,20 +1284,24 @@ public class ConfigurationParser {
                 mode.hintMesh.builder.type();
         switch (hintMeshType.type()) {
             case GRID -> {
-                if (hintMeshType.gridMaxRowCount() == null ||
-                    hintMeshType.gridMaxColumnCount() == null ||
-                    hintMeshType.gridCellWidth() == null ||
-                    hintMeshType.gridCellHeight() == null ||
-                    hintMeshType.layoutRowCount() == null ||
-                    hintMeshType.layoutColumnCount() == null ||
-                    hintMeshType.layoutRowOriented() == null
+                HintGridLayout.HintGridLayoutBuilder defaultLayout =
+                        hintMeshType.gridLayoutByFilter()
+                                    .get(AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                if (defaultLayout.maxRowCount() == null ||
+                    defaultLayout.maxColumnCount() == null ||
+                    defaultLayout.cellWidth() == null ||
+                    defaultLayout.cellHeight() == null ||
+                    defaultLayout.layoutRowCount() == null ||
+                    defaultLayout.layoutColumnCount() == null ||
+                    defaultLayout.layoutRowOriented() == null
                 )
                     throw new IllegalArgumentException(
                             "Definition of hint for " + mode.modeName +
                             " is incomplete: expected " +
                             List.of("grid-max-row-count", "grid-max-column-count",
                                     "grid-cell-width", "grid-cell-height",
-                                    "layout-row-count", "layout-column-count", "layout-row-oriented"));
+                                    "layout-row-count", "layout-column-count",
+                                    "layout-row-oriented"));
             }
             case POSITION_HISTORY -> {
                 // No op.
@@ -1668,20 +1709,28 @@ public class ConfigurationParser {
                         builder.type().gridArea().type(parent.type().gridArea().type());
                     if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
                         builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
-                    if (builder.type().gridMaxRowCount() == null)
-                        builder.type().gridMaxRowCount(parent.type().gridMaxRowCount());
-                    if (builder.type().gridMaxColumnCount() == null)
-                        builder.type().gridMaxColumnCount(parent.type().gridMaxColumnCount());
-                    if (builder.type().gridCellWidth() == null)
-                        builder.type().gridCellWidth(parent.type().gridCellWidth());
-                    if (builder.type().gridCellHeight() == null)
-                        builder.type().gridCellHeight(parent.type().gridCellHeight());
-                    if (builder.type().layoutRowCount() == null)
-                        builder.type().layoutRowCount(parent.type().layoutRowCount());
-                    if (builder.type().layoutColumnCount() == null)
-                        builder.type().layoutColumnCount(parent.type().layoutColumnCount());
-                    if (builder.type().layoutRowOriented() == null)
-                        builder.type().layoutRowOriented(parent.type().layoutRowOriented());
+                    for (var parentEntry : parent.type()
+                                                 .gridLayoutByFilter()
+                                                 .entrySet()) {
+                        HintGridLayout.HintGridLayoutBuilder parentLayout =
+                                parentEntry.getValue();
+                        HintGridLayout.HintGridLayoutBuilder childLayout =
+                                builder.type().gridLayout(parentEntry.getKey());
+                        if (childLayout.maxRowCount() == null)
+                            childLayout.maxRowCount(parentLayout.maxRowCount());
+                        if (childLayout.maxColumnCount() == null)
+                            childLayout.maxColumnCount(parentLayout.maxColumnCount());
+                        if (childLayout.cellWidth() == null)
+                            childLayout.cellWidth(parentLayout.cellWidth());
+                        if (childLayout.cellHeight() == null)
+                            childLayout.cellHeight(parentLayout.cellHeight());
+                        if (childLayout.layoutRowCount() == null)
+                            childLayout.layoutRowCount(parentLayout.layoutRowCount());
+                        if (childLayout.layoutColumnCount() == null)
+                            childLayout.layoutColumnCount(parentLayout.layoutColumnCount());
+                        if (childLayout.layoutRowOriented() == null)
+                            childLayout.layoutRowOriented(parentLayout.layoutRowOriented());
+                    }
                     if (builder.selectionKeys() == null)
                         builder.selectionKeys(parent.selectionKeys());
                     if (builder.undoKeys() == null)
@@ -1847,6 +1896,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> moveToGridCenter;
         Property<Map<Combo, List<Command>>> moveToLastSelectedHint;
         Property<Map<Combo, List<Command>>> savePosition;
+        Property<Map<Combo, List<Command>>> unsavePosition;
         Property<Map<Combo, List<Command>>> clearPositionHistory;
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
@@ -1868,6 +1918,7 @@ public class ConfigurationParser {
             moveToGridCenter = new ComboMapProperty("move-grid-to-center", modeName, propertyByKey);
             moveToLastSelectedHint = new ComboMapProperty("move-to-last-selected-hint", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
+            unsavePosition = new ComboMapProperty("unsave-position", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
@@ -1912,6 +1963,7 @@ public class ConfigurationParser {
             add(commandsByCombo, moveToGridCenter.builder);
             add(commandsByCombo, moveToLastSelectedHint.builder);
             add(commandsByCombo, savePosition.builder);
+            add(commandsByCombo, unsavePosition.builder);
             add(commandsByCombo, clearPositionHistory.builder);
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);

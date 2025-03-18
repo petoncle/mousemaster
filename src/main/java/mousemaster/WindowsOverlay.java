@@ -354,7 +354,6 @@ public class WindowsOverlay {
         container.setFixedSize(window.width(), window.height());
         container.setParent(window);
         HintMesh hintMeshKey = new HintMesh.HintMeshBuilder(hintMesh)
-                .type(null) // last-selected-hint or screen-center can lead to same drawings.
                 .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.focusedKeySequence()))
                 .build();
         PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMeshKey);
