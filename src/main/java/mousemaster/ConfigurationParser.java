@@ -174,6 +174,7 @@ public class ConfigurationParser {
                 new Property<>("move-grid-to-center", Map.of()),
                 new Property<>("move-to-last-selected-hint", Map.of()),
                 new Property<>("save-position", Map.of()),
+                new Property<>("unsave-position", Map.of()),
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
@@ -1063,6 +1064,7 @@ public class ConfigurationParser {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
                         case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(), defaultComboMoveDuration, keyAliases, appAliases);
+                        case "unsave-position" -> setCommand(mode.comboMap.unsavePosition.builder,  propertyValue, new UnsavePosition(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(), defaultComboMoveDuration, keyAliases, appAliases);
                         case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(), defaultComboMoveDuration, keyAliases, appAliases);
@@ -1894,6 +1896,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> moveToGridCenter;
         Property<Map<Combo, List<Command>>> moveToLastSelectedHint;
         Property<Map<Combo, List<Command>>> savePosition;
+        Property<Map<Combo, List<Command>>> unsavePosition;
         Property<Map<Combo, List<Command>>> clearPositionHistory;
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
@@ -1915,6 +1918,7 @@ public class ConfigurationParser {
             moveToGridCenter = new ComboMapProperty("move-grid-to-center", modeName, propertyByKey);
             moveToLastSelectedHint = new ComboMapProperty("move-to-last-selected-hint", modeName, propertyByKey);
             savePosition = new ComboMapProperty("save-position", modeName, propertyByKey);
+            unsavePosition = new ComboMapProperty("unsave-position", modeName, propertyByKey);
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
@@ -1959,6 +1963,7 @@ public class ConfigurationParser {
             add(commandsByCombo, moveToGridCenter.builder);
             add(commandsByCombo, moveToLastSelectedHint.builder);
             add(commandsByCombo, savePosition.builder);
+            add(commandsByCombo, unsavePosition.builder);
             add(commandsByCombo, clearPositionHistory.builder);
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);

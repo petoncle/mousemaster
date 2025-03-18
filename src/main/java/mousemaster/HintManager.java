@@ -754,6 +754,22 @@ public class HintManager implements ModeListener, MousePositionListener {
         savePosition(new Point(mouseX, mouseY));
     }
 
+    public void unsaveCurrentPosition() {
+        Point currentPosition = new Point(mouseX, mouseY);
+        if (positionHistory.remove(currentPosition)) {
+            int currentPositionId = idByPosition.remove(currentPosition);
+            Map<Point, Integer> newIdByPosition = new HashMap<>();
+            for (Map.Entry<Point, Integer> entry : idByPosition.entrySet()) {
+                int id = entry.getValue();
+                newIdByPosition.put(entry.getKey(), id < currentPositionId ? id : id - 1);
+            }
+            idByPosition.clear();
+            idByPosition.putAll(newIdByPosition);
+            positionIdCount--;
+            positionCycleIndex = positionHistory.size() - 1;
+        }
+    }
+
     public void savePosition(Point point) {
         if (positionHistory.contains(point))
             return;

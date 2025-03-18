@@ -23,6 +23,7 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
         private Map<Combo, List<Command>> moveToGridCenter = new HashMap<>();
         private Map<Combo, List<Command>> moveToLastSelectedHint = new HashMap<>();
         private Map<Combo, List<Command>> savePosition = new HashMap<>();
+        private Map<Combo, List<Command>> unsavePosition = new HashMap<>();
         private Map<Combo, List<Command>> clearPositionHistory = new HashMap<>();
         private Map<Combo, List<Command>> cycleNextPosition = new HashMap<>();
         private Map<Combo, List<Command>> cyclePreviousPosition = new HashMap<>();
@@ -85,6 +86,7 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
                 case Command.MoveToLastSelectedHint moveToLastSelectedHint_ -> moveToLastSelectedHint;
 
                 case Command.SavePosition savePosition_ -> savePosition;
+                case Command.UnsavePosition unsavePosition_ -> unsavePosition;
                 case Command.ClearPositionHistory clearPositionHistory_ -> clearPositionHistory;
                 case Command.CycleNextPosition cycleNextPosition_ -> cycleNextPosition;
                 case Command.CyclePreviousPosition cyclePreviousPosition_ -> cyclePreviousPosition;
@@ -111,6 +113,7 @@ public record ComboMap(Map<Combo, List<Command>> commandsByCombo) {
             add(commandsByCombo, moveToGridCenter);
             add(commandsByCombo, moveToLastSelectedHint);
             add(commandsByCombo, savePosition);
+            add(commandsByCombo, unsavePosition);
             add(commandsByCombo, clearPositionHistory);
             add(commandsByCombo, cycleNextPosition);
             add(commandsByCombo, cyclePreviousPosition);

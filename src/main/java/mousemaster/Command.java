@@ -56,6 +56,7 @@ public sealed interface Command {
     record MoveToLastSelectedHint() implements Command {}
 
     record SavePosition() implements Command {}
+    record UnsavePosition() implements Command {}
     record ClearPositionHistory() implements Command {}
     record CycleNextPosition() implements Command {}
     record CyclePreviousPosition() implements Command {}

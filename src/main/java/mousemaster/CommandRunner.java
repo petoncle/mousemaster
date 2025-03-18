@@ -83,6 +83,7 @@ public class CommandRunner {
             case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
 
             case SavePosition savePosition -> hintManager.saveCurrentPosition();
+            case UnsavePosition unsavePosition -> hintManager.unsaveCurrentPosition();
             case ClearPositionHistory clearPositionHistory -> hintManager.clearPositionHistory();
             case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
