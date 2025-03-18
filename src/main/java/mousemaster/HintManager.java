@@ -150,37 +150,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    ZoomConfiguration zoomConfiguration, Zoom zoom) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
-                .fontName(hintMeshConfiguration.fontName())
-                .fontSize(hintMeshConfiguration.fontSize())
-                .fontSpacingPercent(hintMeshConfiguration.fontSpacingPercent())
-                .fontHexColor(hintMeshConfiguration.fontHexColor())
-                .fontOpacity(hintMeshConfiguration.fontOpacity())
-                .fontOutlineThickness(hintMeshConfiguration.fontOutlineThickness())
-                .fontOutlineHexColor(hintMeshConfiguration.fontOutlineHexColor())
-                .fontOutlineOpacity(hintMeshConfiguration.fontOutlineOpacity())
-                .fontShadowThickness(hintMeshConfiguration.fontShadowThickness())
-                .fontShadowStep(hintMeshConfiguration.fontShadowStep())
-                .fontShadowHexColor(hintMeshConfiguration.fontShadowHexColor())
-                .fontShadowOpacity(hintMeshConfiguration.fontShadowOpacity())
-                .fontShadowHorizontalOffset(hintMeshConfiguration.fontShadowHorizontalOffset())
-                .fontShadowVerticalOffset(hintMeshConfiguration.fontShadowVerticalOffset())
-                .prefixFontHexColor(
-                        hintMeshConfiguration.prefixFontHexColor())
-                .highlightFontScale(hintMeshConfiguration.highlightFontScale())
-                .boxHexColor(hintMeshConfiguration.boxHexColor())
-                .boxOpacity(hintMeshConfiguration.boxOpacity())
-                .boxBorderThickness(hintMeshConfiguration.boxBorderThickness())
-                .boxBorderLength(hintMeshConfiguration.boxBorderLength())
-                .boxBorderHexColor(hintMeshConfiguration.boxBorderHexColor())
-                .boxBorderOpacity(hintMeshConfiguration.boxBorderOpacity())
-                .expandBoxes(hintMeshConfiguration.expandBoxes())
-                .subgridRowCount(hintMeshConfiguration.subgridRowCount())
-                .subgridColumnCount(hintMeshConfiguration.subgridColumnCount())
-                .subgridBorderThickness(hintMeshConfiguration.subgridBorderThickness())
-                .subgridBorderLength(hintMeshConfiguration.subgridBorderLength())
-                .subgridBorderHexColor(hintMeshConfiguration.subgridBorderHexColor())
-                .subgridBorderOpacity(hintMeshConfiguration.subgridBorderOpacity())
-        ;
+                .style(hintMeshConfiguration.style());
         HintMeshType type = hintMeshConfiguration.type();
         int layoutRowCount;
         int layoutColumnCount;

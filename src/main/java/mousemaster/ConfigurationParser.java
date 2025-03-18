@@ -85,6 +85,9 @@ public class ConfigurationParser {
                                         .map(Key::ofName)
                                         .toList())
                 .undoKeys(Set.of())
+                .swallowHintEndKeyPress(true)
+                .savePositionAfterSelection(false)
+                .style()
                 .fontName("Consolas Bold")
                 .fontSize(18f)
                 .fontSpacingPercent(0.6f)
@@ -113,9 +116,7 @@ public class ConfigurationParser {
                 .subgridBorderThickness(1)
                 .subgridBorderLength(10_000)
                 .subgridBorderHexColor("#FFFFFF")
-                .subgridBorderOpacity(1d)
-                .swallowHintEndKeyPress(true)
-                .savePositionAfterSelection(false);
+                .subgridBorderOpacity(1d);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         // On a 1920x1080 screen 73x41 cell size can accommodate up to 26x26 hints.
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
@@ -591,67 +592,67 @@ public class ConfigurationParser {
                         case "undo" ->
                                 mode.hintMesh.builder.undoKeys(parseKeyOrAlias(
                                         propertyValue, keyAliases));
-                        case "font-name" -> mode.hintMesh.builder.fontName(propertyValue);
-                        case "font-size" -> mode.hintMesh.builder.fontSize(
+                        case "font-name" -> mode.hintMesh.builder.style().fontName(propertyValue);
+                        case "font-size" -> mode.hintMesh.builder.style().fontSize(
                                 parseDouble(propertyValue, false, 0, 1000));
-                        case "font-spacing-percent" -> mode.hintMesh.builder.fontSpacingPercent(
+                        case "font-spacing-percent" -> mode.hintMesh.builder.style().fontSpacingPercent(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-color" -> mode.hintMesh.builder.fontHexColor(
+                        case "font-color" -> mode.hintMesh.builder.style().fontHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
+                        case "font-opacity" -> mode.hintMesh.builder.style().fontOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-outline-thickness" -> mode.hintMesh.builder.fontOutlineThickness(
+                        case "font-outline-thickness" -> mode.hintMesh.builder.style().fontOutlineThickness(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "font-outline-color" -> mode.hintMesh.builder.fontOutlineHexColor(
+                        case "font-outline-color" -> mode.hintMesh.builder.style().fontOutlineHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-outline-opacity" -> mode.hintMesh.builder.fontOutlineOpacity(
+                        case "font-outline-opacity" -> mode.hintMesh.builder.style().fontOutlineOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-thickness" -> mode.hintMesh.builder.fontShadowThickness(
+                        case "font-shadow-thickness" -> mode.hintMesh.builder.style().fontShadowThickness(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "font-shadow-step" -> mode.hintMesh.builder.fontShadowStep(
+                        case "font-shadow-step" -> mode.hintMesh.builder.style().fontShadowStep(
                                 parseDouble(propertyValue, true, 1, 1000));
-                        case "font-shadow-color" -> mode.hintMesh.builder.fontShadowHexColor(
+                        case "font-shadow-color" -> mode.hintMesh.builder.style().fontShadowHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-shadow-opacity" -> mode.hintMesh.builder.fontShadowOpacity(
+                        case "font-shadow-opacity" -> mode.hintMesh.builder.style().fontShadowOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.fontShadowHorizontalOffset(
+                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style().fontShadowHorizontalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
-                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.fontShadowVerticalOffset(
+                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style().fontShadowVerticalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
                         case "prefix-font-color" ->
-                                mode.hintMesh.builder.prefixFontHexColor(
+                                mode.hintMesh.builder.style().prefixFontHexColor(
                                         checkColorFormat(propertyValue));
                         case "highlight-font-scale" ->
-                                mode.hintMesh.builder.highlightFontScale(
+                                mode.hintMesh.builder.style().highlightFontScale(
                                         parseNonZeroPercent(propertyValue, 2));
-                        case "box-color" -> mode.hintMesh.builder.boxHexColor(
+                        case "box-color" -> mode.hintMesh.builder.style().boxHexColor(
                                 checkColorFormat(propertyValue));
-                        case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
+                        case "box-opacity" -> mode.hintMesh.builder.style().boxOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
                         // Allow for box grow percent > 1: even with 1, I would get empty pixels
                         // between the cells due to the way we distribute spare pixels.
                         // See HintManager#distributeTrueUniformly.
-                        case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
+                        case "box-border-thickness" -> mode.hintMesh.builder.style().boxBorderThickness(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "box-border-length" -> mode.hintMesh.builder.boxBorderLength(
+                        case "box-border-length" -> mode.hintMesh.builder.style().boxBorderLength(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
+                        case "box-border-color" -> mode.hintMesh.builder.style().boxBorderHexColor(
                                 checkColorFormat(propertyValue));
-                        case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(
+                        case "box-border-opacity" -> mode.hintMesh.builder.style().boxBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "expand-boxes" -> mode.hintMesh.builder.expandBoxes(
+                        case "expand-boxes" -> mode.hintMesh.builder.style().expandBoxes(
                                 Boolean.parseBoolean(propertyValue));
-                        case "subgrid-row-count" -> mode.hintMesh.builder.subgridRowCount(parseUnsignedInteger(
+                        case "subgrid-row-count" -> mode.hintMesh.builder.style().subgridRowCount(parseUnsignedInteger(
                                 propertyValue, 1, 1_000));
-                        case "subgrid-column-count" -> mode.hintMesh.builder.subgridColumnCount(parseUnsignedInteger(
+                        case "subgrid-column-count" -> mode.hintMesh.builder.style().subgridColumnCount(parseUnsignedInteger(
                                 propertyValue, 1, 1_000));
-                        case "subgrid-border-thickness" -> mode.hintMesh.builder.subgridBorderThickness(
+                        case "subgrid-border-thickness" -> mode.hintMesh.builder.style().subgridBorderThickness(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "subgrid-border-length" -> mode.hintMesh.builder.subgridBorderLength(
+                        case "subgrid-border-length" -> mode.hintMesh.builder.style().subgridBorderLength(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "subgrid-border-color" -> mode.hintMesh.builder.subgridBorderHexColor(
+                        case "subgrid-border-color" -> mode.hintMesh.builder.style().subgridBorderHexColor(
                                 checkColorFormat(propertyValue));
-                        case "subgrid-border-opacity" -> mode.hintMesh.builder.subgridBorderOpacity(
+                        case "subgrid-border-opacity" -> mode.hintMesh.builder.style().subgridBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
                         case "mode-after-selection" -> {
                             String modeAfterSelection = propertyValue;
@@ -1735,64 +1736,64 @@ public class ConfigurationParser {
                         builder.selectionKeys(parent.selectionKeys());
                     if (builder.undoKeys() == null)
                         builder.undoKeys(parent.undoKeys());
-                    if (builder.fontName() == null)
-                        builder.fontName(parent.fontName());
-                    if (builder.fontSize() == null)
-                        builder.fontSize(parent.fontSize());
-                    if (builder.fontSpacingPercent() == null)
-                        builder.fontSpacingPercent(parent.fontSpacingPercent());
-                    if (builder.fontHexColor() == null)
-                        builder.fontHexColor(parent.fontHexColor());
-                    if (builder.fontOpacity() == null)
-                        builder.fontOpacity(parent.fontOpacity());
-                    if (builder.fontOutlineThickness() == null)
-                        builder.fontOutlineThickness(parent.fontOutlineThickness());
-                    if (builder.fontOutlineHexColor() == null)
-                        builder.fontOutlineHexColor(parent.fontOutlineHexColor());
-                    if (builder.fontOutlineOpacity() == null)
-                        builder.fontOutlineOpacity(parent.fontOutlineOpacity());
-                    if (builder.fontShadowThickness() == null)
-                        builder.fontShadowThickness(parent.fontShadowThickness());
-                    if (builder.fontShadowStep() == null)
-                        builder.fontShadowStep(parent.fontShadowStep());
-                    if (builder.fontShadowHexColor() == null)
-                        builder.fontShadowHexColor(parent.fontShadowHexColor());
-                    if (builder.fontShadowOpacity() == null)
-                        builder.fontShadowOpacity(parent.fontShadowOpacity());
-                    if (builder.fontShadowHorizontalOffset() == null)
-                        builder.fontShadowHorizontalOffset(parent.fontShadowHorizontalOffset());
-                    if (builder.fontShadowVerticalOffset() == null)
-                        builder.fontShadowVerticalOffset(parent.fontShadowVerticalOffset());
-                    if (builder.prefixFontHexColor() == null)
-                        builder.prefixFontHexColor(parent.prefixFontHexColor());
-                    if (builder.highlightFontScale() == null)
-                        builder.highlightFontScale(parent.highlightFontScale());
-                    if (builder.boxHexColor() == null)
-                        builder.boxHexColor(parent.boxHexColor());
-                    if (builder.boxOpacity() == null)
-                        builder.boxOpacity(parent.boxOpacity());
-                    if (builder.boxBorderThickness() == null)
-                        builder.boxBorderThickness(parent.boxBorderThickness());
-                    if (builder.boxBorderLength() == null)
-                        builder.boxBorderLength(parent.boxBorderLength());
-                    if (builder.boxBorderHexColor() == null)
-                        builder.boxBorderHexColor(parent.boxBorderHexColor());
-                    if (builder.boxBorderOpacity() == null)
-                        builder.boxBorderOpacity(parent.boxBorderOpacity());
-                    if (builder.expandBoxes() == null)
-                        builder.expandBoxes(parent.expandBoxes());
-                    if (builder.subgridRowCount() == null)
-                        builder.subgridRowCount(parent.subgridRowCount());
-                    if (builder.subgridColumnCount() == null)
-                        builder.subgridColumnCount(parent.subgridColumnCount());
-                    if (builder.subgridBorderThickness() == null)
-                        builder.subgridBorderThickness(parent.subgridBorderThickness());
-                    if (builder.subgridBorderLength() == null)
-                        builder.subgridBorderLength(parent.subgridBorderLength());
-                    if (builder.subgridBorderHexColor() == null)
-                        builder.subgridBorderHexColor(parent.subgridBorderHexColor());
-                    if (builder.subgridBorderOpacity() == null)
-                        builder.subgridBorderOpacity(parent.subgridBorderOpacity());
+                    if (builder.style().fontName() == null)
+                        builder.style().fontName(parent.style().fontName());
+                    if (builder.style().fontSize() == null)
+                        builder.style().fontSize(parent.style().fontSize());
+                    if (builder.style().fontSpacingPercent() == null)
+                        builder.style().fontSpacingPercent(parent.style().fontSpacingPercent());
+                    if (builder.style().fontHexColor() == null)
+                        builder.style().fontHexColor(parent.style().fontHexColor());
+                    if (builder.style().fontOpacity() == null)
+                        builder.style().fontOpacity(parent.style().fontOpacity());
+                    if (builder.style().fontOutlineThickness() == null)
+                        builder.style().fontOutlineThickness(parent.style().fontOutlineThickness());
+                    if (builder.style().fontOutlineHexColor() == null)
+                        builder.style().fontOutlineHexColor(parent.style().fontOutlineHexColor());
+                    if (builder.style().fontOutlineOpacity() == null)
+                        builder.style().fontOutlineOpacity(parent.style().fontOutlineOpacity());
+                    if (builder.style().fontShadowThickness() == null)
+                        builder.style().fontShadowThickness(parent.style().fontShadowThickness());
+                    if (builder.style().fontShadowStep() == null)
+                        builder.style().fontShadowStep(parent.style().fontShadowStep());
+                    if (builder.style().fontShadowHexColor() == null)
+                        builder.style().fontShadowHexColor(parent.style().fontShadowHexColor());
+                    if (builder.style().fontShadowOpacity() == null)
+                        builder.style().fontShadowOpacity(parent.style().fontShadowOpacity());
+                    if (builder.style().fontShadowHorizontalOffset() == null)
+                        builder.style().fontShadowHorizontalOffset(parent.style().fontShadowHorizontalOffset());
+                    if (builder.style().fontShadowVerticalOffset() == null)
+                        builder.style().fontShadowVerticalOffset(parent.style().fontShadowVerticalOffset());
+                    if (builder.style().prefixFontHexColor() == null)
+                        builder.style().prefixFontHexColor(parent.style().prefixFontHexColor());
+                    if (builder.style().highlightFontScale() == null)
+                        builder.style().highlightFontScale(parent.style().highlightFontScale());
+                    if (builder.style().boxHexColor() == null)
+                        builder.style().boxHexColor(parent.style().boxHexColor());
+                    if (builder.style().boxOpacity() == null)
+                        builder.style().boxOpacity(parent.style().boxOpacity());
+                    if (builder.style().boxBorderThickness() == null)
+                        builder.style().boxBorderThickness(parent.style().boxBorderThickness());
+                    if (builder.style().boxBorderLength() == null)
+                        builder.style().boxBorderLength(parent.style().boxBorderLength());
+                    if (builder.style().boxBorderHexColor() == null)
+                        builder.style().boxBorderHexColor(parent.style().boxBorderHexColor());
+                    if (builder.style().boxBorderOpacity() == null)
+                        builder.style().boxBorderOpacity(parent.style().boxBorderOpacity());
+                    if (builder.style().expandBoxes() == null)
+                        builder.style().expandBoxes(parent.style().expandBoxes());
+                    if (builder.style().subgridRowCount() == null)
+                        builder.style().subgridRowCount(parent.style().subgridRowCount());
+                    if (builder.style().subgridColumnCount() == null)
+                        builder.style().subgridColumnCount(parent.style().subgridColumnCount());
+                    if (builder.style().subgridBorderThickness() == null)
+                        builder.style().subgridBorderThickness(parent.style().subgridBorderThickness());
+                    if (builder.style().subgridBorderLength() == null)
+                        builder.style().subgridBorderLength(parent.style().subgridBorderLength());
+                    if (builder.style().subgridBorderHexColor() == null)
+                        builder.style().subgridBorderHexColor(parent.style().subgridBorderHexColor());
+                    if (builder.style().subgridBorderOpacity() == null)
+                        builder.style().subgridBorderOpacity(parent.style().subgridBorderOpacity());
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

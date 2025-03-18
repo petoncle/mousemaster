@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class WindowsOverlay {
 
@@ -704,12 +703,12 @@ public class WindowsOverlay {
             throw new RuntimeException("Failed to create Graphics object. Status: " + graphicsStatus);
         }
 
-        double fontSize = currentHintMesh.fontSize();
+        double fontSize = currentHintMesh.style().fontSize();
         int dpi = screen.dpi();
         float normalGdipFontSize = (float) (fontSize * screen.scale() * dpi / 72);
         WindowsFont.WindowsFontFamilyAndStyle
-                fontFamilyAndStyle = WindowsFont.fontFamilyAndStyle(currentHintMesh.fontName());
-        double highlightFontScale = currentHintMesh.highlightFontScale();
+                fontFamilyAndStyle = WindowsFont.fontFamilyAndStyle(currentHintMesh.style().fontName());
+        double highlightFontScale = currentHintMesh.style().highlightFontScale();
         float largeGdipFontSize = (float) (highlightFontScale * normalGdipFontSize);
 
         PointerByReference fontFamily = new PointerByReference();
@@ -730,7 +729,7 @@ public class WindowsOverlay {
         }
 
         List<Key> focusedHintKeySequence = currentHintMesh.focusedKeySequence();
-        double boxBorderThickness = currentHintMesh.boxBorderThickness();
+        double boxBorderThickness = currentHintMesh.style().boxBorderThickness();
         boolean isHintGrid = windowHints.getFirst().cellWidth() != -1;
         HintBoundingBoxes hintBoundingBoxes =
                 hintCentersAndBoundingBoxes(windowHints, focusedHintKeySequence,
@@ -742,36 +741,37 @@ public class WindowsOverlay {
                 normalizedHints(screen, windowHints, focusedHintKeySequence,
                         highlightFontScale,
                         boxBorderThickness, isHintGrid, hintBoundingBoxes);
-        HintMesh normalizedHintMesh = new HintMesh.HintMeshBuilder(currentHintMesh)
-                .hints(normalizedHints.hints())
-                .fontSize(normalGdipFontSize) // DPI-dependent
-                .build();
+        HintMesh.HintMeshBuilder normalizedHintMeshBuilder =
+                new HintMesh.HintMeshBuilder(currentHintMesh);
+        normalizedHintMeshBuilder.hints(normalizedHints.hints());
+        normalizedHintMeshBuilder.style().fontSize(normalGdipFontSize); // DPI-dependent
+        HintMesh normalizedHintMesh = normalizedHintMeshBuilder.build();
 
-        double fontSpacingPercent = currentHintMesh.fontSpacingPercent();
-        double fontOpacity = currentHintMesh.fontOpacity();
-        double fontOutlineThickness = currentHintMesh.fontOutlineThickness();
-        String fontOutlineHexColor = currentHintMesh.fontOutlineHexColor();
-        double fontOutlineOpacity = currentHintMesh.fontOutlineOpacity();
-        double fontShadowThickness = currentHintMesh.fontShadowThickness();
-        double fontShadowStep = currentHintMesh.fontShadowStep();
-        String fontShadowHexColor = currentHintMesh.fontShadowHexColor();
-        double fontShadowOpacity = currentHintMesh.fontShadowOpacity();
-        double fontShadowHorizontalOffset = currentHintMesh.fontShadowHorizontalOffset();
-        double fontShadowVerticalOffset = currentHintMesh.fontShadowVerticalOffset();
-        String boxHexColor = currentHintMesh.boxHexColor();
-        double boxOpacity = currentHintMesh.boxOpacity();
-        double boxBorderLength = currentHintMesh.boxBorderLength();
-        String boxBorderHexColor = currentHintMesh.boxBorderHexColor();
-        double boxBorderOpacity = currentHintMesh.boxBorderOpacity();
-        boolean expandBoxes = currentHintMesh.expandBoxes();
-        String fontHexColor = currentHintMesh.fontHexColor();
-        String prefixFontHexColor = currentHintMesh.prefixFontHexColor();
-        int subgridRowCount = currentHintMesh.subgridRowCount();
-        int subgridColumnCount = currentHintMesh.subgridColumnCount();
-        double subgridBorderThickness = currentHintMesh.subgridBorderThickness();
-        double subgridBorderLength = currentHintMesh.subgridBorderLength();
-        String subgridBorderHexColor = currentHintMesh.subgridBorderHexColor();
-        double subgridBorderOpacity = currentHintMesh.subgridBorderOpacity();
+        double fontSpacingPercent = currentHintMesh.style().fontSpacingPercent();
+        double fontOpacity = currentHintMesh.style().fontOpacity();
+        double fontOutlineThickness = currentHintMesh.style().fontOutlineThickness();
+        String fontOutlineHexColor = currentHintMesh.style().fontOutlineHexColor();
+        double fontOutlineOpacity = currentHintMesh.style().fontOutlineOpacity();
+        double fontShadowThickness = currentHintMesh.style().fontShadowThickness();
+        double fontShadowStep = currentHintMesh.style().fontShadowStep();
+        String fontShadowHexColor = currentHintMesh.style().fontShadowHexColor();
+        double fontShadowOpacity = currentHintMesh.style().fontShadowOpacity();
+        double fontShadowHorizontalOffset = currentHintMesh.style().fontShadowHorizontalOffset();
+        double fontShadowVerticalOffset = currentHintMesh.style().fontShadowVerticalOffset();
+        String boxHexColor = currentHintMesh.style().boxHexColor();
+        double boxOpacity = currentHintMesh.style().boxOpacity();
+        double boxBorderLength = currentHintMesh.style().boxBorderLength();
+        String boxBorderHexColor = currentHintMesh.style().boxBorderHexColor();
+        double boxBorderOpacity = currentHintMesh.style().boxBorderOpacity();
+        boolean expandBoxes = currentHintMesh.style().expandBoxes();
+        String fontHexColor = currentHintMesh.style().fontHexColor();
+        String prefixFontHexColor = currentHintMesh.style().prefixFontHexColor();
+        int subgridRowCount = currentHintMesh.style().subgridRowCount();
+        int subgridColumnCount = currentHintMesh.style().subgridColumnCount();
+        double subgridBorderThickness = currentHintMesh.style().subgridBorderThickness();
+        double subgridBorderLength = currentHintMesh.style().subgridBorderLength();
+        String subgridBorderHexColor = currentHintMesh.style().subgridBorderHexColor();
+        double subgridBorderOpacity = currentHintMesh.style().subgridBorderOpacity();
 
         int boxColor =
                 hexColorStringToRgb(boxHexColor, 1d) | ((int) (boxOpacity * 255) << 24);
