@@ -96,12 +96,12 @@ public record HintMeshStyle(String fontName,
             return this;
         }
 
-        public HintMeshStyleBuilder fontSize(double fontSize) {
+        public HintMeshStyleBuilder fontSize(Double fontSize) {
             this.fontSize = fontSize;
             return this;
         }
 
-        public HintMeshStyleBuilder fontSpacingPercent(double fontSpacingPercent) {
+        public HintMeshStyleBuilder fontSpacingPercent(Double fontSpacingPercent) {
             this.fontSpacingPercent = fontSpacingPercent;
             return this;
         }
@@ -111,12 +111,12 @@ public record HintMeshStyle(String fontName,
             return this;
         }
 
-        public HintMeshStyleBuilder fontOpacity(double fontOpacity) {
+        public HintMeshStyleBuilder fontOpacity(Double fontOpacity) {
             this.fontOpacity = fontOpacity;
             return this;
         }
 
-        public HintMeshStyleBuilder fontOutlineThickness(double fontOutlineThickness) {
+        public HintMeshStyleBuilder fontOutlineThickness(Double fontOutlineThickness) {
             this.fontOutlineThickness = fontOutlineThickness;
             return this;
         }
@@ -126,17 +126,17 @@ public record HintMeshStyle(String fontName,
             return this;
         }
 
-        public HintMeshStyleBuilder fontOutlineOpacity(double fontOutlineOpacity) {
+        public HintMeshStyleBuilder fontOutlineOpacity(Double fontOutlineOpacity) {
             this.fontOutlineOpacity = fontOutlineOpacity;
             return this;
         }
 
-        public HintMeshStyleBuilder fontShadowThickness(double fontShadowThickness) {
+        public HintMeshStyleBuilder fontShadowThickness(Double fontShadowThickness) {
             this.fontShadowThickness = fontShadowThickness;
             return this;
         }
 
-        public HintMeshStyleBuilder fontShadowStep(double fontShadowStep) {
+        public HintMeshStyleBuilder fontShadowStep(Double fontShadowStep) {
             this.fontShadowStep = fontShadowStep;
             return this;
         }
@@ -146,17 +146,17 @@ public record HintMeshStyle(String fontName,
             return this;
         }
 
-        public HintMeshStyleBuilder fontShadowOpacity(double fontShadowOpacity) {
+        public HintMeshStyleBuilder fontShadowOpacity(Double fontShadowOpacity) {
             this.fontShadowOpacity = fontShadowOpacity;
             return this;
         }
 
-        public HintMeshStyleBuilder fontShadowHorizontalOffset(double fontShadowHorizontalOffset) {
+        public HintMeshStyleBuilder fontShadowHorizontalOffset(Double fontShadowHorizontalOffset) {
             this.fontShadowHorizontalOffset = fontShadowHorizontalOffset;
             return this;
         }
 
-        public HintMeshStyleBuilder fontShadowVerticalOffset(double fontShadowVerticalOffset) {
+        public HintMeshStyleBuilder fontShadowVerticalOffset(Double fontShadowVerticalOffset) {
             this.fontShadowVerticalOffset = fontShadowVerticalOffset;
             return this;
         }
@@ -178,17 +178,17 @@ public record HintMeshStyle(String fontName,
             return this;
         }
 
-        public HintMeshStyleBuilder boxOpacity(double boxOpacity) {
+        public HintMeshStyleBuilder boxOpacity(Double boxOpacity) {
             this.boxOpacity = boxOpacity;
             return this;
         }
 
-        public HintMeshStyleBuilder boxBorderThickness(double boxBorderThickness) {
+        public HintMeshStyleBuilder boxBorderThickness(Double boxBorderThickness) {
             this.boxBorderThickness = boxBorderThickness;
             return this;
         }
 
-        public HintMeshStyleBuilder boxBorderLength(double boxBorderLength) {
+        public HintMeshStyleBuilder boxBorderLength(Double boxBorderLength) {
             this.boxBorderLength = boxBorderLength;
             return this;
         }
@@ -198,32 +198,32 @@ public record HintMeshStyle(String fontName,
             return this;
         }
 
-        public HintMeshStyleBuilder boxBorderOpacity(double boxBorderOpacity) {
+        public HintMeshStyleBuilder boxBorderOpacity(Double boxBorderOpacity) {
             this.boxBorderOpacity = boxBorderOpacity;
             return this;
         }
 
-        public HintMeshStyleBuilder expandBoxes(boolean expandBoxes) {
+        public HintMeshStyleBuilder expandBoxes(Boolean expandBoxes) {
             this.expandBoxes = expandBoxes;
             return this;
         }
 
-        public HintMeshStyleBuilder subgridRowCount(int subgridRowCount) {
+        public HintMeshStyleBuilder subgridRowCount(Integer subgridRowCount) {
             this.subgridRowCount = subgridRowCount;
             return this;
         }
 
-        public HintMeshStyleBuilder subgridColumnCount(int subgridColumnCount) {
+        public HintMeshStyleBuilder subgridColumnCount(Integer subgridColumnCount) {
             this.subgridColumnCount = subgridColumnCount;
             return this;
         }
 
-        public HintMeshStyleBuilder subgridBorderThickness(double subgridBorderThickness) {
+        public HintMeshStyleBuilder subgridBorderThickness(Double subgridBorderThickness) {
             this.subgridBorderThickness = subgridBorderThickness;
             return this;
         }
 
-        public HintMeshStyleBuilder subgridBorderLength(double subgridBorderLength) {
+        public HintMeshStyleBuilder subgridBorderLength(Double subgridBorderLength) {
             this.subgridBorderLength = subgridBorderLength;
             return this;
         }
@@ -233,7 +233,7 @@ public record HintMeshStyle(String fontName,
             return this;
         }
 
-        public HintMeshStyleBuilder subgridBorderOpacity(double subgridBorderOpacity) {
+        public HintMeshStyleBuilder subgridBorderOpacity(Double subgridBorderOpacity) {
             this.subgridBorderOpacity = subgridBorderOpacity;
             return this;
         }
@@ -354,24 +354,37 @@ public record HintMeshStyle(String fontName,
             return subgridBorderOpacity;
         }
 
-        public HintMeshStyle build() {
+        public HintMeshStyle build(HintMeshStyle defaultStyle) {
             return new HintMeshStyle(
-                    fontName,
-                    fontSize, fontSpacingPercent, fontHexColor, fontOpacity,
-                    fontOutlineThickness, fontOutlineHexColor, fontOutlineOpacity,
-                    fontShadowThickness, fontShadowStep, fontShadowHexColor, fontShadowOpacity, fontShadowHorizontalOffset, fontShadowVerticalOffset,
-                    prefixFontHexColor,
-                    highlightFontScale,
-                    boxHexColor, boxOpacity, boxBorderThickness,
-                    boxBorderLength,
-                    boxBorderHexColor, boxBorderOpacity,
-                    expandBoxes,
-                    subgridRowCount,
-                    subgridColumnCount,
-                    subgridBorderThickness,
-                    subgridBorderLength,
-                    subgridBorderHexColor,
-                    subgridBorderOpacity
+                    fontName == null ? defaultStyle.fontName : fontName,
+                    fontSize == null ? defaultStyle.fontSize : fontSize,
+                    fontSpacingPercent == null ? defaultStyle.fontSpacingPercent : fontSpacingPercent,
+                    fontHexColor == null ? defaultStyle.fontHexColor : fontHexColor,
+                    fontOpacity == null ? defaultStyle.fontOpacity : fontOpacity,
+                    fontOutlineThickness == null ? defaultStyle.fontOutlineThickness : fontOutlineThickness,
+                    fontOutlineHexColor == null ? defaultStyle.fontOutlineHexColor : fontOutlineHexColor,
+                    fontOutlineOpacity == null ? defaultStyle.fontOutlineOpacity : fontOutlineOpacity,
+                    fontShadowThickness == null ? defaultStyle.fontShadowThickness : fontShadowThickness,
+                    fontShadowStep == null ? defaultStyle.fontShadowStep : fontShadowStep,
+                    fontShadowHexColor == null ? defaultStyle.fontShadowHexColor : fontShadowHexColor,
+                    fontShadowOpacity == null ? defaultStyle.fontShadowOpacity : fontShadowOpacity,
+                    fontShadowHorizontalOffset == null ? defaultStyle.fontShadowHorizontalOffset : fontShadowHorizontalOffset,
+                    fontShadowVerticalOffset == null ? defaultStyle.fontShadowVerticalOffset : fontShadowVerticalOffset,
+                    prefixFontHexColor == null ? defaultStyle.prefixFontHexColor : prefixFontHexColor,
+                    highlightFontScale == null ? defaultStyle.highlightFontScale : highlightFontScale,
+                    boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
+                    boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
+                    boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,
+                    boxBorderLength == null ? defaultStyle.boxBorderLength : boxBorderLength,
+                    boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
+                    boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
+                    expandBoxes == null ? defaultStyle.expandBoxes : expandBoxes,
+                    subgridRowCount == null ? defaultStyle.subgridRowCount : subgridRowCount,
+                    subgridColumnCount == null ? defaultStyle.subgridColumnCount : subgridColumnCount,
+                    subgridBorderThickness == null ? defaultStyle.subgridBorderThickness : subgridBorderThickness,
+                    subgridBorderLength == null ? defaultStyle.subgridBorderLength : subgridBorderLength,
+                    subgridBorderHexColor == null ? defaultStyle.subgridBorderHexColor : subgridBorderHexColor,
+                    subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity
             );
         }
 

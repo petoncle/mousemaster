@@ -6,6 +6,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static mousemaster.ViewportFilter.*;
+
 public class ViewportFilterMap<V> {
 
     private final Map<ViewportFilter, V> map;
@@ -15,11 +17,17 @@ public class ViewportFilterMap<V> {
     }
 
     public V get(ViewportFilter filter) {
-        V layout = map.get(filter);
-        if (layout != null)
-            return layout;
-        return map.get(
-                ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER);
+        return map.get(closestFilter(filter));
+    }
+
+    public ViewportFilter closestFilter(ViewportFilter filter) {
+        if (map.containsKey(filter))
+            return filter;
+        return AnyViewportFilter.ANY_VIEWPORT_FILTER;
+    }
+
+    public Map<ViewportFilter, V> map() {
+        return map;
     }
 
     public <B> ViewportFilterMapBuilder<B, V> builder(Function<V, B> elementToBuilder) {
@@ -57,7 +65,7 @@ public class ViewportFilterMap<V> {
         public ViewportFilterMap<V> build(BiFunction<B, V, V> elementBuilder) {
             // Assumes that the default layout is not missing any property.
             V defaultValue = elementBuilder.apply(map.get(
-                    ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER), null);
+                    AnyViewportFilter.ANY_VIEWPORT_FILTER), null);
             return new ViewportFilterMap<>(map.entrySet().stream().collect(Collectors.toMap(
                     Map.Entry::getKey,
                     entry -> elementBuilder.apply(entry.getValue(), defaultValue)

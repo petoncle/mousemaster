@@ -136,7 +136,8 @@ public class WindowsPlatform implements Platform {
                     }
                 }
             }
-            hintFontNames.add(mode.hintMesh().style().fontName());
+            mode.hintMesh().styleByFilter().map().values().stream()
+                .map(HintMeshStyle::fontName).forEach(hintFontNames::add);
         }
         WindowsFont.setFontPool(hintFontNames);
         WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboAndRemappingKeys, keyboardLayout);

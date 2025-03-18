@@ -150,7 +150,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    ZoomConfiguration zoomConfiguration, Zoom zoom) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
-                .style(hintMeshConfiguration.style());
+                .styleByFilter(hintMeshConfiguration.styleByFilter());
         HintMeshType type = hintMeshConfiguration.type();
         int layoutRowCount;
         int layoutColumnCount;
@@ -168,7 +168,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 };
                 logger.trace("Grid center " + gridCenter);
                 HintGridLayout gridLayout =
-                        hintGrid.layout(ViewportFilter.of(screenManager.activeScreen()));
+                        hintGrid.layout(ViewportFilter.of(gridScreen));
                 FixedSizeHintGrid fixedSizeHintGrid = fixedSizeHintGrid(
                         screenManager.activeScreen().rectangle(), gridCenter,
                         gridLayout.maxRowCount(),
@@ -265,6 +265,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 saveCurrentPosition();
             int hintCount = positionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
+            HintMeshStyle firstHintScreenStyle = null;
             for (Point point : positionHistory) {
                 List<Key> keySequence = hintKeySequence(
                         hintMeshConfiguration.selectionKeys(),
@@ -279,6 +280,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                             -1, -1, keySequence));
                 else
                     hints.add(new Hint(point.x(), point.y(), -1, -1, keySequence));
+                if (firstHintScreenStyle == null) {
+                    Screen screen = screenManager.screenContaining(point.x(), point.y());
+                    firstHintScreenStyle = hintMeshConfiguration.styleByFilter()
+                                                                .get(ViewportFilter.of(
+                                                                        screen));
+                }
             }
             hintMesh.hints(hints);
         }

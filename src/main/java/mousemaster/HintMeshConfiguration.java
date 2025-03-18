@@ -2,6 +2,7 @@ package mousemaster;
 
 import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
 import mousemaster.HintMeshType.HintMeshTypeBuilder;
+import mousemaster.ViewportFilterMap.ViewportFilterMapBuilder;
 
 import java.util.List;
 import java.util.Set;
@@ -11,7 +12,7 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean moveMouse,
                                     HintMeshType type,
                                     List<Key> selectionKeys, Set<Key> undoKeys,
-                                    HintMeshStyle style,
+                                    ViewportFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
@@ -23,7 +24,8 @@ public record HintMeshConfiguration(boolean enabled,
         private final HintMeshTypeBuilder type = new HintMeshTypeBuilder();
         private List<Key> selectionKeys;
         private Set<Key> undoKeys;
-        private final HintMeshStyleBuilder style = new HintMeshStyleBuilder();
+        private final ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
+                styleByFilter = new ViewportFilterMapBuilder<>();
         private String modeAfterSelection;
         private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
@@ -95,8 +97,13 @@ public record HintMeshConfiguration(boolean enabled,
             return undoKeys;
         }
 
-        public HintMeshStyleBuilder style() {
-            return style;
+        public ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> styleByFilter() {
+            return styleByFilter;
+        }
+
+        public HintMeshStyleBuilder style(ViewportFilter filter) {
+            return styleByFilter.map()
+                                .computeIfAbsent(filter, filter1 -> new HintMeshStyleBuilder());
         }
 
         public String modeAfterSelection() {
@@ -115,7 +122,7 @@ public record HintMeshConfiguration(boolean enabled,
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     type.build(),
                     selectionKeys, undoKeys,
-                    style.build(),
+                    styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);
         }
