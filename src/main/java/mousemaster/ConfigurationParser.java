@@ -1286,8 +1286,7 @@ public class ConfigurationParser {
         switch (hintMeshType.type()) {
             case GRID -> {
                 HintGridLayout.HintGridLayoutBuilder defaultLayout =
-                        hintMeshType.gridLayoutByFilter()
-                                    .get(AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                        hintMeshType.gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER);
                 if (defaultLayout.maxRowCount() == null ||
                     defaultLayout.maxColumnCount() == null ||
                     defaultLayout.cellWidth() == null ||
@@ -1711,7 +1710,7 @@ public class ConfigurationParser {
                     if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
                         builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
                     for (var parentEntry : parent.type()
-                                                 .gridLayoutByFilter()
+                                                 .gridLayoutByFilter().map()
                                                  .entrySet()) {
                         HintGridLayout.HintGridLayoutBuilder parentLayout =
                                 parentEntry.getValue();
@@ -1728,9 +1727,11 @@ public class ConfigurationParser {
                         if (childLayout.layoutRowCount() == null)
                             childLayout.layoutRowCount(parentLayout.layoutRowCount());
                         if (childLayout.layoutColumnCount() == null)
-                            childLayout.layoutColumnCount(parentLayout.layoutColumnCount());
+                            childLayout.layoutColumnCount(
+                                    parentLayout.layoutColumnCount());
                         if (childLayout.layoutRowOriented() == null)
-                            childLayout.layoutRowOriented(parentLayout.layoutRowOriented());
+                            childLayout.layoutRowOriented(
+                                    parentLayout.layoutRowOriented());
                     }
                     if (builder.selectionKeys() == null)
                         builder.selectionKeys(parent.selectionKeys());

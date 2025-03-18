@@ -1,14 +1,11 @@
 package mousemaster;
 
 import mousemaster.HintGridLayout.HintGridLayoutBuilder;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
+import mousemaster.ViewportFilterMap.ViewportFilterMapBuilder;
 
 public sealed interface HintMeshType {
 
-    record HintGrid(HintGridArea area, Map<ViewportFilter, HintGridLayout> gridLayoutByFilter) implements HintMeshType {
+    record HintGrid(HintGridArea area, ViewportFilterMap<HintGridLayout> gridLayoutByFilter) implements HintMeshType {
 
         public HintGridLayout layout(ViewportFilter filter) {
             HintGridLayout layout = gridLayoutByFilter.get(filter);
@@ -35,10 +32,11 @@ public sealed interface HintMeshType {
         private HintMeshTypeType type;
         private HintGridArea.HintGridAreaBuilder
                 gridArea = new HintGridArea.HintGridAreaBuilder();
-        private Map<ViewportFilter, HintGridLayoutBuilder> gridLayoutByFilter = new HashMap<>();
+        private final ViewportFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
+                gridLayoutByFilter;
 
         public HintMeshTypeBuilder() {
-
+            this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
         }
 
         public HintMeshTypeBuilder(HintMeshType hintMeshType) {
@@ -46,16 +44,12 @@ public sealed interface HintMeshType {
                 case HintGrid hintGrid -> {
                     this.type = HintMeshTypeType.GRID;
                     this.gridArea = hintGrid.area.builder();
-                    this.gridLayoutByFilter = hintGrid.gridLayoutByFilter
-                            .entrySet()
-                            .stream()
-                            .collect(Collectors.toMap(
-                                    Map.Entry::getKey,
-                                    entry -> entry.getValue().builder()
-                            ));
+                    this.gridLayoutByFilter =
+                            hintGrid.gridLayoutByFilter.builder(HintGridLayout::builder);
                 }
                 case HintPositionHistory hintPositionHistory -> {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
+                    this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
                 }
             }
         }
@@ -69,11 +63,11 @@ public sealed interface HintMeshType {
         }
 
         public HintGridLayoutBuilder gridLayout(ViewportFilter filter) {
-            return gridLayoutByFilter.computeIfAbsent(filter,
+            return gridLayoutByFilter.map().computeIfAbsent(filter,
                     filter1 -> new HintGridLayoutBuilder());
         }
 
-        public Map<ViewportFilter, HintGridLayoutBuilder> gridLayoutByFilter() {
+        public ViewportFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout> gridLayoutByFilter() {
             return gridLayoutByFilter;
         }
 
@@ -84,19 +78,9 @@ public sealed interface HintMeshType {
 
         public HintMeshType build() {
             return switch (type) {
-                case GRID -> new HintGrid(gridArea.build(), buildGridLayoutByFilter());
+                case GRID -> new HintGrid(gridArea.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
                 case POSITION_HISTORY -> new HintPositionHistory();
             };
-        }
-
-        public Map<ViewportFilter, HintGridLayout> buildGridLayoutByFilter() {
-            // Assumes that the default layout is not missing any property.
-            HintGridLayout defaultLayout = gridLayoutByFilter.get(
-                    ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER).build(null);
-            return gridLayoutByFilter.entrySet().stream().collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    entry -> entry.getValue().build(defaultLayout)
-            ));
         }
     }
 
