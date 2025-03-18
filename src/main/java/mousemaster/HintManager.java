@@ -148,7 +148,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    ZoomConfiguration zoomConfiguration, Zoom zoom) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
-                .type(hintMeshConfiguration.typeAndSelectionKeys().type())
                 .fontName(hintMeshConfiguration.fontName())
                 .fontSize(hintMeshConfiguration.fontSize())
                 .fontSpacingPercent(hintMeshConfiguration.fontSpacingPercent())
@@ -181,6 +180,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .subgridBorderOpacity(hintMeshConfiguration.subgridBorderOpacity())
         ;
         HintMeshType type = hintMeshConfiguration.typeAndSelectionKeys().type();
+        int layoutRowCount;
+        int layoutColumnCount;
+        boolean layoutRowOriented;
         if (type instanceof HintMeshType.HintGrid hintGrid) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
             if (hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea) {
@@ -193,10 +195,18 @@ public class HintManager implements ModeListener, MousePositionListener {
                                     lastSelectedHintPoint;
                 };
                 logger.trace("Grid center " + gridCenter);
-                fixedSizeHintGrids.add(fixedSizeHintGrid(
-                        screenManager.activeScreen().rectangle(), gridCenter, hintGrid.maxRowCount(),
-                        hintGrid.maxColumnCount(), hintGrid.cellWidth() * screenManager.activeScreen().scale(),
-                        hintGrid.cellHeight() * screenManager.activeScreen().scale()));
+                HintGridLayout gridLayout =
+                        hintGrid.layout(ViewportFilter.of(screenManager.activeScreen()));
+                FixedSizeHintGrid fixedSizeHintGrid = fixedSizeHintGrid(
+                        screenManager.activeScreen().rectangle(), gridCenter,
+                        gridLayout.maxRowCount(),
+                        gridLayout.maxColumnCount(),
+                        gridLayout.cellWidth() * screenManager.activeScreen().scale(),
+                        gridLayout.cellHeight() * screenManager.activeScreen().scale());
+                fixedSizeHintGrids.add(fixedSizeHintGrid);
+                layoutRowCount = Math.min(fixedSizeHintGrid.rowCount(), gridLayout.layoutRowCount());
+                layoutColumnCount = Math.min(fixedSizeHintGrid.columnCount(), gridLayout.layoutColumnCount());
+                layoutRowOriented = gridLayout.layoutRowOriented();
             }
             else if (hintGrid.area() instanceof AllScreensHintGridArea allScreensHintGridArea) {
                 List<Screen> sortedScreens = //
@@ -207,14 +217,29 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                        .thenComparing(
                                                                s -> s.rectangle().y()))
                                      .toList();
+                int firstScreenLayoutRowCount = -1;
+                int firstScreenLayoutColumnCount = -1;
+                boolean firstScreenLayoutRowOriented = false;
                 for (Screen screen : sortedScreens) {
                     Point gridCenter = screen.rectangle().center();
-                    fixedSizeHintGrids.add(
+                    HintGridLayout gridLayout = hintGrid.layout(
+                            ViewportFilter.of(screenManager.activeScreen()));
+                    FixedSizeHintGrid fixedSizeHintGrid =
                             fixedSizeHintGrid(screen.rectangle(),
-                                    gridCenter, hintGrid.maxRowCount(),
-                                    hintGrid.maxColumnCount(), hintGrid.cellWidth() * screen.scale(),
-                                    hintGrid.cellHeight() * screen.scale()));
+                                    gridCenter, gridLayout.maxRowCount(),
+                                    gridLayout.maxColumnCount(),
+                                    gridLayout.cellWidth() * screen.scale(),
+                                    gridLayout.cellHeight() * screen.scale());
+                    fixedSizeHintGrids.add(fixedSizeHintGrid);
+                    if (firstScreenLayoutRowCount == -1) {
+                        firstScreenLayoutRowCount = Math.min(fixedSizeHintGrid.rowCount(), gridLayout.layoutRowCount());
+                        firstScreenLayoutColumnCount = Math.min(fixedSizeHintGrid.columnCount(), gridLayout.layoutColumnCount());
+                        firstScreenLayoutRowOriented = gridLayout.layoutRowOriented();
+                    }
                 }
+                layoutRowCount = firstScreenLayoutRowCount;
+                layoutColumnCount = firstScreenLayoutColumnCount;
+                layoutRowOriented = firstScreenLayoutRowOriented;
             }
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle =
@@ -222,28 +247,23 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Point gridCenter = activeWindowRectangle.center();
                 Screen screen =
                         screenManager.screenContaining(gridCenter.x(), gridCenter.y());
-                fixedSizeHintGrids.add(fixedSizeHintGrid(
-                        activeWindowRectangle, gridCenter, hintGrid.maxRowCount(),
-                        hintGrid.maxColumnCount(), hintGrid.cellWidth() * screen.scale(),
-                        hintGrid.cellHeight() * screen.scale()));
+                HintGridLayout gridLayout =
+                        hintGrid.layout(ViewportFilter.of(screenManager.activeScreen()));
+                FixedSizeHintGrid fixedSizeHintGrid =
+                        fixedSizeHintGrid(activeWindowRectangle, gridCenter,
+                                gridLayout.maxRowCount(), gridLayout.maxColumnCount(),
+                                gridLayout.cellWidth() * screen.scale(),
+                                gridLayout.cellHeight() * screen.scale());
+                fixedSizeHintGrids.add(fixedSizeHintGrid);
+                layoutRowCount = Math.min(fixedSizeHintGrid.rowCount(), gridLayout.layoutRowCount());
+                layoutColumnCount = Math.min(fixedSizeHintGrid.columnCount(), gridLayout.layoutColumnCount());
+                layoutRowOriented = gridLayout.layoutRowOriented();
             }
             else
                 throw new IllegalStateException();
             int hintCountSum = fixedSizeHintGrids.stream()
                                                  .mapToInt(FixedSizeHintGrid::hintCount)
                                                  .sum();
-            int maxColumnCount = fixedSizeHintGrids.stream()
-                                                   .mapToInt(
-                                                           FixedSizeHintGrid::columnCount)
-                                                   .max()
-                                                   .orElseThrow();
-            int maxRowCount = fixedSizeHintGrids.stream()
-                                                   .mapToInt(
-                                                           FixedSizeHintGrid::rowCount)
-                                                   .max()
-                                                   .orElseThrow();
-            int layoutRowCount = Math.min(maxRowCount, hintGrid.layoutRowCount());
-            int layoutColumnCount = Math.min(maxColumnCount, hintGrid.layoutColumnCount());
             int subgridCount = fixedSizeHintGrids.stream()
                                                  .mapToInt(
                                                          fixedSizeHintGrid -> fixedSizeHintGrid.subgridCount(
@@ -262,7 +282,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         beginSubgridIndex, subgridCount,
                         beginHintIndex,
                         layoutRowCount,
-                        layoutColumnCount, hintGrid.layoutRowOriented(),
+                        layoutColumnCount, layoutRowOriented,
                         zoom));
                 beginSubgridIndex +=
                         fixedSizeHintGrid.subgridCount(layoutRowCount, layoutColumnCount);

@@ -743,7 +743,6 @@ public class WindowsOverlay {
                         highlightFontScale,
                         boxBorderThickness, isHintGrid, hintBoundingBoxes);
         HintMesh normalizedHintMesh = new HintMesh.HintMeshBuilder(currentHintMesh)
-                .type(null) // last-selected-hint or screen-center can lead to same drawings.
                 .hints(normalizedHints.hints())
                 .fontSize(normalGdipFontSize) // DPI-dependent
                 .build();

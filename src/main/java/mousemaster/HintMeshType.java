@@ -1,10 +1,23 @@
 package mousemaster;
 
+import mousemaster.HintGridLayout.HintGridLayoutBuilder;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 public sealed interface HintMeshType {
 
-    record HintGrid(HintGridArea area, int maxRowCount, int maxColumnCount, double cellWidth,
-                    double cellHeight,
-                    int layoutRowCount, int layoutColumnCount, boolean layoutRowOriented) implements HintMeshType {
+    record HintGrid(HintGridArea area, Map<ViewportFilter, HintGridLayout> gridLayoutByFilter) implements HintMeshType {
+
+        public HintGridLayout layout(ViewportFilter filter) {
+            HintGridLayout layout = gridLayoutByFilter.get(filter);
+            if (layout != null)
+                return layout;
+            return gridLayoutByFilter.get(
+                    ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER);
+        }
+
     }
 
     record HintPositionHistory() implements HintMeshType {
@@ -22,13 +35,7 @@ public sealed interface HintMeshType {
         private HintMeshTypeType type;
         private HintGridArea.HintGridAreaBuilder
                 gridArea = new HintGridArea.HintGridAreaBuilder();
-        private Integer gridMaxRowCount;
-        private Integer gridMaxColumnCount;
-        private Double gridCellWidth;
-        private Double gridCellHeight;
-        private Integer layoutRowCount;
-        private Integer layoutColumnCount;
-        private Boolean layoutRowOriented;
+        private Map<ViewportFilter, HintGridLayoutBuilder> gridLayoutByFilter = new HashMap<>();
 
         public HintMeshTypeBuilder() {
 
@@ -39,11 +46,13 @@ public sealed interface HintMeshType {
                 case HintGrid hintGrid -> {
                     this.type = HintMeshTypeType.GRID;
                     this.gridArea = hintGrid.area.builder();
-                    this.gridCellWidth = hintGrid.cellWidth;
-                    this.gridCellHeight = hintGrid.cellHeight;
-                    this.layoutRowCount = hintGrid.layoutRowCount;
-                    this.layoutColumnCount = hintGrid.layoutColumnCount;
-                    this.layoutRowOriented = hintGrid.layoutRowOriented;
+                    this.gridLayoutByFilter = hintGrid.gridLayoutByFilter
+                            .entrySet()
+                            .stream()
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    entry -> entry.getValue().builder()
+                            ));
                 }
                 case HintPositionHistory hintPositionHistory -> {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
@@ -59,32 +68,13 @@ public sealed interface HintMeshType {
             return gridArea;
         }
 
-        public Integer gridMaxRowCount() {
-            return gridMaxRowCount;
+        public HintGridLayoutBuilder gridLayout(ViewportFilter filter) {
+            return gridLayoutByFilter.computeIfAbsent(filter,
+                    filter1 -> new HintGridLayoutBuilder());
         }
 
-        public Integer gridMaxColumnCount() {
-            return gridMaxColumnCount;
-        }
-
-        public Double gridCellWidth() {
-            return gridCellWidth;
-        }
-
-        public Double gridCellHeight() {
-            return gridCellHeight;
-        }
-
-        public Integer layoutRowCount() {
-            return layoutRowCount;
-        }
-
-        public Integer layoutColumnCount() {
-            return layoutColumnCount;
-        }
-
-        public Boolean layoutRowOriented() {
-            return layoutRowOriented;
+        public Map<ViewportFilter, HintGridLayoutBuilder> gridLayoutByFilter() {
+            return gridLayoutByFilter;
         }
 
         public HintMeshTypeBuilder type(HintMeshTypeType type) {
@@ -92,48 +82,21 @@ public sealed interface HintMeshType {
             return this;
         }
 
-        public HintMeshTypeBuilder gridMaxRowCount(Integer gridMaxRowCount) {
-            this.gridMaxRowCount = gridMaxRowCount;
-            return this;
-        }
-
-        public HintMeshTypeBuilder gridMaxColumnCount(Integer gridMaxColumnCount) {
-            this.gridMaxColumnCount = gridMaxColumnCount;
-            return this;
-        }
-
-        public HintMeshTypeBuilder gridCellWidth(Double gridCellWidth) {
-            this.gridCellWidth = gridCellWidth;
-            return this;
-        }
-
-        public HintMeshTypeBuilder gridCellHeight(Double gridCellHeight) {
-            this.gridCellHeight = gridCellHeight;
-            return this;
-        }
-
-        public HintMeshTypeBuilder layoutRowCount(Integer layoutRowCount) {
-            this.layoutRowCount = layoutRowCount;
-            return this;
-        }
-
-        public HintMeshTypeBuilder layoutColumnCount(Integer layoutColumnCount) {
-            this.layoutColumnCount = layoutColumnCount;
-            return this;
-        }
-
-        public HintMeshTypeBuilder layoutRowOriented(Boolean layoutRowOriented) {
-            this.layoutRowOriented = layoutRowOriented;
-            return this;
-        }
-
         public HintMeshType build() {
             return switch (type) {
-                case GRID -> new HintGrid(gridArea.build(), gridMaxRowCount,
-                        gridMaxColumnCount, gridCellWidth, gridCellHeight,
-                        layoutRowCount, layoutColumnCount, layoutRowOriented);
+                case GRID -> new HintGrid(gridArea.build(), buildGridLayoutByFilter());
                 case POSITION_HISTORY -> new HintPositionHistory();
             };
+        }
+
+        public Map<ViewportFilter, HintGridLayout> buildGridLayoutByFilter() {
+            // Assumes that the default layout is not missing any property.
+            HintGridLayout defaultLayout = gridLayoutByFilter.get(
+                    ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER).build(null);
+            return gridLayoutByFilter.entrySet().stream().collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    entry -> entry.getValue().build(defaultLayout)
+            ));
         }
     }
 
