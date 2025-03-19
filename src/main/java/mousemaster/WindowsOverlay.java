@@ -471,11 +471,14 @@ public class WindowsOverlay {
                                 hintMesh.focusedKeySequence(),
                                 style.fontSpacingPercent(),
                                 hintKeyMaxXAdvance, metrics);
+                int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
                 HintBox hintBox =
                         new HintBox((int) Math.round(style.boxBorderLength()),
-                                (int) Math.round(style.boxBorderThickness()),
+                                boxBorderThickness,
                                 boxColor,
-                                boxBorderColor, gridLeftEdge, gridTopEdge,
+                                boxBorderColor,
+                                isHintPartOfGrid,
+                                gridLeftEdge, gridTopEdge,
                                 gridRightEdge, gridBottomEdge,
                                 true, qtScaleFactor
                         );
@@ -573,7 +576,9 @@ public class WindowsOverlay {
                         (int) Math.round(subgridBorderLength),
                         (int) Math.round(subgridBorderThickness),
                         subgridBoxColor, // Transparent.
-                        subgridBoxBorderColor, gridLeftEdge,
+                        subgridBoxBorderColor,
+                        true,
+                        gridLeftEdge,
                         gridTopEdge,
                         gridRightEdge, gridBottomEdge,
                         false, qtScaleFactor
@@ -616,6 +621,7 @@ public class WindowsOverlay {
 
     public static class HintBox extends QWidget {
 
+        private final boolean isHintPartOfGrid;
         private final boolean gridLeftEdge;
         private final boolean gridTopEdge;
         private final boolean gridRightEdge;
@@ -629,9 +635,12 @@ public class WindowsOverlay {
         private QColor borderColor;
 
         public HintBox(int borderLength, int borderThickness, QColor color,
-                       QColor borderColor, boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
+                       QColor borderColor,
+                       boolean isHintPartOfGrid,
+                       boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        boolean drawGridEdgeBorders,
                        double qtScaleFactor) {
+            this.isHintPartOfGrid = isHintPartOfGrid;
             this.gridLeftEdge = gridLeftEdge;
             this.gridTopEdge = gridTopEdge;
             this.gridRightEdge = gridRightEdge;
@@ -677,7 +686,7 @@ public class WindowsOverlay {
             // Full thickness if grid edge.
             // Otherwise, half thickness: thickness/2 + thickness%2 for top and left, thickness/2 for bottom and right
             int verticalLeftThickness = borderThickness / 2 + borderThickness % 2;
-            int verticalRightThickness = borderThickness / 2;
+            int verticalRightThickness = isHintPartOfGrid ? borderThickness / 2 : verticalLeftThickness;
             int horizontalTopThickness = verticalLeftThickness;
             int horizontalBottomThickness = verticalRightThickness;
             QPen gridEdgePen = createPen(borderColor, borderThickness);
