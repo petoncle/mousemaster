@@ -88,9 +88,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     @Override
     public void modeChanged(Mode newMode) {
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
-        List<Key> selectionKeys = hintMeshConfiguration.keysByFilter()
-                                                       .get(screenFilter)
-                                                       .selectionKeys();
+        List<Key> selectionKeys =
+                hintMesh == null ? null : hintMeshConfiguration.keysByFilter()
+                                                               .get(screenFilter)
+                                                               .selectionKeys();
         if (hintJustSelected) {
             // When going from hint2-1 to hint2-2, even if we already have been in hint2-2
             // before, we don't want the old state of hint2-2.

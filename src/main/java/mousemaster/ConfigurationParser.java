@@ -1096,16 +1096,25 @@ public class ConfigurationParser {
     private static ViewportFilter parseViewportFilter(String string) {
         if (string == null)
             return AnyViewportFilter.ANY_VIEWPORT_FILTER;
+        // 1920x1080
+        Matcher resolutionMatcher = Pattern.compile("(\\d+)x(\\d+)").matcher(string);
+        if (resolutionMatcher.matches()) {
+            return new FixedViewportFilter(new Viewport(
+                    Integer.parseUnsignedInt(resolutionMatcher.group(1)),
+                    Integer.parseUnsignedInt(resolutionMatcher.group(2)),
+                    -1f
+            ));
+        }
         // 1920x1080-100%
-        Matcher matcher = Pattern.compile("(\\d+)x(\\d+)-(\\d+)%").matcher(string);
-        if (!matcher.matches()) {
+        Matcher resolutionScaleMatcher = Pattern.compile("(\\d+)x(\\d+)-(\\d+)%").matcher(string);
+        if (!resolutionScaleMatcher.matches()) {
             throw new IllegalArgumentException("Invalid viewport filter " + string +
-                                               ": expected format 1920x1080-100%");
+                                               ": expected formats 1920x1080 or 1920x1080-100%");
         }
         return new FixedViewportFilter(new Viewport(
-                Integer.parseUnsignedInt(matcher.group(1)),
-                Integer.parseUnsignedInt(matcher.group(2)),
-                Integer.parseUnsignedInt(matcher.group(3)) / 100d
+                Integer.parseUnsignedInt(resolutionScaleMatcher.group(1)),
+                Integer.parseUnsignedInt(resolutionScaleMatcher.group(2)),
+                Integer.parseUnsignedInt(resolutionScaleMatcher.group(3)) / 100d
         ));
     }
 

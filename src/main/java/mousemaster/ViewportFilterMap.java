@@ -23,6 +23,19 @@ public class ViewportFilterMap<V> {
     public ViewportFilter closestFilter(ViewportFilter filter) {
         if (map.containsKey(filter))
             return filter;
+        FixedViewportFilter fixedViewportFilter = (FixedViewportFilter) filter;
+        for (ViewportFilter existingFilter : map.keySet()) {
+            if (existingFilter instanceof FixedViewportFilter existingFixedViewportFilter) {
+                if (existingFixedViewportFilter.viewport().scale() == -1 &&
+                    existingFixedViewportFilter.viewport().width() ==
+                    fixedViewportFilter.viewport().width() &&
+                    existingFixedViewportFilter.viewport().height() ==
+                    fixedViewportFilter.viewport().height()) {
+                    // Different scale.
+                    return existingFixedViewportFilter;
+                }
+            }
+        }
         return AnyViewportFilter.ANY_VIEWPORT_FILTER;
     }
 
