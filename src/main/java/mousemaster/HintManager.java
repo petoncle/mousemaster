@@ -88,6 +88,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     @Override
     public void modeChanged(Mode newMode) {
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
+        if (hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory) {
+            if (positionHistory.isEmpty())
+                saveCurrentPosition();
+        }
         ViewportFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
                 hintMeshConfiguration.keysByFilter()
@@ -284,8 +288,6 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints);
         }
         else {
-            if (positionHistory.isEmpty())
-                saveCurrentPosition();
             int hintCount = positionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
             HintMeshKeys hintMeshKeys =
