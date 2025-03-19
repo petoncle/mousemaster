@@ -465,7 +465,7 @@ public class WindowsOverlay {
                                 outlineColor,
                                 (int) Math.round(style.fontOutlineThickness() * screenScale),
                                 shadowColor,
-                                style.fontShadowBlurRadius(),
+                                style.fontShadowBlurRadius() * screenScale,
                                 style.fontShadowHorizontalOffset() * screenScale,
                                 style.fontShadowVerticalOffset() * screenScale,
                                 hintMesh.focusedKeySequence(),
