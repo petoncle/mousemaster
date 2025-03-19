@@ -79,15 +79,14 @@ public class ConfigurationParser {
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
                 .visible(true)
-                .moveMouse(true)
+                .moveMouse(true);
+        hintMesh.keys(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                 .selectionKeys(IntStream.rangeClosed('a', 'z')
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
                                         .toList())
-                .undoKeys(Set.of())
-                .swallowHintEndKeyPress(true)
-                .savePositionAfterSelection(false)
-                .style(AnyViewportFilter.ANY_VIEWPORT_FILTER)
+                .undoKeys(Set.of());
+        hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                 .fontName("Consolas Bold")
                 .fontSize(18d)
                 .fontSpacingPercent(0.6d)
@@ -117,6 +116,8 @@ public class ConfigurationParser {
                 .subgridBorderLength(10_000d)
                 .subgridBorderHexColor("#FFFFFF")
                 .subgridBorderOpacity(1d);
+        hintMesh.swallowHintEndKeyPress(true)
+                .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         // On a 1920x1080 screen 73x41 cell size can accommodate up to 26x26 hints.
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
@@ -587,10 +588,10 @@ public class ConfigurationParser {
                         case "layout-row-oriented" -> mode.hintMesh.builder.type()
                                                                            .gridLayout(viewportFilter)
                                                                            .layoutRowOriented(Boolean.parseBoolean(propertyValue));
-                        case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
+                        case "selection-keys" -> mode.hintMesh.builder.keys(viewportFilter).selectionKeys(
                                 parseHintKeys(propertyValue, keyAliases));
                         case "undo" ->
-                                mode.hintMesh.builder.undoKeys(parseKeyOrAlias(
+                                mode.hintMesh.builder.keys(viewportFilter).undoKeys(parseKeyOrAlias(
                                         propertyValue, keyAliases));
                         case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontName(propertyValue);
                         case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontSize(
@@ -1733,10 +1734,17 @@ public class ConfigurationParser {
                             childLayout.layoutRowOriented(
                                     parentLayout.layoutRowOriented());
                     }
-                    if (builder.selectionKeys() == null)
-                        builder.selectionKeys(parent.selectionKeys());
-                    if (builder.undoKeys() == null)
-                        builder.undoKeys(parent.undoKeys());
+                    for (var parentEntry : parent.keysByFilter()
+                                                 .map()
+                                                 .entrySet()) {
+                        HintMeshKeys.HintMeshKeysBuilder parentKeys = parentEntry.getValue();
+                        HintMeshKeys.HintMeshKeysBuilder childKeys =
+                                builder.keys(parentEntry.getKey());
+                        if (childKeys.selectionKeys() == null)
+                            childKeys.selectionKeys(parentKeys.selectionKeys());
+                        if (childKeys.undoKeys() == null)
+                            childKeys.undoKeys(parentKeys.undoKeys());
+                    }
                     for (var parentEntry : parent.styleByFilter().map()
                                                  .entrySet()) {
                         HintMeshStyle.HintMeshStyleBuilder parentStyle =

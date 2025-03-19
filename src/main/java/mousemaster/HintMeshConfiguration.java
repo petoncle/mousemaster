@@ -1,17 +1,15 @@
 package mousemaster;
 
+import mousemaster.HintMeshKeys.HintMeshKeysBuilder;
 import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
 import mousemaster.HintMeshType.HintMeshTypeBuilder;
 import mousemaster.ViewportFilterMap.ViewportFilterMapBuilder;
-
-import java.util.List;
-import java.util.Set;
 
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     boolean moveMouse,
                                     HintMeshType type,
-                                    List<Key> selectionKeys, Set<Key> undoKeys,
+                                    ViewportFilterMap<HintMeshKeys> keysByFilter,
                                     ViewportFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
                                     boolean swallowHintEndKeyPress,
@@ -22,8 +20,8 @@ public record HintMeshConfiguration(boolean enabled,
         private Boolean visible;
         private Boolean moveMouse;
         private final HintMeshTypeBuilder type = new HintMeshTypeBuilder();
-        private List<Key> selectionKeys;
-        private Set<Key> undoKeys;
+        private final ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys>
+                keysByFilter = new ViewportFilterMapBuilder<>();
         private final ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
                 styleByFilter = new ViewportFilterMapBuilder<>();
         private String modeAfterSelection;
@@ -45,14 +43,15 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder selectionKeys(List<Key> selectionKeys) {
-            this.selectionKeys = selectionKeys;
-            return this;
+        public HintMeshKeysBuilder keys(ViewportFilter filter) {
+            return keysByFilter.map()
+                               .computeIfAbsent(filter,
+                                       filter1 -> new HintMeshKeysBuilder());
         }
 
-        public HintMeshConfigurationBuilder undoKeys(Set<Key> undoKeys) {
-            this.undoKeys = undoKeys;
-            return this;
+        public HintMeshStyleBuilder style(ViewportFilter filter) {
+            return styleByFilter.map()
+                                .computeIfAbsent(filter, filter1 -> new HintMeshStyleBuilder());
         }
 
         public HintMeshConfigurationBuilder modeAfterSelection(
@@ -89,21 +88,12 @@ public record HintMeshConfiguration(boolean enabled,
             return moveMouse;
         }
 
-        public List<Key> selectionKeys() {
-            return selectionKeys;
-        }
-
-        public Set<Key> undoKeys() {
-            return undoKeys;
+        public ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys> keysByFilter() {
+            return keysByFilter;
         }
 
         public ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> styleByFilter() {
             return styleByFilter;
-        }
-
-        public HintMeshStyleBuilder style(ViewportFilter filter) {
-            return styleByFilter.map()
-                                .computeIfAbsent(filter, filter1 -> new HintMeshStyleBuilder());
         }
 
         public String modeAfterSelection() {
@@ -121,7 +111,7 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     type.build(),
-                    selectionKeys, undoKeys,
+                    keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection, swallowHintEndKeyPress,
                     savePositionAfterSelection);

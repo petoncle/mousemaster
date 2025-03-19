@@ -18,6 +18,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final MouseController mouseController;
     private ModeController modeController;
     private HintMesh hintMesh;
+    private ViewportFilter screenFilter;
     private Set<Key> selectionKeySubset;
     private final Map<HintMeshKey, HintMeshState> hintMeshStates = new HashMap<>();
     private boolean hintJustSelected = false;
@@ -87,13 +88,16 @@ public class HintManager implements ModeListener, MousePositionListener {
     @Override
     public void modeChanged(Mode newMode) {
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
+        List<Key> selectionKeys = hintMeshConfiguration.keysByFilter()
+                                                       .get(screenFilter)
+                                                       .selectionKeys();
         if (hintJustSelected) {
             // When going from hint2-1 to hint2-2, even if we already have been in hint2-2
             // before, we don't want the old state of hint2-2.
             hintJustSelected = false;
             hintMeshStates.remove(
                     new HintMeshKey(hintMeshConfiguration.type(),
-                            hintMeshConfiguration.selectionKeys(), newMode.zoom()));
+                            selectionKeys, newMode.zoom()));
         }
         else if (hintMeshConfiguration.type() instanceof HintMeshType.HintGrid hintGrid &&
                          hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea &&
@@ -104,7 +108,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     hintMeshState =
                     hintMeshStates.get(
                             new HintMeshKey(hintMeshConfiguration.type(),
-                                    hintMeshConfiguration.selectionKeys(),
+                                    selectionKeys,
                                     newMode.zoom()));
             if (hintMeshState != null)
                 lastSelectedHintPoint =
@@ -128,7 +132,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         Zoom newZoom = new Zoom(newMode.zoom().percent(),
                 zoomCenterPoint, screenManager.screenContaining(zoomCenterPoint.x(),
                 zoomCenterPoint.y()).rectangle());
-        HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom);
+        HintMeshAndScreenFilter
+                newHintMeshAndScreenFilter = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom);
+        HintMesh newHintMesh = newHintMeshAndScreenFilter.hintMesh;
+        ViewportFilter newScreenFilter = newHintMeshAndScreenFilter.screenFilter;
         if (currentMode != null && newMode.hintMesh().equals(currentMode.hintMesh()) &&
             newHintMesh.equals(hintMesh))
             return;
@@ -139,22 +146,29 @@ public class HintManager implements ModeListener, MousePositionListener {
                                         .collect(Collectors.toSet());
         currentMode = newMode;
         currentZoom = newZoom;
+        List<Key> newSelectionKeys =
+                hintMeshConfiguration.keysByFilter().get(newScreenFilter).selectionKeys();
         hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(),
-                        hintMeshConfiguration.selectionKeys(), newMode.zoom()),
+                        newSelectionKeys,
+                        newMode.zoom()),
                 new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
+        screenFilter = newScreenFilter;
         WindowsOverlay.setHintMesh(hintMesh);
     }
 
-    private HintMesh buildHintMesh(HintMeshConfiguration hintMeshConfiguration,
-                                   ZoomConfiguration zoomConfiguration, Zoom zoom) {
+    private record HintMeshAndScreenFilter(HintMesh hintMesh,
+                                           ViewportFilter screenFilter) {
+    }
+
+    private HintMeshAndScreenFilter buildHintMesh(
+            HintMeshConfiguration hintMeshConfiguration,
+            ZoomConfiguration zoomConfiguration, Zoom zoom) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
                 .styleByFilter(hintMeshConfiguration.styleByFilter());
         HintMeshType type = hintMeshConfiguration.type();
-        int layoutRowCount;
-        int layoutColumnCount;
-        boolean layoutRowOriented;
+        ViewportFilter screenFilter;
         if (type instanceof HintMeshType.HintGrid hintGrid) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
             if (hintGrid.area() instanceof ActiveScreenHintGridArea activeScreenHintGridArea) {
@@ -167,8 +181,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                     lastSelectedHintPoint;
                 };
                 logger.trace("Grid center " + gridCenter);
-                HintGridLayout gridLayout =
-                        hintGrid.layout(ViewportFilter.of(gridScreen));
+                screenFilter = ViewportFilter.of(gridScreen);
+                HintGridLayout gridLayout = hintGrid.layout(screenFilter);
                 FixedSizeHintGrid fixedSizeHintGrid = fixedSizeHintGrid(
                         screenManager.activeScreen().rectangle(), gridCenter,
                         gridLayout.maxRowCount(),
@@ -176,9 +190,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                         gridLayout.cellWidth() * screenManager.activeScreen().scale(),
                         gridLayout.cellHeight() * screenManager.activeScreen().scale());
                 fixedSizeHintGrids.add(fixedSizeHintGrid);
-                layoutRowCount = Math.min(fixedSizeHintGrid.rowCount(), gridLayout.layoutRowCount());
-                layoutColumnCount = Math.min(fixedSizeHintGrid.columnCount(), gridLayout.layoutColumnCount());
-                layoutRowOriented = gridLayout.layoutRowOriented();
             }
             else if (hintGrid.area() instanceof AllScreensHintGridArea allScreensHintGridArea) {
                 List<Screen> sortedScreens = //
@@ -189,9 +200,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                        .thenComparing(
                                                                s -> s.rectangle().y()))
                                      .toList();
-                int firstScreenLayoutRowCount = -1;
-                int firstScreenLayoutColumnCount = -1;
-                boolean firstScreenLayoutRowOriented = false;
+                ViewportFilter firstScreenFilter = null;
                 for (Screen screen : sortedScreens) {
                     Point gridCenter = screen.rectangle().center();
                     HintGridLayout gridLayout = hintGrid.layout(
@@ -203,15 +212,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                                     gridLayout.cellWidth() * screen.scale(),
                                     gridLayout.cellHeight() * screen.scale());
                     fixedSizeHintGrids.add(fixedSizeHintGrid);
-                    if (firstScreenLayoutRowCount == -1) {
-                        firstScreenLayoutRowCount = Math.min(fixedSizeHintGrid.rowCount(), gridLayout.layoutRowCount());
-                        firstScreenLayoutColumnCount = Math.min(fixedSizeHintGrid.columnCount(), gridLayout.layoutColumnCount());
-                        firstScreenLayoutRowOriented = gridLayout.layoutRowOriented();
+                    if (firstScreenFilter == null) {
+                        firstScreenFilter = ViewportFilter.of(screen);
                     }
                 }
-                layoutRowCount = firstScreenLayoutRowCount;
-                layoutColumnCount = firstScreenLayoutColumnCount;
-                layoutRowOriented = firstScreenLayoutRowOriented;
+                screenFilter = firstScreenFilter;
             }
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle =
@@ -219,30 +224,36 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Point gridCenter = activeWindowRectangle.center();
                 Screen screen =
                         screenManager.screenContaining(gridCenter.x(), gridCenter.y());
-                HintGridLayout gridLayout =
-                        hintGrid.layout(ViewportFilter.of(screenManager.activeScreen()));
+                screenFilter = ViewportFilter.of(screenManager.activeScreen());
+                HintGridLayout gridLayout = hintGrid.layout(screenFilter);
                 FixedSizeHintGrid fixedSizeHintGrid =
                         fixedSizeHintGrid(activeWindowRectangle, gridCenter,
                                 gridLayout.maxRowCount(), gridLayout.maxColumnCount(),
                                 gridLayout.cellWidth() * screen.scale(),
                                 gridLayout.cellHeight() * screen.scale());
                 fixedSizeHintGrids.add(fixedSizeHintGrid);
-                layoutRowCount = Math.min(fixedSizeHintGrid.rowCount(), gridLayout.layoutRowCount());
-                layoutColumnCount = Math.min(fixedSizeHintGrid.columnCount(), gridLayout.layoutColumnCount());
-                layoutRowOriented = gridLayout.layoutRowOriented();
             }
             else
                 throw new IllegalStateException();
             int hintCountSum = fixedSizeHintGrids.stream()
                                                  .mapToInt(FixedSizeHintGrid::hintCount)
                                                  .sum();
+            HintGridLayout firstScreenGridLayout = hintGrid.layout(screenFilter);
+            FixedSizeHintGrid firstScreen = fixedSizeHintGrids.getFirst();
+            int layoutRowCount = Math.min(firstScreen.rowCount(),
+                    firstScreenGridLayout.layoutRowCount());
+            int layoutColumnCount = Math.min(firstScreen.columnCount(),
+                    firstScreenGridLayout.layoutColumnCount());
+            boolean layoutRowOriented = firstScreenGridLayout.layoutRowOriented();
             int subgridCount = fixedSizeHintGrids.stream()
                                                  .mapToInt(
                                                          fixedSizeHintGrid -> fixedSizeHintGrid.subgridCount(
                                                                  layoutRowCount,
                                                                  layoutColumnCount))
                                                  .sum();
-            List<Key> selectionKeys = hintMeshConfiguration.selectionKeys();
+            HintMeshKeys hintMeshKeys =
+                    hintMeshConfiguration.keysByFilter().get(screenFilter);
+            List<Key> selectionKeys = hintMeshKeys.selectionKeys();
             List<Hint> hints = new ArrayList<>();
             int beginSubgridIndex = 0;
             for (FixedSizeHintGrid fixedSizeHintGrid : fixedSizeHintGrids) {
@@ -265,10 +276,16 @@ public class HintManager implements ModeListener, MousePositionListener {
                 saveCurrentPosition();
             int hintCount = positionHistory.size();
             List<Hint> hints = new ArrayList<>(hintCount);
-            HintMeshStyle firstHintScreenStyle = null;
+            Screen firstHintScreen =
+                    screenManager.screenContaining(positionHistory.getFirst().x(),
+                            positionHistory.getFirst().y());
+            screenFilter = ViewportFilter.of(firstHintScreen);
+            HintMeshKeys hintMeshKeys =
+                    hintMeshConfiguration.keysByFilter().get(screenFilter);
+            List<Key> selectionKeys = hintMeshKeys.selectionKeys();
             for (Point point : positionHistory) {
                 List<Key> keySequence = hintKeySequence(
-                        hintMeshConfiguration.selectionKeys(),
+                        selectionKeys,
                         hintCount,
                         0, -1, idByPosition.get(point) % maxPositionHistorySize,
                         -1, -1,
@@ -280,18 +297,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                             -1, -1, keySequence));
                 else
                     hints.add(new Hint(point.x(), point.y(), -1, -1, keySequence));
-                if (firstHintScreenStyle == null) {
-                    Screen screen = screenManager.screenContaining(point.x(), point.y());
-                    firstHintScreenStyle = hintMeshConfiguration.styleByFilter()
-                                                                .get(ViewportFilter.of(
-                                                                        screen));
-                }
             }
             hintMesh.hints(hints);
         }
         HintMeshState previousHintMeshState = hintMeshStates.get(
                 new HintMeshKey(hintMeshConfiguration.type(),
-                        hintMeshConfiguration.selectionKeys(), zoomConfiguration));
+                        hintMeshConfiguration.keysByFilter()
+                                             .get(screenFilter)
+                                             .selectionKeys(),
+                        zoomConfiguration));
         if (previousHintMeshState != null &&
             previousHintMeshState.hintMesh.hints()
                                           .equals(hintMesh.hints())) {
@@ -300,7 +314,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.focusedKeySequence(
                     previousHintMeshState.hintMesh.focusedKeySequence());
         }
-        return hintMesh.build();
+        return new HintMeshAndScreenFilter(hintMesh.build(), screenFilter);
     }
 
     private static List<Hint> buildHints(FixedSizeHintGrid fixedSizeHintGrid,
@@ -594,7 +608,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
             return PressKeyEventProcessing.unhandled();
-        if (hintMeshConfiguration.undoKeys().contains(key)) {
+        HintMeshKeys hintMeshKeys = hintMeshConfiguration.keysByFilter()
+                                                         .get(screenFilter);
+        if (hintMeshKeys.undoKeys().contains(key)) {
             List<Key> focusedKeySequence = hintMesh.focusedKeySequence();
             if (!focusedKeySequence.isEmpty()) {
                 hintMesh = hintMesh.builder()
@@ -603,7 +619,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    .build();
                 HintMeshKey hintMeshKey =
                         new HintMeshKey(hintMeshConfiguration.type(),
-                                hintMeshConfiguration.selectionKeys(),
+                                hintMeshKeys.selectionKeys(),
                                 currentMode.zoom());
                 hintMeshStates.put(
                         hintMeshKey,
@@ -676,7 +692,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
             HintMeshKey hintMeshKey =
                     new HintMeshKey(hintMeshConfiguration.type(),
-                            hintMeshConfiguration.selectionKeys(), currentMode.zoom());
+                            hintMeshKeys.selectionKeys(), currentMode.zoom());
             hintMeshStates.put(
                     hintMeshKey,
                     new HintMeshState(
@@ -715,7 +731,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                     hintMesh.builder().focusedKeySequence(List.of()).build();
             HintMeshKey hintMeshKey =
                     new HintMeshKey(hintMeshConfiguration.type(),
-                            hintMeshConfiguration.selectionKeys(), currentMode.zoom());
+                            hintMeshConfiguration.keysByFilter()
+                                                 .get(screenFilter)
+                                                 .selectionKeys(), currentMode.zoom());
             hintMeshStates.put(
                     hintMeshKey,
                     new HintMeshState(
