@@ -80,42 +80,44 @@ public class ConfigurationParser {
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
                 .visible(true)
-                .moveMouse(true)
+                .moveMouse(true);
+        hintMesh.keys(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                 .selectionKeys(IntStream.rangeClosed('a', 'z')
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
                                         .toList())
-                .undoKeys(Set.of())
+                .undoKeys(Set.of());
+        hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                 .fontName("Consolas")
                 .fontWeight(FontWeight.BOLD)
-                .fontSize(18f)
-                .fontSpacingPercent(0.7f)
+                .fontSize(18d)
+                .fontSpacingPercent(0.7d)
                 .fontHexColor("#FFFFFF")
                 .fontOpacity(1d)
-                .fontOutlineThickness(0)
+                .fontOutlineThickness(0d)
                 .fontOutlineHexColor("#000000")
                 .fontOutlineOpacity(0.5d)
-                .fontShadowBlurRadius(0)
+                .fontShadowBlurRadius(0d)
                 .fontShadowHexColor("#000000")
                 .fontShadowOpacity(0.4d)
-                .fontShadowHorizontalOffset(2)
-                .fontShadowVerticalOffset(2)
+                .fontShadowHorizontalOffset(2d)
+                .fontShadowVerticalOffset(2d)
                 .prefixFontHexColor("#CCCCCC")
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
-                .boxBorderThickness(1)
-                .boxBorderLength(10_000)
+                .boxBorderThickness(1d)
+                .boxBorderLength(10_000d)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
-                .boxWidthPercent(1)
-                .boxHeightPercent(1)
+                .boxWidthPercent(1d)
+                .boxHeightPercent(1d)
                 .subgridRowCount(1)
                 .subgridColumnCount(1)
-                .subgridBorderThickness(1)
-                .subgridBorderLength(10_000)
+                .subgridBorderThickness(1d)
+                .subgridBorderLength(10_000d)
                 .subgridBorderHexColor("#FFFFFF")
-                .subgridBorderOpacity(1d)
-                .swallowHintEndKeyPress(true)
+                .subgridBorderOpacity(1d);
+        hintMesh.swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         // On a 1920x1080 screen 73x41 cell size can accommodate up to 26x26 hints.
@@ -588,70 +590,70 @@ public class ConfigurationParser {
                         case "layout-row-oriented" -> mode.hintMesh.builder.type()
                                                                            .gridLayout(viewportFilter)
                                                                            .layoutRowOriented(Boolean.parseBoolean(propertyValue));
-                        case "selection-keys" -> mode.hintMesh.builder.selectionKeys(
+                        case "selection-keys" -> mode.hintMesh.builder.keys(viewportFilter).selectionKeys(
                                 parseHintKeys(propertyValue, keyAliases));
                         case "undo" ->
-                                mode.hintMesh.builder.undoKeys(parseKeyOrAlias(
+                                mode.hintMesh.builder.keys(viewportFilter).undoKeys(parseKeyOrAlias(
                                         propertyValue, keyAliases));
-                        case "font-weight" -> mode.hintMesh.builder.fontWeight(FontWeight.of(propertyValue));
-                        case "font-name" -> mode.hintMesh.builder.fontName(parseFontName(propertyValue, fontAvailability));
-                        case "font-size" -> mode.hintMesh.builder.fontSize(
+                        case "font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontWeight(FontWeight.of(propertyValue));
+                        case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontName(parseFontName(propertyValue, fontAvailability));
+                        case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontSize(
                                 parseDouble(propertyValue, false, 0, 1000));
-                        case "font-spacing-percent" -> mode.hintMesh.builder.fontSpacingPercent(
+                        case "font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).fontSpacingPercent(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-color" -> mode.hintMesh.builder.fontHexColor(
+                        case "font-color" -> mode.hintMesh.builder.style(viewportFilter).fontHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-opacity" -> mode.hintMesh.builder.fontOpacity(
+                        case "font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-outline-thickness" -> mode.hintMesh.builder.fontOutlineThickness(
+                        case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontOutlineThickness(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "font-outline-color" -> mode.hintMesh.builder.fontOutlineHexColor(
+                        case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontOutlineHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-outline-opacity" -> mode.hintMesh.builder.fontOutlineOpacity(
+                        case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontOutlineOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.fontShadowBlurRadius(
+                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontShadowBlurRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "font-shadow-color" -> mode.hintMesh.builder.fontShadowHexColor(
+                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontShadowHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-shadow-opacity" -> mode.hintMesh.builder.fontShadowOpacity(
+                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontShadowOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.fontShadowHorizontalOffset(
+                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontShadowHorizontalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
-                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.fontShadowVerticalOffset(
+                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontShadowVerticalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
                         case "prefix-font-color" ->
-                                mode.hintMesh.builder.prefixFontHexColor(
+                                mode.hintMesh.builder.style(viewportFilter).prefixFontHexColor(
                                         checkColorFormat(propertyValue));
-                        case "box-color" -> mode.hintMesh.builder.boxHexColor(
+                        case "box-color" -> mode.hintMesh.builder.style(viewportFilter).boxHexColor(
                                 checkColorFormat(propertyValue));
-                        case "box-opacity" -> mode.hintMesh.builder.boxOpacity(
+                        case "box-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
                         // Allow for box grow percent > 1: even with 1, I would get empty pixels
                         // between the cells due to the way we distribute spare pixels.
                         // See HintManager#distributeTrueUniformly.
-                        case "box-border-thickness" -> mode.hintMesh.builder.boxBorderThickness(
+                        case "box-border-thickness" -> mode.hintMesh.builder.style(viewportFilter).boxBorderThickness(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "box-border-length" -> mode.hintMesh.builder.boxBorderLength(
+                        case "box-border-length" -> mode.hintMesh.builder.style(viewportFilter).boxBorderLength(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "box-border-color" -> mode.hintMesh.builder.boxBorderHexColor(
+                        case "box-border-color" -> mode.hintMesh.builder.style(viewportFilter).boxBorderHexColor(
                                 checkColorFormat(propertyValue));
-                        case "box-border-opacity" -> mode.hintMesh.builder.boxBorderOpacity(
+                        case "box-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "box-width-percent" -> mode.hintMesh.builder.boxWidthPercent(
+                        case "box-width-percent" -> mode.hintMesh.builder.style(viewportFilter).boxWidthPercent(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "box-height-percent" -> mode.hintMesh.builder.boxHeightPercent(
+                        case "box-height-percent" -> mode.hintMesh.builder.style(viewportFilter).boxHeightPercent(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "subgrid-row-count" -> mode.hintMesh.builder.subgridRowCount(parseUnsignedInteger(
+                        case "subgrid-row-count" -> mode.hintMesh.builder.style(viewportFilter).subgridRowCount(parseUnsignedInteger(
                                 propertyValue, 1, 1_000));
-                        case "subgrid-column-count" -> mode.hintMesh.builder.subgridColumnCount(parseUnsignedInteger(
+                        case "subgrid-column-count" -> mode.hintMesh.builder.style(viewportFilter).subgridColumnCount(parseUnsignedInteger(
                                 propertyValue, 1, 1_000));
-                        case "subgrid-border-thickness" -> mode.hintMesh.builder.subgridBorderThickness(
+                        case "subgrid-border-thickness" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderThickness(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "subgrid-border-length" -> mode.hintMesh.builder.subgridBorderLength(
+                        case "subgrid-border-length" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderLength(
                                 parseDouble(propertyValue, true, 0, 10_000));
-                        case "subgrid-border-color" -> mode.hintMesh.builder.subgridBorderHexColor(
+                        case "subgrid-border-color" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderHexColor(
                                 checkColorFormat(propertyValue));
-                        case "subgrid-border-opacity" -> mode.hintMesh.builder.subgridBorderOpacity(
+                        case "subgrid-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
                         case "mode-after-selection" -> {
                             String modeAfterSelection = propertyValue;
@@ -1094,16 +1096,25 @@ public class ConfigurationParser {
     private static ViewportFilter parseViewportFilter(String string) {
         if (string == null)
             return AnyViewportFilter.ANY_VIEWPORT_FILTER;
+        // 1920x1080
+        Matcher resolutionMatcher = Pattern.compile("(\\d+)x(\\d+)").matcher(string);
+        if (resolutionMatcher.matches()) {
+            return new FixedViewportFilter(new Viewport(
+                    Integer.parseUnsignedInt(resolutionMatcher.group(1)),
+                    Integer.parseUnsignedInt(resolutionMatcher.group(2)),
+                    -1f
+            ));
+        }
         // 1920x1080-100%
-        Matcher matcher = Pattern.compile("(\\d+)x(\\d+)-(\\d+)%").matcher(string);
-        if (!matcher.matches()) {
+        Matcher resolutionScaleMatcher = Pattern.compile("(\\d+)x(\\d+)-(\\d+)%").matcher(string);
+        if (!resolutionScaleMatcher.matches()) {
             throw new IllegalArgumentException("Invalid viewport filter " + string +
-                                               ": expected format 1920x1080-100%");
+                                               ": expected formats 1920x1080 or 1920x1080-100%");
         }
         return new FixedViewportFilter(new Viewport(
-                Integer.parseUnsignedInt(matcher.group(1)),
-                Integer.parseUnsignedInt(matcher.group(2)),
-                Integer.parseUnsignedInt(matcher.group(3)) / 100d
+                Integer.parseUnsignedInt(resolutionScaleMatcher.group(1)),
+                Integer.parseUnsignedInt(resolutionScaleMatcher.group(2)),
+                Integer.parseUnsignedInt(resolutionScaleMatcher.group(3)) / 100d
         ));
     }
 
@@ -1285,8 +1296,7 @@ public class ConfigurationParser {
         switch (hintMeshType.type()) {
             case GRID -> {
                 HintGridLayout.HintGridLayoutBuilder defaultLayout =
-                        hintMeshType.gridLayoutByFilter()
-                                    .get(AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                        hintMeshType.gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER);
                 if (defaultLayout.maxRowCount() == null ||
                     defaultLayout.maxColumnCount() == null ||
                     defaultLayout.cellWidth() == null ||
@@ -1710,7 +1720,7 @@ public class ConfigurationParser {
                     if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
                         builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
                     for (var parentEntry : parent.type()
-                                                 .gridLayoutByFilter()
+                                                 .gridLayoutByFilter().map()
                                                  .entrySet()) {
                         HintGridLayout.HintGridLayoutBuilder parentLayout =
                                 parentEntry.getValue();
@@ -1727,72 +1737,88 @@ public class ConfigurationParser {
                         if (childLayout.layoutRowCount() == null)
                             childLayout.layoutRowCount(parentLayout.layoutRowCount());
                         if (childLayout.layoutColumnCount() == null)
-                            childLayout.layoutColumnCount(parentLayout.layoutColumnCount());
+                            childLayout.layoutColumnCount(
+                                    parentLayout.layoutColumnCount());
                         if (childLayout.layoutRowOriented() == null)
-                            childLayout.layoutRowOriented(parentLayout.layoutRowOriented());
+                            childLayout.layoutRowOriented(
+                                    parentLayout.layoutRowOriented());
                     }
-                    if (builder.selectionKeys() == null)
-                        builder.selectionKeys(parent.selectionKeys());
-                    if (builder.undoKeys() == null)
-                        builder.undoKeys(parent.undoKeys());
-                    if (builder.fontName() == null)
-                        builder.fontName(parent.fontName());
-                    if (builder.fontWeight() == null)
-                        builder.fontWeight(parent.fontWeight());
-                    if (builder.fontSize() == null)
-                        builder.fontSize(parent.fontSize());
-                    if (builder.fontSpacingPercent() == null)
-                        builder.fontSpacingPercent(parent.fontSpacingPercent());
-                    if (builder.fontHexColor() == null)
-                        builder.fontHexColor(parent.fontHexColor());
-                    if (builder.fontOpacity() == null)
-                        builder.fontOpacity(parent.fontOpacity());
-                    if (builder.fontOutlineThickness() == null)
-                        builder.fontOutlineThickness(parent.fontOutlineThickness());
-                    if (builder.fontOutlineHexColor() == null)
-                        builder.fontOutlineHexColor(parent.fontOutlineHexColor());
-                    if (builder.fontOutlineOpacity() == null)
-                        builder.fontOutlineOpacity(parent.fontOutlineOpacity());
-                    if (builder.fontShadowBlurRadius() == null)
-                        builder.fontShadowBlurRadius(parent.fontShadowBlurRadius());
-                    if (builder.fontShadowHexColor() == null)
-                        builder.fontShadowHexColor(parent.fontShadowHexColor());
-                    if (builder.fontShadowOpacity() == null)
-                        builder.fontShadowOpacity(parent.fontShadowOpacity());
-                    if (builder.fontShadowHorizontalOffset() == null)
-                        builder.fontShadowHorizontalOffset(parent.fontShadowHorizontalOffset());
-                    if (builder.fontShadowVerticalOffset() == null)
-                        builder.fontShadowVerticalOffset(parent.fontShadowVerticalOffset());
-                    if (builder.prefixFontHexColor() == null)
-                        builder.prefixFontHexColor(parent.prefixFontHexColor());
-                    if (builder.boxHexColor() == null)
-                        builder.boxHexColor(parent.boxHexColor());
-                    if (builder.boxOpacity() == null)
-                        builder.boxOpacity(parent.boxOpacity());
-                    if (builder.boxBorderThickness() == null)
-                        builder.boxBorderThickness(parent.boxBorderThickness());
-                    if (builder.boxBorderLength() == null)
-                        builder.boxBorderLength(parent.boxBorderLength());
-                    if (builder.boxBorderHexColor() == null)
-                        builder.boxBorderHexColor(parent.boxBorderHexColor());
-                    if (builder.boxBorderOpacity() == null)
-                        builder.boxBorderOpacity(parent.boxBorderOpacity());
-                    if (builder.boxWidthPercent() == null)
-                        builder.boxWidthPercent(parent.boxWidthPercent());
-                    if (builder.boxHeightPercent() == null)
-                        builder.boxHeightPercent(parent.boxHeightPercent());
-                    if (builder.subgridRowCount() == null)
-                        builder.subgridRowCount(parent.subgridRowCount());
-                    if (builder.subgridColumnCount() == null)
-                        builder.subgridColumnCount(parent.subgridColumnCount());
-                    if (builder.subgridBorderThickness() == null)
-                        builder.subgridBorderThickness(parent.subgridBorderThickness());
-                    if (builder.subgridBorderLength() == null)
-                        builder.subgridBorderLength(parent.subgridBorderLength());
-                    if (builder.subgridBorderHexColor() == null)
-                        builder.subgridBorderHexColor(parent.subgridBorderHexColor());
-                    if (builder.subgridBorderOpacity() == null)
-                        builder.subgridBorderOpacity(parent.subgridBorderOpacity());
+                    for (var parentEntry : parent.keysByFilter()
+                                                 .map()
+                                                 .entrySet()) {
+                        HintMeshKeys.HintMeshKeysBuilder parentKeys = parentEntry.getValue();
+                        HintMeshKeys.HintMeshKeysBuilder childKeys =
+                                builder.keys(parentEntry.getKey());
+                        if (childKeys.selectionKeys() == null)
+                            childKeys.selectionKeys(parentKeys.selectionKeys());
+                        if (childKeys.undoKeys() == null)
+                            childKeys.undoKeys(parentKeys.undoKeys());
+                    }
+                    for (var parentEntry : parent.styleByFilter().map()
+                                                 .entrySet()) {
+                        HintMeshStyle.HintMeshStyleBuilder parentStyle =
+                                parentEntry.getValue();
+                        HintMeshStyle.HintMeshStyleBuilder childStyle =
+                                builder.style(parentEntry.getKey());
+                        if (childStyle.fontName() == null)
+                            childStyle.fontName(parentStyle.fontName());
+                        if (childStyle.fontWeight() == null)
+                            childStyle.fontWeight(parentStyle.fontWeight());
+                        if (childStyle.fontSize() == null)
+                            childStyle.fontSize(parentStyle.fontSize());
+                        if (childStyle.fontSpacingPercent() == null)
+                            childStyle.fontSpacingPercent(parentStyle.fontSpacingPercent());
+                        if (childStyle.fontHexColor() == null)
+                            childStyle.fontHexColor(parentStyle.fontHexColor());
+                        if (childStyle.fontOpacity() == null)
+                            childStyle.fontOpacity(parentStyle.fontOpacity());
+                        if (childStyle.fontOutlineThickness() == null)
+                            childStyle.fontOutlineThickness(parentStyle.fontOutlineThickness());
+                        if (childStyle.fontOutlineHexColor() == null)
+                            childStyle.fontOutlineHexColor(parentStyle.fontOutlineHexColor());
+                        if (childStyle.fontOutlineOpacity() == null)
+                            childStyle.fontOutlineOpacity(parentStyle.fontOutlineOpacity());
+                        if (childStyle.fontShadowBlurRadius() == null)
+                            childStyle.fontShadowBlurRadius(parentStyle.fontShadowBlurRadius());
+                        if (childStyle.fontShadowHexColor() == null)
+                            childStyle.fontShadowHexColor(parentStyle.fontShadowHexColor());
+                        if (childStyle.fontShadowOpacity() == null)
+                            childStyle.fontShadowOpacity(parentStyle.fontShadowOpacity());
+                        if (childStyle.fontShadowHorizontalOffset() == null)
+                            childStyle.fontShadowHorizontalOffset(parentStyle.fontShadowHorizontalOffset());
+                        if (childStyle.fontShadowVerticalOffset() == null)
+                            childStyle.fontShadowVerticalOffset(parentStyle.fontShadowVerticalOffset());
+                        if (childStyle.prefixFontHexColor() == null)
+                            childStyle.prefixFontHexColor(parentStyle.prefixFontHexColor());
+                        if (childStyle.boxHexColor() == null)
+                            childStyle.boxHexColor(parentStyle.boxHexColor());
+                        if (childStyle.boxOpacity() == null)
+                            childStyle.boxOpacity(parentStyle.boxOpacity());
+                        if (childStyle.boxBorderThickness() == null)
+                            childStyle.boxBorderThickness(parentStyle.boxBorderThickness());
+                        if (childStyle.boxBorderLength() == null)
+                            childStyle.boxBorderLength(parentStyle.boxBorderLength());
+                        if (childStyle.boxBorderHexColor() == null)
+                            childStyle.boxBorderHexColor(parentStyle.boxBorderHexColor());
+                        if (childStyle.boxBorderOpacity() == null)
+                            childStyle.boxBorderOpacity(parentStyle.boxBorderOpacity());
+                        if (childStyle.boxWidthPercent() == null)
+                            childStyle.boxWidthPercent(parentStyle.boxWidthPercent());
+                        if (childStyle.boxHeightPercent() == null)
+                            childStyle.boxHeightPercent(parentStyle.boxHeightPercent());
+                        if (childStyle.subgridRowCount() == null)
+                            childStyle.subgridRowCount(parentStyle.subgridRowCount());
+                        if (childStyle.subgridColumnCount() == null)
+                            childStyle.subgridColumnCount(parentStyle.subgridColumnCount());
+                        if (childStyle.subgridBorderThickness() == null)
+                            childStyle.subgridBorderThickness(parentStyle.subgridBorderThickness());
+                        if (childStyle.subgridBorderLength() == null)
+                            childStyle.subgridBorderLength(parentStyle.subgridBorderLength());
+                        if (childStyle.subgridBorderHexColor() == null)
+                            childStyle.subgridBorderHexColor(parentStyle.subgridBorderHexColor());
+                        if (childStyle.subgridBorderOpacity() == null)
+                            childStyle.subgridBorderOpacity(parentStyle.subgridBorderOpacity());
+                    }
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.swallowHintEndKeyPress() == null)

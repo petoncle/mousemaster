@@ -304,6 +304,8 @@ public class WindowsOverlay {
         boolean createdAtLeastOneWindow = false;
         for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
             Screen screen = entry.getKey();
+            HintMeshStyle style =
+                    hintMesh.styleByFilter().get(ViewportFilter.of(screen));
             List<Hint> hintsInScreen = entry.getValue();
             HintMeshWindow existingWindow = hintMeshWindows.get(screen);
             if (existingWindow == null) {
@@ -327,7 +329,7 @@ public class WindowsOverlay {
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
-                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale());
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style);
             }
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
@@ -336,7 +338,7 @@ public class WindowsOverlay {
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
-                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale());
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style);
             }
         }
         if (createdAtLeastOneWindow)
@@ -344,7 +346,8 @@ public class WindowsOverlay {
     }
 
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
-                                          HintMesh hintMesh, double screenScale) {
+                                          HintMesh hintMesh, double screenScale,
+                                          HintMeshStyle style) {
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
@@ -388,8 +391,8 @@ public class WindowsOverlay {
             int maxHintBottom = Integer.MIN_VALUE;
             Map<String, Integer> xAdvancesByString = new HashMap<>();
             QFont font =
-                    new QFont(hintMesh.fontName(), (int) Math.round(hintMesh.fontSize()),
-                            hintMesh.fontWeight().qtWeight().value());
+                    new QFont(style.fontName(), (int) Math.round(style.fontSize()),
+                            style.fontWeight().qtWeight().value());
             font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
             font.setHintingPreference(QFont.HintingPreference.PreferFullHinting); // Full hinting for crisp text
             QFontMetrics metrics = new QFontMetrics(font);
@@ -404,25 +407,25 @@ public class WindowsOverlay {
                 }
             }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
-            QColor fontColor = qColor(hintMesh.fontHexColor(), hintMesh.fontOpacity());
-            QColor prefixColor = qColor(hintMesh.prefixFontHexColor(), hintMesh.fontOpacity());
-            QColor outlineColor = qColor(hintMesh.fontOutlineHexColor(), hintMesh.fontOutlineOpacity());
-            QColor shadowColor = qColor(hintMesh.fontShadowHexColor(), hintMesh.fontShadowOpacity());
-            QColor boxColor = qColor(hintMesh.boxHexColor(), hintMesh.boxOpacity());
-            QColor boxBorderColor = qColor(hintMesh.boxBorderHexColor(),
-                    hintMesh.boxBorderOpacity());
+            QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
+            QColor prefixColor = qColor(style.prefixFontHexColor(), style.fontOpacity());
+            QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
+            QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
+            QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
+            QColor boxBorderColor = qColor(style.boxBorderHexColor(),
+                    style.boxBorderOpacity());
             QColor subgridBoxColor = qColor("#000000", 0);
-            QColor subgridBoxBorderColor = qColor(hintMesh.subgridBorderHexColor(),
-                    hintMesh.subgridBorderOpacity());
+            QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
+                    style.subgridBorderOpacity());
             int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
             for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
                 Hint hint = hints.get(hintIndex);
                 if (!hint.startsWith(hintMesh.focusedKeySequence()))
                     continue;
-                boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || hintMesh.boxWidthPercent() != 1;
-                boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || hintMesh.boxHeightPercent() != 1;
-                boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || hintMesh.boxWidthPercent() != 1;
-                boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || hintMesh.boxHeightPercent() != 1;
+                boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
+                boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
+                boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
+                boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
                 int totalXAdvance = metrics.horizontalAdvance(hint.keySequence()
                                                                   .stream()
                                                                   .map(Key::hintLabel)
@@ -460,17 +463,17 @@ public class WindowsOverlay {
                                 fontColor,
                                 prefixColor,
                                 outlineColor,
-                                (int) Math.round(hintMesh.fontOutlineThickness() * screenScale),
+                                (int) Math.round(style.fontOutlineThickness() * screenScale),
                                 shadowColor,
-                                hintMesh.fontShadowBlurRadius(),
-                                hintMesh.fontShadowHorizontalOffset() * screenScale,
-                                hintMesh.fontShadowVerticalOffset() * screenScale,
+                                style.fontShadowBlurRadius(),
+                                style.fontShadowHorizontalOffset() * screenScale,
+                                style.fontShadowVerticalOffset() * screenScale,
                                 hintMesh.focusedKeySequence(),
-                                hintMesh.fontSpacingPercent(),
+                                style.fontSpacingPercent(),
                                 hintKeyMaxXAdvance, metrics);
                 HintBox hintBox =
-                        new HintBox((int) Math.round(hintMesh.boxBorderLength()),
-                                (int) Math.round(hintMesh.boxBorderThickness()),
+                        new HintBox((int) Math.round(style.boxBorderLength()),
+                                (int) Math.round(style.boxBorderThickness()),
                                 boxColor,
                                 boxBorderColor, gridLeftEdge, gridTopEdge,
                                 gridRightEdge, gridBottomEdge,
@@ -479,12 +482,12 @@ public class WindowsOverlay {
                 HintBox[][] subgridBoxes = addSubgridBoxes(hintBox, qtScaleFactor,
                         subgridBoxColor,
                         subgridBoxBorderColor,
-                        hintMesh.subgridRowCount(), hintMesh.subgridColumnCount(),
-                        hintMesh.subgridBorderLength(), hintMesh.subgridBorderThickness());
+                        style.subgridRowCount(), style.subgridColumnCount(),
+                        style.subgridBorderLength(), style.subgridBorderThickness());
                 hintLabel.setParent(hintBox);
                 hintLabel.move(0, 0);
-                int boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * hintMesh.boxWidthPercent()));
-                int boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * hintMesh.boxHeightPercent()));
+                int boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
+                int boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
                 hintLabel.left = boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
                 hintLabel.top = boxHeight == hintLabel.tightHintBoxHeight ? hintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
                 x += hintLabel.left;
@@ -497,13 +500,13 @@ public class WindowsOverlay {
                 hintBox.setGeometry(x - hintMeshWindow.window().x(), y - hintMeshWindow.window.y(), boxWidth, boxHeight);
                 hintLabel.setFixedSize(boxWidth, boxHeight);
                 for (int subgridRowIndex = 0;
-                     subgridRowIndex < hintMesh.subgridRowCount(); subgridRowIndex++) {
+                     subgridRowIndex < style.subgridRowCount(); subgridRowIndex++) {
                     for (int subgridColumnIndex = 0; subgridColumnIndex <
-                                                     hintMesh.subgridColumnCount(); subgridColumnIndex++) {
+                                                     style.subgridColumnCount(); subgridColumnIndex++) {
                         HintBox subBox =
                                 subgridBoxes[subgridRowIndex][subgridColumnIndex];
-                        int subBoxWidth = boxWidth / hintMesh.subgridColumnCount();
-                        int subBoxHeight = boxHeight / hintMesh.subgridRowCount();
+                        int subBoxWidth = boxWidth / style.subgridColumnCount();
+                        int subBoxHeight = boxHeight / style.subgridRowCount();
                         int subBoxX = subBoxWidth * subgridColumnIndex;
                         int subBoxY = subBoxHeight * subgridRowIndex;
                         subBox.setGeometry(subBoxX, subBoxY, subBoxWidth, subBoxHeight);
