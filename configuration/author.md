@@ -11,7 +11,7 @@
 - Normal mode automatically exits (to idle mode) after 5s of inactivity.
 - Normal mode automatically exits when any non-normal mode key is pressed. For example,
   when starting to type text while normal mode is active, the normal mode will automatically exit.
-- The author is using this configuration with a small QWERTY keyboard and one 1920x1080 screen.
+- The hint font is set to Myriad Pro which needs to be installed manually as it is not a default system font.
 - (The author uses rightalt + space as the PowerToys Run activation shortcut.)
 
 ## Normal Mode (_rightalt_)
