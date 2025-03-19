@@ -11,6 +11,8 @@ import mousemaster.ModeTimeout.ModeTimeoutBuilder;
 import mousemaster.Mouse.MouseBuilder;
 import mousemaster.Wheel.WheelBuilder;
 import mousemaster.ZoomConfiguration.ZoomConfigurationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,6 +34,8 @@ import static mousemaster.Command.*;
 import static mousemaster.ViewportFilter.*;
 
 public class ConfigurationParser {
+
+    private static final Logger logger = LoggerFactory.getLogger(ConfigurationParser.class);
 
     private static final Pattern propertyLinePattern = Pattern.compile("(.+?)=(.+)");
     private static final Map<String, Property<?>> defaultPropertyByName = defaultPropertyByName();
@@ -1138,8 +1142,10 @@ public class ConfigurationParser {
     }
 
     private static String parseFontName(String fontName, Predicate<String> fontAvailability) {
-        if (!fontAvailability.test(fontName))
-            throw new IllegalArgumentException("Unable to find a font named " + fontName);
+        if (!fontAvailability.test(fontName)) {
+            logger.info("Font " + fontName + " not found, falling back to Consolas");
+            return "Consolas";
+        }
         return fontName;
     }
 
