@@ -47,6 +47,20 @@ public class ViewportFilterMap<V> {
         return new ViewportFilterMapBuilder<>(this, elementToBuilder);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        ViewportFilterMap<?> that = (ViewportFilterMap<?>) o;
+        return map.equals(that.map);
+    }
+
+    @Override
+    public int hashCode() {
+        return map.hashCode();
+    }
+
     public static class ViewportFilterMapBuilder<B, V> {
 
         /**
