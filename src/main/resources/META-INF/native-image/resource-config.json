@@ -43,6 +43,12 @@
   }, {
     "pattern":"\\Qbin/QtJambiWidgets6.dll\\E"
   }, {
+    "pattern":"\\Qqt-msvcp/msvcp140.dll\\E"
+  }, {
+    "pattern":"\\Qqt-msvcp/msvcp140_1.dll\\E"
+  }, {
+    "pattern":"\\Qqt-msvcp/msvcp140_2.dll\\E"
+  }, {
     "pattern":"\\Qqt/bin/Qt6Core.dll\\E"
   }, {
     "pattern":"\\Qqt/bin/Qt6Gui.dll\\E"

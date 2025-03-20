@@ -40,6 +40,12 @@ public class QtManager {
             "bin/QtJambiWidgets6.dll"
     );
 
+    private static final List<String> msvcpDllPaths = List.of(
+            "qt-msvcp/msvcp140.dll",
+            "qt-msvcp/msvcp140_1.dll",
+            "qt-msvcp/msvcp140_2.dll"
+    );
+
     public static void initialize() throws IOException {
         File extractDirectory = createExtractDirectory(
                 MousemasterApplication.tempDirectory);
@@ -62,6 +68,19 @@ public class QtManager {
 //        System.setProperty("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
 //        System.setProperty("QT_SCALE_FACTOR", "1");
         // https://forum.qt.io/topic/141511/qt_enable_highdpi_scaling-has-no-effect
+        try {
+            // Just to trigger the static initializer which loads DLLs.
+            QtUtilities.jambiDeploymentDir();
+        } catch (UnsatisfiedLinkError e) {
+            for (String msvcpDllResourcePath : msvcpDllPaths) {
+                extractResourceFile(msvcpDllResourcePath,
+                        Paths.get(msvcpDllResourcePath.replaceAll(".*/", "")));
+            }
+            UnsatisfiedLinkError e2 =
+                    new UnsatisfiedLinkError("Unable to initialize Qt. msvcp DLLs have been extracted next to mousemaster.exe. Try to restart mousemaster. " + e.getMessage());
+            e2.setStackTrace(e.getStackTrace());
+            throw e2;
+        }
         QtUtilities.putenv("QT_ENABLE_HIGHDPI_SCALING", "0"); // Only works on Windows?
         logger.trace("highDpiScaleFactorRoundingPolicy is " + QApplication.highDpiScaleFactorRoundingPolicy());
         // Default font engine on Windows is directwrite. Antialiasing seems better with gdi.
