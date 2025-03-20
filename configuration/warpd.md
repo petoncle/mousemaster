@@ -32,10 +32,13 @@
 - A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [warpd.properties](warpd.properties).
 - Exit with _esc_.
 
-## History Mode (_;_ in normal mode)
+## History Mode (_leftalt + h_ or _;_ in normal mode)
 
-- Similar to hint mode, but shows hints over previous mouse positions.
-- Exit with _esc_.
+- Similar to hint mode, but shows hints over saved mouse positions.
+- Exit with _esc_ or _;_.
+- Save the current position with one of the hint selection keys _h_, _j_, _k_, _l_, _a_, _s_, _d_, _f_.
+- Unsave the current position by holding one of the hint selection keys for 500ms.
+- Clear the saved positions by holding _;_ for 500ms
 
 ## Grid Mode (_leftalt + g_ or _g_ in normal mode)
 
