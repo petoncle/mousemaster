@@ -621,11 +621,16 @@ public enum WindowsVirtualKey {
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key) {
-        WindowsVirtualKey windowsVirtualKey =
+        WindowsVirtualKey keyboardLayoutIndependentVirtualKey =
                 keyboardLayoutIndependentVirtualKeyByKey.get(key);
-        if (windowsVirtualKey != null)
-            return windowsVirtualKey;
-        return keyboardLayoutDependentVirtualKeyByKey.get(key);
+        if (keyboardLayoutIndependentVirtualKey != null)
+            return keyboardLayoutIndependentVirtualKey;
+        WindowsVirtualKey keyboardLayoutDependentVirtualKey =
+                keyboardLayoutDependentVirtualKeyByKey.get(key);
+        if (keyboardLayoutDependentVirtualKey == null) {
+            throw new IllegalStateException("Unable to map key " + key + " to a Windows virtual key");
+        }
+        return keyboardLayoutDependentVirtualKey;
     }
 
 }
