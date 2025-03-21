@@ -3,13 +3,11 @@ package mousemaster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class Mousemaster {
 
@@ -25,7 +23,7 @@ public class Mousemaster {
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
     private ModeController modeController;
-    private List<String> configurationLines;
+    private List<String> configurationProperties;
     private KeyboardLayout activeKeyboardLayout;
 
     public Mousemaster(Path configurationPath, Platform platform) throws IOException {
@@ -145,11 +143,14 @@ public class Mousemaster {
 
     private void loadConfiguration(boolean readFile) throws IOException {
         boolean reload = configuration != null;
-        if (readFile)
-            configurationLines =
-                    Files.readAllLines(configurationPath, StandardCharsets.UTF_8);
+        if (readFile) {
+            try (BufferedReader reader = Files.newBufferedReader(configurationPath,
+                    StandardCharsets.UTF_8)) {
+                configurationProperties = PropertiesReader.readPropertiesFile(reader);
+            }
+        }
         configuration =
-                ConfigurationParser.parse(configurationLines, activeKeyboardLayout);
+                ConfigurationParser.parse(configurationProperties, activeKeyboardLayout);
         if (configuration.logLevel() != null)
             MousemasterApplication.setLogLevel(configuration.logLevel());
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +

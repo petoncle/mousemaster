@@ -82,6 +82,7 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key plus = new Key("plus", null, "+");
     public static final Key minus = new Key("minus", null, "-");
     public static final Key hash = new Key("hash", null, "#");
+    public static final Key backslash = new Key("backslash", null, "\\");
 
     public static final Set<Key> keyboardLayoutIndependentKeys = Set.of(
             // @formatter:off
@@ -165,7 +166,8 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
             underscore,
             plus,
             minus,
-            hash
+            hash,
+            backslash
             // @formatter:on
     );
 

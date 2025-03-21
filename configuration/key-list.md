@@ -42,3 +42,4 @@
 - plus (`+`)
 - minus (`-`)
 - hash (`#`)
+- backslash (`\`)

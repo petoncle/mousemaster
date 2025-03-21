@@ -46,16 +46,17 @@ public class ConfigurationParser {
     private static final Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName = defaultLayoutKeyAliasByName();
 
     private static Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName() {
-        List<String> lines;
+        List<String> properties;
         try (InputStream inputStream = ConfigurationParser.class.getClassLoader()
                                                                 .getResourceAsStream(
-                                                                        "default-key-aliases.properties")) {
-            lines = new BufferedReader(new InputStreamReader(inputStream)).lines()
-                                                                          .toList();
+                                                                        "default-key-aliases.properties");
+             BufferedReader reader = new BufferedReader(
+                     new InputStreamReader(inputStream))) {
+            properties = PropertiesReader.readPropertiesFile(reader);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return parseAliases(lines).layoutKeyAliasByName;
+        return parseAliases(properties).layoutKeyAliasByName;
     }
 
     private static Map<String, Property<?>> defaultPropertyByName() {
@@ -206,9 +207,9 @@ public class ConfigurationParser {
 
     }
 
-    public static Configuration parse(List<String> lines,
+    public static Configuration parse(List<String> properties,
                                       KeyboardLayout activeKeyboardLayout) {
-        Aliases configurationAliases = parseAliases(lines);
+        Aliases configurationAliases = parseAliases(properties);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         Map<String, KeyAlias> keyAliases =
                 mergeDefaultAndConfigurationKeyAliases(activeKeyboardLayout,
@@ -229,10 +230,10 @@ public class ConfigurationParser {
         Set<String> nonRootModes = new HashSet<>();
         Map<String, Set<String>> childModesByParentMode = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
-        for (String line : lines) {
-            if (!checkPropertyLineCorrectness(line, visitedPropertyKeys))
+        for (String property : properties) {
+            if (!checkPropertyLineCorrectness(property, visitedPropertyKeys))
                 continue;
-            Matcher lineMatcher = propertyLinePattern.matcher(line);
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
             //noinspection ResultOfMethodCallIgnored
             lineMatcher.matches();
             String propertyKey = lineMatcher.group(1).strip();
@@ -1192,11 +1193,11 @@ public class ConfigurationParser {
         return keyAlias;
     }
 
-    private static Aliases parseAliases(List<String> lines) {
+    private static Aliases parseAliases(List<String> properties) {
         Map<String, LayoutKeyAlias> layoutKeyAliasByName = new HashMap<>();
         Map<String, AppAlias> appAliasByName = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
-        for (String line : lines) {
+        for (String line : properties) {
             if (!checkPropertyLineCorrectness(line, visitedPropertyKeys))
                 continue;
             Matcher lineMatcher = propertyLinePattern.matcher(line);
@@ -1260,21 +1261,19 @@ public class ConfigurationParser {
         }
     }
 
-    private static boolean checkPropertyLineCorrectness(String line, Set<String> visitedPropertyKeys) {
-        if (line.startsWith("#") || line.isBlank())
-            return false;
-        Matcher lineMatcher = propertyLinePattern.matcher(line);
+    private static boolean checkPropertyLineCorrectness(String property, Set<String> visitedPropertyKeys) {
+        Matcher lineMatcher = propertyLinePattern.matcher(property);
         if (!lineMatcher.matches())
-            throw new IllegalArgumentException("Invalid property " + line +
+            throw new IllegalArgumentException("Invalid property " + property +
                                                ": expected <property key>=<property value>");
         String propertyKey = lineMatcher.group(1).strip();
         String propertyValue = lineMatcher.group(2).strip();
         if (propertyKey.isEmpty())
             throw new IllegalArgumentException(
-                    "Invalid property " + line + ": property key cannot be blank");
+                    "Invalid property " + property + ": property key cannot be blank");
         if (propertyValue.isEmpty())
             throw new IllegalArgumentException(
-                    "Invalid property " + line + ": property value cannot be blank");
+                    "Invalid property " + property + ": property value cannot be blank");
         if (!visitedPropertyKeys.add(propertyKey))
             throw new IllegalArgumentException(
                     "Property " + propertyKey + " is defined twice");
