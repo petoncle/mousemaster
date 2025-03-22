@@ -397,7 +397,8 @@ public class WindowsOverlay {
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
             pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(), pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             newContainer = pixmapLabel;
-            transitionHintContainers(oldContainerHasSameHints, oldContainer, newContainer, window);
+            transitionHintContainers(oldContainerHasSameHints, oldContainer, newContainer,
+                    window, screenScale);
         }
         else {
             QWidget container = new QWidget();
@@ -414,7 +415,9 @@ public class WindowsOverlay {
                         if (isHintPartOfGrid) {
                             cacheQtHintWindowIntoPixmap(container, hintMeshKey);
                         }
-                        transitionHintContainers(oldContainerHasSameHints, oldContainer, newContainer, window);
+                        transitionHintContainers(oldContainerHasSameHints, oldContainer,
+                                newContainer, window,
+                                screenScale);
                     };
             if (!isHintPartOfGrid // They are not cached anyway.
                 || !hintMesh.focusedKeySequence().isEmpty() // To avoid an empty frame.
@@ -427,8 +430,10 @@ public class WindowsOverlay {
     }
 
     private static void transitionHintContainers(boolean oldContainerHasSameHints, QWidget oldContainer,
-                                  QWidget newContainer, TransparentWindow window) {
+                                                 QWidget newContainer, TransparentWindow window,
+                                                 double screenScale) {
         if (oldContainer != null) {
+            int velocity = (int) (15000 * screenScale);
             if (oldContainerHasSameHints && oldContainer.rect().contains(newContainer.rect())) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
@@ -443,11 +448,13 @@ public class WindowsOverlay {
                         new QRect(newContainer.x(), newContainer.y(),
                                 newContainer.width(),
                                 newContainer.height());
-                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
+                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
+                        velocity);
                 animation.valueChanged.connect(new HintContainerAnimationChanged(
                         oldContainer));
-                animation.finished.connect(new HintContainerAnimationFinished(
-                        oldContainer));
+                animation.finished.connect(
+                        new HintContainerAnimationFinished(oldContainer, oldContainer,
+                                endRect));
                 animation.start();
             }
             else if (oldContainerHasSameHints && newContainer.rect().contains(
@@ -465,9 +472,13 @@ public class WindowsOverlay {
                                 newContainer.width(),
                                 newContainer.height());
                 newContainer.setMask(new QRegion(beginRect));
-                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
+                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
+                        velocity);
                 animation.valueChanged.connect(new HintContainerAnimationChanged(
                         newContainer));
+                animation.finished.connect(
+                        new HintContainerAnimationFinished(oldContainer, newContainer,
+                                endRect));
                 animation.start();
                 oldContainer.disposeLater();
             }
@@ -508,26 +519,32 @@ public class WindowsOverlay {
     public static class HintContainerAnimationFinished implements QMetaObject.Slot0 {
 
         private final QWidget oldContainer;
+        private final QWidget animatedContainer;
+        private final QRect endRect;
 
-        public HintContainerAnimationFinished(QWidget oldContainer) {
+        public HintContainerAnimationFinished(QWidget oldContainer, QWidget animatedContainer,
+                                              QRect endRect) {
             this.oldContainer = oldContainer;
+            this.animatedContainer = animatedContainer;
+            this.endRect = endRect;
         }
 
         @Override
         public void invoke() {
             oldContainer.setParent(null);
             oldContainer.disposeLater();
+            animatedContainer.setMask(new QRegion(endRect));
         }
     }
 
     private static QVariantAnimation hintContainerAnimation(QRect beginRect,
-                                                            QRect endRect) {
+                                                            QRect endRect,
+                                                            double velocity) {
         QVariantAnimation animation = new QVariantAnimation();
         double dx = Math.max(Math.abs(endRect.x() - beginRect.x()), Math.abs(
                 endRect.width() - beginRect.width()));
         double dy = Math.max(Math.abs(endRect.y() - beginRect.y()), Math.abs(
                 endRect.height() - beginRect.height()));
-        double velocity = 30000; // pixels per second
         int duration = (int) Math.round((Math.max(dx, dy) / velocity) * 1000); // ms
         animation.setDuration(duration);
         animation.setStartValue(beginRect);
