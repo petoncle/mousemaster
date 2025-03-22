@@ -3,6 +3,7 @@ package mousemaster;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import io.qt.core.QObject;
 import io.qt.core.QRect;
 import io.qt.core.Qt;
 import io.qt.gui.*;
@@ -363,25 +364,42 @@ public class WindowsOverlay {
         // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
         TransparentWindow window = hintMeshWindow.window;
+        QWidget oldContainer =
+                window.children().isEmpty() ? null :
+                        (QWidget) window.children().getFirst();
         window.clearWindow();
-        QWidget container = new QWidget();
-        container.setFixedSize(window.width(), window.height());
-        container.setParent(window);
         HintMesh hintMeshKey = new HintMesh.HintMeshBuilder(hintMesh)
                 .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.focusedKeySequence()))
                 .build();
         PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMeshKey);
         if (pixmapAndPosition != null) {
-            logger.trace("Using cached pixmap " + pixmapAndPosition);
-            QLabel pixmapLabel = new QLabel(container);
+            logger.debug("Using cached pixmap " + pixmapAndPosition);
+            QLabel pixmapLabel = new QLabel(window);
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
-            pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(),
-                    pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
+            pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(), pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             pixmapLabel.show();
-            container.show();
+//            oldContainer.setParent(window);
             window.show();
+
+//            QVariantAnimation anim = new QVariantAnimation();
+//            anim.setDuration(1000);
+//            anim.setStartValue(new QRect(oldContainer.x(), oldContainer.y(), oldContainer.width(), oldContainer.height()));
+//            int w = 200;
+//            int h = 200;
+//            int x = (container.width() - w) / 2;
+//            int y = (container.height() - h) / 2;
+//            QRect endRect = new QRect(x, y, w, h);
+//            anim.setEndValue(endRect);
+//            anim.valueChanged.connect(arg -> {
+//                QRect r = (QRect) arg;
+//                container.setMask(new QRegion(r));
+//            });
+//            anim.start();
         }
         else {
+            QWidget container = new QWidget(window);
+            container.setFixedSize(window.width(), window.height());
+            container.setStyleSheet("background: transparent;");
             setUncachedHintMeshWindowRunnable =
                     () -> setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
                             screenScale,
@@ -401,7 +419,8 @@ public class WindowsOverlay {
 
     private static void setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
                                                   double screenScale, HintMeshStyle style,
-                                                  double qtScaleFactor, QWidget container,
+                                                  double qtScaleFactor,
+                                                  QWidget container,
                                                   TransparentWindow window, HintMesh hintMeshKey) {
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
@@ -550,18 +569,52 @@ public class WindowsOverlay {
             }
             hintBox.show();
         }
+        for (QObject child : container.children()) {
+            HintBox hintBox = (HintBox) child;
+            hintBox.move(
+                    hintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
+                    hintBox.y() - (minHintTop - hintMeshWindow.window.y())
+            );
+        }
+        container.setGeometry(minHintLeft - hintMeshWindow.window.x(),
+                minHintTop - hintMeshWindow.window.y(),
+                maxHintRight - minHintLeft + 1,
+                maxHintBottom - minHintTop + 1);
         container.show();
         window.show();
         if (isHintPartOfGrid) {
-            QPixmap pixmap = window.grab(new QRect(minHintLeft - hintMeshWindow.window.x(),
-                    minHintTop - hintMeshWindow.window.y(),
-                    maxHintRight - minHintLeft + 1, maxHintBottom - minHintTop + 1));
-            PixmapAndPosition pixmapAndPosition1 =
+            QPixmap pixmap = window.grab(
+                    new QRect(container.x(), container.y(), container.width(),
+                            container.height()));
+            PixmapAndPosition pixmapAndPosition =
                     new PixmapAndPosition(pixmap,
                             minHintLeft - hintMeshWindow.window.x(),
                             minHintTop - hintMeshWindow.window.y());
-            logger.trace("Caching " + pixmapAndPosition1 + ", cache size is " + hintMeshPixmaps.size());
-            hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition1);
+            logger.debug("Caching " + pixmapAndPosition + ", cache size is " + hintMeshPixmaps.size());
+            hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
+            if (false){
+                for (QObject child : container.children()) {
+                    if (child instanceof QWidget widget) {
+                        widget.setParent(null);
+                        widget.disposeLater();
+                    }
+                }
+                QLabel pixmapLabel = new QLabel(container);
+                pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
+                pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(),
+                        pixmapAndPosition.pixmap().width(),
+                        pixmapAndPosition.pixmap().height());
+                QRect full = pixmapLabel.rect();
+                QRegion visibleRegion = new QRegion(full);
+
+                // Cut out center 100x100
+                QRect centerRect =
+                        new QRect(pixmapLabel.width() / 2 - 50, pixmapLabel.height() / 2 - 50, 1000, 1000);
+                visibleRegion = visibleRegion.subtracted(new QRegion(centerRect));
+                pixmapLabel.setMask(visibleRegion);
+                pixmapLabel.show();
+            }
+
         }
     }
 

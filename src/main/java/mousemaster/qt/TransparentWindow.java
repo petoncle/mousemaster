@@ -40,7 +40,6 @@ public class TransparentWindow extends QWidget {
         for (QObject child : children()) {
             if (child instanceof QWidget widget) {
                 widget.setParent(null);
-                widget.disposeLater();
             }
         }
     }
