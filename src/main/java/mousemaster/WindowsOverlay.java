@@ -3,9 +3,7 @@ package mousemaster;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
-import io.qt.core.QObject;
-import io.qt.core.QRect;
-import io.qt.core.Qt;
+import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.QApplication;
 import io.qt.widgets.QGraphicsDropShadowEffect;
@@ -174,7 +172,7 @@ public class WindowsOverlay {
 
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   TransparentWindow window,
-                                  List<Hint> hints) {
+                                  List<Hint> hints, Zoom zoom) {
 
     }
 
@@ -273,7 +271,7 @@ public class WindowsOverlay {
         updateZoomExcludedWindows();
     }
 
-    private static void createOrUpdateHintMeshWindows(HintMesh hintMesh) {
+    private static void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom) {
         Set<Screen> screens = WindowsScreen.findScreens();
         Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
         for (Hint hint : hintMesh.hints()) {
@@ -336,29 +334,49 @@ public class WindowsOverlay {
                         new Pointer(newStyle));
                 window.move(screen.rectangle().x(), screen.rectangle().y());
                 window.resize(screen.rectangle().width(), screen.rectangle().height());
-                HintMeshWindow hintMeshWindow = new HintMeshWindow(hwnd, window, hintsInScreen);
+                HintMeshWindow hintMeshWindow =
+                        new HintMeshWindow(hwnd, window, hintsInScreen, zoom);
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
-                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style);
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, false);
             }
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
                         existingWindow.window,
-                        hintsInScreen);
+                        hintsInScreen, zoom);
+                boolean oldContainerIsHidden = ((QWidget) existingWindow.window.children()
+                                                                 .getFirst()).isHidden();
+                boolean oldContainerHasSameHints = !oldContainerIsHidden &&
+                                                   existingWindow.zoom.equals(zoom) &&
+                                                   existingWindow.hints.equals(
+                                                           hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
-                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style);
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, oldContainerHasSameHints);
             }
         }
         if (createdAtLeastOneWindow)
             updateZoomExcludedWindows();
     }
 
+    private static class ClearBackgroundQLabel extends QLabel {
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            QPainter painter = new QPainter(this);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            // Clear what's behind (when we're drawing the old container behind).
+            painter.fillRect(rect(), Qt.GlobalColor.transparent);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            super.paintEvent(event);
+        }
+    }
+
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                           HintMesh hintMesh, double screenScale,
-                                          HintMeshStyle style) {
+                                          HintMeshStyle style,
+                                          boolean oldContainerHasSameHints) {
         setUncachedHintMeshWindowRunnable = null;
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
@@ -372,41 +390,32 @@ public class WindowsOverlay {
                 .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.focusedKeySequence()))
                 .build();
         PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMeshKey);
+        QWidget newContainer;
         if (pixmapAndPosition != null) {
-            logger.debug("Using cached pixmap " + pixmapAndPosition);
-            QLabel pixmapLabel = new QLabel(window);
+            logger.trace("Using cached pixmap " + pixmapAndPosition);
+            QLabel pixmapLabel = new ClearBackgroundQLabel();
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
             pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(), pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
-            pixmapLabel.show();
-//            oldContainer.setParent(window);
-            window.show();
-
-//            QVariantAnimation anim = new QVariantAnimation();
-//            anim.setDuration(1000);
-//            anim.setStartValue(new QRect(oldContainer.x(), oldContainer.y(), oldContainer.width(), oldContainer.height()));
-//            int w = 200;
-//            int h = 200;
-//            int x = (container.width() - w) / 2;
-//            int y = (container.height() - h) / 2;
-//            QRect endRect = new QRect(x, y, w, h);
-//            anim.setEndValue(endRect);
-//            anim.valueChanged.connect(arg -> {
-//                QRect r = (QRect) arg;
-//                container.setMask(new QRegion(r));
-//            });
-//            anim.start();
+            newContainer = pixmapLabel;
+            transitionHintContainers(oldContainerHasSameHints, oldContainer, newContainer, window);
         }
         else {
-            QWidget container = new QWidget(window);
-            container.setFixedSize(window.width(), window.height());
+            QWidget container = new QWidget();
             container.setStyleSheet("background: transparent;");
-            setUncachedHintMeshWindowRunnable =
-                    () -> setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
-                            screenScale,
-                            style, qtScaleFactor,
-                            container, window,
-                            hintMeshKey);
+            newContainer = container;
             boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
+            setUncachedHintMeshWindowRunnable =
+                    () -> {
+                        setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
+                                screenScale,
+                                style, qtScaleFactor,
+                                container
+                        );
+                        if (isHintPartOfGrid) {
+                            cacheQtHintWindowIntoPixmap(container, hintMeshKey);
+                        }
+                        transitionHintContainers(oldContainerHasSameHints, oldContainer, newContainer, window);
+                    };
             if (!isHintPartOfGrid // They are not cached anyway.
                 || !hintMesh.focusedKeySequence().isEmpty() // To avoid an empty frame.
                     || hintMesh.hints().size() < 100 // To avoid an empty frame.
@@ -417,11 +426,120 @@ public class WindowsOverlay {
         }
     }
 
+    private static void transitionHintContainers(boolean oldContainerHasSameHints, QWidget oldContainer,
+                                  QWidget newContainer, TransparentWindow window) {
+        if (oldContainer != null) {
+            if (oldContainerHasSameHints && oldContainer.rect().contains(newContainer.rect())) {
+                // Shrink old container until it reaches the position and size of new.
+                oldContainer.setParent(window);
+                oldContainer.show();
+                newContainer.setParent(window);
+                newContainer.show();
+                QRect beginRect =
+                        new QRect(oldContainer.x(), oldContainer.y(),
+                                oldContainer.width(),
+                                oldContainer.height());
+                QRect endRect =
+                        new QRect(newContainer.x(), newContainer.y(),
+                                newContainer.width(),
+                                newContainer.height());
+                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
+                animation.valueChanged.connect(new HintContainerAnimationChanged(
+                        oldContainer));
+                animation.finished.connect(new HintContainerAnimationFinished(
+                        oldContainer));
+                animation.start();
+            }
+            else if (oldContainerHasSameHints && newContainer.rect().contains(
+                    oldContainer.rect())) {
+                // Initially show new container with the position and size of old.
+                // Then grow new container until it reaches its final position and size.
+                newContainer.setParent(window);
+                newContainer.show();
+                QRect beginRect =
+                        new QRect(oldContainer.x(), oldContainer.y(),
+                                oldContainer.width(),
+                                oldContainer.height());
+                QRect endRect =
+                        new QRect(newContainer.x(), newContainer.y(),
+                                newContainer.width(),
+                                newContainer.height());
+                newContainer.setMask(new QRegion(beginRect));
+                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
+                animation.valueChanged.connect(new HintContainerAnimationChanged(
+                        newContainer));
+                animation.start();
+                oldContainer.disposeLater();
+            }
+            else {
+                logger.info("No animation because no mutual contain");
+                oldContainer.disposeLater();
+                newContainer.setParent(window);
+                newContainer.show();
+            }
+        }
+        else {
+            newContainer.setParent(window);
+            newContainer.show();
+        }
+        window.show();
+    }
+
+    /**
+     * TODO It may be necessary to save those instances somewhere (HintMeshWindow),
+     *  because they could get GC'd while they are still used by Qt (?).
+     *  Same for HintContainerAnimationFinished.
+     */
+    public static class HintContainerAnimationChanged implements QMetaObject.Slot1<Object> {
+
+        private final QWidget container;
+
+        public HintContainerAnimationChanged(QWidget container) {
+            this.container = container;
+        }
+
+        @Override
+        public void invoke(Object arg) {
+            QRect r = (QRect) arg;
+            container.setMask(new QRegion(r));
+        }
+    }
+
+    public static class HintContainerAnimationFinished implements QMetaObject.Slot0 {
+
+        private final QWidget oldContainer;
+
+        public HintContainerAnimationFinished(QWidget oldContainer) {
+            this.oldContainer = oldContainer;
+        }
+
+        @Override
+        public void invoke() {
+            oldContainer.setParent(null);
+            oldContainer.disposeLater();
+        }
+    }
+
+    private static QVariantAnimation hintContainerAnimation(QRect beginRect,
+                                                            QRect endRect) {
+        QVariantAnimation animation = new QVariantAnimation();
+        double dx = Math.max(Math.abs(endRect.x() - beginRect.x()), Math.abs(
+                endRect.width() - beginRect.width()));
+        double dy = Math.max(Math.abs(endRect.y() - beginRect.y()), Math.abs(
+                endRect.height() - beginRect.height()));
+        double velocity = 30000; // pixels per second
+        int duration = (int) Math.round((Math.max(dx, dy) / velocity) * 1000); // ms
+        animation.setDuration(duration);
+        animation.setStartValue(beginRect);
+        animation.setEndValue(endRect);
+        animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
+        return animation;
+    }
+
     private static void setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
                                                   double screenScale, HintMeshStyle style,
                                                   double qtScaleFactor,
-                                                  QWidget container,
-                                                  TransparentWindow window, HintMesh hintMeshKey) {
+                                                  QWidget container) {
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -580,42 +698,16 @@ public class WindowsOverlay {
                 minHintTop - hintMeshWindow.window.y(),
                 maxHintRight - minHintLeft + 1,
                 maxHintBottom - minHintTop + 1);
-        container.show();
-        window.show();
-        if (isHintPartOfGrid) {
-            QPixmap pixmap = window.grab(
-                    new QRect(container.x(), container.y(), container.width(),
-                            container.height()));
-            PixmapAndPosition pixmapAndPosition =
-                    new PixmapAndPosition(pixmap,
-                            minHintLeft - hintMeshWindow.window.x(),
-                            minHintTop - hintMeshWindow.window.y());
-            logger.debug("Caching " + pixmapAndPosition + ", cache size is " + hintMeshPixmaps.size());
-            hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
-            if (false){
-                for (QObject child : container.children()) {
-                    if (child instanceof QWidget widget) {
-                        widget.setParent(null);
-                        widget.disposeLater();
-                    }
-                }
-                QLabel pixmapLabel = new QLabel(container);
-                pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
-                pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(),
-                        pixmapAndPosition.pixmap().width(),
-                        pixmapAndPosition.pixmap().height());
-                QRect full = pixmapLabel.rect();
-                QRegion visibleRegion = new QRegion(full);
+    }
 
-                // Cut out center 100x100
-                QRect centerRect =
-                        new QRect(pixmapLabel.width() / 2 - 50, pixmapLabel.height() / 2 - 50, 1000, 1000);
-                visibleRegion = visibleRegion.subtracted(new QRegion(centerRect));
-                pixmapLabel.setMask(visibleRegion);
-                pixmapLabel.show();
-            }
-
-        }
+    private static void cacheQtHintWindowIntoPixmap(QWidget container,
+                                                    HintMesh hintMeshKey) {
+        QPixmap pixmap = container.grab();
+        PixmapAndPosition pixmapAndPosition =
+                new PixmapAndPosition(pixmap, container.x(), container.y());
+        logger.trace("Caching " + pixmapAndPosition + ", cache size is " + hintMeshPixmaps.size());
+        // pixmap.save("screenshot.png", "PNG");
+        hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
     }
 
     private static List<Hint> trimmedHints(List<Hint> hints,
@@ -1463,7 +1555,7 @@ public class WindowsOverlay {
         requestWindowRepaint(gridWindow.hwnd);
     }
 
-    public static void setHintMesh(HintMesh hintMesh) {
+    public static void setHintMesh(HintMesh hintMesh, Zoom zoom) {
         Objects.requireNonNull(hintMesh);
         if (!hintMesh.visible()) {
             hideHintMesh();
@@ -1472,7 +1564,7 @@ public class WindowsOverlay {
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return;
         currentHintMesh = hintMesh;
-        createOrUpdateHintMeshWindows(currentHintMesh);
+        createOrUpdateHintMeshWindows(currentHintMesh, zoom);
         showingHintMesh = true;
         if (!waitForZoomBeforeRepainting) {
             for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {

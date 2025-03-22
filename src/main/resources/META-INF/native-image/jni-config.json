@@ -76,7 +76,15 @@
   "methods":[{"name":"<init>","parameterTypes":["int","long","int","boolean"] }, {"name":"<init>","parameterTypes":["java.nio.Buffer","long","long"] }, {"name":"fromNative","parameterTypes":["long","int","long","int","boolean"] }, {"name":"indirections","parameterTypes":[] }, {"name":"invalidate","parameterTypes":[] }, {"name":"isReadOnly","parameterTypes":[] }, {"name":"knownSize","parameterTypes":[] }, {"name":"pointer","parameterTypes":[] }, {"name":"setVerificationEnabled","parameterTypes":["boolean"] }]
 },
 {
+  "name":"io.qt.QtByteEnumerator",
+  "methods":[{"name":"comparator","parameterTypes":[] }, {"name":"value","parameterTypes":[] }]
+},
+{
   "name":"io.qt.QtEnumerator",
+  "methods":[{"name":"comparator","parameterTypes":[] }, {"name":"value","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.QtLongEnumerator",
   "methods":[{"name":"comparator","parameterTypes":[] }, {"name":"value","parameterTypes":[] }]
 },
 {
@@ -87,6 +95,10 @@
   "methods":[{"name":"dispose","parameterTypes":[] }, {"name":"isDisposed","parameterTypes":[] }]
 },
 {
+  "name":"io.qt.QtShortEnumerator",
+  "methods":[{"name":"comparator","parameterTypes":[] }, {"name":"value","parameterTypes":[] }]
+},
+{
   "name":"io.qt.QtUtilities",
   "methods":[{"name":"initializePackage","parameterTypes":["java.lang.Class"] }]
 },
@@ -95,9 +107,21 @@
   "fields":[{"name":"__rcContainer"}]
 },
 {
+  "name":"io.qt.core.AbstractSpan",
+  "methods":[{"name":"commit","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.core.QAbstractAnimation",
+  "fields":[{"name":"currentLoopChanged"}, {"name":"directionChanged"}, {"name":"finished"}, {"name":"stateChanged"}]
+},
+{
   "name":"io.qt.core.QCoreApplication",
   "fields":[{"name":"__qt_isInitializing"}, {"name":"aboutToQuit"}, {"name":"applicationNameChanged"}, {"name":"applicationVersionChanged"}, {"name":"organizationDomainChanged"}, {"name":"organizationNameChanged"}],
   "methods":[{"name":"execPostRoutines","parameterTypes":[] }, {"name":"execPreRoutines","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.core.QEasingCurve$Type",
+  "methods":[{"name":"resolve","parameterTypes":["int"] }]
 },
 {
   "name":"io.qt.core.QFactoryInterface"
@@ -123,6 +147,46 @@
   "name":"io.qt.core.QMetaObject$Connection"
 },
 {
+  "name":"io.qt.core.QMetaType$GenericByteEnumerator",
+  "methods":[{"name":"<init>","parameterTypes":["int","int","byte","java.lang.String"] }]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericEnumerator",
+  "methods":[{"name":"<init>","parameterTypes":["int","int","int","java.lang.String"] }]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericFlags",
+  "methods":[{"name":"<init>","parameterTypes":["int","int"] }]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericGadget",
+  "fields":[{"name":"type"}]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericLongEnumerator",
+  "methods":[{"name":"<init>","parameterTypes":["int","int","long","java.lang.String"] }]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericObject",
+  "fields":[{"name":"type"}]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericShortEnumerator",
+  "methods":[{"name":"<init>","parameterTypes":["int","int","short","java.lang.String"] }]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericTypeInterface",
+  "methods":[{"name":"metaType","parameterTypes":[] }]
+},
+{
+  "name":"io.qt.core.QMetaType$GenericValue",
+  "fields":[{"name":"type"}]
+},
+{
+  "name":"io.qt.core.QModelIndex",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
   "name":"io.qt.core.QObject",
   "fields":[{"name":"destroyed"}, {"name":"objectNameChanged"}],
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"childEvent","parameterTypes":["io.qt.core.QChildEvent"] }, {"name":"connectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"customEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"disconnectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"eventFilter","parameterTypes":["io.qt.core.QObject","io.qt.core.QEvent"] }, {"name":"timerEvent","parameterTypes":["io.qt.core.QTimerEvent"] }]
@@ -131,14 +195,20 @@
   "name":"io.qt.core.QObject$QDeclarativeConstructor"
 },
 {
-  "name":"io.qt.core.QPoint"
+  "name":"io.qt.core.QPair",
+  "fields":[{"name":"first"}, {"name":"second"}],
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Object","java.lang.Object"] }]
 },
 {
-  "name":"io.qt.core.QRect",
+  "name":"io.qt.core.QPoint",
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.core.QPointF"
+},
+  {
+  "name":"io.qt.core.QRect",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.core.QRunnable"
@@ -148,7 +218,12 @@
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor","io.qt.QtObject"] }]
 },
 {
-  "name":"io.qt.core.QSize"
+  "name":"io.qt.core.QSize",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.core.QString",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.core.QThread",
@@ -164,8 +239,15 @@
   "methods":[{"name":"metaTypeID","parameterTypes":[] }]
 },
 {
+  "name":"io.qt.core.QVariantAnimation",
+  "fields":[{"name":"valueChanged"}]
+},
+{
   "name":"io.qt.core.Qt$BrushStyle",
   "methods":[{"name":"resolve","parameterTypes":["int"] }]
+},
+{
+  "name":"io.qt.core.Qt$FillRule"
 },
 {
   "name":"io.qt.core.Qt$GlobalColor"
@@ -225,6 +307,9 @@
   "name":"io.qt.gui.QAccessibleValueInterface"
 },
 {
+  "name":"io.qt.gui.QBitmap"
+},
+{
   "name":"io.qt.gui.QColor",
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
@@ -280,7 +365,14 @@
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
+  "name":"io.qt.gui.QPolygon"
+},
+{
   "name":"io.qt.gui.QRegion"
+},
+{
+  "name":"io.qt.gui.QRegion$RegionType",
+  "methods":[{"name":"resolve","parameterTypes":["int"] }]
 },
 {
   "name":"io.qt.gui.QRgba64"
@@ -370,8 +462,16 @@
   "methods":[{"name":"resolveSignal","parameterTypes":["java.lang.Object","boolean[]","boolean[]"] }]
 },
 {
+  "name":"io.qt.internal.SignalUtility$AbstractConnection",
+  "methods":[{"name":"invoke","parameterTypes":["java.lang.Object[]"] }, {"name":"onDisconnect","parameterTypes":[] }]
+},
+{
   "name":"io.qt.internal.SignalUtility$AbstractSignal",
   "methods":[{"name":"initializeSignal","parameterTypes":["java.lang.Class","java.util.List","int","long"] }]
+},
+{
+  "name":"io.qt.internal.SignalUtility$NativeConnection",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.internal.ThreadUtility",
@@ -424,6 +524,9 @@
   "name":"java.lang.Byte",
   "fields":[{"name":"TYPE"}, {"name":"value"}],
   "methods":[{"name":"<init>","parameterTypes":["byte"] }, {"name":"valueOf","parameterTypes":["byte"] }]
+},
+{
+  "name":"java.lang.CharSequence"
 },
 {
   "name":"java.lang.Character",
@@ -571,8 +674,16 @@
   "methods":[{"name":"get","parameterTypes":["int"] }, {"name":"remove","parameterTypes":["int"] }, {"name":"remove","parameterTypes":["java.lang.Object"] }, {"name":"set","parameterTypes":["int","java.lang.Object"] }]
 },
 {
+  "name":"java.util.Map",
+  "methods":[{"name":"clear","parameterTypes":[] }, {"name":"entrySet","parameterTypes":[] }, {"name":"get","parameterTypes":["java.lang.Object"] }, {"name":"keySet","parameterTypes":[] }, {"name":"put","parameterTypes":["java.lang.Object","java.lang.Object"] }, {"name":"putAll","parameterTypes":["java.util.Map"] }, {"name":"remove","parameterTypes":["java.lang.Object"] }, {"name":"remove","parameterTypes":["java.lang.Object","java.lang.Object"] }, {"name":"size","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.MousemasterApplication",
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$ClearBackgroundQLabel",
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$HintBox",

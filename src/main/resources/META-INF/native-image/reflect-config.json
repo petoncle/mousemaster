@@ -369,11 +369,6 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"com.sun.jna.platform.win32.WinUser$SIZE",
-  "allDeclaredFields":true,
-  "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
-},
-{
   "name":"com.sun.jna.platform.win32.WinUser$WNDCLASSEX",
   "allDeclaredFields":true,
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
@@ -412,6 +407,10 @@
   "allDeclaredClasses":true
 },
 {
+  "name":"io.qt.core.QAbstractAnimation",
+  "fields":[{"name":"currentLoopChanged"}, {"name":"directionChanged"}, {"name":"finished"}, {"name":"stateChanged"}]
+},
+{
   "name":"io.qt.core.QCoreApplication",
   "fields":[{"name":"aboutToQuit"}, {"name":"applicationNameChanged"}, {"name":"applicationVersionChanged"}, {"name":"organizationDomainChanged"}, {"name":"organizationNameChanged"}]
 },
@@ -428,6 +427,10 @@
 {
   "name":"io.qt.core.QThread",
   "fields":[{"name":"finished"}, {"name":"started"}]
+},
+{
+  "name":"io.qt.core.QVariantAnimation",
+  "fields":[{"name":"valueChanged"}]
 },
 {
   "name":"io.qt.core.QtJambi_LibraryUtilities",
@@ -698,6 +701,20 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.WindowsOverlay$ClearBackgroundQLabel",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$ClearBackgroundQLabel$1"
+},
+{
+  "name":"mousemaster.WindowsOverlay$ClearBackgroundQLabel$WhenMappings"
+},
+{
   "name":"mousemaster.WindowsOverlay$HintBox",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
@@ -710,6 +727,14 @@
 },
 {
   "name":"mousemaster.WindowsOverlay$HintBox$WhenMappings"
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintContainerAnimationChanged",
+  "fields":[{"name":"arg$1"}]
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintContainerAnimationFinished",
+  "fields":[{"name":"arg$1"}]
 },
 {
   "name":"mousemaster.WindowsOverlay$HintLabel",

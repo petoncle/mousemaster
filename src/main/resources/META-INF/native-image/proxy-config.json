@@ -37,5 +37,8 @@
   },
   {
     "interfaces":["mousemaster.Shcore"]
+  },
+  {
+    "interfaces":["sun.nio.ch.Interruptible"]
   }
 ]

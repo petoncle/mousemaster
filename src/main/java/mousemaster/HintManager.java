@@ -157,7 +157,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
         screenFilter = newScreenFilter;
-        WindowsOverlay.setHintMesh(hintMesh);
+        WindowsOverlay.setHintMesh(hintMesh, newZoom);
     }
 
     private ViewportFilter screenFilter(HintMeshConfiguration hintMeshConfiguration) {
@@ -647,7 +647,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                 hintMesh, hintMeshStates.get(
                                 hintMeshKey).previousModeSelectedHintPoint
                         ));
-                WindowsOverlay.setHintMesh(hintMesh);
+                WindowsOverlay.setHintMesh(hintMesh, currentZoom);
                 return PressKeyEventProcessing.hintUndo();
             }
             return PressKeyEventProcessing.unhandled(); // ComboWatcher can have a go at it.
@@ -719,7 +719,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMesh,
                             hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
                     ));
-            WindowsOverlay.setHintMesh(hintMesh);
+            WindowsOverlay.setHintMesh(hintMesh, currentZoom);
             return PressKeyEventProcessing.partOfHintPrefix();
         }
     }
@@ -760,7 +760,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMesh,
                             hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
                     ));
-            WindowsOverlay.setHintMesh(hintMesh);
+            WindowsOverlay.setHintMesh(hintMesh, currentZoom);
         }
     }
 
