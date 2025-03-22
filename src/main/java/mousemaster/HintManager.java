@@ -702,7 +702,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                  }
                  mouseController.moveTo(mouseX, mouseY);
              }
-            finalizeHintSelection(exactMatchHint);
+            finalizeHintSelection(exactMatchHint, newFocusedKeySequence);
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
                     PressKeyEventProcessing.swallowedHintEnd() :
                     PressKeyEventProcessing.unswallowedHintEnd();
@@ -724,7 +724,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
-    private void finalizeHintSelection(Hint hint) {
+    private void finalizeHintSelection(Hint hint, List<Key> newFocusedKeySequence) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (hintMeshConfiguration.savePositionAfterSelection()) {
             if (currentZoom.screenRectangle().contains(hint.centerX(), hint.centerY())) {
@@ -744,6 +744,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                                        .toList() +
                          " selected, switching to " +
                          hintMeshConfiguration.modeAfterSelection());
+            HintMesh endHintMesh =
+                    hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
+            WindowsOverlay.setHintMesh(endHintMesh, currentZoom, true); // will ignore the next call to .hideHintMesh()
             modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
         }
         else {

@@ -35,6 +35,9 @@ public class WindowsOverlay {
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private static boolean showingHintMesh;
+    private static boolean hintMeshEndAnimation;
+    private static boolean zoomAfterHintMeshEndAnimation;
+    private static Zoom afterHintMeshEndAnimationZoom;
     private static HintMesh currentHintMesh;
     private static ZoomWindow zoomWindow, standByZoomWindow;
     private static Zoom currentZoom;
@@ -433,7 +436,6 @@ public class WindowsOverlay {
                                                  QWidget newContainer, TransparentWindow window,
                                                  double screenScale) {
         if (oldContainer != null) {
-            int velocity = (int) (15000 * screenScale);
             if (oldContainerHasSameHints && oldContainer.rect().contains(newContainer.rect())) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
@@ -441,15 +443,15 @@ public class WindowsOverlay {
                 newContainer.setParent(window);
                 newContainer.show();
                 QRect beginRect =
-                        new QRect(oldContainer.x(), oldContainer.y(),
+                        new QRect(0, 0,
                                 oldContainer.width(),
                                 oldContainer.height());
                 QRect endRect =
-                        new QRect(newContainer.x(), newContainer.y(),
+                        new QRect(newContainer.x() - oldContainer.x(),
+                                newContainer.y() - oldContainer.y(),
                                 newContainer.width(),
                                 newContainer.height());
-                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
-                        velocity);
+                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
                 animation.valueChanged.connect(new HintContainerAnimationChanged(
                         oldContainer));
                 animation.finished.connect(
@@ -472,8 +474,7 @@ public class WindowsOverlay {
                                 newContainer.width(),
                                 newContainer.height());
                 newContainer.setMask(new QRegion(beginRect));
-                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
-                        velocity);
+                QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
                 animation.valueChanged.connect(new HintContainerAnimationChanged(
                         newContainer));
                 animation.finished.connect(
@@ -512,7 +513,8 @@ public class WindowsOverlay {
         @Override
         public void invoke(Object arg) {
             QRect r = (QRect) arg;
-            container.setMask(new QRegion(r));
+            if (!container.isDisposed())
+                container.setMask(new QRegion(r));
         }
     }
 
@@ -531,21 +533,35 @@ public class WindowsOverlay {
 
         @Override
         public void invoke() {
-            oldContainer.setParent(null);
-            oldContainer.disposeLater();
-            animatedContainer.setMask(new QRegion(endRect));
+            if (!oldContainer.isDisposed()) {
+                oldContainer.setParent(null);
+                oldContainer.disposeLater();
+            }
+            if (!animatedContainer.isDisposed()) {
+                animatedContainer.setMask(new QRegion(endRect));
+            }
+            if (hintMeshEndAnimation) {
+                hintMeshEndAnimation = false;
+                hideHintMesh();
+                if (zoomAfterHintMeshEndAnimation) {
+                    zoomAfterHintMeshEndAnimation = false;
+                    setZoom(afterHintMeshEndAnimationZoom);
+                    afterHintMeshEndAnimationZoom = null;
+                }
+            }
         }
     }
 
     private static QVariantAnimation hintContainerAnimation(QRect beginRect,
-                                                            QRect endRect,
-                                                            double velocity) {
+                                                            QRect endRect) {
         QVariantAnimation animation = new QVariantAnimation();
-        double dx = Math.max(Math.abs(endRect.x() - beginRect.x()), Math.abs(
-                endRect.width() - beginRect.width()));
-        double dy = Math.max(Math.abs(endRect.y() - beginRect.y()), Math.abs(
-                endRect.height() - beginRect.height()));
-        int duration = (int) Math.round((Math.max(dx, dy) / velocity) * 1000); // ms
+//        double topLeftDistance = Math.hypot(beginRect.topLeft().x() - endRect.topLeft().x(), beginRect.topLeft().y() - endRect.topLeft().y());
+//        double topRightDistance = Math.hypot(beginRect.topRight().x() - endRect.topRight().x(), beginRect.topRight().y() - endRect.topRight().y());
+//        double bottomLeftDistance = Math.hypot(beginRect.bottomLeft().x() - endRect.bottomLeft().x(), beginRect.bottomLeft().y() - endRect.bottomLeft().y());
+//        double bottomRightDistance = Math.hypot(beginRect.bottomRight().x() - endRect.bottomRight().x(), beginRect.bottomRight().y() - endRect.bottomRight().y());
+//        double distance = Math.max(Math.max(Math.max(topLeftDistance, topRightDistance), bottomLeftDistance), bottomRightDistance);
+//        int duration = (int) Math.round((distance / velocity) * 1000); // ms
+        int duration = 100;
         animation.setDuration(duration);
         animation.setStartValue(beginRect);
         animation.setEndValue(endRect);
@@ -1428,6 +1444,18 @@ public class WindowsOverlay {
     public static void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
+        if (hintMeshEndAnimation) {
+            if (!zoomAfterHintMeshEndAnimation) {
+                zoomAfterHintMeshEndAnimation = true;
+                afterHintMeshEndAnimationZoom = zoom;
+                return;
+            }
+            else {
+                // We skip the enqueued zoom.
+                zoomAfterHintMeshEndAnimation = false;
+                afterHintMeshEndAnimationZoom = null;
+            }
+        }
         if (zoomWindow == null) {
             createZoomWindow();
         }
@@ -1573,6 +1601,10 @@ public class WindowsOverlay {
     }
 
     public static void setHintMesh(HintMesh hintMesh, Zoom zoom) {
+        setHintMesh(hintMesh, zoom, false);
+    }
+
+    public static void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
         Objects.requireNonNull(hintMesh);
         if (!hintMesh.visible()) {
             hideHintMesh();
@@ -1580,6 +1612,17 @@ public class WindowsOverlay {
         }
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return;
+        if (hintMatch) {
+            hintMeshEndAnimation = true;
+        }
+        else {
+            hintMeshEndAnimation = false;
+            if (zoomAfterHintMeshEndAnimation) {
+                zoomAfterHintMeshEndAnimation = false;
+                setZoom(afterHintMeshEndAnimationZoom);
+                afterHintMeshEndAnimationZoom = null;
+            }
+        }
         currentHintMesh = hintMesh;
         createOrUpdateHintMeshWindows(currentHintMesh, zoom);
         showingHintMesh = true;
@@ -1599,6 +1642,8 @@ public class WindowsOverlay {
 
     public static void hideHintMesh() {
         if (!showingHintMesh)
+            return;
+        if (hintMeshEndAnimation)
             return;
         showingHintMesh = false;
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
