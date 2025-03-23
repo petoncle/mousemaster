@@ -393,6 +393,7 @@ public class WindowsOverlay {
                 .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.focusedKeySequence()))
                 .build();
         PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMeshKey);
+        boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         QWidget newContainer;
         if (pixmapAndPosition != null) {
             logger.trace("Using cached pixmap " + pixmapAndPosition);
@@ -400,14 +401,14 @@ public class WindowsOverlay {
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
             pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(), pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             newContainer = pixmapLabel;
-            transitionHintContainers(oldContainerHasSameHints, oldContainer, newContainer,
-                    window, screenScale);
+            transitionHintContainers(isHintGrid && oldContainerHasSameHints, oldContainer,
+                    newContainer,
+                    window);
         }
         else {
             QWidget container = new QWidget();
             container.setStyleSheet("background: transparent;");
             newContainer = container;
-            boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
             setUncachedHintMeshWindowRunnable =
                     () -> {
                         setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
@@ -415,14 +416,15 @@ public class WindowsOverlay {
                                 style, qtScaleFactor,
                                 container
                         );
-                        if (isHintPartOfGrid) {
+                        if (isHintGrid) {
                             cacheQtHintWindowIntoPixmap(container, hintMeshKey);
                         }
-                        transitionHintContainers(oldContainerHasSameHints, oldContainer,
-                                newContainer, window,
-                                screenScale);
+                        transitionHintContainers(
+                                isHintGrid && oldContainerHasSameHints, oldContainer,
+                                newContainer, window
+                        );
                     };
-            if (!isHintPartOfGrid // They are not cached anyway.
+            if (!isHintGrid // They are not cached anyway.
                 || !hintMesh.focusedKeySequence().isEmpty() // To avoid an empty frame.
                     || hintMesh.hints().size() < 100 // To avoid an empty frame.
             ) {
@@ -432,11 +434,10 @@ public class WindowsOverlay {
         }
     }
 
-    private static void transitionHintContainers(boolean oldContainerHasSameHints, QWidget oldContainer,
-                                                 QWidget newContainer, TransparentWindow window,
-                                                 double screenScale) {
+    private static void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
+                                                 QWidget newContainer, TransparentWindow window) {
         if (oldContainer != null) {
-            if (oldContainerHasSameHints && oldContainer.rect().contains(newContainer.rect())) {
+            if (animateTransition && oldContainer.rect().contains(newContainer.rect())) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
                 oldContainer.show();
@@ -459,7 +460,7 @@ public class WindowsOverlay {
                                 endRect));
                 animation.start();
             }
-            else if (oldContainerHasSameHints && newContainer.rect().contains(
+            else if (animateTransition && newContainer.rect().contains(
                     oldContainer.rect())) {
                 // Initially show new container with the position and size of old.
                 // Then grow new container until it reaches its final position and size.
@@ -513,7 +514,7 @@ public class WindowsOverlay {
         @Override
         public void invoke(Object arg) {
             QRect r = (QRect) arg;
-            if (!container.isDisposed())
+            if (!container.isDisposed()) // TODO remove.
                 container.setMask(new QRegion(r));
         }
     }
