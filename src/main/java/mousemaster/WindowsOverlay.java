@@ -175,7 +175,9 @@ public class WindowsOverlay {
 
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   TransparentWindow window,
-                                  List<Hint> hints, Zoom zoom) {
+                                  List<Hint> hints, Zoom zoom,
+                                  List<QVariantAnimation> animations,
+                                  List<QMetaObject.AbstractSlot> animationCallbacks) {
 
     }
 
@@ -338,7 +340,8 @@ public class WindowsOverlay {
                 window.move(screen.rectangle().x(), screen.rectangle().y());
                 window.resize(screen.rectangle().width(), screen.rectangle().height());
                 HintMeshWindow hintMeshWindow =
-                        new HintMeshWindow(hwnd, window, hintsInScreen, zoom);
+                        new HintMeshWindow(hwnd, window, hintsInScreen, zoom,
+                                new ArrayList<>(), new ArrayList<>());
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
@@ -347,9 +350,10 @@ public class WindowsOverlay {
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
                         existingWindow.window,
-                        hintsInScreen, zoom);
-                boolean oldContainerIsHidden = ((QWidget) existingWindow.window.children()
-                                                                 .getFirst()).isHidden();
+                        hintsInScreen, zoom, new ArrayList<>(), new ArrayList<>());
+                boolean oldContainerIsHidden = !existingWindow.window.children()
+                                                                     .isEmpty() &&
+                                               ((QWidget) existingWindow.window.children().getFirst()).isHidden();
                 boolean oldContainerHasSameHints = !oldContainerIsHidden &&
                                                    existingWindow.zoom.equals(zoom) &&
                                                    existingWindow.hints.equals(
@@ -381,6 +385,11 @@ public class WindowsOverlay {
                                           HintMeshStyle style,
                                           boolean oldContainerHasSameHints) {
         setUncachedHintMeshWindowRunnable = null;
+        for (QVariantAnimation animation : hintMeshWindow.animations) {
+            animation.stop();
+        }
+        hintMeshWindow.animations.clear();
+        hintMeshWindow.animationCallbacks.clear();
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
@@ -403,7 +412,7 @@ public class WindowsOverlay {
             newContainer = pixmapLabel;
             transitionHintContainers(isHintGrid && oldContainerHasSameHints, oldContainer,
                     newContainer,
-                    window);
+                    window, hintMeshWindow);
         }
         else {
             QWidget container = new QWidget();
@@ -421,8 +430,8 @@ public class WindowsOverlay {
                         }
                         transitionHintContainers(
                                 isHintGrid && oldContainerHasSameHints, oldContainer,
-                                newContainer, window
-                        );
+                                newContainer, window,
+                                hintMeshWindow);
                     };
             if (!isHintGrid // They are not cached anyway.
                 || !hintMesh.focusedKeySequence().isEmpty() // To avoid an empty frame.
@@ -435,8 +444,10 @@ public class WindowsOverlay {
     }
 
     private static void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
-                                                 QWidget newContainer, TransparentWindow window) {
+                                                 QWidget newContainer, TransparentWindow window,
+                                                 HintMeshWindow hintMeshWindow) {
         if (oldContainer != null) {
+            boolean containersEqual = oldContainer.rect().equals(newContainer.rect());
             if (animateTransition && oldContainer.rect().contains(newContainer.rect())) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
@@ -453,15 +464,26 @@ public class WindowsOverlay {
                                 newContainer.width(),
                                 newContainer.height());
                 QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
-                animation.valueChanged.connect(new HintContainerAnimationChanged(
-                        oldContainer));
-                animation.finished.connect(
+                HintContainerAnimationChanged animationChanged = new HintContainerAnimationChanged(
+                        oldContainer);
+                animation.valueChanged.connect(animationChanged);
+                HintContainerAnimationFinished animationFinished =
                         new HintContainerAnimationFinished(oldContainer, oldContainer,
-                                endRect));
-                animation.start();
+                                endRect);
+                animation.finished.connect(animationFinished);
+                // It may be necessary to save those instances somewhere (HintMeshWindow),
+                // because they could get GC'd while they are still used by Qt (?).
+                // Same for HintContainerAnimationFinished.
+                hintMeshWindow.animations.add(animation);
+                hintMeshWindow.animationCallbacks.add(animationChanged);
+                hintMeshWindow.animationCallbacks.add(animationFinished);
+                if (containersEqual)
+                    // Screen selection hint end.
+                    animationFinished.invoke();
+                else
+                    animation.start();
             }
-            else if (animateTransition && newContainer.rect().contains(
-                    oldContainer.rect())) {
+            else if (animateTransition && newContainer.rect().contains(oldContainer.rect())) {
                 // Initially show new container with the position and size of old.
                 // Then grow new container until it reaches its final position and size.
                 newContainer.setParent(window);
@@ -476,16 +498,21 @@ public class WindowsOverlay {
                                 newContainer.height());
                 newContainer.setMask(new QRegion(beginRect));
                 QVariantAnimation animation = hintContainerAnimation(beginRect, endRect);
-                animation.valueChanged.connect(new HintContainerAnimationChanged(
-                        newContainer));
-                animation.finished.connect(
-                        new HintContainerAnimationFinished(oldContainer, newContainer,
-                                endRect));
+                HintContainerAnimationChanged animationChanged =
+                        new HintContainerAnimationChanged(newContainer);
+                animation.valueChanged.connect(animationChanged);
+                HintContainerAnimationFinished animationFinished =
+                        new HintContainerAnimationFinished(null, newContainer,
+                                endRect);
+                animation.finished.connect(animationFinished);
+                hintMeshWindow.animations.add(animation);
+                hintMeshWindow.animationCallbacks.add(animationChanged);
+                hintMeshWindow.animationCallbacks.add(animationFinished);
                 animation.start();
+                oldContainer.setParent(null);
                 oldContainer.disposeLater();
             }
             else {
-                logger.info("No animation because no mutual contain");
                 oldContainer.disposeLater();
                 newContainer.setParent(window);
                 newContainer.show();
@@ -498,11 +525,6 @@ public class WindowsOverlay {
         window.show();
     }
 
-    /**
-     * TODO It may be necessary to save those instances somewhere (HintMeshWindow),
-     *  because they could get GC'd while they are still used by Qt (?).
-     *  Same for HintContainerAnimationFinished.
-     */
     public static class HintContainerAnimationChanged implements QMetaObject.Slot1<Object> {
 
         private final QWidget container;
@@ -514,8 +536,7 @@ public class WindowsOverlay {
         @Override
         public void invoke(Object arg) {
             QRect r = (QRect) arg;
-            if (!container.isDisposed()) // TODO remove.
-                container.setMask(new QRegion(r));
+            container.setMask(new QRegion(r));
         }
     }
 
@@ -534,12 +555,10 @@ public class WindowsOverlay {
 
         @Override
         public void invoke() {
-            if (!oldContainer.isDisposed()) {
+            animatedContainer.setMask(new QRegion(endRect)); // animatedContainer can be the oldContainer.
+            if (oldContainer != null) {
                 oldContainer.setParent(null);
                 oldContainer.disposeLater();
-            }
-            if (!animatedContainer.isDisposed()) {
-                animatedContainer.setMask(new QRegion(endRect));
             }
             if (hintMeshEndAnimation) {
                 hintMeshEndAnimation = false;
@@ -1613,8 +1632,15 @@ public class WindowsOverlay {
         }
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return;
+        boolean isHintGrid = hintMesh.hints().getFirst().cellWidth() != -1;
         if (hintMatch) {
-            hintMeshEndAnimation = true;
+            if (isHintGrid)
+                hintMeshEndAnimation = true;
+            else {
+                // No animation for position history hints.
+                // hideHintMesh() will be called by the switch mode command.
+                return;
+            }
         }
         else {
             hintMeshEndAnimation = false;
