@@ -350,7 +350,8 @@ public class WindowsOverlay {
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
                         existingWindow.window,
-                        hintsInScreen, zoom, new ArrayList<>(), new ArrayList<>());
+                        hintsInScreen, zoom, existingWindow.animations(),
+                        existingWindow.animationCallbacks());
                 boolean oldContainerIsHidden = !existingWindow.window.children()
                                                                      .isEmpty() &&
                                                ((QWidget) existingWindow.window.children().getFirst()).isHidden();
