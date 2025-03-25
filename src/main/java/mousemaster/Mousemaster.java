@@ -153,6 +153,10 @@ public class Mousemaster {
                 ConfigurationParser.parse(configurationProperties, activeKeyboardLayout);
         if (configuration.logLevel() != null)
             MousemasterApplication.setLogLevel(configuration.logLevel());
+        if (configuration.logToFile())
+            MousemasterApplication.enableLogToFile();
+        else
+            MousemasterApplication.disableLogToFile();
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +
                     (readFile ? "file " + configurationPath + " " : "") +
                     "with keyboard layout " + activeKeyboardLayout);

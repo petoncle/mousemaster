@@ -51,6 +51,11 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"ch.qos.logback.core.FileAppender",
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] },{"name": "setFile","parameterTypes": ["java.lang.String"]},{"name": "setAppend","parameterTypes": ["boolean"]}]
+},
+{
   "name":"ch.qos.logback.core.OutputStreamAppender",
   "methods":[{"name":"setEncoder","parameterTypes":["ch.qos.logback.core.encoder.Encoder"] }]
 },

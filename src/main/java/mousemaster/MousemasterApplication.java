@@ -2,8 +2,14 @@ package mousemaster;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.FileAppender;
 import com.sun.jna.Native;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +18,7 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.function.Predicate;
+import java.util.logging.LogManager;
 import java.util.stream.Stream;
 
 public class MousemasterApplication {
@@ -22,11 +29,9 @@ public class MousemasterApplication {
     static {
         System.setProperty("slf4j.internal.verbosity", "WARN");
         logger = (Logger) LoggerFactory.getLogger(MousemasterApplication.class);
-        // See io/qtjambi/qtjambi/6.8.2/qtjambi-6.8.2-sources.jar!/io/qt/internal/ResourceUtility.java
-        // It tries to use jrt which is not implemented in graalvm native, throws and logs an exception,
-        // but that does not seem to prevent it from working.
-        java.util.logging.Logger.getLogger("io.qt.internal.fileengine").setLevel(
-                java.util.logging.Level.OFF);
+        // QtJambi uses JUL. We want it bridged with slf4j.
+        LogManager.getLogManager().reset();
+        SLF4JBridgeHandler.install();
     }
 
     public static void main(String[] args) throws InterruptedException, IOException {
@@ -40,6 +45,14 @@ public class MousemasterApplication {
               .map(arg -> arg.split("=")[1])
               .findFirst()
               .ifPresent(MousemasterApplication::setLogLevel);
+        boolean logToFile = Stream.of(args)
+                                     .filter(arg -> arg.startsWith("--log-to-file="))
+                                     .map(arg -> arg.split("=")[1])
+                                     .findFirst()
+                                     .map(Boolean::parseBoolean)
+                                     .orElse(false);
+        if (logToFile)
+            enableLogToFile();
         boolean pauseOnError = Stream.of(args)
                                      .filter(arg -> arg.startsWith("--pause-on-error="))
                                      .map(arg -> arg.split("=")[1])
@@ -138,6 +151,35 @@ public class MousemasterApplication {
             new Scanner(System.in).nextLine();
         }
         System.exit(1);
+    }
+
+    public static void enableLogToFile() {
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+        if (rootLogger.getAppender("FILE") != null)
+            return;
+        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+        encoder.setContext(context);
+        encoder.setPattern("%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level %logger{36} - %msg%n");
+        encoder.start();
+        FileAppender<ILoggingEvent> fileAppender = new FileAppender<>();
+        fileAppender.setName("FILE");
+        fileAppender.setContext(context);
+        fileAppender.setFile("mousemaster.log");
+        fileAppender.setEncoder(encoder);
+        fileAppender.setAppend(true);
+        fileAppender.start();
+        rootLogger.addAppender(fileAppender);
+    }
+
+    public static void disableLogToFile() {
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+        Appender<ILoggingEvent> fileAppender = rootLogger.getAppender("FILE");
+        if (fileAppender != null) {
+            rootLogger.detachAppender(fileAppender);
+            fileAppender.stop();
+        }
     }
 
     public static void setLogLevel(String level) {

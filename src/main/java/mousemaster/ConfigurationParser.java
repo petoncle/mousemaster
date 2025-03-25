@@ -217,6 +217,7 @@ public class ConfigurationParser {
                         configurationAliases.layoutKeyAliasByName);
         String logLevel = null;
         boolean logRedactKeys = false;
+        boolean logToFile = false;
         ComboMoveDuration defaultComboMoveDuration =
                 new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
         int maxPositionHistorySize = 16;
@@ -244,6 +245,10 @@ public class ConfigurationParser {
             }
             else if (propertyKey.equals("logging.redact-keys")) {
                 logRedactKeys = Boolean.parseBoolean(propertyValue);
+                continue;
+            }
+            else if (propertyKey.equals("logging.to-file")) {
+                logToFile = Boolean.parseBoolean(propertyValue);
                 continue;
             }
             else if (propertyKey.equals("default-combo-move-duration-millis")) {
@@ -365,7 +370,7 @@ public class ConfigurationParser {
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
         return new Configuration(activeKeyboardLayout, maxPositionHistorySize,
-                new ModeMap(modes), logLevel, logRedactKeys);
+                new ModeMap(modes), logLevel, logRedactKeys, logToFile);
     }
 
     private static void parseLine(String group2, ModeBuilder mode, String propertyKey,
