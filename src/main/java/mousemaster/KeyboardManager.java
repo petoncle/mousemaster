@@ -77,12 +77,21 @@ public class KeyboardManager {
             Set<Key> keysToRegurgitate = Set.of();
             if (processingSet == null) {
                 if (!pressingUnhandledKey()) {
-                    processingSet =
-                            new PressKeyEventProcessingSet(Map.of(
-                                    PressKeyEventProcessingSet.dummyCombo,
-                                    hintManager.keyPressed(keyEvent.key())));
-                    if (processingSet.isUnswallowedHintEnd() || !processingSet.handled())
-                        processingSet = comboWatcher.keyEvent(keyEvent);
+                    PressKeyEventProcessing hintProcessing = hintManager.keyPressed(keyEvent.key());
+                    if (hintProcessing.isUnswallowedHintEnd() || !hintProcessing.handled()) {
+                        PressKeyEventProcessingSet comboWatcherProcessingSet =
+                                comboWatcher.keyEvent(keyEvent);
+                        Map<Combo, PressKeyEventProcessing> processingByCombo =
+                                new HashMap<>();
+                        processingByCombo.put(PressKeyEventProcessingSet.dummyCombo, hintProcessing);
+                        processingByCombo.putAll(comboWatcherProcessingSet.processingByCombo());
+                        processingSet = new PressKeyEventProcessingSet(processingByCombo);
+                    }
+                    else {
+                        processingSet = new PressKeyEventProcessingSet(
+                                Map.of(PressKeyEventProcessingSet.dummyCombo,
+                                        hintProcessing));
+                    }
                 }
                 else {
                     // Even if pressing unhandled key, give the hint manager a chance.
