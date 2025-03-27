@@ -382,6 +382,7 @@ public enum WindowsVirtualKey {
                 Map.entry(Key.numpadsubtract, VK_SUBTRACT),
                 Map.entry(Key.numpaddecimal, VK_DECIMAL),
                 Map.entry(Key.numpaddivide, VK_DIVIDE),
+                Map.entry(Key.numlock, VK_NUMLOCK),
                 Map.entry(Key.f1, VK_F1),
                 Map.entry(Key.f2, VK_F2),
                 Map.entry(Key.f3, VK_F3),

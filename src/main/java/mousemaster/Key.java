@@ -50,6 +50,7 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key numpadsubtract = new Key("numpadsubtract", "-", null);
     public static final Key numpaddecimal = new Key("numpaddecimal", ".", null);
     public static final Key numpaddivide = new Key("numpaddivide", "/", null);
+    public static final Key numlock = new Key("numlock", null, null);
     public static final Key f1 = new Key("f1", null, null);
     public static final Key f2 = new Key("f2", null, null);
     public static final Key f3 = new Key("f3", null, null);
@@ -130,6 +131,7 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
             numpadsubtract,
             numpaddecimal,
             numpaddivide,
+            numlock,
             f1,
             f2,
             f3,
