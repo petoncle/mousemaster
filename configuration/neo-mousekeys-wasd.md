@@ -19,6 +19,7 @@
 - Scroll vertically or horizontally (wheel) with _m_, _,_ (comma), _i_, _o_.
 - Jump forward (teleport) by holding _j_ while moving.
 - Slow down mouse and scroll movement by holding _leftshift_ while moving.
+- Super slow down mouse and scroll movement by holding _capslock_ while moving.
 - Accelerate mouse movement by holding _u_ while moving.
 - Accelerate scroll movement by holding _v_ or _b_ while scrolling.
 - Navigate back and forward using _h_ (back) and _y_ (forward). These keys send 
