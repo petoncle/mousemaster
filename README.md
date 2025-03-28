@@ -35,7 +35,8 @@ https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-
    the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build
    it from source.
 2. In the same Release page, choose then download one of the existing configuration files:
-    - **neo-mousekeys-wasd.properties** (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys-wasd.md))
+    - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))
+    - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](configuration/neo-mousekeys-wasd.md))
     - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))
     - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))
     - **author.properties**: an IJKL configuration designed to control everything with the right hand only. ([see documentation](configuration/author.md))
