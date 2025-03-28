@@ -25,6 +25,9 @@
 - Navigate back and forward using _h_ (back) and _y_ (forward). These keys send 
 _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the active application. 
 
+## Arrow key remappings (both in normal mode and idle mode)
+- Press _leftalt + ijkl_ to simulate the arrow keys.
+
 ## Grid Mode (_g_ in normal mode)
 
 - Divide screen into a 2x2 grid, refining target area with each key press.
