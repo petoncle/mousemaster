@@ -213,9 +213,11 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
 
     public String hintLabel() {
         // toUpperCase() could be problematic since it uses Locale.default().
-        return staticSingleCharacterName != null ? staticSingleCharacterName :
-                // In azerty, ù should be displayed as ù and not CARET.
-                (character != null ? character : staticName).toUpperCase();
+        // In azerty, ù should be displayed as ù and not CARET.
+        if (staticSingleCharacterName != null)
+            return staticSingleCharacterName;
+        String label = character != null ? character : staticName;
+        return label.toUpperCase();
     }
 
     @Override

@@ -7,9 +7,10 @@ import com.sun.jna.platform.win32.WinDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public enum WindowsVirtualKey {
 
@@ -341,92 +342,6 @@ public enum WindowsVirtualKey {
     }
 
     public static final List<WindowsVirtualKey> values;
-    public static final Map<Key, WindowsVirtualKey> keyboardLayoutIndependentVirtualKeyByKey =
-            Map.ofEntries(
-                // @formatter:off
-                Map.entry(Key.break_, VK_CANCEL),
-                Map.entry(Key.backspace, VK_BACK),
-                Map.entry(Key.tab, VK_TAB),
-                Map.entry(Key.enter, VK_RETURN),
-                Map.entry(Key.pause, VK_PAUSE),
-                Map.entry(Key.scrolllock, VK_SCROLL),
-                Map.entry(Key.capslock, VK_CAPITAL),
-                Map.entry(Key.esc, VK_ESCAPE),
-                Map.entry(Key.space, VK_SPACE),
-                Map.entry(Key.pageup, VK_PRIOR),
-                Map.entry(Key.pagedown, VK_NEXT),
-                Map.entry(Key.end, VK_END),
-                Map.entry(Key.home, VK_HOME),
-                Map.entry(Key.leftarrow, VK_LEFT),
-                Map.entry(Key.uparrow, VK_UP),
-                Map.entry(Key.rightarrow, VK_RIGHT),
-                Map.entry(Key.downarrow, VK_DOWN),
-                Map.entry(Key.printscreen, VK_SNAPSHOT),
-                Map.entry(Key.insert, VK_INSERT),
-                Map.entry(Key.del, VK_DELETE),
-                Map.entry(Key.leftwin, VK_LWIN),
-                Map.entry(Key.rightwin, VK_RWIN),
-                Map.entry(Key.menu, VK_APPS),
-                Map.entry(Key.numpad0, VK_NUMPAD0),
-                Map.entry(Key.numpad1, VK_NUMPAD1),
-                Map.entry(Key.numpad2, VK_NUMPAD2),
-                Map.entry(Key.numpad3, VK_NUMPAD3),
-                Map.entry(Key.numpad4, VK_NUMPAD4),
-                Map.entry(Key.numpad5, VK_NUMPAD5),
-                Map.entry(Key.numpad6, VK_NUMPAD6),
-                Map.entry(Key.numpad7, VK_NUMPAD7),
-                Map.entry(Key.numpad8, VK_NUMPAD8),
-                Map.entry(Key.numpad9, VK_NUMPAD9),
-                Map.entry(Key.numpadmultiply, VK_MULTIPLY),
-                Map.entry(Key.numpadadd, VK_ADD),
-                Map.entry(Key.numpadsubtract, VK_SUBTRACT),
-                Map.entry(Key.numpaddecimal, VK_DECIMAL),
-                Map.entry(Key.numpaddivide, VK_DIVIDE),
-                Map.entry(Key.numlock, VK_NUMLOCK),
-                Map.entry(Key.f1, VK_F1),
-                Map.entry(Key.f2, VK_F2),
-                Map.entry(Key.f3, VK_F3),
-                Map.entry(Key.f4, VK_F4),
-                Map.entry(Key.f5, VK_F5),
-                Map.entry(Key.f6, VK_F6),
-                Map.entry(Key.f7, VK_F7),
-                Map.entry(Key.f8, VK_F8),
-                Map.entry(Key.f9, VK_F9),
-                Map.entry(Key.f10, VK_F10),
-                Map.entry(Key.f11, VK_F11),
-                Map.entry(Key.f12, VK_F12),
-                Map.entry(Key.f13, VK_F13),
-                Map.entry(Key.f14, VK_F14),
-                Map.entry(Key.f15, VK_F15),
-                Map.entry(Key.f16, VK_F16),
-                Map.entry(Key.f17, VK_F17),
-                Map.entry(Key.f18, VK_F18),
-                Map.entry(Key.f19, VK_F19),
-                Map.entry(Key.f20, VK_F20),
-                Map.entry(Key.f21, VK_F21),
-                Map.entry(Key.f22, VK_F22),
-                Map.entry(Key.f23, VK_F23),
-                Map.entry(Key.f24, VK_F24),
-                Map.entry(Key.leftshift, VK_LSHIFT),
-                Map.entry(Key.rightshift, VK_RSHIFT),
-                Map.entry(Key.leftctrl, VK_LCONTROL),
-                Map.entry(Key.rightctrl, VK_RCONTROL),
-                Map.entry(Key.leftalt, VK_LMENU),
-                Map.entry(Key.rightalt, VK_RMENU)
-                // @formatter:on
-            );
-
-    private static final Set<WindowsVirtualKey> notRealKeysVirtualKeys = Set.of(
-            // @formatter:off
-            VK_PACKET
-            // @formatter:on
-    );
-
-    public static final Map<WindowsVirtualKey, Key>
-            keyboardLayoutIndependentKeyByVirtualKey = new HashMap<>();
-
-    public static final Map<Key, WindowsVirtualKey> keyboardLayoutDependentVirtualKeyByKey = new HashMap<>();
-    public static final Map<WindowsVirtualKey, Key> keyboardLayoutDependentKeyByVirtualKey = new HashMap<>();
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsVirtualKey.class);
 
@@ -439,91 +354,9 @@ public enum WindowsVirtualKey {
         for (Map.Entry<Integer, WindowsVirtualKey> entry : valueMap.entrySet())
             valueArrayWithoutDuplicateCodes[entry.getKey()] = entry.getValue();
         values = Arrays.stream(valueArrayWithoutDuplicateCodes).toList();
-        if (!keyboardLayoutIndependentVirtualKeyByKey.keySet()
-                                                     .equals(Key.keyboardLayoutIndependentKeys))
-            throw new IllegalStateException(
-                    "Some keyboardLayoutIndependentKeys are not defined in " +
-                    WindowsVirtualKey.class.getSimpleName());
-        for (Map.Entry<Key, WindowsVirtualKey> entry : keyboardLayoutIndependentVirtualKeyByKey.entrySet())
-            keyboardLayoutIndependentKeyByVirtualKey.put(entry.getValue(),
-                    entry.getKey());
     }
 
-    public static void mapKeysToVirtualKeysUsingLayout(Set<Key> keys, KeyboardLayout keyboardLayout) {
-        keyboardLayoutDependentKeyByVirtualKey.clear();
-        keyboardLayoutDependentVirtualKeyByKey.clear();
-        // Warning: LoadKeyboardLayoutA does not seem to load the layout passed as parameter?
-//        WinDef.HKL keyboardLayoutHandle = ExtendedUser32.INSTANCE.LoadKeyboardLayoutA(
-//                keyboardLayout.identifier(),
-//                1);
-        WinDef.HKL keyboardLayoutHandle = foregroundWindowHkl();
-        if (keyboardLayoutHandle == null)
-            keyboardLayoutHandle = User32.INSTANCE.GetKeyboardLayout(0);
-        if (keyboardLayoutHandle == null)
-            throw new IllegalStateException(
-                    "Unable to load keyboard layout " + keyboardLayout);
-        for (Key key : keys) {
-            if (key.character() == null)
-                continue;
-            short vkScanResult =
-                    User32.INSTANCE.VkKeyScanExW(key.character().charAt(0),
-                            keyboardLayoutHandle);
-            if (vkScanResult == -1) {
-                throw new IllegalStateException(
-                        "Unable to find the Windows virtual key corresponding to " + key +
-                        " in " + keyboardLayout);
-            }
-            int virtualKeyCode = vkScanResult & 0xFF;
-            int shiftState = (vkScanResult >> 8) & 0xFF; // shift state is not just about shift but alt and ctrl too.
-            if (shiftState != 0)
-                // In fr-azerty, Key "1" should not be mapped to VK_1.
-                // In fr-azerty, VK_1 should be mapped to "&".
-                continue;
-            WindowsVirtualKey windowsVirtualKey = values.get(virtualKeyCode);
-            keyboardLayoutDependentKeyByVirtualKey.put(windowsVirtualKey, key);
-            keyboardLayoutDependentVirtualKeyByKey.put(key, windowsVirtualKey);
-        }
-        Set<WindowsVirtualKey> otherWindowsVirtualKeys = values.stream()
-                                                               .filter(Objects::nonNull)
-                                                               .filter(Predicate.not(
-                                                                       keyboardLayoutDependentKeyByVirtualKey.keySet()::contains))
-                                                               .filter(Predicate.not(
-                                                                       keyboardLayoutIndependentKeyByVirtualKey.keySet()::contains))
-                                                               .filter(Predicate.not(
-                                                                       notRealKeysVirtualKeys::contains))
-                                                               .collect(
-                                                                       Collectors.toSet());
-        byte[] keyboardState = new byte[256];
-        char[] unicodeBuffer = new char[2];
-        for (WindowsVirtualKey otherWindowsVirtualKey : otherWindowsVirtualKeys) {
-            int unicodeCharacterCount =
-                    User32.INSTANCE.ToUnicodeEx(otherWindowsVirtualKey.virtualKeyCode,
-                            0, keyboardState, unicodeBuffer, unicodeBuffer.length,
-                            0, keyboardLayoutHandle);
-            String characterString;
-            if (unicodeCharacterCount == 0) {
-                // The specified virtual key has no translation for the current state of the keyboard.
-                continue;
-            }
-            else if (unicodeCharacterCount < 0) {
-                // Dead key. "If possible the function has written a spacing version of the dead-key character to the buffer".
-                // To reproduce: on azerty keyboard, press the ^ key just once.
-                characterString = new String(unicodeBuffer, 0, 1);
-            }
-            else {
-                // In azerty, press ^ then p. The buffer will contain "^p".
-                // We take the last character of the buffer.
-                characterString = new String(unicodeBuffer, unicodeCharacterCount - 1, 1);
-            }
-            if (characterString.length() != 1)
-                throw new IllegalStateException(characterString);
-            Key key = Key.ofCharacter(characterString);
-            keyboardLayoutDependentKeyByVirtualKey.put(otherWindowsVirtualKey, key);
-            keyboardLayoutDependentVirtualKeyByKey.put(key, otherWindowsVirtualKey);
-        }
-    }
-
-    private static KeyboardLayout lastPolledActiveKeyboardLayout;
+    private static KeyboardLayout2 lastPolledActiveKeyboardLayout;
     private static int keyboardLayoutSeenCount;
 
     /**
@@ -532,8 +365,8 @@ public enum WindowsVirtualKey {
      * a few milliseconds. The workaround here waits for the layout to show up twice before
      * confirming it has changed.
      */
-    public static KeyboardLayout activeKeyboardLayout() {
-        KeyboardLayout foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
+    public static KeyboardLayout2 activeKeyboardLayout() {
+        KeyboardLayout2 foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
         if (foregroundWindowKeyboardLayout != null) {
             if (!foregroundWindowKeyboardLayout.equals(lastPolledActiveKeyboardLayout)) {
                 if (lastPolledActiveKeyboardLayout != null && keyboardLayoutSeenCount++ < 2)
@@ -555,7 +388,7 @@ public enum WindowsVirtualKey {
                     lastPolledActiveKeyboardLayout);
             return lastPolledActiveKeyboardLayout;
         }
-        KeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
+        KeyboardLayout2 startupKeyboardLayout = startupKeyboardLayout();
         logger.trace(
                 "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
                 startupKeyboardLayout);
@@ -586,7 +419,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static KeyboardLayout foregroundWindowKeyboardLayout() {
+    private static KeyboardLayout2 foregroundWindowKeyboardLayout() {
         WinDef.HKL hkl = foregroundWindowHkl();
         if (hkl != null) {
             // The mousemaster.exe command line window does not handle the WM_INPUTLANGCHANGE message.
@@ -594,7 +427,7 @@ public enum WindowsVirtualKey {
             // We call ActivateKeyboardLayout to change the layout of the command line window.
             ExtendedUser32.INSTANCE.ActivateKeyboardLayout(hkl, 0);
             int languageIdentifier = hkl.getLanguageIdentifier();
-            KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayoutByIdentifier.get(
+            KeyboardLayout2 keyboardLayout = KeyboardLayout2.keyboardLayoutByIdentifier.get(
                     String.format("%08X", languageIdentifier));
 //            logger.debug("Found active window keyboard layout: " + keyboardLayout);
             return keyboardLayout;
@@ -602,7 +435,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static KeyboardLayout startupKeyboardLayout() {
+    private static KeyboardLayout2 startupKeyboardLayout() {
         // GetKeyboardLayoutName returns the layout at the time of when the app was started.
         // If the system layout is changed after the app is started, GetKeyboardLayoutName
         // still returns the old layout.
@@ -615,39 +448,21 @@ public enum WindowsVirtualKey {
                 break;
             }
         }
-        return KeyboardLayout.keyboardLayoutByIdentifier.get(
+        return KeyboardLayout2.keyboardLayoutByIdentifier.get(
                 new String(nameBuffer, 0, nameLength));
     }
 
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode, int flags) {
-        Key key = switch (windowsVirtualKey) {
-            case VK_SHIFT -> (flags & 0x01000000) == 0 ? Key.leftshift : Key.rightshift;
-            case VK_CONTROL -> (flags & 0x01000000) == 0 ? Key.leftctrl : Key.rightctrl;
-            case VK_CTRL -> (flags & 0x01000000) == 0 ? Key.leftctrl : Key.rightctrl;
-            case VK_MENU -> (flags & 0x01000000) == 0 ? Key.leftalt : Key.rightalt;
-            case VK_ALT -> (flags & 0x01000000) == 0 ? Key.leftalt : Key.rightalt;
-            default -> null;
-        };
-        if (key != null)
-            return key;
-        key = keyboardLayoutIndependentKeyByVirtualKey.get(windowsVirtualKey);
-        if (key != null)
-            return key;
-        key = keyboardLayoutDependentKeyByVirtualKey.get(windowsVirtualKey);
-        return key;
+        return lastPolledActiveKeyboardLayout.keyFromScanCode(scanCode);
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key) {
-        WindowsVirtualKey keyboardLayoutIndependentVirtualKey =
-                keyboardLayoutIndependentVirtualKeyByKey.get(key);
-        if (keyboardLayoutIndependentVirtualKey != null)
-            return keyboardLayoutIndependentVirtualKey;
-        WindowsVirtualKey keyboardLayoutDependentVirtualKey =
-                keyboardLayoutDependentVirtualKeyByKey.get(key);
-        if (keyboardLayoutDependentVirtualKey == null) {
+        WindowsVirtualKey virtualKey =
+                lastPolledActiveKeyboardLayout.virtualKey(key);
+        if (virtualKey == null) {
             throw new IllegalStateException("Unable to map key " + key + " to a Windows virtual key");
         }
-        return keyboardLayoutDependentVirtualKey;
+        return virtualKey;
     }
 
 }

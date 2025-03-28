@@ -293,10 +293,11 @@ public class KbdlayoutinfoParser {
                 key = KbdlayoutinfoParser.keyboardLayoutIndependentWithTextVirtualKeys.get(vk);
             else if (text != null)
                 key = Key.ofCharacter(text);
-            keyboardLayout.keys()
-                          .add(new KeyboardLayout2.KeyboardLayoutKey(sc, vk, key,
-                                  text == null || text.isBlank() ? null : text,
-                                  name.isBlank() ? null : name));
+            if (key != null)
+                keyboardLayout.keys()
+                              .add(new KeyboardLayout2.KeyboardLayoutKey(sc, vk, key,
+                                      text == null || text.isBlank() ? null : text,
+                                      name.isBlank() ? null : name));
         }
         noTextVirtualKeys.addAll(
                 List.of(WindowsVirtualKey.VK_CONTROL, WindowsVirtualKey.VK_SHIFT));

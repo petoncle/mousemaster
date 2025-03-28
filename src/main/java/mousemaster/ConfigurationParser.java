@@ -18,10 +18,6 @@ import mousemaster.ZoomConfiguration.ZoomConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,7 +31,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static mousemaster.Command.*;
-import static mousemaster.ViewportFilter.*;
+import static mousemaster.ViewportFilter.AnyViewportFilter;
+import static mousemaster.ViewportFilter.FixedViewportFilter;
 
 public class ConfigurationParser {
 
@@ -43,21 +40,6 @@ public class ConfigurationParser {
 
     private static final Pattern propertyLinePattern = Pattern.compile("(.+?)=(.+)");
     private static final Map<String, Property<?>> defaultPropertyByName = defaultPropertyByName();
-    private static final Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName = defaultLayoutKeyAliasByName();
-
-    private static Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName() {
-        List<String> properties;
-        try (InputStream inputStream = ConfigurationParser.class.getClassLoader()
-                                                                .getResourceAsStream(
-                                                                        "default-key-aliases.properties");
-             BufferedReader reader = new BufferedReader(
-                     new InputStreamReader(inputStream))) {
-            properties = PropertiesReader.readPropertiesFile(reader);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return parseAliases(properties).layoutKeyAliasByName;
-    }
 
     private static Map<String, Property<?>> defaultPropertyByName() {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
@@ -203,18 +185,16 @@ public class ConfigurationParser {
     private static class LayoutKeyAlias {
 
         KeyAlias noLayoutAlias = null;
-        Map<KeyboardLayout, KeyAlias> aliasByLayout = new HashMap<>();
+        Map<KeyboardLayout2, KeyAlias> aliasByLayout = new HashMap<>();
 
     }
 
     public static Configuration parse(List<String> properties,
-                                      KeyboardLayout activeKeyboardLayout) {
+                                      KeyboardLayout2 activeKeyboardLayout) {
         Aliases configurationAliases = parseAliases(properties);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
-        Map<String, KeyAlias> keyAliases =
-                mergeDefaultAndConfigurationKeyAliases(activeKeyboardLayout,
-                        defaultLayoutKeyAliasByName,
-                        configurationAliases.layoutKeyAliasByName);
+        Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
+                configurationAliases.layoutKeyAliasByName, activeKeyboardLayout);
         String logLevel = null;
         boolean logRedactKeys = false;
         boolean logToFile = false;
@@ -363,14 +343,59 @@ public class ConfigurationParser {
 
             }
         }
-        for (ModeBuilder mode : modeByName.values())
+        Set<Key> allComboAndRemappingKeys = new HashSet<>();
+        for (ModeBuilder mode : modeByName.values()) {
             checkMissingProperties(mode);
+            usedKeys(mode.comboMap, allComboAndRemappingKeys);
+        }
+        List<Key> missingKeys = allComboAndRemappingKeys.stream()
+                                                        .filter(Predicate.not(
+                                                                activeKeyboardLayout::containsKey))
+                                                        .toList();
+        if (!missingKeys.isEmpty())
+            ;
+        // The disable combo #/ only works for layouts that have the / key, but that's fine.
+//            throw new IllegalStateException(
+//                    "Unable to find the following keys in " + activeKeyboardLayout + ": " +
+//                    missingKeys);
         Set<Mode> modes = modeByName.values()
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
-        return new Configuration(activeKeyboardLayout, maxPositionHistorySize,
+        return new Configuration(maxPositionHistorySize,
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile);
+    }
+
+    private static void usedKeys(ComboMapConfigurationBuilder comboMap,
+                                 Set<Key> allComboAndRemappingKeys) {
+        for (Map.Entry<Combo, List<Command>> entry : comboMap.commandsByCombo().entrySet()) {
+            Combo combo = entry.getKey();
+            List<Command> commands = entry.getValue();
+            combo.precondition()
+                 .keyPrecondition()
+                 .pressedKeySets()
+                 .stream()
+                 .flatMap(Collection::stream)
+                 .forEach(allComboAndRemappingKeys::add);
+            allComboAndRemappingKeys.addAll(combo.precondition()
+                                                 .keyPrecondition()
+                                                 .unpressedKeySet());
+            combo.sequence()
+                 .moves()
+                 .stream()
+                 .map(ComboMove::key)
+                 .forEach(allComboAndRemappingKeys::add);
+            for (Command command : commands) {
+                if (command instanceof Command.RemappingCommand(Remapping remapping)) {
+                    for (RemappingParallel parallel : remapping.output()
+                                                               .parallels()) {
+                        for (RemappingMove move : parallel.moves()) {
+                            allComboAndRemappingKeys.add(move.key());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static void parseLine(String group2, ModeBuilder mode, String propertyKey,
@@ -1159,41 +1184,49 @@ public class ConfigurationParser {
         return fontName;
     }
 
-    private static Map<String, KeyAlias> mergeDefaultAndConfigurationKeyAliases(
-            KeyboardLayout activeKeyboardLayout,
-            Map<String, LayoutKeyAlias> defaultLayoutKeyAliasByName,
-            Map<String, LayoutKeyAlias> configurationLayoutKeyAliasByName) {
+    private static Map<String, KeyAlias> buildKeyAliasesForActiveKeyboardLayout(
+            Map<String, LayoutKeyAlias> configurationLayoutKeyAliasByName,
+            KeyboardLayout2 activeKeyboardLayout) {
         Map<String, KeyAlias> keyAliases = new HashMap<>();
         for (Map.Entry<String, LayoutKeyAlias> entry : configurationLayoutKeyAliasByName.entrySet()) {
             String aliasName = entry.getKey();
             LayoutKeyAlias layoutKeyAlias = entry.getValue();
-            KeyAlias alias =
-                    findKeyAliasForLayout(activeKeyboardLayout, layoutKeyAlias,
-                            aliasName);
-            keyAliases.put(aliasName, alias);
-        }
-        for (Map.Entry<String, LayoutKeyAlias> entry : defaultLayoutKeyAliasByName.entrySet()) {
-            String aliasName = entry.getKey();
-            LayoutKeyAlias layoutKeyAlias = entry.getValue();
-            if (keyAliases.containsKey(entry.getKey()))
-                continue;
-            KeyAlias alias =
-                    findKeyAliasForLayout(activeKeyboardLayout, layoutKeyAlias,
-                            aliasName);
+            KeyAlias alias = findKeyAliasForLayout(activeKeyboardLayout, layoutKeyAlias,
+                    aliasName);
             keyAliases.put(aliasName, alias);
         }
         return keyAliases;
     }
 
-    private static KeyAlias findKeyAliasForLayout(KeyboardLayout activeKeyboardLayout,
+    private static KeyAlias findKeyAliasForLayout(KeyboardLayout2 activeKeyboardLayout,
                                                   LayoutKeyAlias layoutKeyAlias, String aliasName) {
         KeyAlias keyAlias = layoutKeyAlias.aliasByLayout.get(activeKeyboardLayout);
         if (keyAlias == null) {
             keyAlias = layoutKeyAlias.noLayoutAlias;
-            if (keyAlias == null)
-                throw new IllegalArgumentException("Key alias " + aliasName +
-                                                   " is not defined for the active keyboard layout " +
-                                                   activeKeyboardLayout);
+            if (keyAlias == null) {
+                KeyboardLayout2 layoutForWhichAliasIsDefined =
+                        layoutKeyAlias.aliasByLayout.keySet()
+                                                    .stream()
+                                                    .sorted(Comparator.comparing(
+                                                            KeyboardLayout2::displayName))
+                                                    .findFirst()
+                                                    .orElseThrow();
+                KeyAlias keyAliasForOtherLayout =
+                        layoutKeyAlias.aliasByLayout.get(layoutForWhichAliasIsDefined);
+                List<Key> keys = new ArrayList<>();
+                for (Key keyForOtherLayout : keyAliasForOtherLayout.keys()) {
+                    int scanCode = layoutForWhichAliasIsDefined.scanCode(
+                            keyForOtherLayout);
+                    Key key = activeKeyboardLayout.keyFromScanCode(scanCode);
+                    if (key == null)
+                        // This key from the other layout does not have an equivalent in the active layout.
+                        throw new IllegalArgumentException("Key alias " + aliasName +
+                                                           " is not defined for the active keyboard layout " +
+                                                           activeKeyboardLayout);
+                    keys.add(key);
+                }
+                keyAlias = new KeyAlias(keyAliasForOtherLayout.name(), keys);
+            }
         }
         return keyAlias;
     }
@@ -1252,13 +1285,13 @@ public class ConfigurationParser {
             }
             else {
                 String layoutName = keyMatcher.group(3);
-                KeyboardLayout layout =
-                        KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
+                KeyboardLayout2 layout =
+                        KeyboardLayout2.keyboardLayoutByShortName.get(layoutName);
                 if (layout == null)
                     throw new IllegalArgumentException(
                             "Invalid keyboard layout: " + layoutName +
                             ", available keyboard layouts: " +
-                            KeyboardLayout.keyboardLayoutByShortName.keySet());
+                            KeyboardLayout2.keyboardLayoutByShortName.keySet());
                 layoutKeyAliasByName.computeIfAbsent(aliasName,
                                             name -> new LayoutKeyAlias())
                         .aliasByLayout.put(layout, new KeyAlias(aliasName, keys));

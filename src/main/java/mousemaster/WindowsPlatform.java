@@ -99,7 +99,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void reset(MouseController mouseController, KeyboardManager keyboardManager,
-                      KeyboardLayout keyboardLayout, ModeMap newModeMap,
+                      ModeMap newModeMap,
                       List<MousePositionListener> mousePositionListeners) {
         ModeMap oldModeMap = this.modeMap;
         Set<HintMeshConfiguration> oldHintMeshConfigurations = new HashSet<>();
@@ -112,39 +112,8 @@ public class WindowsPlatform implements Platform {
         this.mouseController = mouseController;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
-        Set<Key> allComboAndRemappingKeys = new HashSet<>();
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {
-            for (Map.Entry<Combo, List<Command>> entry : mode.comboMap()
-                                                             .commandsByCombo()
-                                                             .entrySet()) {
-                Combo combo = entry.getKey();
-                List<Command> commands = entry.getValue();
-                combo.precondition()
-                     .keyPrecondition()
-                     .pressedKeySets()
-                     .stream()
-                     .flatMap(Collection::stream)
-                     .forEach(allComboAndRemappingKeys::add);
-                allComboAndRemappingKeys.addAll(combo.precondition()
-                                         .keyPrecondition()
-                                         .unpressedKeySet());
-                combo.sequence()
-                     .moves()
-                     .stream()
-                     .map(ComboMove::key)
-                     .forEach(allComboAndRemappingKeys::add);
-                for (Command command : commands) {
-                    if (command instanceof Command.RemappingCommand(Remapping remapping)) {
-                        for (RemappingParallel parallel : remapping.output()
-                                                                   .parallels()) {
-                            for (RemappingMove move : parallel.moves()) {
-                                allComboAndRemappingKeys.add(move.key());
-                            }
-                        }
-                    }
-                }
-            }
             newHintMeshConfigurations.add(mode.hintMesh());
         }
         if (oldModeMap != null && !newHintMeshConfigurations.equals(oldHintMeshConfigurations)) {
@@ -153,7 +122,6 @@ public class WindowsPlatform implements Platform {
             WindowsOverlay.flushCache();
         }
         this.modeMap = newModeMap;
-        WindowsVirtualKey.mapKeysToVirtualKeysUsingLayout(allComboAndRemappingKeys, keyboardLayout);
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
@@ -246,7 +214,7 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public KeyboardLayout activeKeyboardLayout() {
+    public KeyboardLayout2 activeKeyboardLayout() {
         return WindowsVirtualKey.activeKeyboardLayout();
     }
 

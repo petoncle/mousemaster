@@ -24,7 +24,7 @@ public class Mousemaster {
     private IndicatorManager indicatorManager;
     private ModeController modeController;
     private List<String> configurationProperties;
-    private KeyboardLayout activeKeyboardLayout;
+    private KeyboardLayout2 activeKeyboardLayout;
 
     public Mousemaster(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
@@ -104,7 +104,7 @@ public class Mousemaster {
     }
 
     private void updateActiveKeyboardLayout(double delta) {
-        KeyboardLayout newActiveKeyboardLayout = platform.activeKeyboardLayout();
+        KeyboardLayout2 newActiveKeyboardLayout = platform.activeKeyboardLayout();
         if (!newActiveKeyboardLayout.equals(activeKeyboardLayout)) {
             activeKeyboardLayout = newActiveKeyboardLayout;
             tryLoadConfiguration(false);
@@ -208,7 +208,7 @@ public class Mousemaster {
         hintManager.setModeController(modeController);
         comboWatcher.setListeners(List.of(modeController));
         modeController.switchMode(Mode.IDLE_MODE_NAME);
-        platform.reset(mouseController, keyboardManager, configuration.keyboardLayout(),
+        platform.reset(mouseController, keyboardManager,
                 configuration.modeMap(),
                 List.of(mouseController, gridManager, hintManager, screenManager,
                         zoomManager));

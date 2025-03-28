@@ -11,7 +11,7 @@ public interface Platform extends ModeListener {
     void sleep() throws InterruptedException;
 
     void reset(MouseController mouseController, KeyboardManager keyboardManager,
-               KeyboardLayout keyboardLayout, ModeMap modeMap,
+               ModeMap modeMap,
                List<MousePositionListener> mousePositionListeners);
 
     void shutdown();
@@ -20,6 +20,6 @@ public interface Platform extends ModeListener {
 
     PlatformClock clock();
 
-    KeyboardLayout activeKeyboardLayout();
+    KeyboardLayout2 activeKeyboardLayout();
 
 }
