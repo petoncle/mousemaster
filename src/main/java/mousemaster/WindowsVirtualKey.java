@@ -453,7 +453,13 @@ public enum WindowsVirtualKey {
     }
 
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode, int flags) {
-        return lastPolledActiveKeyboardLayout.keyFromScanCode(scanCode);
+        // When pressing rightctrl the scanCode should be E01D but is 1D (which is leftctrl's scanCode).
+        // rightctrl:
+        // Received key event: vkCode = 0xa3 (VK_RCONTROL), scanCode = 0x1d, flags = 0x1, wParam = WM_KEYDOWN
+        // leftctrl:
+        // Received key event: vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x0, wParam = WM_KEYDOWN
+        int extendedKeyScanCode = ((flags & 0x1) != 0 ? 0xE000 : 0) + scanCode;
+        return lastPolledActiveKeyboardLayout.keyFromScanCode(extendedKeyScanCode);
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key) {
