@@ -22,11 +22,12 @@
 - Super slow down mouse and scroll movement by holding _capslock_ while moving.
 - Accelerate mouse movement by holding _u_ while moving.
 - Accelerate scroll movement by holding _v_ or _b_ while scrolling.
+
+## Key remappings
+- Press _leftalt + ijkl_ to simulate the arrow keys.
 - Navigate back and forward using _h_ (back) and _y_ (forward). These keys send 
 _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the active application. 
-
-## Arrow key remappings (both in normal mode and idle mode)
-- Press _leftalt + ijkl_ to simulate the arrow keys.
+- Press _tab + jl_ to switch to the virtual desktop on the left (_j_) or right (_l_).
 
 ## Grid Mode (_g_ in normal mode)
 
