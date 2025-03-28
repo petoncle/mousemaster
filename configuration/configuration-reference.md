@@ -238,6 +238,8 @@ hint1-mode.hint.box-border-color=#FFFFFF
 hint1-mode.hint.box-border-opacity=0.4
 hint1-mode.hint.box-width-percent=1.0
 hint1-mode.hint.box-height-percent=1.0
+hint1-mode.hint.transition-animation-enabled=true
+hint1-mode.hint.transition-animation-duration-millis=100
 ```
 
 - `type` can either be `grid` or `position-history`.
