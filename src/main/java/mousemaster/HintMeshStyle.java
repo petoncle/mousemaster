@@ -1,5 +1,7 @@
 package mousemaster;
 
+import java.time.Duration;
+
 public record HintMeshStyle(String fontName, FontWeight fontWeight,
                             double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
                             double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
@@ -18,7 +20,9 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                             double subgridBorderThickness,
                             double subgridBorderLength,
                             String subgridBorderHexColor,
-                            double subgridBorderOpacity) {
+                            double subgridBorderOpacity,
+                            boolean transitionAnimationEnabled,
+                            Duration transitionAnimationDuration) {
 
     public HintMeshStyleBuilder builder() {
         return new HintMeshStyleBuilder(this);
@@ -54,6 +58,8 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
         private Double subgridBorderLength;
         private String subgridBorderHexColor;
         private Double subgridBorderOpacity;
+        private Boolean transitionAnimationEnabled;
+        private Duration transitionAnimationDuration;
 
         public HintMeshStyleBuilder() {
 
@@ -89,6 +95,8 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             this.subgridBorderLength = style.subgridBorderLength;
             this.subgridBorderHexColor = style.subgridBorderHexColor;
             this.subgridBorderOpacity = style.subgridBorderOpacity;
+            this.transitionAnimationEnabled = style.transitionAnimationEnabled;
+            this.transitionAnimationDuration = style.transitionAnimationDuration;
         }
 
         public HintMeshStyleBuilder fontName(String fontName) {
@@ -237,6 +245,16 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             return this;
         }
 
+        public HintMeshStyleBuilder transitionAnimationEnabled(Boolean transitionAnimationEnabled) {
+            this.transitionAnimationEnabled = transitionAnimationEnabled;
+            return this;
+        }
+
+        public HintMeshStyleBuilder transitionAnimationDuration(Duration transitionAnimationDuration) {
+            this.transitionAnimationDuration = transitionAnimationDuration;
+            return this;
+        }
+
         public String fontName() {
             return fontName;
         }
@@ -353,6 +371,14 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             return subgridBorderOpacity;
         }
 
+        public Boolean transitionAnimationEnabled() {
+            return transitionAnimationEnabled;
+        }
+
+        public Duration transitionAnimationDuration() {
+            return transitionAnimationDuration;
+        }
+
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
             return new HintMeshStyle(
                     fontName == null ? defaultStyle.fontName : fontName,
@@ -383,7 +409,9 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                     subgridBorderThickness == null ? defaultStyle.subgridBorderThickness : subgridBorderThickness,
                     subgridBorderLength == null ? defaultStyle.subgridBorderLength : subgridBorderLength,
                     subgridBorderHexColor == null ? defaultStyle.subgridBorderHexColor : subgridBorderHexColor,
-                    subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity
+                    subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity,
+                    transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
+                    transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration
             );
         }
 

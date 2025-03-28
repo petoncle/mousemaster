@@ -107,7 +107,9 @@ public class ConfigurationParser {
                 .subgridBorderThickness(1d)
                 .subgridBorderLength(10_000d)
                 .subgridBorderHexColor("#FFFFFF")
-                .subgridBorderOpacity(1d);
+                .subgridBorderOpacity(1d)
+                .transitionAnimationEnabled(true)
+                .transitionAnimationDuration(Duration.ofMillis(100));
         hintMesh.swallowHintEndKeyPress(true)
                 .savePositionAfterSelection(false);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
@@ -694,6 +696,8 @@ public class ConfigurationParser {
                                 checkColorFormat(propertyValue));
                         case "subgrid-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
+                        case "transition-animation-enabled" -> mode.hintMesh.builder.style(viewportFilter).transitionAnimationEnabled(Boolean.parseBoolean(propertyValue));
+                        case "transition-animation-duration-millis" -> mode.hintMesh.builder.style(viewportFilter).transitionAnimationDuration(parseDuration(propertyValue));
                         case "mode-after-selection" -> {
                             String modeAfterSelection = propertyValue;
                             modeReferences.add(
@@ -1970,6 +1974,16 @@ public class ConfigurationParser {
                                 childStyleByFilter, filter))
                             childStyle.subgridBorderOpacity(
                                     parentStyle.subgridBorderOpacity());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::transitionAnimationEnabled,
+                                childStyleByFilter, filter))
+                            childStyle.transitionAnimationEnabled(
+                                    parentStyle.transitionAnimationEnabled());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::transitionAnimationDuration,
+                                childStyleByFilter, filter))
+                            childStyle.transitionAnimationDuration(
+                                    parentStyle.transitionAnimationDuration());
                     }
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
