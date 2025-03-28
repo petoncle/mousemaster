@@ -1,0 +1,208 @@
+[
+  {
+    "css": ""
+  },
+  [
+    "~\n`",
+    "!\n1",
+    "@\n2",
+    "#\n3",
+    "$\n4",
+    "%\n5",
+    "^\n6",
+    "&\n7",
+    "*\n8",
+    "(\n9",
+    ")\n0",
+    "_\n-",
+    "+\n=",
+    {
+      "w": 2
+    },
+    "Backspace"
+  ],
+  [
+    {
+      "w": 1.5
+    },
+    "Tab",
+    {
+      "c": "#621dba"
+    },
+    "Q\n\n\n\n\n\nDisable",
+    {
+      "c": "#0b21a3"
+    },
+    "W\n\n\n\n\n\nUp",
+    {
+      "c": "#621dba"
+    },
+    "E\n(+Alt)\n\n\n\n\nEnable",
+    {
+      "c": "#cccccc"
+    },
+    "R",
+    "T",
+    {
+      "c": "#1c3c6d",
+      "f": 2
+    },
+    "Y\nForward\n\n\n\n\nNavigate",
+    {
+      "c": "#bc251e",
+      "f": 3
+    },
+    "U\nFast\n\n\n\n\nMouse",
+    {
+      "c": "#168a93"
+    },
+    "I\nLeft\n\n\n\n\nWheel",
+    "O\nRight\n\n\n\n\nWheel",
+    {
+      "c": "#621dba"
+    },
+    "P\n\n\n\n\n\nDisable",
+    {
+      "c": "#cccccc"
+    },
+    "{\n[",
+    "}\n]",
+    {
+      "w": 1.5
+    },
+    "|\n\\"
+  ],
+  [
+    {
+      "c": "#621dba",
+      "w": 1.75
+    },
+    "Caps Lock\n(+Alt)\n\n\n\n\nEnable",
+    {
+      "c": "#0b21a3"
+    },
+    "A\n\n\n\n\n\nLeft",
+    "S\n\n\n\n\n\nDown",
+    "D\n\n\n\n\n\nRight",
+    {
+      "c": "#ebd400"
+    },
+    "F\n\n\n\n\n\nHints",
+    "G\n\n\n\n\n\nGrid",
+    {
+      "c": "#1c3c6d",
+      "f": 2
+    },
+    "H\nBack\n\n\n\n\nNavigate",
+    {
+      "c": "#bc251e",
+      "f": 3
+    },
+    "J\nJump\n\n\n\n\nMouse",
+    {
+      "c": "#689b34"
+    },
+    "K\nLeft\n\n\n\n\nClick",
+    "L\nRight\n\n\n\n\nClick",
+    ";\nMiddle\n\n\n\n\nClick",
+    {
+      "c": "#cccccc"
+    },
+    "\"\n'",
+    {
+      "w": 2.25
+    },
+    "Enter"
+  ],
+  [
+    {
+      "c": "#bc251e",
+      "w": 2.25
+    },
+    "Shift\nWheel Slow\n\n\n\n\nMouse Slow",
+    {
+      "c": "#cccccc"
+    },
+    "Z",
+    "X",
+    {
+      "c": "#ebd400"
+    },
+    "C\nSelect\n\n\n\n\nScreen",
+    {
+      "c": "#bc251e"
+    },
+    "V\nFast\n\n\n\n\nWheel",
+    "B\nFast\n\n\n\n\nWheel",
+    {
+      "c": "#00773a"
+    },
+    "N\nLClick\n\n\n\n\nToggle",
+    {
+      "c": "#168a93"
+    },
+    "M\nDown\n\n\n\n\nWheel",
+    ",\nUp\n\n\n\n\nWheel",
+    {
+      "c": "#689b34",
+      "f": 1
+    },
+    ".\nClick Then Disable",
+    {
+      "c": "#cccccc",
+      "f": 3
+    },
+    ">\n/",
+    {
+      "w": 2.75
+    },
+    "Shift"
+  ],
+  [
+    {
+      "w": 1.25
+    },
+    "Ctrl",
+    {
+      "w": 1.25
+    },
+    "Win",
+    {
+      "c": "#621dba",
+      "f": 1,
+      "fa": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+      ],
+      "w": 1.25
+    },
+    "Alt\n\n\n+E or +CapsLock\n\n\nEnable",
+    {
+      "c": "#cccccc",
+      "a": 7,
+      "f": 3,
+      "w": 6.25
+    },
+    "",
+    {
+      "c": "#b22269",
+      "a": 4,
+      "w": 1.75
+    },
+    "Alt\n(+WASD)\n\n\n\n\nEdges",
+    {
+      "c": "#cccccc",
+      "w": 1.75
+    },
+    "Win",
+    {
+      "w": 1.5
+    },
+    "Ctrl"
+  ]
+]
