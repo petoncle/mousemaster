@@ -24,7 +24,7 @@ public class Mousemaster {
     private IndicatorManager indicatorManager;
     private ModeController modeController;
     private List<String> configurationProperties;
-    private KeyboardLayout2 activeKeyboardLayout;
+    private KeyboardLayout activeKeyboardLayout;
 
     public Mousemaster(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
@@ -104,7 +104,7 @@ public class Mousemaster {
     }
 
     private void updateActiveKeyboardLayout(double delta) {
-        KeyboardLayout2 newActiveKeyboardLayout = platform.activeKeyboardLayout();
+        KeyboardLayout newActiveKeyboardLayout = platform.activeKeyboardLayout();
         if (!newActiveKeyboardLayout.equals(activeKeyboardLayout)) {
             activeKeyboardLayout = newActiveKeyboardLayout;
             tryLoadConfiguration(false);

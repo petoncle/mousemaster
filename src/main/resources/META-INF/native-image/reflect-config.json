@@ -801,13 +801,13 @@
   "methods":[{"name":"getName","parameterTypes":[] }, {"name":"getType","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.KeyboardLayout2",
+  "name":"mousemaster.KeyboardLayout",
   "allDeclaredFields":true,
   "methods":[{"name":"<init>","parameterTypes":[] }],
   "unsafeAllocated": true
 },
 {
-  "name":"mousemaster.KeyboardLayout2$KeyboardLayoutKey",
+  "name":"mousemaster.KeyboardLayout$KeyboardLayoutKey",
   "allDeclaredFields":true,
   "methods":[{"name":"<init>","parameterTypes":["int","mousemaster.WindowsVirtualKey","mousemaster.Key","java.lang.String","java.lang.String"] }, {"name":"key","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"scanCode","parameterTypes":[] }, {"name":"text","parameterTypes":[] }, {"name":"virtualKey","parameterTypes":[] }]
 },

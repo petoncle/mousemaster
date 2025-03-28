@@ -1,244 +1,154 @@
 package mousemaster;
 
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
+import java.util.function.Function;
 
-/**
- * Short name is custom.
- */
-public record KeyboardLayout(String fullName, String identifier, String shortName) {
+public final class KeyboardLayout {
 
-    // https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-language-pack-default-values?view=windows-11
-    private static final Set<KeyboardLayout> keyboardLayouts =
-            Set.of(
-                new KeyboardLayout("ADLaM", "00140C00", null),
-                new KeyboardLayout("Albanian", "0000041C", null),
-                new KeyboardLayout("Arabic (101)", "00000401", null),
-                new KeyboardLayout("Arabic (102)", "00010401", null),
-                new KeyboardLayout("Arabic (102) AZERTY", "00020401", null),
-                new KeyboardLayout("Armenian Eastern (Legacy)", "0000042B", null),
-                new KeyboardLayout("Armenian Phonetic", "0002042B", null),
-                new KeyboardLayout("Armenian Typewriter", "0003042B", null),
-                new KeyboardLayout("Armenian Western (Legacy)", "0001042B", null),
-                new KeyboardLayout("Assamese - INSCRIPT", "0000044D", null),
-                new KeyboardLayout("Azerbaijani (Standard)", "0001042C", null),
-                new KeyboardLayout("Azerbaijani Cyrillic", "0000082C", null),
-                new KeyboardLayout("Azerbaijani Latin", "0000042C", null),
-                new KeyboardLayout("Bangla", "00000445", null),
-                new KeyboardLayout("Bangla - INSCRIPT", "00020445", null),
-                new KeyboardLayout("Bangla - INSCRIPT (Legacy)", "00010445", null),
-                new KeyboardLayout("Bashkir", "0000046D", null),
-                new KeyboardLayout("Belarusian", "00000423", null),
-                new KeyboardLayout("Belgian (Comma)", "0001080C", null),
-                new KeyboardLayout("Belgian (Period)", "00000813", null),
-                new KeyboardLayout("Belgian French", "0000080C", null),
-                new KeyboardLayout("Bosnian (Cyrillic)", "0000201A", null),
-                new KeyboardLayout("Buginese", "000B0C00", null),
-                new KeyboardLayout("Bulgarian", "00030402", null),
-                new KeyboardLayout("Bulgarian (Latin)", "00010402", null),
-                new KeyboardLayout("Bulgarian (Phonetic Traditional)", "00040402", null),
-                new KeyboardLayout("Bulgarian (Phonetic)", "00020402", null),
-                new KeyboardLayout("Bulgarian (Typewriter)", "00000402", null),
-                new KeyboardLayout("Canadian French", "00001009", null),
-                new KeyboardLayout("Canadian French (Legacy)", "00000C0C", null),
-                new KeyboardLayout("Canadian Multilingual Standard", "00011009", null),
-                new KeyboardLayout("Central Atlas Tamazight", "0000085F", null),
-                new KeyboardLayout("Central Kurdish", "00000492", null),
-                new KeyboardLayout("Cherokee Nation", "0000045C", null),
-                new KeyboardLayout("Cherokee Phonetic", "0001045C", null),
-                new KeyboardLayout("Chinese (Simplified) - US", "00000804", "zh-qwerty-pinyin"),
-                new KeyboardLayout("Chinese (Simplified, Singapore) - US", "00001004",
-                        null),
-                new KeyboardLayout("Chinese (Traditional) - US", "00000404", null),
-                new KeyboardLayout("Chinese (Traditional, Hong Kong S.A.R.) - US", "00000C04",
-                        null),
-                new KeyboardLayout("Chinese (Traditional, Macao S.A.R.) - US", "00001404",
-                        null),
-                new KeyboardLayout("Czech", "00000405", null),
-                new KeyboardLayout("Czech (QWERTY)", "00010405", null),
-                new KeyboardLayout("Czech Programmers", "00020405", null),
-                new KeyboardLayout("Danish", "00000406", null),
-                new KeyboardLayout("Devanagari - INSCRIPT", "00000439", null),
-                new KeyboardLayout("Divehi Phonetic", "00000465", null),
-                new KeyboardLayout("Divehi Typewriter", "00010465", null),
-                new KeyboardLayout("Dutch", "00000413", null),
-                new KeyboardLayout("Dzongkha", "00000C51", null),
-                new KeyboardLayout("English (India)", "00004009", null),
-                new KeyboardLayout("Estonian", "00000425", null),
-                new KeyboardLayout("Faeroese", "00000438", null),
-                new KeyboardLayout("Finnish", "0000040B", null),
-                new KeyboardLayout("Finnish with Sami", "0001083B", null),
-                new KeyboardLayout("French", "0000040C", "fr-azerty"),
-                new KeyboardLayout("Futhark", "00120C00", null),
-                new KeyboardLayout("Georgian (Ergonomic)", "00020437", null),
-                new KeyboardLayout("Georgian (Legacy)", "00000437", null),
-                new KeyboardLayout("Georgian (MES)", "00030437", null),
-                new KeyboardLayout("Georgian (Old Alphabets)", "00040437", null),
-                new KeyboardLayout("Georgian (QWERTY)", "00010437", null),
-                new KeyboardLayout("German", "00000407", "de-qwertz"),
-                new KeyboardLayout("German (IBM)", "00010407", null),
-                new KeyboardLayout("Gothic", "000C0C00", null),
-                new KeyboardLayout("Greek", "00000408", null),
-                new KeyboardLayout("Greek (220)", "00010408", null),
-                new KeyboardLayout("Greek (220) Latin", "00030408", null),
-                new KeyboardLayout("Greek (319)", "00020408", null),
-                new KeyboardLayout("Greek (319) Latin", "00040408", null),
-                new KeyboardLayout("Greek Latin", "00050408", null),
-                new KeyboardLayout("Greek Polytonic", "00060408", null),
-                new KeyboardLayout("Greenlandic", "0000046F", null),
-                new KeyboardLayout("Guarani", "00000474", null),
-                new KeyboardLayout("Gujarati", "00000447", null),
-                new KeyboardLayout("Hausa", "00000468", null),
-                new KeyboardLayout("Hawaiian", "00000475", null),
-                new KeyboardLayout("Hebrew", "0000040D", null),
-                new KeyboardLayout("Hebrew (Standard)", "0002040D", null),
-                new KeyboardLayout("Hindi Traditional", "00010439", null),
-                new KeyboardLayout("Hungarian", "0000040E", null),
-                new KeyboardLayout("Hungarian 101-key", "0001040E", null),
-                new KeyboardLayout("Icelandic", "0000040F", null),
-                new KeyboardLayout("Igbo", "00000470", null),
-                new KeyboardLayout("Inuktitut - Latin", "0000085D", null),
-                new KeyboardLayout("Inuktitut - Naqittaut", "0001045D", null),
-                new KeyboardLayout("Irish", "00001809", null),
-                new KeyboardLayout("Italian", "00000410", "it-qwerty"),
-                new KeyboardLayout("Italian (142)", "00010410", null),
-                new KeyboardLayout("Japanese", "00000411", "jp-kana"),
-                new KeyboardLayout("Javanese", "00110C00", null),
-                new KeyboardLayout("Kannada", "0000044B", null),
-                new KeyboardLayout("Kazakh", "0000043F", null),
-                new KeyboardLayout("Khmer", "00000453", null),
-                new KeyboardLayout("Khmer (NIDA)", "00010453", null),
-                new KeyboardLayout("Korean", "00000412", null),
-                new KeyboardLayout("Kyrgyz Cyrillic", "00000440", null),
-                new KeyboardLayout("Lao", "00000454", null),
-                new KeyboardLayout("Latin American", "0000080A", null),
-                new KeyboardLayout("Latvian", "00000426", null),
-                new KeyboardLayout("Latvian (QWERTY)", "00010426", null),
-                new KeyboardLayout("Latvian (Standard)", "00020426", null),
-                new KeyboardLayout("Lisu (Basic)", "00070C00", null),
-                new KeyboardLayout("Lisu (Standard)", "00080C00", null),
-                new KeyboardLayout("Lithuanian", "00010427", null),
-                new KeyboardLayout("Lithuanian IBM", "00000427", null),
-                new KeyboardLayout("Lithuanian Standard", "00020427", null),
-                new KeyboardLayout("Luxembourgish", "0000046E", null),
-                new KeyboardLayout("Macedonian", "0000042F", null),
-                new KeyboardLayout("Macedonian - Standard", "0001042F", null),
-                new KeyboardLayout("Malayalam", "0000044C", null),
-                new KeyboardLayout("Maltese 47-Key", "0000043A", null),
-                new KeyboardLayout("Maltese 48-Key", "0001043A", null),
-                new KeyboardLayout("Maori", "00000481", null),
-                new KeyboardLayout("Marathi", "0000044E", null),
-                new KeyboardLayout("Mongolian (Mongolian Script)", "00000850", null),
-                new KeyboardLayout("Mongolian Cyrillic", "00000450", null),
-                new KeyboardLayout("Myanmar (Phonetic order)", "00010C00", null),
-                new KeyboardLayout("Myanmar (Visual order)", "00130C00", null),
-                new KeyboardLayout("NZ Aotearoa", "00001409", null),
-                new KeyboardLayout("Nepali", "00000461", null),
-                new KeyboardLayout("New Tai Lue", "00020C00", null),
-                new KeyboardLayout("Norwegian", "00000414", null),
-                new KeyboardLayout("Norwegian with Sami", "0000043B", null),
-                new KeyboardLayout("N’Ko", "00090C00", null),
-                new KeyboardLayout("Odia", "00000448", null),
-                new KeyboardLayout("Ogham", "00040C00", null),
-                new KeyboardLayout("Ol Chiki", "000D0C00", null),
-                new KeyboardLayout("Old Italic", "000F0C00", null),
-                new KeyboardLayout("Osage", "00150C00", null),
-                new KeyboardLayout("Osmanya", "000E0C00", null),
-                new KeyboardLayout("Pashto (Afghanistan)", "00000463", null),
-                new KeyboardLayout("Persian", "00000429", null),
-                new KeyboardLayout("Persian (Standard)", "00050429", null),
-                new KeyboardLayout("Phags-pa", "000A0C00", null),
-                new KeyboardLayout("Polish (214)", "00010415", null),
-                new KeyboardLayout("Polish (Programmers)", "00000415", null),
-                new KeyboardLayout("Portuguese", "00000816", null),
-                new KeyboardLayout("Portuguese (Brazil ABNT)", "00000416", null),
-                new KeyboardLayout("Portuguese (Brazil ABNT2)", "00010416", "pt-qwerty-abnt2"),
-                new KeyboardLayout("Punjabi", "00000446", null),
-                new KeyboardLayout("Romanian (Legacy)", "00000418", null),
-                new KeyboardLayout("Romanian (Programmers)", "00020418", null),
-                new KeyboardLayout("Romanian (Standard)", "00010418", null),
-                new KeyboardLayout("Russian", "00000419", "ru-jcuken"),
-                new KeyboardLayout("Russian (Typewriter)", "00010419", null),
-                new KeyboardLayout("Russian - Mnemonic", "00020419", null),
-                new KeyboardLayout("Sakha", "00000485", null),
-                new KeyboardLayout("Sami Extended Finland-Sweden", "0002083B", null),
-                new KeyboardLayout("Sami Extended Norway", "0001043B", null),
-                new KeyboardLayout("Scottish Gaelic", "00011809", null),
-                new KeyboardLayout("Serbian (Cyrillic)", "00000C1A", null),
-                new KeyboardLayout("Serbian (Latin)", "0000081A", null),
-                new KeyboardLayout("Sesotho sa Leboa", "0000046C", null),
-                new KeyboardLayout("Setswana", "00000432", null),
-                new KeyboardLayout("Sinhala", "0000045B", null),
-                new KeyboardLayout("Sinhala - Wij 9", "0001045B", null),
-                new KeyboardLayout("Slovak", "0000041B", null),
-                new KeyboardLayout("Slovak (QWERTY)", "0001041B", null),
-                new KeyboardLayout("Slovenian", "00000424", null),
-                new KeyboardLayout("Sora", "00100C00", null),
-                new KeyboardLayout("Sorbian Extended", "0001042E", null),
-                new KeyboardLayout("Sorbian Standard", "0002042E", null),
-                new KeyboardLayout("Sorbian Standard (Legacy)", "0000042E", null),
-                new KeyboardLayout("Spanish", "0000040A", "es-qwerty"),
-                new KeyboardLayout("Spanish Variation", "0001040A", null),
-                new KeyboardLayout("Standard", "0000041A", null),
-                new KeyboardLayout("Swedish", "0000041D", null),
-                new KeyboardLayout("Swedish with Sami", "0000083B", null),
-                new KeyboardLayout("Swiss French", "0000100C", null),
-                new KeyboardLayout("Swiss German", "00000807", null),
-                new KeyboardLayout("Syriac", "0000045A", null),
-                new KeyboardLayout("Syriac Phonetic", "0001045A", null),
-                new KeyboardLayout("Tai Le", "00030C00", null),
-                new KeyboardLayout("Tajik", "00000428", null),
-                new KeyboardLayout("Tamil", "00000449", null),
-                new KeyboardLayout("Tamil 99", "00020449", null),
-                new KeyboardLayout("Tamil Anjal", "00030449", null),
-                new KeyboardLayout("Tatar", "00010444", null),
-                new KeyboardLayout("Tatar (Legacy)", "00000444", null),
-                new KeyboardLayout("Telugu", "0000044A", null),
-                new KeyboardLayout("Thai Kedmanee", "0000041E", null),
-                new KeyboardLayout("Thai Kedmanee (non-ShiftLock)", "0002041E", null),
-                new KeyboardLayout("Thai Pattachote", "0001041E", null),
-                new KeyboardLayout("Thai Pattachote (non-ShiftLock)", "0003041E", null),
-                new KeyboardLayout("Tibetan (PRC)", "00000451", null),
-                new KeyboardLayout("Tibetan (PRC) - Updated", "00010451", null),
-                new KeyboardLayout("Tifinagh (Basic)", "0000105F", null),
-                new KeyboardLayout("Tifinagh (Extended)", "0001105F", null),
-                new KeyboardLayout("Traditional Mongolian (Standard)", "00010850", null),
-                new KeyboardLayout("Turkish F", "0001041F", null),
-                new KeyboardLayout("Turkish Q", "0000041F", null),
-                new KeyboardLayout("Turkmen", "00000442", null),
-                new KeyboardLayout("US", "00000409", "us-qwerty"),
-                new KeyboardLayout("US English Table for IBM Arabic 238_L", "00050409",
-                        null),
-                new KeyboardLayout("Ukrainian", "00000422", null),
-                new KeyboardLayout("Ukrainian (Enhanced)", "00020422", null),
-                new KeyboardLayout("United Kingdom", "00000809", "uk-qwerty"),
-                new KeyboardLayout("United Kingdom Extended", "00000452", null),
-                new KeyboardLayout("United States-Dvorak", "00010409", "us-dvorak"),
-                new KeyboardLayout("United States-Dvorak for left hand", "00030409", null),
-                new KeyboardLayout("United States-Dvorak for right hand", "00040409",
-                        null),
-                new KeyboardLayout("United States-International", "00020409", null),
-                new KeyboardLayout("Urdu", "00000420", null),
-                new KeyboardLayout("Uyghur", "00010480", null),
-                new KeyboardLayout("Uyghur (Legacy)", "00000480", null),
-                new KeyboardLayout("Uzbek Cyrillic", "00000843", null),
-                new KeyboardLayout("Vietnamese", "0000042A", null),
-                new KeyboardLayout("Wolof", "00000488", null),
-                new KeyboardLayout("Yoruba", "0000046A", null)
-            );
+    private static final Logger logger = LoggerFactory.getLogger(KeyboardLayout.class);
 
-    public static final Map<String, KeyboardLayout> keyboardLayoutByFullName = new HashMap<>();
     public static final Map<String, KeyboardLayout> keyboardLayoutByIdentifier = new HashMap<>();
     public static final Map<String, KeyboardLayout> keyboardLayoutByShortName = new HashMap<>();
 
     static {
+        InputStreamReader reader = new InputStreamReader(
+                KeyboardLayout.class.getClassLoader().getResourceAsStream("keyboard-layouts.json")
+        );
+        Type listType = new TypeToken<List<KeyboardLayout>>() {}.getType();
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Key.class, new KeyDeserializer())
+                .create();
+        long before = System.nanoTime();
+        List<KeyboardLayout> keyboardLayouts = gson.fromJson(reader, listType);
         for (KeyboardLayout keyboardLayout : keyboardLayouts) {
-            keyboardLayoutByFullName.put(keyboardLayout.fullName, keyboardLayout);
             keyboardLayoutByIdentifier.put(keyboardLayout.identifier, keyboardLayout);
             if (keyboardLayout.shortName != null)
                 keyboardLayoutByShortName.put(keyboardLayout.shortName, keyboardLayout);
         }
+        long after = System.nanoTime();
+        logger.trace("Loaded " + keyboardLayouts.size() + " keyboard layouts in " + (after - before) / 1000_000 + "ms");
+    }
+
+
+    public static class KeyDeserializer implements JsonDeserializer<Key> {
+
+        private final Map<Key, Key> cache = new HashMap<>();
+
+        @Override
+        public Key deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+            JsonObject keyObject = json.getAsJsonObject();
+            String staticName = !keyObject.has("staticName") ? null : keyObject.get("staticName").getAsString();
+            String staticSingleCharacterName = !keyObject.has("staticSingleCharacterName") ? null : keyObject.get("staticSingleCharacterName").getAsString();
+            String character = !keyObject.has("character") ? null : keyObject.get("character").getAsString();
+            Key temp = new Key(staticName, staticSingleCharacterName, character);
+            return cache.computeIfAbsent(temp, Function.identity());
+        }
+    }
+
+    public record KeyboardLayoutKey(int scanCode, WindowsVirtualKey virtualKey, Key key,
+                                    String text, String name) {
+
+    }
+
+    private final String identifier;
+    private final String displayName;
+    private final String driverName;
+    private final String shortName;
+    private final List<KeyboardLayoutKey> keys;
+
+    public KeyboardLayout(String identifier, String displayName, String driverName,
+                          String shortName,
+                          List<KeyboardLayoutKey> keys) {
+        this.identifier = identifier;
+        this.displayName = displayName;
+        this.driverName = driverName;
+        this.shortName = shortName;
+        this.keys = keys;
+    }
+
+    public String identifier() {
+        return identifier;
+    }
+
+    public String displayName() {
+        return displayName;
+    }
+
+    public String driverName() {
+        return driverName;
+    }
+
+    public String shortName() {
+        return shortName;
+    }
+
+    public List<KeyboardLayoutKey> keys() {
+        return keys;
+    }
+
+    public boolean containsKey(Key key) {
+        return scanCode(key) != -1;
+    }
+
+    public Key keyFromScanCode(int scanCode) {
+        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
+            if (keyboardLayoutKey.scanCode == scanCode)
+                return keyboardLayoutKey.key();
+        }
+        return null;
+    }
+
+    public int scanCode(Key key) {
+        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
+            if (keyboardLayoutKey.key.equals(key))
+                return keyboardLayoutKey.scanCode();
+        }
+        return -1;
+    }
+
+    public WindowsVirtualKey virtualKey(Key key) {
+        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
+            if (keyboardLayoutKey.key.equals(key))
+                return keyboardLayoutKey.virtualKey();
+        }
+        return null;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this)
+            return true;
+        if (obj == null || obj.getClass() != this.getClass())
+            return false;
+        var that = (KeyboardLayout) obj;
+        return Objects.equals(this.identifier, that.identifier) &&
+               Objects.equals(this.displayName, that.displayName) &&
+               Objects.equals(this.driverName, that.driverName) &&
+               Objects.equals(this.keys, that.keys);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(identifier, displayName, driverName, keys);
+    }
+
+    @Override
+    public String toString() {
+        return "KeyboardLayout[" +
+               "identifier=" + identifier + ", " +
+               "displayName=" + displayName + ", " +
+               "driverName=" + driverName + ", " +
+               "shortName=" + shortName + ']';
     }
 
 }

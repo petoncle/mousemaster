@@ -20,6 +20,6 @@ public interface Platform extends ModeListener {
 
     PlatformClock clock();
 
-    KeyboardLayout2 activeKeyboardLayout();
+    KeyboardLayout activeKeyboardLayout();
 
 }

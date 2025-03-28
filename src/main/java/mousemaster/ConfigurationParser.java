@@ -185,12 +185,12 @@ public class ConfigurationParser {
     private static class LayoutKeyAlias {
 
         KeyAlias noLayoutAlias = null;
-        Map<KeyboardLayout2, KeyAlias> aliasByLayout = new HashMap<>();
+        Map<KeyboardLayout, KeyAlias> aliasByLayout = new HashMap<>();
 
     }
 
     public static Configuration parse(List<String> properties,
-                                      KeyboardLayout2 activeKeyboardLayout) {
+                                      KeyboardLayout activeKeyboardLayout) {
         Aliases configurationAliases = parseAliases(properties);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
@@ -1186,7 +1186,7 @@ public class ConfigurationParser {
 
     private static Map<String, KeyAlias> buildKeyAliasesForActiveKeyboardLayout(
             Map<String, LayoutKeyAlias> configurationLayoutKeyAliasByName,
-            KeyboardLayout2 activeKeyboardLayout) {
+            KeyboardLayout activeKeyboardLayout) {
         Map<String, KeyAlias> keyAliases = new HashMap<>();
         for (Map.Entry<String, LayoutKeyAlias> entry : configurationLayoutKeyAliasByName.entrySet()) {
             String aliasName = entry.getKey();
@@ -1198,17 +1198,17 @@ public class ConfigurationParser {
         return keyAliases;
     }
 
-    private static KeyAlias findKeyAliasForLayout(KeyboardLayout2 activeKeyboardLayout,
+    private static KeyAlias findKeyAliasForLayout(KeyboardLayout activeKeyboardLayout,
                                                   LayoutKeyAlias layoutKeyAlias, String aliasName) {
         KeyAlias keyAlias = layoutKeyAlias.aliasByLayout.get(activeKeyboardLayout);
         if (keyAlias == null) {
             keyAlias = layoutKeyAlias.noLayoutAlias;
             if (keyAlias == null) {
-                KeyboardLayout2 layoutForWhichAliasIsDefined =
+                KeyboardLayout layoutForWhichAliasIsDefined =
                         layoutKeyAlias.aliasByLayout.keySet()
                                                     .stream()
                                                     .sorted(Comparator.comparing(
-                                                            KeyboardLayout2::displayName))
+                                                            KeyboardLayout::displayName))
                                                     .findFirst()
                                                     .orElseThrow();
                 KeyAlias keyAliasForOtherLayout =
@@ -1285,13 +1285,13 @@ public class ConfigurationParser {
             }
             else {
                 String layoutName = keyMatcher.group(3);
-                KeyboardLayout2 layout =
-                        KeyboardLayout2.keyboardLayoutByShortName.get(layoutName);
+                KeyboardLayout layout =
+                        KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
                 if (layout == null)
                     throw new IllegalArgumentException(
                             "Invalid keyboard layout: " + layoutName +
                             ", available keyboard layouts: " +
-                            KeyboardLayout2.keyboardLayoutByShortName.keySet());
+                            KeyboardLayout.keyboardLayoutByShortName.keySet());
                 layoutKeyAliasByName.computeIfAbsent(aliasName,
                                             name -> new LayoutKeyAlias())
                         .aliasByLayout.put(layout, new KeyAlias(aliasName, keys));

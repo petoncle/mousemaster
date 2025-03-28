@@ -214,7 +214,7 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public KeyboardLayout2 activeKeyboardLayout() {
+    public KeyboardLayout activeKeyboardLayout() {
         return WindowsVirtualKey.activeKeyboardLayout();
     }
 

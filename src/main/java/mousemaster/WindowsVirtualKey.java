@@ -356,7 +356,7 @@ public enum WindowsVirtualKey {
         values = Arrays.stream(valueArrayWithoutDuplicateCodes).toList();
     }
 
-    private static KeyboardLayout2 lastPolledActiveKeyboardLayout;
+    private static KeyboardLayout lastPolledActiveKeyboardLayout;
     private static int keyboardLayoutSeenCount;
 
     /**
@@ -365,8 +365,8 @@ public enum WindowsVirtualKey {
      * a few milliseconds. The workaround here waits for the layout to show up twice before
      * confirming it has changed.
      */
-    public static KeyboardLayout2 activeKeyboardLayout() {
-        KeyboardLayout2 foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
+    public static KeyboardLayout activeKeyboardLayout() {
+        KeyboardLayout foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
         if (foregroundWindowKeyboardLayout != null) {
             if (!foregroundWindowKeyboardLayout.equals(lastPolledActiveKeyboardLayout)) {
                 if (lastPolledActiveKeyboardLayout != null && keyboardLayoutSeenCount++ < 2)
@@ -388,7 +388,7 @@ public enum WindowsVirtualKey {
                     lastPolledActiveKeyboardLayout);
             return lastPolledActiveKeyboardLayout;
         }
-        KeyboardLayout2 startupKeyboardLayout = startupKeyboardLayout();
+        KeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
         logger.trace(
                 "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
                 startupKeyboardLayout);
@@ -428,7 +428,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static KeyboardLayout2 foregroundWindowKeyboardLayout() {
+    private static KeyboardLayout foregroundWindowKeyboardLayout() {
         WinDef.HKL hkl = foregroundWindowHkl();
         if (hkl != null) {
             // The mousemaster.exe command line window does not handle the WM_INPUTLANGCHANGE message.
@@ -436,7 +436,7 @@ public enum WindowsVirtualKey {
             // We call ActivateKeyboardLayout to change the layout of the command line window.
             ExtendedUser32.INSTANCE.ActivateKeyboardLayout(hkl, 0);
             int languageIdentifier = hkl.getLanguageIdentifier();
-            KeyboardLayout2 keyboardLayout = KeyboardLayout2.keyboardLayoutByIdentifier.get(
+            KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayoutByIdentifier.get(
                     String.format("%08X", languageIdentifier));
 //            logger.debug("Found active window keyboard layout: " + keyboardLayout);
             return keyboardLayout;
@@ -444,7 +444,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static KeyboardLayout2 startupKeyboardLayout() {
+    private static KeyboardLayout startupKeyboardLayout() {
         // GetKeyboardLayoutName returns the layout at the time of when the app was started.
         // If the system layout is changed after the app is started, GetKeyboardLayoutName
         // still returns the old layout.
@@ -457,7 +457,7 @@ public enum WindowsVirtualKey {
                 break;
             }
         }
-        return KeyboardLayout2.keyboardLayoutByIdentifier.get(
+        return KeyboardLayout.keyboardLayoutByIdentifier.get(
                 new String(nameBuffer, 0, nameLength));
     }
 

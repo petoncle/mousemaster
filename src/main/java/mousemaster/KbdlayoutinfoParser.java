@@ -148,12 +148,12 @@ public class KbdlayoutinfoParser {
             throws IOException, ParserConfigurationException, SAXException {
         List<String> keyboardLayoutIdentifiers = parseRootPage();
 //        keyboardLayoutIdentifiers.removeIf(Predicate.not(Predicate.isEqual("0000040C")));
-        List<KeyboardLayout2> keyboardLayouts = new ArrayList<>();
+        List<KeyboardLayout> keyboardLayouts = new ArrayList<>();
         for (String keyboardLayoutIdentifier : keyboardLayoutIdentifiers) {
             logger.info("Parsing keyboard layout page " + keyboardLayoutIdentifier);
             keyboardLayouts.add(parseKeyboardLayoutPage(keyboardLayoutIdentifier));
         }
-        for (KeyboardLayout2 keyboardLayout : keyboardLayouts) {
+        for (KeyboardLayout keyboardLayout : keyboardLayouts) {
             logger.info("Parsing keyboard layout XML for processing " + keyboardLayout);
             parseKeyboardLayoutXmlForProcessing(keyboardLayout);
         }
@@ -177,7 +177,7 @@ public class KbdlayoutinfoParser {
         return keyboardLayoutIdentifiers;
     }
 
-    private static KeyboardLayout2 parseKeyboardLayoutPage(String keyboardLayoutIdentifier)
+    private static KeyboardLayout parseKeyboardLayoutPage(String keyboardLayoutIdentifier)
             throws IOException {
         org.jsoup.nodes.Document document =
                 Jsoup.connect("https://kbdlayout.info/" + keyboardLayoutIdentifier).get();
@@ -199,13 +199,13 @@ public class KbdlayoutinfoParser {
         }
         if (displayName == null || driverName == null)
             throw new IllegalStateException();
-        return new KeyboardLayout2(keyboardLayoutIdentifier, displayName, driverName,
+        return new KeyboardLayout(keyboardLayoutIdentifier, displayName, driverName,
                 keyboardLayoutShortNameByIdentifier.get(keyboardLayoutIdentifier),
                 new ArrayList<>());
     }
 
     private static void parseKeyboardLayoutXmlForProcessing(
-            KeyboardLayout2 keyboardLayout)
+            KeyboardLayout keyboardLayout)
             throws IOException, ParserConfigurationException, SAXException {
         String urlString = "https://kbdlayout.info/" + keyboardLayout.identifier() + "/download/xml";
         URL url = URI.create(urlString).toURL();
@@ -295,7 +295,7 @@ public class KbdlayoutinfoParser {
                 key = Key.ofCharacter(text);
             if (key != null)
                 keyboardLayout.keys()
-                              .add(new KeyboardLayout2.KeyboardLayoutKey(sc, vk, key,
+                              .add(new KeyboardLayout.KeyboardLayoutKey(sc, vk, key,
                                       text == null || text.isBlank() ? null : text,
                                       name.isBlank() ? null : name));
         }
