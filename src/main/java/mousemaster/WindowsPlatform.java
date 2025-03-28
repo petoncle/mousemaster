@@ -50,7 +50,6 @@ public class WindowsPlatform implements Platform {
         if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
-        installHooks();
     }
 
     @Override
@@ -126,6 +125,8 @@ public class WindowsPlatform implements Platform {
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
                         mousePosition.y));
+        if (keyboardHookCallback == null)
+            installHooks();
     }
 
     /**
