@@ -53,7 +53,7 @@ jobs:
           $releaseNotes += "### Installation`n"
           $releaseNotes += "1. Download **mousemaster.exe** (a portable executable).`n"
           $releaseNotes += "2. Download one of the existing configuration files:`n"
-          $releaseNotes += "   - **neo-mousekeys.properties** (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys.md))`n"
+          $releaseNotes += "   - **neo-mousekeys-wasd.properties** (***recommended***): a WASD configuration ([see documentation](configuration/neo-mousekeys-wasd.md))`n"
           $releaseNotes += "   - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))`n"
           $releaseNotes += "   - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))`n"
           $releaseNotes += "   - **author.properties**: an IJKL configuration designed to control everything with the right hand only ([see documentation](configuration/author.md))`n"
@@ -66,4 +66,4 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys.properties" "configuration/warpd.properties" --title "v${{ steps.extract_version.outputs.version }}" --notes-file ./release-notes.txt
+        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys-wasd.properties" "configuration/warpd.properties" --title "v${{ steps.extract_version.outputs.version }}" --notes-file ./release-notes.txt

@@ -1,4 +1,4 @@
-# neo-mousekeys configuration for mousemaster ([neo-mousekeys.properties](neo-mousekeys.properties))
+# neo-mousekeys-wasd configuration for mousemaster ([neo-mousekeys-wasd.properties](neo-mousekeys-wasd.properties))
 
 (Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
 
@@ -8,7 +8,7 @@
 - Press _w_, _a_, _s_, _d_ to move the mouse.
 - Press _q_ or _p_ to deactivate.
 
-![neo-mousekeys layout](https://github.com/user-attachments/assets/4aff87f3-7724-440c-aff2-ae58396e4bb9)
+![neo-mousekeys-wasd layout](https://github.com/user-attachments/assets/4aff87f3-7724-440c-aff2-ae58396e4bb9)
 
 ## Normal Mode (hold _leftalt_ then press _e_, or hold _leftalt_ then press _capslock_)
 
@@ -43,7 +43,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _leftshift_ while selecting a hint.
 - Undo an accidental key press with _backspace_.
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys.properties](neo-mousekeys.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys-wasd.properties](neo-mousekeys-wasd.properties).
 - Go back to normal mode with _esc_ or _backspace_.
 
 ## Screen Selection Mode (_c_ in normal mode)
