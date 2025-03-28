@@ -23,11 +23,14 @@
   ],
   [
     {
+      "c": "#9d4c04",
+      "f": 2,
       "w": 1.5
     },
-    "Tab",
+    "Tab\n(+J and +L)\n\n\n\n\nVirtual Desktop",
     {
-      "c": "#621dba"
+      "c": "#621dba",
+      "f": 3
     },
     "Q\n\n\n\n\n\nDisable",
     {
@@ -54,9 +57,13 @@
     },
     "U\nFast\n\n\n\n\nMouse",
     {
-      "c": "#168a93"
+      "c": "#168a93",
+      "f": 1
     },
-    "I\nLeft\n\n\n\n\nWheel",
+    "I\n↑(+L.Alt)\n\n\n\n\nWheel\nLeft",
+    {
+      "f": 3
+    },
     "O\nRight\n\n\n\n\nWheel",
     {
       "c": "#621dba"
@@ -77,7 +84,7 @@
       "c": "#621dba",
       "w": 1.75
     },
-    "Caps Lock\n(+Alt)\n\n\n\n\nEnable",
+    "Caps Lock\nSuper Slow\n\n\n\n\nEnable (+Alt)",
     {
       "c": "#0b21a3"
     },
@@ -96,14 +103,17 @@
     "H\nBack\n\n\n\n\nNavigate",
     {
       "c": "#bc251e",
-      "f": 3
+      "f": 1
     },
-    "J\nJump\n\n\n\n\nMouse",
+    "J\n←(+L.Alt)\n\n\n\n\nMouse\nJmp",
     {
       "c": "#689b34"
     },
-    "K\nLeft\n\n\n\n\nClick",
-    "L\nRight\n\n\n\n\nClick",
+    "K\n↓(+L.Alt)\n\n\n\n\nClick\nLeft",
+    "L\n→(+L.Alt)\n\n\n\n\nClick\nRight",
+    {
+      "f": 3
+    },
     ";\nMiddle\n\n\n\n\nClick",
     {
       "c": "#cccccc"
