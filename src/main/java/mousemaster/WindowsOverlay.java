@@ -187,17 +187,23 @@ public class WindowsOverlay {
     }
 
     private static int indicatorSize() {
-        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        return indicatorSize(WindowsMouse.findMousePosition());
+    }
+
+    private static int indicatorSize(WinDef.POINT mousePosition) {
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         return scaledPixels(currentIndicator.size(), activeScreen.scale());
     }
 
     private static int bestIndicatorX() {
-        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        return bestIndicatorX(WindowsMouse.findMousePosition());
+    }
+
+    private static int bestIndicatorX(WinDef.POINT mousePosition) {
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         MouseSize mouseSize = WindowsMouse.mouseSize();
         return (int) Math.round(zoomedX(bestIndicatorX(mousePosition.x, mouseSize.width(),
-                activeScreen.rectangle(), indicatorSize())));
+                activeScreen.rectangle(), indicatorSize(mousePosition))));
     }
 
     private static double zoomedX(double x) {
@@ -213,11 +219,14 @@ public class WindowsOverlay {
     }
 
     private static int bestIndicatorY() {
-        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        return bestIndicatorY(WindowsMouse.findMousePosition());
+    }
+
+    private static int bestIndicatorY(WinDef.POINT mousePosition) {
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         MouseSize mouseSize = WindowsMouse.mouseSize();
         return (int) Math.round(zoomedY(bestIndicatorY(mousePosition.y, mouseSize.height(),
-                activeScreen.rectangle(), indicatorSize())));
+                activeScreen.rectangle(), indicatorSize(mousePosition))));
     }
 
     private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle screenRectangle,
@@ -1711,10 +1720,10 @@ public class WindowsOverlay {
         if (indicatorWindow == null)
             return;
         User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
-                bestIndicatorX(),
-                bestIndicatorY(),
-                indicatorSize() + 1,
-                indicatorSize() + 1, false);
+                bestIndicatorX(mousePosition),
+                bestIndicatorY(mousePosition),
+                indicatorSize(mousePosition) + 1,
+                indicatorSize(mousePosition) + 1, false);
     }
 
 }
