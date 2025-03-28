@@ -392,6 +392,7 @@ public enum WindowsVirtualKey {
         logger.trace(
                 "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
                 startupKeyboardLayout);
+        lastPolledActiveKeyboardLayout = startupKeyboardLayout;
         return startupKeyboardLayout;
     }
 
