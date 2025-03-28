@@ -67,4 +67,4 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys-wasd.properties" "configuration/warpd.properties" --title "v${{ steps.extract_version.outputs.version }}" --notes-file ./release-notes.txt
+        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys-ijkl.properties" "configuration/neo-mousekeys-wasd.properties" "configuration/warpd.properties" --title "v${{ steps.extract_version.outputs.version }}" --notes-file ./release-notes.txt
