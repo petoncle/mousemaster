@@ -395,6 +395,8 @@ public enum WindowsVirtualKey {
         return startupKeyboardLayout;
     }
 
+    private static int lastFailedGetKeyboardLayoutThreadId = -1;
+
     private static WinDef.HKL foregroundWindowHkl() {
         WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         if (hwnd == null) {
@@ -410,8 +412,15 @@ public enum WindowsVirtualKey {
             else {
                 WinDef.HKL hkl = User32.INSTANCE.GetKeyboardLayout(thread);
                 if (hkl == null) {
-                    // GetKeyboardLayout does not set the last error value.
-                    logger.error("GetKeyboardLayout failed");
+                    if (lastFailedGetKeyboardLayoutThreadId != thread) {
+                        // GetKeyboardLayout does not set the last error value.
+                        logger.error("GetKeyboardLayout failed");
+                        // Avoid flooding the logs with the same error.
+                        lastFailedGetKeyboardLayoutThreadId = thread;
+                    }
+                }
+                else {
+                    lastFailedGetKeyboardLayoutThreadId = -1;
                 }
                 return hkl;
             }
