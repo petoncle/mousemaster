@@ -21,6 +21,8 @@
   }, {
     "pattern":"\\Qapplication.properties\\E"
   }, {
+    "pattern":"\\Qkeyboard-layouts.json\\E"
+  }, {
     "pattern":"\\Qcom/sun/jna/win32-x86-64/jnidispatch.dll\\E"
   }, {
     "pattern":"\\Qio/qt/internal/LibraryUtility.class\\E"

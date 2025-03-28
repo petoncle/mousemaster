@@ -787,5 +787,37 @@
 {
   "name":"sun.security.provider.SHA2$SHA256",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.Class",
+  "methods":[{"name":"getRecordComponents","parameterTypes":[] }, {"name":"isRecord","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.Record",
+  "allDeclaredFields":true
+},
+{
+  "name":"java.lang.reflect.RecordComponent",
+  "methods":[{"name":"getName","parameterTypes":[] }, {"name":"getType","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.KeyboardLayout2",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }],
+  "unsafeAllocated": true
+},
+{
+  "name":"mousemaster.KeyboardLayout2$KeyboardLayoutKey",
+  "allDeclaredFields":true,
+  "methods":[{"name":"<init>","parameterTypes":["int","mousemaster.WindowsVirtualKey","mousemaster.Key","java.lang.String","java.lang.String"] }, {"name":"key","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"scanCode","parameterTypes":[] }, {"name":"text","parameterTypes":[] }, {"name":"virtualKey","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.WindowsVirtualKey",
+  "allDeclaredFields":true
+},
+{
+  "name":"sun.misc.Unsafe",
+  "fields":[{"name":"theUnsafe"}],
+  "methods":[{"name":"allocateInstance","parameterTypes":["java.lang.Class"] }]
 }
 ]
