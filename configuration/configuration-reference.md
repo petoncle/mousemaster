@@ -340,6 +340,7 @@ saved in the position history, one hint box will be displayed.
 ```properties
 logging.level=DEBUG
 logging.redact-keys=true
+logging.to-file=false
 ```
 
 These properties control the logging behavior in the command line window.
