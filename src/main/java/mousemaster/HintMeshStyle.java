@@ -7,6 +7,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                             double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
                             double fontShadowBlurRadius, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
                             String focusedFontHexColor,
+                            String prefixFontHexColor,
                             String boxHexColor,
                             double boxOpacity,
                             double boxBorderThickness,
@@ -48,6 +49,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
         private Double fontShadowHorizontalOffset;
         private Double fontShadowVerticalOffset;
         private String focusedFontHexColor;
+        private String prefixFontHexColor;
         private String boxHexColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
@@ -89,6 +91,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             this.fontShadowHorizontalOffset = style.fontShadowHorizontalOffset;
             this.fontShadowVerticalOffset = style.fontShadowVerticalOffset;
             this.focusedFontHexColor = style.focusedFontHexColor;
+            this.prefixFontHexColor = style.prefixFontHexColor;
             this.boxHexColor = style.boxHexColor;
             this.boxOpacity = style.boxOpacity;
             this.boxBorderThickness = style.boxBorderThickness;
@@ -184,6 +187,12 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
         public HintMeshStyleBuilder focusedFontHexColor(
                 String focusedFontHexColor) {
             this.focusedFontHexColor = focusedFontHexColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder prefixFontHexColor(
+                String prefixFontHexColor) {
+            this.prefixFontHexColor = prefixFontHexColor;
             return this;
         }
 
@@ -347,6 +356,10 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             return focusedFontHexColor;
         }
 
+        public String prefixFontHexColor() {
+            return prefixFontHexColor;
+        }
+
         public String boxHexColor() {
             return boxHexColor;
         }
@@ -444,6 +457,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                     fontShadowHorizontalOffset == null ? defaultStyle.fontShadowHorizontalOffset : fontShadowHorizontalOffset,
                     fontShadowVerticalOffset == null ? defaultStyle.fontShadowVerticalOffset : fontShadowVerticalOffset,
                     focusedFontHexColor == null ? defaultStyle.focusedFontHexColor : focusedFontHexColor,
+                    prefixFontHexColor == null ? defaultStyle.prefixFontHexColor : prefixFontHexColor,
                     boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
                     boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,

@@ -640,7 +640,7 @@ public class WindowsOverlay {
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = 0;
         double maxHintCenterY = 0;
-        Map<List<Key>, HintGroup> hintGroupByLayoutFirstPart = new HashMap<>();
+        Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
         for (Hint hint : hintMeshWindow.hints()) {
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
                 continue;
@@ -648,11 +648,11 @@ public class WindowsOverlay {
             minHintCenterY = Math.min(minHintCenterY, hint.centerY());
             maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
-            List<Key> layoutFirstPart = hintMesh.layoutFirstPartLength() == -1 ?
+            List<Key> layoutFirstPart = hintMesh.prefixLength() == -1 ?
                     hint.keySequence() : hint.keySequence().subList(0,
-                    hintMesh.layoutFirstPartLength());
+                    hintMesh.prefixLength());
             HintGroup hintGroup =
-                    hintGroupByLayoutFirstPart.computeIfAbsent(layoutFirstPart,
+                    hintGroupByPrefix.computeIfAbsent(layoutFirstPart,
                             key -> new HintGroup());
             hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
@@ -684,6 +684,7 @@ public class WindowsOverlay {
 //            hintKeyMaxXAdvance = metrics.maxWidth();
         QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
         QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontOpacity());
+        QColor prefixColor = qColor(style.prefixFontHexColor(), style.fontOpacity());
         QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
         QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
@@ -729,11 +730,16 @@ public class WindowsOverlay {
                    > y + fullBoxHeight) {
                 fullBoxHeight++;
             }
+            List<Key> prefix = hintMesh.prefixLength() == -1 ?
+                    hint.keySequence() : hint.keySequence().subList(0,
+                    hintMesh.prefixLength());
             HintLabel hintLabel =
                     new HintLabel(hint, font, xAdvancesByString, fullBoxWidth,
                             fullBoxHeight, totalXAdvance,
                             fontColor,
                             focusedColor,
+                            hintMesh.prefixLength(),
+                            prefixColor,
                             outlineColor,
                             (int) Math.round(style.fontOutlineThickness() * screenScale),
                             shadowColor,
@@ -745,10 +751,7 @@ public class WindowsOverlay {
                             hintKeyMaxXAdvance, metrics);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             int layoutBorderThickness = (int) Math.round(style.layoutBorderThickness());
-            List<Key> layoutFirstPart = hintMesh.layoutFirstPartLength() == -1 ?
-                    hint.keySequence() : hint.keySequence().subList(0,
-                    hintMesh.layoutFirstPartLength());
-            HintGroup hintGroup = hintGroupByLayoutFirstPart.get(layoutFirstPart);
+            HintGroup hintGroup = hintGroupByPrefix.get(prefix);
             boolean groupLeftEdge = hint.centerX() == hintGroup.minHintCenterX;
             boolean groupTopEdge = hint.centerY() == hintGroup.minHintCenterY;
             boolean groupRightEdge = hint.centerX() == hintGroup.maxHintCenterX;
@@ -1251,6 +1254,8 @@ public class WindowsOverlay {
 
         private final QColor fontColor;
         private final QColor focusedColor;
+        private final int prefixLength;
+        private final QColor prefixColor;
         private final QColor outlineColor;
         private final int outlineThickness;
         private final List<HintKeyText> keyTexts;
@@ -1264,6 +1269,7 @@ public class WindowsOverlay {
         public HintLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
                          int boxHeight, int totalXAdvance, QColor fontColor, QColor focusedColor,
+                         int prefixLength, QColor prefixColor,
                          QColor outlineColor,
                          int outlineThickness, QColor shadowColor, double shadowBlurRadius,
                          double shadowHorizontalOffset, double shadowVerticalOffset, List<Key> focusedKeySequence, double fontSpacingPercent,
@@ -1274,6 +1280,8 @@ public class WindowsOverlay {
                       .collect(Collectors.joining()));
             this.fontColor = fontColor;
             this.focusedColor = focusedColor;
+            this.prefixLength = prefixLength;
+            this.prefixColor = prefixColor;
             this.outlineColor = outlineColor;
             this.outlineThickness = outlineThickness;
             setFont(font);
@@ -1343,7 +1351,8 @@ public class WindowsOverlay {
                     }
                 }
                 keyTexts.add(new HintKeyText(keyText, x, y, keyWidth,
-                        keyIndex <= focusedKeySequence.size() - 1));
+                        keyIndex <= focusedKeySequence.size() - 1,
+                        prefixLength != -1 && keyIndex <= prefixLength - 1));
             }
             int smallestHintBoxTop = y - metrics.ascent();
             int smallestHintBoxHeight = metrics.height();
@@ -1377,14 +1386,20 @@ public class WindowsOverlay {
             // Avoid blending the text with the outline. Text should override the outline.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
-                painter.setPen(keyText.isFocused() ? focusedColor : fontColor);
+                if (keyText.isFocused())
+                    painter.setPen(focusedColor);
+                else if (keyText.isPrefix())
+                    painter.setPen(prefixColor);
+                else
+                    painter.setPen(fontColor);
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.end();
         }
     }
 
-    private record HintKeyText(String text, int x, int y, int width, boolean isFocused) {
+    private record HintKeyText(String text, int x, int y, int width, boolean isFocused,
+                               boolean isPrefix) {
 
     }
 

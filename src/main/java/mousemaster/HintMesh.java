@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
-public record HintMesh(boolean visible, List<Hint> hints, int layoutFirstPartLength,
+public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
                        List<Key> focusedKeySequence,
                        ViewportFilterMap<HintMeshStyle> styleByFilter) {
 
@@ -16,7 +16,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int layoutFirstPartLen
     public static class HintMeshBuilder {
         private boolean visible;
         private List<Hint> hints;
-        private int layoutFirstPartLength;
+        private int prefixLength;
         private List<Key> focusedKeySequence = List.of();
         private ViewportFilterMap<HintMeshStyle> styleByFilter;
 
@@ -26,7 +26,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int layoutFirstPartLen
         public HintMeshBuilder(HintMesh hintMesh) {
             this.visible = hintMesh.visible;
             this.hints = hintMesh.hints;
-            this.layoutFirstPartLength = hintMesh.layoutFirstPartLength;
+            this.prefixLength = hintMesh.prefixLength;
             this.focusedKeySequence = hintMesh.focusedKeySequence;
             this.styleByFilter = hintMesh.styleByFilter;
         }
@@ -40,8 +40,8 @@ public record HintMesh(boolean visible, List<Hint> hints, int layoutFirstPartLen
             return hints;
         }
 
-        public int layoutFirstPartLength() {
-            return layoutFirstPartLength;
+        public int prefixLength() {
+            return prefixLength;
         }
 
         public List<Key> focusedKeySequence() {
@@ -62,8 +62,8 @@ public record HintMesh(boolean visible, List<Hint> hints, int layoutFirstPartLen
             return this;
         }
 
-        public HintMeshBuilder layoutFirstPartLength(int layoutFirstPartLength) {
-            this.layoutFirstPartLength = layoutFirstPartLength;
+        public HintMeshBuilder prefixLength(int prefixLength) {
+            this.prefixLength = prefixLength;
             return this;
         }
 
@@ -79,7 +79,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int layoutFirstPartLen
         }
 
         public HintMesh build() {
-            return new HintMesh(visible, hints, layoutFirstPartLength, focusedKeySequence,
+            return new HintMesh(visible, hints, prefixLength, focusedKeySequence,
                     styleByFilter);
         }
     }

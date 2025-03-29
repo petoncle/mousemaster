@@ -94,6 +94,7 @@ public class ConfigurationParser {
                 .fontShadowHorizontalOffset(2d)
                 .fontShadowVerticalOffset(2d)
                 .focusedFontHexColor("#CCCCCC")
+                .prefixFontHexColor("#FFFFFF")
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
                 .boxBorderThickness(1d)
@@ -668,6 +669,9 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, -100, 100));
                         case "focused-font-color" ->
                                 mode.hintMesh.builder.style(viewportFilter).focusedFontHexColor(
+                                        checkColorFormat(propertyValue));
+                        case "prefix-font-color" ->
+                                mode.hintMesh.builder.style(viewportFilter).prefixFontHexColor(
                                         checkColorFormat(propertyValue));
                         case "box-color" -> mode.hintMesh.builder.style(viewportFilter).boxHexColor(
                                 checkColorFormat(propertyValue));
@@ -1924,6 +1928,11 @@ public class ConfigurationParser {
                                 childStyleByFilter, filter))
                             childStyle.focusedFontHexColor(
                                     parentStyle.focusedFontHexColor());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::prefixFontHexColor,
+                                childStyleByFilter, filter))
+                            childStyle.prefixFontHexColor(
+                                    parentStyle.prefixFontHexColor());
                         if (!childDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
                                 filter))
