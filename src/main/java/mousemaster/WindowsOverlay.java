@@ -1003,39 +1003,46 @@ public class WindowsOverlay {
             int gridRightEdgeExtraHorizontal = gridRightEdge ? edgeThickness/2 : 0;
             // Top left corner.
             // Vertical line.
-            if (drawGridEdgeBorders || !gridLeftEdge && !gridTopEdge) {
+            if (drawGridEdgeBorders || (!gridLeftEdge && !gridTopEdge)) {
                 painter.setPen(gridLeftEdge ? edgePen : verticalLeftPen);
                 int x = left + (gridLeftEdge ? edgePenOffset : insidePenOffset);
-                painter.drawLine(x, top, x, top + gridTopEdgeExtraVertical + borderLength / 2);
+                int y1 = top;
+                int y2 = top + gridTopEdgeExtraVertical + borderLength / 2;
+                painter.drawLine(x, y1, x, y2);
             }
             // Horizontal line.
             if (drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge)) {
                 painter.setPen(gridTopEdge ? edgePen : horizontalTopPen);
-                int x = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
-                int y = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
-                painter.drawLine(left, y, x, y);
+                int x1 = left;
+                int x2 = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
+                int y  = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
+                painter.drawLine(x1, y, x2, y);
             }
+
             // Top right corner.
             // Vertical line.
             if (drawGridEdgeBorders || (!gridRightEdge && !gridTopEdge)) {
                 painter.setPen(gridRightEdge ? edgePen : verticalRightPen);
                 int x = right + (gridRightEdge ? edgePenOffset - (edgeThickness - 1)
                         : insidePenOffset - (verticalRightThickness - 1));
-                painter.drawLine(x, top, x, top + gridTopEdgeExtraVertical + borderLength / 2);
+                int y1 = top;
+                int y2 = top + gridTopEdgeExtraVertical + borderLength / 2;
+                painter.drawLine(x, y1, x, y2);
             }
             // Horizontal line.
             if (drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge)) {
                 painter.setPen(gridTopEdge ? edgePen : horizontalTopPen);
                 int x1 = right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2;
                 int x2 = right + 1;
-                int y = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
+                int y  = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
                 painter.drawLine(x1, y, x2, y);
             }
+
             // Bottom left corner.
             // Vertical line.
             if (drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge)) {
                 painter.setPen(gridLeftEdge ? edgePen : verticalLeftPen);
-                int x = left + (gridLeftEdge ? edgePenOffset : insidePenOffset);
+                int x  = left + (gridLeftEdge ? edgePenOffset : insidePenOffset);
                 int y1 = bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2;
                 int y2 = bottom + 1;
                 painter.drawLine(x, y1, x, y2);
@@ -1043,16 +1050,18 @@ public class WindowsOverlay {
             // Horizontal line.
             if (drawGridEdgeBorders || (!gridBottomEdge && !gridLeftEdge)) {
                 painter.setPen(gridBottomEdge ? edgePen : horizontalBottomPen);
-                int x = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
-                int y = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
+                int x1 = left;
+                int x2 = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
+                int y  = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
                         : insidePenOffset - (horizontalBottomThickness - 1));
-                painter.drawLine(left, y, x, y);
+                painter.drawLine(x1, y, x2, y);
             }
+
             // Bottom right corner.
             // Vertical line.
             if (drawGridEdgeBorders || (!gridRightEdge && !gridBottomEdge)) {
                 painter.setPen(gridRightEdge ? edgePen : verticalRightPen);
-                int x = right + (gridRightEdge ? edgePenOffset - (edgeThickness - 1)
+                int x  = right + (gridRightEdge ? edgePenOffset - (edgeThickness - 1)
                         : insidePenOffset - (verticalRightThickness - 1));
                 int y1 = bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2;
                 int y2 = bottom + 1;
@@ -1063,7 +1072,7 @@ public class WindowsOverlay {
                 painter.setPen(gridBottomEdge ? edgePen : horizontalBottomPen);
                 int x1 = right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2;
                 int x2 = right + 1;
-                int y = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
+                int y  = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
                         : insidePenOffset - (horizontalBottomThickness - 1));
                 painter.drawLine(x1, y, x2, y);
             }
