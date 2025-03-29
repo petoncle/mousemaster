@@ -991,17 +991,19 @@ public class WindowsOverlay {
             int rightInsideThickness = bottomRightInsideThickness;
             int topLeftGroupThickness = groupThickness / 2 + groupThickness % 2;
             int bottomRightGroupThickness = isHintPartOfGrid ? groupThickness / 2 : topLeftGroupThickness;
-//            if (groupLeftEdge || groupTopEdge)
-//                topLeftInsideThickness = topLeftGroupThickness;
-//            if (groupRightEdge || groupBottomEdge)
-//                bottomRightInsideThickness = bottomRightGroupThickness;
+            if (groupLeftEdge)
+                leftInsideThickness = topLeftGroupThickness;
+            if (groupTopEdge)
+                topInsideThickness = topLeftGroupThickness;
+            if (groupRightEdge)
+                rightInsideThickness = bottomRightGroupThickness;
+            if (groupBottomEdge)
+                bottomInsideThickness = bottomRightGroupThickness;
             QPen edgePen = createPen(borderColor, edgeThickness);
             QPen topInsidePen = createPen(borderColor, topInsideThickness);
             QPen leftInsidePen = createPen(borderColor, leftInsideThickness);
             QPen bottomInsidePen = createPen(borderColor, bottomInsideThickness);
             QPen rightInsidePen = createPen(borderColor, rightInsideThickness);
-//            QPen topLeftGroupPen = createPen(borderColor, topLeftGroupThickness);
-//            QPen bottomRightGroupPen = createPen(borderColor, bottomRightGroupThickness);
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
             int edgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
@@ -1010,14 +1012,14 @@ public class WindowsOverlay {
             int leftInsidePenOffset = insidePenOffset;
             int bottomInsidePenOffset = insidePenOffset;
             int rightInsidePenOffset = insidePenOffset;
-//            if (groupLeftEdge)
-//                leftInsidePenOffset = groupPenOffset;
-//            if (groupTopEdge)
-//                topInsidePenOffset = groupPenOffset;
-//            if (groupRightEdge)
-//                rightInsidePenOffset = groupPenOffset;
-//            if (groupBottomEdge)
-//                bottomInsidePenOffset = groupPenOffset;
+            if (groupLeftEdge)
+                leftInsidePenOffset = groupPenOffset;
+            if (groupTopEdge)
+                topInsidePenOffset = groupPenOffset;
+            if (groupRightEdge)
+                rightInsidePenOffset = groupPenOffset;
+            if (groupBottomEdge)
+                bottomInsidePenOffset = groupPenOffset;
             int gridTopEdgeExtraVertical = gridTopEdge ? edgeThickness/2 : 0;
             int gridBottomEdgeExtraVertical = gridBottomEdge ? edgeThickness/2 : 0;
             int gridLeftEdgeExtraHorizontal = gridLeftEdge ? edgeThickness/2 : 0;
