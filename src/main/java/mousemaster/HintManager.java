@@ -272,6 +272,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             List<Key> selectionKeys = hintMeshKeys.selectionKeys();
             List<Hint> hints = new ArrayList<>();
             int beginSubgridIndex = 0;
+            Set<Integer> layoutFirstPartLengths = new HashSet<>();
             for (FixedSizeHintGrid fixedSizeHintGrid : fixedSizeHintGrids) {
                 int beginHintIndex = hints.size();
                 hints.addAll(buildHints(fixedSizeHintGrid,
@@ -281,11 +282,13 @@ public class HintManager implements ModeListener, MousePositionListener {
                         beginHintIndex,
                         layoutRowCount,
                         layoutColumnCount, layoutRowOriented,
-                        zoom));
+                        zoom, layoutFirstPartLengths));
                 beginSubgridIndex +=
                         fixedSizeHintGrid.subgridCount(layoutRowCount, layoutColumnCount);
             }
-            hintMesh.hints(hints);
+            hintMesh.hints(hints)
+                    .layoutFirstPartLength(layoutFirstPartLengths.size() == 1 ?
+                            layoutFirstPartLengths.iterator().next() : -1);
         }
         else {
             int hintCount = positionHistory.size();
@@ -293,6 +296,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMeshKeys hintMeshKeys =
                     hintMeshConfiguration.keysByFilter().get(screenFilter);
             List<Key> selectionKeys = hintMeshKeys.selectionKeys();
+            Set<Integer> layoutFirstPartLengths = new HashSet<>();
             for (Point point : positionHistory) {
                 List<Key> keySequence = hintKeySequence(
                         selectionKeys,
@@ -300,7 +304,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         0, -1, idByPosition.get(point) % maxPositionHistorySize,
                         -1, -1,
                         -1, -1,
-                        -1, -1, false);
+                        -1, -1, false, layoutFirstPartLengths);
                 Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
                 if (zoom1.screenRectangle().contains(point.x(), point.y()))
                     hints.add(new Hint(zoom1.zoomedX(point.x()), zoom1.zoomedY(point.y()),
@@ -308,7 +312,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                 else
                     hints.add(new Hint(point.x(), point.y(), -1, -1, keySequence));
             }
-            hintMesh.hints(hints);
+            hintMesh.hints(hints)
+                    .layoutFirstPartLength(layoutFirstPartLengths.size() == 1 ?
+                            layoutFirstPartLengths.iterator().next() : -1);
         }
         HintMeshState previousHintMeshState = hintMeshStates.get(
                 new HintMeshKey(hintMeshConfiguration.type(),
@@ -342,7 +348,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                          int beginSubgridIndex, int subgridCount,
                                          int beginHintIndex, int layoutRowCount,
                                          int layoutColumnCount, boolean layoutRowOriented,
-                                         Zoom zoom) {
+                                         Zoom zoom, Set<Integer> layoutFirstPartLengths) {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
         Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
@@ -374,7 +380,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         hintIndex,
                         rowIndex, columnIndex,
                         rowCount, columnCount,
-                        layoutRowCount, layoutColumnCount, layoutRowOriented);
+                        layoutRowCount, layoutColumnCount, layoutRowOriented,
+                        layoutFirstPartLengths);
                 double hintCenterX = hintMeshX + columnWidthOffset + cellWidth / 2d;
                 double hintCenterY = hintMeshY + rowHeightOffset + cellHeight / 2d;
                 hints.add(new Hint(hintCenterX, hintCenterY, cellWidth, cellHeight,
@@ -410,7 +417,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                              int rowIndex, int columnIndex,
                                              int rowCount, int columnCount,
                                              int layoutRowCount, int layoutColumnCount,
-                                             boolean layoutRowOriented) {
+                                             boolean layoutRowOriented,
+                                             Set<Integer> layoutFirstPartLengths) {
         int bigColumnCount = (int) Math.ceil((double) columnCount / layoutColumnCount);
         // Number of sub grids in a column.
         int bigRowCount = (int) Math.ceil((double) rowCount / layoutRowCount);
@@ -442,31 +450,38 @@ public class HintManager implements ModeListener, MousePositionListener {
                             layoutColumnCount, layoutRowCount, beginSubgridIndex,
                             subgridCount, hintCount);
             if (layout.oneOne) {
+                layoutFirstPartLengths.add(1);
                 return List.of(
                         keys.get(layout.first),
                         keys.get(layout.second)
                 );
             }
             else if (layout.threeOrFour) {
-                if (layout.oneTwo)
+                if (layout.oneTwo) {
+                    layoutFirstPartLengths.add(1);
                     return List.of(
                             keys.get(layout.first),
                             keys.get(layout.second / keyCount),
                             keys.get(layout.second % keyCount)
                     );
-                if (layout.twoOne)
+                }
+                if (layout.twoOne) {
+                    layoutFirstPartLengths.add(2);
                     return List.of(
                             keys.get(layout.first / keyCount),
                             keys.get(layout.first % keyCount),
                             keys.get(layout.second)
                     );
-                if (layout.twoTwo) // 6^4 = 1296 hints
+                }
+                if (layout.twoTwo) { // 6^4 = 1296 hints
+                    layoutFirstPartLengths.add(2);
                     return List.of(
                             keys.get(layout.first / keyCount),
                             keys.get(layout.first % keyCount),
                             keys.get(layout.second / keyCount),
                             keys.get(layout.second % keyCount)
                     );
+                }
             }
         }
         // Give up trying to have (column prefix)(row suffix).
@@ -474,6 +489,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
         int hintLength = Math.max(1, (int) Math.ceil(
                 Math.log(hintCount) / Math.log(keyCount)));
+        layoutFirstPartLengths.add(hintLength);
         List<Key> keySequence = new ArrayList<>();
         for (int i = 0; i < hintLength; i++) {
             keySequence.add(

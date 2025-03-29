@@ -640,7 +640,7 @@ public class WindowsOverlay {
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = 0;
         double maxHintCenterY = 0;
-        Map<Key, HintGroup> hintGroupByPrefix = new HashMap<>();
+        Map<List<Key>, HintGroup> hintGroupByLayoutFirstPart = new HashMap<>();
         for (Hint hint : hintMeshWindow.hints()) {
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
                 continue;
@@ -648,8 +648,11 @@ public class WindowsOverlay {
             minHintCenterY = Math.min(minHintCenterY, hint.centerY());
             maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
+            List<Key> layoutFirstPart = hintMesh.layoutFirstPartLength() == -1 ?
+                    hint.keySequence() : hint.keySequence().subList(0,
+                    hintMesh.layoutFirstPartLength());
             HintGroup hintGroup =
-                    hintGroupByPrefix.computeIfAbsent(hint.keySequence().getFirst(),
+                    hintGroupByLayoutFirstPart.computeIfAbsent(layoutFirstPart,
                             key -> new HintGroup());
             hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
@@ -742,7 +745,10 @@ public class WindowsOverlay {
                             hintKeyMaxXAdvance, metrics);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             int layoutBorderThickness = (int) Math.round(style.layoutBorderThickness());
-            HintGroup hintGroup = hintGroupByPrefix.get(hint.keySequence().getFirst());
+            List<Key> layoutFirstPart = hintMesh.layoutFirstPartLength() == -1 ?
+                    hint.keySequence() : hint.keySequence().subList(0,
+                    hintMesh.layoutFirstPartLength());
+            HintGroup hintGroup = hintGroupByLayoutFirstPart.get(layoutFirstPart);
             boolean groupLeftEdge = hint.centerX() == hintGroup.minHintCenterX;
             boolean groupTopEdge = hint.centerY() == hintGroup.minHintCenterY;
             boolean groupRightEdge = hint.centerX() == hintGroup.maxHintCenterX;

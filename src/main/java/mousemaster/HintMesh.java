@@ -5,7 +5,8 @@ import java.util.List;
 /**
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
-public record HintMesh(boolean visible, List<Hint> hints, List<Key> focusedKeySequence,
+public record HintMesh(boolean visible, List<Hint> hints, int layoutFirstPartLength,
+                       List<Key> focusedKeySequence,
                        ViewportFilterMap<HintMeshStyle> styleByFilter) {
 
     public HintMeshBuilder builder() {
@@ -15,6 +16,7 @@ public record HintMesh(boolean visible, List<Hint> hints, List<Key> focusedKeySe
     public static class HintMeshBuilder {
         private boolean visible;
         private List<Hint> hints;
+        private int layoutFirstPartLength;
         private List<Key> focusedKeySequence = List.of();
         private ViewportFilterMap<HintMeshStyle> styleByFilter;
 
@@ -24,6 +26,7 @@ public record HintMesh(boolean visible, List<Hint> hints, List<Key> focusedKeySe
         public HintMeshBuilder(HintMesh hintMesh) {
             this.visible = hintMesh.visible;
             this.hints = hintMesh.hints;
+            this.layoutFirstPartLength = hintMesh.layoutFirstPartLength;
             this.focusedKeySequence = hintMesh.focusedKeySequence;
             this.styleByFilter = hintMesh.styleByFilter;
         }
@@ -35,6 +38,10 @@ public record HintMesh(boolean visible, List<Hint> hints, List<Key> focusedKeySe
 
         public List<Hint> hints() {
             return hints;
+        }
+
+        public int layoutFirstPartLength() {
+            return layoutFirstPartLength;
         }
 
         public List<Key> focusedKeySequence() {
@@ -55,18 +62,25 @@ public record HintMesh(boolean visible, List<Hint> hints, List<Key> focusedKeySe
             return this;
         }
 
+        public HintMeshBuilder layoutFirstPartLength(int layoutFirstPartLength) {
+            this.layoutFirstPartLength = layoutFirstPartLength;
+            return this;
+        }
+
         public HintMeshBuilder focusedKeySequence(List<Key> focusedKeySequence) {
             this.focusedKeySequence = focusedKeySequence;
             return this;
         }
 
-        public HintMeshBuilder styleByFilter(ViewportFilterMap<HintMeshStyle> styleByFilter) {
+        public HintMeshBuilder styleByFilter(
+                ViewportFilterMap<HintMeshStyle> styleByFilter) {
             this.styleByFilter = styleByFilter;
             return this;
         }
 
         public HintMesh build() {
-            return new HintMesh(visible, hints, focusedKeySequence, styleByFilter);
+            return new HintMesh(visible, hints, layoutFirstPartLength, focusedKeySequence,
+                    styleByFilter);
         }
     }
 
