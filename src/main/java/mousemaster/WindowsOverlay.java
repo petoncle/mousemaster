@@ -982,17 +982,14 @@ public class WindowsOverlay {
             int groupThickness = borderThickness * 4;
             // Full thickness if grid edge.
             // Otherwise, half thickness: thickness/2 + thickness%2 for top and left, thickness/2 for bottom and right
-            int topLeftThickness = borderThickness / 2 + borderThickness % 2;
-            int bottomRightThickness = isHintPartOfGrid ? borderThickness / 2 : topLeftThickness;
+            int topLeftInsideThickness = borderThickness / 2 + borderThickness % 2;
+            int bottomRightInsideThickness = isHintPartOfGrid ? borderThickness / 2 : topLeftInsideThickness;
             QPen edgePen = createPen(borderColor, edgeThickness);
-            QPen groupPen = createPen(borderColor, groupThickness);
-            QPen topLeftPen = createPen(borderColor, topLeftThickness);
-            QPen bottomRightPen = createPen(borderColor, bottomRightThickness);
+            QPen topLeftInsidePen = createPen(borderColor, topLeftInsideThickness);
+            QPen bottomRightInsidePen = createPen(borderColor, bottomRightInsideThickness);
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
             int edgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
-            int groupAndEdgePenOffset = groupThickness / 2;
-            int groupNotEdgePenOffset = groupThickness / 4;
             int gridTopEdgeExtraVertical = gridTopEdge ? edgeThickness/2 : 0;
             int gridBottomEdgeExtraVertical = gridBottomEdge ? edgeThickness/2 : 0;
             int gridLeftEdgeExtraHorizontal = gridLeftEdge ? edgeThickness/2 : 0;
@@ -1003,7 +1000,7 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridLeftEdge && !gridTopEdge),
                     gridLeftEdge,
                     edgePen,
-                    topLeftPen,
+                    topLeftInsidePen,
                     left,
                     edgePenOffset,
                     insidePenOffset,
@@ -1015,7 +1012,7 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge),
                     gridTopEdge,
                     edgePen,
-                    topLeftPen,
+                    topLeftInsidePen,
                     top,
                     edgePenOffset,
                     insidePenOffset,
@@ -1028,10 +1025,10 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridRightEdge && !gridTopEdge),
                     gridRightEdge,
                     edgePen,
-                    bottomRightPen,
+                    bottomRightInsidePen,
                     right,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
                     top,
                     top + gridTopEdgeExtraVertical + borderLength / 2
             );
@@ -1041,7 +1038,7 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge),
                     gridTopEdge,
                     edgePen,
-                    topLeftPen,
+                    topLeftInsidePen,
                     top,
                     edgePenOffset,
                     insidePenOffset,
@@ -1054,7 +1051,7 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge),
                     gridLeftEdge,
                     edgePen,
-                    topLeftPen,
+                    topLeftInsidePen,
                     left,
                     edgePenOffset,
                     insidePenOffset,
@@ -1066,10 +1063,10 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridBottomEdge && !gridLeftEdge),
                     gridBottomEdge,
                     edgePen,
-                    bottomRightPen,
+                    bottomRightInsidePen,
                     bottom,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
                     left,
                     left + gridLeftEdgeExtraHorizontal + borderLength / 2
             );
@@ -1079,10 +1076,10 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridRightEdge && !gridBottomEdge),
                     gridRightEdge,
                     edgePen,
-                    bottomRightPen,
+                    bottomRightInsidePen,
                     right,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
                     bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
                     bottom + 1
             );
@@ -1091,15 +1088,15 @@ public class WindowsOverlay {
                     drawGridEdgeBorders || (!gridBottomEdge && !gridRightEdge),
                     gridBottomEdge,
                     edgePen,
-                    bottomRightPen,
+                    bottomRightInsidePen,
                     bottom,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
                     right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
                     right + 1
             );
-            topLeftPen.dispose();
-            bottomRightPen.dispose();
+            topLeftInsidePen.dispose();
+            bottomRightInsidePen.dispose();
         }
 
         private void drawVerticalGridLine(
