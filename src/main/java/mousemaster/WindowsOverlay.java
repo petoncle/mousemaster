@@ -622,6 +622,15 @@ public class WindowsOverlay {
         return animation;
     }
 
+    private static class HintGroup {
+
+        double minHintCenterX = Double.MAX_VALUE;
+        double minHintCenterY = Double.MAX_VALUE;
+        double maxHintCenterX = 0;
+        double maxHintCenterY = 0;
+
+    }
+
     private static void setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
                                                   double screenScale, HintMeshStyle style,
                                                   double qtScaleFactor,
@@ -631,6 +640,7 @@ public class WindowsOverlay {
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = 0;
         double maxHintCenterY = 0;
+        Map<Key, HintGroup> hintGroupByPrefix = new HashMap<>();
         for (Hint hint : hintMeshWindow.hints()) {
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
                 continue;
@@ -638,6 +648,13 @@ public class WindowsOverlay {
             minHintCenterY = Math.min(minHintCenterY, hint.centerY());
             maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
+            HintGroup hintGroup =
+                    hintGroupByPrefix.computeIfAbsent(hint.keySequence().getFirst(),
+                            key -> new HintGroup());
+            hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
+            hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
+            hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
+            hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
         }
         List<Hint> hints = hintMeshWindow.hints;
         int minHintLeft = Integer.MAX_VALUE;
@@ -677,10 +694,6 @@ public class WindowsOverlay {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
                 continue;
-            boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
-            boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
             int totalXAdvance = metrics.horizontalAdvance(hint.keySequence()
                                                               .stream()
                                                               .map(Key::hintLabel)
@@ -728,15 +741,25 @@ public class WindowsOverlay {
                             style.fontSpacingPercent(),
                             hintKeyMaxXAdvance, metrics);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
+            HintGroup hintGroup = hintGroupByPrefix.get(hint.keySequence().getFirst());
+            boolean groupLeftEdge = hint.centerX() == hintGroup.minHintCenterX;
+            boolean groupTopEdge = hint.centerY() == hintGroup.minHintCenterY;
+            boolean groupRightEdge = hint.centerX() == hintGroup.maxHintCenterX;
+            boolean groupBottomEdge = hint.centerY() == hintGroup.maxHintCenterY;
+            boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
+            boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
             HintBox hintBox =
                     new HintBox((int) Math.round(style.boxBorderLength()),
                             boxBorderThickness,
                             boxColor,
                             boxBorderColor,
                             isHintPartOfGrid,
-                            gridLeftEdge, gridTopEdge,
-                            gridRightEdge, gridBottomEdge,
-                            true, qtScaleFactor
+                            gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
+                            true,
+                            groupLeftEdge, groupTopEdge, groupRightEdge, groupBottomEdge,
+                            qtScaleFactor
                     );
             HintBox[][] subgridBoxes = addSubgridBoxes(hintBox, qtScaleFactor,
                     subgridBoxColor,
@@ -841,10 +864,10 @@ public class WindowsOverlay {
                         subgridBoxColor, // Transparent.
                         subgridBoxBorderColor,
                         true,
-                        gridLeftEdge,
-                        gridTopEdge,
-                        gridRightEdge, gridBottomEdge,
-                        false, qtScaleFactor
+                        gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
+                        false,
+                        false, false, false, false,
+                        qtScaleFactor
                 );
                 subBox.setParent(hintBox);
                 hintBoxes[subgridRowIndex][subgridColumnIndex] = subBox;
@@ -890,6 +913,10 @@ public class WindowsOverlay {
         private final boolean gridRightEdge;
         private final boolean gridBottomEdge;
         private final boolean drawGridEdgeBorders;
+        private final boolean groupLeftEdge;
+        private final boolean groupTopEdge;
+        private final boolean groupRightEdge;
+        private final boolean groupBottomEdge;
         private final double qtScaleFactor;
         private final int borderLength;
         private final int borderThickness;
@@ -902,6 +929,7 @@ public class WindowsOverlay {
                        boolean isHintPartOfGrid,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        boolean drawGridEdgeBorders,
+                       boolean groupLeftEdge, boolean groupTopEdge, boolean groupRightEdge, boolean groupBottomEdge,
                        double qtScaleFactor) {
             this.isHintPartOfGrid = isHintPartOfGrid;
             this.gridLeftEdge = gridLeftEdge;
@@ -909,6 +937,10 @@ public class WindowsOverlay {
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.drawGridEdgeBorders = drawGridEdgeBorders;
+            this.groupLeftEdge = groupLeftEdge;
+            this.groupTopEdge = groupTopEdge;
+            this.groupRightEdge = groupRightEdge;
+            this.groupBottomEdge = groupBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
             this.borderLength = borderLength;
             this.borderThickness = borderThickness;
@@ -946,107 +978,94 @@ public class WindowsOverlay {
             int bottom = height() - 1;
             int left = 0;
             int right = width() - 1;
+            int edgeThickness = borderThickness;
+            int groupThickness = borderThickness * 4;
             // Full thickness if grid edge.
             // Otherwise, half thickness: thickness/2 + thickness%2 for top and left, thickness/2 for bottom and right
             int verticalLeftThickness = borderThickness / 2 + borderThickness % 2;
             int verticalRightThickness = isHintPartOfGrid ? borderThickness / 2 : verticalLeftThickness;
             int horizontalTopThickness = verticalLeftThickness;
             int horizontalBottomThickness = verticalRightThickness;
-            QPen gridEdgePen = createPen(borderColor, borderThickness);
+            QPen edgePen = createPen(borderColor, edgeThickness);
+            QPen groupPen = createPen(borderColor, groupThickness);
             QPen verticalLeftPen = createPen(borderColor, verticalLeftThickness);
             QPen verticalRightPen = createPen(borderColor, verticalRightThickness);
             QPen horizontalTopPen = verticalLeftPen;
             QPen horizontalBottomPen = verticalRightPen;
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
-            int penOffset = borderThickness / 2;
+            int edgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
-            int gridTopEdgeExtraVertical = gridTopEdge ? borderThickness/2 : 0;
-            int gridBottomEdgeExtraVertical = gridBottomEdge ? borderThickness/2 : 0;
-            int gridLeftEdgeExtraHorizontal = gridLeftEdge ? borderThickness/2 : 0;
-            int gridRightEdgeExtraHorizontal = gridRightEdge ? borderThickness/2 : 0;
+            int groupAndEdgePenOffset = groupThickness / 2;
+            int groupNotEdgePenOffset = groupThickness / 4;
+            int gridTopEdgeExtraVertical = gridTopEdge ? edgeThickness/2 : 0;
+            int gridBottomEdgeExtraVertical = gridBottomEdge ? edgeThickness/2 : 0;
+            int gridLeftEdgeExtraHorizontal = gridLeftEdge ? edgeThickness/2 : 0;
+            int gridRightEdgeExtraHorizontal = gridRightEdge ? edgeThickness/2 : 0;
             // Top left corner.
-            if (gridLeftEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(left + penOffset, top, left + penOffset, top + gridTopEdgeExtraVertical + borderLength / 2); // Vertical line
+            // Vertical line.
+            if (drawGridEdgeBorders || !gridLeftEdge && !gridTopEdge) {
+                painter.setPen(gridLeftEdge ? edgePen : verticalLeftPen);
+                int x = left + (gridLeftEdge ? edgePenOffset : insidePenOffset);
+                painter.drawLine(x, top, x, top + gridTopEdgeExtraVertical + borderLength / 2);
             }
-            else {
-                painter.setPen(verticalLeftPen);
-                if (drawGridEdgeBorders || !gridTopEdge)
-                    painter.drawLine(left + insidePenOffset, top, left + insidePenOffset, top + gridTopEdgeExtraVertical + borderLength/2); // Vertical line
-            }
-            if (gridTopEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(left, top + penOffset, left + gridLeftEdgeExtraHorizontal + borderLength/2, top + penOffset); // Horizontal line
-            }
-            else {
-                painter.setPen(horizontalTopPen);
-                if (drawGridEdgeBorders || !gridLeftEdge)
-                    painter.drawLine(left, top + insidePenOffset, left + gridLeftEdgeExtraHorizontal + borderLength/2, top + insidePenOffset); // Horizontal line
+            // Horizontal line.
+            if (drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge)) {
+                painter.setPen(gridTopEdge ? edgePen : horizontalTopPen);
+                int x = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
+                int y = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
+                painter.drawLine(left, y, x, y);
             }
             // Top right corner.
-            if (gridRightEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(right + penOffset - (borderThickness - 1), top, right + penOffset - (borderThickness - 1), top + gridTopEdgeExtraVertical + borderLength/2); // Vertical line
+            // Vertical line.
+            if (drawGridEdgeBorders || (!gridRightEdge && !gridTopEdge)) {
+                painter.setPen(gridRightEdge ? edgePen : verticalRightPen);
+                int x = right + (gridRightEdge ? edgePenOffset - (edgeThickness - 1)
+                        : insidePenOffset - (verticalRightThickness - 1));
+                painter.drawLine(x, top, x, top + gridTopEdgeExtraVertical + borderLength / 2);
             }
-            else {
-                painter.setPen(verticalRightPen);
-                if (drawGridEdgeBorders || !gridTopEdge)
-                    painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), top, right + insidePenOffset - (verticalRightThickness - 1), top + gridTopEdgeExtraVertical + borderLength/2); // Vertical line
-            }
-            if (gridTopEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, top + penOffset, right + 1, top + penOffset); // Horizontal line
-            }
-            else {
-                painter.setPen(horizontalTopPen);
-                if (drawGridEdgeBorders || !gridRightEdge)
-                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, top + insidePenOffset, right + 1, top + insidePenOffset); // Horizontal line
+            // Horizontal line.
+            if (drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge)) {
+                painter.setPen(gridTopEdge ? edgePen : horizontalTopPen);
+                int x1 = right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2;
+                int x2 = right + 1;
+                int y = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
+                painter.drawLine(x1, y, x2, y);
             }
             // Bottom left corner.
-            if (gridLeftEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(left + penOffset, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, left + penOffset, bottom + 1); // Vertical line
+            // Vertical line.
+            if (drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge)) {
+                painter.setPen(gridLeftEdge ? edgePen : verticalLeftPen);
+                int x = left + (gridLeftEdge ? edgePenOffset : insidePenOffset);
+                int y1 = bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2;
+                int y2 = bottom + 1;
+                painter.drawLine(x, y1, x, y2);
             }
-            else {
-                painter.setPen(verticalLeftPen);
-                if (drawGridEdgeBorders || !gridBottomEdge)
-                    painter.drawLine(left + insidePenOffset, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, left + insidePenOffset, bottom + 1); // Vertical line
-            }
-            if (gridBottomEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(left, bottom + penOffset - (borderThickness - 1), left + gridLeftEdgeExtraHorizontal + borderLength/2, bottom + penOffset - (borderThickness - 1)); // Horizontal line
-            }
-            else {
-                painter.setPen(horizontalBottomPen);
-                if (drawGridEdgeBorders || !gridLeftEdge)
-                    painter.drawLine(left, bottom + insidePenOffset - (horizontalBottomThickness - 1), left + gridLeftEdgeExtraHorizontal + borderLength/2, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+            // Horizontal line.
+            if (drawGridEdgeBorders || (!gridBottomEdge && !gridLeftEdge)) {
+                painter.setPen(gridBottomEdge ? edgePen : horizontalBottomPen);
+                int x = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
+                int y = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
+                        : insidePenOffset - (horizontalBottomThickness - 1));
+                painter.drawLine(left, y, x, y);
             }
             // Bottom right corner.
-            if (gridRightEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(right + penOffset - (borderThickness - 1), bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, right + penOffset - (borderThickness - 1), bottom + 1); // Vertical line
+            // Vertical line.
+            if (drawGridEdgeBorders || (!gridRightEdge && !gridBottomEdge)) {
+                painter.setPen(gridRightEdge ? edgePen : verticalRightPen);
+                int x = right + (gridRightEdge ? edgePenOffset - (edgeThickness - 1)
+                        : insidePenOffset - (verticalRightThickness - 1));
+                int y1 = bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2;
+                int y2 = bottom + 1;
+                painter.drawLine(x, y1, x, y2);
             }
-            else {
-                painter.setPen(verticalRightPen);
-                if (drawGridEdgeBorders || !gridBottomEdge)
-                    painter.drawLine(right + insidePenOffset - (verticalRightThickness - 1), bottom - (gridBottomEdgeExtraVertical - 1) - borderLength/2, right + insidePenOffset - (verticalRightThickness - 1), bottom + 1); // Vertical line
-            }
-            if (gridBottomEdge) {
-                painter.setPen(gridEdgePen);
-                if (drawGridEdgeBorders)
-                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, bottom + penOffset - (borderThickness - 1), right + 1, bottom + penOffset - (borderThickness - 1)); // Horizontal line
-            }
-            else {
-                painter.setPen(horizontalBottomPen);
-                if (drawGridEdgeBorders || !gridRightEdge)
-                    painter.drawLine(right - (gridRightEdgeExtraHorizontal - 1) - borderLength/2, bottom + insidePenOffset - (horizontalBottomThickness - 1), right + 1, bottom + insidePenOffset - (horizontalBottomThickness - 1)); // Horizontal line
+            // Horizontal line.
+            if (drawGridEdgeBorders || (!gridBottomEdge && !gridRightEdge)) {
+                painter.setPen(gridBottomEdge ? edgePen : horizontalBottomPen);
+                int x1 = right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2;
+                int x2 = right + 1;
+                int y = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
+                        : insidePenOffset - (horizontalBottomThickness - 1));
+                painter.drawLine(x1, y, x2, y);
             }
             verticalLeftPen.dispose();
             verticalRightPen.dispose();
@@ -1059,6 +1078,34 @@ public class WindowsOverlay {
             pen.setWidth(penWidth);
             return pen;
         }
+
+        private void drawEdgeLine(
+                QPainter painter,
+                boolean isEdge,
+                boolean shouldDraw,
+                QPen edgePen,
+                QPen insidePen,
+                boolean isVertical,
+                int x, int y,
+                int edgeOffset,
+                int insideOffset,
+                int extraOffset,
+                int length
+        ) {
+            if (!shouldDraw)
+                return;
+            painter.setPen(isEdge ? edgePen : insidePen);
+            int offset = isEdge ? edgeOffset : insideOffset;
+
+            if (isVertical) {
+                int xPos = x + offset;
+                painter.drawLine(xPos, y, xPos, y + extraOffset + length / 2);
+            } else {
+                int yPos = y + offset;
+                painter.drawLine(x, yPos, x + extraOffset + length / 2, yPos);
+            }
+        }
+
     }
 
     private static QColor qColor(String hexColor, double opacity) {
