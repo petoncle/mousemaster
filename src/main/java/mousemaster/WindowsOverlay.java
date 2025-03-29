@@ -1064,7 +1064,7 @@ public class WindowsOverlay {
                     leftEdgePenOffset,
                     leftInsidePenOffset,
                     top,
-                    top + gridTopEdgeExtraVertical + borderLength / 2
+                    Math.min(bottom - layoutThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
             );
             // Horizontal line.
             drawHorizontalGridLine(painter,
@@ -1075,8 +1075,8 @@ public class WindowsOverlay {
                     top,
                     topEdgePenOffset,
                     topInsidePenOffset,
-                    left,
-                    left + gridLeftEdgeExtraHorizontal + borderLength / 2
+                    !groupTopEdge && groupLeftEdge ? (left + layoutThickness / (gridLeftEdge ? 1 : 2)) : left,
+                    Math.min(right - layoutThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
             );
             // Top right corner.
             // Vertical line.
@@ -1089,7 +1089,7 @@ public class WindowsOverlay {
                     rightEdgePenOffset - (rightEdgeThickness - 1),
                     rightInsidePenOffset - (rightInsideThickness - 1),
                     top,
-                    top + gridTopEdgeExtraVertical + borderLength / 2
+                    Math.min(bottom - layoutThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
             );
 
             // Horizontal line.
@@ -1101,8 +1101,8 @@ public class WindowsOverlay {
                     top,
                     topEdgePenOffset,
                     topInsidePenOffset,
-                    right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
-                    right + 1
+                    Math.max(left + layoutThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2),
+                    right + 1 - (!groupTopEdge && groupRightEdge ? (layoutThickness / (gridRightEdge ? 1 : 2)) : 0)
             );
             // Bottom left corner.
             // Vertical line.
@@ -1114,7 +1114,7 @@ public class WindowsOverlay {
                     left,
                     leftEdgePenOffset,
                     leftInsidePenOffset,
-                    bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
+                    Math.max(top + layoutThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2),
                     bottom + 1
             );
             // Horizontal line.
@@ -1126,8 +1126,8 @@ public class WindowsOverlay {
                     bottom,
                     bottomEdgePenOffset - (bottomEdgeThickness - 1),
                     bottomInsidePenOffset - (bottomInsideThickness - 1),
-                    left,
-                    left + gridLeftEdgeExtraHorizontal + borderLength / 2
+                    !groupBottomEdge && groupLeftEdge ? (left + layoutThickness / (gridLeftEdge ? 1 : 2)) : left,
+                    Math.min(right - layoutThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
             );
             // Bottom right corner.
             // Vertical line.
@@ -1139,7 +1139,7 @@ public class WindowsOverlay {
                     right,
                     rightEdgePenOffset - (rightEdgeThickness - 1),
                     rightInsidePenOffset - (rightInsideThickness - 1),
-                    bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
+                    Math.max(top + layoutThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2),
                     bottom + 1
             );
             // Horizontal line.
@@ -1151,8 +1151,8 @@ public class WindowsOverlay {
                     bottom,
                     bottomEdgePenOffset - (bottomEdgeThickness - 1),
                     bottomInsidePenOffset - (bottomInsideThickness - 1),
-                    right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
-                    right + 1
+                    Math.max(left + layoutThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2),
+                    right + 1 - (!groupBottomEdge && groupRightEdge ? (layoutThickness / (gridRightEdge ? 1 : 2)) : 0)
             );
             topEdgePen.dispose();
             leftEdgePen.dispose();
