@@ -980,7 +980,7 @@ public class WindowsOverlay {
             int right = width() - 1;
             int edgeThickness = borderThickness;
             // groupThickness is the thickness of the borders of a hint box group.
-            int groupThickness = borderThickness * 2;
+            int groupThickness = borderThickness * 4;
             int topEdgeThickness = edgeThickness;
             int leftEdgeThickness = edgeThickness;
             int bottomEdgeThickness = edgeThickness;
@@ -1076,7 +1076,7 @@ public class WindowsOverlay {
                     rightInsidePen,
                     right,
                     rightEdgePenOffset - (rightEdgeThickness - 1),
-                    rightInsidePenOffset - (bottomRightInsideThickness - 1),
+                    rightInsidePenOffset - (rightInsideThickness - 1),
                     top,
                     top + gridTopEdgeExtraVertical + borderLength / 2
             );
@@ -1114,7 +1114,7 @@ public class WindowsOverlay {
                     bottomInsidePen,
                     bottom,
                     bottomEdgePenOffset - (bottomEdgeThickness - 1),
-                    bottomInsidePenOffset - (bottomRightInsideThickness - 1),
+                    bottomInsidePenOffset - (bottomInsideThickness - 1),
                     left,
                     left + gridLeftEdgeExtraHorizontal + borderLength / 2
             );
@@ -1127,7 +1127,7 @@ public class WindowsOverlay {
                     rightInsidePen,
                     right,
                     rightEdgePenOffset - (rightEdgeThickness - 1),
-                    rightInsidePenOffset - (bottomRightInsideThickness - 1),
+                    rightInsidePenOffset - (rightInsideThickness - 1),
                     bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
                     bottom + 1
             );
@@ -1139,7 +1139,7 @@ public class WindowsOverlay {
                     bottomInsidePen,
                     bottom,
                     bottomEdgePenOffset - (bottomEdgeThickness - 1),
-                    bottomInsidePenOffset - (bottomRightInsideThickness - 1),
+                    bottomInsidePenOffset - (bottomInsideThickness - 1),
                     right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
                     right + 1
             );
