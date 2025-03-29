@@ -1003,81 +1003,143 @@ public class WindowsOverlay {
             int gridRightEdgeExtraHorizontal = gridRightEdge ? edgeThickness/2 : 0;
             // Top left corner.
             // Vertical line.
-            if (drawGridEdgeBorders || (!gridLeftEdge && !gridTopEdge)) {
-                painter.setPen(gridLeftEdge ? edgePen : verticalLeftPen);
-                int x = left + (gridLeftEdge ? edgePenOffset : insidePenOffset);
-                int y1 = top;
-                int y2 = top + gridTopEdgeExtraVertical + borderLength / 2;
-                painter.drawLine(x, y1, x, y2);
-            }
+            drawVerticalGridLine(painter,
+                    drawGridEdgeBorders || (!gridLeftEdge && !gridTopEdge),
+                    gridLeftEdge,
+                    edgePen,
+                    verticalLeftPen,
+                    left,
+                    edgePenOffset,
+                    insidePenOffset,
+                    top,
+                    top + gridTopEdgeExtraVertical + borderLength / 2
+            );
             // Horizontal line.
-            if (drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge)) {
-                painter.setPen(gridTopEdge ? edgePen : horizontalTopPen);
-                int x1 = left;
-                int x2 = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
-                int y  = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
-                painter.drawLine(x1, y, x2, y);
-            }
-
+            drawHorizontalGridLine(painter,
+                    drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge),
+                    gridTopEdge,
+                    edgePen,
+                    horizontalTopPen,
+                    top,
+                    edgePenOffset,
+                    insidePenOffset,
+                    left,
+                    left + gridLeftEdgeExtraHorizontal + borderLength / 2
+            );
             // Top right corner.
             // Vertical line.
-            if (drawGridEdgeBorders || (!gridRightEdge && !gridTopEdge)) {
-                painter.setPen(gridRightEdge ? edgePen : verticalRightPen);
-                int x = right + (gridRightEdge ? edgePenOffset - (edgeThickness - 1)
-                        : insidePenOffset - (verticalRightThickness - 1));
-                int y1 = top;
-                int y2 = top + gridTopEdgeExtraVertical + borderLength / 2;
-                painter.drawLine(x, y1, x, y2);
-            }
-            // Horizontal line.
-            if (drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge)) {
-                painter.setPen(gridTopEdge ? edgePen : horizontalTopPen);
-                int x1 = right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2;
-                int x2 = right + 1;
-                int y  = top + (gridTopEdge ? edgePenOffset : insidePenOffset);
-                painter.drawLine(x1, y, x2, y);
-            }
+            drawVerticalGridLine(painter,
+                    drawGridEdgeBorders || (!gridRightEdge && !gridTopEdge),
+                    gridRightEdge,
+                    edgePen,
+                    verticalRightPen,
+                    right,
+                    edgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (verticalRightThickness - 1),
+                    top,
+                    top + gridTopEdgeExtraVertical + borderLength / 2
+            );
 
+            // Horizontal line.
+            drawHorizontalGridLine(painter,
+                    drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge),
+                    gridTopEdge,
+                    edgePen,
+                    horizontalTopPen,
+                    top,
+                    edgePenOffset,
+                    insidePenOffset,
+                    right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
+                    right + 1
+            );
             // Bottom left corner.
             // Vertical line.
-            if (drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge)) {
-                painter.setPen(gridLeftEdge ? edgePen : verticalLeftPen);
-                int x  = left + (gridLeftEdge ? edgePenOffset : insidePenOffset);
-                int y1 = bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2;
-                int y2 = bottom + 1;
-                painter.drawLine(x, y1, x, y2);
-            }
+            drawVerticalGridLine(painter,
+                    drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge),
+                    gridLeftEdge,
+                    edgePen,
+                    verticalLeftPen,
+                    left,
+                    edgePenOffset,
+                    insidePenOffset,
+                    bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
+                    bottom + 1
+            );
             // Horizontal line.
-            if (drawGridEdgeBorders || (!gridBottomEdge && !gridLeftEdge)) {
-                painter.setPen(gridBottomEdge ? edgePen : horizontalBottomPen);
-                int x1 = left;
-                int x2 = left + gridLeftEdgeExtraHorizontal + borderLength / 2;
-                int y  = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
-                        : insidePenOffset - (horizontalBottomThickness - 1));
-                painter.drawLine(x1, y, x2, y);
-            }
-
+            drawHorizontalGridLine(painter,
+                    drawGridEdgeBorders || (!gridBottomEdge && !gridLeftEdge),
+                    gridBottomEdge,
+                    edgePen,
+                    horizontalBottomPen,
+                    bottom,
+                    edgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (horizontalBottomThickness - 1),
+                    left,
+                    left + gridLeftEdgeExtraHorizontal + borderLength / 2
+            );
             // Bottom right corner.
             // Vertical line.
-            if (drawGridEdgeBorders || (!gridRightEdge && !gridBottomEdge)) {
-                painter.setPen(gridRightEdge ? edgePen : verticalRightPen);
-                int x  = right + (gridRightEdge ? edgePenOffset - (edgeThickness - 1)
-                        : insidePenOffset - (verticalRightThickness - 1));
-                int y1 = bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2;
-                int y2 = bottom + 1;
-                painter.drawLine(x, y1, x, y2);
-            }
+            drawVerticalGridLine(painter,
+                    drawGridEdgeBorders || (!gridRightEdge && !gridBottomEdge),
+                    gridRightEdge,
+                    edgePen,
+                    verticalRightPen,
+                    right,
+                    edgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (verticalRightThickness - 1),
+                    bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
+                    bottom + 1
+            );
             // Horizontal line.
-            if (drawGridEdgeBorders || (!gridBottomEdge && !gridRightEdge)) {
-                painter.setPen(gridBottomEdge ? edgePen : horizontalBottomPen);
-                int x1 = right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2;
-                int x2 = right + 1;
-                int y  = bottom + (gridBottomEdge ? edgePenOffset - (edgeThickness - 1)
-                        : insidePenOffset - (horizontalBottomThickness - 1));
-                painter.drawLine(x1, y, x2, y);
-            }
+            drawHorizontalGridLine(painter,
+                    drawGridEdgeBorders || (!gridBottomEdge && !gridRightEdge),
+                    gridBottomEdge,
+                    edgePen,
+                    horizontalBottomPen,
+                    bottom,
+                    edgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (horizontalBottomThickness - 1),
+                    right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
+                    right + 1
+            );
             verticalLeftPen.dispose();
             verticalRightPen.dispose();
+        }
+
+        private void drawVerticalGridLine(
+                QPainter painter,
+                boolean condition,
+                boolean isEdge,
+                QPen edgePen,
+                QPen insidePen,
+                int xBase,
+                int edgeOffset,
+                int insideOffset,
+                int y1,
+                int y2
+        ) {
+            if (!condition) return;
+            painter.setPen(isEdge ? edgePen : insidePen);
+            int x = xBase + (isEdge ? edgeOffset : insideOffset);
+            painter.drawLine(x, y1, x, y2);
+        }
+
+        private void drawHorizontalGridLine(
+                QPainter painter,
+                boolean condition,
+                boolean isEdge,
+                QPen edgePen,
+                QPen insidePen,
+                int yBase,
+                int edgeOffset,
+                int insideOffset,
+                int x1,
+                int x2
+        ) {
+            if (!condition) return;
+            painter.setPen(isEdge ? edgePen : insidePen);
+            int y = yBase + (isEdge ? edgeOffset : insideOffset);
+            painter.drawLine(x1, y, x2, y);
         }
 
         private QPen createPen(QColor color, int penWidth) {
