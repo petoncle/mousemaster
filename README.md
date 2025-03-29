@@ -15,11 +15,11 @@
 # Demo
 
 ## Hints Demo
-https://github.com/user-attachments/assets/2c0765eb-5fa2-4604-a868-df7e9f25e32a
+https://github.com/user-attachments/assets/666c3513-9929-4640-8695-3876feb3a567
 
 ## Hint Styling Showcase
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/3d39d518-d0ff-4444-8dd6-d82896e47fe4" style="width: 100%; height: 100%;" />
+  <img src="https://github.com/user-attachments/assets/6b2fb130-3213-4338-bda5-0c7c4969a433" style="width: 100%; height: 100%;" />
 </p>
 
 
