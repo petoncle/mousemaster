@@ -683,7 +683,7 @@ public class WindowsOverlay {
         }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
         QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
-        QColor prefixColor = qColor(style.prefixFontHexColor(), style.fontOpacity());
+        QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontOpacity());
         QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
         QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
@@ -733,7 +733,7 @@ public class WindowsOverlay {
                     new HintLabel(hint, font, xAdvancesByString, fullBoxWidth,
                             fullBoxHeight, totalXAdvance,
                             fontColor,
-                            prefixColor,
+                            focusedColor,
                             outlineColor,
                             (int) Math.round(style.fontOutlineThickness() * screenScale),
                             shadowColor,
@@ -1250,7 +1250,7 @@ public class WindowsOverlay {
     public static class HintLabel extends QLabel {
 
         private final QColor fontColor;
-        private final QColor prefixColor;
+        private final QColor focusedColor;
         private final QColor outlineColor;
         private final int outlineThickness;
         private final List<HintKeyText> keyTexts;
@@ -1263,7 +1263,7 @@ public class WindowsOverlay {
 
         public HintLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
-                         int boxHeight, int totalXAdvance, QColor fontColor, QColor prefixColor,
+                         int boxHeight, int totalXAdvance, QColor fontColor, QColor focusedColor,
                          QColor outlineColor,
                          int outlineThickness, QColor shadowColor, double shadowBlurRadius,
                          double shadowHorizontalOffset, double shadowVerticalOffset, List<Key> focusedKeySequence, double fontSpacingPercent,
@@ -1273,7 +1273,7 @@ public class WindowsOverlay {
                       .map(Key::hintLabel)
                       .collect(Collectors.joining()));
             this.fontColor = fontColor;
-            this.prefixColor = prefixColor;
+            this.focusedColor = focusedColor;
             this.outlineColor = outlineColor;
             this.outlineThickness = outlineThickness;
             setFont(font);
@@ -1377,14 +1377,14 @@ public class WindowsOverlay {
             // Avoid blending the text with the outline. Text should override the outline.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
-                painter.setPen(keyText.isPrefix() ? prefixColor : fontColor);
+                painter.setPen(keyText.isFocused() ? focusedColor : fontColor);
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.end();
         }
     }
 
-    private record HintKeyText(String text, int x, int y, int width, boolean isPrefix) {
+    private record HintKeyText(String text, int x, int y, int width, boolean isFocused) {
 
     }
 

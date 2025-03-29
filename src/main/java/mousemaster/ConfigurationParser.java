@@ -93,7 +93,7 @@ public class ConfigurationParser {
                 .fontShadowOpacity(0.4d)
                 .fontShadowHorizontalOffset(2d)
                 .fontShadowVerticalOffset(2d)
-                .prefixFontHexColor("#CCCCCC")
+                .focusedFontHexColor("#CCCCCC")
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
                 .boxBorderThickness(1d)
@@ -666,8 +666,8 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, -100, 100));
                         case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontShadowVerticalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-font-color" ->
-                                mode.hintMesh.builder.style(viewportFilter).prefixFontHexColor(
+                        case "focused-font-color" ->
+                                mode.hintMesh.builder.style(viewportFilter).focusedFontHexColor(
                                         checkColorFormat(propertyValue));
                         case "box-color" -> mode.hintMesh.builder.style(viewportFilter).boxHexColor(
                                 checkColorFormat(propertyValue));
@@ -1920,10 +1920,10 @@ public class ConfigurationParser {
                             childStyle.fontShadowVerticalOffset(
                                     parentStyle.fontShadowVerticalOffset());
                         if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::prefixFontHexColor,
+                                HintMeshStyleBuilder::focusedFontHexColor,
                                 childStyleByFilter, filter))
-                            childStyle.prefixFontHexColor(
-                                    parentStyle.prefixFontHexColor());
+                            childStyle.focusedFontHexColor(
+                                    parentStyle.focusedFontHexColor());
                         if (!childDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
                                 filter))
