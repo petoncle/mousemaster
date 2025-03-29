@@ -100,6 +100,10 @@ public class ConfigurationParser {
                 .boxBorderLength(10_000d)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
+                .layoutBorderThickness(1d)
+                .layoutBorderLength(10_000d)
+                .layoutBorderHexColor("#FFFFFF")
+                .layoutBorderOpacity(0.8d)
                 .boxWidthPercent(1d)
                 .boxHeightPercent(1d)
                 .subgridRowCount(1)
@@ -679,6 +683,14 @@ public class ConfigurationParser {
                         case "box-border-color" -> mode.hintMesh.builder.style(viewportFilter).boxBorderHexColor(
                                 checkColorFormat(propertyValue));
                         case "box-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxBorderOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "layout-border-thickness" -> mode.hintMesh.builder.style(viewportFilter).layoutBorderThickness(
+                                parseDouble(propertyValue, true, 0, 10_000));
+                        case "layout-border-length" -> mode.hintMesh.builder.style(viewportFilter).layoutBorderLength(
+                                parseDouble(propertyValue, true, 0, 10_000));
+                        case "layout-border-color" -> mode.hintMesh.builder.style(viewportFilter).layoutBorderHexColor(
+                                checkColorFormat(propertyValue));
+                        case "layout-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).layoutBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
                         case "box-width-percent" -> mode.hintMesh.builder.style(viewportFilter).boxWidthPercent(
                                 parseDouble(propertyValue, true, 0, 1));
@@ -1937,6 +1949,23 @@ public class ConfigurationParser {
                                 HintMeshStyleBuilder::boxBorderOpacity,
                                 childStyleByFilter, filter))
                             childStyle.boxBorderOpacity(parentStyle.boxBorderOpacity());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::layoutBorderThickness,
+                                childStyleByFilter, filter))
+                            childStyle.layoutBorderThickness(
+                                    parentStyle.layoutBorderThickness());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::layoutBorderLength, childStyleByFilter,
+                                filter))
+                            childStyle.layoutBorderLength(parentStyle.layoutBorderLength());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::layoutBorderHexColor,
+                                childStyleByFilter, filter))
+                            childStyle.layoutBorderHexColor(parentStyle.layoutBorderHexColor());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::layoutBorderOpacity,
+                                childStyleByFilter, filter))
+                            childStyle.layoutBorderOpacity(parentStyle.layoutBorderOpacity());
                         if (!childDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::boxWidthPercent, childStyleByFilter,
                                 filter))

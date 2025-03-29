@@ -684,8 +684,8 @@ public class WindowsOverlay {
         QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
         QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
-        QColor boxBorderColor = qColor(style.boxBorderHexColor(),
-                style.boxBorderOpacity());
+        QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
+        QColor layoutBorderColor = qColor(style.layoutBorderHexColor(), style.layoutBorderOpacity());
         QColor subgridBoxColor = qColor("#000000", 0);
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
@@ -741,6 +741,7 @@ public class WindowsOverlay {
                             style.fontSpacingPercent(),
                             hintKeyMaxXAdvance, metrics);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
+            int layoutBorderThickness = (int) Math.round(style.layoutBorderThickness());
             HintGroup hintGroup = hintGroupByPrefix.get(hint.keySequence().getFirst());
             boolean groupLeftEdge = hint.centerX() == hintGroup.minHintCenterX;
             boolean groupTopEdge = hint.centerY() == hintGroup.minHintCenterY;
@@ -755,6 +756,9 @@ public class WindowsOverlay {
                             boxBorderThickness,
                             boxColor,
                             boxBorderColor,
+                            (int) Math.round(style.layoutBorderLength()),
+                            layoutBorderThickness,
+                            layoutBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                             true,
@@ -863,6 +867,7 @@ public class WindowsOverlay {
                         (int) Math.round(subgridBorderThickness),
                         subgridBoxColor, // Transparent.
                         subgridBoxBorderColor,
+                        -1, -1, null,
                         true,
                         gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                         false,
@@ -920,12 +925,15 @@ public class WindowsOverlay {
         private final double qtScaleFactor;
         private final int borderLength;
         private final int borderThickness;
+        private final QColor color;
+        private final QColor borderColor;
+        private final int layoutLength;
+        private final int layoutThickness;
+        private final QColor layoutColor;
         private final int borderRadius = 0;
-        private QColor color;
-        private QColor borderColor;
 
-        public HintBox(int borderLength, int borderThickness, QColor color,
-                       QColor borderColor,
+        public HintBox(int borderLength, int borderThickness, QColor color, QColor borderColor,
+                       int layoutLength, int layoutThickness, QColor layoutColor,
                        boolean isHintPartOfGrid,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        boolean drawGridEdgeBorders,
@@ -946,6 +954,9 @@ public class WindowsOverlay {
             this.borderThickness = borderThickness;
             this.color = color;
             this.borderColor = borderColor;
+            this.layoutLength = layoutLength;
+            this.layoutThickness = layoutThickness;
+            this.layoutColor = layoutColor;
         }
 
         @Override
@@ -980,7 +991,7 @@ public class WindowsOverlay {
             int right = width() - 1;
             int edgeThickness = borderThickness;
             // groupThickness is the thickness of the borders of a hint box group.
-            int groupThickness = borderThickness * 4;
+            int groupThickness = layoutThickness;
             int topEdgeThickness = edgeThickness;
             int leftEdgeThickness = edgeThickness;
             int bottomEdgeThickness = edgeThickness;
@@ -1011,14 +1022,14 @@ public class WindowsOverlay {
                 rightInsideThickness = bottomRightGroupThickness;
             if (groupBottomEdge)
                 bottomInsideThickness = bottomRightGroupThickness;
-            QPen topEdgePen = createPen(borderColor, topEdgeThickness);
-            QPen leftEdgePen = createPen(borderColor, leftEdgeThickness);
-            QPen bottomEdgePen = createPen(borderColor, bottomEdgeThickness);
-            QPen rightEdgePen = createPen(borderColor, rightEdgeThickness);
-            QPen topInsidePen = createPen(borderColor, topInsideThickness);
-            QPen leftInsidePen = createPen(borderColor, leftInsideThickness);
-            QPen bottomInsidePen = createPen(borderColor, bottomInsideThickness);
-            QPen rightInsidePen = createPen(borderColor, rightInsideThickness);
+            QPen topEdgePen = createPen(groupTopEdge ? layoutColor : borderColor, topEdgeThickness);
+            QPen leftEdgePen = createPen(groupLeftEdge ? layoutColor : borderColor, leftEdgeThickness);
+            QPen bottomEdgePen = createPen(groupBottomEdge ? layoutColor : borderColor, bottomEdgeThickness);
+            QPen rightEdgePen = createPen(groupRightEdge ? layoutColor : borderColor, rightEdgeThickness);
+            QPen topInsidePen = createPen(groupTopEdge ? layoutColor : borderColor, topInsideThickness);
+            QPen leftInsidePen = createPen(groupLeftEdge ? layoutColor : borderColor, leftInsideThickness);
+            QPen bottomInsidePen = createPen(groupBottomEdge ? layoutColor : borderColor, bottomInsideThickness);
+            QPen rightInsidePen = createPen(groupRightEdge ? layoutColor : borderColor, rightInsideThickness);
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
             int topEdgePenOffset = topEdgeThickness / 2;
             int leftEdgePenOffset = leftEdgeThickness / 2;
