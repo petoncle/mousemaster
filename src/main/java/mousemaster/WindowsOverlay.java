@@ -979,6 +979,7 @@ public class WindowsOverlay {
             int left = 0;
             int right = width() - 1;
             int edgeThickness = borderThickness;
+            // groupThickness is the thickness of the borders of a hint box group.
             int groupThickness = borderThickness * 4;
             // Full thickness if grid edge.
             // Otherwise, half thickness: thickness/2 + thickness%2 for top and left, thickness/2 for bottom and right
@@ -987,9 +988,15 @@ public class WindowsOverlay {
             QPen edgePen = createPen(borderColor, edgeThickness);
             QPen topLeftInsidePen = createPen(borderColor, topLeftInsideThickness);
             QPen bottomRightInsidePen = createPen(borderColor, bottomRightInsideThickness);
+            int topLeftGroupThickness = groupThickness / 2 + groupThickness % 2;
+            int bottomRightGroupThickness = isHintPartOfGrid ? groupThickness / 2 : topLeftGroupThickness;
+//            QPen topLeftGroupPen = createPen(borderColor, topLeftGroupThickness);
+//            QPen bottomRightGroupPen = createPen(borderColor, bottomRightGroupThickness);
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
             int edgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
+            int topLeftInsidePenOffset = insidePenOffset;
+            int bottomRightInsidePenOffset = insidePenOffset;
             int gridTopEdgeExtraVertical = gridTopEdge ? edgeThickness/2 : 0;
             int gridBottomEdgeExtraVertical = gridBottomEdge ? edgeThickness/2 : 0;
             int gridLeftEdgeExtraHorizontal = gridLeftEdge ? edgeThickness/2 : 0;
@@ -1003,7 +1010,7 @@ public class WindowsOverlay {
                     topLeftInsidePen,
                     left,
                     edgePenOffset,
-                    insidePenOffset,
+                    topLeftInsidePenOffset,
                     top,
                     top + gridTopEdgeExtraVertical + borderLength / 2
             );
@@ -1015,7 +1022,7 @@ public class WindowsOverlay {
                     topLeftInsidePen,
                     top,
                     edgePenOffset,
-                    insidePenOffset,
+                    topLeftInsidePenOffset,
                     left,
                     left + gridLeftEdgeExtraHorizontal + borderLength / 2
             );
@@ -1028,7 +1035,7 @@ public class WindowsOverlay {
                     bottomRightInsidePen,
                     right,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightInsideThickness - 1),
+                    bottomRightInsidePenOffset - (bottomRightInsideThickness - 1),
                     top,
                     top + gridTopEdgeExtraVertical + borderLength / 2
             );
@@ -1041,7 +1048,7 @@ public class WindowsOverlay {
                     topLeftInsidePen,
                     top,
                     edgePenOffset,
-                    insidePenOffset,
+                    topLeftInsidePenOffset,
                     right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
                     right + 1
             );
@@ -1054,7 +1061,7 @@ public class WindowsOverlay {
                     topLeftInsidePen,
                     left,
                     edgePenOffset,
-                    insidePenOffset,
+                    topLeftInsidePenOffset,
                     bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
                     bottom + 1
             );
@@ -1066,7 +1073,7 @@ public class WindowsOverlay {
                     bottomRightInsidePen,
                     bottom,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightInsideThickness - 1),
+                    bottomRightInsidePenOffset - (bottomRightInsideThickness - 1),
                     left,
                     left + gridLeftEdgeExtraHorizontal + borderLength / 2
             );
@@ -1079,7 +1086,7 @@ public class WindowsOverlay {
                     bottomRightInsidePen,
                     right,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightInsideThickness - 1),
+                    bottomRightInsidePenOffset - (bottomRightInsideThickness - 1),
                     bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2,
                     bottom + 1
             );
@@ -1091,7 +1098,7 @@ public class WindowsOverlay {
                     bottomRightInsidePen,
                     bottom,
                     edgePenOffset - (edgeThickness - 1),
-                    insidePenOffset - (bottomRightInsideThickness - 1),
+                    bottomRightInsidePenOffset - (bottomRightInsideThickness - 1),
                     right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
                     right + 1
             );
