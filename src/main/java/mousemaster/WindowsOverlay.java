@@ -1095,6 +1095,7 @@ public class WindowsOverlay {
                     right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2,
                     right + 1
             );
+            edgePen.dispose();
             topLeftInsidePen.dispose();
             bottomRightInsidePen.dispose();
         }
