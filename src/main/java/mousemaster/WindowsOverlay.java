@@ -734,7 +734,7 @@ public class WindowsOverlay {
                     hint.keySequence() : hint.keySequence().subList(0,
                     hintMesh.prefixLength());
             HintLabel hintLabel =
-                    new HintLabel(hint, font, xAdvancesByString, fullBoxWidth,
+                    new HintLabel(hint.keySequence(), font, xAdvancesByString, fullBoxWidth,
                             fullBoxHeight, totalXAdvance,
                             fontColor,
                             focusedColor,
@@ -1239,7 +1239,7 @@ public class WindowsOverlay {
         private int left;
         private int top;
 
-        public HintLabel(Hint hint, QFont font, Map<String, Integer> xAdvancesByString,
+        public HintLabel(List<Key> keySequence, QFont font, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
                          int boxHeight, int totalXAdvance, QColor fontColor, QColor focusedColor,
                          int prefixLength, QColor prefixColor,
@@ -1247,10 +1247,10 @@ public class WindowsOverlay {
                          int outlineThickness, QColor shadowColor, double shadowBlurRadius,
                          double shadowHorizontalOffset, double shadowVerticalOffset, List<Key> focusedKeySequence, double fontSpacingPercent,
                          int hintKeyMaxXAdvance, QFontMetrics metrics) {
-            super(hint.keySequence()
-                      .stream()
-                      .map(Key::hintLabel)
-                      .collect(Collectors.joining()));
+            super(keySequence
+                    .stream()
+                    .map(Key::hintLabel)
+                    .collect(Collectors.joining()));
             this.fontColor = fontColor;
             this.focusedColor = focusedColor;
             this.prefixLength = prefixLength;
@@ -1266,20 +1266,19 @@ public class WindowsOverlay {
 
             int y = (boxHeight + metrics.ascent() - metrics.descent()) / 2;
 
-            double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * hint.keySequence().size();
+            double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
                     smallestColAlignedFontBoxWidth / boxWidth;
             // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
             double adjustedFontBoxWidthPercent = fontSpacingPercent < 0.5d ?
                     (fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
                     : smallestColAlignedFontBoxWidthPercent + (fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
-            boolean doNotColAlign = hint.keySequence().size() != 1 &&
+            boolean doNotColAlign = keySequence.size() != 1 &&
                                     adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth -
                                           totalXAdvance;
             extraNotAlignedWidth = adjustedFontBoxWidthPercent * extraNotAlignedWidth;
 
-            List<Key> keySequence = hint.keySequence();
             keyTexts = new ArrayList<>(keySequence.size());
             int xAdvance = 0;
             int smallestHintBoxLeft = 0;
@@ -1303,7 +1302,7 @@ public class WindowsOverlay {
                         smallestHintBoxWidth = x - smallestHintBoxLeft + textWidth;
                     }
                     xAdvance += textWidth;
-                    if (keyIndex != hint.keySequence().size() - 1)
+                    if (keyIndex != keySequence.size() - 1)
                         xAdvance +=
                                 (int) (extraNotAlignedWidth / (keySequence.size() - 1));
                     keyWidth = textWidth;
