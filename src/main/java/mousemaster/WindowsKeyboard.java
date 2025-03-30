@@ -30,7 +30,7 @@ public class WindowsKeyboard {
             Key.uparrow,
             Key.rightarrow,
             Key.downarrow,
-            // Key.numlock,
+            Key.numlock,
             Key.break_,
             Key.printscreen,
             Key.numpaddivide, // No numpadmultiply?
