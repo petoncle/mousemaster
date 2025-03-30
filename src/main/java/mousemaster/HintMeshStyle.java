@@ -14,10 +14,10 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                             double boxBorderLength,
                             String boxBorderHexColor,
                             double boxBorderOpacity,
-                            double layoutBorderThickness,
-                            double layoutBorderLength,
-                            String layoutBorderHexColor,
-                            double layoutBorderOpacity,
+                            double prefixBoxBorderThickness,
+                            double prefixBoxBorderLength,
+                            String prefixBoxBorderHexColor,
+                            double prefixBoxBorderOpacity,
                             double boxWidthPercent,
                             double boxHeightPercent,
                             int subgridRowCount,
@@ -56,10 +56,10 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
         private Double boxBorderLength;
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
-        private Double layoutBorderThickness;
-        private Double layoutBorderLength;
-        private String layoutBorderHexColor;
-        private Double layoutBorderOpacity;
+        private Double prefixBoxBorderThickness;
+        private Double prefixBoxBorderLength;
+        private String prefixBoxBorderHexColor;
+        private Double prefixBoxBorderOpacity;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
         private Integer subgridRowCount;
@@ -98,10 +98,10 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             this.boxBorderLength = style.boxBorderLength;
             this.boxBorderHexColor = style.boxBorderHexColor;
             this.boxBorderOpacity = style.boxBorderOpacity;
-            this.layoutBorderThickness = style.layoutBorderThickness;
-            this.layoutBorderLength = style.layoutBorderLength;
-            this.layoutBorderHexColor = style.layoutBorderHexColor;
-            this.layoutBorderOpacity = style.layoutBorderOpacity;
+            this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
+            this.prefixBoxBorderLength = style.prefixBoxBorderLength;
+            this.prefixBoxBorderHexColor = style.prefixBoxBorderHexColor;
+            this.prefixBoxBorderOpacity = style.prefixBoxBorderOpacity;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
             this.subgridRowCount = style.subgridRowCount;
@@ -226,23 +226,23 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             return this;
         }
 
-        public HintMeshStyleBuilder layoutBorderThickness(Double layoutBorderThickness) {
-            this.layoutBorderThickness = layoutBorderThickness;
+        public HintMeshStyleBuilder prefixBoxBorderThickness(Double prefixBoxBorderThickness) {
+            this.prefixBoxBorderThickness = prefixBoxBorderThickness;
             return this;
         }
 
-        public HintMeshStyleBuilder layoutBorderLength(Double layoutBorderLength) {
-            this.layoutBorderLength = layoutBorderLength;
+        public HintMeshStyleBuilder prefixBoxBorderLength(Double prefixBoxBorderLength) {
+            this.prefixBoxBorderLength = prefixBoxBorderLength;
             return this;
         }
 
-        public HintMeshStyleBuilder layoutBorderHexColor(String layoutBorderHexColor) {
-            this.layoutBorderHexColor = layoutBorderHexColor;
+        public HintMeshStyleBuilder prefixBoxBorderHexColor(String prefixBoxBorderHexColor) {
+            this.prefixBoxBorderHexColor = prefixBoxBorderHexColor;
             return this;
         }
 
-        public HintMeshStyleBuilder layoutBorderOpacity(Double layoutBorderOpacity) {
-            this.layoutBorderOpacity = layoutBorderOpacity;
+        public HintMeshStyleBuilder prefixBoxBorderOpacity(Double prefixBoxBorderOpacity) {
+            this.prefixBoxBorderOpacity = prefixBoxBorderOpacity;
             return this;
         }
 
@@ -384,20 +384,20 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             return boxBorderOpacity;
         }
 
-        public Double layoutBorderThickness() {
-            return layoutBorderThickness;
+        public Double prefixBoxBorderThickness() {
+            return prefixBoxBorderThickness;
         }
 
-        public Double layoutBorderLength() {
-            return layoutBorderLength;
+        public Double prefixBoxBorderLength() {
+            return prefixBoxBorderLength;
         }
 
-        public String layoutBorderHexColor() {
-            return layoutBorderHexColor;
+        public String prefixBoxBorderHexColor() {
+            return prefixBoxBorderHexColor;
         }
 
-        public Double layoutBorderOpacity() {
-            return layoutBorderOpacity;
+        public Double prefixBoxBorderOpacity() {
+            return prefixBoxBorderOpacity;
         }
 
         public Double boxWidthPercent() {
@@ -464,10 +464,10 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                     boxBorderLength == null ? defaultStyle.boxBorderLength : boxBorderLength,
                     boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
                     boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
-                    layoutBorderThickness == null ? defaultStyle.layoutBorderThickness : layoutBorderThickness,
-                    layoutBorderLength == null ? defaultStyle.layoutBorderLength : layoutBorderLength,
-                    layoutBorderHexColor == null ? defaultStyle.layoutBorderHexColor : layoutBorderHexColor,
-                    layoutBorderOpacity == null ? defaultStyle.layoutBorderOpacity : layoutBorderOpacity,
+                    prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
+                    prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,
+                    prefixBoxBorderHexColor == null ? defaultStyle.prefixBoxBorderHexColor : prefixBoxBorderHexColor,
+                    prefixBoxBorderOpacity == null ? defaultStyle.prefixBoxBorderOpacity : prefixBoxBorderOpacity,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
                     subgridRowCount == null ? defaultStyle.subgridRowCount : subgridRowCount,

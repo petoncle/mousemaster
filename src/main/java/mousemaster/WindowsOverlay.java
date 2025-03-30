@@ -689,7 +689,7 @@ public class WindowsOverlay {
         QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
-        QColor layoutBorderColor = qColor(style.layoutBorderHexColor(), style.layoutBorderOpacity());
+        QColor prefixBoxBorderColor = qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
         QColor subgridBoxColor = qColor("#000000", 0);
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
@@ -750,7 +750,7 @@ public class WindowsOverlay {
                             style.fontSpacingPercent(),
                             hintKeyMaxXAdvance, metrics);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
-            int layoutBorderThickness = (int) Math.round(style.layoutBorderThickness());
+            int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
             HintGroup hintGroup = hintGroupByPrefix.get(prefix);
             boolean groupLeftEdge = hint.centerX() == hintGroup.minHintCenterX;
             boolean groupTopEdge = hint.centerY() == hintGroup.minHintCenterY;
@@ -765,9 +765,9 @@ public class WindowsOverlay {
                             boxBorderThickness,
                             boxColor,
                             boxBorderColor,
-                            (int) Math.round(style.layoutBorderLength()),
-                            layoutBorderThickness,
-                            layoutBorderColor,
+                            (int) Math.round(style.prefixBoxBorderLength()),
+                            prefixBoxBorderThickness,
+                            prefixBoxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                             true,
