@@ -14,6 +14,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                             double boxBorderLength,
                             String boxBorderHexColor,
                             double boxBorderOpacity,
+                            boolean prefixBoxEnabled,
                             double prefixBoxBorderThickness,
                             double prefixBoxBorderLength,
                             String prefixBoxBorderHexColor,
@@ -56,6 +57,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
         private Double boxBorderLength;
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
+        private Boolean prefixBoxEnabled;
         private Double prefixBoxBorderThickness;
         private Double prefixBoxBorderLength;
         private String prefixBoxBorderHexColor;
@@ -98,6 +100,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             this.boxBorderLength = style.boxBorderLength;
             this.boxBorderHexColor = style.boxBorderHexColor;
             this.boxBorderOpacity = style.boxBorderOpacity;
+            this.prefixBoxEnabled = style.prefixBoxEnabled;
             this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
             this.prefixBoxBorderLength = style.prefixBoxBorderLength;
             this.prefixBoxBorderHexColor = style.prefixBoxBorderHexColor;
@@ -223,6 +226,11 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
 
         public HintMeshStyleBuilder boxBorderOpacity(Double boxBorderOpacity) {
             this.boxBorderOpacity = boxBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder prefixBoxEnabled(Boolean prefixBoxEnabled) {
+            this.prefixBoxEnabled = prefixBoxEnabled;
             return this;
         }
 
@@ -384,6 +392,10 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             return boxBorderOpacity;
         }
 
+        public Boolean prefixBoxEnabled() {
+            return prefixBoxEnabled;
+        }
+
         public Double prefixBoxBorderThickness() {
             return prefixBoxBorderThickness;
         }
@@ -457,13 +469,14 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
                     fontShadowHorizontalOffset == null ? defaultStyle.fontShadowHorizontalOffset : fontShadowHorizontalOffset,
                     fontShadowVerticalOffset == null ? defaultStyle.fontShadowVerticalOffset : fontShadowVerticalOffset,
                     focusedFontHexColor == null ? defaultStyle.focusedFontHexColor : focusedFontHexColor,
-                    prefixFontHexColor == null ? defaultStyle.prefixFontHexColor : prefixFontHexColor,
+                    defaultStyle != null && prefixFontHexColor == null ? defaultStyle.prefixFontHexColor : prefixFontHexColor, // prefixFontHexColor can be null even in defaultStyle
                     boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
                     boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,
                     boxBorderLength == null ? defaultStyle.boxBorderLength : boxBorderLength,
                     boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
                     boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
+                    prefixBoxEnabled == null ? defaultStyle.prefixBoxEnabled : prefixBoxEnabled,
                     prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
                     prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,
                     prefixBoxBorderHexColor == null ? defaultStyle.prefixBoxBorderHexColor : prefixBoxBorderHexColor,

@@ -684,7 +684,7 @@ public class WindowsOverlay {
 //            hintKeyMaxXAdvance = metrics.maxWidth();
         QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
         QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontOpacity());
-        QColor prefixColor = qColor(style.prefixFontHexColor(), style.fontOpacity());
+        QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), style.fontOpacity());
         QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
         QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
@@ -752,10 +752,10 @@ public class WindowsOverlay {
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
             HintGroup hintGroup = hintGroupByPrefix.get(prefix);
-            boolean groupLeftEdge = hint.centerX() == hintGroup.minHintCenterX;
-            boolean groupTopEdge = hint.centerY() == hintGroup.minHintCenterY;
-            boolean groupRightEdge = hint.centerX() == hintGroup.maxHintCenterX;
-            boolean groupBottomEdge = hint.centerY() == hintGroup.maxHintCenterY;
+            boolean groupLeftEdge = style.prefixBoxEnabled() && hint.centerX() == hintGroup.minHintCenterX;
+            boolean groupTopEdge = style.prefixBoxEnabled() && hint.centerY() == hintGroup.minHintCenterY;
+            boolean groupRightEdge = style.prefixBoxEnabled() && hint.centerX() == hintGroup.maxHintCenterX;
+            boolean groupBottomEdge = style.prefixBoxEnabled() && hint.centerY() == hintGroup.maxHintCenterY;
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
             boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
             boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
@@ -1215,33 +1215,6 @@ public class WindowsOverlay {
             pen.setCapStyle(Qt.PenCapStyle.FlatCap);
             pen.setWidth(penWidth);
             return pen;
-        }
-
-        private void drawEdgeLine(
-                QPainter painter,
-                boolean isEdge,
-                boolean shouldDraw,
-                QPen edgePen,
-                QPen insidePen,
-                boolean isVertical,
-                int x, int y,
-                int edgeOffset,
-                int insideOffset,
-                int extraOffset,
-                int length
-        ) {
-            if (!shouldDraw)
-                return;
-            painter.setPen(isEdge ? edgePen : insidePen);
-            int offset = isEdge ? edgeOffset : insideOffset;
-
-            if (isVertical) {
-                int xPos = x + offset;
-                painter.drawLine(xPos, y, xPos, y + extraOffset + length / 2);
-            } else {
-                int yPos = y + offset;
-                painter.drawLine(x, yPos, x + extraOffset + length / 2, yPos);
-            }
         }
 
     }

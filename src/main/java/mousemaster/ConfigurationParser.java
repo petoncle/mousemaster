@@ -94,14 +94,15 @@ public class ConfigurationParser {
                 .fontShadowHorizontalOffset(2d)
                 .fontShadowVerticalOffset(2d)
                 .focusedFontHexColor("#CCCCCC")
-                .prefixFontHexColor("#FFFFFF")
+                .prefixFontHexColor(null)
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
                 .boxBorderThickness(1d)
                 .boxBorderLength(10_000d)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
-                .prefixBoxBorderThickness(1d)
+                .prefixBoxEnabled(false)
+                .prefixBoxBorderThickness(2d)
                 .prefixBoxBorderLength(10_000d)
                 .prefixBoxBorderHexColor("#FFFFFF")
                 .prefixBoxBorderOpacity(0.8d)
@@ -688,14 +689,38 @@ public class ConfigurationParser {
                                 checkColorFormat(propertyValue));
                         case "box-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-box-border-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxBorderThickness(
-                                parseDouble(propertyValue, true, 0, 10_000));
-                        case "prefix-box-border-length" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxBorderLength(
-                                parseDouble(propertyValue, true, 0, 10_000));
-                        case "prefix-box-border-color" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxBorderHexColor(
-                                checkColorFormat(propertyValue));
-                        case "prefix-box-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxBorderOpacity(
-                                parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-box-enabled" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(Boolean.parseBoolean(propertyValue));
+                        case "prefix-box-border-thickness" -> {
+                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
+                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
+                            mode.hintMesh.builder.style(viewportFilter)
+                                                 .prefixBoxBorderThickness(
+                                                         parseDouble(propertyValue, true,
+                                                                 0, 10_000));
+                        }
+                        case "prefix-box-border-length" -> {
+                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
+                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
+                            mode.hintMesh.builder.style(viewportFilter)
+                                                 .prefixBoxBorderLength(
+                                                         parseDouble(propertyValue, true,
+                                                                 0, 10_000));
+                        }
+                        case "prefix-box-border-color" -> {
+                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
+                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
+                            mode.hintMesh.builder.style(viewportFilter)
+                                                 .prefixBoxBorderHexColor(
+                                                         checkColorFormat(propertyValue));
+                        }
+                        case "prefix-box-border-opacity" -> {
+                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
+                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
+                            mode.hintMesh.builder.style(viewportFilter)
+                                                 .prefixBoxBorderOpacity(
+                                                         parseDouble(propertyValue, true,
+                                                                 0, 1));
+                        }
                         case "box-width-percent" -> mode.hintMesh.builder.style(viewportFilter).boxWidthPercent(
                                 parseDouble(propertyValue, true, 0, 1));
                         case "box-height-percent" -> mode.hintMesh.builder.style(viewportFilter).boxHeightPercent(
@@ -1958,6 +1983,11 @@ public class ConfigurationParser {
                                 HintMeshStyleBuilder::boxBorderOpacity,
                                 childStyleByFilter, filter))
                             childStyle.boxBorderOpacity(parentStyle.boxBorderOpacity());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::prefixBoxEnabled,
+                                childStyleByFilter, filter))
+                            childStyle.prefixBoxEnabled(
+                                    parentStyle.prefixBoxEnabled());
                         if (!childDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::prefixBoxBorderThickness,
                                 childStyleByFilter, filter))
