@@ -767,7 +767,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             for (HintMeshStyle.HintMeshStyleBuilder hintMeshStyleBuilder : endStyleByFilterBuilder.map()
                                                                                                   .values()) {
                 hintMeshStyleBuilder.prefixBoxEnabled(false);
-                // TODO Make prefix font transparent
+                hintMeshStyleBuilder.prefixFontStyle().opacity(0d);
             }
             HintMesh endHintMesh =
                     hintMesh.builder()

@@ -687,7 +687,7 @@ public class WindowsOverlay {
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         List<HintLabel> prefixHintLabels = new ArrayList<>();
-        if (style.prefixInBackground()) {
+        if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
             QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
             LabelFontStyle prefixLabelFontStyle = new LabelFontStyle(
                     prefixFont,
