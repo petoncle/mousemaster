@@ -764,11 +764,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                     endStyleByFilterBuilder =
                     hintMesh.styleByFilter()
                             .builder(HintMeshStyle::builder);
-            endStyleByFilterBuilder.map()
-                                   .values()
-                                   .forEach(
-                                           hintMeshStyleBuilder -> hintMeshStyleBuilder.prefixBoxEnabled(
-                                                   false));
+            for (HintMeshStyle.HintMeshStyleBuilder hintMeshStyleBuilder : endStyleByFilterBuilder.map()
+                                                                                                  .values()) {
+                hintMeshStyleBuilder.prefixBoxEnabled(false);
+                // TODO Make prefix font transparent
+            }
             HintMesh endHintMesh =
                     hintMesh.builder()
                             .focusedKeySequence(newFocusedKeySequence)

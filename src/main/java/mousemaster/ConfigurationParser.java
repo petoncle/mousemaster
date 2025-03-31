@@ -93,6 +93,7 @@ public class ConfigurationParser {
                 .fontShadowOpacity(0.4d)
                 .fontShadowHorizontalOffset(2d)
                 .fontShadowVerticalOffset(2d)
+                .prefixInBackground(false)
                 .focusedFontHexColor("#CCCCCC")
                 .prefixFontHexColor(null)
                 .boxHexColor("#000000")
@@ -668,6 +669,9 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, -100, 100));
                         case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontShadowVerticalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
+                        case "prefix-in-background" ->
+                                mode.hintMesh.builder.style(viewportFilter)
+                                                     .prefixInBackground(Boolean.parseBoolean(propertyValue));
                         case "focused-font-color" ->
                                 mode.hintMesh.builder.style(viewportFilter).focusedFontHexColor(
                                         checkColorFormat(propertyValue));
@@ -1948,6 +1952,11 @@ public class ConfigurationParser {
                                 childStyleByFilter, filter))
                             childStyle.fontShadowVerticalOffset(
                                     parentStyle.fontShadowVerticalOffset());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshStyleBuilder::prefixInBackground,
+                                childStyleByFilter, filter))
+                            childStyle.prefixInBackground(
+                                    parentStyle.prefixInBackground());
                         if (!childDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::focusedFontHexColor,
                                 childStyleByFilter, filter))
