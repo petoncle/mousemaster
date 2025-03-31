@@ -628,6 +628,7 @@ public class WindowsOverlay {
         double minHintCenterY = Double.MAX_VALUE;
         double maxHintCenterX = 0;
         double maxHintCenterY = 0;
+        boolean atLeastOneHintVisible = false;
 
     }
 
@@ -642,12 +643,6 @@ public class WindowsOverlay {
         double maxHintCenterY = 0;
         Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
         for (Hint hint : hintMeshWindow.hints()) {
-            if (!hint.startsWith(hintMesh.focusedKeySequence()))
-                continue;
-            minHintCenterX = Math.min(minHintCenterX, hint.centerX());
-            minHintCenterY = Math.min(minHintCenterY, hint.centerY());
-            maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
-            maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
             List<Key> layoutFirstPart = hintMesh.prefixLength() == -1 ?
                     hint.keySequence() : hint.keySequence().subList(0,
                     hintMesh.prefixLength());
@@ -658,6 +653,13 @@ public class WindowsOverlay {
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
             hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
             hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
+            hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.focusedKeySequence());
+            if (!hint.startsWith(hintMesh.focusedKeySequence()))
+                continue;
+            minHintCenterX = Math.min(minHintCenterX, hint.centerX());
+            minHintCenterY = Math.min(minHintCenterY, hint.centerY());
+            maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
+            maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
         }
         List<Hint> hints = hintMeshWindow.hints;
         int minHintLeft = Integer.MAX_VALUE;
@@ -715,6 +717,8 @@ public class WindowsOverlay {
             for (Map.Entry<List<Key>, HintGroup> entry : hintGroupByPrefix.entrySet()) {
                 List<Key> prefix = entry.getKey();
                 HintGroup hintGroup = entry.getValue();
+                if (!hintGroup.atLeastOneHintVisible)
+                    continue;
                 double prefixCenterX =
                         (hintGroup.minHintCenterX + hintGroup.maxHintCenterX) / 2;
                 double prefixCenterY =
