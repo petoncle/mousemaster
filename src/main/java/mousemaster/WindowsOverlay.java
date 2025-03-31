@@ -664,7 +664,6 @@ public class WindowsOverlay {
         int minHintTop = Integer.MAX_VALUE;
         int maxHintRight = Integer.MIN_VALUE;
         int maxHintBottom = Integer.MIN_VALUE;
-        Map<String, Integer> xAdvancesByString = new HashMap<>();
         QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
         QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontOpacity());
         QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), style.fontOpacity());
@@ -685,17 +684,6 @@ public class WindowsOverlay {
                 style.fontShadowVerticalOffset() * screenScale,
                 style.fontSpacingPercent()
         );
-        int hintKeyMaxXAdvance = 0;
-        for (Hint hint : hints) {
-            List<Key> keySequence = hint.keySequence();
-            for (Key key : keySequence) {
-                String keyText = key.hintLabel();
-                hintKeyMaxXAdvance = Math.max(hintKeyMaxXAdvance,
-                        xAdvancesByString.computeIfAbsent(keyText,
-                                fontStyle.metrics::horizontalAdvance));
-            }
-        }
-//            hintKeyMaxXAdvance = metrics.maxWidth();
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
@@ -703,6 +691,17 @@ public class WindowsOverlay {
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
+        Map<String, Integer> xAdvancesByString = new HashMap<>();
+        int hintKeyMaxXAdvance = 0;
+        for (Hint hint : hints) {
+            for (Key key : hint.keySequence()) {
+                String keyText = key.hintLabel();
+                hintKeyMaxXAdvance = Math.max(hintKeyMaxXAdvance,
+                        xAdvancesByString.computeIfAbsent(keyText,
+                                fontStyle.metrics::horizontalAdvance));
+            }
+        }
+//            hintKeyMaxXAdvance = metrics.maxWidth();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
