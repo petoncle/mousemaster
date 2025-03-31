@@ -1333,11 +1333,14 @@ public class WindowsOverlay {
                     .collect(Collectors.joining()));
             this.labelFontStyle = labelFontStyle;
             setFont(labelFontStyle.font);
-            QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
-            shadow.setBlurRadius(labelFontStyle.shadowBlurRadius);
-            shadow.setOffset(labelFontStyle.shadowHorizontalOffset, labelFontStyle.shadowVerticalOffset);
-            shadow.setColor(labelFontStyle.shadowColor);
-            setGraphicsEffect(shadow);
+            if (labelFontStyle.shadowColor.alpha() != 0) {
+                QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
+                shadow.setBlurRadius(labelFontStyle.shadowBlurRadius);
+                shadow.setOffset(labelFontStyle.shadowHorizontalOffset,
+                        labelFontStyle.shadowVerticalOffset);
+                shadow.setColor(labelFontStyle.shadowColor);
+                setGraphicsEffect(shadow);
+            }
 
             int y = (boxHeight + labelFontStyle.metrics.ascent() - labelFontStyle.metrics.descent()) / 2;
 
@@ -1416,7 +1419,7 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
 
-            if (labelFontStyle.outlineThickness != 0) {
+            if (labelFontStyle.outlineThickness != 0 && labelFontStyle.outlineColor().alpha() != 0) {
                 QPen outlinePen = new QPen(labelFontStyle.outlineColor);
                 outlinePen.setWidth(labelFontStyle.outlineThickness);
                 outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
