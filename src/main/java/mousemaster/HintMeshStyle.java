@@ -5,7 +5,7 @@ import java.time.Duration;
 public record HintMeshStyle(FontStyle fontStyle,
                             String focusedFontHexColor,
                             boolean prefixInBackground,
-                            String prefixFontHexColor,
+                            FontStyle prefixFontStyle,
                             String boxHexColor,
                             double boxOpacity,
                             double boxBorderThickness,
@@ -36,7 +36,7 @@ public record HintMeshStyle(FontStyle fontStyle,
         private FontStyle.FontStyleBuilder fontStyle = new FontStyle.FontStyleBuilder();
         private String focusedFontHexColor;
         private Boolean prefixInBackground;
-        private String prefixFontHexColor;
+        private FontStyle.FontStyleBuilder prefixFontStyle = new FontStyle.FontStyleBuilder();
         private String boxHexColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
@@ -67,7 +67,7 @@ public record HintMeshStyle(FontStyle fontStyle,
             this.fontStyle = style.fontStyle.builder();
             this.focusedFontHexColor = style.focusedFontHexColor;
             this.prefixInBackground = style.prefixInBackground;
-            this.prefixFontHexColor = style.prefixFontHexColor;
+            this.prefixFontStyle = style.prefixFontStyle.builder();
             this.boxHexColor = style.boxHexColor;
             this.boxOpacity = style.boxOpacity;
             this.boxBorderThickness = style.boxBorderThickness;
@@ -100,12 +100,6 @@ public record HintMeshStyle(FontStyle fontStyle,
         public HintMeshStyleBuilder prefixInBackground(
                 Boolean prefixInBackground) {
             this.prefixInBackground = prefixInBackground;
-            return this;
-        }
-
-        public HintMeshStyleBuilder prefixFontHexColor(
-                String prefixFontHexColor) {
-            this.prefixFontHexColor = prefixFontHexColor;
             return this;
         }
 
@@ -226,8 +220,8 @@ public record HintMeshStyle(FontStyle fontStyle,
             return prefixInBackground;
         }
 
-        public String prefixFontHexColor() {
-            return prefixFontHexColor;
+        public FontStyle.FontStyleBuilder prefixFontStyle() {
+            return prefixFontStyle;
         }
 
         public String boxHexColor() {
@@ -315,11 +309,13 @@ public record HintMeshStyle(FontStyle fontStyle,
         }
 
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
+            FontStyle fontStyle1 =
+                    fontStyle.build(defaultStyle == null ? null : defaultStyle.fontStyle);
             return new HintMeshStyle(
-                    fontStyle.build(null),
+                    fontStyle1,
                     focusedFontHexColor == null ? defaultStyle.focusedFontHexColor : focusedFontHexColor,
                     prefixInBackground == null ? defaultStyle.prefixInBackground : prefixInBackground,
-                    defaultStyle != null && prefixFontHexColor == null ? defaultStyle.prefixFontHexColor : prefixFontHexColor, // prefixFontHexColor can be null even in defaultStyle
+                    prefixFontStyle.build(fontStyle1),
                     boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
                     boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,
