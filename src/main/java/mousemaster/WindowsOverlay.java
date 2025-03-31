@@ -735,7 +735,6 @@ public class WindowsOverlay {
                             prefixFontStyle,
                             prefixHintKeyMaxXAdvance,
                             hintMesh.focusedKeySequence().size() - 1);
-            hintLabel.setParent(container);
             int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
             int y = hintRoundedY(prefixCenterY, cellHeight, qtScaleFactor);
             x -= totalXAdvance / 2; // This should be half the label width?
@@ -754,6 +753,7 @@ public class WindowsOverlay {
         }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
         List<HintBox> hintBoxes = new ArrayList<>();
+        List<HintLabel> hintLabels = new ArrayList<>();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
@@ -800,6 +800,7 @@ public class WindowsOverlay {
                             -1,//hintMesh.prefixLength(), // TODO
                             fontStyle,
                             hintKeyMaxXAdvance, -1);//hintMesh.focusedKeySequence().size() - 1); // TODO
+            hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
             HintGroup hintGroup = hintGroupByPrefix.get(prefix);
@@ -831,8 +832,6 @@ public class WindowsOverlay {
                     subgridBoxBorderColor,
                     style.subgridRowCount(), style.subgridColumnCount(),
                     style.subgridBorderLength(), style.subgridBorderThickness());
-            hintLabel.setParent(hintBox);
-            hintLabel.move(0, 0);
             int boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
             int boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
             hintLabel.left = boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
@@ -843,7 +842,6 @@ public class WindowsOverlay {
             minHintTop = Math.min(minHintTop, y);
             maxHintRight = Math.max(maxHintRight, x + fullBoxWidth);
             maxHintBottom = Math.max(maxHintBottom, y + fullBoxHeight);
-            hintBox.setParent(container);
             hintBox.setGeometry(x - hintMeshWindow.window().x(), y - hintMeshWindow.window.y(), boxWidth, boxHeight);
             hintLabel.setFixedSize(boxWidth, boxHeight);
             for (int subgridRowIndex = 0;
@@ -859,21 +857,29 @@ public class WindowsOverlay {
                     subBox.setGeometry(subBoxX, subBoxY, subBoxWidth, subBoxHeight);
                 }
             }
-            hintBox.show();
         }
-        for (HintBox hintBox : hintBoxes) {
+        for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
+            HintBox hintBox = hintBoxes.get(hintIndex);
             hintBox.move(
                     hintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
                     hintBox.y() - (minHintTop - hintMeshWindow.window.y())
             );
+            hintBox.setParent(container);
+            HintLabel hintLabel = hintLabels.get(hintIndex);
+            hintLabel.move(hintBox.x(), hintBox.y());
+            hintBox.show();
+        }
+        for (HintLabel prefixHintLabel : prefixHintLabels) {
+            prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
+            prefixHintLabel.setParent(container);
+        }
+        for (HintLabel hintLabel : hintLabels) {
+            hintLabel.setParent(container);
         }
         container.setGeometry(minHintLeft - hintMeshWindow.window.x(),
                 minHintTop - hintMeshWindow.window.y(),
                 maxHintRight - minHintLeft + 1,
                 maxHintBottom - minHintTop + 1);
-        for (HintLabel prefixHintLabel : prefixHintLabels) {
-            prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
-        }
     }
 
     private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
@@ -1035,7 +1041,7 @@ public class WindowsOverlay {
             QPainter painter = new QPainter(this);
 //            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             // Draw background.
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOver);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             if (color.alpha() != 0) {
                 painter.setBrush(new QBrush(color));
                 painter.setPen(Qt.PenStyle.NoPen);
@@ -1044,7 +1050,6 @@ public class WindowsOverlay {
             }
             if (borderThickness != 0)
                 drawBorders(painter);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             painter.end();
         }
 
