@@ -2,10 +2,7 @@ package mousemaster;
 
 import java.time.Duration;
 
-public record HintMeshStyle(String fontName, FontWeight fontWeight,
-                            double fontSize, double fontSpacingPercent, String fontHexColor, double fontOpacity,
-                            double fontOutlineThickness, String fontOutlineHexColor, double fontOutlineOpacity,
-                            double fontShadowBlurRadius, String fontShadowHexColor, double fontShadowOpacity, double fontShadowHorizontalOffset, double fontShadowVerticalOffset,
+public record HintMeshStyle(FontStyle fontStyle,
                             String focusedFontHexColor,
                             boolean prefixInBackground,
                             String prefixFontHexColor,
@@ -36,20 +33,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
     }
 
     public static class HintMeshStyleBuilder {
-        private String fontName;
-        private FontWeight fontWeight;
-        private Double fontSize;
-        private Double fontSpacingPercent;
-        private String fontHexColor;
-        private Double fontOpacity;
-        private Double fontOutlineThickness;
-        private String fontOutlineHexColor;
-        private Double fontOutlineOpacity;
-        private Double fontShadowBlurRadius;
-        private String fontShadowHexColor;
-        private Double fontShadowOpacity;
-        private Double fontShadowHorizontalOffset;
-        private Double fontShadowVerticalOffset;
+        private FontStyle.FontStyleBuilder fontStyle = new FontStyle.FontStyleBuilder();
         private String focusedFontHexColor;
         private Boolean prefixInBackground;
         private String prefixFontHexColor;
@@ -80,20 +64,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
         }
 
         public HintMeshStyleBuilder(HintMeshStyle style) {
-            this.fontName = style.fontName;
-            this.fontWeight = style.fontWeight;
-            this.fontSize = style.fontSize;
-            this.fontSpacingPercent = style.fontSpacingPercent;
-            this.fontHexColor = style.fontHexColor;
-            this.fontOpacity = style.fontOpacity;
-            this.fontOutlineThickness = style.fontOutlineThickness;
-            this.fontOutlineHexColor = style.fontOutlineHexColor;
-            this.fontOutlineOpacity = style.fontOutlineOpacity;
-            this.fontShadowBlurRadius = style.fontShadowBlurRadius;
-            this.fontShadowHexColor = style.fontShadowHexColor;
-            this.fontShadowOpacity = style.fontShadowOpacity;
-            this.fontShadowHorizontalOffset = style.fontShadowHorizontalOffset;
-            this.fontShadowVerticalOffset = style.fontShadowVerticalOffset;
+            this.fontStyle = style.fontStyle.builder();
             this.focusedFontHexColor = style.focusedFontHexColor;
             this.prefixInBackground = style.prefixInBackground;
             this.prefixFontHexColor = style.prefixFontHexColor;
@@ -118,76 +89,6 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             this.subgridBorderOpacity = style.subgridBorderOpacity;
             this.transitionAnimationEnabled = style.transitionAnimationEnabled;
             this.transitionAnimationDuration = style.transitionAnimationDuration;
-        }
-
-        public HintMeshStyleBuilder fontName(String fontName) {
-            this.fontName = fontName;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontWeight(FontWeight fontWeight) {
-            this.fontWeight = fontWeight;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontSize(Double fontSize) {
-            this.fontSize = fontSize;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontSpacingPercent(Double fontSpacingPercent) {
-            this.fontSpacingPercent = fontSpacingPercent;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontHexColor(String fontHexColor) {
-            this.fontHexColor = fontHexColor;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontOpacity(Double fontOpacity) {
-            this.fontOpacity = fontOpacity;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontOutlineThickness(Double fontOutlineThickness) {
-            this.fontOutlineThickness = fontOutlineThickness;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontOutlineHexColor(String fontOutlineHexColor) {
-            this.fontOutlineHexColor = fontOutlineHexColor;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontOutlineOpacity(Double fontOutlineOpacity) {
-            this.fontOutlineOpacity = fontOutlineOpacity;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontShadowBlurRadius(Double fontShadowBlurRadius) {
-            this.fontShadowBlurRadius = fontShadowBlurRadius;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontShadowHexColor(String fontShadowHexColor) {
-            this.fontShadowHexColor = fontShadowHexColor;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontShadowOpacity(Double fontShadowOpacity) {
-            this.fontShadowOpacity = fontShadowOpacity;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontShadowHorizontalOffset(Double fontShadowHorizontalOffset) {
-            this.fontShadowHorizontalOffset = fontShadowHorizontalOffset;
-            return this;
-        }
-
-        public HintMeshStyleBuilder fontShadowVerticalOffset(Double fontShadowVerticalOffset) {
-            this.fontShadowVerticalOffset = fontShadowVerticalOffset;
-            return this;
         }
 
         public HintMeshStyleBuilder focusedFontHexColor(
@@ -313,60 +214,8 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
             return this;
         }
 
-        public String fontName() {
-            return fontName;
-        }
-
-        public FontWeight fontWeight() {
-            return fontWeight;
-        }
-
-        public Double fontSize() {
-            return fontSize;
-        }
-
-        public Double fontSpacingPercent() {
-            return fontSpacingPercent;
-        }
-
-        public String fontHexColor() {
-            return fontHexColor;
-        }
-
-        public Double fontOpacity() {
-            return fontOpacity;
-        }
-
-        public Double fontOutlineThickness() {
-            return fontOutlineThickness;
-        }
-
-        public String fontOutlineHexColor() {
-            return fontOutlineHexColor;
-        }
-
-        public Double fontOutlineOpacity() {
-            return fontOutlineOpacity;
-        }
-
-        public Double fontShadowBlurRadius() {
-            return fontShadowBlurRadius;
-        }
-
-        public String fontShadowHexColor() {
-            return fontShadowHexColor;
-        }
-
-        public Double fontShadowOpacity() {
-            return fontShadowOpacity;
-        }
-
-        public Double fontShadowHorizontalOffset() {
-            return fontShadowHorizontalOffset;
-        }
-
-        public Double fontShadowVerticalOffset() {
-            return fontShadowVerticalOffset;
+        public FontStyle.FontStyleBuilder fontStyle() {
+            return fontStyle;
         }
 
         public String focusedFontHexColor() {
@@ -467,20 +316,7 @@ public record HintMeshStyle(String fontName, FontWeight fontWeight,
 
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
             return new HintMeshStyle(
-                    fontName == null ? defaultStyle.fontName : fontName,
-                    fontWeight == null ? defaultStyle.fontWeight : fontWeight,
-                    fontSize == null ? defaultStyle.fontSize : fontSize,
-                    fontSpacingPercent == null ? defaultStyle.fontSpacingPercent : fontSpacingPercent,
-                    fontHexColor == null ? defaultStyle.fontHexColor : fontHexColor,
-                    fontOpacity == null ? defaultStyle.fontOpacity : fontOpacity,
-                    fontOutlineThickness == null ? defaultStyle.fontOutlineThickness : fontOutlineThickness,
-                    fontOutlineHexColor == null ? defaultStyle.fontOutlineHexColor : fontOutlineHexColor,
-                    fontOutlineOpacity == null ? defaultStyle.fontOutlineOpacity : fontOutlineOpacity,
-                    fontShadowBlurRadius == null ? defaultStyle.fontShadowBlurRadius : fontShadowBlurRadius,
-                    fontShadowHexColor == null ? defaultStyle.fontShadowHexColor : fontShadowHexColor,
-                    fontShadowOpacity == null ? defaultStyle.fontShadowOpacity : fontShadowOpacity,
-                    fontShadowHorizontalOffset == null ? defaultStyle.fontShadowHorizontalOffset : fontShadowHorizontalOffset,
-                    fontShadowVerticalOffset == null ? defaultStyle.fontShadowVerticalOffset : fontShadowVerticalOffset,
+                    fontStyle.build(null),
                     focusedFontHexColor == null ? defaultStyle.focusedFontHexColor : focusedFontHexColor,
                     prefixInBackground == null ? defaultStyle.prefixInBackground : prefixInBackground,
                     defaultStyle != null && prefixFontHexColor == null ? defaultStyle.prefixFontHexColor : prefixFontHexColor, // prefixFontHexColor can be null even in defaultStyle

@@ -664,25 +664,26 @@ public class WindowsOverlay {
         int minHintTop = Integer.MAX_VALUE;
         int maxHintRight = Integer.MIN_VALUE;
         int maxHintBottom = Integer.MIN_VALUE;
-        QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
-        QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontOpacity());
-        QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), 0.8d); //style.fontOpacity()); // TODO
-        QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
-        QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
-        QFont font = qFont(style.fontName(), style.fontSize(), style.fontWeight());
-        FontStyle fontStyle = new FontStyle(
+        QColor fontColor = qColor(style.fontStyle().fontHexColor(), style.fontStyle().fontOpacity());
+        QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontStyle().fontOpacity());
+
+        QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), 0.7d); //style.fontOpacity()); // TODO
+        QColor outlineColor = qColor(style.fontStyle().fontOutlineHexColor(), style.fontStyle().fontOutlineOpacity());
+        QColor shadowColor = qColor(style.fontStyle().fontShadowHexColor(), style.fontStyle().fontShadowOpacity());
+        QFont font = qFont(style.fontStyle().fontName(), style.fontStyle().fontSize(), style.fontStyle().fontWeight());
+        QtFontStyle qtFontStyle = new QtFontStyle(
                 font,
                 new QFontMetrics(font),
                 fontColor,
                 focusedColor,
                 prefixColor,
                 outlineColor,
-                (int) Math.round(style.fontOutlineThickness() * screenScale),
+                (int) Math.round(style.fontStyle().fontOutlineThickness() * screenScale),
                 shadowColor,
-                style.fontShadowBlurRadius() * screenScale,
-                style.fontShadowHorizontalOffset() * screenScale,
-                style.fontShadowVerticalOffset() * screenScale,
-                style.fontSpacingPercent()
+                style.fontStyle().fontShadowBlurRadius() * screenScale,
+                style.fontStyle().fontShadowHorizontalOffset() * screenScale,
+                style.fontStyle().fontShadowVerticalOffset() * screenScale,
+                style.fontStyle().fontSpacingPercent()
         );
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
@@ -693,19 +694,19 @@ public class WindowsOverlay {
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         List<HintLabel> prefixHintLabels = new ArrayList<>();
         if (style.prefixInBackground()) {
-            QFont prefixFont = qFont(style.fontName(), style.fontSize() * 8, FontWeight.THIN);//style.fontWeight()); // TODO
-            FontStyle prefixFontStyle = new FontStyle(
+            QFont prefixFont = qFont(style.fontStyle().fontName(), style.fontStyle().fontSize() * 8, FontWeight.THIN);//style.fontWeight()); // TODO
+            QtFontStyle prefixQtFontStyle = new QtFontStyle(
                     prefixFont,
                     new QFontMetrics(prefixFont),
                     fontColor,
                     focusedColor,
                     prefixColor,
                     outlineColor,
-                    (int) Math.round(style.fontOutlineThickness() * screenScale),
+                    (int) Math.round(style.fontStyle().fontOutlineThickness() * screenScale),
                     shadowColor, //qColor(style.fontShadowHexColor(), 0), //shadowColor, // TODO
                     0,//style.fontShadowBlurRadius() * screenScale, // TODO
-                    style.fontShadowHorizontalOffset() * screenScale,
-                    style.fontShadowVerticalOffset() * screenScale,
+                    style.fontStyle().fontShadowHorizontalOffset() * screenScale,
+                    style.fontStyle().fontShadowVerticalOffset() * screenScale,
                     1//style.fontSpacingPercent()
             );
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
@@ -714,7 +715,7 @@ public class WindowsOverlay {
                 for (Key key : prefix) {
                     prefixHintKeyMaxXAdvance = Math.max(prefixHintKeyMaxXAdvance,
                             prefixXAdvancesByString.computeIfAbsent(key.hintLabel(),
-                                    fontStyle.metrics::horizontalAdvance));
+                                    qtFontStyle.metrics::horizontalAdvance));
                 }
             }
             for (Map.Entry<List<Key>, HintGroup> entry : hintGroupByPrefix.entrySet()) {
@@ -724,13 +725,13 @@ public class WindowsOverlay {
                         (hintGroup.minHintCenterX + hintGroup.maxHintCenterX) / 2;
                 double prefixCenterY =
                         (hintGroup.minHintCenterY + hintGroup.maxHintCenterY) / 2;
-                int totalXAdvance = prefixFontStyle.metrics.horizontalAdvance(
+                int totalXAdvance = prefixQtFontStyle.metrics.horizontalAdvance(
                         prefix.stream()
                               .map(Key::hintLabel)
                               .collect(Collectors.joining()));
                 double cellWidth = Math.max(totalXAdvance,
                         hintGroup.maxHintCenterX - hintGroup.minHintCenterX);
-                int lineHeight = prefixFontStyle.metrics.height();
+                int lineHeight = prefixQtFontStyle.metrics.height();
                 double cellHeight = Math.max(lineHeight,
                         hintGroup.maxHintCenterY - hintGroup.minHintCenterY);
                 int fullBoxWidth = (int) cellWidth;
@@ -739,7 +740,7 @@ public class WindowsOverlay {
                         new HintLabel(prefix, prefixXAdvancesByString, fullBoxWidth,
                                 fullBoxHeight, totalXAdvance,
                                 hintMesh.prefixLength(),
-                                prefixFontStyle,
+                                prefixQtFontStyle,
                                 prefixHintKeyMaxXAdvance,
                                 hintMesh.focusedKeySequence().size() - 1);
                 int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
@@ -757,7 +758,7 @@ public class WindowsOverlay {
             for (Key key : hint.keySequence()) {
                 hintKeyMaxXAdvance = Math.max(hintKeyMaxXAdvance,
                         xAdvancesByString.computeIfAbsent(key.hintLabel(),
-                                fontStyle.metrics::horizontalAdvance));
+                                qtFontStyle.metrics::horizontalAdvance));
             }
         }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
@@ -767,17 +768,17 @@ public class WindowsOverlay {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
                 continue;
-            int totalXAdvance = fontStyle.metrics.horizontalAdvance(hint.keySequence()
-                                                                        .stream()
-                                                                        .map(Key::hintLabel)
-                                                                        .collect(
+            int totalXAdvance = qtFontStyle.metrics.horizontalAdvance(hint.keySequence()
+                                                                          .stream()
+                                                                          .map(Key::hintLabel)
+                                                                          .collect(
                                                                                 Collectors.joining()));
             // Size of cell for screen selection hint is not configured by user.
             // The default size is used and it is too small (and will be less than totalXAdvance).
             double cellWidth = hint.cellWidth() != -1 ?
                     Math.max(totalXAdvance, hint.cellWidth()) :
                     totalXAdvance;
-            int lineHeight = fontStyle.metrics.height();
+            int lineHeight = qtFontStyle.metrics.height();
             double cellHeight = hint.cellHeight() != -1 ?
                     Math.max(lineHeight, hint.cellHeight()) :
                     lineHeight;
@@ -809,7 +810,7 @@ public class WindowsOverlay {
                             xAdvancesByString, fullBoxWidth,
                             fullBoxHeight, totalXAdvance,
                             style.prefixInBackground() ? -1 : hintMesh.prefixLength(),
-                            fontStyle,
+                            qtFontStyle,
                             hintKeyMaxXAdvance,
                             style.prefixInBackground() ? -1 : hintMesh.focusedKeySequence().size() - hintMesh.prefixLength());
             hintLabels.add(hintLabel);
@@ -1303,18 +1304,18 @@ public class WindowsOverlay {
         return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
     }
 
-    public record FontStyle(QFont font, QFontMetrics metrics, QColor fontColor, QColor focusedColor,
-                            QColor prefixColor,
-                            QColor outlineColor,
-                            int outlineThickness, QColor shadowColor, double shadowBlurRadius,
-                            double shadowHorizontalOffset, double shadowVerticalOffset,
-                            double fontSpacingPercent) {
+    public record QtFontStyle(QFont font, QFontMetrics metrics, QColor fontColor, QColor focusedColor,
+                              QColor prefixColor,
+                              QColor outlineColor,
+                              int outlineThickness, QColor shadowColor, double shadowBlurRadius,
+                              double shadowHorizontalOffset, double shadowVerticalOffset,
+                              double fontSpacingPercent) {
 
     }
 
     public static class HintLabel extends QLabel {
 
-        private final FontStyle fontStyle;
+        private final QtFontStyle qtFontStyle;
         private final List<HintKeyText> keyTexts;
         private final int tightHintBoxLeft;
         private final int tightHintBoxTop;
@@ -1326,29 +1327,29 @@ public class WindowsOverlay {
         public HintLabel(List<Key> keySequence, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
                          int boxHeight, int totalXAdvance, int prefixLength,
-                         FontStyle fontStyle,
+                         QtFontStyle qtFontStyle,
                          int hintKeyMaxXAdvance, int focusedKeyEndIndex) {
             super(keySequence
                     .stream()
                     .map(Key::hintLabel)
                     .collect(Collectors.joining()));
-            this.fontStyle = fontStyle;
-            setFont(fontStyle.font);
+            this.qtFontStyle = qtFontStyle;
+            setFont(qtFontStyle.font);
             QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
-            shadow.setBlurRadius(fontStyle.shadowBlurRadius);
-            shadow.setOffset(fontStyle.shadowHorizontalOffset, fontStyle.shadowVerticalOffset);
-            shadow.setColor(fontStyle.shadowColor);
+            shadow.setBlurRadius(qtFontStyle.shadowBlurRadius);
+            shadow.setOffset(qtFontStyle.shadowHorizontalOffset, qtFontStyle.shadowVerticalOffset);
+            shadow.setColor(qtFontStyle.shadowColor);
             setGraphicsEffect(shadow);
 
-            int y = (boxHeight + fontStyle.metrics.ascent() - fontStyle.metrics.descent()) / 2;
+            int y = (boxHeight + qtFontStyle.metrics.ascent() - qtFontStyle.metrics.descent()) / 2;
 
             double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
                     smallestColAlignedFontBoxWidth / boxWidth;
             // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
-            double adjustedFontBoxWidthPercent = fontStyle.fontSpacingPercent < 0.5d ?
-                    (fontStyle.fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
-                    : smallestColAlignedFontBoxWidthPercent + (fontStyle.fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
+            double adjustedFontBoxWidthPercent = qtFontStyle.fontSpacingPercent < 0.5d ?
+                    (qtFontStyle.fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
+                    : smallestColAlignedFontBoxWidthPercent + (qtFontStyle.fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
             boolean doNotColAlign = keySequence.size() != 1 &&
                                     adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth -
@@ -1402,8 +1403,8 @@ public class WindowsOverlay {
                         keyIndex <= focusedKeyEndIndex,
                         prefixLength != -1 && keyIndex <= prefixLength - 1));
             }
-            int smallestHintBoxTop = y - fontStyle.metrics.ascent();
-            int smallestHintBoxHeight = fontStyle.metrics.height();
+            int smallestHintBoxTop = y - qtFontStyle.metrics.ascent();
+            int smallestHintBoxHeight = qtFontStyle.metrics.height();
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxTop = smallestHintBoxTop;
             this.tightHintBoxWidth = smallestHintBoxWidth;
@@ -1417,9 +1418,9 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
 
-            if (fontStyle.outlineThickness != 0) {
-                QPen outlinePen = new QPen(fontStyle.outlineColor);
-                outlinePen.setWidth(fontStyle.outlineThickness);
+            if (qtFontStyle.outlineThickness != 0) {
+                QPen outlinePen = new QPen(qtFontStyle.outlineColor);
+                outlinePen.setWidth(qtFontStyle.outlineThickness);
                 outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
                 painter.setPen(outlinePen);
                 painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
@@ -1435,11 +1436,11 @@ public class WindowsOverlay {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
                 if (keyText.isFocused())
-                    painter.setPen(fontStyle.focusedColor);
+                    painter.setPen(qtFontStyle.focusedColor);
                 else if (keyText.isPrefix())
-                    painter.setPen(fontStyle.prefixColor);
+                    painter.setPen(qtFontStyle.prefixColor);
                 else
-                    painter.setPen(fontStyle.fontColor);
+                    painter.setPen(qtFontStyle.fontColor);
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.end();
