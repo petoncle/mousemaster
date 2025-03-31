@@ -665,16 +665,12 @@ public class WindowsOverlay {
         int maxHintRight = Integer.MIN_VALUE;
         int maxHintBottom = Integer.MIN_VALUE;
         Map<String, Integer> xAdvancesByString = new HashMap<>();
-        QFont font =
-                new QFont(style.fontName(), (int) Math.round(style.fontSize()),
-                        style.fontWeight().qtWeight().value());
-        font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
-        font.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
         QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
         QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontOpacity());
         QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), style.fontOpacity());
         QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
         QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
+        QFont font = qFont(style.fontName(), style.fontSize(), style.fontWeight());
         FontStyle fontStyle = new FontStyle(
                 font,
                 new QFontMetrics(font),
@@ -823,6 +819,14 @@ public class WindowsOverlay {
                 minHintTop - hintMeshWindow.window.y(),
                 maxHintRight - minHintLeft + 1,
                 maxHintBottom - minHintTop + 1);
+    }
+
+    private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
+        QFont font = new QFont(fontName, (int) Math.round(fontSize),
+                fontWeight.qtWeight().value());
+        font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
+        font.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
+        return font;
     }
 
     private static void cacheQtHintWindowIntoPixmap(QWidget container,
