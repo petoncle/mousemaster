@@ -664,13 +664,13 @@ public class WindowsOverlay {
         int minHintTop = Integer.MAX_VALUE;
         int maxHintRight = Integer.MIN_VALUE;
         int maxHintBottom = Integer.MIN_VALUE;
-        QColor fontColor = qColor(style.fontStyle().fontHexColor(), style.fontStyle().fontOpacity());
-        QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontStyle().fontOpacity());
+        QColor fontColor = qColor(style.fontStyle().hexColor(), style.fontStyle().opacity());
+        QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontStyle().opacity());
 
-        QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), 0.7d); //style.fontOpacity()); // TODO
-        QColor outlineColor = qColor(style.fontStyle().fontOutlineHexColor(), style.fontStyle().fontOutlineOpacity());
-        QColor shadowColor = qColor(style.fontStyle().fontShadowHexColor(), style.fontStyle().fontShadowOpacity());
-        QFont font = qFont(style.fontStyle().fontName(), style.fontStyle().fontSize(), style.fontStyle().fontWeight());
+        QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), 0.7d); //style.opacity()); // TODO
+        QColor outlineColor = qColor(style.fontStyle().outlineHexColor(), style.fontStyle().outlineOpacity());
+        QColor shadowColor = qColor(style.fontStyle().shadowHexColor(), style.fontStyle().shadowOpacity());
+        QFont font = qFont(style.fontStyle().name(), style.fontStyle().size(), style.fontStyle().weight());
         QtFontStyle qtFontStyle = new QtFontStyle(
                 font,
                 new QFontMetrics(font),
@@ -678,12 +678,12 @@ public class WindowsOverlay {
                 focusedColor,
                 prefixColor,
                 outlineColor,
-                (int) Math.round(style.fontStyle().fontOutlineThickness() * screenScale),
+                (int) Math.round(style.fontStyle().outlineThickness() * screenScale),
                 shadowColor,
-                style.fontStyle().fontShadowBlurRadius() * screenScale,
-                style.fontStyle().fontShadowHorizontalOffset() * screenScale,
-                style.fontStyle().fontShadowVerticalOffset() * screenScale,
-                style.fontStyle().fontSpacingPercent()
+                style.fontStyle().shadowBlurRadius() * screenScale,
+                style.fontStyle().shadowHorizontalOffset() * screenScale,
+                style.fontStyle().shadowVerticalOffset() * screenScale,
+                style.fontStyle().spacingPercent()
         );
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
@@ -694,7 +694,7 @@ public class WindowsOverlay {
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         List<HintLabel> prefixHintLabels = new ArrayList<>();
         if (style.prefixInBackground()) {
-            QFont prefixFont = qFont(style.fontStyle().fontName(), style.fontStyle().fontSize() * 8, FontWeight.THIN);//style.fontWeight()); // TODO
+            QFont prefixFont = qFont(style.fontStyle().name(), style.fontStyle().size() * 8, FontWeight.THIN);//style.weight()); // TODO
             QtFontStyle prefixQtFontStyle = new QtFontStyle(
                     prefixFont,
                     new QFontMetrics(prefixFont),
@@ -702,12 +702,12 @@ public class WindowsOverlay {
                     focusedColor,
                     prefixColor,
                     outlineColor,
-                    (int) Math.round(style.fontStyle().fontOutlineThickness() * screenScale),
-                    shadowColor, //qColor(style.fontShadowHexColor(), 0), //shadowColor, // TODO
-                    0,//style.fontShadowBlurRadius() * screenScale, // TODO
-                    style.fontStyle().fontShadowHorizontalOffset() * screenScale,
-                    style.fontStyle().fontShadowVerticalOffset() * screenScale,
-                    1//style.fontSpacingPercent()
+                    (int) Math.round(style.fontStyle().outlineThickness() * screenScale),
+                    shadowColor, //qColor(style.shadowHexColor(), 0), //shadowColor, // TODO
+                    0,//style.shadowBlurRadius() * screenScale, // TODO
+                    style.fontStyle().shadowHorizontalOffset() * screenScale,
+                    style.fontStyle().shadowVerticalOffset() * screenScale,
+                    1//style.spacingPercent()
             );
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;

@@ -82,20 +82,20 @@ public class ConfigurationParser {
         HintMeshStyleBuilder hintMeshStyleBuilder =
                 hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER);
         hintMeshStyleBuilder.fontStyle()
-                            .fontName("Consolas")
-                            .fontWeight(FontWeight.BOLD)
-                            .fontSize(18d)
-                            .fontSpacingPercent(0.7d)
-                            .fontHexColor("#FFFFFF")
-                            .fontOpacity(1d)
-                            .fontOutlineThickness(0d)
-                            .fontOutlineHexColor("#000000")
-                            .fontOutlineOpacity(0.5d)
-                            .fontShadowBlurRadius(0d)
-                            .fontShadowHexColor("#000000")
-                            .fontShadowOpacity(0.4d)
-                            .fontShadowHorizontalOffset(2d)
-                            .fontShadowVerticalOffset(2d);
+                            .name("Consolas")
+                            .weight(FontWeight.BOLD)
+                            .size(18d)
+                            .spacingPercent(0.7d)
+                            .hexColor("#FFFFFF")
+                            .opacity(1d)
+                            .outlineThickness(0d)
+                            .outlineHexColor("#000000")
+                            .outlineOpacity(0.5d)
+                            .shadowBlurRadius(0d)
+                            .shadowHexColor("#000000")
+                            .shadowOpacity(0.4d)
+                            .shadowHorizontalOffset(2d)
+                            .shadowVerticalOffset(2d);
         hintMeshStyleBuilder
                 .focusedFontHexColor("#CCCCCC")
                 .prefixInBackground(false)
@@ -647,31 +647,31 @@ public class ConfigurationParser {
                         case "undo" ->
                                 mode.hintMesh.builder.keys(viewportFilter).undoKeys(parseKeyOrAlias(
                                         propertyValue, keyAliases));
-                        case "font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontWeight(FontWeight.of(propertyValue));
-                        case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontName(parseFontName(propertyValue, fontAvailability));
-                        case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontSize(
+                        case "font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().weight(FontWeight.of(propertyValue));
+                        case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().name(parseFontName(propertyValue, fontAvailability));
+                        case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().size(
                                 parseDouble(propertyValue, false, 0, 1000));
-                        case "font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontSpacingPercent(
+                        case "font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().spacingPercent(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontHexColor(
+                        case "font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().hexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontOpacity(
+                        case "font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().opacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontOutlineThickness(
+                        case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineThickness(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontOutlineHexColor(
+                        case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontOutlineOpacity(
+                        case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontShadowBlurRadius(
+                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowBlurRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontShadowHexColor(
+                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowHexColor(
                                 checkColorFormat(propertyValue));
-                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontShadowOpacity(
+                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontShadowHorizontalOffset(
+                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowHorizontalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
-                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontShadowVerticalOffset(
+                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowVerticalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
                         case "prefix-in-background" ->
                                 mode.hintMesh.builder.style(viewportFilter)
@@ -1894,74 +1894,74 @@ public class ConfigurationParser {
                                 childStyleByFilter = builder.styleByFilter();
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontName, childStyleByFilter,
+                                FontStyleBuilder::name, childStyleByFilter,
                                 filter))
-                            childStyle.fontStyle().fontName(parentStyle.fontStyle().fontName());
+                            childStyle.fontStyle().name(parentStyle.fontStyle().name());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontWeight, childStyleByFilter,
+                                FontStyleBuilder::weight, childStyleByFilter,
                                 filter))
-                            childStyle.fontStyle().fontWeight(parentStyle.fontStyle().fontWeight());
+                            childStyle.fontStyle().weight(parentStyle.fontStyle().weight());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontSize, childStyleByFilter,
+                                FontStyleBuilder::size, childStyleByFilter,
                                 filter))
-                            childStyle.fontStyle().fontSize(parentStyle.fontStyle().fontSize());
+                            childStyle.fontStyle().size(parentStyle.fontStyle().size());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontSpacingPercent,
+                                FontStyleBuilder::spacingPercent,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontSpacingPercent(parentStyle.fontStyle().fontSpacingPercent());
+                            childStyle.fontStyle().spacingPercent(parentStyle.fontStyle().spacingPercent());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontHexColor, childStyleByFilter,
+                                FontStyleBuilder::hexColor, childStyleByFilter,
                                 filter))
-                            childStyle.fontStyle().fontHexColor(parentStyle.fontStyle().fontHexColor());
+                            childStyle.fontStyle().hexColor(parentStyle.fontStyle().hexColor());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontOpacity, childStyleByFilter,
+                                FontStyleBuilder::opacity, childStyleByFilter,
                                 filter))
-                            childStyle.fontStyle().fontOpacity(parentStyle.fontStyle().fontOpacity());
+                            childStyle.fontStyle().opacity(parentStyle.fontStyle().opacity());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontOutlineThickness,
+                                FontStyleBuilder::outlineThickness,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontOutlineThickness(parentStyle.fontStyle().fontOutlineThickness());
+                            childStyle.fontStyle().outlineThickness(parentStyle.fontStyle().outlineThickness());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontOutlineHexColor,
+                                FontStyleBuilder::outlineHexColor,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontOutlineHexColor(parentStyle.fontStyle().fontOutlineHexColor());
+                            childStyle.fontStyle().outlineHexColor(parentStyle.fontStyle().outlineHexColor());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontOutlineOpacity,
+                                FontStyleBuilder::outlineOpacity,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontOutlineOpacity(parentStyle.fontStyle().fontOutlineOpacity());
+                            childStyle.fontStyle().outlineOpacity(parentStyle.fontStyle().outlineOpacity());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontShadowBlurRadius,
+                                FontStyleBuilder::shadowBlurRadius,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontShadowBlurRadius(parentStyle.fontStyle().fontShadowBlurRadius());
+                            childStyle.fontStyle().shadowBlurRadius(parentStyle.fontStyle().shadowBlurRadius());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontShadowHexColor,
+                                FontStyleBuilder::shadowHexColor,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontShadowHexColor(parentStyle.fontStyle().fontShadowHexColor());
+                            childStyle.fontStyle().shadowHexColor(parentStyle.fontStyle().shadowHexColor());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontShadowOpacity,
+                                FontStyleBuilder::shadowOpacity,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontShadowOpacity(parentStyle.fontStyle().fontShadowOpacity());
+                            childStyle.fontStyle().shadowOpacity(parentStyle.fontStyle().shadowOpacity());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontShadowHorizontalOffset,
+                                FontStyleBuilder::shadowHorizontalOffset,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontShadowHorizontalOffset(parentStyle.fontStyle().fontShadowHorizontalOffset());
+                            childStyle.fontStyle().shadowHorizontalOffset(parentStyle.fontStyle().shadowHorizontalOffset());
                         if (!fontStyleChildDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::fontStyle,
-                                FontStyleBuilder::fontShadowVerticalOffset,
+                                FontStyleBuilder::shadowVerticalOffset,
                                 childStyleByFilter, filter))
-                            childStyle.fontStyle().fontShadowVerticalOffset(parentStyle.fontStyle().fontShadowVerticalOffset());
+                            childStyle.fontStyle().shadowVerticalOffset(parentStyle.fontStyle().shadowVerticalOffset());
                         if (!childDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::prefixInBackground,
                                 childStyleByFilter, filter))

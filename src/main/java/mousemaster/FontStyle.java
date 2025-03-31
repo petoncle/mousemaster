@@ -1,13 +1,13 @@
 package mousemaster;
 
-public record FontStyle(String fontName, FontWeight fontWeight,
-                        double fontSize, double fontSpacingPercent, String fontHexColor,
-                        double fontOpacity,
-                        double fontOutlineThickness, String fontOutlineHexColor,
-                        double fontOutlineOpacity,
-                        double fontShadowBlurRadius, String fontShadowHexColor,
-                        double fontShadowOpacity, double fontShadowHorizontalOffset,
-                        double fontShadowVerticalOffset) {
+public record FontStyle(String name, FontWeight weight,
+                        double size, double spacingPercent, String hexColor,
+                        double opacity,
+                        double outlineThickness, String outlineHexColor,
+                        double outlineOpacity,
+                        double shadowBlurRadius, String shadowHexColor,
+                        double shadowOpacity, double shadowHorizontalOffset,
+                        double shadowVerticalOffset) {
 
     public FontStyleBuilder builder() {
         return new FontStyleBuilder(this);
@@ -15,186 +15,186 @@ public record FontStyle(String fontName, FontWeight fontWeight,
 
     public static class FontStyleBuilder {
 
-        private String fontName;
-        private FontWeight fontWeight;
-        private Double fontSize;
-        private Double fontSpacingPercent;
-        private String fontHexColor;
-        private Double fontOpacity;
-        private Double fontOutlineThickness;
-        private String fontOutlineHexColor;
-        private Double fontOutlineOpacity;
-        private Double fontShadowBlurRadius;
-        private String fontShadowHexColor;
-        private Double fontShadowOpacity;
-        private Double fontShadowHorizontalOffset;
-        private Double fontShadowVerticalOffset;
+        private String name;
+        private FontWeight weight;
+        private Double size;
+        private Double spacingPercent;
+        private String hexColor;
+        private Double hpacity;
+        private Double outlineThickness;
+        private String outlineHexColor;
+        private Double outlineOpacity;
+        private Double shadowBlurRadius;
+        private String shadowHexColor;
+        private Double shadowOpacity;
+        private Double shadowHorizontalOffset;
+        private Double shadowVerticalOffset;
 
         public FontStyleBuilder() {
 
         }
 
         public FontStyleBuilder(FontStyle fontStyle) {
-            this.fontName = fontStyle.fontName;
-            this.fontWeight = fontStyle.fontWeight;
-            this.fontSize = fontStyle.fontSize;
-            this.fontSpacingPercent = fontStyle.fontSpacingPercent;
-            this.fontHexColor = fontStyle.fontHexColor;
-            this.fontOpacity = fontStyle.fontOpacity;
-            this.fontOutlineThickness = fontStyle.fontOutlineThickness;
-            this.fontOutlineHexColor = fontStyle.fontOutlineHexColor;
-            this.fontOutlineOpacity = fontStyle.fontOutlineOpacity;
-            this.fontShadowBlurRadius = fontStyle.fontShadowBlurRadius;
-            this.fontShadowHexColor = fontStyle.fontShadowHexColor;
-            this.fontShadowOpacity = fontStyle.fontShadowOpacity;
-            this.fontShadowHorizontalOffset = fontStyle.fontShadowHorizontalOffset;
-            this.fontShadowVerticalOffset = fontStyle.fontShadowVerticalOffset;
+            this.name = fontStyle.name;
+            this.weight = fontStyle.weight;
+            this.size = fontStyle.size;
+            this.spacingPercent = fontStyle.spacingPercent;
+            this.hexColor = fontStyle.hexColor;
+            this.hpacity = fontStyle.opacity;
+            this.outlineThickness = fontStyle.outlineThickness;
+            this.outlineHexColor = fontStyle.outlineHexColor;
+            this.outlineOpacity = fontStyle.outlineOpacity;
+            this.shadowBlurRadius = fontStyle.shadowBlurRadius;
+            this.shadowHexColor = fontStyle.shadowHexColor;
+            this.shadowOpacity = fontStyle.shadowOpacity;
+            this.shadowHorizontalOffset = fontStyle.shadowHorizontalOffset;
+            this.shadowVerticalOffset = fontStyle.shadowVerticalOffset;
         }
 
-        public String fontName() {
-            return fontName;
+        public String name() {
+            return name;
         }
 
-        public FontWeight fontWeight() {
-            return fontWeight;
+        public FontWeight weight() {
+            return weight;
         }
 
-        public Double fontSize() {
-            return fontSize;
+        public Double size() {
+            return size;
         }
 
-        public Double fontSpacingPercent() {
-            return fontSpacingPercent;
+        public Double spacingPercent() {
+            return spacingPercent;
         }
 
-        public String fontHexColor() {
-            return fontHexColor;
+        public String hexColor() {
+            return hexColor;
         }
 
-        public Double fontOpacity() {
-            return fontOpacity;
+        public Double opacity() {
+            return hpacity;
         }
 
-        public Double fontOutlineThickness() {
-            return fontOutlineThickness;
+        public Double outlineThickness() {
+            return outlineThickness;
         }
 
-        public String fontOutlineHexColor() {
-            return fontOutlineHexColor;
+        public String outlineHexColor() {
+            return outlineHexColor;
         }
 
-        public Double fontOutlineOpacity() {
-            return fontOutlineOpacity;
+        public Double outlineOpacity() {
+            return outlineOpacity;
         }
 
-        public Double fontShadowBlurRadius() {
-            return fontShadowBlurRadius;
+        public Double shadowBlurRadius() {
+            return shadowBlurRadius;
         }
 
-        public String fontShadowHexColor() {
-            return fontShadowHexColor;
+        public String shadowHexColor() {
+            return shadowHexColor;
         }
 
-        public Double fontShadowOpacity() {
-            return fontShadowOpacity;
+        public Double shadowOpacity() {
+            return shadowOpacity;
         }
 
-        public Double fontShadowHorizontalOffset() {
-            return fontShadowHorizontalOffset;
+        public Double shadowHorizontalOffset() {
+            return shadowHorizontalOffset;
         }
 
-        public Double fontShadowVerticalOffset() {
-            return fontShadowVerticalOffset;
+        public Double shadowVerticalOffset() {
+            return shadowVerticalOffset;
         }
 
-        public FontStyleBuilder fontName(String fontName) {
-            this.fontName = fontName;
+        public FontStyleBuilder name(String fontName) {
+            this.name = fontName;
             return this;
         }
 
-        public FontStyleBuilder fontWeight(FontWeight fontWeight) {
-            this.fontWeight = fontWeight;
+        public FontStyleBuilder weight(FontWeight fontWeight) {
+            this.weight = fontWeight;
             return this;
         }
 
-        public FontStyleBuilder fontSize(Double fontSize) {
-            this.fontSize = fontSize;
+        public FontStyleBuilder size(Double fontSize) {
+            this.size = fontSize;
             return this;
         }
 
-        public FontStyleBuilder fontSpacingPercent(Double fontSpacingPercent) {
-            this.fontSpacingPercent = fontSpacingPercent;
+        public FontStyleBuilder spacingPercent(Double fontSpacingPercent) {
+            this.spacingPercent = fontSpacingPercent;
             return this;
         }
 
-        public FontStyleBuilder fontHexColor(String fontHexColor) {
-            this.fontHexColor = fontHexColor;
+        public FontStyleBuilder hexColor(String fontHexColor) {
+            this.hexColor = fontHexColor;
             return this;
         }
 
-        public FontStyleBuilder fontOpacity(Double fontOpacity) {
-            this.fontOpacity = fontOpacity;
+        public FontStyleBuilder opacity(Double fontOpacity) {
+            this.hpacity = fontOpacity;
             return this;
         }
 
-        public FontStyleBuilder fontOutlineThickness(Double fontOutlineThickness) {
-            this.fontOutlineThickness = fontOutlineThickness;
+        public FontStyleBuilder outlineThickness(Double fontOutlineThickness) {
+            this.outlineThickness = fontOutlineThickness;
             return this;
         }
 
-        public FontStyleBuilder fontOutlineHexColor(String fontOutlineHexColor) {
-            this.fontOutlineHexColor = fontOutlineHexColor;
+        public FontStyleBuilder outlineHexColor(String fontOutlineHexColor) {
+            this.outlineHexColor = fontOutlineHexColor;
             return this;
         }
 
-        public FontStyleBuilder fontOutlineOpacity(Double fontOutlineOpacity) {
-            this.fontOutlineOpacity = fontOutlineOpacity;
+        public FontStyleBuilder outlineOpacity(Double fontOutlineOpacity) {
+            this.outlineOpacity = fontOutlineOpacity;
             return this;
         }
 
-        public FontStyleBuilder fontShadowBlurRadius(Double fontShadowBlurRadius) {
-            this.fontShadowBlurRadius = fontShadowBlurRadius;
+        public FontStyleBuilder shadowBlurRadius(Double fontShadowBlurRadius) {
+            this.shadowBlurRadius = fontShadowBlurRadius;
             return this;
         }
 
-        public FontStyleBuilder fontShadowHexColor(String fontShadowHexColor) {
-            this.fontShadowHexColor = fontShadowHexColor;
+        public FontStyleBuilder shadowHexColor(String fontShadowHexColor) {
+            this.shadowHexColor = fontShadowHexColor;
             return this;
         }
 
-        public FontStyleBuilder fontShadowOpacity(Double fontShadowOpacity) {
-            this.fontShadowOpacity = fontShadowOpacity;
+        public FontStyleBuilder shadowOpacity(Double fontShadowOpacity) {
+            this.shadowOpacity = fontShadowOpacity;
             return this;
         }
 
-        public FontStyleBuilder fontShadowHorizontalOffset(
+        public FontStyleBuilder shadowHorizontalOffset(
                 Double fontShadowHorizontalOffset) {
-            this.fontShadowHorizontalOffset = fontShadowHorizontalOffset;
+            this.shadowHorizontalOffset = fontShadowHorizontalOffset;
             return this;
         }
 
-        public FontStyleBuilder fontShadowVerticalOffset(
+        public FontStyleBuilder shadowVerticalOffset(
                 Double fontShadowVerticalOffset) {
-            this.fontShadowVerticalOffset = fontShadowVerticalOffset;
+            this.shadowVerticalOffset = fontShadowVerticalOffset;
             return this;
         }
 
         public FontStyle build(FontStyle defaultStyle) {
             return new FontStyle(
-                    fontName == null ? defaultStyle.fontName : fontName,
-                    fontWeight == null ? defaultStyle.fontWeight : fontWeight,
-                    fontSize == null ? defaultStyle.fontSize : fontSize,
-                    fontSpacingPercent == null ? defaultStyle.fontSpacingPercent : fontSpacingPercent,
-                    fontHexColor == null ? defaultStyle.fontHexColor : fontHexColor,
-                    fontOpacity == null ? defaultStyle.fontOpacity : fontOpacity,
-                    fontOutlineThickness == null ? defaultStyle.fontOutlineThickness : fontOutlineThickness,
-                    fontOutlineHexColor == null ? defaultStyle.fontOutlineHexColor : fontOutlineHexColor,
-                    fontOutlineOpacity == null ? defaultStyle.fontOutlineOpacity : fontOutlineOpacity,
-                    fontShadowBlurRadius == null ? defaultStyle.fontShadowBlurRadius : fontShadowBlurRadius,
-                    fontShadowHexColor == null ? defaultStyle.fontShadowHexColor : fontShadowHexColor,
-                    fontShadowOpacity == null ? defaultStyle.fontShadowOpacity : fontShadowOpacity,
-                    fontShadowHorizontalOffset == null ? defaultStyle.fontShadowHorizontalOffset : fontShadowHorizontalOffset,
-                    fontShadowVerticalOffset == null ? defaultStyle.fontShadowVerticalOffset : fontShadowVerticalOffset
+                    name == null ? defaultStyle.name : name,
+                    weight == null ? defaultStyle.weight : weight,
+                    size == null ? defaultStyle.size : size,
+                    spacingPercent == null ? defaultStyle.spacingPercent : spacingPercent,
+                    hexColor == null ? defaultStyle.hexColor : hexColor,
+                    hpacity == null ? defaultStyle.opacity : hpacity,
+                    outlineThickness == null ? defaultStyle.outlineThickness : outlineThickness,
+                    outlineHexColor == null ? defaultStyle.outlineHexColor : outlineHexColor,
+                    outlineOpacity == null ? defaultStyle.outlineOpacity : outlineOpacity,
+                    shadowBlurRadius == null ? defaultStyle.shadowBlurRadius : shadowBlurRadius,
+                    shadowHexColor == null ? defaultStyle.shadowHexColor : shadowHexColor,
+                    shadowOpacity == null ? defaultStyle.shadowOpacity : shadowOpacity,
+                    shadowHorizontalOffset == null ? defaultStyle.shadowHorizontalOffset : shadowHorizontalOffset,
+                    shadowVerticalOffset == null ? defaultStyle.shadowVerticalOffset : shadowVerticalOffset
             );
         }
 
