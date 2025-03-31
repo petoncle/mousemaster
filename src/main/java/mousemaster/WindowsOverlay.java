@@ -666,7 +666,7 @@ public class WindowsOverlay {
         int maxHintBottom = Integer.MIN_VALUE;
         QColor fontColor = qColor(style.fontHexColor(), style.fontOpacity());
         QColor focusedColor = qColor(style.focusedFontHexColor(), style.fontOpacity());
-        QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), style.fontOpacity());
+        QColor prefixColor = style.prefixFontHexColor() == null ? fontColor : qColor(style.prefixFontHexColor(), 0.8d); //style.fontOpacity()); // TODO
         QColor outlineColor = qColor(style.fontOutlineHexColor(), style.fontOutlineOpacity());
         QColor shadowColor = qColor(style.fontShadowHexColor(), style.fontShadowOpacity());
         QFont font = qFont(style.fontName(), style.fontSize(), style.fontWeight());
@@ -691,17 +691,69 @@ public class WindowsOverlay {
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
+        QFont prefixFont = qFont(style.fontName(), style.fontSize() * 8, style.fontWeight());
+        FontStyle prefixFontStyle = new FontStyle(
+                prefixFont,
+                new QFontMetrics(prefixFont),
+                fontColor,
+                focusedColor,
+                prefixColor,
+                outlineColor,
+                (int) Math.round(style.fontOutlineThickness() * screenScale),
+                shadowColor, //qColor(style.fontShadowHexColor(), 0), //shadowColor, // TODO
+                0,//style.fontShadowBlurRadius() * screenScale, // TODO
+                style.fontShadowHorizontalOffset() * screenScale,
+                style.fontShadowVerticalOffset() * screenScale,
+                1//style.fontSpacingPercent()
+        );
+        Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
+        int prefixHintKeyMaxXAdvance = 0;
+        for (List<Key> prefix : hintGroupByPrefix.keySet()) {
+            for (Key key : prefix) {
+                prefixHintKeyMaxXAdvance = Math.max(prefixHintKeyMaxXAdvance,
+                        prefixXAdvancesByString.computeIfAbsent(key.hintLabel(),
+                                fontStyle.metrics::horizontalAdvance));
+            }
+        }
+        List<HintLabel> prefixHintLabels = new ArrayList<>();
+        for (Map.Entry<List<Key>, HintGroup> entry : hintGroupByPrefix.entrySet()) {
+            List<Key> prefix = entry.getKey();
+            HintGroup hintGroup = entry.getValue();
+            double prefixCenterX = (hintGroup.minHintCenterX + hintGroup.maxHintCenterX) / 2;
+            double prefixCenterY = (hintGroup.minHintCenterY + hintGroup.maxHintCenterY) / 2;
+            int totalXAdvance = prefixFontStyle.metrics.horizontalAdvance(
+                    prefix.stream().map(Key::hintLabel).collect(Collectors.joining()));
+            double cellWidth = Math.max(totalXAdvance, hintGroup.maxHintCenterX - hintGroup.minHintCenterX);
+            int lineHeight = prefixFontStyle.metrics.height();
+            double cellHeight = Math.max(lineHeight, hintGroup.maxHintCenterY - hintGroup.minHintCenterY);
+            int fullBoxWidth = (int) cellWidth;
+            int fullBoxHeight = (int) cellHeight;
+            HintLabel hintLabel =
+                    new HintLabel(prefix, prefixXAdvancesByString, fullBoxWidth,
+                            fullBoxHeight, totalXAdvance,
+                            hintMesh.prefixLength(),
+                            prefixFontStyle,
+                            prefixHintKeyMaxXAdvance,
+                            hintMesh.focusedKeySequence().size() - 1);
+            hintLabel.setParent(container);
+            int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
+            int y = hintRoundedY(prefixCenterY, cellHeight, qtScaleFactor);
+            x -= totalXAdvance / 2; // This should be half the label width?
+            hintLabel.setGeometry(x - hintMeshWindow.window().x(), y - hintMeshWindow.window.y(), fullBoxWidth, fullBoxHeight);
+            hintLabel.show();
+            prefixHintLabels.add(hintLabel);
+        }
         Map<String, Integer> xAdvancesByString = new HashMap<>();
         int hintKeyMaxXAdvance = 0;
         for (Hint hint : hints) {
             for (Key key : hint.keySequence()) {
-                String keyText = key.hintLabel();
                 hintKeyMaxXAdvance = Math.max(hintKeyMaxXAdvance,
-                        xAdvancesByString.computeIfAbsent(keyText,
+                        xAdvancesByString.computeIfAbsent(key.hintLabel(),
                                 fontStyle.metrics::horizontalAdvance));
             }
         }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
+        List<HintBox> hintBoxes = new ArrayList<>();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.focusedKeySequence()))
@@ -741,12 +793,13 @@ public class WindowsOverlay {
             List<Key> prefix = hintMesh.prefixLength() == -1 ?
                     hint.keySequence() : hint.keySequence().subList(0,
                     hintMesh.prefixLength());
+            List<Key> suffix = hint.keySequence().subList(1, hint.keySequence().size());
             HintLabel hintLabel =
-                    new HintLabel(hint.keySequence(), xAdvancesByString, fullBoxWidth,
+                    new HintLabel(suffix, xAdvancesByString, fullBoxWidth,
                             fullBoxHeight, totalXAdvance,
-                            hintMesh.prefixLength(),
-                            fontStyle, hintMesh.focusedKeySequence(),
-                            hintKeyMaxXAdvance, fontStyle.metrics);
+                            -1,//hintMesh.prefixLength(), // TODO
+                            fontStyle,
+                            hintKeyMaxXAdvance, -1);//hintMesh.focusedKeySequence().size() - 1); // TODO
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
             HintGroup hintGroup = hintGroupByPrefix.get(prefix);
@@ -772,6 +825,7 @@ public class WindowsOverlay {
                             groupLeftEdge, groupTopEdge, groupRightEdge, groupBottomEdge,
                             qtScaleFactor
                     );
+            hintBoxes.add(hintBox);
             HintBox[][] subgridBoxes = addSubgridBoxes(hintBox, qtScaleFactor,
                     subgridBoxColor,
                     subgridBoxBorderColor,
@@ -807,8 +861,7 @@ public class WindowsOverlay {
             }
             hintBox.show();
         }
-        for (QObject child : container.children()) {
-            HintBox hintBox = (HintBox) child;
+        for (HintBox hintBox : hintBoxes) {
             hintBox.move(
                     hintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
                     hintBox.y() - (minHintTop - hintMeshWindow.window.y())
@@ -818,6 +871,9 @@ public class WindowsOverlay {
                 minHintTop - hintMeshWindow.window.y(),
                 maxHintRight - minHintLeft + 1,
                 maxHintBottom - minHintTop + 1);
+        for (HintLabel prefixHintLabel : prefixHintLabels) {
+            prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
+        }
     }
 
     private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
@@ -977,15 +1033,16 @@ public class WindowsOverlay {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
 //            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             // Draw background.
             if (color.alpha() != 0) {
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOver);
                 painter.setBrush(new QBrush(color));
                 painter.setPen(Qt.PenStyle.NoPen);
                 painter.drawRoundedRect(0, 0, width(), height(), borderRadius,
                         borderRadius);
             }
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             if (borderThickness != 0)
                 drawBorders(painter);
             painter.end();
@@ -1252,8 +1309,8 @@ public class WindowsOverlay {
         public HintLabel(List<Key> keySequence, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
                          int boxHeight, int totalXAdvance, int prefixLength,
-                         FontStyle fontStyle, List<Key> focusedKeySequence,
-                         int hintKeyMaxXAdvance, QFontMetrics metrics) {
+                         FontStyle fontStyle,
+                         int hintKeyMaxXAdvance, int focusedKeyEndIndex) {
             super(keySequence
                     .stream()
                     .map(Key::hintLabel)
@@ -1266,7 +1323,7 @@ public class WindowsOverlay {
             shadow.setColor(fontStyle.shadowColor);
             setGraphicsEffect(shadow);
 
-            int y = (boxHeight + metrics.ascent() - metrics.descent()) / 2;
+            int y = (boxHeight + fontStyle.metrics.ascent() - fontStyle.metrics.descent()) / 2;
 
             double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
@@ -1325,11 +1382,11 @@ public class WindowsOverlay {
                     }
                 }
                 keyTexts.add(new HintKeyText(keyText, x, y, keyWidth,
-                        keyIndex <= focusedKeySequence.size() - 1,
+                        keyIndex <= focusedKeyEndIndex,
                         prefixLength != -1 && keyIndex <= prefixLength - 1));
             }
-            int smallestHintBoxTop = y - metrics.ascent();
-            int smallestHintBoxHeight = metrics.height();
+            int smallestHintBoxTop = y - fontStyle.metrics.ascent();
+            int smallestHintBoxHeight = fontStyle.metrics.height();
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxTop = smallestHintBoxTop;
             this.tightHintBoxWidth = smallestHintBoxWidth;
