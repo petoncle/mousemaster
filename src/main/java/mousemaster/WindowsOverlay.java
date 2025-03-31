@@ -810,7 +810,7 @@ public class WindowsOverlay {
                             style.prefixInBackground() ? -1 : hintMesh.prefixLength(),
                             labelFontStyle,
                             hintKeyMaxXAdvance,
-                            style.prefixInBackground() ? -1 : hintMesh.focusedKeySequence().size() - hintMesh.prefixLength());
+                            style.prefixInBackground() || hintMesh.prefixLength() == -1 ? -1 : hintMesh.focusedKeySequence().size() - hintMesh.prefixLength());
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
