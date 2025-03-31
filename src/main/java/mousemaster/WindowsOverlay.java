@@ -691,7 +691,7 @@ public class WindowsOverlay {
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
-        QFont prefixFont = qFont(style.fontName(), style.fontSize() * 8, style.fontWeight());
+        QFont prefixFont = qFont(style.fontName(), style.fontSize() * 8, FontWeight.THIN);//style.fontWeight()); // TODO
         FontStyle prefixFontStyle = new FontStyle(
                 prefixFont,
                 new QFontMetrics(prefixFont),
@@ -1035,16 +1035,16 @@ public class WindowsOverlay {
             QPainter painter = new QPainter(this);
 //            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             // Draw background.
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOver);
             if (color.alpha() != 0) {
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOver);
                 painter.setBrush(new QBrush(color));
                 painter.setPen(Qt.PenStyle.NoPen);
                 painter.drawRoundedRect(0, 0, width(), height(), borderRadius,
                         borderRadius);
             }
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             if (borderThickness != 0)
                 drawBorders(painter);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             painter.end();
         }
 
