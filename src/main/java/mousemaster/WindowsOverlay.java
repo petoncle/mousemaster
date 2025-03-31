@@ -1059,7 +1059,7 @@ public class WindowsOverlay {
                 painter.drawRoundedRect(0, 0, width(), height(), borderRadius,
                         borderRadius);
             }
-            if (borderThickness != 0)
+            if (borderThickness != 0 || layoutThickness != 0)
                 drawBorders(painter);
             painter.end();
         }
@@ -1264,8 +1264,11 @@ public class WindowsOverlay {
                 int y1,
                 int y2
         ) {
-            if (!condition) return;
+            if (!condition)
+                return;
             painter.setPen(isEdge ? edgePen : insidePen);
+            if (painter.pen().width() == 0)
+                return;
             int x = xBase + (isEdge ? edgeOffset : insideOffset);
             painter.drawLine(x, y1, x, y2);
         }
@@ -1282,8 +1285,11 @@ public class WindowsOverlay {
                 int x1,
                 int x2
         ) {
-            if (!condition) return;
+            if (!condition)
+                return;
             painter.setPen(isEdge ? edgePen : insidePen);
+            if (painter.pen().width() == 0)
+                return;
             int y = yBase + (isEdge ? edgeOffset : insideOffset);
             painter.drawLine(x1, y, x2, y);
         }
