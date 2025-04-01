@@ -37,6 +37,8 @@ public class WindowsKeyboard {
             Key.enter // Only enter from numpad?
     );
 
+    public static KeyboardLayout activeKeyboardLayout;
+
     /**
      * For some reason, sending more than one input per SendInput call rarely work (?).
      */

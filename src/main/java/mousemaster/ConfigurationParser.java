@@ -193,10 +193,14 @@ public class ConfigurationParser {
 
     public static Configuration parse(List<String> properties,
                                       KeyboardLayout activeKeyboardLayout) {
+        KeyboardLayout configurationKeyboardLayout = parseKeyboardLayout(properties);
+        KeyboardLayout keyboardLayout =
+                configurationKeyboardLayout == null ? activeKeyboardLayout :
+                        configurationKeyboardLayout;
         Aliases configurationAliases = parseAliases(properties);
-        Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
-                configurationAliases.layoutKeyAliasByName, activeKeyboardLayout);
+                configurationAliases.layoutKeyAliasByName, keyboardLayout);
+        Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         String logLevel = null;
         boolean logRedactKeys = false;
         boolean logToFile = false;
@@ -214,8 +218,7 @@ public class ConfigurationParser {
         Map<String, Set<String>> childModesByParentMode = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
         for (String property : properties) {
-            if (!checkPropertyLineCorrectness(property, visitedPropertyKeys))
-                continue;
+            checkPropertyLineCorrectness(property, visitedPropertyKeys);
             Matcher lineMatcher = propertyLinePattern.matcher(property);
             //noinspection ResultOfMethodCallIgnored
             lineMatcher.matches();
@@ -352,20 +355,37 @@ public class ConfigurationParser {
         }
         List<Key> missingKeys = allComboAndRemappingKeys.stream()
                                                         .filter(Predicate.not(
-                                                                activeKeyboardLayout::containsKey))
+                                                                keyboardLayout::containsKey))
                                                         .toList();
         if (!missingKeys.isEmpty())
             ;
         // The disable combo #/ only works for layouts that have the / key, but that's fine.
 //            throw new IllegalStateException(
-//                    "Unable to find the following keys in " + activeKeyboardLayout + ": " +
+//                    "Unable to find the following keys in " + keyboardLayout + ": " +
 //                    missingKeys);
         Set<Mode> modes = modeByName.values()
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
         return new Configuration(maxPositionHistorySize,
-                new ModeMap(modes), logLevel, logRedactKeys, logToFile);
+                new ModeMap(modes), logLevel, logRedactKeys, logToFile,
+                configurationKeyboardLayout);
+    }
+
+    private static KeyboardLayout parseKeyboardLayout(List<String> properties) {
+        Set<String> visitedPropertyKeys = new HashSet<>();
+        for (String property : properties) {
+            checkPropertyLineCorrectness(property, visitedPropertyKeys);
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            //noinspection ResultOfMethodCallIgnored
+            lineMatcher.matches();
+            String propertyKey = lineMatcher.group(1).strip();
+            String propertyValue = lineMatcher.group(2).strip();
+            if (propertyKey.equals("keyboard-layout")) {
+                return parseKeyboardLayout(propertyValue);
+            }
+        }
+        return null;
     }
 
     private static void usedKeys(ComboMapConfigurationBuilder comboMap,
@@ -1240,8 +1260,7 @@ public class ConfigurationParser {
         Map<String, AppAlias> appAliasByName = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
         for (String line : properties) {
-            if (!checkPropertyLineCorrectness(line, visitedPropertyKeys))
-                continue;
+            checkPropertyLineCorrectness(line, visitedPropertyKeys);
             Matcher lineMatcher = propertyLinePattern.matcher(line);
             //noinspection ResultOfMethodCallIgnored
             lineMatcher.matches();
@@ -1289,13 +1308,7 @@ public class ConfigurationParser {
             }
             else {
                 String layoutName = keyMatcher.group(3);
-                KeyboardLayout layout =
-                        KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
-                if (layout == null)
-                    throw new IllegalArgumentException(
-                            "Invalid keyboard layout: " + layoutName +
-                            ", available keyboard layouts: " +
-                            KeyboardLayout.keyboardLayoutByShortName.keySet());
+                KeyboardLayout layout = parseKeyboardLayout(layoutName);
                 layoutKeyAliasByName.computeIfAbsent(aliasName,
                                             name -> new LayoutKeyAlias())
                         .aliasByLayout.put(layout, new KeyAlias(aliasName, keys));
@@ -1303,7 +1316,18 @@ public class ConfigurationParser {
         }
     }
 
-    private static boolean checkPropertyLineCorrectness(String property, Set<String> visitedPropertyKeys) {
+    private static KeyboardLayout parseKeyboardLayout(String layoutName) {
+        KeyboardLayout layout =
+                KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
+        if (layout == null)
+            throw new IllegalArgumentException(
+                    "Invalid keyboard layout: " + layoutName +
+                    ", available keyboard layouts: " +
+                    KeyboardLayout.keyboardLayoutByShortName.keySet());
+        return layout;
+    }
+
+    private static void checkPropertyLineCorrectness(String property, Set<String> visitedPropertyKeys) {
         Matcher lineMatcher = propertyLinePattern.matcher(property);
         if (!lineMatcher.matches())
             throw new IllegalArgumentException("Invalid property " + property +
@@ -1319,7 +1343,6 @@ public class ConfigurationParser {
         if (!visitedPropertyKeys.add(propertyKey))
             throw new IllegalArgumentException(
                     "Property " + propertyKey + " is defined twice");
-        return true;
     }
 
     private static void checkMissingProperties(ModeBuilder mode) {

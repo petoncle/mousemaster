@@ -473,16 +473,16 @@ public enum WindowsVirtualKey {
         boolean isExtended = (flags & 0x1) != 0;
         if (isExtended) {
             int extendedKeyScanCode = 0xE000 | scanCode;
-            Key extendedKey = lastPolledActiveKeyboardLayout.keyFromScanCode(extendedKeyScanCode);
+            Key extendedKey = WindowsKeyboard.activeKeyboardLayout.keyFromScanCode(extendedKeyScanCode);
             if (extendedKey != null)
                 return extendedKey;
         }
-        return lastPolledActiveKeyboardLayout.keyFromScanCode(scanCode);
+        return WindowsKeyboard.activeKeyboardLayout.keyFromScanCode(scanCode);
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key) {
         WindowsVirtualKey virtualKey =
-                lastPolledActiveKeyboardLayout.virtualKey(key);
+                WindowsKeyboard.activeKeyboardLayout.virtualKey(key);
         if (virtualKey == null) {
             throw new IllegalStateException("Unable to map key " + key + " to a Windows virtual key");
         }
