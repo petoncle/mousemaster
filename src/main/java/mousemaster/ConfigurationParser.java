@@ -2211,7 +2211,10 @@ public class ConfigurationParser {
             Function<FontStyleBuilder, Object> fieldFunction,
             ViewportFilterMapBuilder<B, V> childMapBuilder, ViewportFilter filter) {
         Map<ViewportFilter, B> childMap = childMapBuilder.map();
-        FontStyleBuilder defaultElement = fontStyleBuilderFunction.apply(childMap.get(AnyViewportFilter.ANY_VIEWPORT_FILTER));
+        FontStyleBuilder defaultElement =
+                childMap.get(AnyViewportFilter.ANY_VIEWPORT_FILTER) == null ? null :
+                        fontStyleBuilderFunction.apply(
+                                childMap.get(AnyViewportFilter.ANY_VIEWPORT_FILTER));
         FontStyleBuilder filterElement = fontStyleBuilderFunction.apply(childMap.get(filter));
         return defaultElement != null && fieldFunction.apply(defaultElement) != null
                || filterElement != null && fieldFunction.apply(filterElement) != null;
