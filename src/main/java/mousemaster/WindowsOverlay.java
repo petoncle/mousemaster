@@ -440,11 +440,13 @@ public class WindowsOverlay {
             newContainer = container;
             setUncachedHintMeshWindowRunnable =
                     () -> {
+                        long before = System.nanoTime();
                         setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
                                 screenScale,
                                 style, qtScaleFactor,
                                 container
                         );
+                        logger.info("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
                         if (isHintGrid) {
                             cacheQtHintWindowIntoPixmap(container, hintMeshKey);
                         }
@@ -694,8 +696,8 @@ public class WindowsOverlay {
             LabelFontStyle prefixLabelFontStyle = new LabelFontStyle(
                     prefixFont,
                     new QFontMetrics(prefixFont),
-                    qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
-                    qColor(style.focusedFontHexColor(), style.prefixFontStyle().opacity()),
+                    null,
+                    qColor(style.focusedFontHexColor(), style.focusedFontOpacity()),
                     qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
                     qColor(style.prefixFontStyle().outlineHexColor(), style.prefixFontStyle().outlineOpacity()),
                     (int) Math.round(style.prefixFontStyle().outlineThickness() * screenScale),

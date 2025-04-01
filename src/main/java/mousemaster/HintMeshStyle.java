@@ -4,6 +4,7 @@ import java.time.Duration;
 
 public record HintMeshStyle(FontStyle fontStyle,
                             String focusedFontHexColor,
+                            double focusedFontOpacity,
                             boolean prefixInBackground,
                             FontStyle prefixFontStyle,
                             String boxHexColor,
@@ -35,6 +36,7 @@ public record HintMeshStyle(FontStyle fontStyle,
     public static class HintMeshStyleBuilder {
         private FontStyle.FontStyleBuilder fontStyle = new FontStyle.FontStyleBuilder();
         private String focusedFontHexColor;
+        private Double focusedFontOpacity;
         private Boolean prefixInBackground;
         private FontStyle.FontStyleBuilder prefixFontStyle = new FontStyle.FontStyleBuilder();
         private String boxHexColor;
@@ -66,6 +68,7 @@ public record HintMeshStyle(FontStyle fontStyle,
         public HintMeshStyleBuilder(HintMeshStyle style) {
             this.fontStyle = style.fontStyle.builder();
             this.focusedFontHexColor = style.focusedFontHexColor;
+            this.focusedFontOpacity = style.focusedFontOpacity;
             this.prefixInBackground = style.prefixInBackground;
             this.prefixFontStyle = style.prefixFontStyle.builder();
             this.boxHexColor = style.boxHexColor;
@@ -94,6 +97,12 @@ public record HintMeshStyle(FontStyle fontStyle,
         public HintMeshStyleBuilder focusedFontHexColor(
                 String focusedFontHexColor) {
             this.focusedFontHexColor = focusedFontHexColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder focusedFontOpacity(
+                Double focusedFontOpacity) {
+            this.focusedFontOpacity = focusedFontOpacity;
             return this;
         }
 
@@ -216,6 +225,10 @@ public record HintMeshStyle(FontStyle fontStyle,
             return focusedFontHexColor;
         }
 
+        public Double focusedFontOpacity() {
+            return focusedFontOpacity;
+        }
+
         public Boolean prefixInBackground() {
             return prefixInBackground;
         }
@@ -314,6 +327,7 @@ public record HintMeshStyle(FontStyle fontStyle,
             return new HintMeshStyle(
                     fontStyle1,
                     focusedFontHexColor == null ? defaultStyle.focusedFontHexColor : focusedFontHexColor,
+                    focusedFontOpacity == null ? defaultStyle.focusedFontOpacity : focusedFontOpacity,
                     prefixInBackground == null ? defaultStyle.prefixInBackground : prefixInBackground,
                     prefixFontStyle.build(fontStyle1),
                     boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
