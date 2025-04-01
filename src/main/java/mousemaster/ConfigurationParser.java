@@ -77,6 +77,7 @@ public class ConfigurationParser {
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
                                         .toList())
+                .rowKeyOffset(0)
                 .undoKeys(Set.of());
         hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                 .fontName("Consolas")
@@ -651,8 +652,8 @@ public class ConfigurationParser {
                         case "layout-row-oriented" -> mode.hintMesh.builder.type()
                                                                            .gridLayout(viewportFilter)
                                                                            .layoutRowOriented(Boolean.parseBoolean(propertyValue));
-                        case "selection-keys" -> mode.hintMesh.builder.keys(viewportFilter).selectionKeys(
-                                parseHintKeys(propertyValue, keyAliases));
+                        case "selection-keys" -> mode.hintMesh.builder.keys(viewportFilter).selectionKeys(parseHintKeys(propertyValue, keyAliases));
+                        case "row-key-offset" -> mode.hintMesh.builder.keys(viewportFilter).rowKeyOffset(parseUnsignedInteger(propertyValue, 0, 1_000));
                         case "undo" ->
                                 mode.hintMesh.builder.keys(viewportFilter).undoKeys(parseKeyOrAlias(
                                         propertyValue, keyAliases));
@@ -1852,6 +1853,10 @@ public class ConfigurationParser {
                                 HintMeshKeysBuilder::selectionKeys, childKeysByFilter,
                                 filter))
                             childKeys.selectionKeys(parentKeys.selectionKeys());
+                        if (!childDoesNotNeedParentProperty(
+                                HintMeshKeysBuilder::rowKeyOffset, childKeysByFilter,
+                                filter))
+                            childKeys.rowKeyOffset(parentKeys.rowKeyOffset());
                         if (!childDoesNotNeedParentProperty(HintMeshKeysBuilder::undoKeys,
                                 childKeysByFilter, filter))
                             childKeys.undoKeys(parentKeys.undoKeys());
