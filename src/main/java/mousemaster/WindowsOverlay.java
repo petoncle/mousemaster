@@ -748,7 +748,6 @@ public class WindowsOverlay {
                 x -= totalXAdvance / 2; // This should be half the label width?
                 hintLabel.setGeometry(x - hintMeshWindow.window().x(),
                         y - hintMeshWindow.window.y(), fullBoxWidth, fullBoxHeight);
-                hintLabel.show();
                 prefixHintLabels.add(hintLabel);
             }
         }
@@ -887,6 +886,7 @@ public class WindowsOverlay {
         for (HintLabel prefixHintLabel : prefixHintLabels) {
             prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
             prefixHintLabel.setParent(container);
+            prefixHintLabel.show();
         }
         for (HintLabel hintLabel : hintLabels) {
             hintLabel.setParent(container);
