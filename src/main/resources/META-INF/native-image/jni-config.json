@@ -355,6 +355,10 @@
   "methods":[{"name":"beginPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }, {"name":"endPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }]
 },
 {
+  "name":"io.qt.gui.QPen",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
   "name":"io.qt.gui.QPdfWriter"
 },
 {
