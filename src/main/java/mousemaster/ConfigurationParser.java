@@ -108,7 +108,7 @@ public class ConfigurationParser {
                             .shadowHorizontalOffset(0d)
                             .shadowVerticalOffset(0d);
         hintMeshStyleBuilder
-                .focusedFontHexColor("#222222")
+                .focusedFontHexColor("#CCCCCC")
                 .focusedFontOpacity(0.3d)
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
