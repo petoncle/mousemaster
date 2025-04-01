@@ -742,7 +742,7 @@ public class WindowsOverlay {
                                 hintMesh.prefixLength(),
                                 prefixLabelFontStyle,
                                 prefixHintKeyMaxXAdvance,
-                                hintMesh.focusedKeySequence().size() - 1);
+                                hintMesh.focusedKeySequence().size() - 1, false);
                 int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
                 int y = hintRoundedY(prefixCenterY, cellHeight, qtScaleFactor);
                 x -= totalXAdvance / 2; // This should be half the label width?
@@ -812,7 +812,8 @@ public class WindowsOverlay {
                             style.prefixInBackground() ? -1 : hintMesh.prefixLength(),
                             labelFontStyle,
                             hintKeyMaxXAdvance,
-                            style.prefixInBackground() || hintMesh.prefixLength() == -1 ? -1 : hintMesh.focusedKeySequence().size() - hintMesh.prefixLength());
+                            style.prefixInBackground() || hintMesh.prefixLength() == -1 ? -1 : hintMesh.focusedKeySequence().size() - hintMesh.prefixLength(),
+                            true);
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
@@ -1327,6 +1328,7 @@ public class WindowsOverlay {
         private final int tightHintBoxTop;
         private final int tightHintBoxWidth;
         private final int tightHintBoxHeight;
+        private final boolean overwriteBackground;
         private int left;
         private int top;
 
@@ -1334,12 +1336,14 @@ public class WindowsOverlay {
                          int boxWidth,
                          int boxHeight, int totalXAdvance, int prefixLength,
                          LabelFontStyle labelFontStyle,
-                         int hintKeyMaxXAdvance, int focusedKeyEndIndex) {
+                         int hintKeyMaxXAdvance, int focusedKeyEndIndex,
+                         boolean overwriteBackground) {
             super(keySequence
                     .stream()
                     .map(Key::hintLabel)
                     .collect(Collectors.joining()));
             this.labelFontStyle = labelFontStyle;
+            this.overwriteBackground = overwriteBackground;
             setFont(labelFontStyle.font);
             if (labelFontStyle.shadowColor.alpha() != 0) {
                 QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
@@ -1427,6 +1431,10 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
 
+            // But for transparent prefix text in background, we want to see the grid lines
+            // through the transparent prefix.
+            if (!overwriteBackground)
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (labelFontStyle.outlineThickness != 0 && labelFontStyle.outlineColor().alpha() != 0) {
                 QPen outlinePen = new QPen(labelFontStyle.outlineColor);
                 outlinePen.setWidth(labelFontStyle.outlineThickness);
@@ -1442,7 +1450,8 @@ public class WindowsOverlay {
             }
 
             // Avoid blending the text with the outline. Text should override the outline.
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            if (overwriteBackground)
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
                 if (keyText.isFocused())
                     painter.setPen(labelFontStyle.focusedColor);
