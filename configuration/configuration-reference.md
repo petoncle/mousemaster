@@ -346,3 +346,13 @@ logging.to-file=false
 These properties control the logging behavior in the command line window.
 If `logging.redact-keys` is set to `true`, the pressed keys will be redacted from the
 logs.
+
+### Keyboard layout
+
+There is currently a limitation for some keyboard layouts that cannot be detected by mousemaster.
+One of them is us-dvorak. I have not found a reliable way to get the active keyboard layout using the Windows API.
+The current workaround is to explicitly tell mousemaster which
+keyboard layout to use:
+```properties
+keyboard-layout=us-dvorak
+```

@@ -99,7 +99,8 @@ public class WindowsPlatform implements Platform {
     @Override
     public void reset(MouseController mouseController, KeyboardManager keyboardManager,
                       ModeMap newModeMap,
-                      List<MousePositionListener> mousePositionListeners) {
+                      List<MousePositionListener> mousePositionListeners,
+                      KeyboardLayout activeKeyboardLayout) {
         ModeMap oldModeMap = this.modeMap;
         Set<HintMeshConfiguration> oldHintMeshConfigurations = new HashSet<>();
         if (oldModeMap != null) {
@@ -111,6 +112,7 @@ public class WindowsPlatform implements Platform {
         this.mouseController = mouseController;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
+        WindowsKeyboard.activeKeyboardLayout = activeKeyboardLayout;
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());

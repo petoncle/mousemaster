@@ -30,12 +30,14 @@ public class WindowsKeyboard {
             Key.uparrow,
             Key.rightarrow,
             Key.downarrow,
-            // Key.numlock,
+            Key.numlock,
             Key.break_,
             Key.printscreen,
             Key.numpaddivide, // No numpadmultiply?
             Key.enter // Only enter from numpad?
     );
+
+    public static KeyboardLayout activeKeyboardLayout;
 
     /**
      * For some reason, sending more than one input per SendInput call rarely work (?).
