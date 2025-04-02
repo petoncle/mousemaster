@@ -713,7 +713,7 @@ public class WindowsOverlay {
                 for (Key key : prefix) {
                     prefixHintKeyMaxXAdvance = Math.max(prefixHintKeyMaxXAdvance,
                             prefixXAdvancesByString.computeIfAbsent(key.hintLabel(),
-                                    labelFontStyle.metrics::horizontalAdvance));
+                                    prefixLabelFontStyle.metrics::horizontalAdvance));
                 }
             }
             for (Map.Entry<List<Key>, HintGroup> entry : hintGroupByPrefix.entrySet()) {
@@ -745,7 +745,6 @@ public class WindowsOverlay {
                                 hintMesh.focusedKeySequence().size() - 1, false);
                 int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
                 int y = hintRoundedY(prefixCenterY, cellHeight, qtScaleFactor);
-                x -= totalXAdvance / 2; // This should be half the label width?
                 hintLabel.setGeometry(x - hintMeshWindow.window().x(),
                         y - hintMeshWindow.window.y(), fullBoxWidth, fullBoxHeight);
                 prefixHintLabels.add(hintLabel);
