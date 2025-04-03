@@ -128,7 +128,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         if (!hintMeshConfiguration.visible()) {
             // This makes the behavior of the hint different depending on whether it is visible.
-            // An alternative would be a setting like hint.reset-focused-key-sequence-history-after-selection=true.
+            // An alternative would be a setting like hint.reset-selected-key-sequence-history-after-selection=true.
             hintMeshStates.clear();
             WindowsOverlay.hideHintMesh();
         }
@@ -326,10 +326,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (previousHintMeshState != null &&
             previousHintMeshState.hintMesh.hints()
                                           .equals(hintMesh.hints())) {
-            // Keep the old focusedKeySequence.
+            // Keep the old selectedKeySequence.
             // This is useful for hint-then-click-mode that extends hint-mode.
-            hintMesh.focusedKeySequence(
-                    previousHintMeshState.hintMesh.focusedKeySequence());
+            hintMesh.selectedKeySequence(
+                    previousHintMeshState.hintMesh.selectedKeySequence());
         }
         return hintMesh.build();
     }
@@ -649,11 +649,11 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshKeys hintMeshKeys = hintMeshConfiguration.keysByFilter()
                                                          .get(screenFilter);
         if (hintMeshKeys.undoKeys().contains(key)) {
-            List<Key> focusedKeySequence = hintMesh.focusedKeySequence();
-            if (!focusedKeySequence.isEmpty()) {
+            List<Key> selectedKeySequence = hintMesh.selectedKeySequence();
+            if (!selectedKeySequence.isEmpty()) {
                 hintMesh = hintMesh.builder()
-                                   .focusedKeySequence(focusedKeySequence.subList(0,
-                                           focusedKeySequence.size() - 1))
+                                   .selectedKeySequence(selectedKeySequence.subList(0,
+                                           selectedKeySequence.size() - 1))
                                    .build();
                 HintMeshKey hintMeshKey =
                         new HintMeshKey(hintMeshConfiguration.type(),
@@ -672,22 +672,22 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         if (!selectionKeySubset.contains(key))
             return PressKeyEventProcessing.unhandled();
-        List<Key> newFocusedKeySequence = new ArrayList<>(hintMesh.focusedKeySequence());
-        newFocusedKeySequence.add(key);
+        List<Key> newSelectedKeySequence = new ArrayList<>(hintMesh.selectedKeySequence());
+        newSelectedKeySequence.add(key);
         Hint exactMatchHint = null;
-        boolean atLeastOneHintIsStartsWithNewFocusedHintKeySequence = false;
+        boolean atLeastOneHintIsStartsWithNewSelectedHintKeySequence = false;
         for (Hint hint : hintMesh.hints()) {
-            if (hint.keySequence().size() < newFocusedKeySequence.size())
+            if (hint.keySequence().size() < newSelectedKeySequence.size())
                 continue;
-            if (!hint.startsWith(newFocusedKeySequence))
+            if (!hint.startsWith(newSelectedKeySequence))
                 continue;
-            atLeastOneHintIsStartsWithNewFocusedHintKeySequence = true;
-            if (hint.keySequence().size() == newFocusedKeySequence.size()) {
+            atLeastOneHintIsStartsWithNewSelectedHintKeySequence = true;
+            if (hint.keySequence().size() == newSelectedKeySequence.size()) {
                 exactMatchHint = hint;
                 break;
             }
         }
-        if (!atLeastOneHintIsStartsWithNewFocusedHintKeySequence)
+        if (!atLeastOneHintIsStartsWithNewSelectedHintKeySequence)
             return PressKeyEventProcessing.unhandled();
         if (exactMatchHint != null) {
             boolean hintIsInZoom = currentZoom.screenRectangle()
@@ -720,14 +720,14 @@ public class HintManager implements ModeListener, MousePositionListener {
                  }
                  mouseController.moveTo(mouseX, mouseY);
              }
-            finalizeHintSelection(exactMatchHint, newFocusedKeySequence);
+            finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
             return hintMeshConfiguration.swallowHintEndKeyPress() ?
                     PressKeyEventProcessing.swallowedHintEnd() :
                     PressKeyEventProcessing.unswallowedHintEnd();
         }
         else {
             hintMesh =
-                    hintMesh.builder().focusedKeySequence(newFocusedKeySequence).build();
+                    hintMesh.builder().selectedKeySequence(newSelectedKeySequence).build();
             HintMeshKey hintMeshKey =
                     new HintMeshKey(hintMeshConfiguration.type(),
                             hintMeshKeys.selectionKeys(), currentMode.zoom());
@@ -742,7 +742,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
-    private void finalizeHintSelection(Hint hint, List<Key> newFocusedKeySequence) {
+    private void finalizeHintSelection(Hint hint, List<Key> newSelectedKeySequence) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (hintMeshConfiguration.savePositionAfterSelection()) {
             if (currentZoom.screenRectangle().contains(hint.centerX(), hint.centerY())) {
@@ -773,7 +773,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             HintMesh endHintMesh =
                     hintMesh.builder()
-                            .focusedKeySequence(newFocusedKeySequence)
+                            .selectedKeySequence(newSelectedKeySequence)
                             .styleByFilter(endStyleByFilterBuilder.build(
                                     HintMeshStyle.HintMeshStyleBuilder::build))
                             .build();
@@ -782,7 +782,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         else {
             hintMesh =
-                    hintMesh.builder().focusedKeySequence(List.of()).build();
+                    hintMesh.builder().selectedKeySequence(List.of()).build();
             HintMeshKey hintMeshKey =
                     new HintMeshKey(hintMeshConfiguration.type(),
                             hintMeshConfiguration.keysByFilter()

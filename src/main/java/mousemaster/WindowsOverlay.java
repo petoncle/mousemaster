@@ -417,7 +417,7 @@ public class WindowsOverlay {
                         (QWidget) window.children().getFirst();
         window.clearWindow();
         HintMesh hintMeshKey = new HintMesh.HintMeshBuilder(hintMesh)
-                .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.focusedKeySequence()))
+                .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.selectedKeySequence()))
                 .build();
         PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMeshKey);
         boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
@@ -457,7 +457,7 @@ public class WindowsOverlay {
                                 style.transitionAnimationDuration(), transitionAnimationCurrentTime);
                     };
             if (!isHintGrid // They are not cached anyway.
-                || !hintMesh.focusedKeySequence().isEmpty() // To avoid an empty frame.
+                || !hintMesh.selectedKeySequence().isEmpty() // To avoid an empty frame.
                     || hintMesh.hints().size() < 100 // To avoid an empty frame.
             ) {
                 setUncachedHintMeshWindowRunnable.run();
@@ -655,8 +655,8 @@ public class WindowsOverlay {
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
             hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
             hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
-            hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.focusedKeySequence());
-            if (!hint.startsWith(hintMesh.focusedKeySequence()))
+            hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.selectedKeySequence());
+            if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
             minHintCenterX = Math.min(minHintCenterX, hint.centerX());
             minHintCenterY = Math.min(minHintCenterY, hint.centerY());
@@ -673,7 +673,7 @@ public class WindowsOverlay {
                 font,
                 new QFontMetrics(font),
                 qColor(style.fontStyle().hexColor(), style.fontStyle().opacity()),
-                qColor(style.focusedFontHexColor(), style.fontStyle().opacity()),
+                qColor(style.selectedFontHexColor(), style.fontStyle().opacity()),
                 qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
                 qColor(style.fontStyle().outlineHexColor(), style.fontStyle().outlineOpacity()),
                 (int) Math.round(style.fontStyle().outlineThickness() * screenScale),
@@ -697,7 +697,7 @@ public class WindowsOverlay {
                     prefixFont,
                     new QFontMetrics(prefixFont),
                     null,
-                    qColor(style.focusedFontHexColor(), style.focusedFontOpacity()),
+                    qColor(style.selectedFontHexColor(), style.selectedFontOpacity()),
                     qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
                     qColor(style.prefixFontStyle().outlineHexColor(), style.prefixFontStyle().outlineOpacity()),
                     (int) Math.round(style.prefixFontStyle().outlineThickness() * screenScale),
@@ -742,7 +742,7 @@ public class WindowsOverlay {
                                 hintMesh.prefixLength(),
                                 prefixLabelFontStyle,
                                 prefixHintKeyMaxXAdvance,
-                                hintMesh.focusedKeySequence().size() - 1, false);
+                                hintMesh.selectedKeySequence().size() - 1, false);
                 int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
                 int y = hintRoundedY(prefixCenterY, cellHeight, qtScaleFactor);
                 hintLabel.setGeometry(x - hintMeshWindow.window().x(),
@@ -764,7 +764,7 @@ public class WindowsOverlay {
         List<HintLabel> hintLabels = new ArrayList<>();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
-            if (!hint.startsWith(hintMesh.focusedKeySequence()))
+            if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
             int totalXAdvance = labelFontStyle.metrics.horizontalAdvance(hint.keySequence()
                                                                              .stream()
@@ -810,7 +810,7 @@ public class WindowsOverlay {
                             style.prefixInBackground() ? -1 : hintMesh.prefixLength(),
                             labelFontStyle,
                             hintKeyMaxXAdvance,
-                            hintMesh.focusedKeySequence().size() - 1
+                            hintMesh.selectedKeySequence().size() - 1
                             - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0),
                             true);
             hintLabels.add(hintLabel);
@@ -915,11 +915,11 @@ public class WindowsOverlay {
     }
 
     private static List<Hint> trimmedHints(List<Hint> hints,
-                                           List<Key> focusedKeySequence) {
+                                           List<Key> selectedKeySequence) {
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
         for (Hint hint : hints) {
-            if (!hint.startsWith(focusedKeySequence))
+            if (!hint.startsWith(selectedKeySequence))
                 continue;
             minHintCenterX = Math.min(minHintCenterX, hint.centerX());
             minHintCenterY = Math.min(minHintCenterY, hint.centerY());
@@ -928,7 +928,7 @@ public class WindowsOverlay {
             return hints;
         List<Hint> trimmedHints = new ArrayList<>();
         for (Hint hint : hints) {
-            if (!hint.startsWith(focusedKeySequence))
+            if (!hint.startsWith(selectedKeySequence))
                 continue;
             trimmedHints.add(new Hint(hint.centerX() - minHintCenterX,
                     hint.centerY() - minHintCenterY,
@@ -1311,7 +1311,7 @@ public class WindowsOverlay {
         return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
     }
 
-    public record LabelFontStyle(QFont font, QFontMetrics metrics, QColor fontColor, QColor focusedColor,
+    public record LabelFontStyle(QFont font, QFontMetrics metrics, QColor fontColor, QColor selectedColor,
                                  QColor prefixColor,
                                  QColor outlineColor,
                                  int outlineThickness, QColor shadowColor, double shadowBlurRadius,
@@ -1336,7 +1336,7 @@ public class WindowsOverlay {
                          int boxWidth,
                          int boxHeight, int totalXAdvance, int prefixLength,
                          LabelFontStyle labelFontStyle,
-                         int hintKeyMaxXAdvance, int focusedKeyEndIndex,
+                         int hintKeyMaxXAdvance, int selectedKeyEndIndex,
                          boolean overwriteBackground) {
             super(keySequence
                     .stream()
@@ -1413,7 +1413,7 @@ public class WindowsOverlay {
                     }
                 }
                 keyTexts.add(new HintKeyText(keyText, x, y, keyWidth,
-                        keyIndex <= focusedKeyEndIndex,
+                        keyIndex <= selectedKeyEndIndex,
                         prefixLength != -1 && keyIndex <= prefixLength - 1));
             }
             int smallestHintBoxTop = y - labelFontStyle.metrics.ascent();
@@ -1453,8 +1453,8 @@ public class WindowsOverlay {
             if (overwriteBackground)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
-                if (keyText.isFocused())
-                    painter.setPen(labelFontStyle.focusedColor);
+                if (keyText.isSelected())
+                    painter.setPen(labelFontStyle.selectedColor);
                 else if (keyText.isPrefix())
                     painter.setPen(labelFontStyle.prefixColor);
                 else
@@ -1465,7 +1465,7 @@ public class WindowsOverlay {
         }
     }
 
-    private record HintKeyText(String text, int x, int y, int width, boolean isFocused,
+    private record HintKeyText(String text, int x, int y, int width, boolean isSelected,
                                boolean isPrefix) {
 
     }

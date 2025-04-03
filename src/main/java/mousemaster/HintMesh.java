@@ -6,7 +6,7 @@ import java.util.List;
  * Unlike a grid, it does not necessarily have fixed-size cells.
  */
 public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
-                       List<Key> focusedKeySequence,
+                       List<Key> selectedKeySequence,
                        ViewportFilterMap<HintMeshStyle> styleByFilter) {
 
     public HintMeshBuilder builder() {
@@ -17,7 +17,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         private boolean visible;
         private List<Hint> hints;
         private int prefixLength;
-        private List<Key> focusedKeySequence = List.of();
+        private List<Key> selectedKeySequence = List.of();
         private ViewportFilterMap<HintMeshStyle> styleByFilter;
 
         public HintMeshBuilder() {
@@ -27,7 +27,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             this.visible = hintMesh.visible;
             this.hints = hintMesh.hints;
             this.prefixLength = hintMesh.prefixLength;
-            this.focusedKeySequence = hintMesh.focusedKeySequence;
+            this.selectedKeySequence = hintMesh.selectedKeySequence;
             this.styleByFilter = hintMesh.styleByFilter;
         }
 
@@ -44,8 +44,8 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             return prefixLength;
         }
 
-        public List<Key> focusedKeySequence() {
-            return focusedKeySequence;
+        public List<Key> selectedKeySequence() {
+            return selectedKeySequence;
         }
 
         public ViewportFilterMap<HintMeshStyle> styleByFilter() {
@@ -67,8 +67,8 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             return this;
         }
 
-        public HintMeshBuilder focusedKeySequence(List<Key> focusedKeySequence) {
-            this.focusedKeySequence = focusedKeySequence;
+        public HintMeshBuilder selectedKeySequence(List<Key> selectedKeySequence) {
+            this.selectedKeySequence = selectedKeySequence;
             return this;
         }
 
@@ -79,7 +79,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         }
 
         public HintMesh build() {
-            return new HintMesh(visible, hints, prefixLength, focusedKeySequence,
+            return new HintMesh(visible, hints, prefixLength, selectedKeySequence,
                     styleByFilter);
         }
     }

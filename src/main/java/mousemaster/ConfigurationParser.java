@@ -109,8 +109,8 @@ public class ConfigurationParser {
                             .shadowHorizontalOffset(0d)
                             .shadowVerticalOffset(0d);
         hintMeshStyleBuilder
-                .focusedFontHexColor("#CCCCCC")
-                .focusedFontOpacity(0.3d)
+                .selectedFontHexColor("#CCCCCC")
+                .selectedFontOpacity(0.3d)
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
@@ -693,8 +693,8 @@ public class ConfigurationParser {
                         case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowHorizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowVerticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).focusedFontHexColor(checkColorFormat(propertyValue));
-                        case "focused-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).focusedFontOpacity(parseDouble(propertyValue, true, 0, 1));
+                        case "selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).selectedFontHexColor(checkColorFormat(propertyValue));
+                        case "selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).selectedFontOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-in-background" ->
                                 mode.hintMesh.builder.style(viewportFilter)
                                                      .prefixInBackground(Boolean.parseBoolean(propertyValue));
@@ -1936,15 +1936,15 @@ public class ConfigurationParser {
                             childStyle.prefixInBackground(
                                     parentStyle.prefixInBackground());
                         if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::focusedFontHexColor,
+                                HintMeshStyleBuilder::selectedFontHexColor,
                                 childStyleByFilter, filter))
-                            childStyle.focusedFontHexColor(
-                                    parentStyle.focusedFontHexColor());
+                            childStyle.selectedFontHexColor(
+                                    parentStyle.selectedFontHexColor());
                         if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::focusedFontOpacity,
+                                HintMeshStyleBuilder::selectedFontOpacity,
                                 childStyleByFilter, filter))
-                            childStyle.focusedFontOpacity(
-                                    parentStyle.focusedFontOpacity());
+                            childStyle.selectedFontOpacity(
+                                    parentStyle.selectedFontOpacity());
                         extendFontStyleProperties(HintMeshStyleBuilder::prefixFontStyle, childStyle.prefixFontStyle(), parentStyle.prefixFontStyle(), childStyleByFilter, filter);
                         if (!childDoesNotNeedParentProperty(
                                 HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
