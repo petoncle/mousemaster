@@ -107,7 +107,7 @@ public class ConfigurationParser {
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
                 .prefixBoxEnabled(false)
-                .prefixBoxBorderThickness(2d)
+                .prefixBoxBorderThickness(4d)
                 .prefixBoxBorderLength(10_000d)
                 .prefixBoxBorderHexColor("#FFD93D")
                 .prefixBoxBorderOpacity(0.8d)
