@@ -1431,7 +1431,7 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
 
-            // But for transparent prefix text in background, we want to see the grid lines
+            // For transparent prefix text in background, we want to see the grid lines
             // through the transparent prefix.
             if (!overwriteBackground)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
