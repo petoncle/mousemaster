@@ -20,7 +20,7 @@ public record FontStyle(String name, FontWeight weight,
         private Double size;
         private Double spacingPercent;
         private String hexColor;
-        private Double hpacity;
+        private Double opacity;
         private Double outlineThickness;
         private String outlineHexColor;
         private Double outlineOpacity;
@@ -40,7 +40,7 @@ public record FontStyle(String name, FontWeight weight,
             this.size = fontStyle.size;
             this.spacingPercent = fontStyle.spacingPercent;
             this.hexColor = fontStyle.hexColor;
-            this.hpacity = fontStyle.opacity;
+            this.opacity = fontStyle.opacity;
             this.outlineThickness = fontStyle.outlineThickness;
             this.outlineHexColor = fontStyle.outlineHexColor;
             this.outlineOpacity = fontStyle.outlineOpacity;
@@ -72,7 +72,7 @@ public record FontStyle(String name, FontWeight weight,
         }
 
         public Double opacity() {
-            return hpacity;
+            return opacity;
         }
 
         public Double outlineThickness() {
@@ -133,7 +133,7 @@ public record FontStyle(String name, FontWeight weight,
         }
 
         public FontStyleBuilder opacity(Double fontOpacity) {
-            this.hpacity = fontOpacity;
+            this.opacity = fontOpacity;
             return this;
         }
 
@@ -186,7 +186,7 @@ public record FontStyle(String name, FontWeight weight,
                     size == null ? defaultStyle.size : size,
                     spacingPercent == null ? defaultStyle.spacingPercent : spacingPercent,
                     hexColor == null ? defaultStyle.hexColor : hexColor,
-                    hpacity == null ? defaultStyle.opacity : hpacity,
+                    opacity == null ? defaultStyle.opacity : opacity,
                     outlineThickness == null ? defaultStyle.outlineThickness : outlineThickness,
                     outlineHexColor == null ? defaultStyle.outlineHexColor : outlineHexColor,
                     outlineOpacity == null ? defaultStyle.outlineOpacity : outlineOpacity,

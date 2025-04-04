@@ -324,12 +324,28 @@ public record HintMeshStyle(FontStyle fontStyle,
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
             FontStyle fontStyle1 =
                     fontStyle.build(defaultStyle == null ? null : defaultStyle.fontStyle);
+            if (defaultStyle != null) {
+                if (prefixFontStyle.name() == null) prefixFontStyle.name(defaultStyle.prefixFontStyle.name());
+                if (prefixFontStyle.weight() == null) prefixFontStyle.weight(defaultStyle.prefixFontStyle.weight());
+                if (prefixFontStyle.size() == null) prefixFontStyle.size(defaultStyle.prefixFontStyle.size());
+                if (prefixFontStyle.spacingPercent() == null) prefixFontStyle.spacingPercent(defaultStyle.prefixFontStyle.spacingPercent());
+                if (prefixFontStyle.hexColor() == null) prefixFontStyle.hexColor(defaultStyle.prefixFontStyle.hexColor());
+                if (prefixFontStyle.opacity() == null) prefixFontStyle.opacity(defaultStyle.prefixFontStyle.opacity());
+                if (prefixFontStyle.outlineThickness() == null) prefixFontStyle.outlineThickness(defaultStyle.prefixFontStyle.outlineThickness());
+                if (prefixFontStyle.outlineHexColor() == null) prefixFontStyle.outlineHexColor(defaultStyle.prefixFontStyle.outlineHexColor());
+                if (prefixFontStyle.outlineOpacity() == null) prefixFontStyle.outlineOpacity(defaultStyle.prefixFontStyle.outlineOpacity());
+                if (prefixFontStyle.shadowBlurRadius() == null) prefixFontStyle.shadowBlurRadius(defaultStyle.prefixFontStyle.shadowBlurRadius());
+                if (prefixFontStyle.shadowHexColor() == null) prefixFontStyle.shadowHexColor(defaultStyle.prefixFontStyle.shadowHexColor());
+                if (prefixFontStyle.shadowOpacity() == null) prefixFontStyle.shadowOpacity(defaultStyle.prefixFontStyle.shadowOpacity());
+                if (prefixFontStyle.shadowHorizontalOffset() == null) prefixFontStyle.shadowHorizontalOffset(defaultStyle.prefixFontStyle.shadowHorizontalOffset());
+                if (prefixFontStyle.shadowVerticalOffset() == null) prefixFontStyle.shadowVerticalOffset(defaultStyle.prefixFontStyle.shadowVerticalOffset());
+            }
             return new HintMeshStyle(
                     fontStyle1,
                     selectedFontHexColor == null ? defaultStyle.selectedFontHexColor : selectedFontHexColor,
                     selectedFontOpacity == null ? defaultStyle.selectedFontOpacity : selectedFontOpacity,
                     prefixInBackground == null ? defaultStyle.prefixInBackground : prefixInBackground,
-                    prefixFontStyle.build(defaultStyle == null ? fontStyle1 : defaultStyle.prefixFontStyle),
+                    prefixFontStyle.build(fontStyle1),
                     boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
                     boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,
