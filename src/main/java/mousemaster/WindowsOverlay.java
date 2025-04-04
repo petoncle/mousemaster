@@ -371,7 +371,7 @@ public class WindowsOverlay {
                                                            hintsInScreen);
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
-//                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
+//                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + existingWindow.window.x() + " " + existingWindow.window.y() + " " + existingWindow.window.width() + " " + existingWindow.window.height());
                 setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, oldContainerHasSameHints);
             }
         }
@@ -851,10 +851,21 @@ public class WindowsOverlay {
             hintLabel.top = boxHeight == hintLabel.tightHintBoxHeight ? hintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
             x += hintLabel.left;
             y += hintLabel.top;
+            // Not sure why required, but this help having the grid match the screen
+            // right and bottom borders (pixel perfect).
+            if (x + boxWidth == hintMeshWindow.window.x() + hintMeshWindow.window.width() - 1)
+                boxWidth++;
+            else if (x + boxWidth == hintMeshWindow.window.x() + hintMeshWindow.window.width() + 1)
+                boxWidth--;
+            if (y + boxHeight == hintMeshWindow.window.y() + hintMeshWindow.window.height() - 1)
+                boxHeight++;
+            else if (y + boxHeight == hintMeshWindow.window.y() + hintMeshWindow.window.height() + 1)
+                boxHeight--;
+//            logger.debug("x + boxWidth: " + (x+boxWidth) + ", (y+boxHeight): " + (y+boxHeight));
             minHintLeft = Math.min(minHintLeft, x);
             minHintTop = Math.min(minHintTop, y);
-            maxHintRight = Math.max(maxHintRight, x + fullBoxWidth);
-            maxHintBottom = Math.max(maxHintBottom, y + fullBoxHeight);
+            maxHintRight = Math.max(maxHintRight, x + boxWidth);
+            maxHintBottom = Math.max(maxHintBottom, y + boxHeight);
             hintBox.setGeometry(x - hintMeshWindow.window().x(), y - hintMeshWindow.window.y(), boxWidth, boxHeight);
             hintLabel.setFixedSize(boxWidth, boxHeight);
             for (int subgridRowIndex = 0;
@@ -892,8 +903,8 @@ public class WindowsOverlay {
         }
         container.setGeometry(minHintLeft - hintMeshWindow.window.x(),
                 minHintTop - hintMeshWindow.window.y(),
-                maxHintRight - minHintLeft + 1,
-                maxHintBottom - minHintTop + 1);
+                maxHintRight - minHintLeft,
+                maxHintBottom - minHintTop);
     }
 
     private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
@@ -1053,7 +1064,7 @@ public class WindowsOverlay {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
-//            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             // Draw background.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             if (color.alpha() != 0) {
