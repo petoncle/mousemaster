@@ -882,29 +882,46 @@ public class WindowsOverlay {
                 }
             }
         }
+        // When putting everything in one container, I get a native StackOverFlow in
+        // the QLabel::paintEvent and/or an InvalidMemoryAccess error.
+        // Can be reproduced with on a 3840x2160 300% screen with 1600 hints:
+        // hint1-mode.hint.font-size.3840x2160=10
+        // hint1-mode.hint.grid-cell-width.3840x2160=32
+        // hint1-mode.hint.grid-cell-height.3840x2160=18
+        List<QWidget> subContainers = new ArrayList<>();
+        int hintCountPerSubContainer = 1000;
+        int subContainerCount =
+                (int) Math.ceil((double) hints.size() / hintCountPerSubContainer);
+        for (int i = 0; i < subContainerCount; i++) {
+            subContainers.add(new QWidget(container));
+        }
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
             hintBox.move(
                     hintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
                     hintBox.y() - (minHintTop - hintMeshWindow.window.y())
             );
-            hintBox.setParent(container);
+            hintBox.setParent(subContainers.get(hintIndex / hintCountPerSubContainer));
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
             hintBox.show();
         }
         for (HintLabel prefixHintLabel : prefixHintLabels) {
             prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
-            prefixHintLabel.setParent(container);
+            prefixHintLabel.setParent(subContainers.getLast());
             prefixHintLabel.show();
         }
-        for (HintLabel hintLabel : hintLabels) {
-            hintLabel.setParent(container);
+        for (int hintIndex = 0; hintIndex < hintLabels.size(); hintIndex++) {
+            HintLabel hintLabel = hintLabels.get(hintIndex);
+            hintLabel.setParent(subContainers.get(hintIndex / hintCountPerSubContainer));
         }
         container.setGeometry(minHintLeft - hintMeshWindow.window.x(),
                 minHintTop - hintMeshWindow.window.y(),
                 maxHintRight - minHintLeft,
                 maxHintBottom - minHintTop);
+        for (QWidget subContainer : subContainers) {
+            subContainer.setGeometry(0, 0, container.getWidth(), container.getHeight());
+        }
     }
 
     private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
