@@ -15,7 +15,7 @@
 # Demo
 
 ## Hints Demo
-https://github.com/user-attachments/assets/666c3513-9929-4640-8695-3876feb3a567
+https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
 
 ## Hint Styling Showcase
 <p align="center">
