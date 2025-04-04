@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class WindowsOverlay {
 
@@ -888,12 +889,17 @@ public class WindowsOverlay {
         // hint1-mode.hint.font-size.3840x2160=10
         // hint1-mode.hint.grid-cell-width.3840x2160=32
         // hint1-mode.hint.grid-cell-height.3840x2160=18
-        List<QWidget> subContainers = new ArrayList<>();
-        int hintCountPerSubContainer = 1000;
-        int subContainerCount =
-                (int) Math.ceil((double) hints.size() / hintCountPerSubContainer);
-        for (int i = 0; i < subContainerCount; i++) {
-            subContainers.add(new QWidget(container));
+        List<QWidget> hintBoxContainers = new ArrayList<>();
+        List<QWidget> hintLabelContainers = new ArrayList<>();
+        int hintCountPerContainer = 1000;
+        int containerCount =
+                (int) Math.ceil((double) hints.size() / hintCountPerContainer);
+        for (int i = 0; i < containerCount; i++) {
+            hintBoxContainers.add(new QWidget(container));
+        }
+        QWidget prefixHintLabelContainer = new QWidget(container);
+        for (int i = 0; i < containerCount; i++) {
+            hintLabelContainers.add(new QWidget(container));
         }
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
@@ -901,25 +907,26 @@ public class WindowsOverlay {
                     hintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
                     hintBox.y() - (minHintTop - hintMeshWindow.window.y())
             );
-            hintBox.setParent(subContainers.get(hintIndex / hintCountPerSubContainer));
+            hintBox.setParent(hintBoxContainers.get(hintIndex / hintCountPerContainer));
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
-            hintBox.show();
         }
         for (HintLabel prefixHintLabel : prefixHintLabels) {
             prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
-            prefixHintLabel.setParent(subContainers.getLast());
-            prefixHintLabel.show();
+            prefixHintLabel.setParent(prefixHintLabelContainer);
         }
         for (int hintIndex = 0; hintIndex < hintLabels.size(); hintIndex++) {
             HintLabel hintLabel = hintLabels.get(hintIndex);
-            hintLabel.setParent(subContainers.get(hintIndex / hintCountPerSubContainer));
+            hintLabel.setParent(hintLabelContainers.get(hintIndex / hintCountPerContainer));
         }
         container.setGeometry(minHintLeft - hintMeshWindow.window.x(),
                 minHintTop - hintMeshWindow.window.y(),
                 maxHintRight - minHintLeft,
                 maxHintBottom - minHintTop);
-        for (QWidget subContainer : subContainers) {
+        for (QWidget subContainer : Stream.of(hintBoxContainers,
+                                                  List.of(prefixHintLabelContainer), hintLabelContainers)
+                                          .flatMap(Collection::stream)
+                                          .toList()) {
             subContainer.setGeometry(0, 0, container.getWidth(), container.getHeight());
         }
     }
