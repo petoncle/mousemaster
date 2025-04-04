@@ -673,7 +673,7 @@ public class WindowsOverlay {
                 font,
                 new QFontMetrics(font),
                 qColor(style.fontStyle().hexColor(), style.fontStyle().opacity()),
-                qColor(style.selectedFontHexColor(), style.fontStyle().opacity()),
+                qColor(style.selectedFontHexColor(), style.selectedFontOpacity()),
                 qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
                 qColor(style.fontStyle().outlineHexColor(), style.fontStyle().outlineOpacity()),
                 (int) Math.round(style.fontStyle().outlineThickness() * screenScale),
