@@ -447,7 +447,7 @@ public class WindowsOverlay {
                                 style, qtScaleFactor,
                                 container
                         );
-                        logger.info("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
+                        logger.trace("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
                         if (isHintGrid) {
                             cacheQtHintWindowIntoPixmap(container, hintMeshKey);
                         }
