@@ -97,20 +97,8 @@ public class ConfigurationParser {
                             .shadowOpacity(0.4d)
                             .shadowHorizontalOffset(2d)
                             .shadowVerticalOffset(2d);
-        hintMeshStyleBuilder.prefixFontStyle()
-                            .weight(FontWeight.THIN)
-                            .size(96d)
-                            .spacingPercent(0.5d)
-                            .hexColor("#FFD93D")
-                            .opacity(0.7d)
-                            .shadowBlurRadius(10d)
-                            .shadowHexColor("#000000")
-                            .shadowOpacity(0d)
-                            .shadowHorizontalOffset(0d)
-                            .shadowVerticalOffset(0d);
         hintMeshStyleBuilder
                 .selectedFontHexColor("#CCCCCC")
-                .selectedFontOpacity(0.3d)
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)

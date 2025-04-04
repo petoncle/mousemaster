@@ -325,6 +325,7 @@ public record HintMeshStyle(FontStyle fontStyle,
             FontStyle fontStyle1 =
                     fontStyle.build(defaultStyle == null ? null : defaultStyle.fontStyle);
             if (defaultStyle != null) {
+                if (selectedFontOpacity == null) selectedFontOpacity = defaultStyle.selectedFontOpacity;
                 if (prefixFontStyle.name() == null) prefixFontStyle.name(defaultStyle.prefixFontStyle.name());
                 if (prefixFontStyle.weight() == null) prefixFontStyle.weight(defaultStyle.prefixFontStyle.weight());
                 if (prefixFontStyle.size() == null) prefixFontStyle.size(defaultStyle.prefixFontStyle.size());
@@ -343,7 +344,7 @@ public record HintMeshStyle(FontStyle fontStyle,
             return new HintMeshStyle(
                     fontStyle1,
                     selectedFontHexColor == null ? defaultStyle.selectedFontHexColor : selectedFontHexColor,
-                    selectedFontOpacity == null ? defaultStyle.selectedFontOpacity : selectedFontOpacity,
+                    selectedFontOpacity == null ? fontStyle1.opacity() : selectedFontOpacity,
                     prefixInBackground == null ? defaultStyle.prefixInBackground : prefixInBackground,
                     prefixFontStyle.build(fontStyle1),
                     boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
