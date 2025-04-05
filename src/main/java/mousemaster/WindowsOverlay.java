@@ -404,15 +404,20 @@ public class WindowsOverlay {
                                          .map(QAbstractAnimation::getCurrentTime)
                                          .findFirst()
                                          .orElse(0);
+        TransparentWindow window = hintMeshWindow.window;
         for (QVariantAnimation animation : hintMeshWindow.animations) {
+            if (window.children().size() < 2)
+                continue;
             animation.stop();
+            QWidget veryOldContainer = (QWidget) window.children().getFirst();
+            veryOldContainer.setParent(null);
+            veryOldContainer.disposeLater();
         }
         hintMeshWindow.animations.clear();
         hintMeshWindow.animationCallbacks.clear();
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
-        TransparentWindow window = hintMeshWindow.window;
         QWidget oldContainer =
                 window.children().isEmpty() ? null :
                         (QWidget) window.children().getFirst();
@@ -652,11 +657,11 @@ public class WindowsOverlay {
         double maxHintCenterY = 0;
         Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
         for (Hint hint : hintMeshWindow.hints()) {
-            List<Key> layoutFirstPart = hintMesh.prefixLength() == -1 ?
+            List<Key> prefix = hintMesh.prefixLength() == -1 ?
                     hint.keySequence() : hint.keySequence().subList(0,
                     hintMesh.prefixLength());
             HintGroup hintGroup =
-                    hintGroupByPrefix.computeIfAbsent(layoutFirstPart,
+                    hintGroupByPrefix.computeIfAbsent(prefix,
                             key -> new HintGroup());
             hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
             hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
