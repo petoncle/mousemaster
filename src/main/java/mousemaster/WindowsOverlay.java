@@ -632,6 +632,12 @@ public class WindowsOverlay {
         double maxHintCenterX = 0;
         double maxHintCenterY = 0;
         boolean atLeastOneHintVisible = false;
+        int left = Integer.MAX_VALUE;
+        int top = Integer.MAX_VALUE;
+        int right = 0;
+        int bottom = 0;
+        HintBox prefixHintBox;
+        HintLabel prefixHintLabel;
 
     }
 
@@ -691,7 +697,6 @@ public class WindowsOverlay {
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
-        List<HintLabel> prefixHintLabels = new ArrayList<>();
         if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
             QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
             LabelFontStyle prefixLabelFontStyle = new LabelFontStyle(
@@ -737,7 +742,7 @@ public class WindowsOverlay {
                         hintGroup.maxHintCenterY - hintGroup.minHintCenterY);
                 int fullBoxWidth = (int) cellWidth;
                 int fullBoxHeight = (int) cellHeight;
-                HintLabel hintLabel =
+                HintLabel prefixHintLabel =
                         new HintLabel(prefix, prefixXAdvancesByString, fullBoxWidth,
                                 fullBoxHeight, totalXAdvance,
                                 hintMesh.prefixLength(),
@@ -746,9 +751,9 @@ public class WindowsOverlay {
                                 hintMesh.selectedKeySequence().size() - 1, false);
                 int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
                 int y = hintRoundedY(prefixCenterY, cellHeight, qtScaleFactor);
-                hintLabel.setGeometry(x - hintMeshWindow.window().x(),
+                prefixHintLabel.setGeometry(x - hintMeshWindow.window().x(),
                         y - hintMeshWindow.window.y(), fullBoxWidth, fullBoxHeight);
-                prefixHintLabels.add(hintLabel);
+                hintGroup.prefixHintLabel = prefixHintLabel;
             }
         }
         Map<String, Integer> xAdvancesByString = new HashMap<>();
@@ -816,12 +821,6 @@ public class WindowsOverlay {
                             true);
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
-            int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
-            HintGroup hintGroup = hintGroupByPrefix.get(prefix);
-            boolean groupLeftEdge = style.prefixBoxEnabled() && hint.centerX() == hintGroup.minHintCenterX;
-            boolean groupTopEdge = style.prefixBoxEnabled() && hint.centerY() == hintGroup.minHintCenterY;
-            boolean groupRightEdge = style.prefixBoxEnabled() && hint.centerX() == hintGroup.maxHintCenterX;
-            boolean groupBottomEdge = style.prefixBoxEnabled() && hint.centerY() == hintGroup.maxHintCenterY;
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
             boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
             boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
@@ -831,13 +830,9 @@ public class WindowsOverlay {
                             boxBorderThickness,
                             boxColor,
                             boxBorderColor,
-                            (int) Math.round(style.prefixBoxBorderLength()),
-                            prefixBoxBorderThickness,
-                            prefixBoxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                             true,
-                            groupLeftEdge, groupTopEdge, groupRightEdge, groupBottomEdge,
                             qtScaleFactor
                     );
             hintBoxes.add(hintBox);
@@ -869,6 +864,13 @@ public class WindowsOverlay {
             maxHintBottom = Math.max(maxHintBottom, y + boxHeight);
             hintBox.setGeometry(x - hintMeshWindow.window().x(), y - hintMeshWindow.window.y(), boxWidth, boxHeight);
             hintLabel.setFixedSize(boxWidth, boxHeight);
+            HintGroup hintGroup = hintGroupByPrefix.get(prefix);
+            if (hintGroup != null) {
+                hintGroup.left = Math.min(hintGroup.left, hintBox.x());
+                hintGroup.top = Math.min(hintGroup.top, hintBox.y());
+                hintGroup.right = Math.max(hintGroup.right, hintBox.x() + hintBox.width());
+                hintGroup.bottom = Math.max(hintGroup.bottom, hintBox.y() + hintBox.height());
+            }
             for (int subgridRowIndex = 0;
                  subgridRowIndex < style.subgridRowCount(); subgridRowIndex++) {
                 for (int subgridColumnIndex = 0; subgridColumnIndex <
@@ -882,6 +884,31 @@ public class WindowsOverlay {
                     subBox.setGeometry(subBoxX, subBoxY, subBoxWidth, subBoxHeight);
                 }
             }
+        }
+        for (HintGroup hintGroup : hintGroupByPrefix.values()) {
+            if (!hintGroup.atLeastOneHintVisible)
+                continue;
+            if (!style.prefixBoxEnabled())
+                continue;
+            boolean gridLeftEdge = isHintPartOfGrid && hintGroup.minHintCenterX == minHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridTopEdge = isHintPartOfGrid && hintGroup.minHintCenterY == minHintCenterY || style.boxHeightPercent() != 1;
+            boolean gridRightEdge = isHintPartOfGrid && hintGroup.maxHintCenterX == maxHintCenterX || style.boxWidthPercent() != 1;
+            boolean gridBottomEdge = isHintPartOfGrid && hintGroup.maxHintCenterY == maxHintCenterY || style.boxHeightPercent() != 1;
+            int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
+            HintBox prefixHintBox =
+                    new HintBox((int) Math.round(style.prefixBoxBorderLength()),
+                            prefixBoxBorderThickness,
+                            new QColor(Qt.GlobalColor.transparent),
+                            prefixBoxBorderColor,
+                            isHintPartOfGrid,
+                            gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
+                            true,
+                            qtScaleFactor
+                    );
+            prefixHintBox.setGeometry(hintGroup.left, hintGroup.top,
+                    hintGroup.right - hintGroup.left,
+                    hintGroup.bottom - hintGroup.top);
+            hintGroup.prefixHintBox = prefixHintBox;
         }
         // When putting everything in one container, I get a native StackOverFlow in
         // the QLabel::paintEvent and/or an InvalidMemoryAccess error.
@@ -897,7 +924,7 @@ public class WindowsOverlay {
         for (int i = 0; i < containerCount; i++) {
             hintBoxContainers.add(new QWidget(container));
         }
-        QWidget prefixHintLabelContainer = new QWidget(container);
+        QWidget prefixContainer = new QWidget(container);
         for (int i = 0; i < containerCount; i++) {
             hintLabelContainers.add(new QWidget(container));
         }
@@ -911,9 +938,22 @@ public class WindowsOverlay {
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
         }
-        for (HintLabel prefixHintLabel : prefixHintLabels) {
+        for (HintGroup hintGroup : hintGroupByPrefix.values()) {
+            HintBox prefixHintBox = hintGroup.prefixHintBox;
+            if (prefixHintBox == null)
+                continue;
+            prefixHintBox.move(
+                    prefixHintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
+                    prefixHintBox.y() - (minHintTop - hintMeshWindow.window.y())
+            );
+            prefixHintBox.setParent(prefixContainer);
+        }
+        for (HintGroup hintGroup : hintGroupByPrefix.values()) {
+            HintLabel prefixHintLabel = hintGroup.prefixHintLabel;
+            if (prefixHintLabel == null)
+                continue;
             prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
-            prefixHintLabel.setParent(prefixHintLabelContainer);
+            prefixHintLabel.setParent(prefixContainer);
         }
         for (int hintIndex = 0; hintIndex < hintLabels.size(); hintIndex++) {
             HintLabel hintLabel = hintLabels.get(hintIndex);
@@ -924,7 +964,7 @@ public class WindowsOverlay {
                 maxHintRight - minHintLeft,
                 maxHintBottom - minHintTop);
         for (QWidget subContainer : Stream.of(hintBoxContainers,
-                                                  List.of(prefixHintLabelContainer), hintLabelContainers)
+                                                  List.of(prefixContainer), hintLabelContainers)
                                           .flatMap(Collection::stream)
                                           .toList()) {
             subContainer.setGeometry(0, 0, container.getWidth(), container.getHeight());
@@ -993,11 +1033,9 @@ public class WindowsOverlay {
                         (int) Math.round(subgridBorderThickness),
                         subgridBoxColor, // Transparent.
                         subgridBoxBorderColor,
-                        -1, -1, null,
                         true,
                         gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                         false,
-                        false, false, false, false,
                         qtScaleFactor
                 );
                 subBox.setParent(hintBox);
@@ -1052,11 +1090,9 @@ public class WindowsOverlay {
         private final int borderRadius = 0;
 
         public HintBox(int borderLength, int borderThickness, QColor color, QColor borderColor,
-                       int layoutLength, int layoutThickness, QColor layoutColor,
                        boolean isHintPartOfGrid,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        boolean drawGridEdgeBorders,
-                       boolean groupLeftEdge, boolean groupTopEdge, boolean groupRightEdge, boolean groupBottomEdge,
                        double qtScaleFactor) {
             this.isHintPartOfGrid = isHintPartOfGrid;
             this.gridLeftEdge = gridLeftEdge;
