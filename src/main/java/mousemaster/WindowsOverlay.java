@@ -482,7 +482,7 @@ public class WindowsOverlay {
                                 window, hintMeshWindow,
                                 style.transitionAnimationDuration(), transitionAnimationCurrentTime);
                     };
-            if (!isHintGrid // They are not cached anyway.
+            if (true || !isHintGrid // They are not cached anyway.
                 || !hintMesh.selectedKeySequence().isEmpty() // To avoid an empty frame.
                     || hintMesh.hints().size() < 100 // To avoid an empty frame.
             ) {
