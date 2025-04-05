@@ -1044,18 +1044,11 @@ public class WindowsOverlay {
         private final boolean gridRightEdge;
         private final boolean gridBottomEdge;
         private final boolean drawGridEdgeBorders;
-        private final boolean groupLeftEdge;
-        private final boolean groupTopEdge;
-        private final boolean groupRightEdge;
-        private final boolean groupBottomEdge;
         private final double qtScaleFactor;
         private final int borderLength;
         private final int borderThickness;
         private final QColor color;
         private final QColor borderColor;
-        private final int layoutLength;
-        private final int layoutThickness;
-        private final QColor layoutColor;
         private final int borderRadius = 0;
 
         public HintBox(int borderLength, int borderThickness, QColor color, QColor borderColor,
@@ -1071,18 +1064,11 @@ public class WindowsOverlay {
             this.gridRightEdge = gridRightEdge;
             this.gridBottomEdge = gridBottomEdge;
             this.drawGridEdgeBorders = drawGridEdgeBorders;
-            this.groupLeftEdge = groupLeftEdge;
-            this.groupTopEdge = groupTopEdge;
-            this.groupRightEdge = groupRightEdge;
-            this.groupBottomEdge = groupBottomEdge;
             this.qtScaleFactor = qtScaleFactor;
             this.borderLength = borderLength;
             this.borderThickness = borderThickness;
             this.color = color;
             this.borderColor = borderColor;
-            this.layoutLength = layoutLength;
-            this.layoutThickness = layoutThickness;
-            this.layoutColor = layoutColor;
         }
 
         @Override
@@ -1097,7 +1083,7 @@ public class WindowsOverlay {
                 painter.drawRoundedRect(0, 0, width(), height(), borderRadius,
                         borderRadius);
             }
-            if (borderThickness != 0 || layoutThickness != 0)
+            if (borderThickness != 0)
                 drawBorders(painter);
             painter.end();
         }
@@ -1116,178 +1102,125 @@ public class WindowsOverlay {
             int left = 0;
             int right = width() - 1;
             int edgeThickness = borderThickness;
-            // groupThickness is the thickness of the borders of a hint box group.
-            int groupThickness = layoutThickness;
-            int topEdgeThickness = edgeThickness;
-            int leftEdgeThickness = edgeThickness;
-            int bottomEdgeThickness = edgeThickness;
-            int rightEdgeThickness = edgeThickness;
-            if (groupLeftEdge)
-                leftEdgeThickness = groupThickness;
-            if (groupTopEdge)
-                topEdgeThickness = groupThickness;
-            if (groupRightEdge)
-                rightEdgeThickness = groupThickness;
-            if (groupBottomEdge)
-                bottomEdgeThickness = groupThickness;
             // Full thickness if grid edge.
             // Otherwise, half thickness: thickness/2 + thickness%2 for top and left, thickness/2 for bottom and right
             int topLeftInsideThickness = borderThickness / 2 + borderThickness % 2;
             int bottomRightInsideThickness = isHintPartOfGrid ? borderThickness / 2 : topLeftInsideThickness;
-            int topInsideThickness = topLeftInsideThickness;
-            int leftInsideThickness = topLeftInsideThickness;
-            int bottomInsideThickness = bottomRightInsideThickness;
-            int rightInsideThickness = bottomRightInsideThickness;
-            int topLeftGroupThickness = groupThickness / 2 + groupThickness % 2;
-            int bottomRightGroupThickness = isHintPartOfGrid ? groupThickness / 2 : topLeftGroupThickness;
-            if (groupLeftEdge)
-                leftInsideThickness = topLeftGroupThickness;
-            if (groupTopEdge)
-                topInsideThickness = topLeftGroupThickness;
-            if (groupRightEdge)
-                rightInsideThickness = bottomRightGroupThickness;
-            if (groupBottomEdge)
-                bottomInsideThickness = bottomRightGroupThickness;
-            QPen topEdgePen = createPen(groupTopEdge ? layoutColor : borderColor, topEdgeThickness);
-            QPen leftEdgePen = createPen(groupLeftEdge ? layoutColor : borderColor, leftEdgeThickness);
-            QPen bottomEdgePen = createPen(groupBottomEdge ? layoutColor : borderColor, bottomEdgeThickness);
-            QPen rightEdgePen = createPen(groupRightEdge ? layoutColor : borderColor, rightEdgeThickness);
-            QPen topInsidePen = createPen(groupTopEdge ? layoutColor : borderColor, topInsideThickness);
-            QPen leftInsidePen = createPen(groupLeftEdge ? layoutColor : borderColor, leftInsideThickness);
-            QPen bottomInsidePen = createPen(groupBottomEdge ? layoutColor : borderColor, bottomInsideThickness);
-            QPen rightInsidePen = createPen(groupRightEdge ? layoutColor : borderColor, rightInsideThickness);
+            QPen edgePen = createPen(borderColor, edgeThickness);
+            QPen insidePen = createPen(borderColor, topLeftInsideThickness);
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
-            int topEdgePenOffset = topEdgeThickness / 2;
-            int leftEdgePenOffset = leftEdgeThickness / 2;
-            int bottomEdgePenOffset = bottomEdgeThickness / 2;
-            int rightEdgePenOffset = rightEdgeThickness / 2;
+            int topEdgePenOffset = edgeThickness / 2;
+            int leftEdgePenOffset = edgeThickness / 2;
+            int bottomEdgePenOffset = edgeThickness / 2;
+            int rightEdgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
-            int groupPenOffset = groupThickness / 4;
-            int topInsidePenOffset = insidePenOffset;
-            int leftInsidePenOffset = insidePenOffset;
-            int bottomInsidePenOffset = insidePenOffset;
-            int rightInsidePenOffset = insidePenOffset;
-            if (groupLeftEdge)
-                leftInsidePenOffset = groupPenOffset;
-            if (groupTopEdge)
-                topInsidePenOffset = groupPenOffset;
-            if (groupRightEdge)
-                rightInsidePenOffset = groupPenOffset;
-            if (groupBottomEdge)
-                bottomInsidePenOffset = groupPenOffset;
-            int gridTopEdgeExtraVertical = gridTopEdge ? topEdgeThickness/2 : 0;
-            int gridBottomEdgeExtraVertical = gridBottomEdge ? bottomEdgeThickness/2 : 0;
-            int gridLeftEdgeExtraHorizontal = gridLeftEdge ? leftEdgeThickness/2 : 0;
-            int gridRightEdgeExtraHorizontal = gridRightEdge ? rightEdgeThickness/2 : 0;
+            int gridTopEdgeExtraVertical = gridTopEdge ? edgeThickness / 2 : 0;
+            int gridBottomEdgeExtraVertical = gridBottomEdge ? edgeThickness / 2 : 0;
+            int gridLeftEdgeExtraHorizontal = gridLeftEdge ? edgeThickness / 2 : 0;
+            int gridRightEdgeExtraHorizontal = gridRightEdge ? edgeThickness / 2 : 0;
             // Top left corner.
             // Vertical line.
             drawVerticalGridLine(painter,
                     drawGridEdgeBorders || (!gridLeftEdge && !gridTopEdge),
                     gridLeftEdge,
-                    leftEdgePen,
-                    leftInsidePen,
+                    edgePen,
+                    insidePen,
                     left,
                     leftEdgePenOffset,
-                    leftInsidePenOffset,
+                    insidePenOffset,
                     top,
-                    Math.min(bottom - layoutThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
+                    Math.min(bottom - borderThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
             );
             // Horizontal line.
             drawHorizontalGridLine(painter,
                     drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge),
                     gridTopEdge,
-                    topEdgePen,
-                    topInsidePen,
+                    edgePen,
+                    insidePen,
                     top,
                     topEdgePenOffset,
-                    topInsidePenOffset,
-                    !groupTopEdge && groupLeftEdge ? (left + layoutThickness / (gridLeftEdge ? 1 : 2)) : left,
-                    Math.min(right - layoutThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
+                    insidePenOffset,
+                    left,
+                    Math.min(right - borderThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
             );
             // Top right corner.
             // Vertical line.
             drawVerticalGridLine(painter,
                     drawGridEdgeBorders || (!gridRightEdge && !gridTopEdge),
                     gridRightEdge,
-                    rightEdgePen,
-                    rightInsidePen,
+                    edgePen,
+                    insidePen,
                     right,
-                    rightEdgePenOffset - (rightEdgeThickness - 1),
-                    rightInsidePenOffset - (rightInsideThickness - 1),
+                    rightEdgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
                     top,
-                    Math.min(bottom - layoutThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
+                    Math.min(bottom - borderThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
             );
 
             // Horizontal line.
             drawHorizontalGridLine(painter,
                     drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge),
                     gridTopEdge,
-                    topEdgePen,
-                    topInsidePen,
+                    edgePen,
+                    insidePen,
                     top,
                     topEdgePenOffset,
-                    topInsidePenOffset,
-                    Math.max(left + layoutThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2),
-                    right + 1 - (!groupTopEdge && groupRightEdge ? (layoutThickness / (gridRightEdge ? 1 : 2)) : 0)
+                    insidePenOffset,
+                    Math.max(left + borderThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2),
+                    right + 1
             );
             // Bottom left corner.
             // Vertical line.
             drawVerticalGridLine(painter,
                     drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge),
                     gridLeftEdge,
-                    leftEdgePen,
-                    leftInsidePen,
+                    edgePen,
+                    insidePen,
                     left,
                     leftEdgePenOffset,
-                    leftInsidePenOffset,
-                    Math.max(top + layoutThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2),
+                    insidePenOffset,
+                    Math.max(top + borderThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2),
                     bottom + 1
             );
             // Horizontal line.
             drawHorizontalGridLine(painter,
                     drawGridEdgeBorders || (!gridBottomEdge && !gridLeftEdge),
                     gridBottomEdge,
-                    bottomEdgePen,
-                    bottomInsidePen,
+                    edgePen,
+                    insidePen,
                     bottom,
-                    bottomEdgePenOffset - (bottomEdgeThickness - 1),
-                    bottomInsidePenOffset - (bottomInsideThickness - 1),
-                    !groupBottomEdge && groupLeftEdge ? (left + layoutThickness / (gridLeftEdge ? 1 : 2)) : left,
-                    Math.min(right - layoutThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
+                    bottomEdgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
+                    left,
+                    Math.min(right - borderThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
             );
             // Bottom right corner.
             // Vertical line.
             drawVerticalGridLine(painter,
                     drawGridEdgeBorders || (!gridRightEdge && !gridBottomEdge),
                     gridRightEdge,
-                    rightEdgePen,
-                    rightInsidePen,
+                    edgePen,
+                    insidePen,
                     right,
-                    rightEdgePenOffset - (rightEdgeThickness - 1),
-                    rightInsidePenOffset - (rightInsideThickness - 1),
-                    Math.max(top + layoutThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2),
+                    rightEdgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
+                    Math.max(top + borderThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2),
                     bottom + 1
             );
             // Horizontal line.
             drawHorizontalGridLine(painter,
                     drawGridEdgeBorders || (!gridBottomEdge && !gridRightEdge),
                     gridBottomEdge,
-                    bottomEdgePen,
-                    bottomInsidePen,
+                    edgePen,
+                    insidePen,
                     bottom,
-                    bottomEdgePenOffset - (bottomEdgeThickness - 1),
-                    bottomInsidePenOffset - (bottomInsideThickness - 1),
-                    Math.max(left + layoutThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2),
-                    right + 1 - (!groupBottomEdge && groupRightEdge ? (layoutThickness / (gridRightEdge ? 1 : 2)) : 0)
+                    bottomEdgePenOffset - (edgeThickness - 1),
+                    insidePenOffset - (bottomRightInsideThickness - 1),
+                    Math.max(left + borderThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2),
+                    right + 1
             );
-            topEdgePen.dispose();
-            leftEdgePen.dispose();
-            bottomEdgePen.dispose();
-            rightEdgePen.dispose();
-            topInsidePen.dispose();
-            leftInsidePen.dispose();
-            bottomInsidePen.dispose();
-            rightInsidePen.dispose();
+            edgePen.dispose();
+            insidePen.dispose();
         }
 
         private void drawVerticalGridLine(
