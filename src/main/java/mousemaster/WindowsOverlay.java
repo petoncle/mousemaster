@@ -812,7 +812,7 @@ public class WindowsOverlay {
             List<Key> prefix = hintMesh.prefixLength() == -1 ?
                     hint.keySequence() : hint.keySequence().subList(0,
                     hintMesh.prefixLength());
-            List<Key> suffix = hint.keySequence().subList(1, hint.keySequence().size());
+            List<Key> suffix = hint.keySequence().subList(prefix.size(), hint.keySequence().size());
             HintLabel hintLabel =
                     new HintLabel(
                             style.prefixInBackground() ? suffix : hint.keySequence(),
