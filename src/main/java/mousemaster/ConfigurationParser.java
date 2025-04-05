@@ -94,7 +94,7 @@ public class ConfigurationParser {
                             .outlineOpacity(0.5d)
                             .shadowBlurRadius(10d)
                             .shadowHexColor("#FFFFFF")
-                            .shadowOpacity(0.4d)
+                            .shadowOpacity(1d)
                             .shadowHorizontalOffset(0d)
                             .shadowVerticalOffset(0d);
         hintMeshStyleBuilder
