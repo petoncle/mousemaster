@@ -762,26 +762,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                        .toList() +
                          " selected, switching to " +
                          hintMeshConfiguration.modeAfterSelection());
-            ViewportFilterMap.ViewportFilterMapBuilder<HintMeshStyle.HintMeshStyleBuilder, HintMeshStyle>
-                    endStyleByFilterBuilder =
-                    hintMesh.styleByFilter()
-                            .builder(HintMeshStyle::builder);
-            for (HintMeshStyle.HintMeshStyleBuilder hintMeshStyleBuilder : endStyleByFilterBuilder.map()
-                                                                                                  .values()) {
-                if (hintMeshStyleBuilder.prefixBoxEnabled())
-                    hintMeshStyleBuilder.prefixBoxEnabled(false)
-                                        .boxBorderThickness(hintMeshStyleBuilder.prefixBoxBorderThickness())
-                                        .boxBorderLength(hintMeshStyleBuilder.prefixBoxBorderLength())
-                                        .boxBorderHexColor(hintMeshStyleBuilder.prefixBoxBorderHexColor())
-                                        .boxBorderOpacity(hintMeshStyleBuilder.prefixBoxBorderOpacity());
-            }
-            HintMesh endHintMesh =
-                    hintMesh.builder()
-                            .selectedKeySequence(newSelectedKeySequence)
-                            .styleByFilter(endStyleByFilterBuilder.build(
-                                    HintMeshStyle.HintMeshStyleBuilder::build))
-                            .build();
-            WindowsOverlay.setHintMesh(endHintMesh, currentZoom, true); // will ignore the next call to .hideHintMesh()
+            WindowsOverlay.animateHintMatch(hint);
             modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
         }
         else {

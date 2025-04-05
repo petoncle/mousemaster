@@ -36,6 +36,8 @@ public class WindowsOverlay {
     private static final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
+    private static final Map<HintMesh, Map<Hint, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
+    private static HintMesh lastHintMeshKey;
     private static boolean showingHintMesh;
     private static boolean hintMeshEndAnimation;
     private static boolean zoomAfterHintMeshEndAnimation;
@@ -92,6 +94,8 @@ public class WindowsOverlay {
         for (PixmapAndPosition pixmapAndPosition : hintMeshPixmaps.values())
             pixmapAndPosition.pixmap().dispose();
         hintMeshPixmaps.clear();
+        hintBoxGeometriesByHintMeshKey.clear();
+        lastHintMeshKey = null;
     }
 
     public static Rectangle activeWindowRectangle(double windowWidthPercent,
@@ -288,38 +292,7 @@ public class WindowsOverlay {
     }
 
     private static void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom) {
-        Set<Screen> screens = WindowsScreen.findScreens();
-        Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
-        for (Hint hint : hintMesh.hints()) {
-            for (Screen screen : screens) {
-                if (hint.cellWidth() == -1) {
-                    if (!screen.rectangle().contains((int) hint.centerX(), (int) hint.centerY()))
-                        continue;
-                }
-                else {
-                    int left = (int) Math.ceil(hint.centerX() - hint.cellWidth() / 2);
-                    int right = (int) Math.floor(hint.centerX() + hint.cellWidth() / 2);
-                    int top = (int) Math.ceil(hint.centerY() - hint.cellHeight() / 2);
-                    int bottom = (int) Math.floor(hint.centerY() + hint.cellHeight() / 2);
-                    if (left == screen.rectangle().x() + screen.rectangle().width() ||
-                        right == screen.rectangle().x() ||
-                        top == screen.rectangle().y() + screen.rectangle().height() ||
-                        bottom == screen.rectangle().y())
-                        // Assuming two screens: left and right, with right screen
-                        // at x = 1024. Hint's left is 1024.
-                        // Hint should be on second screen, not on left screen.
-                        continue;
-                    if (!screen.rectangle().contains(left, top) &&
-                        !screen.rectangle().contains(right, top) &&
-                        !screen.rectangle().contains(left, bottom) &&
-                        !screen.rectangle().contains(right, bottom))
-                        continue;
-                }
-                hintsByScreen.computeIfAbsent(screen, screen1 -> new ArrayList<>())
-                              .add(hint);
-                break;
-            }
-        }
+        Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(hintMesh.hints());
         for (Map.Entry<Screen, HintMeshWindow> entry : hintMeshWindows.entrySet()) {
             Screen screen = entry.getKey();
             HintMeshWindow window = entry.getValue();
@@ -356,7 +329,8 @@ public class WindowsOverlay {
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
-                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, false);
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, false,
+                        null);
             }
             else {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
@@ -373,11 +347,48 @@ public class WindowsOverlay {
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + existingWindow.window.x() + " " + existingWindow.window.y() + " " + existingWindow.window.width() + " " + existingWindow.window.height());
-                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, oldContainerHasSameHints);
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, oldContainerHasSameHints,
+                        null);
             }
         }
         if (createdAtLeastOneWindow)
             updateZoomExcludedWindows();
+    }
+
+    private static Map<Screen, List<Hint>> hintsByScreen(List<Hint> hints) {
+        Set<Screen> screens = WindowsScreen.findScreens();
+        Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
+        for (Hint hint : hints) {
+            for (Screen screen : screens) {
+                if (hint.cellWidth() == -1) {
+                    if (!screen.rectangle().contains((int) hint.centerX(), (int) hint.centerY()))
+                        continue;
+                }
+                else {
+                    int left = (int) Math.ceil(hint.centerX() - hint.cellWidth() / 2);
+                    int right = (int) Math.floor(hint.centerX() + hint.cellWidth() / 2);
+                    int top = (int) Math.ceil(hint.centerY() - hint.cellHeight() / 2);
+                    int bottom = (int) Math.floor(hint.centerY() + hint.cellHeight() / 2);
+                    if (left == screen.rectangle().x() + screen.rectangle().width() ||
+                        right == screen.rectangle().x() ||
+                        top == screen.rectangle().y() + screen.rectangle().height() ||
+                        bottom == screen.rectangle().y())
+                        // Assuming two screens: left and right, with right screen
+                        // at x = 1024. Hint's left is 1024.
+                        // Hint should be on second screen, not on left screen.
+                        continue;
+                    if (!screen.rectangle().contains(left, top) &&
+                        !screen.rectangle().contains(right, top) &&
+                        !screen.rectangle().contains(left, bottom) &&
+                        !screen.rectangle().contains(right, bottom))
+                        continue;
+                }
+                hintsByScreen.computeIfAbsent(screen, screen1 -> new ArrayList<>())
+                              .add(hint);
+                break;
+            }
+        }
+        return hintsByScreen;
     }
 
     private static class ClearBackgroundQLabel extends QLabel {
@@ -395,7 +406,8 @@ public class WindowsOverlay {
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                           HintMesh hintMesh, double screenScale,
                                           HintMeshStyle style,
-                                          boolean oldContainerHasSameHints) {
+                                          boolean oldContainerHasSameHints,
+                                          PixmapAndPosition forcedPixmapAndPosition) {
         setUncachedHintMeshWindowRunnable = null;
         int transitionAnimationCurrentTime =
                 hintMeshWindow.animations.stream()
@@ -422,10 +434,15 @@ public class WindowsOverlay {
                 window.children().isEmpty() ? null :
                         (QWidget) window.children().getFirst();
         window.clearWindow();
-        HintMesh hintMeshKey = new HintMesh.HintMeshBuilder(hintMesh)
-                .hints(trimmedHints(hintMeshWindow.hints(), hintMesh.selectedKeySequence()))
-                .build();
-        PixmapAndPosition pixmapAndPosition = hintMeshPixmaps.get(hintMeshKey);
+        HintMesh hintMeshKey = forcedPixmapAndPosition != null ? null :
+                new HintMesh.HintMeshBuilder(hintMesh)
+                        .hints(trimmedHints(hintMeshWindow.hints(),
+                                hintMesh.selectedKeySequence()))
+                        .build();
+        lastHintMeshKey = hintMeshKey; // Will be used by animateHintMatch.
+        PixmapAndPosition pixmapAndPosition =
+                forcedPixmapAndPosition != null ? forcedPixmapAndPosition :
+                        hintMeshPixmaps.get(hintMeshKey);
         boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         QWidget newContainer;
         if (pixmapAndPosition != null) {
@@ -447,12 +464,15 @@ public class WindowsOverlay {
             setUncachedHintMeshWindowRunnable =
                     () -> {
                         long before = System.nanoTime();
-                        setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
-                                screenScale,
-                                style, qtScaleFactor,
-                                container
-                        );
+                        Map<Hint, QRect> hintBoxGeometries =
+                                setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
+                                        screenScale,
+                                        style, qtScaleFactor,
+                                        container
+                                );
                         logger.trace("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
+                        hintBoxGeometriesByHintMeshKey.put(hintMeshKey,
+                                hintBoxGeometries);
                         if (isHintGrid) {
                             cacheQtHintWindowIntoPixmap(container, hintMeshKey);
                         }
@@ -646,10 +666,10 @@ public class WindowsOverlay {
 
     }
 
-    private static void setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
-                                                  double screenScale, HintMeshStyle style,
-                                                  double qtScaleFactor,
-                                                  QWidget container) {
+    private static Map<Hint, QRect> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
+                                                              double screenScale, HintMeshStyle style,
+                                                              double qtScaleFactor,
+                                                              QWidget container) {
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -831,7 +851,7 @@ public class WindowsOverlay {
             boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
             boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
             HintBox hintBox =
-                    new HintBox((int) Math.round(style.boxBorderLength()),
+                    new HintBox(hint, (int) Math.round(style.boxBorderLength()),
                             boxBorderThickness,
                             boxColor,
                             boxBorderColor,
@@ -901,7 +921,7 @@ public class WindowsOverlay {
             boolean gridBottomEdge = isHintPartOfGrid && hintGroup.maxHintCenterY == maxHintCenterY || style.boxHeightPercent() != 1;
             int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
             HintBox prefixHintBox =
-                    new HintBox((int) Math.round(style.prefixBoxBorderLength()),
+                    new HintBox(null, (int) Math.round(style.prefixBoxBorderLength()),
                             prefixBoxBorderThickness,
                             qColor("#000000", 0),
                             prefixBoxBorderColor,
@@ -933,6 +953,7 @@ public class WindowsOverlay {
         for (int i = 0; i < containerCount; i++) {
             hintLabelContainers.add(new QWidget(container));
         }
+        Map<Hint, QRect> hintBoxGeometries = new HashMap<>();
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
             hintBox.move(
@@ -942,6 +963,9 @@ public class WindowsOverlay {
             hintBox.setParent(hintBoxContainers.get(hintIndex / hintCountPerContainer));
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
+            if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
+                hintBoxGeometries.put(hintBox.hint, hintBox.geometry());
+            }
         }
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             HintBox prefixHintBox = hintGroup.prefixHintBox;
@@ -974,6 +998,7 @@ public class WindowsOverlay {
                                           .toList()) {
             subContainer.setGeometry(0, 0, container.getWidth(), container.getHeight());
         }
+        return hintBoxGeometries;
     }
 
     private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
@@ -1034,7 +1059,7 @@ public class WindowsOverlay {
                 boolean gridRightEdge = subgridColumnIndex == subgridColumnCount - 1;
                 boolean gridBottomEdge = subgridRowIndex == subgridRowCount - 1;
                 HintBox subBox = new HintBox(
-                        (int) Math.round(subgridBorderLength),
+                        null, (int) Math.round(subgridBorderLength),
                         (int) Math.round(subgridBorderThickness),
                         subgridBoxColor, // Transparent.
                         subgridBoxBorderColor,
@@ -1081,6 +1106,7 @@ public class WindowsOverlay {
 
     public static class HintBox extends QWidget {
 
+        private final Hint hint;
         private final boolean isHintPartOfGrid;
         private final boolean gridLeftEdge;
         private final boolean gridTopEdge;
@@ -1094,11 +1120,12 @@ public class WindowsOverlay {
         private final QColor borderColor;
         private final int borderRadius = 0;
 
-        public HintBox(int borderLength, int borderThickness, QColor color, QColor borderColor,
+        public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
                        boolean isHintPartOfGrid,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        boolean drawGridEdgeBorders,
                        double qtScaleFactor) {
+            this.hint = hint;
             this.isHintPartOfGrid = isHintPartOfGrid;
             this.gridLeftEdge = gridLeftEdge;
             this.gridTopEdge = gridTopEdge;
@@ -1924,6 +1951,36 @@ public class WindowsOverlay {
         }
         showingGrid = true;
         requestWindowRepaint(gridWindow.hwnd);
+    }
+
+    /**
+     * The reason we don't call setHintMesh with the match hint is because
+     * that does not keep the prefix box borders of the previous hint mesh.
+     */
+    public static void animateHintMatch(Hint hint) {
+        boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1;
+        if (isHintGrid)
+            hintMeshEndAnimation = true;
+        else {
+            // No animation for position history hints.
+            // hideHintMesh() will be called by the switch mode command.
+            return;
+        }
+        Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(List.of(hint));
+        Screen screen = hintsByScreen.keySet().iterator().next();
+        HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
+        QRect hintBoxGeometry =
+                hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint);
+        QWidget container = (QWidget) hintMeshWindow.window.children().getLast();
+        QPixmap pixmap = container.grab(hintBoxGeometry);
+//         pixmap.save("screenshot.png", "PNG");
+        PixmapAndPosition pixmapAndPosition =
+                new PixmapAndPosition(pixmap,
+                        container.geometry().x() + hintBoxGeometry.x(),
+                        container.geometry().y() + hintBoxGeometry.y());
+        HintMeshStyle style =
+                lastHintMeshKey.styleByFilter().get(ViewportFilter.of(screen));
+        setHintMeshWindow(hintMeshWindow, null, -1, style, true, pixmapAndPosition);
     }
 
     public static void setHintMesh(HintMesh hintMesh, Zoom zoom) {
