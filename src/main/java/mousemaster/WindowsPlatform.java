@@ -78,12 +78,18 @@ public class WindowsPlatform implements Platform {
     public void sleep() throws InterruptedException {
         windowsMessagePump();
         while (true) {
-            WinDef.POINT mousePosition = mousePositionQueue.poll();
+            WinDef.POINT mousePosition = null;
+            WinDef.POINT polledMousePosition;
+            while ((polledMousePosition = mousePositionQueue.poll()) != null) {
+                mousePosition = polledMousePosition;
+            }
             if (mousePosition == null)
                 break;
             WindowsOverlay.mouseMoved(mousePosition);
-            mousePositionListeners.forEach(
-                    listener -> listener.mouseMoved(mousePosition.x, mousePosition.y));
+            for (MousePositionListener listener : mousePositionListeners) {
+                // ZoomListener can take up to 30ms.
+                listener.mouseMoved(mousePosition.x, mousePosition.y);
+            }
         }
         windowsMessagePump();
         long beforeTime = System.nanoTime();
