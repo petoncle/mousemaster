@@ -84,7 +84,7 @@ public class ConfigurationParser {
                 hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER);
         hintMeshStyleBuilder.fontStyle()
                             .name("Consolas")
-                            .weight(FontWeight.BOLD)
+                            .weight(FontWeight.NORMAL)
                             .size(18d)
                             .spacingPercent(0.7d)
                             .hexColor("#FFFFFF")
@@ -92,11 +92,11 @@ public class ConfigurationParser {
                             .outlineThickness(0d)
                             .outlineHexColor("#000000")
                             .outlineOpacity(0.5d)
-                            .shadowBlurRadius(0d)
-                            .shadowHexColor("#000000")
+                            .shadowBlurRadius(10d)
+                            .shadowHexColor("#FFFFFF")
                             .shadowOpacity(0.4d)
-                            .shadowHorizontalOffset(2d)
-                            .shadowVerticalOffset(2d);
+                            .shadowHorizontalOffset(0d)
+                            .shadowVerticalOffset(0d);
         hintMeshStyleBuilder
                 .selectedFontHexColor("#CCCCCC")
                 .prefixInBackground(false)
