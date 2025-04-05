@@ -386,7 +386,7 @@ public class WindowsOverlay {
             QPainter painter = new QPainter(this);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             // Clear what's behind (when we're drawing the old container behind).
-            painter.fillRect(rect(), Qt.GlobalColor.transparent);
+            painter.fillRect(rect(), qColor("#000000", 0));
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             super.paintEvent(event);
         }
@@ -898,7 +898,7 @@ public class WindowsOverlay {
             HintBox prefixHintBox =
                     new HintBox((int) Math.round(style.prefixBoxBorderLength()),
                             prefixBoxBorderThickness,
-                            new QColor(Qt.GlobalColor.transparent),
+                            qColor("#000000", 0),
                             prefixBoxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
