@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,7 +38,6 @@ public class WindowsOverlay {
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private static final Map<HintMesh, Map<Hint, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
-    private static HintMesh lastHintMeshKey;
     private static boolean showingHintMesh;
     private static boolean hintMeshEndAnimation;
     private static boolean zoomAfterHintMeshEndAnimation;
@@ -95,7 +95,9 @@ public class WindowsOverlay {
             pixmapAndPosition.pixmap().dispose();
         hintMeshPixmaps.clear();
         hintBoxGeometriesByHintMeshKey.clear();
-        lastHintMeshKey = null;
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+            hintMeshWindow.lastHintMeshKeyReference().set(null);
+        }
     }
 
     public static Rectangle activeWindowRectangle(double windowWidthPercent,
@@ -183,7 +185,8 @@ public class WindowsOverlay {
                                   TransparentWindow window,
                                   List<Hint> hints, Zoom zoom,
                                   List<QVariantAnimation> animations,
-                                  List<QMetaObject.AbstractSlot> animationCallbacks) {
+                                  List<QMetaObject.AbstractSlot> animationCallbacks,
+                                  AtomicReference<HintMesh> lastHintMeshKeyReference) {
 
     }
 
@@ -325,7 +328,7 @@ public class WindowsOverlay {
                 window.resize(screen.rectangle().width(), screen.rectangle().height());
                 HintMeshWindow hintMeshWindow =
                         new HintMeshWindow(hwnd, window, hintsInScreen, zoom,
-                                new ArrayList<>(), new ArrayList<>());
+                                new ArrayList<>(), new ArrayList<>(), new AtomicReference<>());
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
@@ -336,7 +339,8 @@ public class WindowsOverlay {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.hwnd,
                         existingWindow.window,
                         hintsInScreen, zoom, existingWindow.animations(),
-                        existingWindow.animationCallbacks());
+                        existingWindow.animationCallbacks(),
+                        existingWindow.lastHintMeshKeyReference());
                 boolean oldContainerIsHidden = !existingWindow.window.children()
                                                                      .isEmpty() &&
                                                ((QWidget) existingWindow.window.children().getFirst()).isHidden();
@@ -439,7 +443,7 @@ public class WindowsOverlay {
                         .hints(trimmedHints(hintMeshWindow.hints(),
                                 hintMesh.selectedKeySequence()))
                         .build();
-        lastHintMeshKey = hintMeshKey; // Will be used by animateHintMatch.
+        hintMeshWindow.lastHintMeshKeyReference.set(hintMeshKey); // Will be used by animateHintMatch.
         PixmapAndPosition pixmapAndPosition =
                 forcedPixmapAndPosition != null ? forcedPixmapAndPosition :
                         hintMeshPixmaps.get(hintMeshKey);
@@ -887,7 +891,7 @@ public class WindowsOverlay {
             minHintTop = Math.min(minHintTop, y);
             maxHintRight = Math.max(maxHintRight, x + boxWidth);
             maxHintBottom = Math.max(maxHintBottom, y + boxHeight);
-            hintBox.setGeometry(x - hintMeshWindow.window().x(), y - hintMeshWindow.window.y(), boxWidth, boxHeight);
+            hintBox.setGeometry(x - hintMeshWindow.window.x(), y - hintMeshWindow.window.y(), boxWidth, boxHeight);
             hintLabel.setFixedSize(boxWidth, boxHeight);
             HintGroup hintGroup = hintGroupByPrefix.get(prefix);
             if (hintGroup != null) {
@@ -1958,7 +1962,12 @@ public class WindowsOverlay {
      * that does not keep the prefix box borders of the previous hint mesh.
      */
     public static void animateHintMatch(Hint hint) {
-        boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1;
+        Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(List.of(hint));
+        Screen screen = hintsByScreen.keySet().iterator().next();
+        HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
+        HintMesh lastHintMeshKey = hintMeshWindow.lastHintMeshKeyReference.get();
+        boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1 &&
+                             lastHintMeshKey.hints().size() > 1;
         if (isHintGrid)
             hintMeshEndAnimation = true;
         else {
@@ -1966,9 +1975,6 @@ public class WindowsOverlay {
             // hideHintMesh() will be called by the switch mode command.
             return;
         }
-        Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(List.of(hint));
-        Screen screen = hintsByScreen.keySet().iterator().next();
-        HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
         QRect hintBoxGeometry =
                 hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint);
         QWidget container = (QWidget) hintMeshWindow.window.children().getLast();
