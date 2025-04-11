@@ -1407,7 +1407,7 @@ public class WindowsOverlay {
 
             double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
-                    smallestColAlignedFontBoxWidth / boxWidth;
+                    Math.min(1, smallestColAlignedFontBoxWidth / boxWidth);
             // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
             double adjustedFontBoxWidthPercent = labelFontStyle.fontSpacingPercent < 0.5d ?
                     (labelFontStyle.fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
