@@ -667,6 +667,7 @@ public class WindowsOverlay {
         int bottom = 0;
         HintBox prefixHintBox;
         HintLabel prefixHintLabel;
+        int x, y;
 
     }
 
@@ -726,65 +727,6 @@ public class WindowsOverlay {
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
-        if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
-            QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
-            LabelFontStyle prefixLabelFontStyle = new LabelFontStyle(
-                    prefixFont,
-                    new QFontMetrics(prefixFont),
-                    null,
-                    qColor(style.selectedFontHexColor(), style.selectedFontOpacity()),
-                    qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
-                    qColor(style.prefixFontStyle().outlineHexColor(), style.prefixFontStyle().outlineOpacity()),
-                    (int) Math.round(style.prefixFontStyle().outlineThickness() * screenScale),
-                    qColor(style.prefixFontStyle().shadowHexColor(), style.prefixFontStyle().shadowOpacity()),
-                    style.prefixFontStyle().shadowBlurRadius() * screenScale,
-                    style.prefixFontStyle().shadowHorizontalOffset() * screenScale,
-                    style.prefixFontStyle().shadowVerticalOffset() * screenScale,
-                    style.prefixFontStyle().spacingPercent()
-            );
-            Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
-            int prefixHintKeyMaxXAdvance = 0;
-            for (List<Key> prefix : hintGroupByPrefix.keySet()) {
-                for (Key key : prefix) {
-                    prefixHintKeyMaxXAdvance = Math.max(prefixHintKeyMaxXAdvance,
-                            prefixXAdvancesByString.computeIfAbsent(key.hintLabel(),
-                                    prefixLabelFontStyle.metrics::horizontalAdvance));
-                }
-            }
-            for (Map.Entry<List<Key>, HintGroup> entry : hintGroupByPrefix.entrySet()) {
-                List<Key> prefix = entry.getKey();
-                HintGroup hintGroup = entry.getValue();
-                if (!hintGroup.atLeastOneHintVisible)
-                    continue;
-                double prefixCenterX =
-                        (hintGroup.minHintCenterX + hintGroup.maxHintCenterX) / 2;
-                double prefixCenterY =
-                        (hintGroup.minHintCenterY + hintGroup.maxHintCenterY) / 2;
-                int totalXAdvance = prefixLabelFontStyle.metrics.horizontalAdvance(
-                        prefix.stream()
-                              .map(Key::hintLabel)
-                              .collect(Collectors.joining()));
-                double cellWidth = Math.max(totalXAdvance,
-                        hintGroup.maxHintCenterX - hintGroup.minHintCenterX);
-                int lineHeight = prefixLabelFontStyle.metrics.height();
-                double cellHeight = Math.max(lineHeight,
-                        hintGroup.maxHintCenterY - hintGroup.minHintCenterY);
-                int fullBoxWidth = (int) cellWidth;
-                int fullBoxHeight = (int) cellHeight;
-                HintLabel prefixHintLabel =
-                        new HintLabel(prefix, prefixXAdvancesByString, fullBoxWidth,
-                                fullBoxHeight, totalXAdvance,
-                                hintMesh.prefixLength(),
-                                prefixLabelFontStyle,
-                                prefixHintKeyMaxXAdvance,
-                                hintMesh.selectedKeySequence().size() - 1, false);
-                int x = hintRoundedX(prefixCenterX, cellWidth, qtScaleFactor);
-                int y = hintRoundedY(prefixCenterY, cellHeight, qtScaleFactor);
-                prefixHintLabel.setGeometry(x - hintMeshWindow.window().x(),
-                        y - hintMeshWindow.window.y(), fullBoxWidth, fullBoxHeight);
-                hintGroup.prefixHintLabel = prefixHintLabel;
-            }
-        }
         Map<String, Integer> xAdvancesByString = new HashMap<>();
         int hintKeyMaxXAdvance = 0;
         for (Hint hint : hints) {
@@ -919,11 +861,20 @@ public class WindowsOverlay {
                 continue;
             if (!style.prefixBoxEnabled())
                 continue;
-            boolean gridLeftEdge = isHintPartOfGrid && hintGroup.minHintCenterX == minHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridTopEdge = isHintPartOfGrid && hintGroup.minHintCenterY == minHintCenterY || style.boxHeightPercent() != 1;
-            boolean gridRightEdge = isHintPartOfGrid && hintGroup.maxHintCenterX == maxHintCenterX || style.boxWidthPercent() != 1;
-            boolean gridBottomEdge = isHintPartOfGrid && hintGroup.maxHintCenterY == maxHintCenterY || style.boxHeightPercent() != 1;
-            int prefixBoxBorderThickness = (int) Math.round(style.prefixBoxBorderThickness());
+            boolean gridLeftEdge =
+                    isHintPartOfGrid && hintGroup.minHintCenterX == minHintCenterX ||
+                    style.boxWidthPercent() != 1;
+            boolean gridTopEdge =
+                    isHintPartOfGrid && hintGroup.minHintCenterY == minHintCenterY ||
+                    style.boxHeightPercent() != 1;
+            boolean gridRightEdge =
+                    isHintPartOfGrid && hintGroup.maxHintCenterX == maxHintCenterX ||
+                    style.boxWidthPercent() != 1;
+            boolean gridBottomEdge =
+                    isHintPartOfGrid && hintGroup.maxHintCenterY == maxHintCenterY ||
+                    style.boxHeightPercent() != 1;
+            int prefixBoxBorderThickness =
+                    (int) Math.round(style.prefixBoxBorderThickness());
             HintBox prefixHintBox =
                     new HintBox(null, (int) Math.round(style.prefixBoxBorderLength()),
                             prefixBoxBorderThickness,
@@ -938,6 +889,65 @@ public class WindowsOverlay {
                     hintGroup.right - hintGroup.left,
                     hintGroup.bottom - hintGroup.top);
             hintGroup.prefixHintBox = prefixHintBox;
+        }
+        if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
+            QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
+            LabelFontStyle prefixLabelFontStyle = new LabelFontStyle(
+                    prefixFont,
+                    new QFontMetrics(prefixFont),
+                    null,
+                    qColor(style.selectedFontHexColor(), style.selectedFontOpacity()),
+                    qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
+                    qColor(style.prefixFontStyle().outlineHexColor(), style.prefixFontStyle().outlineOpacity()),
+                    (int) Math.round(style.prefixFontStyle().outlineThickness() * screenScale),
+                    qColor(style.prefixFontStyle().shadowHexColor(), style.prefixFontStyle().shadowOpacity()),
+                    style.prefixFontStyle().shadowBlurRadius() * screenScale,
+                    style.prefixFontStyle().shadowHorizontalOffset() * screenScale,
+                    style.prefixFontStyle().shadowVerticalOffset() * screenScale,
+                    style.prefixFontStyle().spacingPercent()
+            );
+            Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
+            int prefixHintKeyMaxXAdvance = 0;
+            for (List<Key> prefix : hintGroupByPrefix.keySet()) {
+                for (Key key : prefix) {
+                    prefixHintKeyMaxXAdvance = Math.max(prefixHintKeyMaxXAdvance,
+                            prefixXAdvancesByString.computeIfAbsent(key.hintLabel(),
+                                    prefixLabelFontStyle.metrics::horizontalAdvance));
+                }
+            }
+            for (Map.Entry<List<Key>, HintGroup> entry : hintGroupByPrefix.entrySet()) {
+                List<Key> prefix = entry.getKey();
+                HintGroup hintGroup = entry.getValue();
+                if (!hintGroup.atLeastOneHintVisible)
+                    continue;
+                int totalXAdvance = prefixLabelFontStyle.metrics.horizontalAdvance(
+                        prefix.stream()
+                              .map(Key::hintLabel)
+                              .collect(Collectors.joining()));
+                int fullBoxWidth = hintGroup.right - hintGroup.left;
+                int fullBoxHeight = hintGroup.bottom - hintGroup.top;
+                HintLabel prefixHintLabel =
+                        new HintLabel(prefix, prefixXAdvancesByString, fullBoxWidth,
+                                fullBoxHeight, totalXAdvance,
+                                hintMesh.prefixLength(),
+                                prefixLabelFontStyle,
+                                prefixHintKeyMaxXAdvance,
+                                hintMesh.selectedKeySequence().size() - 1, false);
+                int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, qtScaleFactor);
+                int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, qtScaleFactor);
+                int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
+                int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
+                prefixHintLabel.left = boxWidth == prefixHintLabel.tightHintBoxWidth ? prefixHintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
+                prefixHintLabel.top = boxHeight == prefixHintLabel.tightHintBoxHeight ? prefixHintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
+                x += prefixHintLabel.left;
+                y += prefixHintLabel.top;
+                prefixHintLabel.move(
+                        x - (minHintLeft - hintMeshWindow.window.x()),
+                        y - (minHintTop - hintMeshWindow.window.y())
+                );
+                prefixHintLabel.setFixedSize(boxWidth, boxHeight);
+                hintGroup.prefixHintLabel = prefixHintLabel;
+            }
         }
         // When putting everything in one container, I get a native StackOverFlow in
         // the QLabel::paintEvent and/or an InvalidMemoryAccess error.
@@ -985,7 +995,6 @@ public class WindowsOverlay {
             HintLabel prefixHintLabel = hintGroup.prefixHintLabel;
             if (prefixHintLabel == null)
                 continue;
-            prefixHintLabel.move(prefixHintLabel.x() - minHintLeft, prefixHintLabel.y() - minHintTop);
             prefixHintLabel.setParent(prefixContainer);
         }
         for (int hintIndex = 0; hintIndex < hintLabels.size(); hintIndex++) {
