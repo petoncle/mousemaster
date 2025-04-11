@@ -682,17 +682,17 @@ public class WindowsOverlay {
         double maxHintCenterY = 0;
         Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
         for (Hint hint : hintMeshWindow.hints()) {
-            List<Key> prefix = hintMesh.prefixLength() == -1 ?
-                    hint.keySequence() : hint.keySequence().subList(0,
-                    hintMesh.prefixLength());
-            HintGroup hintGroup =
-                    hintGroupByPrefix.computeIfAbsent(prefix,
-                            key -> new HintGroup());
-            hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
-            hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
-            hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
-            hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
-            hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.selectedKeySequence());
+            if (hintMesh.prefixLength() != -1) {
+                List<Key> prefix = hint.keySequence().subList(0, hintMesh.prefixLength());
+                HintGroup hintGroup =
+                        hintGroupByPrefix.computeIfAbsent(prefix,
+                                key -> new HintGroup());
+                hintGroup.minHintCenterX = Math.min(hintGroup.minHintCenterX, hint.centerX());
+                hintGroup.minHintCenterY = Math.min(hintGroup.minHintCenterY, hint.centerY());
+                hintGroup.maxHintCenterX = Math.max(hintGroup.maxHintCenterX, hint.centerX());
+                hintGroup.maxHintCenterY = Math.max(hintGroup.maxHintCenterY, hint.centerY());
+                hintGroup.atLeastOneHintVisible |= hint.startsWith(hintMesh.selectedKeySequence());
+            }
             if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
             minHintCenterX = Math.min(minHintCenterX, hint.centerX());
@@ -776,7 +776,7 @@ public class WindowsOverlay {
                 fullBoxHeight++;
             }
             List<Key> prefix = hintMesh.prefixLength() == -1 ?
-                    hint.keySequence() : hint.keySequence().subList(0,
+                    List.of() : hint.keySequence().subList(0,
                     hintMesh.prefixLength());
             List<Key> suffix = hint.keySequence().subList(prefix.size(), hint.keySequence().size());
             HintLabel hintLabel =
@@ -935,8 +935,8 @@ public class WindowsOverlay {
                                 hintMesh.selectedKeySequence().size() - 1, false);
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, qtScaleFactor);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, qtScaleFactor);
-                int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
-                int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
+                int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
+                int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, (int) (fullBoxHeight * 1d));
                 prefixHintLabel.left = boxWidth == prefixHintLabel.tightHintBoxWidth ? prefixHintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
                 prefixHintLabel.top = boxHeight == prefixHintLabel.tightHintBoxHeight ? prefixHintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
                 x += prefixHintLabel.left;
