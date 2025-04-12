@@ -16,6 +16,7 @@ public class ModeController implements ComboListener {
     private final MouseController mouseController;
     private final MouseState mouseState;
     private final KeyboardState keyboardState;
+     private final HintManager hintManager;
     private final List<ModeListener> listeners;
     private boolean currentModeCursorHidden;
     private Mode currentMode;
@@ -26,11 +27,13 @@ public class ModeController implements ComboListener {
 
     public ModeController(ModeMap modeMap, MouseController mouseController,
                           MouseState mouseState, KeyboardState keyboardState,
+                          HintManager hintManager,
                           List<ModeListener> listeners) {
         this.modeMap = modeMap;
         this.mouseController = mouseController;
         this.mouseState = mouseState;
         this.keyboardState = keyboardState;
+        this.hintManager = hintManager;
         this.listeners = listeners;
     }
 
@@ -45,7 +48,8 @@ public class ModeController implements ComboListener {
         }
         boolean idling = !mouseState.moving() &&
                          !mouseState.leftPressing() && !mouseState.middlePressing() && !mouseState.rightPressing() &&
-                         !mouseState.wheeling() && !justCompletedCombo;
+                         !mouseState.wheeling() && !justCompletedCombo &&
+                         !hintManager.showingHintMesh();
         boolean mustResetHideCursorTimeout = !idling;
         boolean mustResetModeTimeout = currentMode.timeout().onlyIfIdle() && !idling;
         justCompletedCombo = false;

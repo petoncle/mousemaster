@@ -209,6 +209,7 @@ public class Mousemaster {
         modeController =
                 new ModeController(configuration.modeMap(), mouseController, mouseState,
                         keyboardState,
+                        hintManager,
                         // ZoomManager must be notified after HintManager because it calls
                         // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
                         List.of(platform, comboWatcher, mouseController, indicatorManager,

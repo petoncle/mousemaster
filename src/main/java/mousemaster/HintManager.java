@@ -160,6 +160,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         WindowsOverlay.setHintMesh(hintMesh, newZoom);
     }
 
+    public boolean showingHintMesh() {
+        return !hintMeshStates.isEmpty() && !hintJustSelected;
+    }
+
     private ViewportFilter screenFilter(HintMeshConfiguration hintMeshConfiguration) {
         HintMeshType type = hintMeshConfiguration.type();
         if (type instanceof HintMeshType.HintGrid hintGrid) {
