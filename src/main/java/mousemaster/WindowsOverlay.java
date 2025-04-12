@@ -1988,6 +1988,7 @@ public class WindowsOverlay {
     }
 
     public static void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
+//        logger.info("setHintMesh selectedKeySequence().size() = " + hintMesh.selectedKeySequence().size() + ", hintMatch = " + hintMatch, new Throwable());
         Objects.requireNonNull(hintMesh);
         if (!hintMesh.visible()) {
             hideHintMesh();

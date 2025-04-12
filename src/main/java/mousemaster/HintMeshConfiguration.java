@@ -12,7 +12,6 @@ public record HintMeshConfiguration(boolean enabled,
                                     ViewportFilterMap<HintMeshKeys> keysByFilter,
                                     ViewportFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
-                                    boolean swallowHintEndKeyPress,
                                     boolean savePositionAfterSelection) {
 
     public static class HintMeshConfigurationBuilder {
@@ -25,7 +24,6 @@ public record HintMeshConfiguration(boolean enabled,
         private final ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
                 styleByFilter = new ViewportFilterMapBuilder<>();
         private String modeAfterSelection;
-        private Boolean swallowHintEndKeyPress;
         private Boolean savePositionAfterSelection;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
@@ -57,12 +55,6 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfigurationBuilder modeAfterSelection(
                 String modeAfterSelection) {
             this.modeAfterSelection = modeAfterSelection;
-            return this;
-        }
-
-        public HintMeshConfigurationBuilder swallowHintEndKeyPress(
-                boolean swallowHintEndKeyPress) {
-            this.swallowHintEndKeyPress = swallowHintEndKeyPress;
             return this;
         }
 
@@ -100,10 +92,6 @@ public record HintMeshConfiguration(boolean enabled,
             return modeAfterSelection;
         }
 
-        public Boolean swallowHintEndKeyPress() {
-            return swallowHintEndKeyPress;
-        }
-
         public Boolean savePositionAfterSelection() {
             return savePositionAfterSelection;
         }
@@ -113,7 +101,7 @@ public record HintMeshConfiguration(boolean enabled,
                     type.build(),
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),
-                    modeAfterSelection, swallowHintEndKeyPress,
+                    modeAfterSelection,
                     savePositionAfterSelection);
         }
 

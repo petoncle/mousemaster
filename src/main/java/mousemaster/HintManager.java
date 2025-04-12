@@ -721,9 +721,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                  mouseController.moveTo(mouseX, mouseY);
              }
             finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
-            return hintMeshConfiguration.swallowHintEndKeyPress() ?
-                    PressKeyEventProcessing.swallowedHintEnd() :
-                    PressKeyEventProcessing.unswallowedHintEnd();
+            return PressKeyEventProcessing.unswallowedHintEnd();
         }
         else {
             hintMesh =
@@ -754,16 +752,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                         Math.round(hint.centerY())));
             }
         }
-        if (hintMeshConfiguration.modeAfterSelection() != null) {
+        if (hintMeshConfiguration.modeAfterSelection() != null || true) {
             hintJustSelected = true;
             logger.trace("Hint " + hint.keySequence()
                                        .stream()
                                        .map(Key::name)
                                        .toList() +
-                         " selected, switching to " +
-                         hintMeshConfiguration.modeAfterSelection());
+                         " selected");
             WindowsOverlay.animateHintMatch(hint);
-            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
+//            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
         }
         else {
             hintMesh =

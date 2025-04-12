@@ -124,9 +124,14 @@ public class ComboWatcher implements ModeListener {
         runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
         if (currentMode != beforeMode) {
-            PressKeyEventProcessingSet processingSet =
-                    processKeyEventForCurrentMode(null, true);
-            completedCombos.addAll(processingSet.completedCombos());
+            if (currentMode.continueComboFromPreviousMode()) {
+                PressKeyEventProcessingSet processingSet =
+                        processKeyEventForCurrentMode(null, true);
+                completedCombos.addAll(processingSet.completedCombos());
+            }
+            else {
+                breakComboPreparation();
+            }
         }
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore);
     }
@@ -164,8 +169,13 @@ public class ComboWatcher implements ModeListener {
                 processKeyEventForCurrentMode(event, false);
         if (currentMode != beforeMode) {
             // Second pass to give a chance to new mode's combos to run now.
-            processingSet.processingByCombo().putAll(
-                    processKeyEventForCurrentMode(event, true).processingByCombo());
+            if (currentMode.continueComboFromPreviousMode()) {
+                processingSet.processingByCombo().putAll(
+                        processKeyEventForCurrentMode(event, true).processingByCombo());
+            }
+            else {
+                breakComboPreparation();
+            }
         }
         if (!processingSet.isPartOfComboSequence()) {
             comboPreparation = ComboPreparation.empty();
@@ -192,6 +202,7 @@ public class ComboWatcher implements ModeListener {
     private PressKeyEventProcessingSet processKeyEventForCurrentMode(
             KeyEvent event,
             boolean ignoreSwitchModeCommands) {
+//        logger.info("currentMode = " + currentMode.name() + ", processKeyEventForCurrentMode event " + event + ", ignoreSwitchModeCommands = " + ignoreSwitchModeCommands, new Throwable());
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
         Set<Key> currentlyPressedKeys = new HashSet<>(currentlyPressedComboKeys);
