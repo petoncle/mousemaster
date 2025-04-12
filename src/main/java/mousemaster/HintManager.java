@@ -649,6 +649,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshKeys hintMeshKeys = hintMeshConfiguration.keysByFilter()
                                                          .get(screenFilter);
         if (hintMeshKeys.undoKeys().contains(key)) {
+            hintJustSelected = false;
             List<Key> selectedKeySequence = hintMesh.selectedKeySequence();
             if (!selectedKeySequence.isEmpty()) {
                 hintMesh = hintMesh.builder()
@@ -670,6 +671,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             return PressKeyEventProcessing.unhandled(); // ComboWatcher can have a go at it.
         }
+        if (hintJustSelected)
+            return PressKeyEventProcessing.unhandled();
         if (!selectionKeySubset.contains(key)) {
             if (hintMeshKeys.selectionKeys().contains(key))
                 return PressKeyEventProcessing.unusedHintSelectionKey();
@@ -768,6 +771,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                                        .toList() +
                          " selected");
             WindowsOverlay.animateHintMatch(hint);
+            hintMesh =
+                    hintMesh.builder()
+                            .selectedKeySequence(newSelectedKeySequence)
+                            .build();
 //            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
         }
         else {
