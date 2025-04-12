@@ -670,25 +670,33 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             return PressKeyEventProcessing.unhandled(); // ComboWatcher can have a go at it.
         }
-        if (!selectionKeySubset.contains(key))
-            return PressKeyEventProcessing.unhandled();
+        if (!selectionKeySubset.contains(key)) {
+            if (hintMeshKeys.selectionKeys().contains(key))
+                return PressKeyEventProcessing.unusedHintSelectionKey();
+            else
+                return PressKeyEventProcessing.unhandled();
+        }
         List<Key> newSelectedKeySequence = new ArrayList<>(hintMesh.selectedKeySequence());
         newSelectedKeySequence.add(key);
         Hint exactMatchHint = null;
-        boolean atLeastOneHintIsStartsWithNewSelectedHintKeySequence = false;
+        boolean atLeastOneHintStartsWithNewSelectedHintKeySequence = false;
         for (Hint hint : hintMesh.hints()) {
             if (hint.keySequence().size() < newSelectedKeySequence.size())
                 continue;
             if (!hint.startsWith(newSelectedKeySequence))
                 continue;
-            atLeastOneHintIsStartsWithNewSelectedHintKeySequence = true;
+            atLeastOneHintStartsWithNewSelectedHintKeySequence = true;
             if (hint.keySequence().size() == newSelectedKeySequence.size()) {
                 exactMatchHint = hint;
                 break;
             }
         }
-        if (!atLeastOneHintIsStartsWithNewSelectedHintKeySequence)
-            return PressKeyEventProcessing.unhandled();
+        if (!atLeastOneHintStartsWithNewSelectedHintKeySequence) {
+            if (hintMeshKeys.selectionKeys().contains(key))
+                return PressKeyEventProcessing.unusedHintSelectionKey();
+            else
+                return PressKeyEventProcessing.unhandled();
+        }
         if (exactMatchHint != null) {
             boolean hintIsInZoom = currentZoom.screenRectangle()
                                           .contains(exactMatchHint.centerX(),
