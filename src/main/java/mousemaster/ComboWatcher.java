@@ -124,14 +124,9 @@ public class ComboWatcher implements ModeListener {
         runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
         if (currentMode != beforeMode) {
-            if (currentMode.continueComboFromPreviousMode()) {
-                PressKeyEventProcessingSet processingSet =
-                        processKeyEventForCurrentMode(null, true);
-                completedCombos.addAll(processingSet.completedCombos());
-            }
-            else {
-                breakComboPreparation();
-            }
+            PressKeyEventProcessingSet processingSet =
+                    processKeyEventForCurrentMode(null, true);
+            completedCombos.addAll(processingSet.completedCombos());
         }
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore);
     }
@@ -169,13 +164,8 @@ public class ComboWatcher implements ModeListener {
                 processKeyEventForCurrentMode(event, false);
         if (currentMode != beforeMode) {
             // Second pass to give a chance to new mode's combos to run now.
-            if (currentMode.continueComboFromPreviousMode()) {
-                processingSet.processingByCombo().putAll(
-                        processKeyEventForCurrentMode(event, true).processingByCombo());
-            }
-            else {
-                breakComboPreparation();
-            }
+            processingSet.processingByCombo().putAll(
+                    processKeyEventForCurrentMode(event, true).processingByCombo());
         }
         if (!processingSet.isPartOfComboSequence()) {
             comboPreparation = ComboPreparation.empty();
