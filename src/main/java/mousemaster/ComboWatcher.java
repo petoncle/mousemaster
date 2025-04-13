@@ -344,6 +344,15 @@ public class ComboWatcher implements ModeListener {
             Command command = commands.removeFirst();
             commandRunner.run(command);
         }
+        // Run SwitchMode commands now to avoid losing key events meant for the next mode.
+        for (int commandIndex = 0; commandIndex < commands.size(); commandIndex++) {
+            Command command = commands.get(commandIndex);
+            if (command  instanceof Command.SwitchMode) {
+                commandRunner.run(command);
+                commands.remove(commandIndex);
+                commandIndex--;
+            }
+        }
         commandsWaitingForAtomicCommandToComplete.addAll(commands);
     }
 
