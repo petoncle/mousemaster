@@ -453,7 +453,13 @@ public class WindowsOverlay {
             logger.trace("Using cached pixmap " + pixmapAndPosition);
             QLabel pixmapLabel = new ClearBackgroundQLabel();
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
-            pixmapLabel.setGeometry(pixmapAndPosition.x(), pixmapAndPosition.y(), pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
+            Hint originalFirstHint = pixmapAndPosition.originalHintMesh.hints().getFirst();
+            Hint newFirstHint = hintMesh.hints().getFirst();
+            // Translate the original pixmap which may be at a different position than
+            // the new hint mesh.
+            pixmapLabel.setGeometry(pixmapAndPosition.x() + (int) Math.round(newFirstHint.centerX() - originalFirstHint.centerX()),
+                    pixmapAndPosition.y() + (int) Math.round(newFirstHint.centerY() - originalFirstHint.centerY()),
+                    pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             newContainer = pixmapLabel;
             transitionHintContainers(
                     style.transitionAnimationEnabled() && isHintGrid && oldContainerHasSameHints,
@@ -478,7 +484,7 @@ public class WindowsOverlay {
                         hintBoxGeometriesByHintMeshKey.put(hintMeshKey,
                                 hintBoxGeometries);
                         if (isHintGrid) {
-                            cacheQtHintWindowIntoPixmap(container, hintMeshKey);
+                            cacheQtHintWindowIntoPixmap(container, hintMeshKey, hintMesh);
                         }
                         transitionHintContainers(
                                 style.transitionAnimationEnabled() && isHintGrid && oldContainerHasSameHints,
@@ -1023,10 +1029,10 @@ public class WindowsOverlay {
     }
 
     private static void cacheQtHintWindowIntoPixmap(QWidget container,
-                                                    HintMesh hintMeshKey) {
+                                                    HintMesh hintMeshKey, HintMesh hintMesh) {
         QPixmap pixmap = container.grab();
         PixmapAndPosition pixmapAndPosition =
-                new PixmapAndPosition(pixmap, container.x(), container.y());
+                new PixmapAndPosition(pixmap, container.x(), container.y(), hintMesh);
         logger.trace("Caching " + pixmapAndPosition + ", cache size is " + hintMeshPixmaps.size());
         // pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
@@ -1088,7 +1094,7 @@ public class WindowsOverlay {
         return hintBoxes;
     }
 
-    private record PixmapAndPosition(QPixmap pixmap, int x, int y) {
+    private record PixmapAndPosition(QPixmap pixmap, int x, int y, HintMesh originalHintMesh) {
         @Override
         public String toString() {
             return "PixmapAndPosition[" + x + ", " + y + ", "
@@ -1989,13 +1995,16 @@ public class WindowsOverlay {
         QWidget container = (QWidget) hintMeshWindow.window.children().getLast();
         QPixmap pixmap = container.grab(hintBoxGeometry);
 //         pixmap.save("screenshot.png", "PNG");
+        HintMesh hintMesh =
+                new HintMesh.HintMeshBuilder(lastHintMeshKey).hints(List.of(hint))
+                                                             .build();
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap,
                         container.geometry().x() + hintBoxGeometry.x(),
-                        container.geometry().y() + hintBoxGeometry.y());
+                        container.geometry().y() + hintBoxGeometry.y(), hintMesh);
         HintMeshStyle style =
                 lastHintMeshKey.styleByFilter().get(ViewportFilter.of(screen));
-        setHintMeshWindow(hintMeshWindow, null, -1, style, true, pixmapAndPosition);
+        setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, true, pixmapAndPosition);
     }
 
     public static void setHintMesh(HintMesh hintMesh, Zoom zoom) {
