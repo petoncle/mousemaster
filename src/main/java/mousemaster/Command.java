@@ -63,4 +63,6 @@ public sealed interface Command {
 
     record RemappingCommand(Remapping remapping) implements Command {}
 
+    record BreakComboPreparation() implements Command {}
+
 }

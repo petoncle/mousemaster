@@ -215,6 +215,7 @@ public class Mousemaster {
                         List.of(platform, comboWatcher, mouseController, indicatorManager,
                                 gridManager, hintManager, zoomManager));
         commandRunner.setModeController(modeController);
+        commandRunner.setComboWatcher(comboWatcher);
         hintManager.setModeController(modeController);
         comboWatcher.setListeners(List.of(modeController));
         modeController.switchMode(Mode.IDLE_MODE_NAME);

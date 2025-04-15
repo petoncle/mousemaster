@@ -9,6 +9,7 @@ public class CommandRunner {
     private final GridManager gridManager;
     private final HintManager hintManager;
     private final Remapper remapper;
+    private ComboWatcher comboWatcher;
 
     public CommandRunner(MouseController mouseController, GridManager gridManager,
                          HintManager hintManager, Remapper remapper) {
@@ -20,6 +21,11 @@ public class CommandRunner {
 
     public void setModeController(ModeController modeController) {
         this.modeController = modeController;
+    }
+
+    public CommandRunner setComboWatcher(ComboWatcher comboWatcher) {
+        this.comboWatcher = comboWatcher;
+        return this;
     }
 
     public boolean runningAtomicCommand() {
@@ -89,6 +95,8 @@ public class CommandRunner {
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
 
             case RemappingCommand remap -> remapper.submitRemapping(remap.remapping());
+
+            case BreakComboPreparation breakComboPreparation -> comboWatcher.breakComboPreparation();
             // @formatter:on
         }
     }

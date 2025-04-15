@@ -183,6 +183,7 @@ public class ConfigurationParser {
                 new Property<>("clear", Map.of()),
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
+                new Property<>("break-combo-preparation", Map.of()),
                 new Property<>("remapping", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
@@ -1192,6 +1193,7 @@ public class ConfigurationParser {
                         commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder,  propertyValue, new MoveToLastSelectedHint(), finalDefaultComboMoveDuration, keyAliases, appAliases),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
+            case "break-combo-preparation" -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), defaultComboMoveDuration, keyAliases, appAliases);
             // @formatter:on
             default -> throw new IllegalArgumentException(
                     "Invalid mode property key");
@@ -2250,6 +2252,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> clearPositionHistory;
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
+        Property<Map<Combo, List<Command>>> breakComboPreparation;
         Property<Map<Combo, List<Command>>> remapping;
 
         public ComboMapConfigurationBuilder(String modeName,
@@ -2272,6 +2275,7 @@ public class ConfigurationParser {
             clearPositionHistory = new ComboMapProperty("clear", modeName, propertyByKey);
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
+            breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
             remapping = new ComboMapProperty("remapping", modeName, propertyByKey);
         }
 
@@ -2317,6 +2321,7 @@ public class ConfigurationParser {
             add(commandsByCombo, clearPositionHistory.builder);
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);
+            add(commandsByCombo, breakComboPreparation.builder);
             add(commandsByCombo, remapping.builder);
             return commandsByCombo;
         }
