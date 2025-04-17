@@ -495,7 +495,6 @@ public class HintManager implements ModeListener, MousePositionListener {
         // Find hintLength such that hintKeyCount^hintLength >= rowCount*columnCount
         int hintLength = Math.max(1, (int) Math.ceil(
                 Math.log(hintCount) / Math.log(keyCount)));
-        prefixLengths.add(hintLength);
         List<Key> keySequence = new ArrayList<>();
         for (int i = 0; i < hintLength; i++) {
             keySequence.add(
