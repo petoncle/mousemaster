@@ -166,6 +166,10 @@ public class Mousemaster {
             MousemasterApplication.enableLogToFile();
         else
             MousemasterApplication.disableLogToFile();
+        if (configuration.hideConsole())
+            MousemasterApplication.hideConsole();
+        else
+            MousemasterApplication.showConsole();
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +
                     (readFile ? "file " + configurationPath + " " : "") +
                     "with keyboard layout " + activeKeyboardLayout);

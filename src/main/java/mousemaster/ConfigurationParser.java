@@ -214,6 +214,7 @@ public class ConfigurationParser {
         String logLevel = null;
         boolean logRedactKeys = false;
         boolean logToFile = false;
+        boolean hideConsole = false;
         ComboMoveDuration defaultComboMoveDuration =
                 new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
         int maxPositionHistorySize = 16;
@@ -253,6 +254,10 @@ public class ConfigurationParser {
             else if (propertyKey.equals("max-position-history-size")) {
                 maxPositionHistorySize =
                         parseUnsignedInteger(propertyValue, 1, 100);
+                continue;
+            }
+            else if (propertyKey.equals("hide-console")) {
+                hideConsole = Boolean.parseBoolean(propertyValue);
                 continue;
             }
             // a-mode.hint.grid-cell-width
@@ -378,7 +383,7 @@ public class ConfigurationParser {
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
         return new Configuration(maxPositionHistorySize,
-                new ModeMap(modes), logLevel, logRedactKeys, logToFile,
+                new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
                 configurationKeyboardLayout);
     }
 

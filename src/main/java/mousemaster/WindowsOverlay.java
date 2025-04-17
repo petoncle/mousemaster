@@ -37,7 +37,7 @@ public class WindowsOverlay {
     private static final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private static final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
-    private static final Map<HintMesh, Map<Hint, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
+    private static final Map<HintMesh, Map<List<Key>, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
     private static boolean showingHintMesh;
     private static boolean hintMeshEndAnimation;
     private static boolean zoomAfterHintMeshEndAnimation;
@@ -474,7 +474,7 @@ public class WindowsOverlay {
             setUncachedHintMeshWindowRunnable =
                     () -> {
                         long before = System.nanoTime();
-                        Map<Hint, QRect> hintBoxGeometries =
+                        Map<List<Key>, QRect> hintBoxGeometries =
                                 setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
                                         screenScale,
                                         style, qtScaleFactor,
@@ -677,7 +677,7 @@ public class WindowsOverlay {
 
     }
 
-    private static Map<Hint, QRect> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
+    private static Map<List<Key>, QRect> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
                                                               QWidget container) {
@@ -973,7 +973,7 @@ public class WindowsOverlay {
         for (int i = 0; i < containerCount; i++) {
             hintLabelContainers.add(new QWidget(container));
         }
-        Map<Hint, QRect> hintBoxGeometries = new HashMap<>();
+        Map<List<Key>, QRect> hintBoxGeometries = new HashMap<>();
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
             hintBox.move(
@@ -984,7 +984,7 @@ public class WindowsOverlay {
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
             if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
-                hintBoxGeometries.put(hintBox.hint, hintBox.geometry());
+                hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
             }
         }
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
@@ -1991,7 +1991,7 @@ public class WindowsOverlay {
             return;
         }
         QRect hintBoxGeometry =
-                hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint);
+                hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint.keySequence());
         QWidget container = (QWidget) hintMeshWindow.window.children().getLast();
         QPixmap pixmap = container.grab(hintBoxGeometry);
 //         pixmap.save("screenshot.png", "PNG");

@@ -343,6 +343,18 @@ max-position-history-size=16
 This is used in conjunction with a hint mode of type `position-history`. For each position
 saved in the position history, one hint box will be displayed.
 
+### Hiding the mousemaster console (command line) window
+
+```properties
+hide-console=true
+```
+
+When the console window is hidden, the only way to stop mousemaster is to kill the
+mousemaster.exe process either via the task manager or with Win+R:
+```
+taskkill /F /IM mousemaster.exe
+```
+
 ### Logging
 
 ```properties

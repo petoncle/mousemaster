@@ -8,6 +8,10 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.FileAppender;
 import com.sun.jna.Native;
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
@@ -185,6 +189,17 @@ public class MousemasterApplication {
     public static void setLogLevel(String level) {
         Logger logger = (Logger) LoggerFactory.getLogger("mousemaster");
         logger.setLevel(Level.valueOf(level));
+    }
+
+    public static void showConsole() {
+        // This should be moved to a Console interface (with one implementation per OS).
+        WinDef.HWND hwnd = Kernel32.INSTANCE.GetConsoleWindow();
+        User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOW);
+    }
+
+    public static void hideConsole() {
+        WinDef.HWND hwnd = Kernel32.INSTANCE.GetConsoleWindow();
+        User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_HIDE);
     }
 
 }
