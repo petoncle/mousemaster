@@ -353,6 +353,7 @@ when playing a game.
 
 ```properties
 max-position-history-size=16
+hint1-mode.position-history.save-position=+hint1key
 ```
 
 This is used in conjunction with a hint mode of type `position-history`. For each position

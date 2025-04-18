@@ -12,7 +12,6 @@ public record HintMeshConfiguration(boolean enabled,
                                     ViewportFilterMap<HintMeshKeys> keysByFilter,
                                     ViewportFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
-                                    boolean savePositionAfterSelection,
                                     boolean eatUnusedSelectionKeys) {
 
     public static class HintMeshConfigurationBuilder {
@@ -25,7 +24,6 @@ public record HintMeshConfiguration(boolean enabled,
         private final ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
                 styleByFilter = new ViewportFilterMapBuilder<>();
         private String modeAfterSelection;
-        private Boolean savePositionAfterSelection;
         private Boolean eatUnusedSelectionKeys;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
@@ -57,12 +55,6 @@ public record HintMeshConfiguration(boolean enabled,
         public HintMeshConfigurationBuilder modeAfterSelection(
                 String modeAfterSelection) {
             this.modeAfterSelection = modeAfterSelection;
-            return this;
-        }
-
-        public HintMeshConfigurationBuilder savePositionAfterSelection(
-                boolean savePositionAfterSelection) {
-            this.savePositionAfterSelection = savePositionAfterSelection;
             return this;
         }
 
@@ -100,10 +92,6 @@ public record HintMeshConfiguration(boolean enabled,
             return modeAfterSelection;
         }
 
-        public Boolean savePositionAfterSelection() {
-            return savePositionAfterSelection;
-        }
-
         public Boolean eatUnusedSelectionKeys() {
             return eatUnusedSelectionKeys;
         }
@@ -114,7 +102,6 @@ public record HintMeshConfiguration(boolean enabled,
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection,
-                    savePositionAfterSelection,
                     eatUnusedSelectionKeys);
         }
 

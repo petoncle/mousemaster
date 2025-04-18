@@ -758,16 +758,6 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private void finalizeHintSelection(Hint hint, List<Key> newSelectedKeySequence) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
-        if (hintMeshConfiguration.savePositionAfterSelection()) {
-            if (currentZoom.screenRectangle().contains(hint.centerX(), hint.centerY())) {
-                savePosition(new Point(Math.round(currentZoom.unzoomedX(hint.centerX())),
-                        Math.round(currentZoom.unzoomedY(hint.centerY()))));
-            }
-            else {
-                savePosition(new Point(Math.round(hint.centerX()),
-                        Math.round(hint.centerY())));
-            }
-        }
         hintJustSelected = true;
         logger.trace("Hint " + hint.keySequence()
                                    .stream()

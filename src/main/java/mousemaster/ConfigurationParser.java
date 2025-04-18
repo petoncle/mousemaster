@@ -121,8 +121,7 @@ public class ConfigurationParser {
                 .subgridBorderOpacity(1d)
                 .transitionAnimationEnabled(true)
                 .transitionAnimationDuration(Duration.ofMillis(100));
-        hintMesh.savePositionAfterSelection(false)
-                .eatUnusedSelectionKeys(true);
+        hintMesh.eatUnusedSelectionKeys(true);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
                            .gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER)
@@ -785,7 +784,10 @@ public class ConfigurationParser {
                             throw new IllegalArgumentException(
                                     "hint.swallow-hint-end-key-press has been deprecated and removed: use break-combo-preparation instead");
                         }
-                        case "save-position-after-selection" -> mode.hintMesh.builder.savePositionAfterSelection(Boolean.parseBoolean(propertyValue));
+                        case "save-position-after-selection" -> {
+                            throw new IllegalArgumentException(
+                                    "hint.save-position-after-selection has been deprecated and removed: use position-history.save-position instead");
+                        }
                         case "eat-unused-selection-keys" -> mode.hintMesh.builder.eatUnusedSelectionKeys(Boolean.parseBoolean(propertyValue));
                         default -> throw new IllegalArgumentException(
                                 "Invalid hint property key");
@@ -2042,8 +2044,6 @@ public class ConfigurationParser {
                     }
                     if (builder.modeAfterSelection() == null)
                         builder.modeAfterSelection(parent.modeAfterSelection());
-                    if (builder.savePositionAfterSelection() == null)
-                        builder.savePositionAfterSelection(parent.savePositionAfterSelection());
                     if (builder.eatUnusedSelectionKeys() == null)
                         builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
                 }
