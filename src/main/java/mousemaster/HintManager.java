@@ -677,7 +677,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (hintJustSelected)
             return PressKeyEventProcessing.unhandled();
         if (!selectionKeySubset.contains(key)) {
-            if (hintMeshKeys.selectionKeys().contains(key))
+            if (hintMeshKeys.selectionKeys().contains(key) &&
+                hintMeshConfiguration.eatUnusedSelectionKeys())
                 return PressKeyEventProcessing.unusedHintSelectionKey();
             else
                 return PressKeyEventProcessing.unhandled();
@@ -698,7 +699,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
         }
         if (!atLeastOneHintStartsWithNewSelectedHintKeySequence) {
-            if (hintMeshKeys.selectionKeys().contains(key))
+            if (hintMeshKeys.selectionKeys().contains(key) &&
+                hintMeshConfiguration.eatUnusedSelectionKeys())
                 return PressKeyEventProcessing.unusedHintSelectionKey();
             else
                 return PressKeyEventProcessing.unhandled();

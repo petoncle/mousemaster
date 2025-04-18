@@ -12,7 +12,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     ViewportFilterMap<HintMeshKeys> keysByFilter,
                                     ViewportFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
-                                    boolean savePositionAfterSelection) {
+                                    boolean savePositionAfterSelection,
+                                    boolean eatUnusedSelectionKeys) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -25,6 +26,7 @@ public record HintMeshConfiguration(boolean enabled,
                 styleByFilter = new ViewportFilterMapBuilder<>();
         private String modeAfterSelection;
         private Boolean savePositionAfterSelection;
+        private Boolean eatUnusedSelectionKeys;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -64,6 +66,12 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
+        public HintMeshConfigurationBuilder eatUnusedSelectionKeys(
+                boolean eatUnusedSelectionKeys) {
+            this.eatUnusedSelectionKeys = eatUnusedSelectionKeys;
+            return this;
+        }
+
         public HintMeshTypeBuilder type() {
             return type;
         }
@@ -96,13 +104,18 @@ public record HintMeshConfiguration(boolean enabled,
             return savePositionAfterSelection;
         }
 
+        public Boolean eatUnusedSelectionKeys() {
+            return eatUnusedSelectionKeys;
+        }
+
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, moveMouse,
                     type.build(),
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection,
-                    savePositionAfterSelection);
+                    savePositionAfterSelection,
+                    eatUnusedSelectionKeys);
         }
 
     }

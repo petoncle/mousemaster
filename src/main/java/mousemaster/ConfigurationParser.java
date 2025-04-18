@@ -121,7 +121,8 @@ public class ConfigurationParser {
                 .subgridBorderOpacity(1d)
                 .transitionAnimationEnabled(true)
                 .transitionAnimationDuration(Duration.ofMillis(100));
-        hintMesh.savePositionAfterSelection(false);
+        hintMesh.savePositionAfterSelection(false)
+                .eatUnusedSelectionKeys(true);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
                            .gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER)
@@ -775,9 +776,8 @@ public class ConfigurationParser {
                                     checkModeReference(modeAfterSelection));
                             mode.hintMesh.builder.modeAfterSelection(modeAfterSelection);
                         }
-                        case "save-position-after-selection" ->
-                                mode.hintMesh.builder.savePositionAfterSelection(
-                                        Boolean.parseBoolean(propertyValue));
+                        case "save-position-after-selection" -> mode.hintMesh.builder.savePositionAfterSelection(Boolean.parseBoolean(propertyValue));
+                        case "eat-unused-selection-keys" -> mode.hintMesh.builder.eatUnusedSelectionKeys(Boolean.parseBoolean(propertyValue));
                         default -> throw new IllegalArgumentException(
                                 "Invalid hint property key");
                     }
@@ -2035,6 +2035,8 @@ public class ConfigurationParser {
                         builder.modeAfterSelection(parent.modeAfterSelection());
                     if (builder.savePositionAfterSelection() == null)
                         builder.savePositionAfterSelection(parent.savePositionAfterSelection());
+                    if (builder.eatUnusedSelectionKeys() == null)
+                        builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
                 }
 
                 private void extendFontStyleProperties(
