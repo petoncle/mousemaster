@@ -341,17 +341,11 @@ public class WindowsOverlay {
                         hintsInScreen, zoom, existingWindow.animations(),
                         existingWindow.animationCallbacks(),
                         existingWindow.lastHintMeshKeyReference());
-                boolean oldContainerIsHidden = !existingWindow.window.children()
-                                                                     .isEmpty() &&
-                                               ((QWidget) existingWindow.window.children().getFirst()).isHidden();
-                boolean oldContainerHasSameHints = !oldContainerIsHidden &&
-                                                   existingWindow.zoom.equals(zoom) &&
-                                                   existingWindow.hints.equals(
-                                                           hintsInScreen);
+                boolean zoomChanged = !existingWindow.zoom.equals(zoom);
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + existingWindow.window.x() + " " + existingWindow.window.y() + " " + existingWindow.window.width() + " " + existingWindow.window.height());
-                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, oldContainerHasSameHints,
+                setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, zoomChanged,
                         null);
             }
         }
@@ -410,7 +404,7 @@ public class WindowsOverlay {
     private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                           HintMesh hintMesh, double screenScale,
                                           HintMeshStyle style,
-                                          boolean oldContainerHasSameHints,
+                                          boolean zoomChanged,
                                           PixmapAndPosition forcedPixmapAndPosition) {
         setUncachedHintMeshWindowRunnable = null;
         int transitionAnimationCurrentTime =
@@ -426,8 +420,24 @@ public class WindowsOverlay {
                 continue;
             animation.stop();
             QWidget veryOldContainer = (QWidget) window.children().getFirst();
+            // oldContainer is the container we were animating to (but a new container replaced it).
+            QWidget oldContainer = (QWidget) window.children().getLast();
             veryOldContainer.setParent(null);
-            veryOldContainer.disposeLater();
+            oldContainer.setParent(null);
+            QWidget mergedContainer = new QWidget(window);
+            int mergedContainerX = Math.min(veryOldContainer.geometry().x(), oldContainer.geometry().x());
+            int mergedContainerY = Math.min(veryOldContainer.geometry().y(), oldContainer.geometry().y());
+            mergedContainer.setGeometry(
+                    mergedContainerX,
+                    mergedContainerY,
+                    Math.max(veryOldContainer.geometry().right(), oldContainer.geometry().right()) - mergedContainerX,
+                    Math.max(veryOldContainer.geometry().bottom(), oldContainer.geometry().bottom()) - mergedContainerY
+            );
+            veryOldContainer.move(veryOldContainer.x() - mergedContainerX, veryOldContainer.y() - mergedContainerY);
+            oldContainer.move(oldContainer.x() - mergedContainerX, oldContainer.y() - mergedContainerY);
+            veryOldContainer.setParent(mergedContainer);
+            oldContainer.setParent(mergedContainer);
+            mergedContainer.show();
         }
         hintMeshWindow.animations.clear();
         hintMeshWindow.animationCallbacks.clear();
@@ -437,6 +447,7 @@ public class WindowsOverlay {
         QWidget oldContainer =
                 window.children().isEmpty() ? null :
                         (QWidget) window.children().getFirst();
+        boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
         window.clearWindow();
         HintMesh hintMeshKey = forcedPixmapAndPosition != null ? null :
                 new HintMesh.HintMeshBuilder(hintMesh)
@@ -462,13 +473,15 @@ public class WindowsOverlay {
                     pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             newContainer = pixmapLabel;
             transitionHintContainers(
-                    style.transitionAnimationEnabled() && isHintGrid && oldContainerHasSameHints,
+                    style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged,
                     oldContainer, newContainer,
                     window, hintMeshWindow,
                     style.transitionAnimationDuration(), transitionAnimationCurrentTime);
         }
         else {
-            QWidget container = new QWidget();
+            // Uses ClearBackgroundQLabel because when in the mergedContainer,
+            // the top-level container must override the container below.
+            QWidget container = new ClearBackgroundQLabel();
             container.setStyleSheet("background: transparent;");
             newContainer = container;
             setUncachedHintMeshWindowRunnable =
@@ -487,7 +500,7 @@ public class WindowsOverlay {
                             cacheQtHintWindowIntoPixmap(container, hintMeshKey, hintMesh);
                         }
                         transitionHintContainers(
-                                style.transitionAnimationEnabled() && isHintGrid && oldContainerHasSameHints,
+                                style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow,
                                 style.transitionAnimationDuration(), transitionAnimationCurrentTime);
@@ -507,6 +520,8 @@ public class WindowsOverlay {
                                                  HintMeshWindow hintMeshWindow,
                                                  Duration animationDuration,
                                                  int animationCurrentTime) {
+        // TODO Should use .geometry() instead of .rect() which is relative to the widget
+        //  itself, where geometry() is relative to the parent.
         if (oldContainer != null) {
             boolean containersEqual = oldContainer.rect().equals(newContainer.rect());
             if (animateTransition && oldContainer.rect().contains(newContainer.rect())) {
@@ -553,13 +568,13 @@ public class WindowsOverlay {
                 newContainer.setParent(window);
                 newContainer.show();
                 QRect beginRect =
-                        new QRect(oldContainer.x(), oldContainer.y(),
+                        new QRect(oldContainer.x() - newContainer.x(),
+                                oldContainer.y() - newContainer.y(),
                                 oldContainer.width(),
                                 oldContainer.height());
                 QRect endRect =
-                        new QRect(newContainer.x(), newContainer.y(),
-                                newContainer.width(),
-                                newContainer.height());
+                        new QRect(0, 0,
+                                newContainer.width(), newContainer.height());
                 newContainer.setMask(new QRegion(beginRect));
                 QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
                         animationDuration);
@@ -579,6 +594,7 @@ public class WindowsOverlay {
                 oldContainer.disposeLater();
             }
             else {
+                oldContainer.setParent(null);
                 oldContainer.disposeLater();
                 newContainer.setParent(window);
                 newContainer.show();
@@ -2004,7 +2020,7 @@ public class WindowsOverlay {
                         container.geometry().y() + hintBoxGeometry.y(), hintMesh);
         HintMeshStyle style =
                 lastHintMeshKey.styleByFilter().get(ViewportFilter.of(screen));
-        setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, true, pixmapAndPosition);
+        setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, false, pixmapAndPosition);
     }
 
     public static void setHintMesh(HintMesh hintMesh, Zoom zoom) {
