@@ -768,35 +768,25 @@ public class HintManager implements ModeListener, MousePositionListener {
                         Math.round(hint.centerY())));
             }
         }
-        if (hintMeshConfiguration.modeAfterSelection() != null || true) {
-            hintJustSelected = true;
-            logger.trace("Hint " + hint.keySequence()
-                                       .stream()
-                                       .map(Key::name)
-                                       .toList() +
-                         " selected");
-            WindowsOverlay.animateHintMatch(hint);
-            hintMesh =
-                    hintMesh.builder()
-                            .selectedKeySequence(newSelectedKeySequence)
-                            .build();
-//            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
-        }
-        else {
-            hintMesh =
-                    hintMesh.builder().selectedKeySequence(List.of()).build();
-            HintMeshKey hintMeshKey =
-                    new HintMeshKey(hintMeshConfiguration.type(),
-                            hintMeshConfiguration.keysByFilter()
-                                                 .get(screenFilter)
-                                                 .selectionKeys(), currentMode.zoom());
-            hintMeshStates.put(
-                    hintMeshKey,
-                    new HintMeshState(
-                            hintMesh,
-                            hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
-                    ));
-            WindowsOverlay.setHintMesh(hintMesh, currentZoom);
+        hintJustSelected = true;
+        logger.trace("Hint " + hint.keySequence()
+                                   .stream()
+                                   .map(Key::name)
+                                   .toList() +
+                     " selected");
+        WindowsOverlay.animateHintMatch(hint);
+        hintMesh =
+                hintMesh.builder()
+                        .selectedKeySequence(newSelectedKeySequence)
+                        .build();
+        if (hintMeshConfiguration.modeAfterSelection() != null) {
+            logger.warn(
+                    "hint.mode-after-selection has been deprecated: use " +
+                    currentMode.name() + ".to." +
+                    hintMeshConfiguration.modeAfterSelection() +
+                    "=<combo> instead, along with " + currentMode.name() +
+                    ".break-combo-preparation=<combo>");
+            modeController.switchMode(hintMeshConfiguration.modeAfterSelection());
         }
     }
 

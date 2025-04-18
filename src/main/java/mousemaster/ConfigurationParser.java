@@ -775,6 +775,15 @@ public class ConfigurationParser {
                             modeReferences.add(
                                     checkModeReference(modeAfterSelection));
                             mode.hintMesh.builder.modeAfterSelection(modeAfterSelection);
+                            logger.warn(
+                                    "hint.mode-after-selection has been deprecated: use " +
+                                    modeName + ".to." + modeAfterSelection +
+                                    "=<combo> instead, along with " + modeName +
+                                    ".break-combo-preparation=<combo>");
+                        }
+                        case "swallow-hint-end-key-press" -> {
+                            throw new IllegalArgumentException(
+                                    "hint.swallow-hint-end-key-press has been deprecated and removed: use break-combo-preparation instead");
                         }
                         case "save-position-after-selection" -> mode.hintMesh.builder.savePositionAfterSelection(Boolean.parseBoolean(propertyValue));
                         case "eat-unused-selection-keys" -> mode.hintMesh.builder.eatUnusedSelectionKeys(Boolean.parseBoolean(propertyValue));

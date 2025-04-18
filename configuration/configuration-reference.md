@@ -76,6 +76,21 @@ idle-mode.to.normal-mode=_{leftctrl} +e
 normal-mode.to.idle-mode=+q
 ```
 
+Combos can be initiated in one mode and continued in another.
+```properties
+normal-mode.press.left=+a
+normal-mode.to.click-mode=+a
+click-mode.release.left=+a -a
+```
+In the above example, pressing _a_ triggers a press of the left mouse button and switches
+to the mode named click-mode. In click-mode, releasing _a_ triggers a release of the left mouse button.
+If we add the property:
+```properties
+normal-mode.break-combo-preparation=+a
+```
+Then, the release command in click-mode will only be triggered if the user presses _a_
+again then releases it. This happens because the `+a` combo preparation initiated in normal-mode was broken.
+
 ### Mode history
 
 ```properties
@@ -215,7 +230,7 @@ hint1-mode.hint.selection-keys=hint1key
 hint1-mode.hint.undo=backspace
 hint1-mode.hint.mode-after-selection=normal-mode
 hint1-mode.hint.move-mouse=false
-hint1-mode.hint.swallow-hint-end-key-press=true
+hint1-mode.hint.eat-unused-selection-key=true
 hint1-mode.hint.prefix-box-enabled=true
 hint1-mode.hint.prefix-box-border-thickness=4
 hint1-mode.hint.prefix-box-border-color=#FFD93D
@@ -260,8 +275,8 @@ hint1-mode.hint.transition-animation-duration-millis=100
 - `move-mouse` can be set to false to not move the mouse once a hint is selected. This can
   be used when the next mode is going to be a smaller hint grid, and the mouse should not
   be moved yet (it should be moved only once a hint of the second, smaller hint grid is selected).
-- If `swallow-hint-end-key-press` is false, then the last key press of the selection of a
-  hint (e.g. B in AB) will be passed to the next mode which can trigger a command.
+- If `eat-unused-selection-key` is false, then any selection key that is not part of 
+  the hints currently displayed will be usable in a combo command.
 - `font-spacing-percent` controls the spacing between characters. A value of 0 means the
   characters touch each other, 1 means the characters are evenly distributed across the
   entire box, and 0.5 represents the smallest spacing while maintaining column alignment
