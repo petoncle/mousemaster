@@ -385,10 +385,21 @@ logs.
 
 ### Keyboard layout
 
-There is currently a limitation for some keyboard layouts that cannot be detected by mousemaster.
-One of them is us-dvorak. I have not found a reliable way to get the active keyboard layout using the Windows API.
-The current workaround is to explicitly tell mousemaster which
-keyboard layout to use:
+There is currently a limitation with keyboard layouts (#37): I have not found a reliable way to get the active keyboard layout using the Windows API.
+The workaround is to explicitly tell mousemaster which keyboard layout to use:
 ```properties
 keyboard-layout=us-dvorak
 ```
+The following keyboard layouts are currently exposed and can be referenced in the configuration file:  
+- zh-qwerty-pinyin
+- fr-azerty
+- de-qwertz
+- it-qwerty
+- jp-kana
+- pt-qwerty-abnt2
+- ru-jcuken
+- es-qwerty
+- us-qwerty
+- uk-qwerty
+- us-dvorak
+- us-halmak
