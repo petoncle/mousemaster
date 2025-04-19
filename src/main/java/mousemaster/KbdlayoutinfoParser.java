@@ -157,6 +157,7 @@ public class KbdlayoutinfoParser {
             logger.info("Parsing keyboard layout XML for processing " + keyboardLayout);
             parseKeyboardLayoutXmlForProcessing(keyboardLayout);
         }
+        addCustomKeyboardLayouts(keyboardLayouts);
         String filePath = Paths.get("src", "main", "resources", "keyboard-layouts.json").toString();
         Gson gson = new GsonBuilder().create();
         try (FileWriter writer = new FileWriter(filePath)) {
@@ -307,6 +308,57 @@ public class KbdlayoutinfoParser {
         log(new GsonBuilder().create().toJson(keyboardLayout));
         inputStream.close();
         conn.disconnect();
+    }
+
+    private static void addCustomKeyboardLayouts(List<KeyboardLayout> keyboardLayouts) {
+        String usQwertyCharacterKeys = """
+                `1234567890-=
+                qwertyuiop[]
+                asdfghjkl;'\\
+                zxcvbnm,./
+                """.replaceAll("\\s", "");
+        String usHalmakCharacterKeys = """
+                `1234567890-=
+                wlrbz;qudj[]
+                shnt,.aeoi'\\
+                fmvc/gpxky
+                """.replaceAll("\\s", "");
+        KeyboardLayout usQwertyLayout = keyboardLayouts.stream()
+                                                       .filter(keyboardLayout -> "us-qwerty".equals(
+                                                               keyboardLayout.shortName()))
+                                                       .findFirst()
+                                                       .orElseThrow();
+        List<KeyboardLayout.KeyboardLayoutKey> usHalmakKeys = new ArrayList<>();
+        for (KeyboardLayout.KeyboardLayoutKey usQwertyKey : usQwertyLayout.keys()) {
+            if (usQwertyKey.key().character() == null) {
+                usHalmakKeys.add(usQwertyKey);
+                continue;
+            }
+            int characterKeyIndex = usQwertyCharacterKeys.indexOf(usQwertyKey.key().character());
+            if (characterKeyIndex == -1) {
+                usHalmakKeys.add(usQwertyKey);
+                continue;
+            }
+            String usHalmakKeyCharacter = "" + usHalmakCharacterKeys.charAt(characterKeyIndex);
+            KeyboardLayout.KeyboardLayoutKey sameCharacterUsQwertyKey =
+                    usQwertyLayout.keys()
+                                  .stream()
+                                  .filter(keyboardLayoutKey -> usHalmakKeyCharacter.equals(
+                                          keyboardLayoutKey.key()
+                                                           .character()))
+                                  .findFirst()
+                                  .orElseThrow();
+            KeyboardLayout.KeyboardLayoutKey usHalmakKey = new KeyboardLayout.KeyboardLayoutKey(
+                    usQwertyKey.scanCode(),
+                    sameCharacterUsQwertyKey.virtualKey(),
+                    sameCharacterUsQwertyKey.key(),
+                    sameCharacterUsQwertyKey.text(),
+                    sameCharacterUsQwertyKey.name()
+            );
+            usHalmakKeys.add(usHalmakKey);
+        }
+        keyboardLayouts.add(
+                new KeyboardLayout(null, null, null, "us-halmak", usHalmakKeys));
     }
 
     private static void log(String string) {
