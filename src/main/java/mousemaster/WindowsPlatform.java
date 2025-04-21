@@ -18,6 +18,7 @@ public class WindowsPlatform implements Platform {
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
 
     private final boolean keyRegurgitationEnabled;
+    private final boolean ignoreInjectedEvents;
     private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator();
     private final WindowsClock clock = new WindowsClock();
 
@@ -43,8 +44,10 @@ public class WindowsPlatform implements Platform {
     private Set<Key> extendedKeys = new HashSet<>();
     private Mode currentMode;
 
-    public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
+    public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled,
+                           boolean ignoreInjectedEvents) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
+        this.ignoreInjectedEvents = ignoreInjectedEvents;
         WindowsMouse.windowsPlatform = this; // TODO Get rid of this.
         WindowsUiAccess.checkAndTryToGetUiAccess(); // Done before acquiring the single instance mutex.
         if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
@@ -296,7 +299,7 @@ public class WindowsPlatform implements Platform {
                     };
                     logKeyEvent(info, wParamString);
                     if ((info.flags & ExtendedUser32.LLKHF_INJECTED) ==
-                        ExtendedUser32.LLKHF_INJECTED) {
+                        ExtendedUser32.LLKHF_INJECTED && ignoreInjectedEvents) {
                         // SendInput from another app (or from mousemaster).
                     }
                     else if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&

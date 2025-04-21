@@ -90,6 +90,13 @@ public class MousemasterApplication {
                       .findFirst()
                       .map(Boolean::parseBoolean)
                       .orElse(true); // Remove this feature flag if confirmed working
+        boolean ignoreInjectedEvents = Stream.of(args)
+                                             .filter(arg -> arg.startsWith(
+                                                     "--ignore-injected-events="))
+                                             .map(arg -> arg.split("=")[1])
+                                             .findFirst()
+                                             .map(Boolean::parseBoolean)
+                                             .orElse(true);
         if (Stream.of(args).anyMatch(Predicate.isEqual(("--graalvm-agent-run")))) {
             logger.info("--graalvm-agent-run flag found, exiting in 20s");
             new Thread(() -> {
@@ -101,7 +108,9 @@ public class MousemasterApplication {
                 System.exit(0);
             }).start();
         }
-        WindowsPlatform platform = platform(multipleInstancesAllowed, keyRegurgitationEnabled, pauseOnError);
+        WindowsPlatform platform =
+                platform(multipleInstancesAllowed, keyRegurgitationEnabled, pauseOnError,
+                        ignoreInjectedEvents);
         logger.info("mousemaster v" + version);
         if (platform == null)
             return;
@@ -134,9 +143,11 @@ public class MousemasterApplication {
 
     private static WindowsPlatform platform(boolean multipleInstancesAllowed,
                                             boolean keyRegurgitationEnabled,
-                                            boolean pauseOnError) {
+                                            boolean pauseOnError,
+                                            boolean ignoreInjectedEvents) {
         try {
-            return new WindowsPlatform(multipleInstancesAllowed, keyRegurgitationEnabled);
+            return new WindowsPlatform(multipleInstancesAllowed, keyRegurgitationEnabled,
+                    ignoreInjectedEvents);
         } catch (Exception e) {
             shutdownAfterException(e, null, false, pauseOnError);
         }
