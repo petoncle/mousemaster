@@ -293,26 +293,28 @@ public class ComboWatcher implements ModeListener {
             }
             if (!preparationComplete)
                 continue;
-            List<Command> commands = entry.getValue();
-            if (ignoreSwitchModeCommands &&
-                commands.stream().anyMatch(Command.SwitchMode.class::isInstance)) {
-                logger.debug(
-                        "Ignoring the following SwitchMode commands because the mode was just changed to " +
-                        currentMode.name() + ": " + commands.stream()
-                                                            .filter(Command.SwitchMode.class::isInstance)
-                                                            .toList());
-                commands = commands.stream()
-                                   .filter(Predicate.not(
-                                           Command.SwitchMode.class::isInstance))
-                                   .toList();
-            }
-            ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands);
             if (lastMoveIsWaitingMove) {
+                List<Command> commands = entry.getValue();
+                ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands);
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(comboAndCommands,
                                 comboLastMove.duration().min().toNanos() / 1e9d));
             }
             else {
+                List<Command> commands = entry.getValue();
+                if (ignoreSwitchModeCommands &&
+                    commands.stream().anyMatch(Command.SwitchMode.class::isInstance)) {
+                    logger.debug(
+                            "Ignoring the following SwitchMode commands because the mode was just changed to " +
+                            currentMode.name() + ": " + commands.stream()
+                                                                .filter(Command.SwitchMode.class::isInstance)
+                                                                .toList());
+                    commands = commands.stream()
+                                       .filter(Predicate.not(
+                                               Command.SwitchMode.class::isInstance))
+                                       .toList();
+                }
+                ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands);
                 comboAndCommandsToRun.add(comboAndCommands);
             }
         }
