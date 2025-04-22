@@ -120,6 +120,9 @@ public class KeyboardManager {
                 if (processingSet.isPartOfCompletedComboSequence()) {
                     markOtherKeysOfTheseCombosAsCompleted(processingSet.completedCombos());
                 }
+                if (processingSet.isComboPreparationBreaker()) {
+                    comboWatcher.reset();
+                }
             }
             return eatAndRegurgitates(processingSet.mustBeEaten(), keysToRegurgitate);
         }
@@ -128,26 +131,39 @@ public class KeyboardManager {
                 if (processingSet.handled() ||
                     processingSet.isPartOfUnpressedComboPreconditionOnly()) {
                     Set<Key> keysToRegurgitate = Set.of();
-                    if (processingSet.isPartOfCombo() || processingSet.isUnswallowedHintEnd()) {
-                        PressKeyEventProcessingSet releaseProcessingSet =
-                                comboWatcher.keyEvent(keyEvent);
-                        if (!releaseProcessingSet.handled()) {
-                            keysToRegurgitate = regurgitatePressedKeys(null);
-                        }
-                        else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
-                            for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
-                                                                                                .entrySet()) {
-                                // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
-                                processingSet.processingByCombo().compute(entry.getKey(), (combo, existingProcessing) -> {
-                                    return existingProcessing == null ? entry.getValue() :
-                                            PressKeyEventProcessing.partOfComboSequence(
-                                                    existingProcessing.mustBeEaten(),
-                                                    entry.getValue()
-                                                         .isPartOfCompletedComboSequence());
-                                });
+                    // Avoid passing release event to comboWatcher if the key was a combo preparation breaker.
+                    if (!processingSet.isComboPreparationBreaker()) {
+                        if (processingSet.isPartOfCombo() ||
+                            processingSet.isUnswallowedHintEnd()) {
+                            PressKeyEventProcessingSet releaseProcessingSet =
+                                    comboWatcher.keyEvent(keyEvent);
+                            if (!releaseProcessingSet.handled()) {
+                                keysToRegurgitate = regurgitatePressedKeys(null);
                             }
-                            markOtherKeysOfTheseCombosAsCompleted(releaseProcessingSet.completedCombos());
-                            keysToRegurgitate = regurgitatePressedKeys(key);
+                            else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
+                                for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
+                                                                                                           .entrySet()) {
+                                    // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
+                                    processingSet.processingByCombo()
+                                                 .compute(entry.getKey(),
+                                                         (combo, existingProcessing) -> {
+                                                             return existingProcessing ==
+                                                                    null ?
+                                                                     entry.getValue() :
+                                                                     PressKeyEventProcessing.partOfComboSequence(
+                                                                             existingProcessing.mustBeEaten(),
+                                                                             entry.getValue()
+                                                                                  .isPartOfCompletedComboSequence(),
+                                                                             existingProcessing.isComboPreparationBreaker());
+                                                         });
+                                }
+                                markOtherKeysOfTheseCombosAsCompleted(
+                                        releaseProcessingSet.completedCombos());
+                                keysToRegurgitate = regurgitatePressedKeys(key);
+                            }
+                        }
+                        if (processingSet.isComboPreparationBreaker()) {
+                            comboWatcher.reset();
                         }
                     }
                     PressKeyEventProcessingSet pressedProcessingSet = currentlyPressedKeys.remove(key);
@@ -186,7 +202,8 @@ public class KeyboardManager {
                 if (processing != null)
                     processingByCombo.put(combo,
                             PressKeyEventProcessing.partOfComboSequence(
-                                    processing.mustBeEaten(), true));
+                                    processing.mustBeEaten(), true,
+                                    processing.isComboPreparationBreaker()));
             }
         }
         return completedCombosHavePressedKeys;
@@ -222,7 +239,8 @@ public class KeyboardManager {
                                  .put(combo,
                                          PressKeyEventProcessing.partOfComboSequence(
                                                  false,
-                                                 processing.isPartOfCompletedComboSequence()));
+                                                 processing.isPartOfCompletedComboSequence(),
+                                                 false));
             }
         }
     }

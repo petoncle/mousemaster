@@ -162,7 +162,7 @@ public class ComboWatcher implements ModeListener {
         Mode beforeMode = currentMode;
         PressKeyEventProcessingSet processingSet =
                 processKeyEventForCurrentMode(event, false);
-        if (currentMode != beforeMode) {
+        if (currentMode != beforeMode && !processingSet.isComboPreparationBreaker()) {
             // Second pass to give a chance to new mode's combos to run now.
             processingSet.processingByCombo().putAll(
                     processKeyEventForCurrentMode(event, true).processingByCombo());
@@ -271,14 +271,21 @@ public class ComboWatcher implements ModeListener {
             boolean lastMoveIsWaitingMove = comboLastMove != null &&
                                         !comboLastMove.duration().min().equals(Duration.ZERO);
             if (event != null) {
-                if (partOfComboSequence)
+                if (partOfComboSequence) {
+                    boolean comboPreparationBreaker = entry.getValue()
+                                                           .stream()
+                                                           .anyMatch(
+                                                                   Command.BreakComboPreparation.class::isInstance);
+                    PressKeyEventProcessing processing =
+                            PressKeyEventProcessing.partOfComboSequence(mustBeEaten,
+                                    preparationComplete && !lastMoveIsWaitingMove,
+                                    comboPreparationBreaker);
                     // This processingByCombo does not need to have entries about
                     // non-combo sequences (i.e. combo preconditions).
                     // That is because preconditions are managed by the caller (keyEvent)
                     // which checks across all modes, not just the current one. (isComboPreconditionKey)
-                    processingByCombo.put(combo,
-                            PressKeyEventProcessing.partOfComboSequence(mustBeEaten,
-                                    preparationComplete && !lastMoveIsWaitingMove));
+                    processingByCombo.put(combo, processing);
+                }
             }
             if (!preparationComplete)
                 continue;

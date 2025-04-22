@@ -23,9 +23,8 @@ public class CommandRunner {
         this.modeController = modeController;
     }
 
-    public CommandRunner setComboWatcher(ComboWatcher comboWatcher) {
+    public void setComboWatcher(ComboWatcher comboWatcher) {
         this.comboWatcher = comboWatcher;
-        return this;
     }
 
     public boolean runningAtomicCommand() {
@@ -96,7 +95,8 @@ public class CommandRunner {
 
             case RemappingCommand remap -> remapper.submitRemapping(remap.remapping());
 
-            case BreakComboPreparation breakComboPreparation -> comboWatcher.breakComboPreparation();
+            // Complex command that is manually handled by ComboWatcher and KeyManager.
+            case BreakComboPreparation breakComboPreparation -> {}
             // @formatter:on
         }
     }

@@ -74,6 +74,12 @@ public record PressKeyEventProcessingSet(
                                 .anyMatch(PressKeyEventProcessing::isPartOfCombo);
     }
 
+    public boolean isComboPreparationBreaker() {
+        return processingByCombo.values()
+                                .stream()
+                                .anyMatch(PressKeyEventProcessing::isComboPreparationBreaker);
+    }
+
     public boolean isPartOfHintPrefix() {
         return processingByCombo.values()
                                 .stream()
