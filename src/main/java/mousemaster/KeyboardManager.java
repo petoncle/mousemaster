@@ -34,9 +34,13 @@ public class KeyboardManager {
             ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
             if (!watcherUpdateResult.completedWaitingCombos().isEmpty())
                 markOtherKeysOfTheseCombosAsCompleted(
-                        watcherUpdateResult.completedWaitingCombos());
+                        watcherUpdateResult.completedWaitingCombos(),
+                        watcherUpdateResult.includesComboPreparationBreaker());
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 regurgitatePressedKeys();
+            }
+            if (watcherUpdateResult.includesComboPreparationBreaker()) {
+                comboWatcher.reset();
             }
         }
     }
@@ -118,7 +122,7 @@ public class KeyboardManager {
                 }
                 currentlyPressedKeys.put(key, processingSet);
                 if (processingSet.isPartOfCompletedComboSequence()) {
-                    markOtherKeysOfTheseCombosAsCompleted(processingSet.completedCombos());
+                    markOtherKeysOfTheseCombosAsCompleted(processingSet.completedCombos(), false);
                 }
                 if (processingSet.isComboPreparationBreaker()) {
                     comboWatcher.reset();
@@ -158,7 +162,8 @@ public class KeyboardManager {
                                                          });
                                 }
                                 markOtherKeysOfTheseCombosAsCompleted(
-                                        releaseProcessingSet.completedCombos());
+                                        releaseProcessingSet.completedCombos(),
+                                        false);
                                 keysToRegurgitate = regurgitatePressedKeys(key);
                             }
                         }
@@ -181,7 +186,8 @@ public class KeyboardManager {
         }
     }
 
-    private boolean markOtherKeysOfTheseCombosAsCompleted(Set<Combo> completedCombos) {
+    private boolean markOtherKeysOfTheseCombosAsCompleted(Set<Combo> completedCombos,
+                                                          boolean forceIsComboPreparationBreaker) {
         boolean completedCombosHavePressedKeys = false;
         for (Combo combo : completedCombos) {
             Set<Key> pressedKeysInCompletedCombo =
@@ -203,7 +209,7 @@ public class KeyboardManager {
                     processingByCombo.put(combo,
                             PressKeyEventProcessing.partOfComboSequence(
                                     processing.mustBeEaten(), true,
-                                    processing.isComboPreparationBreaker()));
+                                    processing.isComboPreparationBreaker() || forceIsComboPreparationBreaker));
             }
         }
         return completedCombosHavePressedKeys;
