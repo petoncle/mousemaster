@@ -122,7 +122,7 @@ public class KeyboardManager {
                 }
                 currentlyPressedKeys.put(key, processingSet);
                 if (processingSet.isPartOfCompletedComboSequence()) {
-                    markOtherKeysOfTheseCombosAsCompleted(processingSet.completedCombos(), false);
+                    markOtherKeysOfTheseCombosAsCompleted(processingSet.partOfCompletedComboSequenceCombos(), false);
                 }
                 if (processingSet.isComboPreparationBreaker()) {
                     comboWatcher.reset(key);
@@ -165,7 +165,7 @@ public class KeyboardManager {
                                                          });
                                 }
                                 markOtherKeysOfTheseCombosAsCompleted(
-                                        releaseProcessingSet.completedCombos(),
+                                        releaseProcessingSet.partOfCompletedComboSequenceCombos(),
                                         false);
                                 keysToRegurgitate = regurgitatePressedKeys(key);
                             }

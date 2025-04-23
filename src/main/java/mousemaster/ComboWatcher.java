@@ -27,7 +27,7 @@ public class ComboWatcher implements ModeListener {
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
     private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
 
-    private Set<Key> currentlyPressedCompletedComboSequenceKeys = new HashSet<>();
+    private Set<Key> currentlyPressedCompletedComboKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
 
     public ComboWatcher(CommandRunner commandRunner, ActiveAppFinder activeAppFinder,
@@ -102,7 +102,7 @@ public class ComboWatcher implements ModeListener {
                                                                                .anyMatch(
                                                                                        Command.BreakComboPreparation.class::isInstance))
                     comboPreparationBreakerKey = combo.sequence().moves().getLast().key();
-                addCurrentlyPressedCompletedComboSequenceKeys(combo);
+                addCurrentlyPressedCompletedComboKeys(combo, currentlyPressedComboKeys);
                 // We tell KeyboardManager that a combo was completed,
                 // and all the currently pressed keys are part of a completed combo,
                 // and they should not be regurgitated.
@@ -133,7 +133,7 @@ public class ComboWatcher implements ModeListener {
         if (currentMode != beforeMode && comboPreparationBreakerKey == null) {
             PressKeyEventProcessingSet processingSet =
                     processKeyEventForCurrentMode(null, true);
-            completedCombos.addAll(processingSet.completedCombos());
+            completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombos());
         }
         return new ComboWatcherUpdateResult(completedCombos,
                 preparationIsNotPrefixAnymore, comboPreparationBreakerKey);
@@ -151,7 +151,7 @@ public class ComboWatcher implements ModeListener {
         if (event.isRelease()) {
             // The corresponding press event was either part of a combo sequence or part of a combo precondition,
             // otherwise this method would not have been called.
-            currentlyPressedCompletedComboSequenceKeys.remove(event.key());
+            currentlyPressedCompletedComboKeys.remove(event.key());
             currentlyPressedComboKeys.remove(event.key());
         }
         else {
@@ -235,8 +235,8 @@ public class ComboWatcher implements ModeListener {
             // even if there is a pressed key that is not in the combo precondition, we
             // still consider the combo as completed.
             if (!releaseCombo &&
-                !comboPressedPreconditionSatisfied(combo, currentlyPressedKeys,
-                        currentlyPressedCompletedComboSequenceKeys, matchingMoveCount)) {
+                satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
+                        currentlyPressedCompletedComboKeys, matchingMoveCount) == null) {
                 // Then it's as if the currently pressed precondition key is an unhandled key:
                 // other keys that are pressed should not even be considered but passed onto other apps.
                 // logger.info("currentlyPressedPressedComboKeysNotPartOfAlreadyCompletedCombo = " +
@@ -343,13 +343,13 @@ public class ComboWatcher implements ModeListener {
         }
         runCommands(commandsToRun);
         if (event != null && event.isPress()) {
-            if (processingSet.isPartOfComboSequence()) {
+            boolean atLeastOneComboCompleted = !comboAndCommandsToRun.isEmpty();
+            if (atLeastOneComboCompleted) {
                 for (ComboAndCommands comboAndCommands : comboAndCommandsToRun) {
                     Combo combo = comboAndCommands.combo;
-                    addCurrentlyPressedCompletedComboSequenceKeys(combo);
+                    addCurrentlyPressedCompletedComboKeys(combo,
+                            currentlyPressedKeys);
                 }
-                if (processingSet.isPartOfCompletedComboSequence())
-                    currentlyPressedCompletedComboSequenceKeys.add(event.key());
             }
         }
         return processingSet;
@@ -374,10 +374,10 @@ public class ComboWatcher implements ModeListener {
         commandsWaitingForAtomicCommandToComplete.addAll(commands);
     }
 
-    private boolean comboPressedPreconditionSatisfied(Combo combo,
-                                                      Set<Key> currentlyPressedKeys,
-                                                      Set<Key> currentlyPressedCompletedComboSequenceKeys,
-                                                      int matchingMoveCount) {
+    private Set<Key> satisfiedComboPressedPrecondition(Combo combo,
+                                                       Set<Key> currentlyPressedKeys,
+                                                       Set<Key> currentlyPressedCompletedComboKeys,
+                                                       int matchingMoveCount) {
         Set<Set<Key>> preconditionPressedKeySets = combo.precondition()
                                                         .keyPrecondition()
                                                         .pressedKeySets();
@@ -387,19 +387,19 @@ public class ComboWatcher implements ModeListener {
             Set<Key> keysPressedInComboPriorToMove =
                     combo.keysPressedInComboPriorToMoveOfIndex(preconditionPressedKeySet,
                             matchingMoveCount - 1);
-            Set<Key> currentlyPressedKeysNotPartOfAlreadyCompletedComboSequence =
+            Set<Key> currentlyPressedKeysNotPartOfAlreadyCompletedCombo =
                     new HashSet<>(currentlyPressedKeys);
-            for (Key currentlyPressedCompletedComboSequenceKey : currentlyPressedCompletedComboSequenceKeys) {
+            for (Key currentlyPressedCompletedComboKey : currentlyPressedCompletedComboKeys) {
                 if (!keysPressedInComboPriorToMove.contains(
-                        currentlyPressedCompletedComboSequenceKey))
-                    currentlyPressedKeysNotPartOfAlreadyCompletedComboSequence.remove(
-                            currentlyPressedCompletedComboSequenceKey);
+                        currentlyPressedCompletedComboKey))
+                    currentlyPressedKeysNotPartOfAlreadyCompletedCombo.remove(
+                            currentlyPressedCompletedComboKey);
             }
-            if (currentlyPressedKeysNotPartOfAlreadyCompletedComboSequence.equals(
+            if (currentlyPressedKeysNotPartOfAlreadyCompletedCombo.equals(
                     keysPressedInComboPriorToMove))
-                return true;
+                return preconditionPressedKeySet;
         }
-        return false;
+        return null;
     }
 
     private boolean comboUnpressedPreconditionSatisfied(Combo combo,
@@ -416,12 +416,21 @@ public class ComboWatcher implements ModeListener {
         return true;
     }
 
-        private void addCurrentlyPressedCompletedComboSequenceKeys(Combo combo) {
-        Set<Key> keys = combo.keysPressedInComboPriorToMoveOfIndex(
-                Set.of(), combo.sequence().moves().size() - 1);
-        // logger.info("Combo completed, pressed keys: " + keys);
-        currentlyPressedCompletedComboSequenceKeys.addAll(keys);
-    }
+        private void addCurrentlyPressedCompletedComboKeys(Combo combo,
+                                                           Set<Key> currentlyPressedKeys) {
+            Set<Key> satisfiedPressPreconditionKeys =
+                    satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
+                            currentlyPressedCompletedComboKeys,
+                            combo.sequence().moves().size());
+            if (satisfiedPressPreconditionKeys == null)
+                throw new IllegalStateException();
+            Set<Key> keys =
+                    combo.keysPressedInComboPriorToMoveOfIndex(
+                            satisfiedPressPreconditionKeys,
+                            combo.sequence().moves().size() - 1);
+            // logger.info("Combo completed, pressed keys: " + keys);
+            currentlyPressedCompletedComboKeys.addAll(keys);
+        }
 
     private static final List<? extends Class<? extends Command>> commandOrder =
             List.of(
@@ -472,14 +481,14 @@ public class ComboWatcher implements ModeListener {
     public void reset() {
         breakComboPreparation();
         // When a mode times out to a new mode, the currentlyPressedComboKeys should not be reset.
-        currentlyPressedCompletedComboSequenceKeys.clear();
+        currentlyPressedCompletedComboKeys.clear();
         currentlyPressedComboKeys.clear();
     }
 
     public void reset(Key comboPreparationBreakerKey) {
         breakComboPreparation();
         // KeyManager won't notify ComboWatcher of the release of the comboPreparationBreakerKey.
-        currentlyPressedCompletedComboSequenceKeys.remove(comboPreparationBreakerKey);
+        currentlyPressedCompletedComboKeys.remove(comboPreparationBreakerKey);
         currentlyPressedComboKeys.remove(comboPreparationBreakerKey);
     }
 

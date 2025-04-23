@@ -45,7 +45,7 @@ public record PressKeyEventProcessingSet(
                                         PressKeyEventProcessing::isPartOfCompletedComboSequence);
     }
 
-    public Set<Combo> completedCombos() {
+    public Set<Combo> partOfCompletedComboSequenceCombos() {
         Set<Combo> completedCombos = new HashSet<>();
         for (Map.Entry<Combo, PressKeyEventProcessing> entry : processingByCombo.entrySet()) {
             if (entry.getValue().isPartOfCompletedComboSequence()) {
