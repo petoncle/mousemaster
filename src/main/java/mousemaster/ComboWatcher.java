@@ -50,7 +50,7 @@ public class ComboWatcher implements ModeListener {
     }
 
     public record ComboWatcherUpdateResult(Set<Combo> completedWaitingCombos, boolean preparationIsNotPrefixAnymore,
-                                           boolean includesComboPreparationBreaker) {
+                                           Key comboPreparationBreakerKey) {
 
     }
 
@@ -91,11 +91,14 @@ public class ComboWatcher implements ModeListener {
         // combosWaitingForLastMoveToComplete is always reset.
         List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
         Set<Combo> completedCombos = new HashSet<>();
+        Key comboPreparationBreakerKey = null;
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
             comboWaitingForLastMoveToComplete.remainingWait -= delta;
             if (comboWaitingForLastMoveToComplete.remainingWait < 0) {
                 completeCombos.add(comboWaitingForLastMoveToComplete);
                 Combo combo = comboWaitingForLastMoveToComplete.comboAndCommands.combo;
+                if (!combo.sequence().moves().isEmpty())
+                    comboPreparationBreakerKey = combo.sequence().moves().getLast().key();
                 addCurrentlyPressedCompletedComboSequenceKeys(combo);
                 // We tell KeyboardManager that a combo was completed,
                 // and all the currently pressed keys are part of a completed combo,
@@ -122,17 +125,15 @@ public class ComboWatcher implements ModeListener {
                     ", commandsToRun = " + commandsToRun);
         }
         Mode beforeMode = currentMode;
-        boolean includesComboPreparationBreaker = commandsToRun.stream().anyMatch(
-                Command.BreakComboPreparation.class::isInstance);
         runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completeCombos);
-        if (currentMode != beforeMode && !includesComboPreparationBreaker) {
+        if (currentMode != beforeMode && comboPreparationBreakerKey == null) {
             PressKeyEventProcessingSet processingSet =
                     processKeyEventForCurrentMode(null, true);
             completedCombos.addAll(processingSet.completedCombos());
         }
         return new ComboWatcherUpdateResult(completedCombos,
-                preparationIsNotPrefixAnymore, includesComboPreparationBreaker);
+                preparationIsNotPrefixAnymore, comboPreparationBreakerKey);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
@@ -470,6 +471,13 @@ public class ComboWatcher implements ModeListener {
         // When a mode times out to a new mode, the currentlyPressedComboKeys should not be reset.
         currentlyPressedCompletedComboSequenceKeys.clear();
         currentlyPressedComboKeys.clear();
+    }
+
+    public void reset(Key comboPreparationBreakerKey) {
+        breakComboPreparation();
+        // KeyManager won't notify ComboWatcher of the release of the comboPreparationBreakerKey.
+        currentlyPressedCompletedComboSequenceKeys.remove(comboPreparationBreakerKey);
+        currentlyPressedComboKeys.remove(comboPreparationBreakerKey);
     }
 
     @Override

@@ -35,12 +35,12 @@ public class KeyboardManager {
             if (!watcherUpdateResult.completedWaitingCombos().isEmpty())
                 markOtherKeysOfTheseCombosAsCompleted(
                         watcherUpdateResult.completedWaitingCombos(),
-                        watcherUpdateResult.includesComboPreparationBreaker());
+                        watcherUpdateResult.comboPreparationBreakerKey() != null);
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 regurgitatePressedKeys();
             }
-            if (watcherUpdateResult.includesComboPreparationBreaker()) {
-                comboWatcher.reset();
+            if (watcherUpdateResult.comboPreparationBreakerKey() != null) {
+                comboWatcher.reset(watcherUpdateResult.comboPreparationBreakerKey());
             }
         }
     }
@@ -125,7 +125,7 @@ public class KeyboardManager {
                     markOtherKeysOfTheseCombosAsCompleted(processingSet.completedCombos(), false);
                 }
                 if (processingSet.isComboPreparationBreaker()) {
-                    comboWatcher.reset();
+                    comboWatcher.reset(key);
                 }
             }
             return eatAndRegurgitates(processingSet.mustBeEaten(), keysToRegurgitate);
@@ -136,6 +136,9 @@ public class KeyboardManager {
                     processingSet.isPartOfUnpressedComboPreconditionOnly()) {
                     Set<Key> keysToRegurgitate = Set.of();
                     // Avoid passing release event to comboWatcher if the key was a combo preparation breaker.
+                    // We could add a property for choosing whether we want to ignore
+                    // the release of the combo preparation breaker key. But for now,
+                    // we always ignore it.
                     if (!processingSet.isComboPreparationBreaker()) {
                         if (processingSet.isPartOfCombo() ||
                             processingSet.isUnswallowedHintEnd()) {
@@ -168,7 +171,7 @@ public class KeyboardManager {
                             }
                         }
                         if (processingSet.isComboPreparationBreaker()) {
-                            comboWatcher.reset();
+                            comboWatcher.reset(key);
                         }
                     }
                     PressKeyEventProcessingSet pressedProcessingSet = currentlyPressedKeys.remove(key);
