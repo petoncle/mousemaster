@@ -230,7 +230,7 @@ hint1-mode.hint.selection-keys=hint1key
 hint1-mode.hint.undo=backspace
 hint1-mode.hint.mode-after-selection=normal-mode
 hint1-mode.hint.move-mouse=false
-hint1-mode.hint.eat-unused-selection-key=true
+hint1-mode.hint.eat-unused-selection-keys=true
 hint1-mode.hint.prefix-box-enabled=true
 hint1-mode.hint.prefix-box-border-thickness=4
 hint1-mode.hint.prefix-box-border-color=#FFD93D
@@ -271,11 +271,12 @@ hint1-mode.hint.transition-animation-duration-millis=100
   or `last-selected-hint`.
 - `layout-row-count` and `layout-column-count` are for controlling the size of the
   layout. Use `layout-row-count=1` and `layout-column-count=1000` to lay out the hints 
-  in columns.
+  in columns. Use `layout-row-count=1000` and `layout-column-count=1` to lay out the hints in rows.
+  Use `layout-row-count=10` and `layout-column-count=3` to lay out the hints in 10x3 subgrids.
 - `move-mouse` can be set to false to not move the mouse once a hint is selected. This can
   be used when the next mode is going to be a smaller hint grid, and the mouse should not
   be moved yet (it should be moved only once a hint of the second, smaller hint grid is selected).
-- If `eat-unused-selection-key` is false, then any selection key that is not part of 
+- If `eat-unused-selection-keys` is false, then any selection key that is not part of 
   the hints currently displayed will be usable in a combo command.
 - `font-spacing-percent` controls the spacing between characters. A value of 0 means the
   characters touch each other, 1 means the characters are evenly distributed across the
