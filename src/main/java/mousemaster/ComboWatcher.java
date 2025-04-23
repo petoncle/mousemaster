@@ -97,7 +97,10 @@ public class ComboWatcher implements ModeListener {
             if (comboWaitingForLastMoveToComplete.remainingWait < 0) {
                 completeCombos.add(comboWaitingForLastMoveToComplete);
                 Combo combo = comboWaitingForLastMoveToComplete.comboAndCommands.combo;
-                if (!combo.sequence().moves().isEmpty())
+                if (!combo.sequence().moves().isEmpty() &&
+                    comboWaitingForLastMoveToComplete.comboAndCommands.commands.stream()
+                                                                               .anyMatch(
+                                                                                       Command.BreakComboPreparation.class::isInstance))
                     comboPreparationBreakerKey = combo.sequence().moves().getLast().key();
                 addCurrentlyPressedCompletedComboSequenceKeys(combo);
                 // We tell KeyboardManager that a combo was completed,
