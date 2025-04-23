@@ -221,20 +221,10 @@ public class ComboWatcher implements ModeListener {
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
             ComboMove currentMove = matchingMoveCount == 0 ? null :
                     combo.sequence().moves().get(matchingMoveCount - 1);
-            boolean releaseCombo =
-                    combo.precondition()
-                         .keyPrecondition()
-                         .pressedKeySets()
-                         .isEmpty() &&
-                    (combo.sequence().moves().isEmpty() || combo.sequence()
-                                                                .moves()
-                                                                .stream()
-                                                                .allMatch(
-                                                                        ComboMove::isRelease));
             // For release combos (like -up), we ignore the currently pressed keys:
             // even if there is a pressed key that is not in the combo precondition, we
             // still consider the combo as completed.
-            if (!releaseCombo &&
+            if (!isReleaseCombo(combo) &&
                 satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
                         currentlyPressedCompletedComboKeys, matchingMoveCount) == null) {
                 // Then it's as if the currently pressed precondition key is an unhandled key:
@@ -355,6 +345,18 @@ public class ComboWatcher implements ModeListener {
         return processingSet;
     }
 
+    private static boolean isReleaseCombo(Combo combo) {
+        return combo.precondition()
+                    .keyPrecondition()
+                    .pressedKeySets()
+                    .isEmpty() &&
+               (combo.sequence().moves().isEmpty() || combo.sequence()
+                                                           .moves()
+                                                           .stream()
+                                                           .allMatch(
+                                                                   ComboMove::isRelease));
+    }
+
     private void runCommands(List<Command> commandsToRun) {
         List<Command> commands = new ArrayList<>(commandsToRun);
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
@@ -418,6 +420,8 @@ public class ComboWatcher implements ModeListener {
 
         private void addCurrentlyPressedCompletedComboKeys(Combo combo,
                                                            Set<Key> currentlyPressedKeys) {
+            if (isReleaseCombo(combo))
+                return;
             Set<Key> satisfiedPressPreconditionKeys =
                     satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
                             currentlyPressedCompletedComboKeys,
