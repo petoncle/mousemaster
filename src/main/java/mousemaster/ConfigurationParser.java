@@ -2313,7 +2313,6 @@ public class ConfigurationParser {
                     if (!builder.containsKey(parentEntry.getKey()))
                         builder.put(parentEntry.getKey(), parentEntry.getValue());
                 }
-                builder.putAll(parent);
             }
         }
 
