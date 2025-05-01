@@ -1209,7 +1209,9 @@ public class ConfigurationParser {
                         commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder,  propertyValue, new MoveToLastSelectedHint(), finalDefaultComboMoveDuration, keyAliases, appAliases),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
-            case "break-combo-preparation" -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), defaultComboMoveDuration, keyAliases, appAliases);
+            case "break-combo-preparation" -> mode.comboMap.breakComboPreparation.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), defaultComboMoveDuration, keyAliases, appAliases),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
             // @formatter:on
             default -> throw new IllegalArgumentException(
                     "Invalid mode property key");
