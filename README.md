@@ -136,7 +136,7 @@ For a complete reference of all configuration concepts and options, see the [con
      idle-mode.to.game-mode=_{gameapp}
      game-mode.to.idle-mode=^{gameapp}
      ``` 
-
+     See [App Aliases](configuration/configuration-reference.md#app-aliases) for more details.
 ### Logging
 
 Enable detailed logging for troubleshooting:
