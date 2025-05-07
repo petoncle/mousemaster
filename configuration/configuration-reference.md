@@ -106,6 +106,24 @@ Combos are sequences of key presses and releases that trigger commands in mousem
    ```
    This means either no modifier key is pressed, or leftctrl is pressed, or leftshift and leftalt are pressed.
 
+4. Keys from previous combos: keys that are part of a previous combo don't need to be specified again in subsequent combos.
+
+   ```properties
+   # This combo eats leftctrl, leftalt, and space when pressed
+   normal-mode.to.normal-mode=#leftshift | +leftctrl | +leftalt | +space
+
+   # This combo requires space to be held, then hint1key to be pressed
+   # It works even if leftctrl, leftalt, or leftshift are also being held
+   normal-mode.to.hint-mode=_{space} +hint1key
+   ```
+
+   In this example:
+   - The first combo doesn't change the mode but "eats" leftctrl, leftalt and space.
+   - Any key press that is part of a previous combo doesn't need to be specified again in subsequent combos
+   - As long as those keys remain pressed, they don't need to be specified in combos that don't care whether they are pressed
+
+   This behavior allows for complex key combinations where modifier keys can be pressed in any order without breaking the combo sequence.
+
 ### Complex combo examples
 
 ```properties
