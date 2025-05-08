@@ -112,9 +112,9 @@ Combos are sequences of key presses and releases that trigger commands in mousem
    # This combo eats leftctrl, leftalt, and space when pressed
    normal-mode.to.normal-mode=#leftshift | +leftctrl | +leftalt | +space
 
-   # This combo requires space to be held, then hint1key to be pressed
+   # This combo requires space to be held, then hint key to be pressed
    # It works even if leftctrl, leftalt, or leftshift are also being held
-   normal-mode.to.hint-mode=_{space} +hint1key
+   normal-mode.to.hint-mode=_{space} +hint
    ```
 
    In this example:
@@ -133,8 +133,8 @@ normal-mode.to.hint-mode=_{leftctrl} +e
 # Press and release leftshift
 normal-mode.move-to-grid-center=+leftshift -leftshift
 
-# Press a, then press b while still holding a
-normal-mode.complex-action=+a +b -b -a
+# Press a, then press b while still holding a, then release a
+normal-mode.to.idle-mode=+a +b -b -a
 ```
 
 ### Multi-combo
@@ -781,35 +781,6 @@ In this example:
 - `_{browserapp}` is a precondition that is satisfied when any of the specified browsers is the active application
 - `^{browserapp}` is a precondition that is satisfied when none of the specified browsers is the active application
 
-### Common use cases
-
-1. Game mode: disable mousemaster when playing games
-   ```properties
-   app-alias.gameapp=game1.exe game2.exe game3.exe
-   idle-mode.to.game-mode=_{gameapp}
-   normal-mode.to.game-mode=_{gameapp}
-   game-mode.to.idle-mode=^{gameapp}
-   ```
-
-2. Application-specific configurations: create special modes for specific applications
-   ```properties
-   app-alias.cad=autocad.exe
-   idle-mode.to.cad-mode=_{cad}
-   normal-mode.to.cad-mode=_{cad}
-
-   # CAD-specific mouse settings
-   # Slower mouse for precision
-   cad-mode.mouse.initial-velocity=800
-   ```
-
-3. Temporary disabling: automatically disable mousemaster for certain applications
-   ```properties
-   app-alias.fullscreenapp=movie.exe presentation.exe
-   idle-mode.to.disabled-mode=_{fullscreenapp}
-   normal-mode.to.disabled-mode=_{fullscreenapp}
-   disabled-mode.to.idle-mode=^{fullscreenapp}
-   ```
-
 ## Position history
 
 Position history allows you to save mouse positions and quickly return to them later. This feature can be used for frequently accessed UI elements or for creating custom navigation patterns.
@@ -872,7 +843,7 @@ Typical usage:
 This feature is especially useful for:
 - Frequently accessed UI elements in complex applications
 - Navigating between multiple work areas
-- Creating custom navigation patterns for specific workflows
+- Creating custom navigation patterns for repeated tasks
 
 ## Console window
 
@@ -889,17 +860,6 @@ hide-console=true
 - If the console is hidden, you can stop mousemaster by:
   - Using the Task Manager to end the mousemaster.exe process
   - Using Win+R and typing: `taskkill /F /IM mousemaster.exe`
-  - Creating a keyboard shortcut in your configuration to exit the application
-
-### Example with exit shortcut
-
-```properties
-# Hide the console window
-hide-console=true
-
-# Consider adding a keyboard shortcut to close the application
-# (You would need to implement this in your own code)
-```
 
 ## Logging
 
