@@ -80,14 +80,15 @@ public class KeyboardManager {
         if (keyEvent.isPress()) {
             Set<Key> keysToRegurgitate = Set.of();
             if (processingSet == null) {
+                PressKeyEventProcessing hintProcessing = hintManager.keyPressed(keyEvent.key());
                 if (!pressingUnhandledKey()) {
-                    PressKeyEventProcessing hintProcessing = hintManager.keyPressed(keyEvent.key());
                     if (hintProcessing.isUnswallowedHintEnd() || !hintProcessing.handled()) {
                         PressKeyEventProcessingSet comboWatcherProcessingSet =
                                 comboWatcher.keyEvent(keyEvent);
                         Map<Combo, PressKeyEventProcessing> processingByCombo =
                                 new HashMap<>();
-                        processingByCombo.put(PressKeyEventProcessingSet.dummyCombo, hintProcessing);
+                        if (hintProcessing.handled())
+                            processingByCombo.put(PressKeyEventProcessingSet.dummyCombo, hintProcessing);
                         processingByCombo.putAll(comboWatcherProcessingSet.processingByCombo());
                         processingSet = new PressKeyEventProcessingSet(processingByCombo);
                     }
@@ -101,9 +102,12 @@ public class KeyboardManager {
                     // Even if pressing unhandled key, give the hint manager a chance.
                     // This is so the user can hold leftctrl (assuming it is unhandled), then
                     // select a hint to perform a ctrl-click.
-                    processingSet = new PressKeyEventProcessingSet(Map.of(
-                            PressKeyEventProcessingSet.dummyCombo,
-                            hintManager.keyPressed(keyEvent.key())));
+                    if (hintProcessing.handled())
+                        processingSet = new PressKeyEventProcessingSet(Map.of(
+                                PressKeyEventProcessingSet.dummyCombo,
+                                hintProcessing));
+                    else
+                        processingSet = new PressKeyEventProcessingSet(Map.of());
                 }
                 if (!processingSet.isPartOfComboSequence() &&
                     !processingSet.isHint()) {
