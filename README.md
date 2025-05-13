@@ -47,7 +47,6 @@ All modes and key bindings are fully customizable through a configuration file.
 ## Installation
 
 1. Download **mousemaster.exe** (a portable executable) from the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build it from source.
-
 2. In the same Release page, choose and download one of the existing configuration files:
    - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))
    - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](configuration/neo-mousekeys-wasd.md))
@@ -134,7 +133,7 @@ For a complete reference of all configuration concepts and options, see the [con
      idle-mode.to.game-mode=_{gameapp}
      game-mode.to.idle-mode=^{gameapp}
      ``` 
-     See [App Aliases](configuration/configuration-reference.md#app-aliases) for more details.
+     See [App aliases](configuration/configuration-reference.md#app-aliases) for more details.
 ### Logging
 
 Enable detailed logging for troubleshooting:
@@ -147,6 +146,13 @@ logging.file-path=mousemaster.log
 
 ## Contributing
 
-Contributions to mousemaster are welcome! If you have ideas for a better configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
+Contributions to mousemaster are welcome! 
+
+- **Share a configuration**: If you have ideas for a new or improved configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
+
+
+- **Cross-platform support:** mousemaster currently supports Windows only. However, most of the overlay has been reimplemented using Qt, making it cross-platform-ready. The remaining work includes integrating support for global keyboard and mouse input handling and input simulation on macOS and Linux.
+
+  If you're interested in helping extend mousemaster to these platforms, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
 If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!
