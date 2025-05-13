@@ -83,35 +83,33 @@ For a complete reference, see the [neo-mousekeys-ijkl documentation](configurati
 
 ## Features
 
-1. **Advanced key combinations (key combos)**: mousemaster offers a high level of customization for key combinations. It allows for advanced key combos like "hold alt for 1 second", "press then release alt, twice in a row", or "hold alt while pressing A then B".
+1. **Key combination system**: Supports complex key combinations including timed holds (e.g., "hold alt for 1 second"), sequential presses (e.g., "press then release alt, twice in a row"), and nested combinations (e.g., "hold alt while pressing A then B").
 
-2. **Custom modes**: Users define their own modes, with each mode having its own key combo-to-command map and mouse settings. There is only one predefined mode, the "idle-mode", which has no key combos predefined (this is the "mousemaster is disabled mode").
+2. **Mode-based architecture**: Implements a mode system where each mode has its own key-to-command mappings and mouse settings. The default "idle-mode" represents the disabled state with no active key mappings.
 
-3. **Flexible key combo to command mappings**: The same key combo can be used to trigger multiple commands. Multiple key combos can be used to trigger the same command.
+3. **Many-to-many command mapping**: Supports multiple key combinations triggering the same command and single key combinations triggering multiple commands.
 
-4. **Multi-screen navigation**: mousemaster allows for mouse movement across multiple screens.
+4. **Multi-monitor support**.
 
-5. **Grids**: mousemaster includes a grid-based navigation system. A grid can cover the active screen or the active window.
+5. **Grid navigation**: Implements a grid-based cursor positioning system that can target either the active screen or the active window.
 
-6. **Hints**: mousemaster includes a hint-based navigation system similar to Vimium's. A hint grid can cover the active screen, the active window, or all screens (which can be used for screen selection hints). A mouse button click can be automatically triggered after a hint is selected.
+6. **Hint-based navigation**: Features a Vimium-style hint system that can target the active screen, active window, or all screens.
 
-7. **Key remapping**: mousemaster includes a way to remap keys and activate the remapping only in specific modes. For example, you can make it so pressing a single key is equivalent to sending the combo _⊞ Win + down arrow_, which will minimize the current window.
-   
-8. **Zoom**: it is possible to configure zoom behavior for a specific mode. For example, you can set it to zoom in when performing a slow and precise mouse movement.
+7. **Key remapping system**: Includes a way to remap keys and activate the remapping only in specific modes. For example, you can make it so pressing a single key is equivalent to sending the combo _⊞ Win + down arrow_, which will minimize the current window.
 
-9. **App-specific modes**: it is possible to create modes that are active only when a specific app is in focus. For example, you can disable all mousemaster shortcuts while playing a game.
+8. **Zoom functionality**: Supports configurable zoom behavior per mode.
 
-10. **Dynamic configuration**: The configuration file is live, mousemaster automatically reloads it whenever the file is saved.
+9. **Application-specific configurations**: Provides context-aware mode switching based on the focused application, allowing for application-specific behavior (e.g., disabling mousemaster shortcuts in games).
 
-11. **Visual mouse indicator**: The optional and customizable mouse indicator (a plain-color square drawn next to the mouse cursor) changes colors based on mouse activity—idle, moving, button pressing, or scrolling. It repositions itself to stay visible when the mouse is near screen edges.
+10. **Live configuration**: Implements automatic configuration reloading when the configuration file is modified.
 
-12. **Left/right key distinction**: mousemaster distinguishes between left and right alt/ctrl/shift keys, meaning that left alt and right alt can be used to trigger different commands.
+11. **Visual feedback system**: Provides an optional mouse indicator that changes color based on cursor state (idle, moving, clicking, scrolling) and repositions to remain visible near screen edges.
 
-13. **Position history hints**: absolute positions can be saved on the fly to make it possible to move the mouse to them later.
+12. **Position history hints**: absolute positions can be saved on the fly to make it possible to move the mouse to them later.
 
 ## Configuration
 
-mousemaster is highly configurable through its configuration file. The configuration file is automatically reloaded when saved, allowing for real-time adjustments.
+mousemaster is highly configurable through its configuration file. The configuration file is automatically reloaded when saved.
 For a complete reference of all configuration concepts and options, see the [configuration reference](configuration/configuration-reference.md). The reference document covers key aliases, combos, modes, mouse properties, hint properties, grid properties, app aliases, position history, logging, keyboard layout, and more.
 
 ## Troubleshooting
