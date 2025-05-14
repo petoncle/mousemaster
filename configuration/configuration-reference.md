@@ -20,7 +20,6 @@ This document provides a comprehensive reference for all configuration options a
 - [Mouse button click commands](#mouse-button-click-commands)
 - [Wheel commands](#wheel-scrolling-commands)
 - [Hint properties](#hint-properties)
-  - [Screen-specific hint configurations](#screen-specific-hint-configurations)
 - [Grid properties](#grid-properties)
 - [Grid commands](#grid-commands)
 - [App aliases](#app-aliases)
@@ -214,6 +213,10 @@ normal-mode.start-move.up=+i
 normal-mode.start-move.down=+k
 normal-mode.start-move.left=+j
 normal-mode.start-move.right=+l
+normal-mode.stop-move.up=-i
+normal-mode.stop-move.down=-k
+normal-mode.stop-move.left=-j
+normal-mode.stop-move.right=-l
 
 # Define mouse speed in normal-mode
 normal-mode.mouse.initial-velocity=1600
@@ -375,11 +378,24 @@ normal-mode.stop-wheel.right=-wheelright
 
 The hint system in mousemaster displays labels on the screen that you can select with keystrokes to move the mouse to specific locations. This is similar to the hint systems in browser extensions like Vimium, but works system-wide.
 
-### Hint types and layout
+### Hint types
+
+The type of hint system to use is configured with the following property:
 
 ```properties
-# Basic hint configuration
 hint-mode.hint.type=grid
+```
+
+The **`type`** property determines what hints are displayed:
+- `grid`: Displays a grid of hints laid out across the screen
+- `position-history`: Displays discrete absolutely positioned hints at previously saved positions (see [Position history](#position-history))
+
+### Hint layout and positioning
+
+The following properties control where hints appear and how they're arranged:
+
+```properties
+# Hint area configuration
 hint-mode.hint.grid-area=active-screen
 hint-mode.hint.active-screen-grid-area-center=screen-center
 
@@ -389,53 +405,6 @@ hint-mode.hint.grid-cell-height=36
 hint-mode.hint.layout-row-count=6
 hint-mode.hint.layout-column-count=5
 ```
-
-### Screen-specific hint configurations
-
-You can adapt hint configurations based on the screen resolution where the hints are displayed by appending the resolution to the property name:
-
-```properties
-# Default hint configuration which works well on an FHD screen (1920×1080):
-hint1-mode.hint.grid-cell-width=74
-hint1-mode.hint.grid-cell-height=41
-hint1-mode.hint.layout-row-count=6
-hint1-mode.hint.layout-column-count=5
-hint1-mode.hint.selection-keys=hint1key
-
-# Hint configuration for a 4K screen (3840×2160):
-hint1-mode.hint.grid-cell-width.3840x2160=96
-hint1-mode.hint.grid-cell-height.3840x2160=54
-hint1-mode.hint.layout-row-count.3840x2160=4
-hint1-mode.hint.layout-column-count.3840x2160=10
-hint1-mode.hint.selection-keys.3840x2160=extendedhint1key
-
-# Hint configuration for a QHD screen (2560×1440):
-hint1-mode.hint.grid-cell-width.2560x1440=64
-hint1-mode.hint.grid-cell-height.2560x1440=36
-hint1-mode.hint.layout-row-count.2560x1440=4
-hint1-mode.hint.layout-column-count.2560x1440=10
-hint1-mode.hint.selection-keys.2560x1440=extendedhint1key
-
-# Hint configuration for a UWQHD screen (3440×1440):
-hint1-mode.hint.grid-cell-width.3440x1440=86
-hint1-mode.hint.grid-cell-height.3440x1440=36
-hint1-mode.hint.layout-row-count.3440x1440=4
-hint1-mode.hint.layout-column-count.3440x1440=10
-hint1-mode.hint.selection-keys.3440x1440=extendedhint1key
-```
-
-The syntax is `property-name.resolution=value`, where:
-- `property-name` is the standard property name (e.g., `hint1-mode.hint.grid-cell-width`)
-- `resolution` is the screen resolution in the format `widthxheight` (e.g., `3840x2160` for 4K)
-- `value` is the property value specific to that resolution
-
-mousemaster will automatically use the appropriate configuration based on the screen where the hints are displayed. This allows you to optimize hint appearance and behavior for different screen sizes and resolutions.
-
-Any hint property can be customized per screen resolution, including grid dimensions, cell sizes, font sizes, and selection keys. If a screen-specific property is not defined, mousemaster will fall back to the default property value.
-
-- **`type`**: Can be either:
-  - `grid`: Displays a grid of hints across the screen
-  - `position-history`: Displays hints at previously saved positions
 
 - **`grid-area`**: Determines where hints are displayed:
   - `active-screen`: Only on the screen with the mouse cursor
@@ -447,10 +416,43 @@ Any hint property can be customized per screen resolution, including grid dimens
   - `mouse`: Current mouse position
   - `last-selected-hint`: Position of the last selected hint
 
-- **Layout Control**: Use `layout-row-count` and `layout-column-count` to control the arrangement:
+- **Grid dimensions**: Control the size of each hint cell:
+  - `grid-cell-width`: Width of each hint cell in pixels
+  - `grid-cell-height`: Height of each hint cell in pixels
+
+- **Grid arrangement**: Control the number of rows and columns:
+  - `layout-row-count`: Number of rows in the hint grid
+  - `layout-column-count`: Number of columns in the hint grid
+
+You can create different layouts by adjusting the row and column counts:
   - For column layout: `layout-row-count=1` and `layout-column-count=1000`
   - For row layout: `layout-row-count=1000` and `layout-column-count=1`
-  - For grid layout: `layout-row-count=10` and `layout-column-count=3`
+  - For grid layout (10x3 subgrid): `layout-row-count=10` and `layout-column-count=3`
+
+### Screen-specific hint configurations
+
+You can optimize hint configurations for different screen resolutions by appending the resolution to the property name:
+
+```properties
+# Default hint configuration (applies to all screens unless overridden):
+hint1-mode.hint.grid-cell-width=74
+hint1-mode.hint.grid-cell-height=41
+hint1-mode.hint.layout-row-count=6
+hint1-mode.hint.layout-column-count=5
+
+# Override for a 4K screen (3840×2160):
+hint1-mode.hint.grid-cell-width.3840x2160=96
+hint1-mode.hint.grid-cell-height.3840x2160=54
+hint1-mode.hint.layout-row-count.3840x2160=4
+hint1-mode.hint.layout-column-count.3840x2160=10
+```
+
+The syntax is `property-name.resolution=value`, where:
+- `property-name` is the standard property name (e.g., `hint1-mode.hint.grid-cell-width`)
+- `resolution` is the screen resolution in the format `widthxheight` (e.g., `3840x2160` for 4K)
+- `value` is the property value specific to that resolution
+
+mousemaster automatically uses the appropriate configuration based on the screen where the hints are displayed. Any hint property can be customized per screen resolution. If a screen-specific property is not defined, mousemaster falls back to the default property value.
 
 ### Hint selection and behavior
 
