@@ -38,9 +38,9 @@ https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-
 mousemaster allows you to control your mouse cursor using only your keyboard. It provides multiple navigation methods:
 
 - **Normal mode**: Move the mouse cursor with keyboard keys (IJKL by default)
-- **Hint mode**: Display labels across the screen for direct cursor warping
+- **Hint mode**: Display labeled hints (letters/numbers) across the screen that you can select with keystrokes to instantly move the cursor to that location
+- **Grid mode**: Divide the screen into a grid that you can progressively refine to narrow down to a specific area
 - **Screen selection mode**: Quickly move between multiple monitors
-- **Grid mode**: Divide the screen into a grid and refine your selection to move the cursor
 
 All modes and key bindings are fully customizable through a configuration file.
 
