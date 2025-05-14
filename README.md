@@ -134,15 +134,6 @@ For a complete reference of all configuration concepts and options, see the [con
      game-mode.to.idle-mode=^{gameapp}
      ``` 
      See [App aliases](configuration/configuration-reference.md#app-aliases) for more details.
-### Logging
-
-Enable detailed logging for troubleshooting:
-
-```properties
-logging.level=DEBUG
-logging.to-file=true
-logging.file-path=mousemaster.log
-```
 
 ## Contributing
 
