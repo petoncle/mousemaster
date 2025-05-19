@@ -1381,11 +1381,15 @@ public class ConfigurationParser {
     private static KeyboardLayout parseKeyboardLayout(String layoutName) {
         KeyboardLayout layout =
                 KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
-        if (layout == null)
-            throw new IllegalArgumentException(
-                    "Invalid keyboard layout: " + layoutName +
-                    ", available keyboard layouts: " +
-                    KeyboardLayout.keyboardLayoutByShortName.keySet());
+        if (layout == null) {
+            String layoutIdentifier = layoutName;
+            layout = KeyboardLayout.keyboardLayoutByIdentifier.get(layoutIdentifier);
+            if (layout == null)
+                throw new IllegalArgumentException(
+                        "Invalid keyboard layout: " + layoutName +
+                        ", available keyboard layouts: " +
+                        KeyboardLayout.keyboardLayoutByShortName.keySet());
+        }
         return layout;
     }
 

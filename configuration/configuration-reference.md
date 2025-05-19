@@ -911,3 +911,4 @@ The following keyboard layouts are currently exposed and can be referenced in th
 - uk-qwerty
 - us-dvorak
 - us-halmak
+- sv-qwerty

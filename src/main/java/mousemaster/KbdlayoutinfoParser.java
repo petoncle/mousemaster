@@ -43,7 +43,8 @@ public class KbdlayoutinfoParser {
             Map.entry("0000040A", "es-qwerty"),
             Map.entry("00000409", "us-qwerty"),
             Map.entry("00000809", "uk-qwerty"),
-            Map.entry("00010409", "us-dvorak")
+            Map.entry("00010409", "us-dvorak"),
+            Map.entry("0000041D", "sv-qwerty")
     );
 
     private static final Map<WindowsVirtualKey, Key> keyboardLayoutIndependentWithTextVirtualKeys = Map.ofEntries(
