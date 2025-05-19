@@ -264,10 +264,17 @@ public class WindowsMouse {
     }
 
     public static WinDef.POINT findMousePosition() {
+        WinDef.POINT mousePosition = tryFindMousePosition();
+        if (mousePosition == null)
+            throw new IllegalStateException("Unable to find mouse position");
+        return mousePosition;
+    }
+
+    public static WinDef.POINT tryFindMousePosition() {
         WinDef.POINT mousePosition = new WinDef.POINT();
         boolean getCursorPosResult = User32.INSTANCE.GetCursorPos(mousePosition);
         if (!getCursorPosResult)
-            throw new IllegalStateException("Unable to find mouse position");
+            return null;
         return mousePosition;
     }
 

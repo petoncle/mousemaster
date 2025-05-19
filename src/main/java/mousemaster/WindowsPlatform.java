@@ -29,6 +29,7 @@ public class WindowsPlatform implements Platform {
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
     private final BlockingQueue<WinDef.POINT> mousePositionQueue = new LinkedBlockingDeque<>();
+    private WinDef.POINT lastMousePosition;
     /**
      * Keep a reference of the Windows callback.
      * Without these references, they seem to be garbage collected and are not called
@@ -77,14 +78,15 @@ public class WindowsPlatform implements Platform {
     @Override
     public void sleep() throws InterruptedException {
         windowsMessagePump();
-        while (true) {
-            WinDef.POINT mousePosition = null;
-            WinDef.POINT polledMousePosition;
-            while ((polledMousePosition = mousePositionQueue.poll()) != null) {
-                mousePosition = polledMousePosition;
-            }
-            if (mousePosition == null)
-                break;
+        WinDef.POINT mousePosition = null;
+        for (WinDef.POINT p; (p = mousePositionQueue.poll()) != null;)
+            mousePosition = p;
+        if (mousePosition == null)
+            mousePosition = WindowsMouse.tryFindMousePosition();
+        if (mousePosition != null &&
+            (lastMousePosition == null || mousePosition.x != lastMousePosition.x ||
+             mousePosition.y != lastMousePosition.y)) {
+            lastMousePosition = mousePosition;
             WindowsOverlay.mouseMoved(mousePosition);
             for (MousePositionListener listener : mousePositionListeners) {
                 // ZoomListener can take up to 30ms.
