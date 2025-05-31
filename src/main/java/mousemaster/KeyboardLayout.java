@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,8 @@ public final class KeyboardLayout {
 
     static {
         InputStreamReader reader = new InputStreamReader(
-                KeyboardLayout.class.getClassLoader().getResourceAsStream("keyboard-layouts.json")
+                KeyboardLayout.class.getClassLoader().getResourceAsStream("keyboard-layouts.json"),
+                StandardCharsets.UTF_8
         );
         Type listType = new TypeToken<List<KeyboardLayout>>() {}.getType();
         Gson gson = new GsonBuilder()
