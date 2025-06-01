@@ -30,6 +30,7 @@ public class WindowsPlatform implements Platform {
     private WinUser.HHOOK mouseHook;
     private final BlockingQueue<WinDef.POINT> mousePositionQueue = new LinkedBlockingDeque<>();
     private WinDef.POINT lastMousePosition;
+    private KeyEvent lastKeyEvent;
     /**
      * Keep a reference of the Windows callback.
      * Without these references, they seem to be garbage collected and are not called
@@ -336,15 +337,23 @@ public class WindowsPlatform implements Platform {
                                 WindowsKeyboard.keyPressedByUser(key);
                             KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
                                     new PressKeyEvent(time, key);
-                            boolean eventMustBeEaten = keyEvent(keyEvent, info, wParamString);
-                            if (release && eventMustBeEaten && altgrLeftctrl)
-                                mustEatNextReleaseOfRightalt = true;
-                            else if (release && key.equals(Key.rightalt) && mustEatNextReleaseOfRightalt) {
-                                eventMustBeEaten = true;
-                                mustEatNextReleaseOfRightalt = false;
+                            if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
+                                logger.info("Key event ignored because it is equal to the last event: " + keyEvent);
                             }
-                            if (eventMustBeEaten)
-                                return new WinDef.LRESULT(1);
+                            else {
+                                boolean eventMustBeEaten =
+                                        keyEvent(keyEvent, info, wParamString);
+                                if (release && eventMustBeEaten && altgrLeftctrl)
+                                    mustEatNextReleaseOfRightalt = true;
+                                else if (release && key.equals(Key.rightalt) &&
+                                         mustEatNextReleaseOfRightalt) {
+                                    eventMustBeEaten = true;
+                                    mustEatNextReleaseOfRightalt = false;
+                                }
+                                if (eventMustBeEaten)
+                                    return new WinDef.LRESULT(1);
+                            }
+                            lastKeyEvent = keyEvent;
                         }
                     }
                     break;
