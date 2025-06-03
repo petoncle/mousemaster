@@ -480,11 +480,12 @@ public enum WindowsVirtualKey {
         return WindowsKeyboard.activeKeyboardLayout.keyFromScanCode(scanCode);
     }
 
-    public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key) {
-        WindowsVirtualKey virtualKey =
-                WindowsKeyboard.activeKeyboardLayout.virtualKey(key);
+    public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key,
+                                                             KeyboardLayout keyboardLayout) {
+        WindowsVirtualKey virtualKey = keyboardLayout.virtualKey(key);
         if (virtualKey == null) {
-            throw new IllegalStateException("Unable to map key " + key + " to a Windows virtual key");
+            logger.debug("Unable to map key " + key + " to a Windows virtual key using " +
+                         keyboardLayout);
         }
         return virtualKey;
     }

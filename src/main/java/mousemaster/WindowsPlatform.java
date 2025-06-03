@@ -251,14 +251,27 @@ public class WindowsPlatform implements Platform {
             AtomicReference<Double> pressDuration = entry.getValue();
             if (pressDuration.get() < 10)
                 continue;
-            short getAsyncKeyStateResult = User32.INSTANCE.GetAsyncKeyState(
-                    WindowsVirtualKey.windowsVirtualKeyFromKey(key).virtualKeyCode);
-            boolean pressed = (getAsyncKeyStateResult & 0x8000) != 0;
-            if (!pressed)
+            WindowsVirtualKey windowsVirtualKey =
+                    WindowsVirtualKey.windowsVirtualKeyFromKey(key,
+                            WindowsKeyboard.activeKeyboardLayout);
+            if (windowsVirtualKey == null) {
+                // Can be null if key was added to currentlyPressedNotEatenKeys
+                // then the layout changed. The following crash has happened:
+                // java.lang.IllegalStateException: Unable to map key 0 to a Windows virtual key
+                //	at mousemaster.WindowsVirtualKey.windowsVirtualKeyFromKey(WindowsVirtualKey.java:487)
+                //	at mousemaster.WindowsPlatform.sanityCheckCurrentlyPressedKeys(WindowsPlatform.java:255)
                 keysThatDoNotSeemToBePressedAnymore.add(key);
-            else
-                // The key was legitimately pressed for 10s.
-                pressDuration.set(0d);
+            }
+            else {
+                short getAsyncKeyStateResult = User32.INSTANCE.GetAsyncKeyState(
+                        windowsVirtualKey.virtualKeyCode);
+                boolean pressed = (getAsyncKeyStateResult & 0x8000) != 0;
+                if (!pressed)
+                    keysThatDoNotSeemToBePressedAnymore.add(key);
+                else
+                    // The key was legitimately pressed for 10s.
+                    pressDuration.set(0d);
+            }
         }
         if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
             logger.info(
