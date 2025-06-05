@@ -757,11 +757,7 @@ App aliases allow you to group applications together and create mode switches ba
 ### Defining app aliases
 
 ```properties
-# Define an alias for multiple applications
 app-alias.browserapp=firefox.exe chrome.exe edge.exe
-
-# Define an alias for a single application
-app-alias.gameapp=game.exe
 ```
 
 App aliases work similarly to key aliases, but instead of grouping keys, they group application executable names.

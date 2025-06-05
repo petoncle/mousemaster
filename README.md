@@ -129,7 +129,7 @@ For a complete reference of all configuration concepts and options, see the [con
 4. **Conflicts with other applications**:
    - Create app-specific modes to disable mousemaster in certain applications:
      ```properties
-     app-alias.gameapp=game.exe
+     app-alias.gameapp=valorant.exe GTA5.exe
      idle-mode.to.game-mode=_{gameapp}
      game-mode.to.idle-mode=^{gameapp}
      ``` 
