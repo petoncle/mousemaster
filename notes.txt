@@ -95,3 +95,13 @@
 + hint.screen-prefix-selection-keys=1 2 (default to none)
 + hint-area-filter.leftscreen=1920x1080
  + mode.hint.leftscreen.grid-cell-width
+
+ 2025-06-21T08:02:21.450 [main] ERROR mousemaster.MousemasterApplication -
+ java.lang.NullPointerException: null
+         at mousemaster.WindowsVirtualKey.activeKeyboardLayout(WindowsVirtualKey.java:377)
+         at mousemaster.WindowsPlatform.activeKeyboardLayout(WindowsPlatform.java:230)
+         at mousemaster.Mousemaster.updateActiveKeyboardLayout(Mousemaster.java:110)
+         at mousemaster.Mousemaster.run(Mousemaster.java:55)
+         at mousemaster.MousemasterApplication.main(MousemasterApplication.java:110)
+         at java.base@21.0.1/java.lang.invoke.LambdaForm$DMH/sa346b79c.invokeStaticInit(LambdaForm$DMH)
+ 2025-06-21T08:02:21.457 [main] INFO  mousemaster.MousemasterApplication - An error has occurred. The details of the error should be right above this message. Press Enter in this window to close mousemaster.

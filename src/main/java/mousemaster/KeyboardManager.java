@@ -148,10 +148,21 @@ public class KeyboardManager {
                             processingSet.isUnswallowedHintEnd()) {
                             PressKeyEventProcessingSet releaseProcessingSet =
                                     comboWatcher.keyEvent(keyEvent);
+                            if (!currentlyPressedKeys.containsKey(key)) {
+                                // comboWatcher runs a command which can show the hint which calls
+                                // window.show() from WindowsOverlay#transitionHintContainers.
+                                // When doing that, control goes back to JNA which can call the Windows callback,
+                                // which calls WindowsPlatform#keyEvent.
+                                // This second callback should not happen because
+                                // we are already in the callback. Also, the second callback does not
+                                // execute everything: a log line placed in WindowsPlatform#keyEvent would be
+                                // displayed only by the first callback.
+                                return eatAndRegurgitates(processingSet.mustBeEaten(), Set.of());
+                            }
                             if (!releaseProcessingSet.handled()) {
                                 keysToRegurgitate = regurgitatePressedKeys(null);
                             }
-                            else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
+                        else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
                                 for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
                                                                                                            .entrySet()) {
                                     // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
@@ -179,11 +190,13 @@ public class KeyboardManager {
                         }
                     }
                     PressKeyEventProcessingSet pressedProcessingSet = currentlyPressedKeys.remove(key);
+//                    logger.info("Removed key " + key, new Exception());
                     // Only a released event corresponding to a pressed event that was eaten should be eaten.
                     return eatAndRegurgitates(pressedProcessingSet.mustBeEaten(), keysToRegurgitate);
                 }
                 else {
                     currentlyPressedKeys.remove(key);
+//                    logger.info("Removed key " + key, new Exception());
                     return eatAndRegurgitates(false, regurgitatePressedKeys(null));
                 }
             }
