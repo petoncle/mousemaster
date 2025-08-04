@@ -392,17 +392,21 @@ public class WindowsPlatform implements Platform {
             // This is a simple way to keep that knowledge, which we might need later (regurgitation).
             // Another way could be to hardcode the virtual codes corresponding to extended keys.
             extendedKeys.add(keyEvent.key());
+        boolean eventKeyReleasedByRegurgitation = false;
         if (keyRegurgitationEnabled && !eatAndRegurgitates.keysToRegurgitate().isEmpty()) {
             for (Key keyToRegurgitate : eatAndRegurgitates.keysToRegurgitate()) {
+                eventKeyReleasedByRegurgitation =
+                        keyEvent.key().equals(keyToRegurgitate) && keyEvent.isRelease();
                 // If the following combo is defined: +leftwin-0 +e,
                 // Then, when pressing leftwin + v,
                 // And if non-eaten key (v) is pressed then regurgitation should not start repeating.
                 keyRegurgitator.regurgitate(keyToRegurgitate,
                         !keyEvent.isRelease() && currentlyPressedNotEatenKeys.isEmpty(),
-                        keyEvent.isRelease() && keyEvent.key().equals(keyToRegurgitate));
+                        eventKeyReleasedByRegurgitation);
             }
         }
-        return eatAndRegurgitates.mustBeEaten();
+        // Eat the user key release if regurgitation is going to later generate a release.
+        return eatAndRegurgitates.mustBeEaten() || eventKeyReleasedByRegurgitation;
     }
 
     private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,
