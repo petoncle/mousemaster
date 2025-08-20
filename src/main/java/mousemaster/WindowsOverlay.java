@@ -526,7 +526,7 @@ public class WindowsOverlay {
         //  itself, where geometry() is relative to the parent.
         if (oldContainer != null) {
             boolean containersEqual = oldContainer.rect().equals(newContainer.rect());
-            if (animateTransition && oldContainer.rect().contains(newContainer.rect())) {
+            if (animateTransition && paddedRect(oldContainer.rect()).contains(newContainer.rect())) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
                 oldContainer.show();
@@ -564,7 +564,7 @@ public class WindowsOverlay {
                     animation.setCurrentTime(animationCurrentTime);
                 }
             }
-            else if (animateTransition && newContainer.rect().contains(oldContainer.rect())) {
+            else if (animateTransition && paddedRect(newContainer.rect()).contains(oldContainer.rect())) {
                 // Initially show new container with the position and size of old.
                 // Then grow new container until it reaches its final position and size.
                 newContainer.setParent(window);
@@ -608,6 +608,17 @@ public class WindowsOverlay {
             newContainer.show();
         }
         window.show();
+    }
+
+    private static QRect paddedRect(QRect rect) {
+        int extraWidth = (int) (rect.width() * 0.05d);
+        int extraHeight = (int) (rect.height() * 0.05d);
+        return new QRect(
+                rect.left() - extraWidth / 2,
+                rect.top() - extraHeight / 2,
+                rect.width() + extraWidth,
+                rect.height() + extraHeight
+        );
     }
 
     public static class HintContainerAnimationChanged implements QMetaObject.Slot1<Object> {
