@@ -373,9 +373,10 @@ public enum WindowsVirtualKey {
                     return lastPolledActiveKeyboardLayout;
                 // New layout confirmed.
                 keyboardLayoutSeenCount = 0;
-                String hwnd = String.format("0x%X", Pointer.nativeValue(
-                        User32.INSTANCE.GetForegroundWindow().getPointer()));
-                logger.trace("Found foreground window's keyboard layout for hwnd " + hwnd + ": " +
+                WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
+                String hwndString = hwnd == null ? null :
+                        String.format("0x%X", Pointer.nativeValue(hwnd.getPointer()));
+                logger.trace("Found foreground window's keyboard layout for hwnd " + hwndString + ": " +
                             foregroundWindowKeyboardLayout);
             }
             lastPolledActiveKeyboardLayout = foregroundWindowKeyboardLayout;
