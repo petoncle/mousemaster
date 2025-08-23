@@ -1412,7 +1412,7 @@ public class ConfigurationParser {
     }
 
     private static void checkMissingProperties(ModeBuilder mode) {
-        if (mode.timeout.builder.enabled() &&
+        if (mode.timeout.builder.enabled() != null && mode.timeout.builder.enabled() &&
             (mode.timeout.builder.duration() == null ||
              mode.timeout.builder.modeName() == null ||
              mode.timeout.builder.onlyIfIdle() == null))
@@ -1420,7 +1420,7 @@ public class ConfigurationParser {
                     "Definition of timeout for " + mode.modeName +
                     " is incomplete: expected " +
                     List.of("enabled", "duration", "mode", "only-if-idle"));
-        if (mode.hideCursor.builder.enabled() &&
+        if (mode.hideCursor.builder.enabled() != null && mode.hideCursor.builder.enabled() &&
             mode.hideCursor.builder.idleDuration() == null)
             throw new IllegalArgumentException(
                     "Definition of hide-cursor for " + mode.modeName +
@@ -1433,44 +1433,48 @@ public class ConfigurationParser {
                     List.of("row-count", "column-count"));
         HintMeshType.HintMeshTypeBuilder hintMeshType =
                 mode.hintMesh.builder.type();
-        switch (hintMeshType.type()) {
-            case GRID -> {
-                HintGridLayoutBuilder defaultLayout =
-                        hintMeshType.gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER);
-                if (defaultLayout.maxRowCount() == null ||
-                    defaultLayout.maxColumnCount() == null ||
-                    defaultLayout.cellWidth() == null ||
-                    defaultLayout.cellHeight() == null ||
-                    defaultLayout.layoutRowCount() == null ||
-                    defaultLayout.layoutColumnCount() == null ||
-                    defaultLayout.layoutRowOriented() == null
-                )
-                    throw new IllegalArgumentException(
-                            "Definition of hint for " + mode.modeName +
-                            " is incomplete: expected " +
-                            List.of("grid-max-row-count", "grid-max-column-count",
-                                    "grid-cell-width", "grid-cell-height",
-                                    "layout-row-count", "layout-column-count",
-                                    "layout-row-oriented"));
-            }
-            case POSITION_HISTORY -> {
-                // No op.
+        if (hintMeshType.type() != null) {
+            switch (hintMeshType.type()) {
+                case GRID -> {
+                    HintGridLayoutBuilder defaultLayout =
+                            hintMeshType.gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                    if (defaultLayout.maxRowCount() == null ||
+                        defaultLayout.maxColumnCount() == null ||
+                        defaultLayout.cellWidth() == null ||
+                        defaultLayout.cellHeight() == null ||
+                        defaultLayout.layoutRowCount() == null ||
+                        defaultLayout.layoutColumnCount() == null ||
+                        defaultLayout.layoutRowOriented() == null
+                    )
+                        throw new IllegalArgumentException(
+                                "Definition of hint for " + mode.modeName +
+                                " is incomplete: expected " +
+                                List.of("grid-max-row-count", "grid-max-column-count",
+                                        "grid-cell-width", "grid-cell-height",
+                                        "layout-row-count", "layout-column-count",
+                                        "layout-row-oriented"));
+                }
+                case POSITION_HISTORY -> {
+                    // No op.
+                }
             }
         }
         HintGridArea.HintGridAreaBuilder hintGridArea = hintMeshType.gridArea();
-        switch (hintGridArea.type()) {
-            case ACTIVE_SCREEN -> {
-                if (hintGridArea.activeScreenHintGridAreaCenter() == null)
-                    throw new IllegalArgumentException(
-                            "Definition of active-screen hint.grid-area for " +
-                            mode.modeName + " is incomplete: expected " +
-                            List.of("active-screen-grid-area-center"));
-            }
-            case ACTIVE_WINDOW -> {
-                // No op.
-            }
-            case ALL_SCREENS -> {
-                // No op.
+        if (hintGridArea.type() != null) {
+            switch (hintGridArea.type()) {
+                case ACTIVE_SCREEN -> {
+                    if (hintGridArea.activeScreenHintGridAreaCenter() == null)
+                        throw new IllegalArgumentException(
+                                "Definition of active-screen hint.grid-area for " +
+                                mode.modeName + " is incomplete: expected " +
+                                List.of("active-screen-grid-area-center"));
+                }
+                case ACTIVE_WINDOW -> {
+                    // No op.
+                }
+                case ALL_SCREENS -> {
+                    // No op.
+                }
             }
         }
     }
