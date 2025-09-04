@@ -72,7 +72,7 @@ public class ConfigurationParser {
                 new HintMeshConfigurationBuilder();
         hintMesh.enabled(false)
                 .visible(true)
-                .moveMouse(true);
+                .mouseMovement(HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT);
         hintMesh.keys(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                 .selectionKeys(IntStream.rangeClosed('a', 'z')
                                         .mapToObj(c -> String.valueOf((char) c))
@@ -609,8 +609,23 @@ public class ConfigurationParser {
                                 Boolean.parseBoolean(propertyValue));
                         case "visible" -> mode.hintMesh.builder.visible(
                                 Boolean.parseBoolean(propertyValue));
-                        case "move-mouse" -> mode.hintMesh.builder.moveMouse(
-                                Boolean.parseBoolean(propertyValue));
+                        case "move-mouse" -> {
+                            boolean moveMouse = Boolean.parseBoolean(propertyValue);
+                            logger.warn(
+                                    "hint.move-mouse has been deprecated: use " +
+                                    modeName +
+                                    ".hint.mouse-movement=" +
+                                    (moveMouse ? "mouse-follows-selected-hint" :
+                                            "no-movement") + " instead");
+                            if (mode.hintMesh.builder.mouseMovement() == null) {
+                                mode.hintMesh.builder.mouseMovement(
+                                        moveMouse ?
+                                                HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT :
+                                                HintMouseMovement.NO_MOVEMENT);
+                            }
+                        }
+                        case "mouse-movement" -> mode.hintMesh.builder.mouseMovement(
+                                parseHintMouseMovement(propertyKey, propertyValue));
                         case "type" -> mode.hintMesh.builder.type()
                                                             .type(parseHintMeshTypeType(
                                                                     propertyKey,
@@ -1216,6 +1231,19 @@ public class ConfigurationParser {
             default -> throw new IllegalArgumentException(
                     "Invalid mode property key");
         }
+    }
+
+    private static HintMouseMovement parseHintMouseMovement(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "no-movement" -> HintMouseMovement.NO_MOVEMENT;
+            case "mouse-follows-selected-hint" -> HintMouseMovement.MOUSE_FOLLOWS_SELECTED_HINT;
+            case "mouse-follows-hint-grid-center" -> HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": mouse-movement should be one of " +
+                    List.of("no-movement", "mouse-follows-selected-hint",
+                            "mouse-follows-hint-grid-center"));
+        };
     }
 
     private static ViewportFilter parseViewportFilter(String string) {
@@ -1855,8 +1883,8 @@ public class ConfigurationParser {
                         builder.enabled(parent.enabled());
                     if (builder.visible() == null)
                         builder.visible(parent.visible());
-                    if (builder.moveMouse() == null)
-                        builder.moveMouse(parent.moveMouse());
+                    if (builder.mouseMovement() == null)
+                        builder.mouseMovement(parent.mouseMovement());
                     if (builder.type().type() == null)
                         builder.type().type(parent.type().type());
                     if (builder.type().gridArea().type() == null)

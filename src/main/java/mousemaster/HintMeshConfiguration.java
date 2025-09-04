@@ -7,7 +7,7 @@ import mousemaster.ViewportFilterMap.ViewportFilterMapBuilder;
 
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
-                                    boolean moveMouse,
+                                    HintMouseMovement mouseMovement,
                                     HintMeshType type,
                                     ViewportFilterMap<HintMeshKeys> keysByFilter,
                                     ViewportFilterMap<HintMeshStyle> styleByFilter,
@@ -17,7 +17,7 @@ public record HintMeshConfiguration(boolean enabled,
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
         private Boolean visible;
-        private Boolean moveMouse;
+        private HintMouseMovement mouseMovement;
         private final HintMeshTypeBuilder type = new HintMeshTypeBuilder();
         private final ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys>
                 keysByFilter = new ViewportFilterMapBuilder<>();
@@ -36,8 +36,8 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshConfigurationBuilder moveMouse(boolean moveMouse) {
-            this.moveMouse = moveMouse;
+        public HintMeshConfigurationBuilder mouseMovement(HintMouseMovement mouseMovement) {
+            this.mouseMovement = mouseMovement;
             return this;
         }
 
@@ -76,8 +76,8 @@ public record HintMeshConfiguration(boolean enabled,
             return visible;
         }
 
-        public Boolean moveMouse() {
-            return moveMouse;
+        public HintMouseMovement mouseMovement() {
+            return mouseMovement;
         }
 
         public ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys> keysByFilter() {
@@ -97,7 +97,7 @@ public record HintMeshConfiguration(boolean enabled,
         }
 
         public HintMeshConfiguration build() {
-            return new HintMeshConfiguration(enabled, visible, moveMouse,
+            return new HintMeshConfiguration(enabled, visible, mouseMovement,
                     type.build(),
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),

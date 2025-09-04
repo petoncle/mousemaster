@@ -462,15 +462,18 @@ key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
 hint-mode.hint.selection-keys=selectionkey
 hint-mode.hint.undo=backspace
 hint-mode.to.normal-mode=+selectionkey
-hint-mode.hint.move-mouse=true
+hint-mode.hint.mouse-movement=mouse-follows-selected-hint
 hint-mode.hint.eat-unused-selection-keys=true
 ```
 
 - **`selection-keys`**: Keys that can be pressed to select hints
 - **`undo`**: Key to undo the last selection keystroke
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
-- **`move-mouse`**: Whether to move the mouse to the selected hint
-  - Set to `false` when the next mode will be another hint grid
+- **`mouse-movement`**: Controls how the mouse moves when interacting with hints
+  - `no-movement`: Mouse stays in its current position
+  - `mouse-follows-selected-hint`: Mouse moves to the selected hint (default behavior)
+  - `mouse-follows-hint-grid-center`: Mouse moves to the center of the hint grid
+  - Use `no-movement` when the next mode will be another hint grid
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
 
 ### Hint appearance
@@ -541,7 +544,7 @@ hint1-mode.hint.grid-area=active-screen
 hint1-mode.hint.selection-keys=selectionkey
 hint1-mode.to.hint2-mode=+selectionkey
 # Don't move mouse after first selection
-hint1-mode.hint.move-mouse=false
+hint1-mode.hint.mouse-movement=no-movement
 
 # Second level hint mode
 hint2-mode.hint.type=grid
@@ -558,7 +561,7 @@ hint2-mode.hint.font-size=7
 hint2-mode.hint.selection-keys=selectionkey
 hint2-mode.to.normal-mode=+selectionkey
 # Move mouse after second selection
-hint2-mode.hint.move-mouse=true
+hint2-mode.hint.mouse-movement=mouse-follows-selected-hint
 ```
 
 ## Grid properties

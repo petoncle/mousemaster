@@ -83,7 +83,7 @@
  + Goal: remove hint-xx-then-click modes, just have hint-xx- modes
  + timeout.only-if-idle: if hint not selected then not idling, otherwise hint is idling
  + Remove hint.swallow-hint-end-key-press? Always false
-  + Remove mode-after-selection? Now becomes mode.to.normal-mode=+hintkey
+  + Remove mode-after-selection? Now becomes mode.to.normal-    mode=+hintkey
 + Should hint undo be a command/combo? hint1-mode.hint.undo=+backspace | +hh
  + Problem when pressing backspace when at least one hint key is selected:
    we do not want to go to another mode, but just perform the undo instead.
@@ -95,13 +95,15 @@
 + hint.screen-prefix-selection-keys=1 2 (default to none)
 + hint-area-filter.leftscreen=1920x1080
  + mode.hint.leftscreen.grid-cell-width
-
- 2025-06-21T08:02:21.450 [main] ERROR mousemaster.MousemasterApplication -
- java.lang.NullPointerException: null
-         at mousemaster.WindowsVirtualKey.activeKeyboardLayout(WindowsVirtualKey.java:377)
-         at mousemaster.WindowsPlatform.activeKeyboardLayout(WindowsPlatform.java:230)
-         at mousemaster.Mousemaster.updateActiveKeyboardLayout(Mousemaster.java:110)
-         at mousemaster.Mousemaster.run(Mousemaster.java:55)
-         at mousemaster.MousemasterApplication.main(MousemasterApplication.java:110)
-         at java.base@21.0.1/java.lang.invoke.LambdaForm$DMH/sa346b79c.invokeStaticInit(LambdaForm$DMH)
- 2025-06-21T08:02:21.457 [main] INFO  mousemaster.MousemasterApplication - An error has occurred. The details of the error should be right above this message. Press Enter in this window to close mousemaster.
++ hint.select=^{leftalt} +hintkey -> feeds hint key press to HintManager, only if leftalt is not pressed
+ + hint.selection-keys could be computed using the last (i.e. rightmost) moves of the hint.select multi-combo
+ + That would allow holding modifier (e.g. +n) and a hintkey (e.g. j/k) to do a wheel command
+ + Problem with hint1-mode.to.hint2-mode=+hint1key
+  + Need to know that the combo triggers hint match. Roll back hint.mode-after-selection?
+ + hint.undo=+backspace, but problem with hint2.to.hint1=+backspace
+  + hint.break-combo-on-undo? No: hint2.hint.mode-after-noop-undo=hint1
+  0- Remove hint.mouse-movement? replace with mode.move-to-hint-grid-center=+hintkey | +backspace
+    + But how to move only when hint match?
+    + If move-to-hint-grid-center=+backspace, I may still not want to move if this also does a noop undo. Maybe =+hintkey-0 +backspace?
+ + Instead of hint-then-l/m/r/click-mode, hint1-then-click-mode.hint.box-border-color._{rightbutton}=...
+  (Combo precondition as part of the property key)

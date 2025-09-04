@@ -158,6 +158,35 @@ public class HintManager implements ModeListener, MousePositionListener {
         hintMesh = newHintMesh;
         screenFilter = newScreenFilter;
         WindowsOverlay.setHintMesh(hintMesh, newZoom);
+        if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
+            moveMouse(hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence()));
+        }
+    }
+
+    private static Point hintMeshCenter(List<Hint> hints, List<Key> selectedHintKeySequence) {
+        int hintCountThatStartWithSelectedHintKeySequence = 0;
+        double selectedHintKeySequenceCenterX = 0;
+        double selectedHintKeySequenceCenterY = 0;
+        for (Hint hint : hints) {
+            if (!hint.startsWith(selectedHintKeySequence))
+                continue;
+            hintCountThatStartWithSelectedHintKeySequence++;
+            selectedHintKeySequenceCenterX += hint.centerX();
+            selectedHintKeySequenceCenterY += hint.centerY();
+            if (hint.keySequence().size() == selectedHintKeySequence.size()) {
+                break;
+            }
+        }
+        selectedHintKeySequenceCenterX /=
+                hintCountThatStartWithSelectedHintKeySequence == 0 ?
+                        hints.size() :
+                        hintCountThatStartWithSelectedHintKeySequence;
+        selectedHintKeySequenceCenterY /=
+                hintCountThatStartWithSelectedHintKeySequence == 0 ?
+                        hints.size() :
+                        hintCountThatStartWithSelectedHintKeySequence;
+        return new Point(selectedHintKeySequenceCenterX,
+                selectedHintKeySequenceCenterY);
     }
 
     public boolean showingHintMesh() {
@@ -670,6 +699,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                                 hintMeshKey).previousModeSelectedHintPoint
                         ));
                 WindowsOverlay.setHintMesh(hintMesh, currentZoom);
+                if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
+                    moveMouse(hintMeshCenter(hintMesh.hints(),
+                            hintMesh.selectedKeySequence()));
+                }
                 return PressKeyEventProcessing.hintUndo();
             }
             return PressKeyEventProcessing.unhandled(); // ComboWatcher can have a go at it.
@@ -688,8 +721,6 @@ public class HintManager implements ModeListener, MousePositionListener {
         Hint exactMatchHint = null;
         boolean atLeastOneHintStartsWithNewSelectedHintKeySequence = false;
         for (Hint hint : hintMesh.hints()) {
-            if (hint.keySequence().size() < newSelectedKeySequence.size())
-                continue;
             if (!hint.startsWith(newSelectedKeySequence))
                 continue;
             atLeastOneHintStartsWithNewSelectedHintKeySequence = true;
@@ -720,21 +751,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                 Math.round(exactMatchHint.centerY()));
             }
             logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
-             if (hintMeshConfiguration.moveMouse()) {
-                 // After this moveTo call, the move is not fully completed.
-                 // We need to wait until the jump completes before a click can be performed at
-                 // the new position.
-                 if (hintIsInZoom) {
-                     mouseX = (int) Math.round(
-                             currentZoom.unzoomedX(exactMatchHint.centerX()));
-                     mouseY = (int) Math.round(
-                             currentZoom.unzoomedY(exactMatchHint.centerY()));
-                 }
-                 else {
-                     mouseX = (int) Math.round(exactMatchHint.centerX());
-                     mouseY = (int) Math.round(exactMatchHint.centerY());
-                 }
-                 mouseController.moveTo(mouseX, mouseY);
+             if (hintMeshConfiguration.mouseMovement() != HintMouseMovement.NO_MOVEMENT) {
+                 moveMouse(new Point(exactMatchHint.centerX(), exactMatchHint.centerY()));
              }
             finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
             return PressKeyEventProcessing.unswallowedHintEnd();
@@ -752,8 +770,25 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
                     ));
             WindowsOverlay.setHintMesh(hintMesh, currentZoom);
+            if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
+                moveMouse(hintMeshCenter(hintMesh.hints(), newSelectedKeySequence));
+            }
             return PressKeyEventProcessing.partOfHintPrefix();
         }
+    }
+
+    private void moveMouse(Point point) {
+        boolean newSelectedHintKeySequenceCenterIsInZoom =
+                currentZoom.screenRectangle().contains(point.x(), point.y());
+        if (newSelectedHintKeySequenceCenterIsInZoom) {
+            mouseX = (int) Math.round(currentZoom.unzoomedX(point.x()));
+            mouseY = (int) Math.round(currentZoom.unzoomedY(point.y()));
+        }
+        else {
+            mouseX = (int) Math.round(point.x());
+            mouseY = (int) Math.round(point.y());
+        }
+        mouseController.moveTo(mouseX, mouseY);
     }
 
     private void finalizeHintSelection(Hint hint, List<Key> newSelectedKeySequence) {
