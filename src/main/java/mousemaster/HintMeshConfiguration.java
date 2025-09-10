@@ -15,7 +15,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     ViewportFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
                                     boolean eatUnusedSelectionKeys,
-                                    List<Combo> selectCombos) {
+                                    List<Combo> selectCombos,
+                                    List<Combo> unselectCombos) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -29,6 +30,7 @@ public record HintMeshConfiguration(boolean enabled,
         private String modeAfterSelection;
         private Boolean eatUnusedSelectionKeys;
         private List<Combo> selectCombos;
+        private List<Combo> unselectCombos;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -73,6 +75,11 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
+        public HintMeshConfigurationBuilder unselectCombos(List<Combo> unselectCombos) {
+            this.unselectCombos = unselectCombos;
+            return this;
+        }
+
         public HintMeshTypeBuilder type() {
             return type;
         }
@@ -109,6 +116,10 @@ public record HintMeshConfiguration(boolean enabled,
             return selectCombos;
         }
 
+        public List<Combo> unselectCombos() {
+            return unselectCombos;
+        }
+
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, mouseMovement,
                     type.build(),
@@ -116,7 +127,8 @@ public record HintMeshConfiguration(boolean enabled,
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection,
                     eatUnusedSelectionKeys,
-                    selectCombos);
+                    selectCombos,
+                    unselectCombos);
         }
 
     }

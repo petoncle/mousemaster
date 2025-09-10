@@ -373,6 +373,7 @@ public class ConfigurationParser {
                                 defaultComboMoveDuration));
             }
             mode.comboMap.hintSelectCombos(mode.hintMesh.builder.selectCombos());
+            mode.comboMap.hintUnselectCombos(mode.hintMesh.builder.unselectCombos());
             usedKeys(mode.comboMap, allComboAndRemappingKeys);
         }
         List<Key> missingKeys = allComboAndRemappingKeys.stream()
@@ -829,14 +830,14 @@ public class ConfigurationParser {
                             throw new IllegalArgumentException(
                                     "hint.save-position-after-selection has been deprecated and removed: use position-history.save-position instead");
                         }
-                        case "undo" -> {
-                            mode.comboMap.hintUnselect.parseReferenceOr(propertyKey, propertyValue,
-                                    commandsByCombo -> setCommand(mode.comboMap.hintUnselect.builder,  propertyValue, new UnselectHintKey(), finalDefaultComboMoveDuration, keyAliases, appAliases),
-                                    childPropertiesByParentProperty, nonRootPropertyKeys);
-                        }
                         case "eat-unused-selection-keys" -> mode.hintMesh.builder.eatUnusedSelectionKeys(Boolean.parseBoolean(propertyValue));
                         case "select" -> {
                             mode.hintMesh.builder.selectCombos(
+                                    parseCombos(propertyValue, defaultComboMoveDuration,
+                                            keyAliases, appAliases));
+                        }
+                        case "undo" -> {
+                            mode.hintMesh.builder.unselectCombos(
                                     parseCombos(propertyValue, defaultComboMoveDuration,
                                             keyAliases, appAliases));
                         }
@@ -1919,8 +1920,7 @@ public class ConfigurationParser {
                         builder.lineThickness(parent.lineThickness());
                 }
             };
-            hintMesh =
-                    new HintMeshProperty(modeName, propertyByKey, comboMap.hintUnselect);
+            hintMesh = new HintMeshProperty(modeName, propertyByKey);
             timeout = new Property<>("timeout", modeName, propertyByKey,
                     new ModeTimeoutBuilder()) {
                 @Override
@@ -2002,32 +2002,16 @@ public class ConfigurationParser {
         private static class HintMeshProperty
                 extends Property<HintMeshConfigurationBuilder> {
 
-            private static final Map<HintMeshConfigurationBuilder, HintMeshProperty>
-                    propertyByBuilder = new HashMap<>(); // This is a hack.
-
-            private final ComboMapConfigurationBuilder.ComboMapProperty hintUnselectComboProperty;
-
             public HintMeshProperty(String modeName,
-                                    Map<PropertyKey, Property<?>> propertyByKey,
-                                    ComboMapConfigurationBuilder.ComboMapProperty hintUnselectComboProperty) {
+                                    Map<PropertyKey, Property<?>> propertyByKey) {
                 super("hint", modeName, propertyByKey,
                         new HintMeshConfigurationBuilder());
-                this.hintUnselectComboProperty = hintUnselectComboProperty;
-                propertyByBuilder.put(builder, this);
             }
 
             @Override
             void extend(Object parent_) {
                 HintMeshConfigurationBuilder parent =
                         (HintMeshConfigurationBuilder) parent_;
-                HintMeshProperty parentProperty = propertyByBuilder.get(parent);
-                if (parentProperty != null) {
-                    // Null for defaultPropertyByName().
-                    ComboMapConfigurationBuilder.ComboMapProperty
-                            parentHintUnselectComboProperty =
-                            parentProperty.hintUnselectComboProperty;
-                    hintUnselectComboProperty.extend(parentHintUnselectComboProperty.builder);
-                }
                 if (builder.enabled() == null)
                     builder.enabled(parent.enabled());
                 if (builder.visible() == null)
@@ -2232,6 +2216,8 @@ public class ConfigurationParser {
                     builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
                 if (builder.selectCombos() == null)
                     builder.selectCombos(parent.selectCombos());
+                if (builder.unselectCombos() == null)
+                    builder.unselectCombos(parent.unselectCombos());
             }
 
             private void extendFontStyleProperties(
@@ -2380,7 +2366,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> remapping;
 
         List<Combo> hintSelectCombos;
-        ComboMapProperty hintUnselect;
+        List<Combo> hintUnselectCombos;
 
         public ComboMapConfigurationBuilder(String modeName,
                                             Map<PropertyKey, Property<?>> propertyByKey) {
@@ -2404,12 +2390,14 @@ public class ConfigurationParser {
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
             breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
             remapping = new ComboMapProperty("remapping", modeName, propertyByKey);
-
-            hintUnselect = new ComboMapProperty(null, modeName, null);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
               hintSelectCombos = combos;
+          }
+
+          public void hintUnselectCombos(List<Combo> combos) {
+              hintUnselectCombos = combos;
           }
 
           private static class ComboMapProperty extends Property<Map<Combo, List<Command>>> {
@@ -2437,7 +2425,8 @@ public class ConfigurationParser {
             Map<Combo, List<Command>> commandsByCombo = new HashMap<>();
             if (hintSelectCombos != null)
                 add(commandsByCombo, hintSelectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new SelectHintKey()))));
-            add(commandsByCombo, hintUnselect.builder);
+            if (hintUnselectCombos != null)
+                add(commandsByCombo, hintUnselectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new UnselectHintKey()))));
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);
@@ -2493,8 +2482,7 @@ public class ConfigurationParser {
                          Map<PropertyKey, Property<?>> propertyByKey, T builder) {
             this.propertyKey = new PropertyKey(mode, name);
             this.builder = builder;
-            if (propertyByKey != null)
-                propertyByKey.put(propertyKey, this);
+            propertyByKey.put(propertyKey, this);
         }
 
         /**
