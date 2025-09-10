@@ -31,7 +31,7 @@ public class CommandRunner {
         return mouseController.jumping();
     }
 
-    public void run(Command command) {
+    public void run(Command command, Key eventKey) {
         switch (command) {
             // @formatter:off
             case SwitchMode switchMode -> modeController.switchMode(switchMode.modeName());
@@ -97,6 +97,9 @@ public class CommandRunner {
 
             // Complex command that is manually handled by ComboWatcher and KeyManager.
             case BreakComboPreparation breakComboPreparation -> {}
+
+            case SelectHintKey selectHintKey -> hintManager.selectHintKey(eventKey);
+            case UnselectHintKey unselectHintKey -> hintManager.unselectHintKey();
             // @formatter:on
         }
     }

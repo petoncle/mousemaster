@@ -35,6 +35,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int positionCycleIndex = 0;
 
+    private boolean lastHintCommandSupercedesOtherCommands;
+
     /**
      * It would be better to have an instance of Zoom instead of ZoomConfiguration
      * (one ZoomConfiguration could lead to two different HintMeshes on two screens),
@@ -674,47 +676,52 @@ public class HintManager implements ModeListener, MousePositionListener {
         // No op.
     }
 
-    public PressKeyEventProcessing keyPressed(Key key) {
+    /**
+     * Undo.
+     */
+    public void unselectHintKey() {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
-            return PressKeyEventProcessing.unhandled();
+            return;
         HintMeshKeys hintMeshKeys = hintMeshConfiguration.keysByFilter()
                                                          .get(screenFilter);
-        if (hintMeshKeys.undoKeys().contains(key)) {
-            hintJustSelected = false;
-            List<Key> selectedKeySequence = hintMesh.selectedKeySequence();
-            if (!selectedKeySequence.isEmpty()) {
-                hintMesh = hintMesh.builder()
-                                   .selectedKeySequence(selectedKeySequence.subList(0,
-                                           selectedKeySequence.size() - 1))
-                                   .build();
-                HintMeshKey hintMeshKey =
-                        new HintMeshKey(hintMeshConfiguration.type(),
-                                hintMeshKeys.selectionKeys(),
-                                currentMode.zoom());
-                hintMeshStates.put(
-                        hintMeshKey,
-                        new HintMeshState(
-                                hintMesh, hintMeshStates.get(
-                                hintMeshKey).previousModeSelectedHintPoint
-                        ));
-                WindowsOverlay.setHintMesh(hintMesh, currentZoom);
-                if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
-                    moveMouse(hintMeshCenter(hintMesh.hints(),
-                            hintMesh.selectedKeySequence()));
-                }
-                return PressKeyEventProcessing.hintUndo();
+        hintJustSelected = false;
+        List<Key> selectedKeySequence = hintMesh.selectedKeySequence();
+        if (!selectedKeySequence.isEmpty()) {
+            hintMesh = hintMesh.builder()
+                               .selectedKeySequence(selectedKeySequence.subList(0,
+                                       selectedKeySequence.size() - 1))
+                               .build();
+            HintMeshKey hintMeshKey =
+                    new HintMeshKey(hintMeshConfiguration.type(),
+                            hintMeshKeys.selectionKeys(),
+                            currentMode.zoom());
+            hintMeshStates.put(
+                    hintMeshKey,
+                    new HintMeshState(
+                            hintMesh,
+                            hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
+                    )
+            );
+            WindowsOverlay.setHintMesh(hintMesh, currentZoom);
+            if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
+                moveMouse(hintMeshCenter(hintMesh.hints(),
+                        hintMesh.selectedKeySequence()));
             }
-            return PressKeyEventProcessing.unhandled(); // ComboWatcher can have a go at it.
+            lastHintCommandSupercedesOtherCommands = true;
         }
+    }
+
+    public void selectHintKey(Key key) {
+        HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
+        if (!hintMeshConfiguration.enabled())
+            return;
+        HintMeshKeys hintMeshKeys = hintMeshConfiguration.keysByFilter()
+                                                         .get(screenFilter);
         if (hintJustSelected)
-            return PressKeyEventProcessing.unhandled();
+            return;
         if (!selectionKeySubset.contains(key)) {
-            if (hintMeshKeys.selectionKeys().contains(key) &&
-                hintMeshConfiguration.eatUnusedSelectionKeys())
-                return PressKeyEventProcessing.unusedHintSelectionKey();
-            else
-                return PressKeyEventProcessing.unhandled();
+            return;
         }
         List<Key> newSelectedKeySequence = new ArrayList<>(hintMesh.selectedKeySequence());
         newSelectedKeySequence.add(key);
@@ -730,11 +737,9 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
         }
         if (!atLeastOneHintStartsWithNewSelectedHintKeySequence) {
-            if (hintMeshKeys.selectionKeys().contains(key) &&
-                hintMeshConfiguration.eatUnusedSelectionKeys())
-                return PressKeyEventProcessing.unusedHintSelectionKey();
-            else
-                return PressKeyEventProcessing.unhandled();
+            if (hintMeshConfiguration.eatUnusedSelectionKeys())
+                lastHintCommandSupercedesOtherCommands = true;
+            return;
         }
         if (exactMatchHint != null) {
             boolean hintIsInZoom = currentZoom.screenRectangle()
@@ -755,7 +760,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                  moveMouse(new Point(exactMatchHint.centerX(), exactMatchHint.centerY()));
              }
             finalizeHintSelection(exactMatchHint, newSelectedKeySequence);
-            return PressKeyEventProcessing.unswallowedHintEnd();
         }
         else {
             hintMesh =
@@ -773,7 +777,20 @@ public class HintManager implements ModeListener, MousePositionListener {
             if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
                 moveMouse(hintMeshCenter(hintMesh.hints(), newSelectedKeySequence));
             }
-            return PressKeyEventProcessing.partOfHintPrefix();
+            lastHintCommandSupercedesOtherCommands = true;
+        }
+    }
+
+    /**
+     * Other commands should be canceled when an unselect hint key is successful,
+     * and when a select hint key does not trigger a hint match (and there are still some
+     * letters to select).
+     */
+    public boolean pollLastHintCommandSupercedesOtherCommands() {
+        try {
+            return lastHintCommandSupercedesOtherCommands;
+        } finally {
+            lastHintCommandSupercedesOtherCommands = false;
         }
     }
 

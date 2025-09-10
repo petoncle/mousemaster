@@ -13,6 +13,7 @@ public class ComboWatcher implements ModeListener {
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
     private final CommandRunner commandRunner;
+    private final HintManager hintManager;
     private final ActiveAppFinder activeAppFinder;
     private final PlatformClock clock;
     private final Set<Key> pressedComboPreconditionKeys;
@@ -29,12 +30,15 @@ public class ComboWatcher implements ModeListener {
 
     private Set<Key> currentlyPressedCompletedComboKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
+    private KeyEvent lastKeyEvent;
 
-    public ComboWatcher(CommandRunner commandRunner, ActiveAppFinder activeAppFinder,
+    public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
+                        ActiveAppFinder activeAppFinder,
                         PlatformClock clock,
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys) {
         this.commandRunner = commandRunner;
+        this.hintManager = hintManager;
         this.activeAppFinder = activeAppFinder;
         this.clock = clock;
         this.unpressedComboPreconditionKeys =
@@ -140,6 +144,7 @@ public class ComboWatcher implements ModeListener {
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
+        lastKeyEvent = event;
         modeJustTimedOut = false;
         boolean isUnpressedComboPreconditionKey =
                 unpressedComboPreconditionKeys.contains(event.key());
@@ -199,7 +204,7 @@ public class ComboWatcher implements ModeListener {
 
     private PressKeyEventProcessingSet processKeyEventForCurrentMode(
             KeyEvent event,
-            boolean ignoreSwitchModeCommands) {
+            boolean ignoreSwitchModeAndHintCommands) {
 //        logger.info("currentMode = " + currentMode.name() + ", processKeyEventForCurrentMode event " + event + ", ignoreSwitchModeCommands = " + ignoreSwitchModeCommands, new Throwable());
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
@@ -296,16 +301,23 @@ public class ComboWatcher implements ModeListener {
             }
             else {
                 List<Command> commands = entry.getValue();
-                if (ignoreSwitchModeCommands &&
-                    commands.stream().anyMatch(Command.SwitchMode.class::isInstance)) {
+                // We never want to execute (un)select hint key if the key event just
+                // switched the mode to a hint mode.
+                Predicate<Command> switchModeOrHintPredicate =
+                        c -> c instanceof Command.SwitchMode ||
+                             c instanceof Command.SelectHintKey ||
+                             c instanceof Command.UnselectHintKey;
+                if (ignoreSwitchModeAndHintCommands &&
+                    commands.stream()
+                            .anyMatch(switchModeOrHintPredicate)) {
                     logger.debug(
-                            "Ignoring the following SwitchMode commands because the mode was just changed to " +
+                            "Ignoring the following commands because the mode was just changed to " +
                             currentMode.name() + ": " + commands.stream()
-                                                                .filter(Command.SwitchMode.class::isInstance)
+                                                                .filter(switchModeOrHintPredicate)
                                                                 .toList());
                     commands = commands.stream()
                                        .filter(Predicate.not(
-                                               Command.SwitchMode.class::isInstance))
+                                               switchModeOrHintPredicate))
                                        .toList();
                 }
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands);
@@ -358,19 +370,26 @@ public class ComboWatcher implements ModeListener {
     }
 
     private void runCommands(List<Command> commandsToRun) {
+        if (commandsToRun.isEmpty())
+            return;
+        Key lastEventKey = lastKeyEvent.key();
         List<Command> commands = new ArrayList<>(commandsToRun);
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
             Command command = commands.removeFirst();
-            commandRunner.run(command);
+            commandRunner.run(command, lastEventKey);
+            if (hintManager.pollLastHintCommandSupercedesOtherCommands())
+                return;
         }
         // Run SwitchMode commands now to avoid losing key events meant for the next mode.
         for (int commandIndex = 0; commandIndex < commands.size(); commandIndex++) {
             Command command = commands.get(commandIndex);
             if (command instanceof Command.BreakComboPreparation ||
                 command instanceof Command.SwitchMode) {
-                commandRunner.run(command);
+                commandRunner.run(command, lastEventKey);
                 commands.remove(commandIndex);
                 commandIndex--;
+                if (hintManager.pollLastHintCommandSupercedesOtherCommands())
+                    return;
             }
         }
         commandsWaitingForAtomicCommandToComplete.addAll(commands);
@@ -418,30 +437,41 @@ public class ComboWatcher implements ModeListener {
         return true;
     }
 
-        private void addCurrentlyPressedCompletedComboKeys(Combo combo,
-                                                           Set<Key> currentlyPressedKeys) {
-            if (isReleaseCombo(combo))
-                return;
-            Set<Key> satisfiedPressPreconditionKeys =
-                    satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
-                            currentlyPressedCompletedComboKeys,
-                            combo.sequence().moves().size());
-            if (satisfiedPressPreconditionKeys == null)
-                throw new IllegalStateException();
-            Set<Key> keys =
-                    combo.keysPressedInComboPriorToMoveOfIndex(
-                            satisfiedPressPreconditionKeys,
-                            combo.sequence().moves().size() - 1);
-            // logger.info("Combo completed, pressed keys: " + keys);
-            currentlyPressedCompletedComboKeys.addAll(keys);
-        }
+    private void addCurrentlyPressedCompletedComboKeys(Combo combo,
+                                                       Set<Key> currentlyPressedKeys) {
+        if (isReleaseCombo(combo))
+            return;
+        Set<Key> satisfiedPressPreconditionKeys =
+                satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
+                        currentlyPressedCompletedComboKeys,
+                        combo.sequence().moves().size());
+        if (satisfiedPressPreconditionKeys == null)
+            throw new IllegalStateException();
+        Set<Key> keys =
+                combo.keysPressedInComboPriorToMoveOfIndex(
+                        satisfiedPressPreconditionKeys,
+                        combo.sequence().moves().size() - 1);
+        // logger.info("Combo completed, pressed keys: " + keys);
+        currentlyPressedCompletedComboKeys.addAll(keys);
+    }
 
-    private static final List<? extends Class<? extends Command>> commandOrder =
-            List.of(
-                    // Run BreakComboPreparation last, just before SwitchMode.
-                    Command.BreakComboPreparation.class,
-                    Command.SwitchMode.class
-            );
+    private enum CommandOrder {
+        RUN_FIRST,
+        RUN_SECOND,
+        RUN_LAST;
+    }
+
+    private static CommandOrder commandOrder(Command command) {
+        // Hint commands are executed first because they can cancel other commands.
+        // Run BreakComboPreparation last, just before SwitchMode.
+        return switch (command) {
+            case Command.SelectHintKey c -> CommandOrder.RUN_FIRST;
+            case Command.UnselectHintKey c -> CommandOrder.RUN_FIRST;
+            case Command.BreakComboPreparation c -> CommandOrder.RUN_LAST;
+            case Command.SwitchMode c -> CommandOrder.RUN_LAST;
+            default -> CommandOrder.RUN_SECOND;
+        };
+    }
 
     /**
      * Assuming the following configuration:
@@ -468,8 +498,7 @@ public class ComboWatcher implements ModeListener {
                             .map(ComboAndCommands::commands)
                             .flatMap(Collection::stream)
                             .distinct()
-                            .sorted(Comparator.comparingInt(command ->
-                                    commandOrder.indexOf(command.getClass())))
+                            .sorted(Comparator.comparing(ComboWatcher::commandOrder))
                             .toList();
     }
 

@@ -14,14 +14,12 @@ public class KeyboardManager {
     private static final Logger logger = LoggerFactory.getLogger(KeyboardManager.class);
 
     private final ComboWatcher comboWatcher;
-    private final HintManager hintManager;
     private final KeyRegurgitator keyRegurgitator;
     private final Map<Key, PressKeyEventProcessingSet> currentlyPressedKeys = new HashMap<>();
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager,
                            KeyRegurgitator keyRegurgitator) {
         this.comboWatcher = comboWatcher;
-        this.hintManager = hintManager;
         this.keyRegurgitator = keyRegurgitator;
     }
 
@@ -80,37 +78,17 @@ public class KeyboardManager {
         if (keyEvent.isPress()) {
             Set<Key> keysToRegurgitate = Set.of();
             if (processingSet == null) {
-                PressKeyEventProcessing hintProcessing = hintManager.keyPressed(keyEvent.key());
                 if (!pressingUnhandledKey()) {
-                    if (hintProcessing.isUnswallowedHintEnd() || !hintProcessing.handled()) {
-                        PressKeyEventProcessingSet comboWatcherProcessingSet =
-                                comboWatcher.keyEvent(keyEvent);
-                        Map<Combo, PressKeyEventProcessing> processingByCombo =
-                                new HashMap<>();
-                        if (hintProcessing.handled())
-                            processingByCombo.put(PressKeyEventProcessingSet.dummyCombo, hintProcessing);
-                        processingByCombo.putAll(comboWatcherProcessingSet.processingByCombo());
-                        processingSet = new PressKeyEventProcessingSet(processingByCombo);
-                    }
-                    else {
-                        processingSet = new PressKeyEventProcessingSet(
-                                Map.of(PressKeyEventProcessingSet.dummyCombo,
-                                        hintProcessing));
-                    }
+                    PressKeyEventProcessingSet comboWatcherProcessingSet =
+                            comboWatcher.keyEvent(keyEvent);
+                    Map<Combo, PressKeyEventProcessing> processingByCombo =
+                            new HashMap<>(comboWatcherProcessingSet.processingByCombo());
+                    processingSet = new PressKeyEventProcessingSet(processingByCombo);
                 }
                 else {
-                    // Even if pressing unhandled key, give the hint manager a chance.
-                    // This is so the user can hold leftctrl (assuming it is unhandled), then
-                    // select a hint to perform a ctrl-click.
-                    if (hintProcessing.handled())
-                        processingSet = new PressKeyEventProcessingSet(Map.of(
-                                PressKeyEventProcessingSet.dummyCombo,
-                                hintProcessing));
-                    else
-                        processingSet = new PressKeyEventProcessingSet(Map.of());
+                    processingSet = new PressKeyEventProcessingSet(Map.of());
                 }
-                if (!processingSet.isPartOfComboSequence() &&
-                    !processingSet.isHint()) {
+                if (!processingSet.isPartOfComboSequence()) {
                     keysToRegurgitate = regurgitatePressedKeys(null);
                 }
                 else if (processingSet.isPartOfComboSequence()) {
@@ -144,8 +122,7 @@ public class KeyboardManager {
                     // the release of the combo preparation breaker key. But for now,
                     // we always ignore it.
                     if (!processingSet.isComboPreparationBreaker()) {
-                        if (processingSet.isPartOfCombo() ||
-                            processingSet.isUnswallowedHintEnd()) {
+                        if (processingSet.isPartOfCombo()) {
                             PressKeyEventProcessingSet releaseProcessingSet =
                                     comboWatcher.keyEvent(keyEvent);
                             if (!currentlyPressedKeys.containsKey(key)) {
@@ -251,8 +228,7 @@ public class KeyboardManager {
                            Set<Key> keysToRegurgitate, Key eatenKey) {
         // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
         if (processingSet.mustBeEaten() &&
-            !processingSet.isPartOfCompletedComboSequenceMustBeEaten() &&
-            !processingSet.isHint()) {
+            !processingSet.isPartOfCompletedComboSequenceMustBeEaten()) {
             keysToRegurgitate.add(eatenKey);
             // Change the key's processing to must not be eaten
             // so that it cannot be regurgitated a second time.

@@ -3,7 +3,7 @@ package mousemaster;
 import java.util.List;
 import java.util.Set;
 
-public record HintMeshKeys(List<Key> selectionKeys, int rowKeyOffset, Set<Key> undoKeys) {
+public record HintMeshKeys(List<Key> selectionKeys, int rowKeyOffset) {
 
     public HintMeshKeysBuilder builder() {
         return new HintMeshKeysBuilder(this);
@@ -13,7 +13,6 @@ public record HintMeshKeys(List<Key> selectionKeys, int rowKeyOffset, Set<Key> u
 
         private List<Key> selectionKeys;
         private Integer rowKeyOffset;
-        private Set<Key> undoKeys;
 
         public HintMeshKeysBuilder() {
 
@@ -22,7 +21,6 @@ public record HintMeshKeys(List<Key> selectionKeys, int rowKeyOffset, Set<Key> u
         public HintMeshKeysBuilder(HintMeshKeys keys) {
             this.selectionKeys = keys.selectionKeys();
             this.rowKeyOffset = keys.rowKeyOffset();
-            this.undoKeys = keys.undoKeys();
         }
 
         public HintMeshKeysBuilder selectionKeys(List<Key> selectionKeys) {
@@ -35,11 +33,6 @@ public record HintMeshKeys(List<Key> selectionKeys, int rowKeyOffset, Set<Key> u
             return this;
         }
 
-        public HintMeshKeysBuilder undoKeys(Set<Key> undoKeys) {
-            this.undoKeys = undoKeys;
-            return this;
-        }
-
         public List<Key> selectionKeys() {
             return selectionKeys;
         }
@@ -48,15 +41,10 @@ public record HintMeshKeys(List<Key> selectionKeys, int rowKeyOffset, Set<Key> u
             return rowKeyOffset;
         }
 
-        public Set<Key> undoKeys() {
-            return undoKeys;
-        }
-
         public HintMeshKeys build(HintMeshKeys defaultKeys) {
             return new HintMeshKeys(
                     selectionKeys == null ? defaultKeys.selectionKeys : selectionKeys,
-                    rowKeyOffset == null ? defaultKeys.rowKeyOffset : rowKeyOffset,
-                    undoKeys == null ? defaultKeys.undoKeys : undoKeys
+                    rowKeyOffset == null ? defaultKeys.rowKeyOffset : rowKeyOffset
             );
         }
 

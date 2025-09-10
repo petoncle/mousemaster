@@ -78,8 +78,7 @@ public class ConfigurationParser {
                                         .mapToObj(c -> String.valueOf((char) c))
                                         .map(Key::ofName)
                                         .toList())
-                .rowKeyOffset(0)
-                .undoKeys(Set.of());
+                .rowKeyOffset(0);
         HintMeshStyleBuilder hintMeshStyleBuilder =
                 hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER);
         hintMeshStyleBuilder.fontStyle()
@@ -683,9 +682,6 @@ public class ConfigurationParser {
                                                                            .layoutRowOriented(Boolean.parseBoolean(propertyValue));
                         case "selection-keys" -> mode.hintMesh.builder.keys(viewportFilter).selectionKeys(parseHintKeys(propertyValue, keyAliases));
                         case "row-key-offset" -> mode.hintMesh.builder.keys(viewportFilter).rowKeyOffset(parseUnsignedInteger(propertyValue, 0, 1_000));
-                        case "undo" ->
-                                mode.hintMesh.builder.keys(viewportFilter).undoKeys(parseKeyOrAlias(
-                                        propertyValue, keyAliases));
                         case "font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().weight(FontWeight.of(propertyValue));
                         case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().name(parseFontName(propertyValue, fontAvailability));
                         case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().size(parseDouble(propertyValue, false, 0, 1000));
@@ -802,6 +798,16 @@ public class ConfigurationParser {
                         case "save-position-after-selection" -> {
                             throw new IllegalArgumentException(
                                     "hint.save-position-after-selection has been deprecated and removed: use position-history.save-position instead");
+                        }
+                        case "select" -> {
+                            mode.comboMap.hintSelect.parseReferenceOr(propertyKey, propertyValue,
+                                    commandsByCombo -> setCommand(mode.comboMap.hintSelect.builder,  propertyValue, new SelectHintKey(), finalDefaultComboMoveDuration, keyAliases, appAliases),
+                                    childPropertiesByParentProperty, nonRootPropertyKeys);
+                        }
+                        case "undo" -> {
+                            mode.comboMap.hintUnselect.parseReferenceOr(propertyKey, propertyValue,
+                                    commandsByCombo -> setCommand(mode.comboMap.hintUnselect.builder,  propertyValue, new UnselectHintKey(), finalDefaultComboMoveDuration, keyAliases, appAliases),
+                                    childPropertiesByParentProperty, nonRootPropertyKeys);
                         }
                         case "eat-unused-selection-keys" -> mode.hintMesh.builder.eatUnusedSelectionKeys(Boolean.parseBoolean(propertyValue));
                         default -> throw new IllegalArgumentException(
@@ -1873,296 +1879,8 @@ public class ConfigurationParser {
                         builder.lineThickness(parent.lineThickness());
                 }
             };
-            hintMesh = new Property<>("hint", modeName, propertyByKey,
-                    new HintMeshConfigurationBuilder()) {
-                @Override
-                void extend(Object parent_) {
-                    HintMeshConfigurationBuilder parent =
-                            (HintMeshConfigurationBuilder) parent_;
-                    if (builder.enabled() == null)
-                        builder.enabled(parent.enabled());
-                    if (builder.visible() == null)
-                        builder.visible(parent.visible());
-                    if (builder.mouseMovement() == null)
-                        builder.mouseMovement(parent.mouseMovement());
-                    if (builder.type().type() == null)
-                        builder.type().type(parent.type().type());
-                    if (builder.type().gridArea().type() == null)
-                        builder.type().gridArea().type(parent.type().gridArea().type());
-                    if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
-                        builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
-                    for (var parentEntry : parent.type()
-                                                 .gridLayoutByFilter()
-                                                 .map()
-                                                 .entrySet()
-                                                 .stream()
-                                                 .sorted(defaultFilterLastComparator())
-                                                 .toList()) {
-                        HintGridLayoutBuilder parentLayout =
-                                parentEntry.getValue();
-                        ViewportFilter filter = parentEntry.getKey();
-                        HintGridLayoutBuilder childLayout =
-                                builder.type().gridLayout(filter);
-                        ViewportFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
-                                childLayoutByFilter = builder.type().gridLayoutByFilter();
-                        if (!childDoesNotNeedParentProperty(
-                                HintGridLayoutBuilder::maxRowCount, childLayoutByFilter,
-                                filter))
-                            childLayout.maxRowCount(parentLayout.maxRowCount());
-                        if (!childDoesNotNeedParentProperty(
-                                HintGridLayoutBuilder::maxColumnCount,
-                                childLayoutByFilter, filter))
-                            childLayout.maxColumnCount(parentLayout.maxColumnCount());
-                        if (!childDoesNotNeedParentProperty(
-                                HintGridLayoutBuilder::cellWidth, childLayoutByFilter,
-                                filter))
-                            childLayout.cellWidth(parentLayout.cellWidth());
-                        if (!childDoesNotNeedParentProperty(
-                                HintGridLayoutBuilder::cellHeight, childLayoutByFilter,
-                                filter))
-                            childLayout.cellHeight(parentLayout.cellHeight());
-                        if (!childDoesNotNeedParentProperty(
-                                HintGridLayoutBuilder::layoutRowCount,
-                                childLayoutByFilter, filter))
-                            childLayout.layoutRowCount(parentLayout.layoutRowCount());
-                        if (!childDoesNotNeedParentProperty(
-                                HintGridLayoutBuilder::layoutColumnCount,
-                                childLayoutByFilter, filter))
-                            childLayout.layoutColumnCount(
-                                    parentLayout.layoutColumnCount());
-                        if (!childDoesNotNeedParentProperty(
-                                HintGridLayoutBuilder::layoutRowOriented,
-                                childLayoutByFilter, filter))
-                            childLayout.layoutRowOriented(
-                                    parentLayout.layoutRowOriented());
-                    }
-                    for (var parentEntry : parent.keysByFilter()
-                                                 .map()
-                                                 .entrySet().stream()
-                                                 .sorted(defaultFilterLastComparator())
-                                                 .toList()) {
-                        HintMeshKeysBuilder parentKeys = parentEntry.getValue();
-                        ViewportFilter filter = parentEntry.getKey();
-                        HintMeshKeysBuilder childKeys = builder.keys(filter);
-                        ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys>
-                                childKeysByFilter = builder.keysByFilter();
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshKeysBuilder::selectionKeys, childKeysByFilter,
-                                filter))
-                            childKeys.selectionKeys(parentKeys.selectionKeys());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshKeysBuilder::rowKeyOffset, childKeysByFilter,
-                                filter))
-                            childKeys.rowKeyOffset(parentKeys.rowKeyOffset());
-                        if (!childDoesNotNeedParentProperty(HintMeshKeysBuilder::undoKeys,
-                                childKeysByFilter, filter))
-                            childKeys.undoKeys(parentKeys.undoKeys());
-                    }
-                    for (var parentEntry : parent.styleByFilter().map()
-                                                 .entrySet().stream()
-                                                 .sorted(defaultFilterLastComparator())
-                                                 .toList()) {
-                        HintMeshStyleBuilder parentStyle =
-                                parentEntry.getValue();
-                        ViewportFilter filter = parentEntry.getKey();
-                        HintMeshStyleBuilder childStyle = builder.style(filter);
-                        ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
-                                childStyleByFilter = builder.styleByFilter();
-                        extendFontStyleProperties(HintMeshStyleBuilder::fontStyle, childStyle.fontStyle(), parentStyle.fontStyle(), childStyleByFilter, filter);
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::prefixInBackground,
-                                childStyleByFilter, filter))
-                            childStyle.prefixInBackground(
-                                    parentStyle.prefixInBackground());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::selectedFontHexColor,
-                                childStyleByFilter, filter))
-                            childStyle.selectedFontHexColor(
-                                    parentStyle.selectedFontHexColor());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::selectedFontOpacity,
-                                childStyleByFilter, filter))
-                            childStyle.selectedFontOpacity(
-                                    parentStyle.selectedFontOpacity());
-                        extendFontStyleProperties(HintMeshStyleBuilder::prefixFontStyle, childStyle.prefixFontStyle(), parentStyle.prefixFontStyle(), childStyleByFilter, filter);
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
-                                filter))
-                            childStyle.boxHexColor(parentStyle.boxHexColor());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxOpacity, childStyleByFilter,
-                                filter))
-                            childStyle.boxOpacity(parentStyle.boxOpacity());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxBorderThickness,
-                                childStyleByFilter, filter))
-                            childStyle.boxBorderThickness(
-                                    parentStyle.boxBorderThickness());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxBorderLength, childStyleByFilter,
-                                filter))
-                            childStyle.boxBorderLength(parentStyle.boxBorderLength());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxBorderHexColor,
-                                childStyleByFilter, filter))
-                            childStyle.boxBorderHexColor(parentStyle.boxBorderHexColor());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxBorderOpacity,
-                                childStyleByFilter, filter))
-                            childStyle.boxBorderOpacity(parentStyle.boxBorderOpacity());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::prefixBoxEnabled,
-                                childStyleByFilter, filter))
-                            childStyle.prefixBoxEnabled(
-                                    parentStyle.prefixBoxEnabled());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::prefixBoxBorderThickness,
-                                childStyleByFilter, filter))
-                            childStyle.prefixBoxBorderThickness(
-                                    parentStyle.prefixBoxBorderThickness());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::prefixBoxBorderLength, childStyleByFilter,
-                                filter))
-                            childStyle.prefixBoxBorderLength(parentStyle.prefixBoxBorderLength());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::prefixBoxBorderHexColor,
-                                childStyleByFilter, filter))
-                            childStyle.prefixBoxBorderHexColor(parentStyle.prefixBoxBorderHexColor());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::prefixBoxBorderOpacity,
-                                childStyleByFilter, filter))
-                            childStyle.prefixBoxBorderOpacity(parentStyle.prefixBoxBorderOpacity());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxWidthPercent, childStyleByFilter,
-                                filter))
-                            childStyle.boxWidthPercent(parentStyle.boxWidthPercent());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::boxHeightPercent,
-                                childStyleByFilter, filter))
-                            childStyle.boxHeightPercent(parentStyle.boxHeightPercent());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::subgridRowCount, childStyleByFilter,
-                                filter))
-                            childStyle.subgridRowCount(parentStyle.subgridRowCount());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::subgridColumnCount,
-                                childStyleByFilter, filter))
-                            childStyle.subgridColumnCount(
-                                    parentStyle.subgridColumnCount());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::subgridBorderThickness,
-                                childStyleByFilter, filter))
-                            childStyle.subgridBorderThickness(
-                                    parentStyle.subgridBorderThickness());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::subgridBorderLength,
-                                childStyleByFilter, filter))
-                            childStyle.subgridBorderLength(
-                                    parentStyle.subgridBorderLength());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::subgridBorderHexColor,
-                                childStyleByFilter, filter))
-                            childStyle.subgridBorderHexColor(
-                                    parentStyle.subgridBorderHexColor());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::subgridBorderOpacity,
-                                childStyleByFilter, filter))
-                            childStyle.subgridBorderOpacity(
-                                    parentStyle.subgridBorderOpacity());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::transitionAnimationEnabled,
-                                childStyleByFilter, filter))
-                            childStyle.transitionAnimationEnabled(
-                                    parentStyle.transitionAnimationEnabled());
-                        if (!childDoesNotNeedParentProperty(
-                                HintMeshStyleBuilder::transitionAnimationDuration,
-                                childStyleByFilter, filter))
-                            childStyle.transitionAnimationDuration(
-                                    parentStyle.transitionAnimationDuration());
-                    }
-                    if (builder.modeAfterSelection() == null)
-                        builder.modeAfterSelection(parent.modeAfterSelection());
-                    if (builder.eatUnusedSelectionKeys() == null)
-                        builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
-                }
-
-                private void extendFontStyleProperties(
-                        Function<HintMeshStyleBuilder, FontStyleBuilder> fontStyleBuilderFunction,
-                        FontStyleBuilder childFontStyle, FontStyleBuilder parentFontStyle,
-                        ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> childStyleByFilter,
-                        ViewportFilter filter) {
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::name, childStyleByFilter,
-                            filter))
-                        childFontStyle.name(parentFontStyle.name());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::weight, childStyleByFilter,
-                            filter))
-                        childFontStyle.weight(parentFontStyle.weight());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::size, childStyleByFilter,
-                            filter))
-                        childFontStyle.size(parentFontStyle.size());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::spacingPercent,
-                            childStyleByFilter, filter))
-                        childFontStyle.spacingPercent(parentFontStyle.spacingPercent());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::hexColor, childStyleByFilter,
-                            filter))
-                        childFontStyle.hexColor(parentFontStyle.hexColor());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::opacity, childStyleByFilter,
-                            filter))
-                        childFontStyle.opacity(parentFontStyle.opacity());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::outlineThickness,
-                            childStyleByFilter, filter))
-                        childFontStyle.outlineThickness(parentFontStyle.outlineThickness());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::outlineHexColor,
-                            childStyleByFilter, filter))
-                        childFontStyle.outlineHexColor(parentFontStyle.outlineHexColor());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::outlineOpacity,
-                            childStyleByFilter, filter))
-                        childFontStyle.outlineOpacity(parentFontStyle.outlineOpacity());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::shadowBlurRadius,
-                            childStyleByFilter, filter))
-                        childFontStyle.shadowBlurRadius(parentFontStyle.shadowBlurRadius());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::shadowHexColor,
-                            childStyleByFilter, filter))
-                        childFontStyle.shadowHexColor(parentFontStyle.shadowHexColor());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::shadowOpacity,
-                            childStyleByFilter, filter))
-                        childFontStyle.shadowOpacity(parentFontStyle.shadowOpacity());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::shadowHorizontalOffset,
-                            childStyleByFilter, filter))
-                        childFontStyle.shadowHorizontalOffset(parentFontStyle.shadowHorizontalOffset());
-                    if (!fontStyleChildDoesNotNeedParentProperty(
-                            fontStyleBuilderFunction,
-                            FontStyleBuilder::shadowVerticalOffset,
-                            childStyleByFilter, filter))
-                        childFontStyle.shadowVerticalOffset(parentFontStyle.shadowVerticalOffset());
-                }
-            };
+            hintMesh = new HintMeshProperty(modeName, propertyByKey, comboMap.hintSelect,
+                    comboMap.hintUnselect);
             timeout = new Property<>("timeout", modeName, propertyByKey,
                     new ModeTimeoutBuilder()) {
                 @Override
@@ -2241,6 +1959,324 @@ public class ConfigurationParser {
                     zoom.builder.build());
         }
 
+        private static class HintMeshProperty
+                extends Property<HintMeshConfigurationBuilder> {
+
+            private static final Map<HintMeshConfigurationBuilder, HintMeshProperty>
+                    propertyByBuilder = new HashMap<>(); // This is a hack.
+
+            private final ComboMapConfigurationBuilder.ComboMapProperty hintSelectComboProperty;
+            private final ComboMapConfigurationBuilder.ComboMapProperty hintUnselectComboProperty;
+
+            public HintMeshProperty(String modeName,
+                                    Map<PropertyKey, Property<?>> propertyByKey,
+                                    ComboMapConfigurationBuilder.ComboMapProperty
+                                            hintSelectComboProperty,
+                                    ComboMapConfigurationBuilder.ComboMapProperty hintUnselectComboProperty) {
+                super("hint", modeName, propertyByKey,
+                        new HintMeshConfigurationBuilder());
+                this.hintSelectComboProperty = hintSelectComboProperty;
+                this.hintUnselectComboProperty = hintUnselectComboProperty;
+                propertyByBuilder.put(builder, this);
+            }
+
+            @Override
+            void extend(Object parent_) {
+                HintMeshConfigurationBuilder parent =
+                        (HintMeshConfigurationBuilder) parent_;
+                HintMeshProperty parentProperty = propertyByBuilder.get(parent);
+                if (parentProperty != null) {
+                    // Null for defaultPropertyByName().
+                    ComboMapConfigurationBuilder.ComboMapProperty
+                            parentHintSelectComboProperty =
+                            parentProperty.hintSelectComboProperty;
+                    hintSelectComboProperty.extend(parentHintSelectComboProperty.builder);
+                    ComboMapConfigurationBuilder.ComboMapProperty
+                            parentHintUnselectComboProperty =
+                            parentProperty.hintUnselectComboProperty;
+                    hintUnselectComboProperty.extend(parentHintUnselectComboProperty.builder);
+                }
+                if (builder.enabled() == null)
+                    builder.enabled(parent.enabled());
+                if (builder.visible() == null)
+                    builder.visible(parent.visible());
+                if (builder.mouseMovement() == null)
+                    builder.mouseMovement(parent.mouseMovement());
+                if (builder.type().type() == null)
+                    builder.type().type(parent.type().type());
+                if (builder.type().gridArea().type() == null)
+                    builder.type().gridArea().type(parent.type().gridArea().type());
+                if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
+                    builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
+                for (var parentEntry : parent.type()
+                                             .gridLayoutByFilter()
+                                             .map()
+                                             .entrySet()
+                                             .stream()
+                                             .sorted(defaultFilterLastComparator())
+                                             .toList()) {
+                    HintGridLayoutBuilder parentLayout =
+                            parentEntry.getValue();
+                    ViewportFilter filter = parentEntry.getKey();
+                    HintGridLayoutBuilder childLayout =
+                            builder.type().gridLayout(filter);
+                    ViewportFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
+                            childLayoutByFilter = builder.type().gridLayoutByFilter();
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::maxRowCount, childLayoutByFilter,
+                            filter))
+                        childLayout.maxRowCount(parentLayout.maxRowCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::maxColumnCount,
+                            childLayoutByFilter, filter))
+                        childLayout.maxColumnCount(parentLayout.maxColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::cellWidth, childLayoutByFilter,
+                            filter))
+                        childLayout.cellWidth(parentLayout.cellWidth());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::cellHeight, childLayoutByFilter,
+                            filter))
+                        childLayout.cellHeight(parentLayout.cellHeight());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::layoutRowCount,
+                            childLayoutByFilter, filter))
+                        childLayout.layoutRowCount(parentLayout.layoutRowCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::layoutColumnCount,
+                            childLayoutByFilter, filter))
+                        childLayout.layoutColumnCount(
+                                parentLayout.layoutColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::layoutRowOriented,
+                            childLayoutByFilter, filter))
+                        childLayout.layoutRowOriented(
+                                parentLayout.layoutRowOriented());
+                }
+                for (var parentEntry : parent.keysByFilter()
+                                             .map()
+                                             .entrySet().stream()
+                                             .sorted(defaultFilterLastComparator())
+                                             .toList()) {
+                    HintMeshKeysBuilder parentKeys = parentEntry.getValue();
+                    ViewportFilter filter = parentEntry.getKey();
+                    HintMeshKeysBuilder childKeys = builder.keys(filter);
+                    ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys>
+                            childKeysByFilter = builder.keysByFilter();
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshKeysBuilder::selectionKeys, childKeysByFilter,
+                            filter))
+                        childKeys.selectionKeys(parentKeys.selectionKeys());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshKeysBuilder::rowKeyOffset, childKeysByFilter,
+                            filter))
+                        childKeys.rowKeyOffset(parentKeys.rowKeyOffset());
+                }
+                for (var parentEntry : parent.styleByFilter().map()
+                                             .entrySet().stream()
+                                             .sorted(defaultFilterLastComparator())
+                                             .toList()) {
+                    HintMeshStyleBuilder parentStyle =
+                            parentEntry.getValue();
+                    ViewportFilter filter = parentEntry.getKey();
+                    HintMeshStyleBuilder childStyle = builder.style(filter);
+                    ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
+                            childStyleByFilter = builder.styleByFilter();
+                    extendFontStyleProperties(HintMeshStyleBuilder::fontStyle, childStyle.fontStyle(), parentStyle.fontStyle(), childStyleByFilter, filter);
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::prefixInBackground,
+                            childStyleByFilter, filter))
+                        childStyle.prefixInBackground(
+                                parentStyle.prefixInBackground());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::selectedFontHexColor,
+                            childStyleByFilter, filter))
+                        childStyle.selectedFontHexColor(
+                                parentStyle.selectedFontHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::selectedFontOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.selectedFontOpacity(
+                                parentStyle.selectedFontOpacity());
+                    extendFontStyleProperties(HintMeshStyleBuilder::prefixFontStyle, childStyle.prefixFontStyle(), parentStyle.prefixFontStyle(), childStyleByFilter, filter);
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
+                            filter))
+                        childStyle.boxHexColor(parentStyle.boxHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxOpacity, childStyleByFilter,
+                            filter))
+                        childStyle.boxOpacity(parentStyle.boxOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.boxBorderThickness(
+                                parentStyle.boxBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxBorderLength, childStyleByFilter,
+                            filter))
+                        childStyle.boxBorderLength(parentStyle.boxBorderLength());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxBorderHexColor,
+                            childStyleByFilter, filter))
+                        childStyle.boxBorderHexColor(parentStyle.boxBorderHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.boxBorderOpacity(parentStyle.boxBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::prefixBoxEnabled,
+                            childStyleByFilter, filter))
+                        childStyle.prefixBoxEnabled(
+                                parentStyle.prefixBoxEnabled());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::prefixBoxBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.prefixBoxBorderThickness(
+                                parentStyle.prefixBoxBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::prefixBoxBorderLength, childStyleByFilter,
+                            filter))
+                        childStyle.prefixBoxBorderLength(parentStyle.prefixBoxBorderLength());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::prefixBoxBorderHexColor,
+                            childStyleByFilter, filter))
+                        childStyle.prefixBoxBorderHexColor(parentStyle.prefixBoxBorderHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::prefixBoxBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.prefixBoxBorderOpacity(parentStyle.prefixBoxBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxWidthPercent, childStyleByFilter,
+                            filter))
+                        childStyle.boxWidthPercent(parentStyle.boxWidthPercent());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxHeightPercent,
+                            childStyleByFilter, filter))
+                        childStyle.boxHeightPercent(parentStyle.boxHeightPercent());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridRowCount, childStyleByFilter,
+                            filter))
+                        childStyle.subgridRowCount(parentStyle.subgridRowCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridColumnCount,
+                            childStyleByFilter, filter))
+                        childStyle.subgridColumnCount(
+                                parentStyle.subgridColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.subgridBorderThickness(
+                                parentStyle.subgridBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridBorderLength,
+                            childStyleByFilter, filter))
+                        childStyle.subgridBorderLength(
+                                parentStyle.subgridBorderLength());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridBorderHexColor,
+                            childStyleByFilter, filter))
+                        childStyle.subgridBorderHexColor(
+                                parentStyle.subgridBorderHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.subgridBorderOpacity(
+                                parentStyle.subgridBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::transitionAnimationEnabled,
+                            childStyleByFilter, filter))
+                        childStyle.transitionAnimationEnabled(
+                                parentStyle.transitionAnimationEnabled());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::transitionAnimationDuration,
+                            childStyleByFilter, filter))
+                        childStyle.transitionAnimationDuration(
+                                parentStyle.transitionAnimationDuration());
+                }
+                if (builder.modeAfterSelection() == null)
+                    builder.modeAfterSelection(parent.modeAfterSelection());
+                if (builder.eatUnusedSelectionKeys() == null)
+                    builder.eatUnusedSelectionKeys(parent.eatUnusedSelectionKeys());
+            }
+
+            private void extendFontStyleProperties(
+                    Function<HintMeshStyleBuilder, FontStyleBuilder> fontStyleBuilderFunction,
+                    FontStyleBuilder childFontStyle, FontStyleBuilder parentFontStyle,
+                    ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> childStyleByFilter,
+                    ViewportFilter filter) {
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::name, childStyleByFilter,
+                        filter))
+                    childFontStyle.name(parentFontStyle.name());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::weight, childStyleByFilter,
+                        filter))
+                    childFontStyle.weight(parentFontStyle.weight());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::size, childStyleByFilter,
+                        filter))
+                    childFontStyle.size(parentFontStyle.size());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::spacingPercent,
+                        childStyleByFilter, filter))
+                    childFontStyle.spacingPercent(parentFontStyle.spacingPercent());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::hexColor, childStyleByFilter,
+                        filter))
+                    childFontStyle.hexColor(parentFontStyle.hexColor());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::opacity, childStyleByFilter,
+                        filter))
+                    childFontStyle.opacity(parentFontStyle.opacity());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::outlineThickness,
+                        childStyleByFilter, filter))
+                    childFontStyle.outlineThickness(parentFontStyle.outlineThickness());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::outlineHexColor,
+                        childStyleByFilter, filter))
+                    childFontStyle.outlineHexColor(parentFontStyle.outlineHexColor());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::outlineOpacity,
+                        childStyleByFilter, filter))
+                    childFontStyle.outlineOpacity(parentFontStyle.outlineOpacity());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::shadowBlurRadius,
+                        childStyleByFilter, filter))
+                    childFontStyle.shadowBlurRadius(parentFontStyle.shadowBlurRadius());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::shadowHexColor,
+                        childStyleByFilter, filter))
+                    childFontStyle.shadowHexColor(parentFontStyle.shadowHexColor());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::shadowOpacity,
+                        childStyleByFilter, filter))
+                    childFontStyle.shadowOpacity(parentFontStyle.shadowOpacity());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::shadowHorizontalOffset,
+                        childStyleByFilter, filter))
+                    childFontStyle.shadowHorizontalOffset(parentFontStyle.shadowHorizontalOffset());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::shadowVerticalOffset,
+                        childStyleByFilter, filter))
+                    childFontStyle.shadowVerticalOffset(parentFontStyle.shadowVerticalOffset());
+            }
+        }
     }
 
     /**
@@ -2309,6 +2345,9 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> breakComboPreparation;
         Property<Map<Combo, List<Command>>> remapping;
 
+        ComboMapProperty hintSelect;
+        ComboMapProperty hintUnselect;
+
         public ComboMapConfigurationBuilder(String modeName,
                                             Map<PropertyKey, Property<?>> propertyByKey) {
             to = new ComboMapProperty("to", modeName, propertyByKey);
@@ -2331,6 +2370,9 @@ public class ConfigurationParser {
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
             breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
             remapping = new ComboMapProperty("remapping", modeName, propertyByKey);
+
+            hintSelect = new ComboMapProperty(null, modeName, null);
+            hintUnselect = new ComboMapProperty(null, modeName, null);
         }
 
         private static class ComboMapProperty extends Property<Map<Combo, List<Command>>> {
@@ -2356,6 +2398,8 @@ public class ConfigurationParser {
 
         public Map<Combo, List<Command>> commandsByCombo() {
             Map<Combo, List<Command>> commandsByCombo = new HashMap<>();
+            add(commandsByCombo, hintSelect.builder);
+            add(commandsByCombo, hintUnselect.builder);
             add(commandsByCombo, to.builder);
             add(commandsByCombo, startMove.builder);
             add(commandsByCombo, stopMove.builder);
@@ -2411,7 +2455,8 @@ public class ConfigurationParser {
                          Map<PropertyKey, Property<?>> propertyByKey, T builder) {
             this.propertyKey = new PropertyKey(mode, name);
             this.builder = builder;
-            propertyByKey.put(propertyKey, this);
+            if (propertyByKey != null)
+                propertyByKey.put(propertyKey, this);
         }
 
         /**

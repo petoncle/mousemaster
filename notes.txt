@@ -95,15 +95,24 @@
 + hint.screen-prefix-selection-keys=1 2 (default to none)
 + hint-area-filter.leftscreen=1920x1080
  + mode.hint.leftscreen.grid-cell-width
-+ hint.select=^{leftalt} +hintkey -> feeds hint key press to HintManager, only if leftalt is not pressed
+-- hint.select=^{leftalt} +hintkey -> feeds hint key press to HintManager, only if leftalt is not pressed
  + hint.selection-keys could be computed using the last (i.e. rightmost) moves of the hint.select multi-combo
  + That would allow holding modifier (e.g. +n) and a hintkey (e.g. j/k) to do a wheel command
- + Problem with hint1-mode.to.hint2-mode=+hint1key
-  + Need to know that the combo triggers hint match. Roll back hint.mode-after-selection?
- + hint.undo=+backspace, but problem with hint2.to.hint1=+backspace
-  + hint.break-combo-on-undo? No: hint2.hint.mode-after-noop-undo=hint1
+ 0- Problem with hint1-mode.to.hint2-mode=+hint1key
+  0- Need to know that the combo triggers hint match. Roll back hint.mode-after-selection?
+   -- Or, whenever SelectHintKey command (other than one that finalizes the hint), other commands are ignored?
+   - Same for undo
+   - HintManager.pollHintCommandSupercedesOtherCommands, SelectHintKey should be top priority command (executed first)
+ -- hint.undo=+backspace, but problem with hint2.to.hint1=+backspace
+  0- hint.break-combo-on-undo? No: hint2.hint.mode-after-noop-undo=hint1
+  0- Allow hint.undo=backspace for backward compatibility
+  0- Remove eat-unused-selection-keys
   0- Remove hint.mouse-movement? replace with mode.move-to-hint-grid-center=+hintkey | +backspace
-    + But how to move only when hint match?
-    + If move-to-hint-grid-center=+backspace, I may still not want to move if this also does a noop undo. Maybe =+hintkey-0 +backspace?
+    0- But how to move only when hint match? Next mode
+    0- If move-to-hint-grid-center=+backspace, I may still not want to move if this also does a noop undo. Maybe =+hintkey-0 +backspace?
+ -- Combo commands like selectHintKey should be inside .hint: .hint.select, .hint.undo
  + Instead of hint-then-l/m/r/click-mode, hint1-then-click-mode.hint.box-border-color._{rightbutton}=...
   (Combo precondition as part of the property key)
+  + Same for hint1-mode.hint.mode-after-selection.leftctrl+leftshift=hint2-mode
++ Self feed "fake" events to ComboWatcher for automation?
+ + E.g. open hint, then select and click JI to focus Firefox address bar: +rightalt -rightalt +rightalt -rightalt +j -j +space +i -i -space

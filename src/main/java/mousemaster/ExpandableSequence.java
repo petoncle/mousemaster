@@ -11,6 +11,15 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
                                             ComboMoveDuration defaultMoveDuration,
                                             Map<String, KeyAlias> aliases) {
         String[] moveStrings = movesString.split("\\s+");
+        if (moveStrings.length == 1 && !moveStrings[0].matches("^[+\\-#].*")) {
+            // leftctrl
+            // is the same as +leftctrl
+            String aliasName = moveStrings[0];
+            ComboAliasMove.PressComboAliasMove move =
+                    new ComboAliasMove.PressComboAliasMove(aliasName, true,
+                            defaultMoveDuration);
+            return new ExpandableSequence(List.of(move));
+        }
         List<ComboAliasMove> moves = new ArrayList<>();
         for (String moveString : moveStrings) {
             // +leftctrl

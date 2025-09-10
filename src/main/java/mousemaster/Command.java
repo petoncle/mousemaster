@@ -65,4 +65,7 @@ public sealed interface Command {
 
     record BreakComboPreparation() implements Command {}
 
+    record SelectHintKey() implements Command {}
+    record UnselectHintKey() implements Command {}
+
 }
