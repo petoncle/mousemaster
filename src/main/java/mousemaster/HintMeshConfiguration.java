@@ -5,6 +5,8 @@ import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
 import mousemaster.HintMeshType.HintMeshTypeBuilder;
 import mousemaster.ViewportFilterMap.ViewportFilterMapBuilder;
 
+import java.util.List;
+
 public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     HintMouseMovement mouseMovement,
@@ -12,7 +14,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     ViewportFilterMap<HintMeshKeys> keysByFilter,
                                     ViewportFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
-                                    boolean eatUnusedSelectionKeys) {
+                                    boolean eatUnusedSelectionKeys,
+                                    List<Combo> selectCombos) {
 
     public static class HintMeshConfigurationBuilder {
         private Boolean enabled;
@@ -25,6 +28,7 @@ public record HintMeshConfiguration(boolean enabled,
                 styleByFilter = new ViewportFilterMapBuilder<>();
         private String modeAfterSelection;
         private Boolean eatUnusedSelectionKeys;
+        private List<Combo> selectCombos;
 
         public HintMeshConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -64,6 +68,11 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
+        public HintMeshConfigurationBuilder selectCombos(List<Combo> selectCombos) {
+            this.selectCombos = selectCombos;
+            return this;
+        }
+
         public HintMeshTypeBuilder type() {
             return type;
         }
@@ -96,13 +105,18 @@ public record HintMeshConfiguration(boolean enabled,
             return eatUnusedSelectionKeys;
         }
 
+        public List<Combo> selectCombos() {
+            return selectCombos;
+        }
+
         public HintMeshConfiguration build() {
             return new HintMeshConfiguration(enabled, visible, mouseMovement,
                     type.build(),
                     keysByFilter.build(HintMeshKeysBuilder::build),
                     styleByFilter.build(HintMeshStyleBuilder::build),
                     modeAfterSelection,
-                    eatUnusedSelectionKeys);
+                    eatUnusedSelectionKeys,
+                    selectCombos);
         }
 
     }

@@ -460,6 +460,7 @@ mousemaster automatically uses the appropriate configuration based on the screen
 # Selection configuration
 key-alias.selectionkey=a b c d e f g h i j k l m n o p q r s t u v w x y z
 hint-mode.hint.selection-keys=selectionkey
+hint-mode.hint.select=+selectionkey
 hint-mode.hint.undo=backspace
 hint-mode.to.normal-mode=+selectionkey
 hint-mode.hint.mouse-movement=mouse-follows-selected-hint
@@ -467,7 +468,8 @@ hint-mode.hint.eat-unused-selection-keys=true
 ```
 
 - **`selection-keys`**: Keys that can be pressed to select hints
-- **`undo`**: Key to undo the last selection keystroke
+- **`select`**: Combo that triggers hint selection. For example, if you want to be able to hold leftshift while pressing a hint selection key, then use `hint-mode.hint.select=_{none | leftshift} +selectionkey`
+- **`undo`**: Key combo to undo the last hint selection keystroke
 - **`to.<mode-name>`**: Use this syntax to specify which mode to switch to after a hint is selected (e.g., `hint-mode.to.normal-mode=+selectionkey`)
 - **`mouse-movement`**: Controls how the mouse moves when interacting with hints
   - `no-movement`: Mouse stays in its current position
