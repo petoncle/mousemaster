@@ -403,6 +403,7 @@ public class ConfigurationParser {
                                      .values()
                                      .stream()
                                      .map(HintMeshKeysBuilder::selectionKeys)
+                                     .filter(Objects::nonNull)
                                      .flatMap(Collection::stream)
                                      .collect(Collectors.toSet());
         ComboPrecondition emptyComboPrecondition = new ComboPrecondition(
