@@ -561,7 +561,6 @@ The main font style has the following properties:
 - hint.selected-font-opacity
 - hint.focused-font-color
 - hint.focused-font-opacity
-
 - hint.font-name
 - hint.font-weight
 - hint.font-size
