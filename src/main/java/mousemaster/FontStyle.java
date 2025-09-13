@@ -3,6 +3,10 @@ package mousemaster;
 public record FontStyle(String name, FontWeight weight,
                         double size, double spacingPercent, String hexColor,
                         double opacity,
+                        String selectedFontHexColor,
+                        double selectedFontOpacity,
+                        String focusedFontHexColor,
+                        double focusedFontOpacity,
                         double outlineThickness, String outlineHexColor,
                         double outlineOpacity,
                         double shadowBlurRadius, String shadowHexColor,
@@ -21,6 +25,10 @@ public record FontStyle(String name, FontWeight weight,
         private Double spacingPercent;
         private String hexColor;
         private Double opacity;
+        private String selectedFontHexColor;
+        private Double selectedFontOpacity;
+        private String focusedFontHexColor;
+        private Double focusedFontOpacity;
         private Double outlineThickness;
         private String outlineHexColor;
         private Double outlineOpacity;
@@ -41,6 +49,10 @@ public record FontStyle(String name, FontWeight weight,
             this.spacingPercent = fontStyle.spacingPercent;
             this.hexColor = fontStyle.hexColor;
             this.opacity = fontStyle.opacity;
+            this.selectedFontHexColor = fontStyle.selectedFontHexColor;
+            this.selectedFontOpacity = fontStyle.selectedFontOpacity;
+            this.focusedFontHexColor = fontStyle.focusedFontHexColor;
+            this.focusedFontOpacity = fontStyle.focusedFontOpacity;
             this.outlineThickness = fontStyle.outlineThickness;
             this.outlineHexColor = fontStyle.outlineHexColor;
             this.outlineOpacity = fontStyle.outlineOpacity;
@@ -73,6 +85,22 @@ public record FontStyle(String name, FontWeight weight,
 
         public Double opacity() {
             return opacity;
+        }
+
+        public String selectedFontHexColor() {
+            return selectedFontHexColor;
+        }
+
+        public Double selectedFontOpacity() {
+            return selectedFontOpacity;
+        }
+
+        public String focusedFontHexColor() {
+            return focusedFontHexColor;
+        }
+
+        public Double focusedFontOpacity() {
+            return focusedFontOpacity;
         }
 
         public Double outlineThickness() {
@@ -137,6 +165,26 @@ public record FontStyle(String name, FontWeight weight,
             return this;
         }
 
+        public FontStyleBuilder selectedFontHexColor(String selectedFontHexColor) {
+            this.selectedFontHexColor = selectedFontHexColor;
+            return this;
+        }
+
+        public FontStyleBuilder selectedFontOpacity(Double selectedFontOpacity) {
+            this.selectedFontOpacity = selectedFontOpacity;
+            return this;
+        }
+
+        public FontStyleBuilder focusedFontHexColor(String focusedFontHexColor) {
+            this.focusedFontHexColor = focusedFontHexColor;
+            return this;
+        }
+
+        public FontStyleBuilder focusedFontOpacity(Double focusedFontOpacity) {
+            this.focusedFontOpacity = focusedFontOpacity;
+            return this;
+        }
+
         public FontStyleBuilder outlineThickness(Double fontOutlineThickness) {
             this.outlineThickness = fontOutlineThickness;
             return this;
@@ -179,22 +227,54 @@ public record FontStyle(String name, FontWeight weight,
             return this;
         }
 
-        public FontStyle build(FontStyle defaultStyle) {
+        void extend(FontStyleBuilder defaultStyle) {
+            if (name == null) name = defaultStyle.name;
+            if (weight == null) weight = defaultStyle.weight;
+            if (size == null) size = defaultStyle.size;
+            if (spacingPercent == null) spacingPercent = defaultStyle.spacingPercent;
+            if (hexColor == null) hexColor = defaultStyle.hexColor;
+            if (opacity == null) opacity = defaultStyle.opacity;
+            if (selectedFontHexColor == null) selectedFontHexColor = defaultStyle.selectedFontHexColor;
+            if (selectedFontOpacity == null) selectedFontOpacity = defaultStyle.selectedFontOpacity;
+            if (focusedFontHexColor == null) focusedFontHexColor = defaultStyle.focusedFontHexColor;
+            if (focusedFontOpacity == null) focusedFontOpacity = defaultStyle.focusedFontOpacity;
+            if (outlineThickness == null) outlineThickness = defaultStyle.outlineThickness;
+            if (outlineHexColor == null) outlineHexColor = defaultStyle.outlineHexColor;
+            if (outlineOpacity == null) outlineOpacity = defaultStyle.outlineOpacity;
+            if (shadowBlurRadius == null) shadowBlurRadius = defaultStyle.shadowBlurRadius;
+            if (shadowHexColor == null) shadowHexColor = defaultStyle.shadowHexColor;
+            if (shadowOpacity == null) shadowOpacity = defaultStyle.shadowOpacity;
+            if (shadowHorizontalOffset == null) shadowHorizontalOffset = defaultStyle.shadowHorizontalOffset;
+            if (shadowVerticalOffset == null) shadowVerticalOffset = defaultStyle.shadowVerticalOffset;
+        }
+
+        void extendSelectedAndFocusedFromMain() {
+            if (selectedFontHexColor == null) selectedFontHexColor = hexColor;
+            if (selectedFontOpacity == null) selectedFontOpacity = opacity;
+            if (focusedFontHexColor == null) focusedFontHexColor = hexColor;
+            if (focusedFontOpacity == null) focusedFontOpacity = opacity;
+        }
+
+        public FontStyle build() {
             return new FontStyle(
-                    name == null ? defaultStyle.name : name,
-                    weight == null ? defaultStyle.weight : weight,
-                    size == null ? defaultStyle.size : size,
-                    spacingPercent == null ? defaultStyle.spacingPercent : spacingPercent,
-                    hexColor == null ? defaultStyle.hexColor : hexColor,
-                    opacity == null ? defaultStyle.opacity : opacity,
-                    outlineThickness == null ? defaultStyle.outlineThickness : outlineThickness,
-                    outlineHexColor == null ? defaultStyle.outlineHexColor : outlineHexColor,
-                    outlineOpacity == null ? defaultStyle.outlineOpacity : outlineOpacity,
-                    shadowBlurRadius == null ? defaultStyle.shadowBlurRadius : shadowBlurRadius,
-                    shadowHexColor == null ? defaultStyle.shadowHexColor : shadowHexColor,
-                    shadowOpacity == null ? defaultStyle.shadowOpacity : shadowOpacity,
-                    shadowHorizontalOffset == null ? defaultStyle.shadowHorizontalOffset : shadowHorizontalOffset,
-                    shadowVerticalOffset == null ? defaultStyle.shadowVerticalOffset : shadowVerticalOffset
+                    name,
+                    weight,
+                    size,
+                    spacingPercent,
+                    hexColor,
+                    opacity,
+                    selectedFontHexColor,
+                    selectedFontOpacity,
+                    focusedFontHexColor,
+                    focusedFontOpacity,
+                    outlineThickness,
+                    outlineHexColor,
+                    outlineOpacity,
+                    shadowBlurRadius,
+                    shadowHexColor,
+                    shadowOpacity,
+                    shadowHorizontalOffset,
+                    shadowVerticalOffset
             );
         }
 

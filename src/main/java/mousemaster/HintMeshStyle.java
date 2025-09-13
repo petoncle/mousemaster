@@ -3,8 +3,6 @@ package mousemaster;
 import java.time.Duration;
 
 public record HintMeshStyle(FontStyle fontStyle,
-                            String selectedFontHexColor,
-                            double selectedFontOpacity,
                             boolean prefixInBackground,
                             FontStyle prefixFontStyle,
                             String boxHexColor,
@@ -35,8 +33,6 @@ public record HintMeshStyle(FontStyle fontStyle,
 
     public static class HintMeshStyleBuilder {
         private FontStyle.FontStyleBuilder fontStyle = new FontStyle.FontStyleBuilder();
-        private String selectedFontHexColor;
-        private Double selectedFontOpacity;
         private Boolean prefixInBackground;
         private FontStyle.FontStyleBuilder prefixFontStyle = new FontStyle.FontStyleBuilder();
         private String boxHexColor;
@@ -67,8 +63,6 @@ public record HintMeshStyle(FontStyle fontStyle,
 
         public HintMeshStyleBuilder(HintMeshStyle style) {
             this.fontStyle = style.fontStyle.builder();
-            this.selectedFontHexColor = style.selectedFontHexColor;
-            this.selectedFontOpacity = style.selectedFontOpacity;
             this.prefixInBackground = style.prefixInBackground;
             this.prefixFontStyle = style.prefixFontStyle.builder();
             this.boxHexColor = style.boxHexColor;
@@ -92,18 +86,6 @@ public record HintMeshStyle(FontStyle fontStyle,
             this.subgridBorderOpacity = style.subgridBorderOpacity;
             this.transitionAnimationEnabled = style.transitionAnimationEnabled;
             this.transitionAnimationDuration = style.transitionAnimationDuration;
-        }
-
-        public HintMeshStyleBuilder selectedFontHexColor(
-                String selectedFontHexColor) {
-            this.selectedFontHexColor = selectedFontHexColor;
-            return this;
-        }
-
-        public HintMeshStyleBuilder selectedFontOpacity(
-                Double selectedFontOpacity) {
-            this.selectedFontOpacity = selectedFontOpacity;
-            return this;
         }
 
         public HintMeshStyleBuilder prefixInBackground(
@@ -221,14 +203,6 @@ public record HintMeshStyle(FontStyle fontStyle,
             return fontStyle;
         }
 
-        public String selectedFontHexColor() {
-            return selectedFontHexColor;
-        }
-
-        public Double selectedFontOpacity() {
-            return selectedFontOpacity;
-        }
-
         public Boolean prefixInBackground() {
             return prefixInBackground;
         }
@@ -322,31 +296,17 @@ public record HintMeshStyle(FontStyle fontStyle,
         }
 
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
-            FontStyle fontStyle1 =
-                    fontStyle.build(defaultStyle == null ? null : defaultStyle.fontStyle);
             if (defaultStyle != null) {
-                if (selectedFontOpacity == null) selectedFontOpacity = defaultStyle.selectedFontOpacity;
-                if (prefixFontStyle.name() == null) prefixFontStyle.name(defaultStyle.prefixFontStyle.name());
-                if (prefixFontStyle.weight() == null) prefixFontStyle.weight(defaultStyle.prefixFontStyle.weight());
-                if (prefixFontStyle.size() == null) prefixFontStyle.size(defaultStyle.prefixFontStyle.size());
-                if (prefixFontStyle.spacingPercent() == null) prefixFontStyle.spacingPercent(defaultStyle.prefixFontStyle.spacingPercent());
-                if (prefixFontStyle.hexColor() == null) prefixFontStyle.hexColor(defaultStyle.prefixFontStyle.hexColor());
-                if (prefixFontStyle.opacity() == null) prefixFontStyle.opacity(defaultStyle.prefixFontStyle.opacity());
-                if (prefixFontStyle.outlineThickness() == null) prefixFontStyle.outlineThickness(defaultStyle.prefixFontStyle.outlineThickness());
-                if (prefixFontStyle.outlineHexColor() == null) prefixFontStyle.outlineHexColor(defaultStyle.prefixFontStyle.outlineHexColor());
-                if (prefixFontStyle.outlineOpacity() == null) prefixFontStyle.outlineOpacity(defaultStyle.prefixFontStyle.outlineOpacity());
-                if (prefixFontStyle.shadowBlurRadius() == null) prefixFontStyle.shadowBlurRadius(defaultStyle.prefixFontStyle.shadowBlurRadius());
-                if (prefixFontStyle.shadowHexColor() == null) prefixFontStyle.shadowHexColor(defaultStyle.prefixFontStyle.shadowHexColor());
-                if (prefixFontStyle.shadowOpacity() == null) prefixFontStyle.shadowOpacity(defaultStyle.prefixFontStyle.shadowOpacity());
-                if (prefixFontStyle.shadowHorizontalOffset() == null) prefixFontStyle.shadowHorizontalOffset(defaultStyle.prefixFontStyle.shadowHorizontalOffset());
-                if (prefixFontStyle.shadowVerticalOffset() == null) prefixFontStyle.shadowVerticalOffset(defaultStyle.prefixFontStyle.shadowVerticalOffset());
+                fontStyle.extend(defaultStyle.fontStyle.builder());
+                prefixFontStyle.extend(defaultStyle.prefixFontStyle.builder());
             }
+            fontStyle.extendSelectedAndFocusedFromMain();
+            prefixFontStyle.extendSelectedAndFocusedFromMain();
+            prefixFontStyle.extend(fontStyle);
             return new HintMeshStyle(
-                    fontStyle1,
-                    selectedFontHexColor == null ? defaultStyle.selectedFontHexColor : selectedFontHexColor,
-                    selectedFontOpacity == null ? fontStyle1.opacity() : selectedFontOpacity,
+                    fontStyle.build(),
                     prefixInBackground == null ? defaultStyle.prefixInBackground : prefixInBackground,
-                    prefixFontStyle.build(fontStyle1),
+                    prefixFontStyle.build(),
                     boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
                     boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,

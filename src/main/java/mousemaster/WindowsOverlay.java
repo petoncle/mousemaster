@@ -744,9 +744,16 @@ public class WindowsOverlay {
         LabelFontStyle labelFontStyle = new LabelFontStyle(
                 font,
                 new QFontMetrics(font),
-                qColor(style.fontStyle().hexColor(), style.fontStyle().opacity()),
-                qColor(style.selectedFontHexColor(), style.selectedFontOpacity()),
-                qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
+                new HintKeyColorMap(
+                    qColor(style.fontStyle().hexColor(), style.fontStyle().opacity()),
+                    qColor(style.fontStyle().selectedFontHexColor(), style.fontStyle().selectedFontOpacity()),
+                    qColor(style.fontStyle().focusedFontHexColor(), style.fontStyle().focusedFontOpacity())
+                ),
+                new HintKeyColorMap(
+                    qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
+                    qColor(style.prefixFontStyle().selectedFontHexColor(), style.prefixFontStyle().selectedFontOpacity()),
+                    qColor(style.prefixFontStyle().focusedFontHexColor(), style.prefixFontStyle().focusedFontOpacity())
+                ),
                 qColor(style.fontStyle().outlineHexColor(), style.fontStyle().outlineOpacity()),
                 (int) Math.round(style.fontStyle().outlineThickness() * screenScale),
                 qColor(style.fontStyle().shadowHexColor(), style.fontStyle().shadowOpacity()),
@@ -931,8 +938,11 @@ public class WindowsOverlay {
                     prefixFont,
                     new QFontMetrics(prefixFont),
                     null,
-                    qColor(style.selectedFontHexColor(), style.selectedFontOpacity()),
-                    qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
+                    new HintKeyColorMap(
+                            qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
+                            qColor(style.prefixFontStyle().selectedFontHexColor(), style.prefixFontStyle().selectedFontOpacity()),
+                            qColor(style.prefixFontStyle().focusedFontHexColor(), style.prefixFontStyle().focusedFontOpacity())
+                    ),
                     qColor(style.prefixFontStyle().outlineHexColor(), style.prefixFontStyle().outlineOpacity()),
                     (int) Math.round(style.prefixFontStyle().outlineThickness() * screenScale),
                     qColor(style.prefixFontStyle().shadowHexColor(), style.prefixFontStyle().shadowOpacity()),
@@ -1396,12 +1406,18 @@ public class WindowsOverlay {
         return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
     }
 
-    public record LabelFontStyle(QFont font, QFontMetrics metrics, QColor fontColor, QColor selectedColor,
-                                 QColor prefixColor,
+    public record LabelFontStyle(QFont font, QFontMetrics metrics,
+                                 HintKeyColorMap hintKeyColorMap,
+                                 HintKeyColorMap prefixHintKeyColorMap,
                                  QColor outlineColor,
                                  int outlineThickness, QColor shadowColor, double shadowBlurRadius,
                                  double shadowHorizontalOffset, double shadowVerticalOffset,
                                  double fontSpacingPercent) {
+
+    }
+
+    public record HintKeyColorMap(QColor color, QColor selectedColor,
+                                  QColor focusedColor) {
 
     }
 
@@ -1499,6 +1515,7 @@ public class WindowsOverlay {
                 }
                 keyTexts.add(new HintKeyText(keyText, x, y, keyWidth,
                         keyIndex <= selectedKeyEndIndex,
+                        keyIndex == selectedKeyEndIndex + 1,
                         prefixLength != -1 && keyIndex <= prefixLength - 1));
             }
             int smallestHintBoxTop = y - labelFontStyle.metrics.ascent();
@@ -1538,12 +1555,15 @@ public class WindowsOverlay {
             if (overwriteBackground)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
+                HintKeyColorMap colorMap =
+                        keyText.isPrefix() ? labelFontStyle.prefixHintKeyColorMap :
+                                labelFontStyle.hintKeyColorMap;
                 if (keyText.isSelected())
-                    painter.setPen(labelFontStyle.selectedColor);
-                else if (keyText.isPrefix())
-                    painter.setPen(labelFontStyle.prefixColor);
+                    painter.setPen(colorMap.selectedColor());
+                else if (keyText.isFocused())
+                    painter.setPen(colorMap.focusedColor());
                 else
-                    painter.setPen(labelFontStyle.fontColor);
+                    painter.setPen(colorMap.color());
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.end();
@@ -1551,6 +1571,7 @@ public class WindowsOverlay {
     }
 
     private record HintKeyText(String text, int x, int y, int width, boolean isSelected,
+                               boolean isFocused,
                                boolean isPrefix) {
 
     }

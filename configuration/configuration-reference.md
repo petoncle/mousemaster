@@ -527,12 +527,75 @@ hint-mode.hint.transition-animation-duration-millis=100
 - Box appearance: controls the background and border of hint boxes
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
 
-- Font settings: controls how hint labels appear
-  - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
+- Font appearance: controls how hint labels appear
+    - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
+ 
+### Hint prefix
 
-- Prefix settings: for multi-character hints
-  - All `font-*` properties have corresponding `prefix-font-*` properties (e.g., `prefix-font-name=Arial`)
-  - `prefix-in-background`: Whether already-typed characters appear in the background
+A hint is made of several keys (letters). For example, hint JKK is made of 3 keys: J, K and K.
+- The hint prefix is JK.
+- The prefix (JK) can be displayed "in the background" with `prefix-in-background=true`.
+
+- In a column layout, hints in the same column have the same prefix.
+- In a row layout, hints in the same column have the same prefix.
+- In a grid layout (e.g. 5x6 subgrid), hints in the same subgrid have the same prefix.
+
+Initially:
+- None of the hint keys are selected.
+- The hint key J is focused.
+
+Then, when typing J on the keyboard:
+- J becomes selected.
+- The first K becomes focused.
+- The last K is neither focused nor selected.
+
+Then, when typing K:
+- J and the first K are selected.
+- The second K is focused.
+
+The font styles are divided into two categories: the main (default) font style and the optional prefix font style.  
+The main font style has the following properties:
+- hint.font-color
+- hint.font-opacity
+- hint.selected-font-color
+- hint.selected-font-opacity
+- hint.focused-font-color
+- hint.focused-font-opacity
+
+- hint.font-name
+- hint.font-weight
+- hint.font-size
+- hint.font-spacing-percent
+- hint.font-outline-thickness
+- hint.font-outline-color
+- hint.font-outline-opacity
+- hint.font-shadow-blur-radius
+- hint.font-shadow-color
+- hint.font-shadow-opacity
+- hint.font-shadow-horizontal-offset
+- hint.font-shadow-vertical-offset
+
+The prefix font style has the following properties:
+- hint.prefix-font-color
+- hint.prefix-font-opacity
+- hint.prefix-selected-font-color
+- hint.prefix-selected-font-opacity
+- hint.prefix-focused-font-color
+- hint.prefix-focused-font-opacity
+
+If the prefix is in the background, then the prefix font style has additional properties:
+- hint.prefix-font-name
+- hint.prefix-font-weight
+- hint.prefix-font-size
+- hint.prefix-font-spacing-percent
+- hint.prefix-font-outline-thickness
+- hint.prefix-font-outline-color
+- hint.prefix-font-outline-opacity
+- hint.prefix-font-shadow-blur-radius
+- hint.prefix-font-shadow-color
+- hint.prefix-font-shadow-opacity
+- hint.prefix-font-shadow-horizontal-offset
+- hint.prefix-font-shadow-vertical-offset
 
 ### Multi-level hint example
 

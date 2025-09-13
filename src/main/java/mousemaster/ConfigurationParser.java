@@ -88,6 +88,7 @@ public class ConfigurationParser {
                             .spacingPercent(0.7d)
                             .hexColor("#FFFFFF")
                             .opacity(1d)
+                            .selectedFontHexColor("#CCCCCC")
                             .outlineThickness(0d)
                             .outlineHexColor("#000000")
                             .outlineOpacity(0.5d)
@@ -97,7 +98,6 @@ public class ConfigurationParser {
                             .shadowHorizontalOffset(0d)
                             .shadowVerticalOffset(0d);
         hintMeshStyleBuilder
-                .selectedFontHexColor("#CCCCCC")
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
                 .boxOpacity(0.3d)
@@ -720,6 +720,10 @@ public class ConfigurationParser {
                         case "font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().spacingPercent(parseDouble(propertyValue, true, 0, 1));
                         case "font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().hexColor(checkColorFormat(propertyValue));
                         case "font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontHexColor(checkColorFormat(propertyValue));
+                        case "selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontOpacity(parseDouble(propertyValue, true, 0, 1));
+                        case "focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontHexColor(checkColorFormat(propertyValue));
+                        case "focused-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
                         case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineHexColor(checkColorFormat(propertyValue));
                         case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
@@ -728,8 +732,6 @@ public class ConfigurationParser {
                         case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowHorizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowVerticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).selectedFontHexColor(checkColorFormat(propertyValue));
-                        case "selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).selectedFontOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-in-background" ->
                                 mode.hintMesh.builder.style(viewportFilter)
                                                      .prefixInBackground(Boolean.parseBoolean(propertyValue));
@@ -739,6 +741,10 @@ public class ConfigurationParser {
                         case "prefix-font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().spacingPercent(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().hexColor(checkColorFormat(propertyValue));
                         case "prefix-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontHexColor(checkColorFormat(propertyValue));
+                        case "prefix-selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontOpacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontHexColor(checkColorFormat(propertyValue));
+                        case "prefix-focused-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
                         case "prefix-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineHexColor(checkColorFormat(propertyValue));
                         case "prefix-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
@@ -2105,16 +2111,6 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.prefixInBackground(
                                 parentStyle.prefixInBackground());
-                    if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::selectedFontHexColor,
-                            childStyleByFilter, filter))
-                        childStyle.selectedFontHexColor(
-                                parentStyle.selectedFontHexColor());
-                    if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::selectedFontOpacity,
-                            childStyleByFilter, filter))
-                        childStyle.selectedFontOpacity(
-                                parentStyle.selectedFontOpacity());
                     extendFontStyleProperties(HintMeshStyleBuilder::prefixFontStyle, childStyle.prefixFontStyle(), parentStyle.prefixFontStyle(), childStyleByFilter, filter);
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
@@ -2256,6 +2252,26 @@ public class ConfigurationParser {
                         FontStyleBuilder::opacity, childStyleByFilter,
                         filter))
                     childFontStyle.opacity(parentFontStyle.opacity());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::selectedFontHexColor, childStyleByFilter,
+                        filter))
+                    childFontStyle.selectedFontHexColor(parentFontStyle.selectedFontHexColor());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::selectedFontOpacity, childStyleByFilter,
+                        filter))
+                    childFontStyle.selectedFontOpacity(parentFontStyle.selectedFontOpacity());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::focusedFontHexColor, childStyleByFilter,
+                        filter))
+                    childFontStyle.focusedFontHexColor(parentFontStyle.focusedFontHexColor());
+                if (!fontStyleChildDoesNotNeedParentProperty(
+                        fontStyleBuilderFunction,
+                        FontStyleBuilder::focusedFontOpacity, childStyleByFilter,
+                        filter))
+                    childFontStyle.focusedFontOpacity(parentFontStyle.focusedFontOpacity());
                 if (!fontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
                         FontStyleBuilder::outlineThickness,
