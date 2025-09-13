@@ -96,6 +96,10 @@ public class ComboWatcher implements ModeListener {
         List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
         Set<Combo> completedCombos = new HashSet<>();
         Key comboPreparationBreakerKey = null;
+        // Remove waiting combos that don't belong to the current mode.
+        combosWaitingForLastMoveToComplete.removeIf(
+                comboWaitingForLastMoveToComplete -> !comboWaitingForLastMoveToComplete.comboMode.equals(
+                        currentMode));
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
             comboWaitingForLastMoveToComplete.remainingWait -= delta;
             if (comboWaitingForLastMoveToComplete.remainingWait < 0) {
@@ -296,7 +300,7 @@ public class ComboWatcher implements ModeListener {
                 List<Command> commands = entry.getValue();
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands);
                 combosWaitingForLastMoveToComplete.add(
-                        new ComboWaitingForLastMoveToComplete(comboAndCommands,
+                        new ComboWaitingForLastMoveToComplete(currentMode, comboAndCommands,
                                 comboLastMove.duration().min().toNanos() / 1e9d));
             }
             else {
@@ -539,14 +543,17 @@ public class ComboWatcher implements ModeListener {
     }
 
      private static final class ComboWaitingForLastMoveToComplete {
-        private final ComboAndCommands comboAndCommands;
+         private final Mode comboMode;
+         private final ComboAndCommands comboAndCommands;
         private double remainingWait;
 
-        private ComboWaitingForLastMoveToComplete(ComboAndCommands comboAndCommands,
-                                                  double remainingWait) {
-            this.comboAndCommands = comboAndCommands;
-            this.remainingWait = remainingWait;
-        }
+         private ComboWaitingForLastMoveToComplete(Mode currentMode,
+                                                   ComboAndCommands comboAndCommands,
+                                                   double remainingWait) {
+             comboMode = currentMode;
+             this.comboAndCommands = comboAndCommands;
+             this.remainingWait = remainingWait;
+         }
 
         public ComboAndCommands comboAndCommands() {
             return comboAndCommands;
