@@ -344,14 +344,12 @@ public class ComboWatcher implements ModeListener {
             listeners.forEach(ComboListener::completedCombo);
         }
         runCommands(commandsToRun);
-        if (event != null && event.isPress()) {
-            boolean atLeastOneComboCompleted = !comboAndCommandsToRun.isEmpty();
-            if (atLeastOneComboCompleted) {
-                for (ComboAndCommands comboAndCommands : comboAndCommandsToRun) {
-                    Combo combo = comboAndCommands.combo;
-                    addCurrentlyPressedCompletedComboKeys(combo,
-                            currentlyPressedKeys);
-                }
+        boolean atLeastOneComboCompleted = !comboAndCommandsToRun.isEmpty();
+        if (atLeastOneComboCompleted) {
+            for (ComboAndCommands comboAndCommands : comboAndCommandsToRun) {
+                Combo combo = comboAndCommands.combo;
+                addCurrentlyPressedCompletedComboKeys(combo,
+                        currentlyPressedKeys);
             }
         }
         return processingSet;
