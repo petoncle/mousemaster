@@ -860,12 +860,12 @@ max-position-history-size=16
 normal-mode.position-history.save-position=+f1
 
 # Define a key to clear all saved positions
-normal-mode.position-history.clear-positions=+f2
+normal-mode.position-history.clear=+f2
 ```
 
 - **`max-position-history-size`**: Maximum number of positions that can be stored (older positions are removed when this limit is reached)
 - **`save-position`**: Command to save the current mouse position to history
-- **`clear-positions`**: Command to clear all saved positions
+- **`clear`**: Command to clear all saved positions
 
 ### Using position history with hints
 
@@ -896,7 +896,7 @@ normal-mode.position-history.save-position=+f1
 normal-mode.to.position-hint-mode=+p
 
 # Clear all saved positions if needed
-normal-mode.position-history.clear-positions=+f2
+normal-mode.position-history.clear=+f2
 ```
 
 Typical usage:
