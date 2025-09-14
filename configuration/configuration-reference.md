@@ -875,7 +875,6 @@ Position history works in conjunction with a hint mode of type `position-history
 # Configure a hint mode to use position history
 position-hint-mode.hint.type=position-history
 position-hint-mode.hint.selection-keys=a b c d e f g h i j k l m n o p q r s t u v w x y z
-position-hint-mode.to.normal-mode=+selection
 
 # Switch to position hint mode
 normal-mode.to.position-hint-mode=+p
