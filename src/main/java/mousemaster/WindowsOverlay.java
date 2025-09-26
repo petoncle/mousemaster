@@ -1880,6 +1880,8 @@ public class WindowsOverlay {
             }
         }
         if (zoomWindow == null) {
+            if (zoom == null)
+                return;
             createZoomWindow();
         }
         Zoom oldZoom = currentZoom;
