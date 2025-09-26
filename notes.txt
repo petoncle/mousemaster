@@ -116,3 +116,5 @@
   + Same for hint1-mode.hint.mode-after-selection.leftctrl+leftshift=hint2-mode
 + Self feed "fake" events to ComboWatcher for automation?
  + E.g. open hint, then select and click JI to focus Firefox address bar: +rightalt -rightalt +rightalt -rightalt +j -j +space +i -i -space
+
+ https://github.com/babashka/babashka/blob/master/.github/workflows/build-windows.yml
