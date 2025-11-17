@@ -148,16 +148,18 @@ public class KbdlayoutinfoParser {
     public static void main(String[] args)
             throws IOException, ParserConfigurationException, SAXException {
         List<String> keyboardLayoutIdentifiers = parseRootPage();
-//        keyboardLayoutIdentifiers.removeIf(Predicate.not(Predicate.isEqual("0000040C")));
+//        keyboardLayoutIdentifiers.removeIf(Predicate.not(Predicate.isEqual("00000412")));
         List<KeyboardLayout> keyboardLayouts = new ArrayList<>();
         for (String keyboardLayoutIdentifier : keyboardLayoutIdentifiers) {
             logger.info("Parsing keyboard layout page " + keyboardLayoutIdentifier);
-            keyboardLayouts.add(parseKeyboardLayoutPage(keyboardLayoutIdentifier));
+            KeyboardLayout keyboardLayout = parseKeyboardLayoutPage(keyboardLayoutIdentifier);
+            keyboardLayouts.add(keyboardLayout);
         }
         for (KeyboardLayout keyboardLayout : keyboardLayouts) {
             logger.info("Parsing keyboard layout XML for processing " + keyboardLayout);
             parseKeyboardLayoutXmlForProcessing(keyboardLayout);
         }
+        fixKoreanKeyboardLayout(keyboardLayouts);
         addCustomKeyboardLayouts(keyboardLayouts);
         String filePath = Paths.get("src", "main", "resources", "keyboard-layouts.json").toString();
         Gson gson = new GsonBuilder().create();
@@ -360,6 +362,20 @@ public class KbdlayoutinfoParser {
         }
         keyboardLayouts.add(
                 new KeyboardLayout(null, null, null, "us-halmak", usHalmakKeys));
+    }
+
+    private static void fixKoreanKeyboardLayout(List<KeyboardLayout> keyboardLayouts) {
+        // https://kbdlayout.info/00000412/download/xml is missing RMENU.
+        KeyboardLayout koreanKeyboardLayout =
+                keyboardLayouts.stream()
+                               .filter(keyboardLayout -> keyboardLayout.identifier()
+                                                                       .equals("00000412"))
+                               .findFirst()
+                               .orElseThrow();
+        koreanKeyboardLayout.keys()
+                            .add(new KeyboardLayout.KeyboardLayoutKey(57400,
+                                    WindowsVirtualKey.VK_RMENU, Key.rightalt, null,
+                                    "Right Alt"));
     }
 
     private static void log(String string) {
