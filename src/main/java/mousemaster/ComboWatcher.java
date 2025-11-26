@@ -385,6 +385,13 @@ public class ComboWatcher implements ModeListener {
         // Run SwitchMode commands now to avoid losing key events meant for the next mode.
         for (int commandIndex = 0; commandIndex < commands.size(); commandIndex++) {
             Command command = commands.get(commandIndex);
+            if (command instanceof Command.SelectHintKey) {
+                commandRunner.run(command, lastEventKey);
+                commands.remove(commandIndex);
+                commandIndex--;
+                if (hintManager.pollLastHintCommandSupercedesOtherCommands())
+                    return;
+            }
             if (command instanceof Command.BreakComboPreparation ||
                 command instanceof Command.SwitchMode) {
                 commandRunner.run(command, lastEventKey);
