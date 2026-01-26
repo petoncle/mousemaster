@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public record RemappingParallel(List<RemappingMove> moves, Duration duration) {
+public record MacroParallel(List<MacroMove> moves, Duration duration) {
 
     @Override
     public String toString() {

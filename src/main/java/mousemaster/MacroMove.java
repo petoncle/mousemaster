@@ -1,6 +1,6 @@
 package mousemaster;
 
-public record RemappingMove(Key key, boolean press) {
+public record MacroMove(Key key, boolean press) {
 
     @Override
     public String toString() {

@@ -3,7 +3,7 @@ package mousemaster;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public record RemappingSequence(List<RemappingParallel> parallels) {
+public record MacroSequence(List<MacroParallel> parallels) {
 
     @Override
     public String toString() {

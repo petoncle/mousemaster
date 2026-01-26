@@ -93,7 +93,7 @@ public class CommandRunner {
             case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
 
-            case RemappingCommand remap -> remapper.submitRemapping(remap.remapping());
+            case RemappingCommand remap -> remapper.submit(remap.macro());
 
             // Complex command that is manually handled by ComboWatcher and KeyManager.
             case BreakComboPreparation breakComboPreparation -> {}

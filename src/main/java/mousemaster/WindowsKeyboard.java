@@ -42,9 +42,9 @@ public class WindowsKeyboard {
     /**
      * For some reason, sending more than one input per SendInput call rarely work (?).
      */
-    public static void sendInput(List<RemappingMove> moves, boolean startRepeat, boolean oneInputPerCall) {
+    public static void sendInput(List<MacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
         if (oneInputPerCall) {
-            for (RemappingMove move : moves) {
+            for (MacroMove move : moves) {
                 sendInput(List.of(move), startRepeat);
             }
         }
@@ -74,17 +74,17 @@ public class WindowsKeyboard {
             return;
         durationUntilNextKeyPressRepeat -= delta;
         if (durationUntilNextKeyPressRepeat <= 0) {
-            sendInput(List.of(new RemappingMove(pressedKeyToRepeat, true)), true);
+            sendInput(List.of(new MacroMove(pressedKeyToRepeat, true)), true);
             durationUntilNextKeyPressRepeat = 0.025d;
         }
     }
 
-    private static void sendInput(List<RemappingMove> moves, boolean triggerKeyRepeating) {
+    private static void sendInput(List<MacroMove> moves, boolean triggerKeyRepeating) {
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
-            RemappingMove move = moves.get(moveIndex);
+            MacroMove move = moves.get(moveIndex);
             // Key already pressed.
             if (move.press()) {
                 if (triggerKeyRepeating) {

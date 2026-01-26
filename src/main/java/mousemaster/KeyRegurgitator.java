@@ -25,8 +25,8 @@ public class KeyRegurgitator {
         // then just pressing g again would open the Windows Game popup, as if leftwin
         // was still being pressed.
         WindowsKeyboard.sendInput(
-                !releaseRegurgitatedKey ? List.of(new RemappingMove(keyToRegurgitate, true)) :
-                List.of(new RemappingMove(keyToRegurgitate, true), new RemappingMove(keyToRegurgitate, false)),
+                !releaseRegurgitatedKey ? List.of(new MacroMove(keyToRegurgitate, true)) :
+                List.of(new MacroMove(keyToRegurgitate, true), new MacroMove(keyToRegurgitate, false)),
                 startRepeat, true);
     }
 

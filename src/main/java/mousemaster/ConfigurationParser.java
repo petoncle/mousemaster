@@ -454,10 +454,9 @@ public class ConfigurationParser {
                  .map(ComboMove::key)
                  .forEach(allComboAndRemappingKeys::add);
             for (Command command : commands) {
-                if (command instanceof Command.RemappingCommand(Remapping remapping)) {
-                    for (RemappingParallel parallel : remapping.output()
-                                                               .parallels()) {
-                        for (RemappingMove move : parallel.moves()) {
+                if (command instanceof Command.RemappingCommand(Macro macro)) {
+                    for (MacroParallel parallel : macro.output().parallels()) {
+                        for (MacroMove move : parallel.moves()) {
                             allComboAndRemappingKeys.add(move.key());
                         }
                     }
@@ -904,23 +903,23 @@ public class ConfigurationParser {
                     }
                     for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
                         String remappingOutput = split[1];
-                        Set<String> aliasNamesUsedInRemappingOutput =
-                                Remapping.aliasNamesUsedInRemappingOutput(remappingOutput,
+                        Set<String> aliasNamesUsedInOutput =
+                                Macro.aliasNamesUsedInOutput(remappingOutput,
                                         keyAliases.keySet());
                         if (!comboAliasNameIntersection.containsAll(
-                                aliasNamesUsedInRemappingOutput)) {
+                                aliasNamesUsedInOutput)) {
                             Set<String> aliasesNotUsedInComboSequence =
-                                    new HashSet<>(aliasNamesUsedInRemappingOutput);
-                            aliasNamesUsedInRemappingOutput.removeAll(
+                                    new HashSet<>(aliasNamesUsedInOutput);
+                            aliasNamesUsedInOutput.removeAll(
                                     comboAliasNameIntersection);
                             throw new IllegalArgumentException(
                                     "Key aliases " + aliasesNotUsedInComboSequence +
                                     " cannot be used in the remapping output because they are not used in the combo sequence");
                         }
-                        Remapping remapping = Remapping.of(remappingName, remappingOutput,
+                        Macro macro = Macro.of(remappingName, remappingOutput,
                                     aliasResolvedCombo.aliasResolution());
                         // One remapping command per resolved alias.
-                        Command command = new RemappingCommand(remapping);
+                        Command command = new RemappingCommand(macro);
                         for (Combo combo : List.of(aliasResolvedCombo.combo()))
                             mode.comboMap.remapping.builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
                                                            .add(command);
