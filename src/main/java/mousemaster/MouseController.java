@@ -372,8 +372,11 @@ public class MouseController implements ModeListener, MousePositionListener {
     }
 
     public void moveTo(int x, int y) {
-        if (x == mouseX && y == mouseY)
+        if (x == mouseX && y == mouseY) {
+            jumping = false;
+            jumpDuration = 0;
             return;
+        }
         if (jumping && x == jumpEndX && y == jumpEndY)
             return;
         // Move a single pixel. Skype's titlebar does not like being dragged too quick too far.
