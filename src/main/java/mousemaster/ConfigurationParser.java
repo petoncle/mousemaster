@@ -183,7 +183,8 @@ public class ConfigurationParser {
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
                 new Property<>("break-combo-preparation", Map.of()),
-                new Property<>("remapping", Map.of())
+                new Property<>("remapping", Map.of()),
+                new Property<>("macro", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
     }
@@ -362,7 +363,7 @@ public class ConfigurationParser {
 
             }
         }
-        Set<Key> allComboAndRemappingKeys = new HashSet<>();
+        Set<Key> allComboAndMacroKeys = new HashSet<>();
         for (ModeBuilder mode : modeByName.values()) {
             checkMissingProperties(mode);
             if (mode.hintMesh.builder.enabled() &&
@@ -374,9 +375,9 @@ public class ConfigurationParser {
             }
             mode.comboMap.hintSelectCombos(mode.hintMesh.builder.selectCombos());
             mode.comboMap.hintUnselectCombos(mode.hintMesh.builder.unselectCombos());
-            usedKeys(mode.comboMap, allComboAndRemappingKeys);
+            usedKeys(mode.comboMap, allComboAndMacroKeys);
         }
-        List<Key> missingKeys = allComboAndRemappingKeys.stream()
+        List<Key> missingKeys = allComboAndMacroKeys.stream()
                                                         .filter(Predicate.not(
                                                                 keyboardLayout::containsKey))
                                                         .toList();
@@ -435,7 +436,7 @@ public class ConfigurationParser {
     }
 
     private static void usedKeys(ComboMapConfigurationBuilder comboMap,
-                                 Set<Key> allComboAndRemappingKeys) {
+                                 Set<Key> allComboAndMacroKeys) {
         for (Map.Entry<Combo, List<Command>> entry : comboMap.commandsByCombo().entrySet()) {
             Combo combo = entry.getKey();
             List<Command> commands = entry.getValue();
@@ -444,24 +445,86 @@ public class ConfigurationParser {
                  .pressedKeySets()
                  .stream()
                  .flatMap(Collection::stream)
-                 .forEach(allComboAndRemappingKeys::add);
-            allComboAndRemappingKeys.addAll(combo.precondition()
+                 .forEach(allComboAndMacroKeys::add);
+            allComboAndMacroKeys.addAll(combo.precondition()
                                                  .keyPrecondition()
                                                  .unpressedKeySet());
             combo.sequence()
                  .moves()
                  .stream()
                  .map(ComboMove::key)
-                 .forEach(allComboAndRemappingKeys::add);
+                 .forEach(allComboAndMacroKeys::add);
             for (Command command : commands) {
                 if (command instanceof Command.RemappingCommand(Macro macro)) {
                     for (MacroParallel parallel : macro.output().parallels()) {
                         for (MacroMove move : parallel.moves()) {
-                            allComboAndRemappingKeys.add(move.key());
+                            allComboAndMacroKeys.add(move.key());
+                        }
+                    }
+                }
+                if (command instanceof Command.MacroCommand(Macro macro)) {
+                    for (MacroParallel parallel : macro.output().parallels()) {
+                        for (MacroMove move : parallel.moves()) {
+                            allComboAndMacroKeys.add(move.key());
                         }
                     }
                 }
             }
+        }
+    }
+
+    private static void parseMacroMapping(
+            String propertyType,
+            String name,
+            String propertyValue,
+            ComboMoveDuration defaultComboMoveDuration,
+            Map<String, KeyAlias> keyAliases,
+            Map<String, AppAlias> appAliases,
+            java.util.function.Function<Macro, Command> commandFactory,
+            Map<Combo, List<Command>> builder) {
+        String[] split = propertyValue.split("\\s*->\\s*");
+        if (split.length != 2)
+            throw new IllegalArgumentException(
+                    "Invalid " + propertyType + ": " + propertyValue);
+        List<AliasResolvedCombo> aliasResolvedCombos =
+                Combo.multiCombo(split[0], defaultComboMoveDuration,
+                        keyAliases,
+                        appAliases);
+        // Aliases used in the remapping/macro output must be used in all of the
+        // combos of that multi combo.
+        Set<String> comboAliasNameIntersection = new HashSet<>(
+                aliasResolvedCombos.getFirst()
+                                   .aliasResolution()
+                                   .keyByAliasName()
+                                   .keySet());
+        for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
+            comboAliasNameIntersection.retainAll(
+                    aliasResolvedCombo.aliasResolution()
+                                      .keyByAliasName()
+                                      .keySet());
+        }
+        for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
+            String output = split[1];
+            Set<String> aliasNamesUsedInOutput =
+                    Macro.aliasNamesUsedInOutput(output,
+                            keyAliases.keySet());
+            if (!comboAliasNameIntersection.containsAll(
+                    aliasNamesUsedInOutput)) {
+                Set<String> aliasesNotUsedInComboSequence =
+                        new HashSet<>(aliasNamesUsedInOutput);
+                aliasNamesUsedInOutput.removeAll(
+                        comboAliasNameIntersection);
+                throw new IllegalArgumentException(
+                        "Key aliases " + aliasesNotUsedInComboSequence +
+                        " cannot be used in the " + propertyType + " output because they are not used in the combo sequence");
+            }
+            Macro macro = Macro.of(name, output,
+                        aliasResolvedCombo.aliasResolution());
+            // One remapping/macro command per resolved alias.
+            Command command = commandFactory.apply(macro);
+            for (Combo combo : List.of(aliasResolvedCombo.combo()))
+                builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
+                       .add(command);
         }
     }
 
@@ -878,52 +941,28 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid remapping property key");
                 else {
-                    String remappingName = keyMatcher.group(group4);
-                    String remappingString = propertyValue;
-                    String[] split = remappingString.split("\\s*->\\s*");
-                    if (split.length != 2)
-                        throw new IllegalArgumentException(
-                                "Invalid remapping: " + propertyValue);
-                    List<AliasResolvedCombo> aliasResolvedCombos =
-                            Combo.multiCombo(split[0], defaultComboMoveDuration,
-                                    keyAliases,
-                                    appAliases);
-                    // Aliases used in the remapping must be used in all of the
-                    // combos of that multi combo.
-                    Set<String> comboAliasNameIntersection = new HashSet<>(
-                            aliasResolvedCombos.getFirst()
-                                               .aliasResolution()
-                                               .keyByAliasName()
-                                               .keySet());
-                    for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
-                        comboAliasNameIntersection.retainAll(
-                                aliasResolvedCombo.aliasResolution()
-                                                  .keyByAliasName()
-                                                  .keySet());
-                    }
-                    for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
-                        String remappingOutput = split[1];
-                        Set<String> aliasNamesUsedInOutput =
-                                Macro.aliasNamesUsedInOutput(remappingOutput,
-                                        keyAliases.keySet());
-                        if (!comboAliasNameIntersection.containsAll(
-                                aliasNamesUsedInOutput)) {
-                            Set<String> aliasesNotUsedInComboSequence =
-                                    new HashSet<>(aliasNamesUsedInOutput);
-                            aliasNamesUsedInOutput.removeAll(
-                                    comboAliasNameIntersection);
-                            throw new IllegalArgumentException(
-                                    "Key aliases " + aliasesNotUsedInComboSequence +
-                                    " cannot be used in the remapping output because they are not used in the combo sequence");
-                        }
-                        Macro macro = Macro.of(remappingName, remappingOutput,
-                                    aliasResolvedCombo.aliasResolution());
-                        // One remapping command per resolved alias.
-                        Command command = new RemappingCommand(macro);
-                        for (Combo combo : List.of(aliasResolvedCombo.combo()))
-                            mode.comboMap.remapping.builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
-                                                           .add(command);
-                    }
+                    parseMacroMapping("remapping", keyMatcher.group(group4),
+                            propertyValue, defaultComboMoveDuration,
+                            keyAliases, appAliases,
+                            RemappingCommand::new,
+                            mode.comboMap.remapping.builder);
+                }
+            }
+            case "macro" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.macro.parsePropertyReference(propertyKey,
+                            propertyValue,
+                            childPropertiesByParentProperty,
+                            nonRootPropertyKeys);
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "Invalid macro property key");
+                else {
+                    parseMacroMapping("macro", keyMatcher.group(group4),
+                            propertyValue, defaultComboMoveDuration,
+                            keyAliases, appAliases,
+                            MacroCommand::new,
+                            mode.comboMap.macro.builder);
                 }
             }
             case "timeout" -> {
@@ -2380,6 +2419,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
         Property<Map<Combo, List<Command>>> breakComboPreparation;
         Property<Map<Combo, List<Command>>> remapping;
+        Property<Map<Combo, List<Command>>> macro;
 
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
@@ -2406,6 +2446,7 @@ public class ConfigurationParser {
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
             breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
             remapping = new ComboMapProperty("remapping", modeName, propertyByKey);
+            macro = new ComboMapProperty("macro", modeName, propertyByKey);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
@@ -2463,6 +2504,7 @@ public class ConfigurationParser {
             add(commandsByCombo, cyclePreviousPosition.builder);
             add(commandsByCombo, breakComboPreparation.builder);
             add(commandsByCombo, remapping.builder);
+            add(commandsByCombo, macro.builder);
             return commandsByCombo;
         }
 

@@ -63,6 +63,8 @@ public sealed interface Command {
 
     record RemappingCommand(Macro macro) implements Command {}
 
+    record MacroCommand(Macro macro) implements Command {}
+
     record BreakComboPreparation() implements Command {}
 
     record SelectHintKey() implements Command {}

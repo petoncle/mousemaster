@@ -8,11 +8,12 @@ public class CommandRunner {
     private final MouseController mouseController;
     private final GridManager gridManager;
     private final HintManager hintManager;
-    private final Remapper remapper;
+    private final MacroExecutor remapper;
+    private MacroExecutor macroPlayer;
     private ComboWatcher comboWatcher;
 
     public CommandRunner(MouseController mouseController, GridManager gridManager,
-                         HintManager hintManager, Remapper remapper) {
+                         HintManager hintManager, MacroExecutor remapper) {
         this.mouseController = mouseController;
         this.gridManager = gridManager;
         this.hintManager = hintManager;
@@ -25,6 +26,10 @@ public class CommandRunner {
 
     public void setComboWatcher(ComboWatcher comboWatcher) {
         this.comboWatcher = comboWatcher;
+    }
+
+    public void setMacroPlayer(MacroExecutor macroExecutor) {
+        this.macroPlayer = macroExecutor;
     }
 
     public boolean runningAtomicCommand() {
@@ -94,6 +99,8 @@ public class CommandRunner {
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
 
             case RemappingCommand remap -> remapper.submit(remap.macro());
+
+            case MacroCommand macro -> macroPlayer.submit(macro.macro());
 
             // Complex command that is manually handled by ComboWatcher and KeyManager.
             case BreakComboPreparation breakComboPreparation -> {}

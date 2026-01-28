@@ -19,7 +19,8 @@ public class Mousemaster {
     private Configuration configuration;
     private MouseController mouseController;
     private CommandRunner commandRunner;
-    private Remapper remapper;
+    private MacroExecutor remappingExecutor;
+    private MacroExecutor macroPlayer;
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
     private ModeController modeController;
@@ -83,9 +84,14 @@ public class Mousemaster {
             long indicatorManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.windowsMessagePump();
             timeBeforeOp = timeAfterOp;
-            remapper.update(delta);
+            remappingExecutor.update(delta);
             timeAfterOp = System.nanoTime();
-            long remapperDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            long remappingExecutorDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            platform.windowsMessagePump();
+            timeBeforeOp = timeAfterOp;
+            macroPlayer.update(delta);
+            timeAfterOp = System.nanoTime();
+            long macroExecutorDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             long iterationEndTime = System.nanoTime();
             long iterationDuration =
                     (long) ((iterationEndTime - iterationBeginTime) / 1e6);
@@ -98,7 +104,8 @@ public class Mousemaster {
                              "mouseControllerDuration = " + mouseControllerDuration + "ms, " +
                              "keyboardManagerDuration = " + keyboardManagerDuration + "ms, " +
                              "indicatorManagerDuration = " + indicatorManagerDuration + "ms, " +
-                             "remapperDuration = " + remapperDuration + "ms");
+                             "remappingExecutorDuration = " + remappingExecutorDuration + "ms, " +
+                             "macroExecutorDuration = " + macroExecutorDuration + "ms");
             }
             platform.sleep();
         }
@@ -179,9 +186,9 @@ public class Mousemaster {
         GridManager gridManager = new GridManager(screenManager, mouseController);
         HintManager hintManager = new HintManager(configuration.maxPositionHistorySize(),
                 screenManager, mouseController);
-        remapper = new Remapper();
+        remappingExecutor = MacroExecutor.remapper();
         commandRunner = new CommandRunner(mouseController, gridManager,
-                hintManager, remapper);
+                hintManager, remappingExecutor);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes()) {
@@ -205,6 +212,7 @@ public class Mousemaster {
                         platform.clock(),
                         unpressedComboPreconditionKeys,
                         pressedComboPreconditionKeys, configuration.logRedactKeys());
+        macroPlayer = MacroExecutor.macroPlayer(platform.clock(), comboWatcher);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
@@ -220,6 +228,7 @@ public class Mousemaster {
                                 gridManager, hintManager, zoomManager));
         commandRunner.setModeController(modeController);
         commandRunner.setComboWatcher(comboWatcher);
+        commandRunner.setMacroPlayer(macroPlayer);
         hintManager.setModeController(modeController);
         comboWatcher.setListeners(List.of(modeController));
         modeController.switchMode(Mode.IDLE_MODE_NAME);
