@@ -24,19 +24,36 @@ public record Macro(String name, MacroSequence output) {
                 moves = new ArrayList<>();
                 continue;
             }
-            Matcher moveMatcher = Pattern.compile("([+\\-])([^-]+?)").matcher(word);
-            if (!moveMatcher.matches())
-                throw new IllegalArgumentException(
-                        "Invalid macro move for " + name + ": " + word);
-            String keyOrAliasName = moveMatcher.group(2);
-            Key aliasKey = aliasResolution.keyByAliasName().get(keyOrAliasName);
-            Key key = aliasKey == null ? Key.ofName(keyOrAliasName) : aliasKey;
-            boolean press = moveMatcher.group(1).equals("+");
-            moves.add(new MacroMove(key, press));
+            if (!word.matches("[+-].*")) {
+                moves.add(parseMacroMove(aliasResolution, word, true));
+                moves.add(parseMacroMove(aliasResolution, word, false));
+            }
+            else {
+                moves.add(parseMacroMove(name, aliasResolution, word));
+            }
         }
         if (!moves.isEmpty())
             parallels.add(new MacroParallel(moves, Duration.ZERO));
         return new Macro(name, new MacroSequence(parallels));
+    }
+
+    private static MacroMove parseMacroMove(String name, AliasResolution aliasResolution,
+                                            String word) {
+        Matcher moveMatcher = Pattern.compile("([+\\-])([^-]+?)").matcher(word);
+        if (!moveMatcher.matches())
+            throw new IllegalArgumentException(
+                    "Invalid macro move for " + name + ": " + word);
+        String keyOrAliasName = moveMatcher.group(2);
+        boolean press = moveMatcher.group(1).equals("+");
+        return parseMacroMove(aliasResolution, keyOrAliasName, press);
+    }
+
+    private static MacroMove parseMacroMove(
+            AliasResolution aliasResolution,
+            String keyOrAliasName, boolean press) {
+        Key aliasKey = aliasResolution.keyByAliasName().get(keyOrAliasName);
+        Key key = aliasKey == null ? Key.ofName(keyOrAliasName) : aliasKey;
+        return new MacroMove(key, press);
     }
 
     public static Set<String> aliasNamesUsedInOutput(String string,
