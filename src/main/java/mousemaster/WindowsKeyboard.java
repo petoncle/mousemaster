@@ -83,18 +83,18 @@ public class WindowsKeyboard {
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
-        Map<MacroMove, WindowsVirtualKey> windowsVirtualKeyByMacroMove =
-                moves.stream()
-                     .collect(Collectors.toMap(Function.identity(),
-                             move -> WindowsVirtualKey.windowsVirtualKeyFromKey(
-                                     move.key(), activeKeyboardLayout)));
-        if (windowsVirtualKeyByMacroMove.values().stream().anyMatch(Objects::isNull)) {
-            // Happens when a macro is defined with a key not in the active keyboard layout.
+        if (moves.stream()
+                 .map(move -> WindowsVirtualKey.windowsVirtualKeyFromKey(move.key(),
+                         activeKeyboardLayout))
+                 .anyMatch(Objects::isNull)) {
+            // Happens when a macro output contains a key not in the active keyboard layout.
             return;
         }
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
             MacroMove move = moves.get(moveIndex);
-            WindowsVirtualKey windowsVirtualKey = windowsVirtualKeyByMacroMove.get(move);
+            WindowsVirtualKey windowsVirtualKey =
+                    WindowsVirtualKey.windowsVirtualKeyFromKey(move.key(),
+                            activeKeyboardLayout);
             // Key already pressed.
             if (move.press()) {
                 if (triggerKeyRepeating) {
