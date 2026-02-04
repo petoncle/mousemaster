@@ -6,9 +6,9 @@ import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class WindowsKeyboard {
 
@@ -83,8 +83,18 @@ public class WindowsKeyboard {
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
+        Map<MacroMove, WindowsVirtualKey> windowsVirtualKeyByMacroMove =
+                moves.stream()
+                     .collect(Collectors.toMap(Function.identity(),
+                             move -> WindowsVirtualKey.windowsVirtualKeyFromKey(
+                                     move.key(), activeKeyboardLayout)));
+        if (windowsVirtualKeyByMacroMove.values().stream().anyMatch(Objects::isNull)) {
+            // Happens when a macro is defined with a key not in the active keyboard layout.
+            return;
+        }
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
             MacroMove move = moves.get(moveIndex);
+            WindowsVirtualKey windowsVirtualKey = windowsVirtualKeyByMacroMove.get(move);
             // Key already pressed.
             if (move.press()) {
                 if (triggerKeyRepeating) {
@@ -102,8 +112,7 @@ public class WindowsKeyboard {
             // Some keys are extended keys and need dwFlag:
             // https://stackoverflow.com/questions/44924962/sendinput-on-c-doesnt-take-ctrl-and-shift-in-account
             pInputs[moveIndex].input.ki.wVk =
-                    new WinDef.WORD(WindowsVirtualKey.windowsVirtualKeyFromKey(
-                            move.key(), activeKeyboardLayout).virtualKeyCode);
+                    new WinDef.WORD(windowsVirtualKey.virtualKeyCode);
             int flag = (extendedKeys.contains(move.key()) ? 1 : 0) | (!move.press() ? 2 : 0);
             // If KEYEVENTF_EXTENDEDKEY dwFlag is not set,
             // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
