@@ -24,6 +24,7 @@ This document provides a comprehensive reference for all configuration options a
 - [Grid commands](#grid-commands)
 - [App aliases](#app-aliases)
 - [Position history](#position-history)
+- [Macros](#macros)
 - [Console window](#console-window)
 - [Logging](#logging)
 - [Keyboard layout](#keyboard-layout)
@@ -908,6 +909,66 @@ This feature is especially useful for:
 - Frequently accessed UI elements in complex applications
 - Navigating between multiple work areas
 - Creating custom navigation patterns for repeated tasks
+
+## Macros
+
+Macros allow you to define sequences of key presses and releases that are triggered by a
+combo. Macros can send keys to the operating system (for controlling other applications)
+or to mousemaster itself (for triggering mousemaster commands).
+
+### Basic macro syntax
+
+A macro is defined with:
+```properties
+mode-name.macro.macro-name=combo -> output
+```
+
+Where:
+- `combo` is the trigger combo (same syntax as other combos)
+- `output` is the sequence of key moves to execute
+
+### Macro output syntax
+
+The output uses the following syntax:
+
+|          | Meaning                                            | Example     |
+|----------|----------------------------------------------------|-------------|
+| `+key`   | Press key, send to OS                              | `+leftctrl` |
+| `-key`   | Release key, send to OS                            | `-leftctrl` |
+| `#key`   | Press key, send to mousemaster (internal)          | `#rightalt` |
+| `~key`   | Release key, send to mousemaster (internal)        | `~rightalt` |
+| `key`    | Shorthand for `#key ~key` (internal press+release) | `rightalt`  |
+| `wait-N` | Wait N milliseconds before continuing              | `wait-50`   |
+
+### OS-bound vs internal keys
+
+- OS-bound keys (`+`/`-`): These keys are sent to the operating system.
+  Other applications will receive these key events. Use this for controlling other
+  applications, typing text, or triggering system shortcuts.
+
+- Internal keys (`#`/`~` or unprefixed): These keys are fed back into mousemaster's
+  combo system. They can trigger other mousemaster commands (including mode switches). Use this for
+  automating mousemaster itself.
+
+### Examples
+
+#### Simple key remapping
+
+Remap V to Ctrl+V in normal mode:
+```properties
+normal-mode.macro.copy=+v -> +leftctrl +v -v -leftctrl
+```
+
+#### Automating mousemaster
+
+Select the second screen when pressing F12:
+```properties
+# In the neo-mousekeys-ijkl configuration, pressing c shows the screen selection hints,
+# then pressing k will select the second screen (because the hint keys are j k l ; a s d f g).
+normal-mode.macro.selectsecondscreen=+f12 -> c k
+# Equivalent to:
+#normal-mode.macro.selectsecondscreen=+f12 -> #c ~c #k ~k
+```
 
 ## Console window
 

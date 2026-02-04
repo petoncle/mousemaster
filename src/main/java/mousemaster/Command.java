@@ -61,8 +61,6 @@ public sealed interface Command {
     record CycleNextPosition() implements Command {}
     record CyclePreviousPosition() implements Command {}
 
-    record RemappingCommand(Macro macro) implements Command {}
-
     record MacroCommand(Macro macro) implements Command {}
 
     record BreakComboPreparation() implements Command {}

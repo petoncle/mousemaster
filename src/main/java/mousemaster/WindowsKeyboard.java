@@ -74,7 +74,7 @@ public class WindowsKeyboard {
             return;
         durationUntilNextKeyPressRepeat -= delta;
         if (durationUntilNextKeyPressRepeat <= 0) {
-            sendInput(List.of(new MacroMove(pressedKeyToRepeat, true)), true);
+            sendInput(List.of(new MacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
             durationUntilNextKeyPressRepeat = 0.025d;
         }
     }

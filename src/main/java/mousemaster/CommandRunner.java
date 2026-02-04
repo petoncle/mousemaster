@@ -8,28 +8,21 @@ public class CommandRunner {
     private final MouseController mouseController;
     private final GridManager gridManager;
     private final HintManager hintManager;
-    private final MacroExecutor remapper;
-    private MacroExecutor macroPlayer;
-    private ComboWatcher comboWatcher;
+    private MacroPlayer macroPlayer;
 
     public CommandRunner(MouseController mouseController, GridManager gridManager,
-                         HintManager hintManager, MacroExecutor remapper) {
+                         HintManager hintManager) {
         this.mouseController = mouseController;
         this.gridManager = gridManager;
         this.hintManager = hintManager;
-        this.remapper = remapper;
     }
 
     public void setModeController(ModeController modeController) {
         this.modeController = modeController;
     }
 
-    public void setComboWatcher(ComboWatcher comboWatcher) {
-        this.comboWatcher = comboWatcher;
-    }
-
-    public void setMacroPlayer(MacroExecutor macroExecutor) {
-        this.macroPlayer = macroExecutor;
+    public void setMacroPlayer(MacroPlayer macroPlayer) {
+        this.macroPlayer = macroPlayer;
     }
 
     public boolean runningAtomicCommand() {
@@ -97,8 +90,6 @@ public class CommandRunner {
             case ClearPositionHistory clearPositionHistory -> hintManager.clearPositionHistory();
             case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
-
-            case RemappingCommand remap -> remapper.submit(remap.macro());
 
             case MacroCommand macro -> macroPlayer.submit(macro.macro());
 
