@@ -956,7 +956,7 @@ The output uses the following syntax:
 
 Remap V to Ctrl+V in normal mode:
 ```properties
-normal-mode.macro.copy=+v -> +leftctrl +v -v -leftctrl
+normal-mode.macro.paste=+v -> +leftctrl +v -v -leftctrl
 ```
 
 #### Automating mousemaster

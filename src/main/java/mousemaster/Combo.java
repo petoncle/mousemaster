@@ -181,7 +181,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static boolean isAppSetString(String string, Map<String, AppAlias> appAliases) {
-        if (string.contains(".exe"))
+        if (string.toLowerCase(Locale.ENGLISH).contains(".exe"))
             // firefox.exe chrome.exe
             return true;
         List<String> appStrings = List.of(string.split("\\s+|(\\s*\\|\\s*)"));

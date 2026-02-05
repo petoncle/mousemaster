@@ -51,9 +51,9 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
                     "^{" + mustNotBeActiveApps.stream()
                                               .map(App::executableName)
                                               .collect(Collectors.joining(" ")) + "}",
-                    "_{" + mustNotBeActiveApps.stream()
-                                              .map(App::executableName)
-                                              .collect(Collectors.joining("|")) + "}");
+                    "_{" + mustBeActiveApps.stream()
+                                           .map(App::executableName)
+                                           .collect(Collectors.joining("|")) + "}");
         }
     }
 

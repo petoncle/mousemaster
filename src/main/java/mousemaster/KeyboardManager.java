@@ -30,9 +30,9 @@ public class KeyboardManager {
         }
         else {
             ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
-            if (!watcherUpdateResult.completedWaitingCombos().isEmpty())
+            if (!watcherUpdateResult.completedCombos().isEmpty())
                 markOtherKeysOfTheseCombosAsCompleted(
-                        watcherUpdateResult.completedWaitingCombos(),
+                        watcherUpdateResult.completedCombos(),
                         watcherUpdateResult.comboPreparationBreakerKey() != null);
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 regurgitatePressedKeys();

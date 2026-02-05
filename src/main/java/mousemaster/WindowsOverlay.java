@@ -2030,10 +2030,16 @@ public class WindowsOverlay {
      * that does not keep the prefix box borders of the previous hint mesh.
      */
     public static void animateHintMatch(Hint hint) {
+        if (!showingHintMesh) // Invisible hint mesh.
+            return;
         Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(List.of(hint));
         Screen screen = hintsByScreen.keySet().iterator().next();
         HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
         HintMesh lastHintMeshKey = hintMeshWindow.lastHintMeshKeyReference.get();
+        HintMeshStyle style =
+                lastHintMeshKey.styleByFilter().get(ViewportFilter.of(screen));
+        if (!style.transitionAnimationEnabled())
+            return;
         boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1 &&
                              lastHintMeshKey.hints().size() > 1;
         if (isHintGrid)
@@ -2046,7 +2052,7 @@ public class WindowsOverlay {
         QRect hintBoxGeometry =
                 hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint.keySequence());
         QWidget container = (QWidget) hintMeshWindow.window.children().getLast();
-        QPixmap pixmap = container.grab(hintBoxGeometry);
+        QPixmap pixmap = container.grab(hintBoxGeometry); // This is an expensive operation.
 //         pixmap.save("screenshot.png", "PNG");
         HintMesh hintMesh =
                 new HintMesh.HintMeshBuilder(lastHintMeshKey).hints(List.of(hint))
@@ -2056,8 +2062,6 @@ public class WindowsOverlay {
                         container.geometry().x() + hintBoxGeometry.x(),
                         container.geometry().y() + hintBoxGeometry.y(), hintMesh,
                         hintMeshWindow.window.x(), hintMeshWindow.window.y());
-        HintMeshStyle style =
-                lastHintMeshKey.styleByFilter().get(ViewportFilter.of(screen));
         setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, false, pixmapAndPosition);
     }
 

@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class ComboWatcher implements ModeListener {
 
@@ -31,6 +32,7 @@ public class ComboWatcher implements ModeListener {
     private Set<Key> currentlyPressedCompletedComboKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
     private KeyEvent lastKeyEvent;
+    private App lastActiveApp;
 
     public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
                         ActiveAppFinder activeAppFinder,
@@ -53,12 +55,36 @@ public class ComboWatcher implements ModeListener {
         this.listeners = listeners;
     }
 
-    public record ComboWatcherUpdateResult(Set<Combo> completedWaitingCombos, boolean preparationIsNotPrefixAnymore,
+    public record ComboWatcherUpdateResult(Set<Combo> completedCombos, boolean preparationIsNotPrefixAnymore,
                                            Key comboPreparationBreakerKey) {
 
     }
 
     public ComboWatcherUpdateResult update(double delta) {
+        List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
+        // Handle combos that should be run when active app changes (no combo move).
+        App activeApp = activeAppFinder.activeApp();
+        boolean activeAppChanged = !Objects.equals(activeApp, lastActiveApp);
+        if (activeAppChanged) {
+            lastActiveApp = activeApp;
+            for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
+                                                                    .commandsByCombo()
+                                                                    .entrySet()) {
+                Combo combo = entry.getKey();
+                if (!combo.precondition().appPrecondition().satisfied(activeApp))
+                    continue;
+                if (!combo.sequence().moves().isEmpty())
+                    continue;
+                int matchingMoveCount = 0;
+                Set<Key> currentlyPressedKeys = currentlyPressedComboKeys;
+                if (satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
+                            currentlyPressedCompletedComboKeys, matchingMoveCount) == null)
+                    continue;
+                if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys, matchingMoveCount))
+                    continue;
+                completedComboAndCommands.add(new ComboAndCommands(combo, entry.getValue()));
+            }
+        }
         boolean preparationIsNotPrefixAnymore = false;
         if (lastProcessingSet != null) {
             // Check if the preparation is still a prefix of at least one combo.
@@ -93,8 +119,7 @@ public class ComboWatcher implements ModeListener {
         // For a given waiting combo, we know that its precondition has to be satisfied still, because otherwise it
         // would mean that currentlyPressedComboPreconditionKeys has changed. But when currentlyPressedComboPreconditionKeys is changed,
         // combosWaitingForLastMoveToComplete is always reset.
-        List<ComboWaitingForLastMoveToComplete> completeCombos = new ArrayList<>();
-        Set<Combo> completedCombos = new HashSet<>();
+        List<ComboWaitingForLastMoveToComplete> completedCombosWaitingForLastMoveToComplete = new ArrayList<>();
         Key comboPreparationBreakerKey = null;
         // Remove waiting combos that don't belong to the current mode.
         combosWaitingForLastMoveToComplete.removeIf(
@@ -103,7 +128,7 @@ public class ComboWatcher implements ModeListener {
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
             comboWaitingForLastMoveToComplete.remainingWait -= delta;
             if (comboWaitingForLastMoveToComplete.remainingWait < 0) {
-                completeCombos.add(comboWaitingForLastMoveToComplete);
+                completedCombosWaitingForLastMoveToComplete.add(comboWaitingForLastMoveToComplete);
                 Combo combo = comboWaitingForLastMoveToComplete.comboAndCommands.combo;
                 if (!combo.sequence().moves().isEmpty() &&
                     comboWaitingForLastMoveToComplete.comboAndCommands.commands.stream()
@@ -114,37 +139,36 @@ public class ComboWatcher implements ModeListener {
                 // We tell KeyboardManager that a combo was completed,
                 // and all the currently pressed keys are part of a completed combo,
                 // and they should not be regurgitated.
-                completedCombos.add(combo);
+
+                completedComboAndCommands.add(comboWaitingForLastMoveToComplete.comboAndCommands);
             }
         }
-        if (!completeCombos.isEmpty()) {
+        if (!completedComboAndCommands.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
         List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
         commandsWaitingForAtomicCommandToComplete.clear();
-        List<Command> completeCombosCommands = longestComboCommandsLastAndDeduplicate(completeCombos.stream()
-                                                                               .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
-                                                                               .toList());
-        commandsToRun.addAll(completeCombosCommands);
-        if (!completeCombosCommands.isEmpty()) {
+        List<Command> completedCombosCommands = longestComboCommandsLastAndDeduplicate(completedComboAndCommands);
+        commandsToRun.addAll(completedCombosCommands);
+        Set<Combo> completedCombos =
+                completedComboAndCommands.stream()
+                                         .map(ComboAndCommands::combo)
+                                         .collect(Collectors.toCollection(HashSet::new));
+        if (!completedCombosCommands.isEmpty()) {
             logger.debug(
-                    "Completed combos that were waiting for last move to complete, currentMode = " +
-                    currentMode.name() + ", completeCombos = " + completeCombos.stream()
-                                                                               .map(ComboWaitingForLastMoveToComplete::comboAndCommands)
-                                                                               .map(ComboAndCommands::combo)
-                                                                               .toList() +
+                    "Completed asynchronous combos, currentMode = " +
+                    currentMode.name() + ", completedCombos = " + completedCombos +
                     ", commandsToRun = " + commandsToRun);
         }
         Mode beforeMode = currentMode;
         runCommands(commandsToRun);
-        combosWaitingForLastMoveToComplete.removeAll(completeCombos);
+        combosWaitingForLastMoveToComplete.removeAll(completedCombosWaitingForLastMoveToComplete);
         if (currentMode != beforeMode && comboPreparationBreakerKey == null) {
             PressKeyEventProcessingSet processingSet =
                     processKeyEventForCurrentMode(null, true);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombos());
         }
-        return new ComboWatcherUpdateResult(completedCombos,
-                preparationIsNotPrefixAnymore, comboPreparationBreakerKey);
+        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, comboPreparationBreakerKey);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
@@ -227,6 +251,8 @@ public class ComboWatcher implements ModeListener {
                       .appPrecondition()
                       .satisfied(activeAppFinder.activeApp()))
                 continue;
+            if (!combo.precondition().appPrecondition().isEmpty() && combo.sequence().moves().isEmpty())
+                continue; // Active app changes are handled in ComboWatcher#update.
             int matchingMoveCount = comboPreparation.matchingMoveCount(combo.sequence());
             ComboMove currentMove = matchingMoveCount == 0 ? null :
                     combo.sequence().moves().get(matchingMoveCount - 1);
@@ -552,7 +578,7 @@ public class ComboWatcher implements ModeListener {
      private static final class ComboWaitingForLastMoveToComplete {
          private final Mode comboMode;
          private final ComboAndCommands comboAndCommands;
-        private double remainingWait;
+         private double remainingWait;
 
          private ComboWaitingForLastMoveToComplete(Mode currentMode,
                                                    ComboAndCommands comboAndCommands,
