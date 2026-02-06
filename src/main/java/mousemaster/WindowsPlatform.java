@@ -126,10 +126,13 @@ public class WindowsPlatform implements Platform {
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());
         }
-        if (oldModeMap != null && !newHintMeshConfigurations.equals(oldHintMeshConfigurations)) {
-            logger.debug(
-                    "Flushing overlay cache because hint mesh configurations have changed");
-            WindowsOverlay.flushCache();
+        if (!newHintMeshConfigurations.equals(oldHintMeshConfigurations)) {
+            if (oldModeMap != null) {
+                logger.debug(
+                        "Flushing overlay cache because hint mesh configurations have changed");
+                WindowsOverlay.flushCache();
+            }
+            WindowsOverlay.preWarmFontStyles(newHintMeshConfigurations);
         }
         this.modeMap = newModeMap;
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();

@@ -1072,6 +1072,29 @@ public class WindowsOverlay {
         return hintBoxGeometries;
     }
 
+    /**
+     * Pre-warms the GDI font engine with all hint fonts from the configuration.
+     * The first QFontMetrics.horizontalAdvance() call for a given font triggers lazy
+     * GDI font engine initialization (~130ms). By doing this at startup, we shift that
+     * cost away from the first hint mesh render.
+     */
+    static void preWarmFontStyles(Set<HintMeshConfiguration> hintMeshConfigurations) {
+        long before = System.nanoTime();
+        Set<FontStyle> fontStyles = new HashSet<>();
+        for (HintMeshConfiguration hintMeshConfiguration : hintMeshConfigurations) {
+            for (HintMeshStyle style : hintMeshConfiguration.styleByFilter().map().values()) {
+                fontStyles.add(style.fontStyle());
+                fontStyles.add(style.prefixFontStyle());
+            }
+        }
+        for (FontStyle fontStyle : fontStyles) {
+            QFont font = qFont(fontStyle.name(), fontStyle.size(), fontStyle.weight());
+            new QFontMetrics(font).horizontalAdvance("x");
+        }
+        logger.debug("Pre-warmed " + fontStyles.size() + " hint font styles in " +
+                (System.nanoTime() - before) / 1e6 + "ms");
+    }
+
     private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
         QFont font = new QFont(fontName, (int) Math.round(fontSize),
                 fontWeight.qtWeight().value());
@@ -1082,11 +1105,14 @@ public class WindowsOverlay {
 
     private static void cacheQtHintWindowIntoPixmap(TransparentWindow window, QWidget container,
                                                     HintMesh hintMeshKey, HintMesh hintMesh) {
+        long before = System.nanoTime();
         QPixmap pixmap = container.grab();
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap, container.x(), container.y(), hintMesh,
                         window.x(), window.y());
-        logger.trace("Caching " + pixmapAndPosition + ", cache size is " + hintMeshPixmaps.size());
+        logger.debug("Cached " + pixmapAndPosition + " in " +
+                     (System.nanoTime() - before) / 1e6 + "ms (cache size is " +
+                     hintMeshPixmaps.size() + ")");
         // pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
     }
