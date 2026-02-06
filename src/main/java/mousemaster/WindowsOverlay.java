@@ -6,6 +6,7 @@ import com.sun.jna.platform.win32.*;
 import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.QApplication;
+import io.qt.widgets.QGraphicsDropShadowEffect;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
 import mousemaster.WindowsMouse.MouseSize;
@@ -941,9 +942,10 @@ public class WindowsOverlay {
         }
         logger.debug("  Phase 5 (prefix boxes): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
         phaseStart = System.nanoTime();
+        LabelFontStyle prefixLabelFontStyle = null;
         if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
             QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
-            LabelFontStyle prefixLabelFontStyle = new LabelFontStyle(
+            prefixLabelFontStyle = new LabelFontStyle(
                     prefixFont,
                     new QFontMetrics(prefixFont),
                     null,
@@ -1038,9 +1040,34 @@ public class WindowsOverlay {
         int containerWidth = maxHintRight - minHintLeft;
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
-        HintMeshPaintWidget paintWidget = new HintMeshPaintWidget(
-                container, hintBoxes, hintLabels, prefixBoxList, prefixLabelList);
-        paintWidget.setGeometry(0, 0, containerWidth, containerHeight);
+        // Layer 1: Hint boxes (with subgrid children).
+        HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
+        boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        // Layer 2: Prefix boxes.
+        HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxList, List.of());
+        prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        // Layer 3: Prefix labels (with shadow effect if configured).
+        HintPaintLayer prefixLabelLayer = new HintPaintLayer(container, List.of(), prefixLabelList);
+        prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        if (prefixLabelFontStyle != null && prefixLabelFontStyle.shadowColor.alpha() != 0) {
+            QGraphicsDropShadowEffect prefixShadow = new QGraphicsDropShadowEffect();
+            prefixShadow.setBlurRadius(prefixLabelFontStyle.shadowBlurRadius);
+            prefixShadow.setOffset(prefixLabelFontStyle.shadowHorizontalOffset,
+                    prefixLabelFontStyle.shadowVerticalOffset);
+            prefixShadow.setColor(prefixLabelFontStyle.shadowColor);
+            prefixLabelLayer.setGraphicsEffect(prefixShadow);
+        }
+        // Layer 4: Hint labels (with shadow effect if configured).
+        HintPaintLayer hintLabelLayer = new HintPaintLayer(container, List.of(), hintLabels);
+        hintLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        if (labelFontStyle.shadowColor.alpha() != 0) {
+            QGraphicsDropShadowEffect hintShadow = new QGraphicsDropShadowEffect();
+            hintShadow.setBlurRadius(labelFontStyle.shadowBlurRadius);
+            hintShadow.setOffset(labelFontStyle.shadowHorizontalOffset,
+                    labelFontStyle.shadowVerticalOffset);
+            hintShadow.setColor(labelFontStyle.shadowColor);
+            hintLabelLayer.setGraphicsEffect(hintShadow);
+        }
         logger.debug("  Phase 7 (containers/layout): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
         return hintBoxGeometries;
     }
@@ -1544,32 +1571,6 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
             painter.setFont(labelFontStyle.font);
 
-            // Simplified shadow (no blur).
-            if (labelFontStyle.shadowColor.alpha() != 0) {
-                painter.save();
-                painter.translate(labelFontStyle.shadowHorizontalOffset,
-                        labelFontStyle.shadowVerticalOffset);
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-                if (labelFontStyle.outlineThickness != 0 && labelFontStyle.outlineColor().alpha() != 0) {
-                    QPen shadowOutlinePen = new QPen(labelFontStyle.shadowColor);
-                    shadowOutlinePen.setWidth(labelFontStyle.outlineThickness);
-                    shadowOutlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
-                    painter.setPen(shadowOutlinePen);
-                    painter.setBrush(Qt.BrushStyle.NoBrush);
-                    QPainterPath shadowOutlinePath = new QPainterPath();
-                    for (HintKeyText keyText : keyTexts) {
-                        shadowOutlinePath.addText(keyText.x() - left, keyText.y() - top,
-                                labelFontStyle.font, keyText.text());
-                    }
-                    painter.drawPath(shadowOutlinePath);
-                }
-                painter.setPen(labelFontStyle.shadowColor);
-                for (HintKeyText keyText : keyTexts) {
-                    painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
-                }
-                painter.restore();
-            }
-
             // For transparent prefix text in background, we want to see the grid lines
             // through the transparent prefix.
             if (!overwriteBackground)
@@ -1613,42 +1614,24 @@ public class WindowsOverlay {
 
     }
 
-    private static class HintMeshPaintWidget extends QWidget {
+    private static class HintPaintLayer extends QWidget {
 
-        private final List<HintBox> hintBoxes;
-        private final List<HintLabel> hintLabels;
-        private final List<HintBox> prefixBoxes;
-        private final List<HintLabel> prefixLabels;
+        private final List<HintBox> boxes;
+        private final List<HintLabel> labels;
 
-        HintMeshPaintWidget(QWidget parent,
-                            List<HintBox> hintBoxes,
-                            List<HintLabel> hintLabels,
-                            List<HintBox> prefixBoxes,
-                            List<HintLabel> prefixLabels) {
+        HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels) {
             super(parent);
-            this.hintBoxes = hintBoxes;
-            this.hintLabels = hintLabels;
-            this.prefixBoxes = prefixBoxes;
-            this.prefixLabels = prefixLabels;
+            this.boxes = boxes;
+            this.labels = labels;
         }
 
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
-            // Layer 1: Hint boxes (with subgrid children).
-            for (HintBox box : hintBoxes) {
+            for (HintBox box : boxes) {
                 box.paint(painter);
             }
-            // Layer 2: Prefix boxes.
-            for (HintBox prefixBox : prefixBoxes) {
-                prefixBox.paint(painter);
-            }
-            // Layer 3: Prefix labels.
-            for (HintLabel prefixLabel : prefixLabels) {
-                prefixLabel.paint(painter);
-            }
-            // Layer 4: Hint labels.
-            for (HintLabel label : hintLabels) {
+            for (HintLabel label : labels) {
                 label.paint(painter);
             }
             painter.end();
