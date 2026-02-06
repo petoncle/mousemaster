@@ -1016,8 +1016,8 @@ public class WindowsOverlay {
                 hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
             }
         }
-        List<HintBox> prefixBoxList = new ArrayList<>();
-        List<HintLabel> prefixLabelList = new ArrayList<>();
+        List<HintBox> prefixBoxes = new ArrayList<>();
+        List<HintLabel> prefixLabels = new ArrayList<>();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             HintBox prefixHintBox = hintGroup.prefixHintBox;
             if (prefixHintBox == null)
@@ -1026,13 +1026,13 @@ public class WindowsOverlay {
                     prefixHintBox.x() - offsetX,
                     prefixHintBox.y() - offsetY
             );
-            prefixBoxList.add(prefixHintBox);
+            prefixBoxes.add(prefixHintBox);
         }
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             HintLabel prefixHintLabel = hintGroup.prefixHintLabel;
             if (prefixHintLabel == null)
                 continue;
-            prefixLabelList.add(prefixHintLabel);
+            prefixLabels.add(prefixHintLabel);
         }
         int containerWidth = maxHintRight - minHintLeft;
         int containerHeight = maxHintBottom - minHintTop;
@@ -1041,10 +1041,10 @@ public class WindowsOverlay {
         HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
         boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 2: Prefix boxes.
-        HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxList, List.of());
+        HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 3: Prefix labels (with shadow effect if configured).
-        HintPaintLayer prefixLabelLayer = new HintPaintLayer(container, List.of(), prefixLabelList);
+        HintPaintLayer prefixLabelLayer = new HintPaintLayer(container, List.of(), prefixLabels);
         prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         if (prefixLabelFontStyle != null && prefixLabelFontStyle.shadowColor.alpha() != 0) {
             QGraphicsDropShadowEffect prefixShadow = new QGraphicsDropShadowEffect();

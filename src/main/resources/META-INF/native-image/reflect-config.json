@@ -724,8 +724,7 @@
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+  "queryAllDeclaredConstructors":true
 },
 {
   "name":"mousemaster.WindowsOverlay$HintBox$1"
@@ -746,14 +745,21 @@
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+  "queryAllDeclaredConstructors":true
 },
 {
   "name":"mousemaster.WindowsOverlay$HintLabel$1"
 },
 {
   "name":"mousemaster.WindowsOverlay$HintLabel$WhenMappings"
+},
+{
+  "name":"mousemaster.WindowsOverlay$HintPaintLayer",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
   "name":"mousemaster.WindowsScreen$1",

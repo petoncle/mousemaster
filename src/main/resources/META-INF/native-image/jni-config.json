@@ -690,11 +690,7 @@
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$HintBox",
-  "methods":[{"name":"drawBorders","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.WindowsOverlay$HintLabel",
+  "name":"mousemaster.WindowsOverlay$HintPaintLayer",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
