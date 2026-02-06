@@ -51,11 +51,16 @@ public class WindowsOverlay {
      * Windows won't wait for the keyboard hook to return if it's taking too long.
      */
     private static Runnable setUncachedHintMeshWindowRunnable;
+    private static Runnable cacheQtHintWindowIntoPixmapRunnable;
 
     public static void update(double delta) {
         if (setUncachedHintMeshWindowRunnable != null) {
             setUncachedHintMeshWindowRunnable.run();
             setUncachedHintMeshWindowRunnable = null;
+        }
+        if (cacheQtHintWindowIntoPixmapRunnable != null) {
+            cacheQtHintWindowIntoPixmapRunnable.run();
+            cacheQtHintWindowIntoPixmapRunnable = null;
         }
         updateZoomWindow();
     }
@@ -406,6 +411,7 @@ public class WindowsOverlay {
                                           boolean zoomChanged,
                                           PixmapAndPosition forcedPixmapAndPosition) {
         setUncachedHintMeshWindowRunnable = null;
+        cacheQtHintWindowIntoPixmapRunnable = null;
         int transitionAnimationCurrentTime =
                 hintMeshWindow.animations.stream()
                                          .filter(animation -> animation.getState() ==
@@ -497,14 +503,18 @@ public class WindowsOverlay {
                         logger.debug("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
                         hintBoxGeometriesByHintMeshKey.put(hintMeshKey,
                                 hintBoxGeometries);
-                        if (isHintGrid) {
-                            cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh);
-                        }
                         transitionHintContainers(
                                 style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow,
                                 style.transitionAnimationDuration(), transitionAnimationCurrentTime);
+                        if (isHintGrid) {
+                            // Defer the pixmap cache grab to the next frame so the hint mesh
+                            // is shown immediately. The grab is expensive (~370ms at 4K) but
+                            // only needed for caching subsequent renders.
+                            cacheQtHintWindowIntoPixmapRunnable = () ->
+                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh);
+                        }
                     };
             if (true || !isHintGrid // They are not cached anyway.
                 || !hintMesh.selectedKeySequence().isEmpty() // To avoid an empty frame.
