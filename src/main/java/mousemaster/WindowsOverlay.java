@@ -719,7 +719,6 @@ public class WindowsOverlay {
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
                                                               QWidget container) {
-        long phaseStart = System.nanoTime();
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -745,8 +744,6 @@ public class WindowsOverlay {
             maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
         }
-        logger.debug("  Phase 1 (init hint groups): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
-        phaseStart = System.nanoTime();
         List<Hint> hints = hintMeshWindow.hints;
         int minHintLeft = Integer.MAX_VALUE;
         int minHintTop = Integer.MAX_VALUE;
@@ -781,8 +778,6 @@ public class WindowsOverlay {
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
-        logger.debug("  Phase 2 (init font/colors): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
-        phaseStart = System.nanoTime();
         Map<String, Integer> xAdvancesByString = new HashMap<>();
         int hintKeyMaxXAdvance = 0;
         for (Hint hint : hints) {
@@ -793,8 +788,6 @@ public class WindowsOverlay {
             }
         }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
-        logger.debug("  Phase 3 (font metrics): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
-        phaseStart = System.nanoTime();
         List<HintBox> hintBoxes = new ArrayList<>();
         List<HintLabel> hintLabels = new ArrayList<>();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
@@ -914,8 +907,6 @@ public class WindowsOverlay {
                 }
             }
         }
-        logger.debug("  Phase 4 (create boxes/labels): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
-        phaseStart = System.nanoTime();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             if (!hintGroup.atLeastOneHintVisible)
                 continue;
@@ -950,8 +941,6 @@ public class WindowsOverlay {
                     hintGroup.bottom - hintGroup.top);
             hintGroup.prefixHintBox = prefixHintBox;
         }
-        logger.debug("  Phase 5 (prefix boxes): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
-        phaseStart = System.nanoTime();
         LabelFontStyle prefixLabelFontStyle = null;
         if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
             QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
@@ -1015,8 +1004,6 @@ public class WindowsOverlay {
                 hintGroup.prefixHintLabel = prefixHintLabel;
             }
         }
-        logger.debug("  Phase 6 (prefix labels): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
-        phaseStart = System.nanoTime();
         int offsetX = minHintLeft - hintMeshWindow.window.x();
         int offsetY = minHintTop - hintMeshWindow.window.y();
         Map<List<Key>, QRect> hintBoxGeometries = new HashMap<>();
@@ -1078,7 +1065,6 @@ public class WindowsOverlay {
             hintShadow.setColor(labelFontStyle.shadowColor);
             hintLabelLayer.setGraphicsEffect(hintShadow);
         }
-        logger.debug("  Phase 7 (containers/layout): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
         return hintBoxGeometries;
     }
 
