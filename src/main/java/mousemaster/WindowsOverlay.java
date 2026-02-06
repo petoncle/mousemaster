@@ -6,7 +6,6 @@ import com.sun.jna.platform.win32.*;
 import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.QApplication;
-import io.qt.widgets.QGraphicsDropShadowEffect;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
 import mousemaster.WindowsMouse.MouseSize;
@@ -18,7 +17,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class WindowsOverlay {
 
@@ -495,7 +493,7 @@ public class WindowsOverlay {
                                         style, qtScaleFactor,
                                         container
                                 );
-                        logger.trace("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
+                        logger.debug("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
                         hintBoxGeometriesByHintMeshKey.put(hintMeshKey,
                                 hintBoxGeometries);
                         if (isHintGrid) {
@@ -710,6 +708,7 @@ public class WindowsOverlay {
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
                                                               QWidget container) {
+        long phaseStart = System.nanoTime();
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -735,6 +734,8 @@ public class WindowsOverlay {
             maxHintCenterX = Math.max(maxHintCenterX, hint.centerX());
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
         }
+        logger.debug("  Phase 1 (init hint groups): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
+        phaseStart = System.nanoTime();
         List<Hint> hints = hintMeshWindow.hints;
         int minHintLeft = Integer.MAX_VALUE;
         int minHintTop = Integer.MAX_VALUE;
@@ -769,6 +770,8 @@ public class WindowsOverlay {
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
+        logger.debug("  Phase 2 (init font/colors): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
+        phaseStart = System.nanoTime();
         Map<String, Integer> xAdvancesByString = new HashMap<>();
         int hintKeyMaxXAdvance = 0;
         for (Hint hint : hints) {
@@ -779,6 +782,8 @@ public class WindowsOverlay {
             }
         }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
+        logger.debug("  Phase 3 (font metrics): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
+        phaseStart = System.nanoTime();
         List<HintBox> hintBoxes = new ArrayList<>();
         List<HintLabel> hintLabels = new ArrayList<>();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
@@ -898,6 +903,8 @@ public class WindowsOverlay {
                 }
             }
         }
+        logger.debug("  Phase 4 (create boxes/labels): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
+        phaseStart = System.nanoTime();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             if (!hintGroup.atLeastOneHintVisible)
                 continue;
@@ -932,6 +939,8 @@ public class WindowsOverlay {
                     hintGroup.bottom - hintGroup.top);
             hintGroup.prefixHintBox = prefixHintBox;
         }
+        logger.debug("  Phase 5 (prefix boxes): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
+        phaseStart = System.nanoTime();
         if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
             QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
             LabelFontStyle prefixLabelFontStyle = new LabelFontStyle(
@@ -994,68 +1003,45 @@ public class WindowsOverlay {
                 hintGroup.prefixHintLabel = prefixHintLabel;
             }
         }
-        // When putting everything in one container, I get a native StackOverFlow in
-        // the QLabel::paintEvent and/or an InvalidMemoryAccess error.
-        // Can be reproduced with on a 3840x2160 300% screen with 1600 hints:
-        // hint1-mode.hint.font-size.3840x2160=10
-        // hint1-mode.hint.grid-cell-width.3840x2160=32
-        // hint1-mode.hint.grid-cell-height.3840x2160=18
-        List<QWidget> hintBoxContainers = new ArrayList<>();
-        List<QWidget> hintLabelContainers = new ArrayList<>();
-        int hintCountPerContainer = 1000;
-        int containerCount =
-                (int) Math.ceil((double) hints.size() / hintCountPerContainer);
-        for (int i = 0; i < containerCount; i++) {
-            hintBoxContainers.add(new QWidget(container));
-        }
-        QWidget prefixContainer = new QWidget(container);
-        for (int i = 0; i < containerCount; i++) {
-            hintLabelContainers.add(new QWidget(container));
-        }
+        logger.debug("  Phase 6 (prefix labels): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
+        phaseStart = System.nanoTime();
+        int offsetX = minHintLeft - hintMeshWindow.window.x();
+        int offsetY = minHintTop - hintMeshWindow.window.y();
         Map<List<Key>, QRect> hintBoxGeometries = new HashMap<>();
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
-            hintBox.move(
-                    hintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
-                    hintBox.y() - (minHintTop - hintMeshWindow.window.y())
-            );
-            hintBox.setParent(hintBoxContainers.get(hintIndex / hintCountPerContainer));
+            hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
             if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
                 hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
             }
         }
+        List<HintBox> prefixBoxList = new ArrayList<>();
+        List<HintLabel> prefixLabelList = new ArrayList<>();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             HintBox prefixHintBox = hintGroup.prefixHintBox;
             if (prefixHintBox == null)
                 continue;
             prefixHintBox.move(
-                    prefixHintBox.x() - (minHintLeft - hintMeshWindow.window.x()),
-                    prefixHintBox.y() - (minHintTop - hintMeshWindow.window.y())
+                    prefixHintBox.x() - offsetX,
+                    prefixHintBox.y() - offsetY
             );
-            prefixHintBox.setParent(prefixContainer);
+            prefixBoxList.add(prefixHintBox);
         }
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             HintLabel prefixHintLabel = hintGroup.prefixHintLabel;
             if (prefixHintLabel == null)
                 continue;
-            prefixHintLabel.setParent(prefixContainer);
+            prefixLabelList.add(prefixHintLabel);
         }
-        for (int hintIndex = 0; hintIndex < hintLabels.size(); hintIndex++) {
-            HintLabel hintLabel = hintLabels.get(hintIndex);
-            hintLabel.setParent(hintLabelContainers.get(hintIndex / hintCountPerContainer));
-        }
-        container.setGeometry(minHintLeft - hintMeshWindow.window.x(),
-                minHintTop - hintMeshWindow.window.y(),
-                maxHintRight - minHintLeft,
-                maxHintBottom - minHintTop);
-        for (QWidget subContainer : Stream.of(hintBoxContainers,
-                                                  List.of(prefixContainer), hintLabelContainers)
-                                          .flatMap(Collection::stream)
-                                          .toList()) {
-            subContainer.setGeometry(0, 0, container.getWidth(), container.getHeight());
-        }
+        int containerWidth = maxHintRight - minHintLeft;
+        int containerHeight = maxHintBottom - minHintTop;
+        container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
+        HintMeshPaintWidget paintWidget = new HintMeshPaintWidget(
+                container, hintBoxes, hintLabels, prefixBoxList, prefixLabelList);
+        paintWidget.setGeometry(0, 0, containerWidth, containerHeight);
+        logger.debug("  Phase 7 (containers/layout): " + (System.nanoTime() - phaseStart) / 1e6 + "ms");
         return hintBoxGeometries;
     }
 
@@ -1127,7 +1113,7 @@ public class WindowsOverlay {
                         false,
                         qtScaleFactor
                 );
-                subBox.setParent(hintBox);
+                hintBox.subgridBoxes.add(subBox);
                 hintBoxes[subgridRowIndex][subgridColumnIndex] = subBox;
             }
         }
@@ -1163,7 +1149,7 @@ public class WindowsOverlay {
         return (int) Math.round((centerY - cellHeight / 2) / qtScaleFactor);
     }
 
-    public static class HintBox extends QWidget {
+    public static class HintBox {
 
         private final Hint hint;
         private final boolean isHintPartOfGrid;
@@ -1178,6 +1164,8 @@ public class WindowsOverlay {
         private final QColor color;
         private final QColor borderColor;
         private final int borderRadius = 0;
+        private int x, y, width, height;
+        final List<HintBox> subgridBoxes = new ArrayList<>();
 
         public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
                        boolean isHintPartOfGrid,
@@ -1198,21 +1186,45 @@ public class WindowsOverlay {
             this.borderColor = borderColor;
         }
 
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            QPainter painter = new QPainter(this);
+        public void setGeometry(int x, int y, int width, int height) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+        }
+
+        public void move(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public int x() { return x; }
+        public int y() { return y; }
+        public int width() { return width; }
+        public int height() { return height; }
+
+        public QRect geometry() {
+            return new QRect(x, y, width, height);
+        }
+
+        public void paint(QPainter painter) {
+            painter.save();
+            painter.translate(x, y);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             // Draw background.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             if (color.alpha() != 0) {
                 painter.setBrush(new QBrush(color));
                 painter.setPen(Qt.PenStyle.NoPen);
-                painter.drawRoundedRect(0, 0, width(), height(), borderRadius,
+                painter.drawRoundedRect(0, 0, width, height, borderRadius,
                         borderRadius);
             }
             if (borderThickness != 0)
                 drawBorders(painter);
-            painter.end();
+            for (HintBox subBox : subgridBoxes) {
+                subBox.paint(painter);
+            }
+            painter.restore();
         }
 
         private void drawBorders(QPainter painter) {
@@ -1421,17 +1433,18 @@ public class WindowsOverlay {
 
     }
 
-    public static class HintLabel extends QLabel {
+    public static class HintLabel {
 
         private final LabelFontStyle labelFontStyle;
         private final List<HintKeyText> keyTexts;
-        private final int tightHintBoxLeft;
-        private final int tightHintBoxTop;
-        private final int tightHintBoxWidth;
-        private final int tightHintBoxHeight;
+        final int tightHintBoxLeft;
+        final int tightHintBoxTop;
+        final int tightHintBoxWidth;
+        final int tightHintBoxHeight;
         private final boolean overwriteBackground;
-        private int left;
-        private int top;
+        int left;
+        int top;
+        private int x, y, width, height;
 
         public HintLabel(List<Key> keySequence, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
@@ -1439,21 +1452,8 @@ public class WindowsOverlay {
                          LabelFontStyle labelFontStyle,
                          int hintKeyMaxXAdvance, int selectedKeyEndIndex,
                          boolean overwriteBackground) {
-            super(keySequence
-                    .stream()
-                    .map(Key::hintLabel)
-                    .collect(Collectors.joining()));
             this.labelFontStyle = labelFontStyle;
             this.overwriteBackground = overwriteBackground;
-            setFont(labelFontStyle.font);
-            if (labelFontStyle.shadowColor.alpha() != 0) {
-                QGraphicsDropShadowEffect shadow = new QGraphicsDropShadowEffect();
-                shadow.setBlurRadius(labelFontStyle.shadowBlurRadius);
-                shadow.setOffset(labelFontStyle.shadowHorizontalOffset,
-                        labelFontStyle.shadowVerticalOffset);
-                shadow.setColor(labelFontStyle.shadowColor);
-                setGraphicsEffect(shadow);
-            }
 
             int y = (boxHeight + labelFontStyle.metrics.ascent() - labelFontStyle.metrics.descent()) / 2;
 
@@ -1526,12 +1526,49 @@ public class WindowsOverlay {
             this.tightHintBoxHeight = smallestHintBoxHeight;
         }
 
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            QPainter painter = new QPainter(this);
+        public void setFixedSize(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+
+        public void move(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public void paint(QPainter painter) {
+            painter.save();
+            painter.translate(x, y);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
+            painter.setFont(labelFontStyle.font);
+
+            // Simplified shadow (no blur).
+            if (labelFontStyle.shadowColor.alpha() != 0) {
+                painter.save();
+                painter.translate(labelFontStyle.shadowHorizontalOffset,
+                        labelFontStyle.shadowVerticalOffset);
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+                if (labelFontStyle.outlineThickness != 0 && labelFontStyle.outlineColor().alpha() != 0) {
+                    QPen shadowOutlinePen = new QPen(labelFontStyle.shadowColor);
+                    shadowOutlinePen.setWidth(labelFontStyle.outlineThickness);
+                    shadowOutlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
+                    painter.setPen(shadowOutlinePen);
+                    painter.setBrush(Qt.BrushStyle.NoBrush);
+                    QPainterPath shadowOutlinePath = new QPainterPath();
+                    for (HintKeyText keyText : keyTexts) {
+                        shadowOutlinePath.addText(keyText.x() - left, keyText.y() - top,
+                                labelFontStyle.font, keyText.text());
+                    }
+                    painter.drawPath(shadowOutlinePath);
+                }
+                painter.setPen(labelFontStyle.shadowColor);
+                for (HintKeyText keyText : keyTexts) {
+                    painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
+                }
+                painter.restore();
+            }
 
             // For transparent prefix text in background, we want to see the grid lines
             // through the transparent prefix.
@@ -1545,8 +1582,8 @@ public class WindowsOverlay {
                 painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
                 QPainterPath outlinePath = new QPainterPath();
                 for (HintKeyText keyText : keyTexts) {
-                    outlinePath.addText(keyText.x() - left, keyText.y() - top, font(),
-                            keyText.text());
+                    outlinePath.addText(keyText.x() - left, keyText.y() - top,
+                            labelFontStyle.font, keyText.text());
                 }
                 painter.drawPath(outlinePath);
             }
@@ -1566,7 +1603,7 @@ public class WindowsOverlay {
                     painter.setPen(colorMap.color());
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
-            painter.end();
+            painter.restore();
         }
     }
 
@@ -1574,6 +1611,48 @@ public class WindowsOverlay {
                                boolean isFocused,
                                boolean isPrefix) {
 
+    }
+
+    private static class HintMeshPaintWidget extends QWidget {
+
+        private final List<HintBox> hintBoxes;
+        private final List<HintLabel> hintLabels;
+        private final List<HintBox> prefixBoxes;
+        private final List<HintLabel> prefixLabels;
+
+        HintMeshPaintWidget(QWidget parent,
+                            List<HintBox> hintBoxes,
+                            List<HintLabel> hintLabels,
+                            List<HintBox> prefixBoxes,
+                            List<HintLabel> prefixLabels) {
+            super(parent);
+            this.hintBoxes = hintBoxes;
+            this.hintLabels = hintLabels;
+            this.prefixBoxes = prefixBoxes;
+            this.prefixLabels = prefixLabels;
+        }
+
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            QPainter painter = new QPainter(this);
+            // Layer 1: Hint boxes (with subgrid children).
+            for (HintBox box : hintBoxes) {
+                box.paint(painter);
+            }
+            // Layer 2: Prefix boxes.
+            for (HintBox prefixBox : prefixBoxes) {
+                prefixBox.paint(painter);
+            }
+            // Layer 3: Prefix labels.
+            for (HintLabel prefixLabel : prefixLabels) {
+                prefixLabel.paint(painter);
+            }
+            // Layer 4: Hint labels.
+            for (HintLabel label : hintLabels) {
+                label.paint(painter);
+            }
+            painter.end();
+        }
     }
 
     private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
