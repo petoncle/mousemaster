@@ -108,4 +108,9 @@ public interface ExtendedUser32 extends User32 {
 
     HKL ActivateKeyboardLayout(HKL hkl, int flags);
 
+    /**
+     * Determines whether the specified window is minimized (iconic).
+     */
+    boolean IsIconic(WinDef.HWND hWnd);
+
 }

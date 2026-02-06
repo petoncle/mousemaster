@@ -124,7 +124,7 @@ public class WindowsOverlay {
                 (windowHeight - noInsetGridHeight) / 2), gridWidth, gridHeight);
     }
 
-    private static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {
+    static WinDef.RECT windowRectExcludingShadow(WinDef.HWND hwnd) {
         // On Windows 10+, DwmGetWindowAttribute() returns the extended frame bounds excluding shadow.
         WinDef.RECT rect = new WinDef.RECT();
         Dwmapi.INSTANCE.DwmGetWindowAttribute(hwnd, Dwmapi.DWMWA_EXTENDED_FRAME_BOUNDS,

@@ -9,12 +9,15 @@ import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
 public class ActiveAppFinder {
 
     private static final Logger logger = LoggerFactory.getLogger(ActiveAppFinder.class);
 
     private IntByReference processId = new IntByReference();
     private byte[] executableNameBytes = new byte[1024];
+    String lastExecutableName;
 
     public App activeApp() {
         WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
@@ -24,18 +27,34 @@ public class ActiveAppFinder {
                 false, processId.getValue());
         if (processHandle == null) {
             logger.info("Unable to find the name of the active app");
+            lastExecutableName = null;
             return null;
         }
         if (ExtendedPsapi.INSTANCE.GetModuleBaseNameA(processHandle, null,
                 executableNameBytes,
                 executableNameBytes.length) == 0) {
             logger.info("Unable to find the name of the active app");
+            lastExecutableName = null;
             return null;
         }
-        String executableName = Native.toString(executableNameBytes);
+        String executableName = Native.toString(executableNameBytes).replaceAll(" ", "");
         Kernel32.INSTANCE.CloseHandle(processHandle);
-        // Remove spaces from the name.
-        return new App(executableName.replaceAll(" ", ""));
+        WinDef.RECT windowRect = WindowsOverlay.windowRectExcludingShadow(hwnd);
+        boolean isMinimized = ExtendedUser32.INSTANCE.IsIconic(hwnd) ||
+                           // IsIconic can return false while the window is still at minimized-like coordinates (around -32000).
+                           windowRect.left < -30_000 || windowRect.top < -30_000;
+        if (isMinimized) {
+            logger.debug(
+                    "Ignoring active app change from " + lastExecutableName + " to " +
+                    executableName + " because " + executableName + " is minimized: " +
+                    windowRect);
+            return new App(lastExecutableName);
+        }
+        if (!Objects.equals(executableName, lastExecutableName)) {
+            logger.debug("Detected active app change from " + lastExecutableName + " to " + executableName + " " + windowRect);
+            lastExecutableName = executableName;
+        }
+        return new App(executableName);
     }
 
 }

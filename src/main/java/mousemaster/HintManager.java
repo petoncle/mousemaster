@@ -713,6 +713,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void selectHintKey(Key key) {
+        if (key == null)
+            return;
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
             return;

@@ -400,7 +400,7 @@ public class ComboWatcher implements ModeListener {
     private void runCommands(List<Command> commandsToRun) {
         if (commandsToRun.isEmpty())
             return;
-        Key lastEventKey = lastKeyEvent.key();
+        Key lastEventKey = lastKeyEvent == null ? null : lastKeyEvent.key();
         List<Command> commands = new ArrayList<>(commandsToRun);
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
             Command command = commands.removeFirst();
