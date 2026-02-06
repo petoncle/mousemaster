@@ -23,14 +23,11 @@
   ],
   [
     {
-      "c": "#9d4c04",
-      "f": 2,
       "w": 1.5
     },
-    "Tab\n(+J and +L)\n\n\n\n\nVirtual Desktop",
+    "Tab",
     {
-      "c": "#621dba",
-      "f": 3
+      "c": "#621dba"
     },
     "Q\n\n\n\n\n\nDisable",
     {

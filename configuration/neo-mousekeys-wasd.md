@@ -27,7 +27,6 @@
 - Press _leftalt + ijkl_ to simulate the arrow keys.
 - Navigate back and forward using _h_ (back) and _y_ (forward). These keys send 
 _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the active application. 
-- Press _tab + jl_ to switch to the virtual desktop on the left (_j_) or right (_l_).
 
 ## Grid Mode (_g_ in normal mode)
 
