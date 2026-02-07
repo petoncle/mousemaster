@@ -1999,6 +1999,7 @@ public class WindowsOverlay {
         }
         showingIndicator = true;
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
+        indicatorWindow.window.setWindowOpacity(indicator.opacity());
         indicatorWindow.window.show();
     }
 

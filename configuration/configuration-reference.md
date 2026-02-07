@@ -313,6 +313,7 @@ normal-mode.indicator.move-color=#FF0000
 normal-mode.indicator.wheel-color=#FFFF00
 normal-mode.indicator.mouse-press-color=#00FF00
 normal-mode.indicator.unhandled-key-press-color=#0000FF
+normal-mode.indicator.opacity=1.0
 normal-mode.indicator.shadow-blur-radius=10
 normal-mode.indicator.shadow-color=#000000
 normal-mode.indicator.shadow-opacity=1.0

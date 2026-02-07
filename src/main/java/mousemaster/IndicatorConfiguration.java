@@ -9,6 +9,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
                                      String middleMousePressHexColor,
                                      String rightMousePressHexColor,
                                      String unhandledKeyPressHexColor,
+                                     double opacity,
                                      Shadow shadow) {
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
@@ -21,6 +22,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
         private String middleMousePressHexColor;
         private String rightMousePressHexColor;
         private String unhandledKeyPressHexColor;
+        private Double opacity;
         private ShadowBuilder shadow = new ShadowBuilder();
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
@@ -74,6 +76,15 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return this;
         }
 
+        public IndicatorConfigurationBuilder opacity(double opacity) {
+            this.opacity = opacity;
+            return this;
+        }
+
+        public Double opacity() {
+            return opacity;
+        }
+
         public ShadowBuilder shadow() {
             return shadow;
         }
@@ -124,6 +135,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
                     middleMousePressHexColor,
                     rightMousePressHexColor,
                     unhandledKeyPressHexColor,
+                    opacity,
                     shadow.build());
         }
 

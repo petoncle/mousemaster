@@ -146,7 +146,8 @@ public class ConfigurationParser {
                  .idleHexColor("#FF0000")
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
-                 .mousePressHexColor("#00FF00");
+                 .mousePressHexColor("#00FF00")
+                 .opacity(1.0);
         indicator.shadow()
                  .blurRadius(0d)
                  .hexColor("#000000")
@@ -1059,6 +1060,8 @@ public class ConfigurationParser {
                         case "unhandled-key-press-color" ->
                                 mode.indicator.builder.unhandledKeyPressHexColor(
                                         checkColorFormat(propertyValue));
+                        case "opacity" -> mode.indicator.builder.opacity(
+                                parseDouble(propertyValue, true, 0, 1));
                         case "shadow-blur-radius" -> mode.indicator.builder.shadow().blurRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
                         case "shadow-color" -> mode.indicator.builder.shadow().hexColor(
@@ -2040,6 +2043,8 @@ public class ConfigurationParser {
                         builder.rightMousePressHexColor(parent.rightMousePressHexColor());
                     if (builder.unhandledKeyPressHexColor() == null)
                         builder.unhandledKeyPressHexColor(parent.unhandledKeyPressHexColor());
+                    if (builder.opacity() == null)
+                        builder.opacity(parent.opacity());
                     builder.shadow().extend(parent.shadow());
                 }
             };
