@@ -186,9 +186,12 @@ public class WindowsOverlay {
 
         private QColor color;
         private int edgeCount;
-        private double outlineThickness;
-        private QColor outlineColor;
-        private double outlineFillPercent;
+        private double firstOutlineThickness;
+        private QColor firstOutlineColor;
+        private double firstOutlineFillPercent = 1.0;
+        private double secondOutlineThickness;
+        private QColor secondOutlineColor;
+        private double secondOutlineFillPercent = 1.0;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -204,12 +207,21 @@ public class WindowsOverlay {
             update();
         }
 
-        void setOutline(double outlineThickness, QColor outlineColor,
-                        double outlineFillPercent) {
-            this.outlineThickness = outlineThickness;
-            this.outlineColor = outlineColor;
-            this.outlineFillPercent = outlineFillPercent;
+        void setOutlines(double firstOutlineThickness, QColor firstOutlineColor,
+                         double firstOutlineFillPercent,
+                         double secondOutlineThickness, QColor secondOutlineColor,
+                         double secondOutlineFillPercent) {
+            this.firstOutlineThickness = firstOutlineThickness;
+            this.firstOutlineColor = firstOutlineColor;
+            this.firstOutlineFillPercent = firstOutlineFillPercent;
+            this.secondOutlineThickness = secondOutlineThickness;
+            this.secondOutlineColor = secondOutlineColor;
+            this.secondOutlineFillPercent = secondOutlineFillPercent;
             update();
+        }
+
+        double maxOutlineThickness() {
+            return Math.max(firstOutlineThickness, secondOutlineThickness);
         }
 
 
@@ -323,42 +335,56 @@ public class WindowsOverlay {
             return path;
         }
 
+        private void drawOutline(QPainter painter, double centerX, double centerY,
+                                 double fillRadius, double thickness, QColor color,
+                                 double fillPercent, double inwardOverlap) {
+            if (thickness <= 0 || color == null || color.alpha() == 0 || fillPercent <= 0)
+                return;
+            // Extend the inner edge inward by inwardOverlap so that the
+            // antialiased inner pixels blend with the layer below (e.g. fill)
+            // rather than with a different-colored outline underneath.
+            double effectiveThickness = thickness + inwardOverlap;
+            QPen pen = new QPen(color);
+            pen.setWidthF(effectiveThickness);
+            pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
+            painter.setBrush(Qt.BrushStyle.NoBrush);
+            // Outer edge stays at fillRadius + thickness.
+            // Inner edge moves to fillRadius - inwardOverlap.
+            double outlineRadius = fillRadius + (thickness - inwardOverlap) / 2.0;
+            if (fillPercent >= 1.0) {
+                painter.setPen(pen);
+                QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
+                painter.drawPath(outlinePath);
+            }
+            else {
+                pen.setCapStyle(Qt.PenCapStyle.FlatCap);
+                painter.setPen(pen);
+                QPainterPath outlinePath = partialPolygonPath(
+                        centerX, centerY, outlineRadius, edgeCount, fillPercent);
+                painter.drawPath(outlinePath);
+            }
+        }
+
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            int outlinePadding = (int) Math.ceil(outlineThickness);
+            int outlinePadding = (int) Math.ceil(maxOutlineThickness());
             double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
             PolygonLayout layout = polygonLayout(availableSize, edgeCount);
             double centerX = width() / 2.0 + layout.offsetX;
             double centerY = height() / 2.0 + layout.offsetY;
             double fillRadius = layout.radius;
-            QPainterPath fillPath = polygonPath(centerX, centerY, fillRadius, edgeCount);
+            // Extend fill slightly under the outline to prevent antialiasing seam.
+            double extendedFillRadius = maxOutlineThickness() > 0 ? fillRadius + 0.5 : fillRadius;
+            QPainterPath fillPath = polygonPath(centerX, centerY, extendedFillRadius, edgeCount);
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
-            if (outlineThickness > 0 && outlineColor != null && outlineColor.alpha() != 0 &&
-                outlineFillPercent > 0) {
-                QPen pen = new QPen(outlineColor);
-                pen.setWidthF(outlineThickness);
-                pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
-                painter.setPen(pen);
-                painter.setBrush(Qt.BrushStyle.NoBrush);
-                // The QPen stroke is centered on the path — half goes outward, half goes inward.
-                // And we want the outline to be completely outside the fill.
-                double outlineRadius = fillRadius + outlineThickness / 2.0;
-                if (outlineFillPercent >= 1.0) {
-                    QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
-                    painter.drawPath(outlinePath);
-                }
-                else {
-                    pen.setCapStyle(Qt.PenCapStyle.FlatCap);
-                    painter.setPen(pen);
-                    QPainterPath outlinePath = partialPolygonPath(
-                            centerX, centerY, outlineRadius, edgeCount, outlineFillPercent);
-                    painter.drawPath(outlinePath);
-                }
-            }
+            drawOutline(painter, centerX, centerY, fillRadius,
+                    firstOutlineThickness, firstOutlineColor, firstOutlineFillPercent, 0);
+            drawOutline(painter, centerX, centerY, fillRadius,
+                    secondOutlineThickness, secondOutlineColor, secondOutlineFillPercent, 1.0);
             painter.end();
         }
     }
@@ -514,7 +540,9 @@ public class WindowsOverlay {
     }
 
     private static int indicatorOutlinePadding() {
-        return (int) Math.ceil(currentIndicator.outlineThickness());
+        return (int) Math.ceil(Math.max(
+                currentIndicator.firstOutline().thickness(),
+                currentIndicator.secondOutline().thickness()));
     }
 
     private static int indicatorShadowPadding() {
@@ -2227,7 +2255,8 @@ public class WindowsOverlay {
             boolean sizeOrShadowChanged = oldIndicator == null ||
                     indicator.size() != oldIndicator.size() ||
                     indicator.edgeCount() != oldIndicator.edgeCount() ||
-                    indicator.outlineThickness() != oldIndicator.outlineThickness() ||
+                    indicator.firstOutline().thickness() != oldIndicator.firstOutline().thickness() ||
+                    indicator.secondOutline().thickness() != oldIndicator.secondOutline().thickness() ||
                     !indicator.shadow().equals(oldIndicator.shadow());
             if (sizeOrShadowChanged) {
                 moveAndResizeIndicatorWindow();
@@ -2237,9 +2266,11 @@ public class WindowsOverlay {
         showingIndicator = true;
         indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
-        indicatorWindow.widget.setOutline(indicator.outlineThickness(),
-                qColor(indicator.outlineHexColor(), indicator.outlineOpacity()),
-                indicator.outlineFillPercent());
+        IndicatorOutline first = indicator.firstOutline();
+        IndicatorOutline second = indicator.secondOutline();
+        indicatorWindow.widget.setOutlines(
+                first.thickness(), qColor(first.hexColor(), first.opacity()), first.fillPercent(),
+                second.thickness(), qColor(second.hexColor(), second.opacity()), second.fillPercent());
         if (indicator.labelEnabled() && indicator.labelText() != null && indicator.labelFontStyle() != null) {
             FontStyle lfs = indicator.labelFontStyle();
             QFont labelFont = qFont(lfs.name(), lfs.size(), lfs.weight());
@@ -2247,7 +2278,8 @@ public class WindowsOverlay {
             QColor labelOutlineColor = qColor(lfs.outlineHexColor(), lfs.outlineOpacity());
             indicatorWindow.labelWidget.setLabel(indicator.labelText(), labelFont, labelColor,
                     (int) Math.round(lfs.outlineThickness()), labelOutlineColor,
-                    indicator.edgeCount(), indicator.outlineThickness());
+                    indicator.edgeCount(),
+                    Math.max(indicator.firstOutline().thickness(), indicator.secondOutline().thickness()));
             Shadow labelShadow = lfs.shadow();
             QColor labelShadowColor = qColor(labelShadow.hexColor(), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {

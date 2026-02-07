@@ -1,8 +1,7 @@
 package mousemaster;
 
 public record Indicator(int size, int edgeCount, String hexColor, double opacity,
-                        double outlineThickness, String outlineHexColor,
-                        double outlineOpacity, double outlineFillPercent,
+                        IndicatorOutline firstOutline, IndicatorOutline secondOutline,
                         Shadow shadow,
                         boolean labelEnabled, String labelText,
                         FontStyle labelFontStyle) {

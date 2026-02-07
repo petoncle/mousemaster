@@ -149,11 +149,17 @@ public class ConfigurationParser {
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
                  .mousePressHexColor("#00FF00")
+                 .opacity(1.0);
+        indicator.firstOutline()
+                 .thickness(0)
+                 .hexColor("#000000")
                  .opacity(1.0)
-                 .outlineThickness(0)
-                 .outlineHexColor("#000000")
-                 .outlineOpacity(1.0)
-                 .outlineFillPercent(1.0);
+                 .fillPercent(1.0);
+        indicator.secondOutline()
+                 .thickness(0)
+                 .hexColor("#000000")
+                 .opacity(1.0)
+                 .fillPercent(1.0);
         indicator.shadow()
                  .blurRadius(0d)
                  .hexColor("#000000")
@@ -1090,13 +1096,21 @@ public class ConfigurationParser {
                                         checkColorFormat(propertyValue));
                         case "opacity" -> mode.indicator.builder.opacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "outline-thickness" -> mode.indicator.builder.outlineThickness(
+                        case "first-outline-thickness" -> mode.indicator.builder.firstOutline().thickness(
                                 parseDouble(propertyValue, true, 0, 100));
-                        case "outline-color" -> mode.indicator.builder.outlineHexColor(
+                        case "first-outline-color" -> mode.indicator.builder.firstOutline().hexColor(
                                 checkColorFormat(propertyValue));
-                        case "outline-opacity" -> mode.indicator.builder.outlineOpacity(
+                        case "first-outline-opacity" -> mode.indicator.builder.firstOutline().opacity(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "outline-fill-percent" -> mode.indicator.builder.outlineFillPercent(
+                        case "first-outline-fill-percent" -> mode.indicator.builder.firstOutline().fillPercent(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "second-outline-thickness" -> mode.indicator.builder.secondOutline().thickness(
+                                parseDouble(propertyValue, true, 0, 100));
+                        case "second-outline-color" -> mode.indicator.builder.secondOutline().hexColor(
+                                checkColorFormat(propertyValue));
+                        case "second-outline-opacity" -> mode.indicator.builder.secondOutline().opacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "second-outline-fill-percent" -> mode.indicator.builder.secondOutline().fillPercent(
                                 parseDouble(propertyValue, true, 0, 1));
                         case "shadow-blur-radius" -> mode.indicator.builder.shadow().blurRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
@@ -2098,14 +2112,8 @@ public class ConfigurationParser {
                         builder.unhandledKeyPressHexColor(parent.unhandledKeyPressHexColor());
                     if (builder.opacity() == null)
                         builder.opacity(parent.opacity());
-                    if (builder.outlineThickness() == null)
-                        builder.outlineThickness(parent.outlineThickness());
-                    if (builder.outlineHexColor() == null)
-                        builder.outlineHexColor(parent.outlineHexColor());
-                    if (builder.outlineOpacity() == null)
-                        builder.outlineOpacity(parent.outlineOpacity());
-                    if (builder.outlineFillPercent() == null)
-                        builder.outlineFillPercent(parent.outlineFillPercent());
+                    builder.firstOutline().extend(parent.firstOutline());
+                    builder.secondOutline().extend(parent.secondOutline());
                     builder.shadow().extend(parent.shadow());
                     if (builder.labelEnabled() == null)
                         builder.labelEnabled(parent.labelEnabled());

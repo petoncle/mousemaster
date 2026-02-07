@@ -1,6 +1,7 @@
 package mousemaster;
 
 import mousemaster.FontStyle.FontStyleBuilder;
+import mousemaster.IndicatorOutline.IndicatorOutlineBuilder;
 import mousemaster.Shadow.ShadowBuilder;
 
 public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
@@ -12,9 +13,8 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
                                      String rightMousePressHexColor,
                                      String unhandledKeyPressHexColor,
                                      double opacity,
-                                     double outlineThickness, String outlineHexColor,
-                                     double outlineOpacity,
-                                     double outlineFillPercent,
+                                     IndicatorOutline firstOutline,
+                                     IndicatorOutline secondOutline,
                                      Shadow shadow,
                                      boolean labelEnabled,
                                      String labelText, FontStyle labelFontStyle) {
@@ -31,10 +31,8 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
         private String rightMousePressHexColor;
         private String unhandledKeyPressHexColor;
         private Double opacity;
-        private Double outlineThickness;
-        private String outlineHexColor;
-        private Double outlineOpacity;
-        private Double outlineFillPercent;
+        private IndicatorOutlineBuilder firstOutline = new IndicatorOutlineBuilder();
+        private IndicatorOutlineBuilder secondOutline = new IndicatorOutlineBuilder();
         private ShadowBuilder shadow = new ShadowBuilder();
         private Boolean labelEnabled;
         private String labelText;
@@ -105,40 +103,12 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
             return opacity;
         }
 
-        public IndicatorConfigurationBuilder outlineThickness(double outlineThickness) {
-            this.outlineThickness = outlineThickness;
-            return this;
+        public IndicatorOutlineBuilder firstOutline() {
+            return firstOutline;
         }
 
-        public IndicatorConfigurationBuilder outlineHexColor(String outlineHexColor) {
-            this.outlineHexColor = outlineHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder outlineOpacity(double outlineOpacity) {
-            this.outlineOpacity = outlineOpacity;
-            return this;
-        }
-
-        public Double outlineThickness() {
-            return outlineThickness;
-        }
-
-        public String outlineHexColor() {
-            return outlineHexColor;
-        }
-
-        public Double outlineOpacity() {
-            return outlineOpacity;
-        }
-
-        public IndicatorConfigurationBuilder outlineFillPercent(double outlineFillPercent) {
-            this.outlineFillPercent = outlineFillPercent;
-            return this;
-        }
-
-        public Double outlineFillPercent() {
-            return outlineFillPercent;
+        public IndicatorOutlineBuilder secondOutline() {
+            return secondOutline;
         }
 
         public ShadowBuilder shadow() {
@@ -148,6 +118,7 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
         public Boolean enabled() {
             return enabled;
         }
+
         public Integer size() {
             return size;
         }
@@ -218,8 +189,8 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
                     rightMousePressHexColor,
                     unhandledKeyPressHexColor,
                     opacity,
-                    outlineThickness, outlineHexColor, outlineOpacity,
-                    outlineFillPercent,
+                    firstOutline.build(),
+                    secondOutline.build(),
                     shadow.build(),
                     labelEnabled, labelText, labelFontStyle.build());
         }
