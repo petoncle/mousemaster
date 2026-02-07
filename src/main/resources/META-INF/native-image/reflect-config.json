@@ -762,6 +762,14 @@
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
+  "name":"mousemaster.WindowsOverlay$IndicatorLabelWidget",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
   "name":"mousemaster.WindowsOverlay$IndicatorWidget",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,

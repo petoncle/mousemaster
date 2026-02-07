@@ -694,6 +694,14 @@
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
+  "name":"mousemaster.WindowsOverlay$IndicatorLabelWidget",
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$IndicatorWidget",
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
   "name":"mousemaster.qt.TransparentWindow",
   "methods":[{"name":"clearWindow","parameterTypes":[] }, {"name":"hideChildren","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 }

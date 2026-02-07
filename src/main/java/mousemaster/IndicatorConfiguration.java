@@ -14,6 +14,7 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
                                      double opacity,
                                      double outlineThickness, String outlineHexColor,
                                      double outlineOpacity,
+                                     double outlineFillPercent,
                                      Shadow shadow,
                                      boolean labelEnabled,
                                      String labelText, FontStyle labelFontStyle) {
@@ -33,6 +34,7 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
         private Double outlineThickness;
         private String outlineHexColor;
         private Double outlineOpacity;
+        private Double outlineFillPercent;
         private ShadowBuilder shadow = new ShadowBuilder();
         private Boolean labelEnabled;
         private String labelText;
@@ -130,6 +132,15 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
             return outlineOpacity;
         }
 
+        public IndicatorConfigurationBuilder outlineFillPercent(double outlineFillPercent) {
+            this.outlineFillPercent = outlineFillPercent;
+            return this;
+        }
+
+        public Double outlineFillPercent() {
+            return outlineFillPercent;
+        }
+
         public ShadowBuilder shadow() {
             return shadow;
         }
@@ -208,6 +219,7 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
                     unhandledKeyPressHexColor,
                     opacity,
                     outlineThickness, outlineHexColor, outlineOpacity,
+                    outlineFillPercent,
                     shadow.build(),
                     labelEnabled, labelText, labelFontStyle.build());
         }

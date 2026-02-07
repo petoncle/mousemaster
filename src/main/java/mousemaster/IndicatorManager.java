@@ -25,6 +25,7 @@ public class IndicatorManager implements ModeListener {
                                 currentMode.indicator().outlineThickness(),
                                 currentMode.indicator().outlineHexColor(),
                                 currentMode.indicator().outlineOpacity(),
+                                currentMode.indicator().outlineFillPercent(),
                                 currentMode.indicator().shadow(),
                                 currentMode.indicator().labelEnabled(),
                                 currentMode.indicator().labelText(),

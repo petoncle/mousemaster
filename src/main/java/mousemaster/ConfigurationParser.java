@@ -152,7 +152,8 @@ public class ConfigurationParser {
                  .opacity(1.0)
                  .outlineThickness(0)
                  .outlineHexColor("#000000")
-                 .outlineOpacity(1.0);
+                 .outlineOpacity(1.0)
+                 .outlineFillPercent(1.0);
         indicator.shadow()
                  .blurRadius(0d)
                  .hexColor("#000000")
@@ -1094,6 +1095,8 @@ public class ConfigurationParser {
                         case "outline-color" -> mode.indicator.builder.outlineHexColor(
                                 checkColorFormat(propertyValue));
                         case "outline-opacity" -> mode.indicator.builder.outlineOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "outline-fill-percent" -> mode.indicator.builder.outlineFillPercent(
                                 parseDouble(propertyValue, true, 0, 1));
                         case "shadow-blur-radius" -> mode.indicator.builder.shadow().blurRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
@@ -2101,6 +2104,8 @@ public class ConfigurationParser {
                         builder.outlineHexColor(parent.outlineHexColor());
                     if (builder.outlineOpacity() == null)
                         builder.outlineOpacity(parent.outlineOpacity());
+                    if (builder.outlineFillPercent() == null)
+                        builder.outlineFillPercent(parent.outlineFillPercent());
                     builder.shadow().extend(parent.shadow());
                     if (builder.labelEnabled() == null)
                         builder.labelEnabled(parent.labelEnabled());

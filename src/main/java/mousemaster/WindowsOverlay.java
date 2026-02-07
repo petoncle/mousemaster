@@ -188,6 +188,7 @@ public class WindowsOverlay {
         private int edgeCount;
         private double outlineThickness;
         private QColor outlineColor;
+        private double outlineFillPercent;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -203,9 +204,11 @@ public class WindowsOverlay {
             update();
         }
 
-        void setOutline(double outlineThickness, QColor outlineColor) {
+        void setOutline(double outlineThickness, QColor outlineColor,
+                        double outlineFillPercent) {
             this.outlineThickness = outlineThickness;
             this.outlineColor = outlineColor;
+            this.outlineFillPercent = outlineFillPercent;
             update();
         }
 
@@ -262,6 +265,64 @@ public class WindowsOverlay {
             return new PolygonLayout(radius, offsetX, offsetY);
         }
 
+        /**
+         * Builds an open path tracing a portion of the polygon outline.
+         * The visible portion starts at the bottom center and extends clockwise
+         * (up the right side first), like a gauge being filled.
+         */
+        private static QPainterPath partialPolygonPath(double centerX, double centerY,
+                                                       double radius, int edgeCount,
+                                                       double fillPercent) {
+            double startAngle = polygonStartAngle(edgeCount);
+            double[] vx = new double[edgeCount];
+            double[] vy = new double[edgeCount];
+            for (int i = 0; i < edgeCount; i++) {
+                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
+                vx[i] = centerX + radius * Math.cos(angle);
+                vy[i] = centerY + radius * Math.sin(angle);
+            }
+            double edgeLength = Math.hypot(vx[1] - vx[0], vy[1] - vy[0]);
+            double totalLength = edgeCount * edgeLength;
+            double fillLength = fillPercent * totalLength;
+            // Bottom center = midpoint of the bottom edge.
+            int bottomEdgeIndex = (edgeCount - 1) / 2;
+            double bottomPos = (bottomEdgeIndex + 0.5) * edgeLength;
+            // The fill goes clockwise from bottom (= backwards along the path).
+            // In forward path terms, the visible segment is from startPos to bottomPos.
+            double startPos = bottomPos - fillLength;
+            if (startPos < 0) startPos += totalLength;
+            // Find starting edge and fractional position within it.
+            int startEdge = (int) (startPos / edgeLength);
+            double startFrac = (startPos - startEdge * edgeLength) / edgeLength;
+            int v0 = startEdge;
+            int v1 = (startEdge + 1) % edgeCount;
+            double sx = vx[v0] + startFrac * (vx[v1] - vx[v0]);
+            double sy = vy[v0] + startFrac * (vy[v1] - vy[v0]);
+            QPainterPath path = new QPainterPath();
+            path.moveTo(sx, sy);
+            double remaining = fillLength;
+            double distInCurrentEdge = (1 - startFrac) * edgeLength;
+            int currentEdge = startEdge;
+            while (remaining > 1e-6) {
+                int nextV = (currentEdge + 1) % edgeCount;
+                if (remaining >= distInCurrentEdge - 1e-6) {
+                    path.lineTo(vx[nextV], vy[nextV]);
+                    remaining -= distInCurrentEdge;
+                    currentEdge = (currentEdge + 1) % edgeCount;
+                    distInCurrentEdge = edgeLength;
+                }
+                else {
+                    double frac = remaining / edgeLength;
+                    int curV = currentEdge;
+                    double ex = vx[curV] + frac * (vx[nextV] - vx[curV]);
+                    double ey = vy[curV] + frac * (vy[nextV] - vy[curV]);
+                    path.lineTo(ex, ey);
+                    remaining = 0;
+                }
+            }
+            return path;
+        }
+
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
@@ -276,7 +337,8 @@ public class WindowsOverlay {
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
-            if (outlineThickness > 0 && outlineColor != null && outlineColor.alpha() != 0) {
+            if (outlineThickness > 0 && outlineColor != null && outlineColor.alpha() != 0 &&
+                outlineFillPercent > 0) {
                 QPen pen = new QPen(outlineColor);
                 pen.setWidthF(outlineThickness);
                 pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
@@ -285,8 +347,17 @@ public class WindowsOverlay {
                 // The QPen stroke is centered on the path — half goes outward, half goes inward.
                 // And we want the outline to be completely outside the fill.
                 double outlineRadius = fillRadius + outlineThickness / 2.0;
-                QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
-                painter.drawPath(outlinePath);
+                if (outlineFillPercent >= 1.0) {
+                    QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
+                    painter.drawPath(outlinePath);
+                }
+                else {
+                    pen.setCapStyle(Qt.PenCapStyle.FlatCap);
+                    painter.setPen(pen);
+                    QPainterPath outlinePath = partialPolygonPath(
+                            centerX, centerY, outlineRadius, edgeCount, outlineFillPercent);
+                    painter.drawPath(outlinePath);
+                }
             }
             painter.end();
         }
@@ -2167,7 +2238,8 @@ public class WindowsOverlay {
         indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
         indicatorWindow.widget.setOutline(indicator.outlineThickness(),
-                qColor(indicator.outlineHexColor(), indicator.outlineOpacity()));
+                qColor(indicator.outlineHexColor(), indicator.outlineOpacity()),
+                indicator.outlineFillPercent());
         if (indicator.labelEnabled() && indicator.labelText() != null && indicator.labelFontStyle() != null) {
             FontStyle lfs = indicator.labelFontStyle();
             QFont labelFont = qFont(lfs.name(), lfs.size(), lfs.weight());
