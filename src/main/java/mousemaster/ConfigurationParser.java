@@ -159,6 +159,7 @@ public class ConfigurationParser {
                  .opacity(1.0)
                  .horizontalOffset(0d)
                  .verticalOffset(0d);
+        indicator.labelEnabled(false);
         indicator.labelFontStyle()
                  .name("Arial")
                  .weight(FontWeight.NORMAL)
@@ -1054,7 +1055,11 @@ public class ConfigurationParser {
                 else {
                     if (mode.indicator.builder.enabled() == null)
                         mode.indicator.builder.enabled(true);
-                    switch (keyMatcher.group(group4)) {
+                    String indicatorPropertyKey = keyMatcher.group(group4);
+                    if (indicatorPropertyKey.startsWith("label-") &&
+                        mode.indicator.builder.labelEnabled() == null)
+                        mode.indicator.builder.labelEnabled(true);
+                    switch (indicatorPropertyKey) {
                         case "enabled" -> mode.indicator.builder.enabled(
                                 Boolean.parseBoolean(propertyValue));
                         case "size" -> mode.indicator.builder.size(
@@ -1100,6 +1105,7 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, -100, 100));
                         case "shadow-vertical-offset" -> mode.indicator.builder.shadow().verticalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
+                        case "label-enabled" -> mode.indicator.builder.labelEnabled(Boolean.parseBoolean(propertyValue));
                         case "label-text" -> mode.indicator.builder.labelText(propertyValue);
                         case "label-font-name" -> mode.indicator.builder.labelFontStyle().name(parseFontName(propertyValue, fontAvailability));
                         case "label-font-size" -> mode.indicator.builder.labelFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
@@ -2096,6 +2102,8 @@ public class ConfigurationParser {
                     if (builder.outlineOpacity() == null)
                         builder.outlineOpacity(parent.outlineOpacity());
                     builder.shadow().extend(parent.shadow());
+                    if (builder.labelEnabled() == null)
+                        builder.labelEnabled(parent.labelEnabled());
                     if (builder.labelText() == null)
                         builder.labelText(parent.labelText());
                     builder.labelFontStyle().extend(parent.labelFontStyle());

@@ -2120,7 +2120,7 @@ public class WindowsOverlay {
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
         indicatorWindow.widget.setOutline(indicator.outlineThickness(),
                 qColor(indicator.outlineHexColor(), indicator.outlineOpacity()));
-        if (indicator.labelText() != null && indicator.labelFontStyle() != null) {
+        if (indicator.labelEnabled() && indicator.labelText() != null && indicator.labelFontStyle() != null) {
             FontStyle lfs = indicator.labelFontStyle();
             QFont labelFont = qFont(lfs.name(), lfs.size(), lfs.weight());
             QColor labelColor = qColor(lfs.hexColor(), lfs.opacity());
