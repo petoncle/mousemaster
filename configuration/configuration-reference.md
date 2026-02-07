@@ -1019,7 +1019,7 @@ logging.file-path=mousemaster.log
 There is currently a limitation with keyboard layouts (#37): I have not found a reliable way to get the active keyboard layout using the Windows API.
 The workaround is to explicitly tell mousemaster which keyboard layout to use:
 ```properties
-keyboard-layout=us-dvorak
+forced-active-keyboard-layout=us-dvorak
 ```
 The following keyboard layouts are currently exposed and can be referenced in the configuration file:
 - zh-qwerty-pinyin

@@ -25,7 +25,7 @@ public class Mousemaster {
     private ModeController modeController;
     private List<String> configurationProperties;
     private KeyboardLayout activeKeyboardLayout;
-    private KeyboardLayout configurationKeyboardLayout;
+    private KeyboardLayout forcedActiveKeyboardLayout;
 
     public Mousemaster(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
@@ -105,7 +105,7 @@ public class Mousemaster {
     }
 
     private void updateActiveKeyboardLayout(double delta) {
-        if (configurationKeyboardLayout != null)
+        if (forcedActiveKeyboardLayout != null)
             return;
         KeyboardLayout newActiveKeyboardLayout = platform.activeKeyboardLayout();
         if (!newActiveKeyboardLayout.equals(activeKeyboardLayout)) {
@@ -157,9 +157,9 @@ public class Mousemaster {
         // User can override the layout. When active layout is dvorak, Windows HKL only
         // gives the language identifier, which is 0409. But it is missing the other part
         // of the layout identifier (00010409).
-        configurationKeyboardLayout = configuration.configurationKeyboardLayout();
-        if (configurationKeyboardLayout != null)
-            activeKeyboardLayout = configurationKeyboardLayout;
+        forcedActiveKeyboardLayout = configuration.forcedActiveKeyboardLayout();
+        if (forcedActiveKeyboardLayout != null)
+            activeKeyboardLayout = forcedActiveKeyboardLayout;
         if (configuration.logLevel() != null)
             MousemasterApplication.setLogLevel(configuration.logLevel());
         if (configuration.logToFile())

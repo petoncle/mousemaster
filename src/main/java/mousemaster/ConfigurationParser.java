@@ -200,15 +200,23 @@ public class ConfigurationParser {
 
     }
 
+    private record ForcedActiveAndConfigurationKeyboardLayouts(
+            KeyboardLayout forcedActiveKeyboardLayout,
+            KeyboardLayout configurationKeyboardLayout) {
+
+    }
+
     public static Configuration parse(List<String> properties,
-                                      KeyboardLayout activeKeyboardLayout) {
-        KeyboardLayout configurationKeyboardLayout = parseKeyboardLayout(properties);
-        KeyboardLayout keyboardLayout =
-                configurationKeyboardLayout == null ? activeKeyboardLayout :
-                        configurationKeyboardLayout;
+                                      KeyboardLayout platformActiveKeyboardLayout) {
+        ForcedActiveAndConfigurationKeyboardLayouts
+                forcedActiveAndConfigurationKeyboardLayouts = parseForcedAndConfigurationLayouts(properties);
+        KeyboardLayout activeKeyboardLayout =
+                forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout == null ?
+                        platformActiveKeyboardLayout :
+                        forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout;
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
-                configurationAliases.layoutKeyAliasByName, keyboardLayout);
+                configurationAliases.layoutKeyAliasByName, activeKeyboardLayout);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         String logLevel = null;
         boolean logRedactKeys = false;
@@ -378,7 +386,7 @@ public class ConfigurationParser {
         }
         List<Key> missingKeys = allComboAndMacroKeys.stream()
                                                         .filter(Predicate.not(
-                                                                keyboardLayout::containsKey))
+                                                                activeKeyboardLayout::containsKey))
                                                         .toList();
         if (!missingKeys.isEmpty())
             ;
@@ -392,7 +400,7 @@ public class ConfigurationParser {
                                     .collect(Collectors.toSet());
         return new Configuration(maxPositionHistorySize,
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
-                configurationKeyboardLayout);
+                forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout);
     }
 
     private static List<Combo> deriveSelectCombosFromHintSelectionKeys(ModeBuilder mode,
@@ -418,8 +426,11 @@ public class ConfigurationParser {
                                 .toList();
     }
 
-    private static KeyboardLayout parseKeyboardLayout(List<String> properties) {
+    private static ForcedActiveAndConfigurationKeyboardLayouts parseForcedAndConfigurationLayouts(
+            List<String> properties) {
         Set<String> visitedPropertyKeys = new HashSet<>();
+        KeyboardLayout forcedActiveKeyboardLayout = null;
+        KeyboardLayout configurationKeyboardLayout = null;
         for (String property : properties) {
             checkPropertyLineCorrectness(property, visitedPropertyKeys);
             Matcher lineMatcher = propertyLinePattern.matcher(property);
@@ -428,10 +439,19 @@ public class ConfigurationParser {
             String propertyKey = lineMatcher.group(1).strip();
             String propertyValue = lineMatcher.group(2).strip();
             if (propertyKey.equals("keyboard-layout")) {
-                return parseKeyboardLayout(propertyValue);
+                logger.warn(
+                        "key-layout has been deprecated: use forced-active-keyboard-layout instead");
+                forcedActiveKeyboardLayout = parseKeyboardLayout(propertyValue);
+            }
+            if (propertyKey.equals("forced-active-keyboard-layout")) {
+                forcedActiveKeyboardLayout = parseKeyboardLayout(propertyValue);
+            }
+            if (propertyKey.equals("configuration-keyboard-layout")) {
+                configurationKeyboardLayout = parseKeyboardLayout(propertyValue);
             }
         }
-        return null;
+        return new ForcedActiveAndConfigurationKeyboardLayouts(forcedActiveKeyboardLayout,
+                configurationKeyboardLayout);
     }
 
     private static void usedKeys(ComboMapConfigurationBuilder comboMap,

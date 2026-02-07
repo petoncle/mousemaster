@@ -121,7 +121,7 @@ For a complete reference of all configuration concepts and options, see the [con
 2. **Keyboard layout issues**:
    - If your keyboard layout isn't automatically detected, specify it in the configuration:
      ```properties
-     keyboard-layout=us-dvorak
+     forced-active-keyboard-layout=us-dvorak
      ```
      See [Keyboard layout](configuration/configuration-reference.md#keyboard-layout)
      for more details.
