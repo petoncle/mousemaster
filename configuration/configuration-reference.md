@@ -313,8 +313,15 @@ normal-mode.indicator.move-color=#FF0000
 normal-mode.indicator.wheel-color=#FFFF00
 normal-mode.indicator.mouse-press-color=#00FF00
 normal-mode.indicator.unhandled-key-press-color=#0000FF
+normal-mode.indicator.shadow-blur-radius=10
+normal-mode.indicator.shadow-color=#000000
+normal-mode.indicator.shadow-opacity=1.0
+normal-mode.indicator.shadow-horizontal-offset=0
+normal-mode.indicator.shadow-vertical-offset=0
 ```
 The color of the indicator can be changed depending on the current action being performed.
+
+A drop shadow can be added to the indicator using the shadow properties. Set `shadow-blur-radius` to a value greater than 0 to enable the shadow.
 
 ### Cursor properties
 

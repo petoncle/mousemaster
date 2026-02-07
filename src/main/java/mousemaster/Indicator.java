@@ -1,4 +1,4 @@
 package mousemaster;
 
-public record Indicator(int size, String hexColor) {
+public record Indicator(int size, String hexColor, Shadow shadow) {
 }

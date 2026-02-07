@@ -177,16 +177,16 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
 
-    private record IndicatorWindow(WinDef.HWND hwnd, IndicatorWidget widget) {
+    private record IndicatorWindow(WinDef.HWND hwnd, TransparentWindow window,
+                                   IndicatorWidget widget) {
     }
 
     private static class IndicatorWidget extends QWidget {
 
         private QColor color;
 
-        IndicatorWidget() {
-            setWindowFlags(Qt.WindowType.FramelessWindowHint);
-            setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
+        IndicatorWidget(QWidget parent) {
+            super(parent);
         }
 
         void setColor(QColor color) {
@@ -288,15 +288,48 @@ public class WindowsOverlay {
         return mouseY + cursorHeight / 2;
     }
 
+    private static int indicatorShadowPadding() {
+        if (currentIndicator.shadow().blurRadius() == 0)
+            return 0;
+        return (int) Math.ceil(currentIndicator.shadow().blurRadius() +
+                Math.max(Math.abs(currentIndicator.shadow().horizontalOffset()),
+                         Math.abs(currentIndicator.shadow().verticalOffset())));
+    }
+
+    private static void moveAndResizeIndicatorWindow() {
+        moveAndResizeIndicatorWindow(WindowsMouse.findMousePosition());
+    }
+
+    private static void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
+        int size = indicatorSize(mousePosition);
+        int shadowPadding = indicatorShadowPadding();
+        indicatorWindow.window.move(bestIndicatorX(mousePosition) - shadowPadding,
+                bestIndicatorY(mousePosition) - shadowPadding);
+        indicatorWindow.window.resize(size + 2 * shadowPadding,
+                size + 2 * shadowPadding);
+        indicatorWindow.widget.move(shadowPadding, shadowPadding);
+        indicatorWindow.widget.resize(size, size);
+    }
+
+    private static void applyIndicatorShadowEffect() {
+        Shadow shadow = currentIndicator.shadow();
+        QColor shadowColor = qColor(shadow.hexColor(), shadow.opacity());
+        if (shadowColor.alpha() != 0 && shadow.blurRadius() > 0) {
+            QGraphicsDropShadowEffect effect = new QGraphicsDropShadowEffect();
+            effect.setBlurRadius(shadow.blurRadius());
+            effect.setOffset(shadow.horizontalOffset(), shadow.verticalOffset());
+            effect.setColor(shadowColor);
+            indicatorWindow.widget.setGraphicsEffect(effect);
+        }
+        else {
+            indicatorWindow.widget.setGraphicsEffect(null);
+        }
+    }
+
     private static void createIndicatorWindow() {
-        int x = bestIndicatorX();
-        int y = bestIndicatorY();
-        int size = indicatorSize();
-        IndicatorWidget widget = new IndicatorWidget();
-        widget.move(x, y);
-        widget.resize(size, size);
-        widget.show();
-        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(widget.winId()));
+        TransparentWindow window = new TransparentWindow();
+        IndicatorWidget widget = new IndicatorWidget(window);
+        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
         long currentStyle =
                 User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
                                .longValue();
@@ -306,7 +339,10 @@ public class WindowsOverlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
-        indicatorWindow = new IndicatorWindow(hwnd, widget);
+        indicatorWindow = new IndicatorWindow(hwnd, window, widget);
+        moveAndResizeIndicatorWindow();
+        applyIndicatorShadowEffect();
+        window.show();
         updateZoomExcludedWindows();
     }
 
@@ -796,10 +832,10 @@ public class WindowsOverlay {
                 ),
                 qColor(style.fontStyle().outlineHexColor(), style.fontStyle().outlineOpacity()),
                 (int) Math.round(style.fontStyle().outlineThickness() * screenScale),
-                qColor(style.fontStyle().shadowHexColor(), style.fontStyle().shadowOpacity()),
-                style.fontStyle().shadowBlurRadius() * screenScale,
-                style.fontStyle().shadowHorizontalOffset() * screenScale,
-                style.fontStyle().shadowVerticalOffset() * screenScale,
+                qColor(style.fontStyle().shadow().hexColor(), style.fontStyle().shadow().opacity()),
+                style.fontStyle().shadow().blurRadius() * screenScale,
+                style.fontStyle().shadow().horizontalOffset() * screenScale,
+                style.fontStyle().shadow().verticalOffset() * screenScale,
                 style.fontStyle().spacingPercent()
         );
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
@@ -986,10 +1022,10 @@ public class WindowsOverlay {
                     ),
                     qColor(style.prefixFontStyle().outlineHexColor(), style.prefixFontStyle().outlineOpacity()),
                     (int) Math.round(style.prefixFontStyle().outlineThickness() * screenScale),
-                    qColor(style.prefixFontStyle().shadowHexColor(), style.prefixFontStyle().shadowOpacity()),
-                    style.prefixFontStyle().shadowBlurRadius() * screenScale,
-                    style.prefixFontStyle().shadowHorizontalOffset() * screenScale,
-                    style.prefixFontStyle().shadowVerticalOffset() * screenScale,
+                    qColor(style.prefixFontStyle().shadow().hexColor(), style.prefixFontStyle().shadow().opacity()),
+                    style.prefixFontStyle().shadow().blurRadius() * screenScale,
+                    style.prefixFontStyle().shadow().horizontalOffset() * screenScale,
+                    style.prefixFontStyle().shadow().verticalOffset() * screenScale,
                     style.prefixFontStyle().spacingPercent()
             );
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
@@ -1952,14 +1988,18 @@ public class WindowsOverlay {
         if (indicatorWindow == null) {
             createIndicatorWindow();
         }
-        else if (indicator.size() != oldIndicator.size()) {
-            int size = indicatorSize();
-            indicatorWindow.widget.move(bestIndicatorX(), bestIndicatorY());
-            indicatorWindow.widget.resize(size, size);
+        else {
+            boolean sizeOrShadowChanged = oldIndicator == null ||
+                    indicator.size() != oldIndicator.size() ||
+                    !indicator.shadow().equals(oldIndicator.shadow());
+            if (sizeOrShadowChanged) {
+                moveAndResizeIndicatorWindow();
+                applyIndicatorShadowEffect();
+            }
         }
         showingIndicator = true;
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
-        indicatorWindow.widget.show();
+        indicatorWindow.window.show();
     }
 
     public static void setZoom(Zoom zoom) {
@@ -2023,9 +2063,7 @@ public class WindowsOverlay {
                     User32.SWP_NOZORDER);
         }
         if (indicatorWindow != null) {
-            int size = indicatorSize();
-            indicatorWindow.widget.move(bestIndicatorX(), bestIndicatorY());
-            indicatorWindow.widget.resize(size, size);
+            moveAndResizeIndicatorWindow();
         }
         if (showingHintMesh) {
             for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
@@ -2077,7 +2115,7 @@ public class WindowsOverlay {
         if (!showingIndicator)
             return;
         showingIndicator = false;
-        indicatorWindow.widget.hide();
+        indicatorWindow.window.hide();
     }
 
     public static void setGrid(Grid grid) {
@@ -2225,10 +2263,7 @@ public class WindowsOverlay {
     static void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
             return;
-        int size = indicatorSize(mousePosition);
-        indicatorWindow.widget.move(bestIndicatorX(mousePosition),
-                bestIndicatorY(mousePosition));
-        indicatorWindow.widget.resize(size, size);
+        moveAndResizeIndicatorWindow(mousePosition);
     }
 
 }

@@ -1,12 +1,15 @@
 package mousemaster;
 
+import mousemaster.Shadow.ShadowBuilder;
+
 public record IndicatorConfiguration(boolean enabled, int size, String idleHexColor, String moveHexColor,
                                      String wheelHexColor,
                                      String mousePressHexColor,
                                      String leftMousePressHexColor,
                                      String middleMousePressHexColor,
                                      String rightMousePressHexColor,
-                                     String unhandledKeyPressHexColor) {
+                                     String unhandledKeyPressHexColor,
+                                     Shadow shadow) {
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
         private Integer size;
@@ -18,6 +21,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
         private String middleMousePressHexColor;
         private String rightMousePressHexColor;
         private String unhandledKeyPressHexColor;
+        private ShadowBuilder shadow = new ShadowBuilder();
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -70,6 +74,10 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return this;
         }
 
+        public ShadowBuilder shadow() {
+            return shadow;
+        }
+
         public Boolean enabled() {
             return enabled;
         }
@@ -115,7 +123,8 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
                     leftMousePressHexColor,
                     middleMousePressHexColor,
                     rightMousePressHexColor,
-                    unhandledKeyPressHexColor);
+                    unhandledKeyPressHexColor,
+                    shadow.build());
         }
 
     }

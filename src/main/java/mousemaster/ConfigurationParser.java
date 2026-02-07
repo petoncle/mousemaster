@@ -91,12 +91,13 @@ public class ConfigurationParser {
                             .selectedFontHexColor("#CCCCCC")
                             .outlineThickness(0d)
                             .outlineHexColor("#000000")
-                            .outlineOpacity(0.5d)
-                            .shadowBlurRadius(10d)
-                            .shadowHexColor("#FFFFFF")
-                            .shadowOpacity(1d)
-                            .shadowHorizontalOffset(0d)
-                            .shadowVerticalOffset(0d);
+                            .outlineOpacity(0.5d);
+        hintMeshStyleBuilder.fontStyle().shadow()
+                            .blurRadius(10d)
+                            .hexColor("#FFFFFF")
+                            .opacity(1d)
+                            .horizontalOffset(0d)
+                            .verticalOffset(0d);
         hintMeshStyleBuilder
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
@@ -146,6 +147,12 @@ public class ConfigurationParser {
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
                  .mousePressHexColor("#00FF00");
+        indicator.shadow()
+                 .blurRadius(0d)
+                 .hexColor("#000000")
+                 .opacity(1.0)
+                 .horizontalOffset(0d)
+                 .verticalOffset(0d);
         HideCursorBuilder hideCursor =
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
@@ -806,11 +813,11 @@ public class ConfigurationParser {
                         case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
                         case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineHexColor(checkColorFormat(propertyValue));
                         case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowBlurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowHexColor(checkColorFormat(propertyValue));
-                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowHorizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadowVerticalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
+                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().hexColor(checkColorFormat(propertyValue));
+                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-in-background" ->
                                 mode.hintMesh.builder.style(viewportFilter)
                                                      .prefixInBackground(Boolean.parseBoolean(propertyValue));
@@ -827,11 +834,11 @@ public class ConfigurationParser {
                         case "prefix-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
                         case "prefix-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineHexColor(checkColorFormat(propertyValue));
                         case "prefix-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadowBlurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadowHexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadowOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadowHorizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadowVerticalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "prefix-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
+                        case "prefix-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
+                        case "prefix-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "prefix-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "box-color" -> mode.hintMesh.builder.style(viewportFilter).boxHexColor(
                                 checkColorFormat(propertyValue));
                         case "box-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxOpacity(
@@ -1052,6 +1059,16 @@ public class ConfigurationParser {
                         case "unhandled-key-press-color" ->
                                 mode.indicator.builder.unhandledKeyPressHexColor(
                                         checkColorFormat(propertyValue));
+                        case "shadow-blur-radius" -> mode.indicator.builder.shadow().blurRadius(
+                                parseDouble(propertyValue, true, 0, 1000));
+                        case "shadow-color" -> mode.indicator.builder.shadow().hexColor(
+                                checkColorFormat(propertyValue));
+                        case "shadow-opacity" -> mode.indicator.builder.shadow().opacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "shadow-horizontal-offset" -> mode.indicator.builder.shadow().horizontalOffset(
+                                parseDouble(propertyValue, true, -100, 100));
+                        case "shadow-vertical-offset" -> mode.indicator.builder.shadow().verticalOffset(
+                                parseDouble(propertyValue, true, -100, 100));
                         default -> throw new IllegalArgumentException(
                                 "Invalid indicator property key");
                     }
@@ -2023,6 +2040,7 @@ public class ConfigurationParser {
                         builder.rightMousePressHexColor(parent.rightMousePressHexColor());
                     if (builder.unhandledKeyPressHexColor() == null)
                         builder.unhandledKeyPressHexColor(parent.unhandledKeyPressHexColor());
+                    builder.shadow().extend(parent.shadow());
                 }
             };
             hideCursor = new Property<>("hide-cursor", modeName, propertyByKey,
@@ -2343,29 +2361,29 @@ public class ConfigurationParser {
                     childFontStyle.outlineOpacity(parentFontStyle.outlineOpacity());
                 if (!fontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::shadowBlurRadius,
+                        b -> b.shadow().blurRadius(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadowBlurRadius(parentFontStyle.shadowBlurRadius());
+                    childFontStyle.shadow().blurRadius(parentFontStyle.shadow().blurRadius());
                 if (!fontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::shadowHexColor,
+                        b -> b.shadow().hexColor(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadowHexColor(parentFontStyle.shadowHexColor());
+                    childFontStyle.shadow().hexColor(parentFontStyle.shadow().hexColor());
                 if (!fontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::shadowOpacity,
+                        b -> b.shadow().opacity(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadowOpacity(parentFontStyle.shadowOpacity());
+                    childFontStyle.shadow().opacity(parentFontStyle.shadow().opacity());
                 if (!fontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::shadowHorizontalOffset,
+                        b -> b.shadow().horizontalOffset(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadowHorizontalOffset(parentFontStyle.shadowHorizontalOffset());
+                    childFontStyle.shadow().horizontalOffset(parentFontStyle.shadow().horizontalOffset());
                 if (!fontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::shadowVerticalOffset,
+                        b -> b.shadow().verticalOffset(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadowVerticalOffset(parentFontStyle.shadowVerticalOffset());
+                    childFontStyle.shadow().verticalOffset(parentFontStyle.shadow().verticalOffset());
             }
         }
     }

@@ -1,5 +1,7 @@
 package mousemaster;
 
+import mousemaster.Shadow.ShadowBuilder;
+
 public record FontStyle(String name, FontWeight weight,
                         double size, double spacingPercent, String hexColor,
                         double opacity,
@@ -9,9 +11,7 @@ public record FontStyle(String name, FontWeight weight,
                         double focusedFontOpacity,
                         double outlineThickness, String outlineHexColor,
                         double outlineOpacity,
-                        double shadowBlurRadius, String shadowHexColor,
-                        double shadowOpacity, double shadowHorizontalOffset,
-                        double shadowVerticalOffset) {
+                        Shadow shadow) {
 
     public FontStyleBuilder builder() {
         return new FontStyleBuilder(this);
@@ -32,11 +32,7 @@ public record FontStyle(String name, FontWeight weight,
         private Double outlineThickness;
         private String outlineHexColor;
         private Double outlineOpacity;
-        private Double shadowBlurRadius;
-        private String shadowHexColor;
-        private Double shadowOpacity;
-        private Double shadowHorizontalOffset;
-        private Double shadowVerticalOffset;
+        private ShadowBuilder shadow = new ShadowBuilder();
 
         public FontStyleBuilder() {
 
@@ -56,11 +52,7 @@ public record FontStyle(String name, FontWeight weight,
             this.outlineThickness = fontStyle.outlineThickness;
             this.outlineHexColor = fontStyle.outlineHexColor;
             this.outlineOpacity = fontStyle.outlineOpacity;
-            this.shadowBlurRadius = fontStyle.shadowBlurRadius;
-            this.shadowHexColor = fontStyle.shadowHexColor;
-            this.shadowOpacity = fontStyle.shadowOpacity;
-            this.shadowHorizontalOffset = fontStyle.shadowHorizontalOffset;
-            this.shadowVerticalOffset = fontStyle.shadowVerticalOffset;
+            this.shadow = new ShadowBuilder(fontStyle.shadow);
         }
 
         public String name() {
@@ -115,24 +107,8 @@ public record FontStyle(String name, FontWeight weight,
             return outlineOpacity;
         }
 
-        public Double shadowBlurRadius() {
-            return shadowBlurRadius;
-        }
-
-        public String shadowHexColor() {
-            return shadowHexColor;
-        }
-
-        public Double shadowOpacity() {
-            return shadowOpacity;
-        }
-
-        public Double shadowHorizontalOffset() {
-            return shadowHorizontalOffset;
-        }
-
-        public Double shadowVerticalOffset() {
-            return shadowVerticalOffset;
+        public ShadowBuilder shadow() {
+            return shadow;
         }
 
         public FontStyleBuilder name(String fontName) {
@@ -200,33 +176,6 @@ public record FontStyle(String name, FontWeight weight,
             return this;
         }
 
-        public FontStyleBuilder shadowBlurRadius(Double fontShadowBlurRadius) {
-            this.shadowBlurRadius = fontShadowBlurRadius;
-            return this;
-        }
-
-        public FontStyleBuilder shadowHexColor(String fontShadowHexColor) {
-            this.shadowHexColor = fontShadowHexColor;
-            return this;
-        }
-
-        public FontStyleBuilder shadowOpacity(Double fontShadowOpacity) {
-            this.shadowOpacity = fontShadowOpacity;
-            return this;
-        }
-
-        public FontStyleBuilder shadowHorizontalOffset(
-                Double fontShadowHorizontalOffset) {
-            this.shadowHorizontalOffset = fontShadowHorizontalOffset;
-            return this;
-        }
-
-        public FontStyleBuilder shadowVerticalOffset(
-                Double fontShadowVerticalOffset) {
-            this.shadowVerticalOffset = fontShadowVerticalOffset;
-            return this;
-        }
-
         void extend(FontStyleBuilder defaultStyle) {
             if (name == null) name = defaultStyle.name;
             if (weight == null) weight = defaultStyle.weight;
@@ -241,11 +190,7 @@ public record FontStyle(String name, FontWeight weight,
             if (outlineThickness == null) outlineThickness = defaultStyle.outlineThickness;
             if (outlineHexColor == null) outlineHexColor = defaultStyle.outlineHexColor;
             if (outlineOpacity == null) outlineOpacity = defaultStyle.outlineOpacity;
-            if (shadowBlurRadius == null) shadowBlurRadius = defaultStyle.shadowBlurRadius;
-            if (shadowHexColor == null) shadowHexColor = defaultStyle.shadowHexColor;
-            if (shadowOpacity == null) shadowOpacity = defaultStyle.shadowOpacity;
-            if (shadowHorizontalOffset == null) shadowHorizontalOffset = defaultStyle.shadowHorizontalOffset;
-            if (shadowVerticalOffset == null) shadowVerticalOffset = defaultStyle.shadowVerticalOffset;
+            shadow.extend(defaultStyle.shadow);
         }
 
         void extendSelectedAndFocusedFromMain() {
@@ -270,11 +215,7 @@ public record FontStyle(String name, FontWeight weight,
                     outlineThickness,
                     outlineHexColor,
                     outlineOpacity,
-                    shadowBlurRadius,
-                    shadowHexColor,
-                    shadowOpacity,
-                    shadowHorizontalOffset,
-                    shadowVerticalOffset
+                    shadow.build()
             );
         }
 
