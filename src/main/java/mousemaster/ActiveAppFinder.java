@@ -40,6 +40,14 @@ public class ActiveAppFinder {
         String executableName = Native.toString(executableNameBytes).replaceAll(" ", "");
         Kernel32.INSTANCE.CloseHandle(processHandle);
         WinDef.RECT windowRect = WindowsOverlay.windowRectExcludingShadow(hwnd);
+        if (windowRect.right - windowRect.left == 0 ||
+            windowRect.bottom - windowRect.top == 0) {
+            logger.debug(
+                    "Ignoring active app change from " + lastExecutableName + " to " +
+                    executableName + " because " + executableName + " is zero-sized: " +
+                    windowRect);
+            return new App(lastExecutableName);
+        }
         boolean isMinimized = ExtendedUser32.INSTANCE.IsIconic(hwnd) ||
                            // IsIconic can return false while the window is still at minimized-like coordinates (around -32000).
                            windowRect.left < -30_000 || windowRect.top < -30_000;
