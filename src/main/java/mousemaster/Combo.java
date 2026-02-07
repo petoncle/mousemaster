@@ -13,7 +13,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     public static List<AliasResolvedCombo> of(String string,
                                               ComboMoveDuration defaultMoveDuration,
                                               Map<String, KeyAlias> keyAliases,
-                                              Map<String, AppAlias> appAliases) {
+                                              Map<String, AppAlias> appAliases,
+                                              KeyResolver keyResolver) {
         Matcher mustNotMatcher = Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
         String mustNotBeActiveAppsString = null;
         Set<App> mustNotBeActiveApps = Set.of();
@@ -32,7 +33,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 unpressedKeySetString = mustNotSetString;
                 unpressedKeySet =
                         parseUnpressedKeySet(unpressedKeySetString,
-                                keyAliases);
+                                keyAliases, keyResolver);
             }
             mustString = string.substring(mustNotMatcher.end());
         }
@@ -53,7 +54,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 pressedKeySetsString = mustSetsString;
                 pressedKeySets =
                         parsePressedKeySets(pressedKeySetsString,
-                                keyAliases);
+                                keyAliases, keyResolver);
             }
             sequenceString = mustString.substring(mustMatcher.end());
         }
@@ -86,7 +87,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                     ExpandableSequence.parseSequence(sequenceString, defaultMoveDuration,
                             keyAliases);
             Map<AliasResolution, ComboSequence> expandedSequences =
-                    expandableSequence.expand(keyAliases);
+                    expandableSequence.expand(keyAliases, keyResolver);
             return ofExpandedSequences(string, expandedSequences,
                     unpressedKeySet,
                     unpressedKeySetString, sequenceString,
@@ -158,18 +159,20 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static Set<Key> parseUnpressedKeySet(String keySetString,
-                                                 Map<String, KeyAlias> aliases) {
+                                                 Map<String, KeyAlias> aliases,
+                                                 KeyResolver keyResolver) {
         String[] keyStrings = keySetString.split("\\s+");
         return Arrays.stream(keyStrings)
-                     .map(keyString -> expandKeyAlias(keyString, aliases))
+                     .map(keyString -> expandKeyAlias(keyString, aliases, keyResolver))
                      .flatMap(Collection::stream)
                      .collect(Collectors.toSet());
     }
 
-    private static Set<Key> expandKeyAlias(String keyString, Map<String, KeyAlias> aliases) {
+    private static Set<Key> expandKeyAlias(String keyString, Map<String, KeyAlias> aliases,
+                                           KeyResolver keyResolver) {
         KeyAlias alias = aliases.get(keyString);
         if (alias == null)
-            return Set.of(Key.ofName(keyString));
+            return Set.of(keyResolver.resolve(keyString));
         return Set.copyOf(alias.keys());
     }
 
@@ -189,11 +192,12 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static Set<Set<Key>> parsePressedKeySets(String keySetsString,
-                                                     Map<String, KeyAlias> aliases) {
+                                                     Map<String, KeyAlias> aliases,
+                                                     KeyResolver keyResolver) {
         String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
         Set<Set<Key>> pressedKeySets = Arrays.stream(keySetStrings)
                                       .map(complexKeySetString -> parsePressedKeySet(
-                                              complexKeySetString, aliases))
+                                              complexKeySetString, aliases, keyResolver))
                                       .flatMap(Collection::stream)
                                       .collect(Collectors.toSet());
         if (pressedKeySets.equals(Set.of(Set.of())))
@@ -202,7 +206,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static Set<Set<Key>> parsePressedKeySet(String keySetString,
-                                                    Map<String, KeyAlias> aliases) {
+                                                    Map<String, KeyAlias> aliases,
+                                                    KeyResolver keyResolver) {
         // rightctrl up*down -> (rightctrl, up), (rightctrl, down), (rightctrl, up, down)
         boolean containsEmptyKeySet = false;
         List<Set<Set<Key>>> combinations = new ArrayList<>();
@@ -211,13 +216,14 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             if (complexKeyString.equals("none"))
                 containsEmptyKeySet = true;
             else if (!complexKeyString.contains("*")) {
-                Set<Key> expandedKeys = expandKeyAlias(complexKeyString, aliases);
+                Set<Key> expandedKeys = expandKeyAlias(complexKeyString, aliases,
+                        keyResolver);
                 combinations.add(generateCombinations(expandedKeys));
             }
             else {
                 Set<Key> keys = new HashSet<>();
                 for (String keyName : complexKeyString.split("\\*")) {
-                    Set<Key> expandedKeys = expandKeyAlias(keyName, aliases);
+                    Set<Key> expandedKeys = expandKeyAlias(keyName, aliases, keyResolver);
                     keys.addAll(expandedKeys);
                 }
                 combinations.add(generateCombinations(keys));
@@ -288,7 +294,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     public static List<AliasResolvedCombo> multiCombo(String multiComboString,
                                                       ComboMoveDuration defaultMoveDuration,
                                                       Map<String, KeyAlias> keyAliases,
-                                                      Map<String, AppAlias> appAliases) {
+                                                      Map<String, AppAlias> appAliases,
+                                                      KeyResolver keyResolver) {
         // One combo is: ^{key|...} _{key|...} move1 move2 ...
         // Two combos: ^{key|...} _{key|...} move1 move2 ... | ^{key|...} _{key|...} move ...
         // Combo with mustBeActiveApps: _{firefox.exe|chrome.exe} ^{key|...} _{key|...} move1 move2 ...
@@ -313,12 +320,12 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             else if (character == '|' && !rightBraceExpected) {
                 aliasResolvedCombos.addAll(
                         of(multiComboString.substring(comboBeginIndex, charIndex).strip(),
-                                defaultMoveDuration, keyAliases, appAliases));
+                                defaultMoveDuration, keyAliases, appAliases, keyResolver));
                 comboBeginIndex = charIndex + 1;
             }
         }
         aliasResolvedCombos.addAll(of(multiComboString.substring(comboBeginIndex).strip(),
-                defaultMoveDuration, keyAliases, appAliases));
+                defaultMoveDuration, keyAliases, appAliases, keyResolver));
         return List.copyOf(aliasResolvedCombos);
     }
 

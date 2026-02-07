@@ -1035,3 +1035,18 @@ The following keyboard layouts are currently exposed and can be referenced in th
 - us-dvorak
 - us-halmak
 - sv-qwerty
+
+If the property `configuration-keyboard-layout` is defined, then mousemaster will consider
+that the keys used in the configuration file are for that layout. If the active layout is 
+different from the `configuration-keyboard-layout`, then the key will be converted to the active layout.
+For example:
+- `configuration-keyboard-layout=us-qwerty`
+- A combo uses the key - (`minus`)
+- The active layout is fr-azerty
+
+In that case, the combo will be triggered when the user presses the à key because - in 
+us-qwerty and à in fr-azerty correspond to the same physical key (same scan code).
+If the active layout is us-qwerty then the combo will be triggered when the user presses the - key (`minus`).
+
+If `configuration-keyboard-layout` is not defined, then its default value is the active 
+layout at the time the configuration file is loaded.

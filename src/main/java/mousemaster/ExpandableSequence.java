@@ -52,7 +52,8 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
         return new ExpandableSequence(moves);
     }
 
-    public Map<AliasResolution, ComboSequence> expand(Map<String, KeyAlias> aliases) {
+    public Map<AliasResolution, ComboSequence> expand(Map<String, KeyAlias> aliases,
+                                                      KeyResolver keyResolver) {
         // alias1=key11 key12
         // alias2=key21 key22
         // +alias1 -alias1 +alias2 = +key11 -key11 +key21 | +key11 -key11 +key22 | +key12 ...
@@ -60,19 +61,21 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
                 moves.stream().map(ComboAliasMove::aliasOrKeyName)
                      .filter(aliases.keySet()::contains).distinct().toList();
         Map<AliasResolution, ComboSequence> sequenceByAliasResolution = new HashMap<>();
-        recursivelyExpand(new HashMap<>(), aliasNames, sequenceByAliasResolution, aliases);
+        recursivelyExpand(new HashMap<>(), aliasNames, sequenceByAliasResolution, aliases,
+                keyResolver);
         return sequenceByAliasResolution;
     }
 
     private void recursivelyExpand(Map<String, Key> fixedKeyByAliasName,
                                    List<String> aliasNames,
                                    Map<AliasResolution, ComboSequence> sequenceByAliasResolution,
-                                   Map<String, KeyAlias> aliasByName) {
+                                   Map<String, KeyAlias> aliasByName,
+                                   KeyResolver keyResolver) {
         if (fixedKeyByAliasName.size() == aliasNames.size()) {
             List<ComboMove> moves = new ArrayList<>();
             for (ComboAliasMove aliasMove : this.moves) {
                 Key aliasKey = fixedKeyByAliasName.get(aliasMove.aliasOrKeyName());
-                Key key = aliasKey == null ? Key.ofName(aliasMove.aliasOrKeyName()) :
+                Key key = aliasKey == null ? keyResolver.resolve(aliasMove.aliasOrKeyName()) :
                         aliasKey;
                 moves.add(switch (aliasMove) {
                     case ComboAliasMove.PressComboAliasMove pressComboAliasMove ->
@@ -93,7 +96,7 @@ public record ExpandableSequence(List<ComboAliasMove> moves) {
         for (Key fixedKey : alias.keys()) {
             fixedKeyByAliasName.put(fixedAliasOrKeyName, fixedKey);
             recursivelyExpand(fixedKeyByAliasName, aliasNames, sequenceByAliasResolution,
-                    aliasByName);
+                    aliasByName, keyResolver);
             fixedKeyByAliasName.remove(fixedAliasOrKeyName);
         }
     }

@@ -19,7 +19,7 @@ public record Macro(String name, MacroSequence output) {
      * - wait-N = wait N milliseconds
      */
     public static Macro of(String name, String string,
-                           AliasResolution aliasResolution) {
+                           AliasResolution aliasResolution, KeyResolver keyResolver) {
         List<MacroParallel> parallels = new ArrayList<>();
         Duration parallelDuration;
         List<MacroMove> moves = new ArrayList<>();
@@ -33,11 +33,11 @@ public record Macro(String name, MacroSequence output) {
                 continue;
             }
             if (!word.matches("[+\\-#~].*")) {
-                moves.add(parseMacroMove(aliasResolution, word, true, MacroMoveDestination.COMBO_WATCHER));
-                moves.add(parseMacroMove(aliasResolution, word, false, MacroMoveDestination.COMBO_WATCHER));
+                moves.add(parseMacroMove(aliasResolution, word, keyResolver, true, MacroMoveDestination.COMBO_WATCHER));
+                moves.add(parseMacroMove(aliasResolution, word, keyResolver, false, MacroMoveDestination.COMBO_WATCHER));
             }
             else {
-                moves.add(parseMacroMove(name, aliasResolution, word));
+                moves.add(parseMacroMove(name, aliasResolution, keyResolver, word));
             }
         }
         if (!moves.isEmpty())
@@ -46,7 +46,7 @@ public record Macro(String name, MacroSequence output) {
     }
 
     private static MacroMove parseMacroMove(String name, AliasResolution aliasResolution,
-                                            String word) {
+                                            KeyResolver keyResolver, String word) {
         Matcher moveMatcher = Pattern.compile("([+\\-#~])(.+)").matcher(word);
         if (!moveMatcher.matches())
             throw new IllegalArgumentException(
@@ -57,14 +57,16 @@ public record Macro(String name, MacroSequence output) {
         MacroMoveDestination destination = (prefix.equals("+") || prefix.equals("-"))
                 ? MacroMoveDestination.OS
                 : MacroMoveDestination.COMBO_WATCHER;
-        return parseMacroMove(aliasResolution, keyOrAliasName, press, destination);
+        return parseMacroMove(aliasResolution, keyOrAliasName, keyResolver, press,
+                destination);
     }
 
     private static MacroMove parseMacroMove(
             AliasResolution aliasResolution,
-            String keyOrAliasName, boolean press, MacroMoveDestination destination) {
+            String keyOrAliasName, KeyResolver keyResolver, boolean press,
+            MacroMoveDestination destination) {
         Key aliasKey = aliasResolution.keyByAliasName().get(keyOrAliasName);
-        Key key = aliasKey == null ? Key.ofName(keyOrAliasName) : aliasKey;
+        Key key = aliasKey == null ? keyResolver.resolve(keyOrAliasName) : aliasKey;
         return new MacroMove(key, press, destination);
     }
 

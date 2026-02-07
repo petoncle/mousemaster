@@ -172,7 +172,7 @@ public class Mousemaster {
             MousemasterApplication.showConsole();
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +
                     (readFile ? "file " + configurationPath + " " : "") +
-                    "with keyboard layout " + activeKeyboardLayout);
+                    "with active keyboard layout " + activeKeyboardLayout);
         ScreenManager screenManager = new ScreenManager();
         mouseController = new MouseController(screenManager);
         MouseState mouseState = new MouseState(mouseController);
