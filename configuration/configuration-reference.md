@@ -313,6 +313,7 @@ normal-mode.indicator.move-color=#FF0000
 normal-mode.indicator.wheel-color=#FFFF00
 normal-mode.indicator.mouse-press-color=#00FF00
 normal-mode.indicator.unhandled-key-press-color=#0000FF
+normal-mode.indicator.edge-count=4
 normal-mode.indicator.opacity=1.0
 normal-mode.indicator.outline-thickness=2
 normal-mode.indicator.outline-color=#000000
@@ -324,6 +325,8 @@ normal-mode.indicator.shadow-horizontal-offset=0
 normal-mode.indicator.shadow-vertical-offset=0
 ```
 The color of the indicator can be changed depending on the current action being performed.
+
+The shape of the indicator is controlled by `edge-count`: 4 for a square (default), 3 for a triangle, 6 for a hexagon, etc.
 
 An outline can be added to the indicator using the outline properties. Set `outline-thickness` to a value greater than 0 to enable the outline.
 

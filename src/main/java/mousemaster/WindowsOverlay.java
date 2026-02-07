@@ -184,6 +184,7 @@ public class WindowsOverlay {
     private static class IndicatorWidget extends QWidget {
 
         private QColor color;
+        private int edgeCount;
         private double outlineThickness;
         private QColor outlineColor;
 
@@ -196,18 +197,83 @@ public class WindowsOverlay {
             update();
         }
 
+        void setEdgeCount(int edgeCount) {
+            this.edgeCount = edgeCount;
+            update();
+        }
+
         void setOutline(double outlineThickness, QColor outlineColor) {
             this.outlineThickness = outlineThickness;
             this.outlineColor = outlineColor;
             update();
         }
 
+        private static double polygonStartAngle(int edgeCount) {
+            // Odd edge count: vertex at top (pointy top, e.g. triangle ▲).
+            // Even edge count: flat edge at top (e.g. square □, hexagon ⬡).
+            double startAngle = -Math.PI / 2;
+            if (edgeCount % 2 == 0)
+                startAngle += Math.PI / edgeCount;
+            return startAngle;
+        }
+
+        private static QPainterPath polygonPath(double centerX, double centerY,
+                                                double radius, int edgeCount) {
+            QPainterPath path = new QPainterPath();
+            double startAngle = polygonStartAngle(edgeCount);
+            for (int i = 0; i < edgeCount; i++) {
+                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
+                double x = centerX + radius * Math.cos(angle);
+                double y = centerY + radius * Math.sin(angle);
+                if (i == 0)
+                    path.moveTo(x, y);
+                else
+                    path.lineTo(x, y);
+            }
+            path.closeSubpath();
+            return path;
+        }
+
+        // Returns the circumradius such that the polygon's bounding box
+        // largest dimension equals targetSize, and the offset to center
+        // the bounding box (the polygon's BB may not be symmetric around
+        // the circumcenter, e.g. triangle).
+        private record PolygonLayout(double radius, double offsetX, double offsetY) {}
+
+        private static PolygonLayout polygonLayout(double targetSize, int edgeCount) {
+            double startAngle = polygonStartAngle(edgeCount);
+            double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
+            double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+            for (int i = 0; i < edgeCount; i++) {
+                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
+                double cx = Math.cos(angle);
+                double cy = Math.sin(angle);
+                minX = Math.min(minX, cx);
+                maxX = Math.max(maxX, cx);
+                minY = Math.min(minY, cy);
+                maxY = Math.max(maxY, cy);
+            }
+            double maxDimension = Math.max(maxX - minX, maxY - minY);
+            double radius = targetSize / maxDimension;
+            double offsetX = -(minX + maxX) / 2.0 * radius;
+            double offsetY = -(minY + maxY) / 2.0 * radius;
+            return new PolygonLayout(radius, offsetX, offsetY);
+        }
+
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             int outlinePadding = (int) Math.ceil(outlineThickness);
-            painter.fillRect(outlinePadding, outlinePadding,
-                    width() - 2 * outlinePadding, height() - 2 * outlinePadding, color);
+            double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
+            PolygonLayout layout = polygonLayout(availableSize, edgeCount);
+            double centerX = width() / 2.0 + layout.offsetX;
+            double centerY = height() / 2.0 + layout.offsetY;
+            double fillRadius = layout.radius;
+            QPainterPath fillPath = polygonPath(centerX, centerY, fillRadius, edgeCount);
+            painter.setPen(Qt.PenStyle.NoPen);
+            painter.setBrush(new QBrush(color));
+            painter.drawPath(fillPath);
             if (outlineThickness > 0 && outlineColor != null && outlineColor.alpha() != 0) {
                 QPen pen = new QPen(outlineColor);
                 pen.setWidthF(outlineThickness);
@@ -215,10 +281,9 @@ public class WindowsOverlay {
                 painter.setPen(pen);
                 painter.setBrush(Qt.BrushStyle.NoBrush);
                 // The QPen stroke is centered on the path — half goes outward, half goes inward.
-                // And we want the outline to be completely outside.
-                QPainterPath outlinePath = new QPainterPath();
-                double half = outlineThickness / 2.0;
-                outlinePath.addRect(half, half, width() - outlineThickness, height() - outlineThickness);
+                // And we want the outline to be completely outside the fill.
+                double outlineRadius = fillRadius + outlineThickness / 2.0;
+                QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
                 painter.drawPath(outlinePath);
             }
             painter.end();
@@ -333,10 +398,10 @@ public class WindowsOverlay {
         int shadowPadding = indicatorShadowPadding();
         int totalPadding = outlinePadding + shadowPadding;
         int widgetSize = size + 2 * outlinePadding;
+        int windowSize = size + 2 * totalPadding;
         indicatorWindow.window.move(bestIndicatorX(mousePosition) - totalPadding,
                 bestIndicatorY(mousePosition) - totalPadding);
-        indicatorWindow.window.resize(size + 2 * totalPadding,
-                size + 2 * totalPadding);
+        indicatorWindow.window.resize(windowSize, windowSize);
         indicatorWindow.widget.move(shadowPadding, shadowPadding);
         indicatorWindow.widget.resize(widgetSize, widgetSize);
     }
@@ -2021,6 +2086,7 @@ public class WindowsOverlay {
         else {
             boolean sizeOrShadowChanged = oldIndicator == null ||
                     indicator.size() != oldIndicator.size() ||
+                    indicator.edgeCount() != oldIndicator.edgeCount() ||
                     indicator.outlineThickness() != oldIndicator.outlineThickness() ||
                     !indicator.shadow().equals(oldIndicator.shadow());
             if (sizeOrShadowChanged) {
@@ -2029,6 +2095,7 @@ public class WindowsOverlay {
             }
         }
         showingIndicator = true;
+        indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
         indicatorWindow.widget.setOutline(indicator.outlineThickness(),
                 qColor(indicator.outlineHexColor(), indicator.outlineOpacity()));

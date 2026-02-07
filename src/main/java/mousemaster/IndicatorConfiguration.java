@@ -2,7 +2,8 @@ package mousemaster;
 
 import mousemaster.Shadow.ShadowBuilder;
 
-public record IndicatorConfiguration(boolean enabled, int size, String idleHexColor, String moveHexColor,
+public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
+                                     String idleHexColor, String moveHexColor,
                                      String wheelHexColor,
                                      String mousePressHexColor,
                                      String leftMousePressHexColor,
@@ -16,6 +17,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
         private Integer size;
+        private Integer edgeCount;
         private String idleHexColor;
         private String moveHexColor;
         private String wheelHexColor;
@@ -37,6 +39,11 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
 
         public IndicatorConfigurationBuilder size(int size) {
             this.size = size;
+            return this;
+        }
+
+        public IndicatorConfigurationBuilder edgeCount(int edgeCount) {
+            this.edgeCount = edgeCount;
             return this;
         }
 
@@ -128,6 +135,10 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return size;
         }
 
+        public Integer edgeCount() {
+            return edgeCount;
+        }
+
         public String idleHexColor() {
             return idleHexColor;
         }
@@ -161,7 +172,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
         }
 
         public IndicatorConfiguration build() {
-            return new IndicatorConfiguration(enabled, size, idleHexColor, moveHexColor, wheelHexColor,
+            return new IndicatorConfiguration(enabled, size, edgeCount, idleHexColor, moveHexColor, wheelHexColor,
                     mousePressHexColor,
                     leftMousePressHexColor,
                     middleMousePressHexColor,

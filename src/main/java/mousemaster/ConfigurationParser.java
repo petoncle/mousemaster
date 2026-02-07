@@ -143,6 +143,7 @@ public class ConfigurationParser {
                 new IndicatorConfigurationBuilder();
         indicator.enabled(false)
                  .size(12)
+                 .edgeCount(4)
                  .idleHexColor("#FF0000")
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
@@ -1042,6 +1043,8 @@ public class ConfigurationParser {
                                 Boolean.parseBoolean(propertyValue));
                         case "size" -> mode.indicator.builder.size(
                                 parseUnsignedInteger(propertyValue, 1, 100));
+                        case "edge-count" -> mode.indicator.builder.edgeCount(
+                                parseUnsignedInteger(propertyValue, 3, 100));
                         case "idle-color" -> mode.indicator.builder.idleHexColor(
                                 checkColorFormat(propertyValue));
                         case "move-color" -> mode.indicator.builder.moveHexColor(
@@ -2036,6 +2039,8 @@ public class ConfigurationParser {
                         builder.enabled(parent.enabled());
                     if (builder.size() == null)
                         builder.size(parent.size());
+                    if (builder.edgeCount() == null)
+                        builder.edgeCount(parent.edgeCount());
                     if (builder.idleHexColor() == null)
                         builder.idleHexColor(parent.idleHexColor());
                     if (builder.moveHexColor() == null)
