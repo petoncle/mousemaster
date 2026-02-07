@@ -240,9 +240,9 @@ public class WindowsOverlay {
         // largest dimension equals targetSize, and the offset to center
         // the bounding box (the polygon's BB may not be symmetric around
         // the circumcenter, e.g. triangle).
-        private record PolygonLayout(double radius, double offsetX, double offsetY) {}
+        record PolygonLayout(double radius, double offsetX, double offsetY) {}
 
-        private static PolygonLayout polygonLayout(double targetSize, int edgeCount) {
+        static PolygonLayout polygonLayout(double targetSize, int edgeCount) {
             double startAngle = polygonStartAngle(edgeCount);
             double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
             double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
@@ -299,6 +299,8 @@ public class WindowsOverlay {
         private QColor labelColor;
         private int outlineThickness;
         private QColor outlineColor;
+        private int edgeCount;
+        private double indicatorOutlineThickness;
 
         IndicatorLabelWidget(QWidget parent) {
             super(parent);
@@ -306,12 +308,15 @@ public class WindowsOverlay {
         }
 
         void setLabel(String labelText, QFont labelFont, QColor labelColor,
-                      int outlineThickness, QColor outlineColor) {
+                      int outlineThickness, QColor outlineColor,
+                      int edgeCount, double indicatorOutlineThickness) {
             this.labelText = labelText;
             this.labelFont = labelFont;
             this.labelColor = labelColor;
             this.outlineThickness = outlineThickness;
             this.outlineColor = outlineColor;
+            this.edgeCount = edgeCount;
+            this.indicatorOutlineThickness = indicatorOutlineThickness;
             update();
         }
 
@@ -323,8 +328,13 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setFont(labelFont);
             QFontMetrics fm = new QFontMetrics(labelFont);
-            double centerX = width() / 2.0;
-            double centerY = height() / 2.0;
+            // Compute the same polygon center as IndicatorWidget.
+            int indicatorOutlinePadding = (int) Math.ceil(indicatorOutlineThickness);
+            double availableSize = Math.min(width(), height()) - 2 * indicatorOutlinePadding;
+            IndicatorWidget.PolygonLayout polygonLayout =
+                    IndicatorWidget.polygonLayout(availableSize, edgeCount);
+            double centerX = width() / 2.0 + polygonLayout.offsetX();
+            double centerY = height() / 2.0 + polygonLayout.offsetY();
             int textX = (int) Math.round(centerX - fm.horizontalAdvance(labelText) / 2.0);
             QRect tightRect = fm.tightBoundingRect(labelText);
             int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
@@ -2164,7 +2174,8 @@ public class WindowsOverlay {
             QColor labelColor = qColor(lfs.hexColor(), lfs.opacity());
             QColor labelOutlineColor = qColor(lfs.outlineHexColor(), lfs.outlineOpacity());
             indicatorWindow.labelWidget.setLabel(indicator.labelText(), labelFont, labelColor,
-                    (int) Math.round(lfs.outlineThickness()), labelOutlineColor);
+                    (int) Math.round(lfs.outlineThickness()), labelOutlineColor,
+                    indicator.edgeCount(), indicator.outlineThickness());
             Shadow labelShadow = lfs.shadow();
             QColor labelShadowColor = qColor(labelShadow.hexColor(), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {
@@ -2180,7 +2191,7 @@ public class WindowsOverlay {
             indicatorWindow.labelWidget.show();
         }
         else {
-            indicatorWindow.labelWidget.setLabel(null, null, null, 0, null);
+            indicatorWindow.labelWidget.setLabel(null, null, null, 0, null, 0, 0);
             indicatorWindow.labelWidget.setGraphicsEffect(null);
             indicatorWindow.labelWidget.hide();
         }
