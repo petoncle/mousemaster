@@ -147,7 +147,10 @@ public class ConfigurationParser {
                  .moveHexColor("#FF0000")
                  .wheelHexColor("#FFFF00")
                  .mousePressHexColor("#00FF00")
-                 .opacity(1.0);
+                 .opacity(1.0)
+                 .outlineThickness(0)
+                 .outlineHexColor("#000000")
+                 .outlineOpacity(1.0);
         indicator.shadow()
                  .blurRadius(0d)
                  .hexColor("#000000")
@@ -1061,6 +1064,12 @@ public class ConfigurationParser {
                                 mode.indicator.builder.unhandledKeyPressHexColor(
                                         checkColorFormat(propertyValue));
                         case "opacity" -> mode.indicator.builder.opacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "outline-thickness" -> mode.indicator.builder.outlineThickness(
+                                parseDouble(propertyValue, true, 0, 100));
+                        case "outline-color" -> mode.indicator.builder.outlineHexColor(
+                                checkColorFormat(propertyValue));
+                        case "outline-opacity" -> mode.indicator.builder.outlineOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
                         case "shadow-blur-radius" -> mode.indicator.builder.shadow().blurRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
@@ -2045,6 +2054,12 @@ public class ConfigurationParser {
                         builder.unhandledKeyPressHexColor(parent.unhandledKeyPressHexColor());
                     if (builder.opacity() == null)
                         builder.opacity(parent.opacity());
+                    if (builder.outlineThickness() == null)
+                        builder.outlineThickness(parent.outlineThickness());
+                    if (builder.outlineHexColor() == null)
+                        builder.outlineHexColor(parent.outlineHexColor());
+                    if (builder.outlineOpacity() == null)
+                        builder.outlineOpacity(parent.outlineOpacity());
                     builder.shadow().extend(parent.shadow());
                 }
             };

@@ -184,6 +184,8 @@ public class WindowsOverlay {
     private static class IndicatorWidget extends QWidget {
 
         private QColor color;
+        private double outlineThickness;
+        private QColor outlineColor;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -194,10 +196,31 @@ public class WindowsOverlay {
             update();
         }
 
+        void setOutline(double outlineThickness, QColor outlineColor) {
+            this.outlineThickness = outlineThickness;
+            this.outlineColor = outlineColor;
+            update();
+        }
+
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
-            painter.fillRect(0, 0, width(), height(), color);
+            int outlinePadding = (int) Math.ceil(outlineThickness);
+            painter.fillRect(outlinePadding, outlinePadding,
+                    width() - 2 * outlinePadding, height() - 2 * outlinePadding, color);
+            if (outlineThickness > 0 && outlineColor != null && outlineColor.alpha() != 0) {
+                QPen pen = new QPen(outlineColor);
+                pen.setWidthF(outlineThickness);
+                pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
+                painter.setPen(pen);
+                painter.setBrush(Qt.BrushStyle.NoBrush);
+                // The QPen stroke is centered on the path — half goes outward, half goes inward.
+                // And we want the outline to be completely outside.
+                QPainterPath outlinePath = new QPainterPath();
+                double half = outlineThickness / 2.0;
+                outlinePath.addRect(half, half, width() - outlineThickness, height() - outlineThickness);
+                painter.drawPath(outlinePath);
+            }
             painter.end();
         }
     }
@@ -288,6 +311,10 @@ public class WindowsOverlay {
         return mouseY + cursorHeight / 2;
     }
 
+    private static int indicatorOutlinePadding() {
+        return (int) Math.ceil(currentIndicator.outlineThickness());
+    }
+
     private static int indicatorShadowPadding() {
         if (currentIndicator.shadow().blurRadius() == 0)
             return 0;
@@ -302,13 +329,16 @@ public class WindowsOverlay {
 
     private static void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
         int size = indicatorSize(mousePosition);
+        int outlinePadding = indicatorOutlinePadding();
         int shadowPadding = indicatorShadowPadding();
-        indicatorWindow.window.move(bestIndicatorX(mousePosition) - shadowPadding,
-                bestIndicatorY(mousePosition) - shadowPadding);
-        indicatorWindow.window.resize(size + 2 * shadowPadding,
-                size + 2 * shadowPadding);
+        int totalPadding = outlinePadding + shadowPadding;
+        int widgetSize = size + 2 * outlinePadding;
+        indicatorWindow.window.move(bestIndicatorX(mousePosition) - totalPadding,
+                bestIndicatorY(mousePosition) - totalPadding);
+        indicatorWindow.window.resize(size + 2 * totalPadding,
+                size + 2 * totalPadding);
         indicatorWindow.widget.move(shadowPadding, shadowPadding);
-        indicatorWindow.widget.resize(size, size);
+        indicatorWindow.widget.resize(widgetSize, widgetSize);
     }
 
     private static void applyIndicatorShadowEffect() {
@@ -1991,6 +2021,7 @@ public class WindowsOverlay {
         else {
             boolean sizeOrShadowChanged = oldIndicator == null ||
                     indicator.size() != oldIndicator.size() ||
+                    indicator.outlineThickness() != oldIndicator.outlineThickness() ||
                     !indicator.shadow().equals(oldIndicator.shadow());
             if (sizeOrShadowChanged) {
                 moveAndResizeIndicatorWindow();
@@ -1999,6 +2030,8 @@ public class WindowsOverlay {
         }
         showingIndicator = true;
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
+        indicatorWindow.widget.setOutline(indicator.outlineThickness(),
+                qColor(indicator.outlineHexColor(), indicator.outlineOpacity()));
         indicatorWindow.window.setWindowOpacity(indicator.opacity());
         indicatorWindow.window.show();
     }

@@ -10,6 +10,8 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
                                      String rightMousePressHexColor,
                                      String unhandledKeyPressHexColor,
                                      double opacity,
+                                     double outlineThickness, String outlineHexColor,
+                                     double outlineOpacity,
                                      Shadow shadow) {
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
@@ -23,6 +25,9 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
         private String rightMousePressHexColor;
         private String unhandledKeyPressHexColor;
         private Double opacity;
+        private Double outlineThickness;
+        private String outlineHexColor;
+        private Double outlineOpacity;
         private ShadowBuilder shadow = new ShadowBuilder();
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
@@ -85,6 +90,33 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
             return opacity;
         }
 
+        public IndicatorConfigurationBuilder outlineThickness(double outlineThickness) {
+            this.outlineThickness = outlineThickness;
+            return this;
+        }
+
+        public IndicatorConfigurationBuilder outlineHexColor(String outlineHexColor) {
+            this.outlineHexColor = outlineHexColor;
+            return this;
+        }
+
+        public IndicatorConfigurationBuilder outlineOpacity(double outlineOpacity) {
+            this.outlineOpacity = outlineOpacity;
+            return this;
+        }
+
+        public Double outlineThickness() {
+            return outlineThickness;
+        }
+
+        public String outlineHexColor() {
+            return outlineHexColor;
+        }
+
+        public Double outlineOpacity() {
+            return outlineOpacity;
+        }
+
         public ShadowBuilder shadow() {
             return shadow;
         }
@@ -136,6 +168,7 @@ public record IndicatorConfiguration(boolean enabled, int size, String idleHexCo
                     rightMousePressHexColor,
                     unhandledKeyPressHexColor,
                     opacity,
+                    outlineThickness, outlineHexColor, outlineOpacity,
                     shadow.build());
         }
 

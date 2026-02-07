@@ -20,6 +20,9 @@ public class IndicatorManager implements ModeListener {
                 WindowsOverlay.setIndicator(
                         new Indicator(currentMode.indicator().size(), indicatorHexColor,
                                 currentMode.indicator().opacity(),
+                                currentMode.indicator().outlineThickness(),
+                                currentMode.indicator().outlineHexColor(),
+                                currentMode.indicator().outlineOpacity(),
                                 currentMode.indicator().shadow()));
         }
         else
