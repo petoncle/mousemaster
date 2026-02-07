@@ -1,13 +1,7 @@
 package mousemaster;
 
-public record MacroMove(Key key, boolean press, MacroMoveDestination destination) {
+public sealed interface MacroMove permits KeyMacroMove, StringMacroMove {
 
-    @Override
-    public String toString() {
-        return switch (destination) {
-            case OS -> (press ? "+" : "-") + key.name();
-            case COMBO_WATCHER -> (press ? "#" : "~") + key.name();
-        };
-    }
+    MacroMoveDestination destination();
 
 }

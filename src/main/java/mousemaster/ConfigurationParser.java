@@ -483,7 +483,8 @@ public class ConfigurationParser {
                 if (command instanceof Command.MacroCommand(Macro macro)) {
                     for (MacroParallel parallel : macro.output().parallels()) {
                         for (MacroMove move : parallel.moves()) {
-                            allComboAndMacroKeys.add(move.key());
+                            if (move instanceof KeyMacroMove keyMacroMove)
+                                allComboAndMacroKeys.add(keyMacroMove.key());
                         }
                     }
                 }

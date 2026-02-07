@@ -71,26 +71,39 @@ public class MacroPlayer {
     }
 
     private void executeParallel(MacroParallel parallel) {
-        // Batch OS moves.
-        List<MacroMove> osMoves = new ArrayList<>();
+        // Batch OS key moves.
+        List<KeyMacroMove> osKeyMoves = new ArrayList<>();
         for (MacroMove move : parallel.moves()) {
-            if (move.destination() == MacroMoveDestination.OS) {
-                osMoves.add(move);
-            } else {
-                // Flush any pending OS moves before sending to ComboWatcher.
-                if (!osMoves.isEmpty()) {
-                    WindowsKeyboard.sendInput(osMoves, true, true);
-                    osMoves.clear();
+            switch (move) {
+                case StringMacroMove stringMove -> {
+                    // Flush any pending OS key moves before sending string.
+                    if (!osKeyMoves.isEmpty()) {
+                        WindowsKeyboard.sendInputKeys(osKeyMoves, true, true);
+                        osKeyMoves.clear();
+                    }
+                    WindowsKeyboard.sendInputString(stringMove.string());
                 }
-                KeyEvent event = move.press()
-                        ? new PressKeyEvent(clock.now(), move.key())
-                        : new ReleaseKeyEvent(clock.now(), move.key());
-                comboWatcher.keyEvent(event);
+                case KeyMacroMove keyMove -> {
+                    if (keyMove.destination() == MacroMoveDestination.OS) {
+                        osKeyMoves.add(keyMove);
+                    }
+                    else {
+                        // Flush any pending OS key moves before sending to ComboWatcher.
+                        if (!osKeyMoves.isEmpty()) {
+                            WindowsKeyboard.sendInputKeys(osKeyMoves, true, true);
+                            osKeyMoves.clear();
+                        }
+                        KeyEvent event = keyMove.press()
+                                ? new PressKeyEvent(clock.now(), keyMove.key())
+                                : new ReleaseKeyEvent(clock.now(), keyMove.key());
+                        comboWatcher.keyEvent(event);
+                    }
+                }
             }
         }
-        // Flush remaining OS moves.
-        if (!osMoves.isEmpty()) {
-            WindowsKeyboard.sendInput(osMoves, true, true);
+        // Flush remaining OS key moves.
+        if (!osKeyMoves.isEmpty()) {
+            WindowsKeyboard.sendInputKeys(osKeyMoves, true, true);
         }
     }
 

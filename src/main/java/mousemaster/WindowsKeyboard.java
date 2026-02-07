@@ -7,8 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class WindowsKeyboard {
 
@@ -42,14 +40,14 @@ public class WindowsKeyboard {
     /**
      * For some reason, sending more than one input per SendInput call rarely work (?).
      */
-    public static void sendInput(List<MacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
+    public static void sendInputKeys(List<KeyMacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
         if (oneInputPerCall) {
-            for (MacroMove move : moves) {
-                sendInput(List.of(move), startRepeat);
+            for (KeyMacroMove move : moves) {
+                sendInputKeys(List.of(move), startRepeat);
             }
         }
         else
-            sendInput(moves, startRepeat);
+            sendInputKeys(moves, startRepeat);
     }
 
     private static final Set<Key> pressedKeys = new HashSet<>();
@@ -74,12 +72,12 @@ public class WindowsKeyboard {
             return;
         durationUntilNextKeyPressRepeat -= delta;
         if (durationUntilNextKeyPressRepeat <= 0) {
-            sendInput(List.of(new MacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
+            sendInputKeys(List.of(new KeyMacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
             durationUntilNextKeyPressRepeat = 0.025d;
         }
     }
 
-    private static void sendInput(List<MacroMove> moves, boolean triggerKeyRepeating) {
+    private static void sendInputKeys(List<KeyMacroMove> moves, boolean triggerKeyRepeating) {
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
@@ -91,7 +89,7 @@ public class WindowsKeyboard {
             return;
         }
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
-            MacroMove move = moves.get(moveIndex);
+            KeyMacroMove move = moves.get(moveIndex);
             WindowsVirtualKey windowsVirtualKey =
                     WindowsVirtualKey.windowsVirtualKeyFromKey(move.key(),
                             activeKeyboardLayout);
@@ -121,6 +119,34 @@ public class WindowsKeyboard {
         WinDef.DWORD sendInput =
                 User32.INSTANCE.SendInput(new WinDef.DWORD(moves.size()), pInputs,
                         pInputs[0].size() * moves.size());
+    }
+
+    public static void sendInputString(String string) {
+        for (int i = 0; i < string.length(); i++) {
+            char c = string.charAt(i);
+            // Key down.
+            WinUser.INPUT[] pInputs =
+                    (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
+            pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+            pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
+            pInputs[0].input.ki.wVk = new WinDef.WORD(0);
+            pInputs[0].input.ki.wScan = new WinDef.WORD(c);
+            pInputs[0].input.ki.dwFlags = new WinDef.DWORD(WinUser.KEYBDINPUT.KEYEVENTF_UNICODE);
+            User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs,
+                    pInputs[0].size());
+            // Key up.
+            pInputs =
+                    (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
+            pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+            pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
+            pInputs[0].input.ki.wVk = new WinDef.WORD(0);
+            pInputs[0].input.ki.wScan = new WinDef.WORD(c);
+            pInputs[0].input.ki.dwFlags = new WinDef.DWORD(
+                    WinUser.KEYBDINPUT.KEYEVENTF_UNICODE |
+                    WinUser.KEYBDINPUT.KEYEVENTF_KEYUP);
+            User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs,
+                    pInputs[0].size());
+        }
     }
 
 }

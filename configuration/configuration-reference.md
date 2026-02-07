@@ -931,14 +931,15 @@ Where:
 
 The output uses the following syntax:
 
-|          | Meaning                                            | Example     |
-|----------|----------------------------------------------------|-------------|
-| `+key`   | Press key, send to OS                              | `+leftctrl` |
-| `-key`   | Release key, send to OS                            | `-leftctrl` |
-| `#key`   | Press key, send to mousemaster (internal)          | `#rightalt` |
-| `~key`   | Release key, send to mousemaster (internal)        | `~rightalt` |
-| `key`    | Shorthand for `#key ~key` (internal press+release) | `rightalt`  |
-| `wait-N` | Wait N milliseconds before continuing              | `wait-50`   |
+|          | Meaning                                                                                          | Example     |
+|----------|--------------------------------------------------------------------------------------------------|-------------|
+| `+key`   | Press key (sent to OS)                                                                           | `+leftctrl` |
+| `-key`   | Release key (sent to OS)                                                                         | `-leftctrl` |
+| `'text'` | Type the string character by character, independently of the active keyboard layout (sent to OS) | `'hello'`   |
+| `#key`   | Press key (sent to mousemaster)                                                                  | `#rightalt` |
+| `~key`   | Release key (sent to mousemaster)                                                                | `~rightalt` |
+| `wait-N` | Wait N milliseconds before continuing                                                            | `wait-50`   |
+| `key`    | Shorthand for `#key ~key`                                                                        | `rightalt`  |
 
 ### OS-bound vs internal keys
 
@@ -957,6 +958,13 @@ The output uses the following syntax:
 Remap V to Ctrl+V in normal mode:
 ```properties
 normal-mode.macro.paste=+v -> +leftctrl +v -v -leftctrl
+```
+
+#### Open an app
+
+Open the Windows notepad when pressing Win+F1:
+```properties
+idle-mode.macro.notepad=_{leftwin} +f1 -> +leftwin +r -r -leftwin wait-100 'notepad' +enter -enter
 ```
 
 #### Automating mousemaster
