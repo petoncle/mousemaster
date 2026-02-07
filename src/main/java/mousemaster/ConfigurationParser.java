@@ -10,6 +10,7 @@ import mousemaster.HintGridLayout.HintGridLayoutBuilder;
 import mousemaster.HintMeshConfiguration.HintMeshConfigurationBuilder;
 import mousemaster.HintMeshKeys.HintMeshKeysBuilder;
 import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
+import mousemaster.Indicator.IndicatorBuilder;
 import mousemaster.IndicatorConfiguration.IndicatorConfigurationBuilder;
 import mousemaster.ModeTimeout.ModeTimeoutBuilder;
 import mousemaster.Mouse.MouseBuilder;
@@ -142,46 +143,45 @@ public class ConfigurationParser {
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
                 new IndicatorConfigurationBuilder();
-        indicator.enabled(false)
-                 .size(12)
-                 .edgeCount(4)
-                 .idleHexColor("#FF0000")
-                 .moveHexColor("#FF0000")
-                 .wheelHexColor("#FFFF00")
-                 .mousePressHexColor("#00FF00")
-                 .opacity(1.0);
-        indicator.firstOutline()
-                 .thickness(0)
-                 .hexColor("#000000")
-                 .opacity(1.0)
-                 .fillPercent(1.0);
-        indicator.secondOutline()
-                 .thickness(0)
-                 .hexColor("#000000")
-                 .opacity(1.0)
-                 .fillPercent(1.0);
-        indicator.shadow()
-                 .blurRadius(0d)
-                 .hexColor("#000000")
-                 .opacity(1.0)
-                 .horizontalOffset(0d)
-                 .verticalOffset(0d);
-        indicator.labelEnabled(false);
-        indicator.labelFontStyle()
-                 .name("Arial")
-                 .weight(FontWeight.NORMAL)
-                 .size(8d)
-                 .hexColor("#FFFFFF")
-                 .opacity(1.0)
-                 .outlineThickness(0d)
-                 .outlineHexColor("#000000")
-                 .outlineOpacity(0d);
-        indicator.labelFontStyle().shadow()
-                 .blurRadius(0d)
-                 .hexColor("#000000")
-                 .opacity(0d)
-                 .horizontalOffset(0d)
-                 .verticalOffset(0d);
+        indicator.enabled(false);
+        // Defaults are set on idle indicator; other states inherit during build.
+        IndicatorBuilder idleIndicator = indicator.idleIndicator();
+        idleIndicator.size(12)
+                     .edgeCount(4)
+                     .hexColor("#FF0000")
+                     .opacity(1.0);
+        idleIndicator.firstOutline()
+                     .thickness(0)
+                     .hexColor("#000000")
+                     .opacity(1.0)
+                     .fillPercent(1.0);
+        idleIndicator.secondOutline()
+                     .thickness(0)
+                     .hexColor("#000000")
+                     .opacity(1.0)
+                     .fillPercent(1.0);
+        idleIndicator.shadow()
+                     .blurRadius(0d)
+                     .hexColor("#000000")
+                     .opacity(1.0)
+                     .horizontalOffset(0d)
+                     .verticalOffset(0d);
+        idleIndicator.labelEnabled(false);
+        idleIndicator.labelFontStyle()
+                     .name("Arial")
+                     .weight(FontWeight.NORMAL)
+                     .size(8d)
+                     .hexColor("#FFFFFF")
+                     .opacity(1.0)
+                     .outlineThickness(0d)
+                     .outlineHexColor("#000000")
+                     .outlineOpacity(0d);
+        idleIndicator.labelFontStyle().shadow()
+                     .blurRadius(0d)
+                     .hexColor("#000000")
+                     .opacity(0d)
+                     .horizontalOffset(0d)
+                     .verticalOffset(0d);
         HideCursorBuilder hideCursor =
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
@@ -1062,83 +1062,35 @@ public class ConfigurationParser {
                 else {
                     if (mode.indicator.builder.enabled() == null)
                         mode.indicator.builder.enabled(true);
-                    String indicatorPropertyKey = keyMatcher.group(group4);
-                    if (indicatorPropertyKey.startsWith("label-") &&
-                        mode.indicator.builder.labelEnabled() == null)
-                        mode.indicator.builder.labelEnabled(true);
-                    switch (indicatorPropertyKey) {
-                        case "enabled" -> mode.indicator.builder.enabled(
+                    // group4 is the state name (idle, move, etc.) or "enabled".
+                    // group5 is the property name (color, size, etc.).
+                    String stateOrKey = keyMatcher.group(group4);
+                    if (stateOrKey.equals("enabled")) {
+                        mode.indicator.builder.enabled(
                                 Boolean.parseBoolean(propertyValue));
-                        case "size" -> mode.indicator.builder.size(
-                                parseUnsignedInteger(propertyValue, 1, 100));
-                        case "edge-count" -> mode.indicator.builder.edgeCount(
-                                parseUnsignedInteger(propertyValue, 3, 100));
-                        case "idle-color" -> mode.indicator.builder.idleHexColor(
-                                checkColorFormat(propertyValue));
-                        case "move-color" -> mode.indicator.builder.moveHexColor(
-                                checkColorFormat(propertyValue));
-                        case "wheel-color" -> mode.indicator.builder.wheelHexColor(
-                                checkColorFormat(propertyValue));
-                        case "mouse-press-color" ->
-                                mode.indicator.builder.mousePressHexColor(
-                                        checkColorFormat(propertyValue));
-                        case "left-mouse-press-color" ->
-                                mode.indicator.builder.leftMousePressHexColor(
-                                        checkColorFormat(propertyValue));
-                        case "middle-mouse-press-color" ->
-                                mode.indicator.builder.middleMousePressHexColor(
-                                        checkColorFormat(propertyValue));
-                        case "right-mouse-press-color" ->
-                                mode.indicator.builder.rightMousePressHexColor(
-                                        checkColorFormat(propertyValue));
-                        case "unhandled-key-press-color" ->
-                                mode.indicator.builder.unhandledKeyPressHexColor(
-                                        checkColorFormat(propertyValue));
-                        case "opacity" -> mode.indicator.builder.opacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "first-outline-thickness" -> mode.indicator.builder.firstOutline().thickness(
-                                parseDouble(propertyValue, true, 0, 100));
-                        case "first-outline-color" -> mode.indicator.builder.firstOutline().hexColor(
-                                checkColorFormat(propertyValue));
-                        case "first-outline-opacity" -> mode.indicator.builder.firstOutline().opacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "first-outline-fill-percent" -> mode.indicator.builder.firstOutline().fillPercent(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "second-outline-thickness" -> mode.indicator.builder.secondOutline().thickness(
-                                parseDouble(propertyValue, true, 0, 100));
-                        case "second-outline-color" -> mode.indicator.builder.secondOutline().hexColor(
-                                checkColorFormat(propertyValue));
-                        case "second-outline-opacity" -> mode.indicator.builder.secondOutline().opacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "second-outline-fill-percent" -> mode.indicator.builder.secondOutline().fillPercent(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "shadow-blur-radius" -> mode.indicator.builder.shadow().blurRadius(
-                                parseDouble(propertyValue, true, 0, 1000));
-                        case "shadow-color" -> mode.indicator.builder.shadow().hexColor(
-                                checkColorFormat(propertyValue));
-                        case "shadow-opacity" -> mode.indicator.builder.shadow().opacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "shadow-horizontal-offset" -> mode.indicator.builder.shadow().horizontalOffset(
-                                parseDouble(propertyValue, true, -100, 100));
-                        case "shadow-vertical-offset" -> mode.indicator.builder.shadow().verticalOffset(
-                                parseDouble(propertyValue, true, -100, 100));
-                        case "label-enabled" -> mode.indicator.builder.labelEnabled(Boolean.parseBoolean(propertyValue));
-                        case "label-text" -> mode.indicator.builder.labelText(propertyValue);
-                        case "label-font-name" -> mode.indicator.builder.labelFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "label-font-size" -> mode.indicator.builder.labelFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-                        case "label-font-color" -> mode.indicator.builder.labelFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "label-font-weight" -> mode.indicator.builder.labelFontStyle().weight(FontWeight.of(propertyValue));
-                        case "label-font-opacity" -> mode.indicator.builder.labelFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "label-font-outline-thickness" -> mode.indicator.builder.labelFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "label-font-outline-color" -> mode.indicator.builder.labelFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "label-font-outline-opacity" -> mode.indicator.builder.labelFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "label-font-shadow-blur-radius" -> mode.indicator.builder.labelFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "label-font-shadow-color" -> mode.indicator.builder.labelFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "label-font-shadow-opacity" -> mode.indicator.builder.labelFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "label-font-shadow-horizontal-offset" -> mode.indicator.builder.labelFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "label-font-shadow-vertical-offset" -> mode.indicator.builder.labelFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        default -> throw new IllegalArgumentException(
-                                "Invalid indicator property key");
+                    }
+                    else {
+                        if (keyMatcher.group(group5) == null)
+                            throw new IllegalArgumentException(
+                                    "Invalid indicator property key: " + stateOrKey);
+                        String subKey = keyMatcher.group(group5);
+                        IndicatorBuilder targetIndicator = switch (stateOrKey) {
+                            case "idle" -> mode.indicator.builder.idleIndicator();
+                            case "move" -> mode.indicator.builder.moveIndicator();
+                            case "wheel" -> mode.indicator.builder.wheelIndicator();
+                            case "mouse-press" -> mode.indicator.builder.mousePressIndicator();
+                            case "left-mouse-press" -> mode.indicator.builder.leftMousePressIndicator();
+                            case "middle-mouse-press" -> mode.indicator.builder.middleMousePressIndicator();
+                            case "right-mouse-press" -> mode.indicator.builder.rightMousePressIndicator();
+                            case "unhandled-key-press" -> mode.indicator.builder.unhandledKeyPressIndicator();
+                            default -> throw new IllegalArgumentException(
+                                    "Invalid indicator state: " + stateOrKey);
+                        };
+                        if (subKey.startsWith("label-") &&
+                            targetIndicator.labelEnabled() == null)
+                            targetIndicator.labelEnabled(true);
+                        parseIndicatorProperty(targetIndicator, subKey,
+                                propertyValue, fontAvailability);
                     }
                 }
             }
@@ -1776,6 +1728,46 @@ public class ConfigurationParser {
         return new ModeNode(modeName, referencedModes);
     }
 
+    private static void parseIndicatorProperty(IndicatorBuilder indicator,
+                                                String key, String propertyValue,
+                                                Predicate<String> fontAvailability) {
+        switch (key) {
+            case "size" -> indicator.size(parseUnsignedInteger(propertyValue, 1, 100));
+            case "edge-count" -> indicator.edgeCount(parseUnsignedInteger(propertyValue, 3, 100));
+            case "color" -> indicator.hexColor(checkColorFormat(propertyValue));
+            case "opacity" -> indicator.opacity(parseDouble(propertyValue, true, 0, 1));
+            case "first-outline-thickness" -> indicator.firstOutline().thickness(parseDouble(propertyValue, true, 0, 100));
+            case "first-outline-color" -> indicator.firstOutline().hexColor(checkColorFormat(propertyValue));
+            case "first-outline-opacity" -> indicator.firstOutline().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "first-outline-fill-percent" -> indicator.firstOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
+            case "second-outline-thickness" -> indicator.secondOutline().thickness(parseDouble(propertyValue, true, 0, 100));
+            case "second-outline-color" -> indicator.secondOutline().hexColor(checkColorFormat(propertyValue));
+            case "second-outline-opacity" -> indicator.secondOutline().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "second-outline-fill-percent" -> indicator.secondOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
+            case "shadow-blur-radius" -> indicator.shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
+            case "shadow-color" -> indicator.shadow().hexColor(checkColorFormat(propertyValue));
+            case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "shadow-horizontal-offset" -> indicator.shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
+            case "shadow-vertical-offset" -> indicator.shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
+            case "label-enabled" -> indicator.labelEnabled(Boolean.parseBoolean(propertyValue));
+            case "label-text" -> indicator.labelText(propertyValue);
+            case "label-font-name" -> indicator.labelFontStyle().name(parseFontName(propertyValue, fontAvailability));
+            case "label-font-size" -> indicator.labelFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
+            case "label-font-color" -> indicator.labelFontStyle().hexColor(checkColorFormat(propertyValue));
+            case "label-font-weight" -> indicator.labelFontStyle().weight(FontWeight.of(propertyValue));
+            case "label-font-opacity" -> indicator.labelFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "label-font-outline-thickness" -> indicator.labelFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
+            case "label-font-outline-color" -> indicator.labelFontStyle().outlineHexColor(checkColorFormat(propertyValue));
+            case "label-font-outline-opacity" -> indicator.labelFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
+            case "label-font-shadow-blur-radius" -> indicator.labelFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
+            case "label-font-shadow-color" -> indicator.labelFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
+            case "label-font-shadow-opacity" -> indicator.labelFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "label-font-shadow-horizontal-offset" -> indicator.labelFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
+            case "label-font-shadow-vertical-offset" -> indicator.labelFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
+            default -> throw new IllegalArgumentException("Invalid indicator property key: " + key);
+        }
+    }
+
     private static String checkColorFormat(String propertyValue) {
         if (!propertyValue.matches("^#?([a-fA-F0-9]{6})$"))
             throw new IllegalArgumentException(
@@ -2088,38 +2080,7 @@ public class ConfigurationParser {
                 void extend(Object parent_) {
                     IndicatorConfigurationBuilder parent =
                             (IndicatorConfigurationBuilder) parent_;
-                    if (builder.enabled() == null)
-                        builder.enabled(parent.enabled());
-                    if (builder.size() == null)
-                        builder.size(parent.size());
-                    if (builder.edgeCount() == null)
-                        builder.edgeCount(parent.edgeCount());
-                    if (builder.idleHexColor() == null)
-                        builder.idleHexColor(parent.idleHexColor());
-                    if (builder.moveHexColor() == null)
-                        builder.moveHexColor(parent.moveHexColor());
-                    if (builder.wheelHexColor() == null)
-                        builder.wheelHexColor(parent.wheelHexColor());
-                    if (builder.mousePressHexColor() == null)
-                        builder.mousePressHexColor(parent.mousePressHexColor());
-                    if (builder.leftMousePressHexColor() == null)
-                        builder.leftMousePressHexColor(parent.leftMousePressHexColor());
-                    if (builder.middleMousePressHexColor() == null)
-                        builder.middleMousePressHexColor(parent.middleMousePressHexColor());
-                    if (builder.rightMousePressHexColor() == null)
-                        builder.rightMousePressHexColor(parent.rightMousePressHexColor());
-                    if (builder.unhandledKeyPressHexColor() == null)
-                        builder.unhandledKeyPressHexColor(parent.unhandledKeyPressHexColor());
-                    if (builder.opacity() == null)
-                        builder.opacity(parent.opacity());
-                    builder.firstOutline().extend(parent.firstOutline());
-                    builder.secondOutline().extend(parent.secondOutline());
-                    builder.shadow().extend(parent.shadow());
-                    if (builder.labelEnabled() == null)
-                        builder.labelEnabled(parent.labelEnabled());
-                    if (builder.labelText() == null)
-                        builder.labelText(parent.labelText());
-                    builder.labelFontStyle().extend(parent.labelFontStyle());
+                    builder.extend(parent);
                 }
             };
             hideCursor = new Property<>("hide-cursor", modeName, propertyByKey,

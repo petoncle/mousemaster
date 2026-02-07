@@ -13,21 +13,11 @@ public class IndicatorManager implements ModeListener {
 
     public void update(double delta) {
         if (currentMode.indicator().enabled()) {
-            String indicatorHexColor = indicatorHexColor();
-            if (indicatorHexColor == null)
+            Indicator indicator = activeIndicator();
+            if (indicator.hexColor() == null)
                 WindowsOverlay.hideIndicator();
             else
-                WindowsOverlay.setIndicator(
-                        new Indicator(currentMode.indicator().size(),
-                                currentMode.indicator().edgeCount(),
-                                indicatorHexColor,
-                                currentMode.indicator().opacity(),
-                                currentMode.indicator().firstOutline(),
-                                currentMode.indicator().secondOutline(),
-                                currentMode.indicator().shadow(),
-                                currentMode.indicator().labelEnabled(),
-                                currentMode.indicator().labelText(),
-                                currentMode.indicator().labelFontStyle()));
+                WindowsOverlay.setIndicator(indicator);
         }
         else
             WindowsOverlay.hideIndicator();
@@ -43,21 +33,21 @@ public class IndicatorManager implements ModeListener {
         // Ignored.
     }
 
-    private String indicatorHexColor() {
-        IndicatorConfiguration indicatorConfiguration = currentMode.indicator();
+    private Indicator activeIndicator() {
+        IndicatorConfiguration config = currentMode.indicator();
         if (keyboardState.pressingUnhandledKey() &&
-            indicatorConfiguration.unhandledKeyPressHexColor() != null)
-            return indicatorConfiguration.unhandledKeyPressHexColor();
-        if (mouseState.leftPressing() && (indicatorConfiguration.leftMousePressHexColor() != null || indicatorConfiguration.mousePressHexColor() != null))
-            return indicatorConfiguration.leftMousePressHexColor() != null ? indicatorConfiguration.leftMousePressHexColor() : indicatorConfiguration.mousePressHexColor();
-        if (mouseState.middlePressing() && (indicatorConfiguration.middleMousePressHexColor() != null || indicatorConfiguration.mousePressHexColor() != null))
-            return indicatorConfiguration.middleMousePressHexColor() != null ? indicatorConfiguration.middleMousePressHexColor() : indicatorConfiguration.mousePressHexColor();
-        if (mouseState.rightPressing() && (indicatorConfiguration.rightMousePressHexColor() != null || indicatorConfiguration.mousePressHexColor() != null))
-            return indicatorConfiguration.rightMousePressHexColor() != null ? indicatorConfiguration.rightMousePressHexColor() : indicatorConfiguration.mousePressHexColor();
-        if (mouseState.wheeling() && indicatorConfiguration.wheelHexColor() != null)
-            return indicatorConfiguration.wheelHexColor();
-        if (mouseState.moving() && indicatorConfiguration.moveHexColor() != null)
-            return indicatorConfiguration.moveHexColor();
-        return indicatorConfiguration.idleHexColor();
+            config.unhandledKeyPressIndicator().hexColor() != null)
+            return config.unhandledKeyPressIndicator();
+        if (mouseState.leftPressing() && config.leftMousePressIndicator().hexColor() != null)
+            return config.leftMousePressIndicator();
+        if (mouseState.middlePressing() && config.middleMousePressIndicator().hexColor() != null)
+            return config.middleMousePressIndicator();
+        if (mouseState.rightPressing() && config.rightMousePressIndicator().hexColor() != null)
+            return config.rightMousePressIndicator();
+        if (mouseState.wheeling() && config.wheelIndicator().hexColor() != null)
+            return config.wheelIndicator();
+        if (mouseState.moving() && config.moveIndicator().hexColor() != null)
+            return config.moveIndicator();
+        return config.idleIndicator();
     }
 }

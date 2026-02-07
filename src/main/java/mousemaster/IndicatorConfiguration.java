@@ -1,199 +1,100 @@
 package mousemaster;
 
-import mousemaster.FontStyle.FontStyleBuilder;
-import mousemaster.IndicatorOutline.IndicatorOutlineBuilder;
-import mousemaster.Shadow.ShadowBuilder;
+import mousemaster.Indicator.IndicatorBuilder;
 
-public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
-                                     String idleHexColor, String moveHexColor,
-                                     String wheelHexColor,
-                                     String mousePressHexColor,
-                                     String leftMousePressHexColor,
-                                     String middleMousePressHexColor,
-                                     String rightMousePressHexColor,
-                                     String unhandledKeyPressHexColor,
-                                     double opacity,
-                                     IndicatorOutline firstOutline,
-                                     IndicatorOutline secondOutline,
-                                     Shadow shadow,
-                                     boolean labelEnabled,
-                                     String labelText, FontStyle labelFontStyle) {
+public record IndicatorConfiguration(boolean enabled,
+                                     Indicator idleIndicator,
+                                     Indicator moveIndicator,
+                                     Indicator wheelIndicator,
+                                     Indicator mousePressIndicator,
+                                     Indicator leftMousePressIndicator,
+                                     Indicator middleMousePressIndicator,
+                                     Indicator rightMousePressIndicator,
+                                     Indicator unhandledKeyPressIndicator) {
+
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
-        private Integer size;
-        private Integer edgeCount;
-        private String idleHexColor;
-        private String moveHexColor;
-        private String wheelHexColor;
-        private String mousePressHexColor;
-        private String leftMousePressHexColor;
-        private String middleMousePressHexColor;
-        private String rightMousePressHexColor;
-        private String unhandledKeyPressHexColor;
-        private Double opacity;
-        private IndicatorOutlineBuilder firstOutline = new IndicatorOutlineBuilder();
-        private IndicatorOutlineBuilder secondOutline = new IndicatorOutlineBuilder();
-        private ShadowBuilder shadow = new ShadowBuilder();
-        private Boolean labelEnabled;
-        private String labelText;
-        private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
+        private IndicatorBuilder idleIndicator = new IndicatorBuilder();
+        private IndicatorBuilder moveIndicator = new IndicatorBuilder();
+        private IndicatorBuilder wheelIndicator = new IndicatorBuilder();
+        private IndicatorBuilder mousePressIndicator = new IndicatorBuilder();
+        private IndicatorBuilder leftMousePressIndicator = new IndicatorBuilder();
+        private IndicatorBuilder middleMousePressIndicator = new IndicatorBuilder();
+        private IndicatorBuilder rightMousePressIndicator = new IndicatorBuilder();
+        private IndicatorBuilder unhandledKeyPressIndicator = new IndicatorBuilder();
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
             return this;
         }
 
-        public IndicatorConfigurationBuilder size(int size) {
-            this.size = size;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder edgeCount(int edgeCount) {
-            this.edgeCount = edgeCount;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder idleHexColor(String idleHexColor) {
-            this.idleHexColor = idleHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder moveHexColor(String moveHexColor) {
-            this.moveHexColor = moveHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder wheelHexColor(String wheelHexColor) {
-            this.wheelHexColor = wheelHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder mousePressHexColor(String mousePressHexColor) {
-            this.mousePressHexColor = mousePressHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder leftMousePressHexColor(String leftMousePressHexColor) {
-            this.leftMousePressHexColor = leftMousePressHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder middleMousePressHexColor(String middleMousePressHexColor) {
-            this.middleMousePressHexColor = middleMousePressHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder rightMousePressHexColor(String rightMousePressHexColor) {
-            this.rightMousePressHexColor = rightMousePressHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder unhandledKeyPressHexColor(
-                String unhandledKeyPressHexColor) {
-            this.unhandledKeyPressHexColor = unhandledKeyPressHexColor;
-            return this;
-        }
-
-        public IndicatorConfigurationBuilder opacity(double opacity) {
-            this.opacity = opacity;
-            return this;
-        }
-
-        public Double opacity() {
-            return opacity;
-        }
-
-        public IndicatorOutlineBuilder firstOutline() {
-            return firstOutline;
-        }
-
-        public IndicatorOutlineBuilder secondOutline() {
-            return secondOutline;
-        }
-
-        public ShadowBuilder shadow() {
-            return shadow;
-        }
-
         public Boolean enabled() {
             return enabled;
         }
 
-        public Integer size() {
-            return size;
+        public IndicatorBuilder idleIndicator() {
+            return idleIndicator;
         }
 
-        public Integer edgeCount() {
-            return edgeCount;
+        public IndicatorBuilder moveIndicator() {
+            return moveIndicator;
         }
 
-        public String idleHexColor() {
-            return idleHexColor;
+        public IndicatorBuilder wheelIndicator() {
+            return wheelIndicator;
         }
 
-        public String moveHexColor() {
-            return moveHexColor;
+        public IndicatorBuilder mousePressIndicator() {
+            return mousePressIndicator;
         }
 
-        public String wheelHexColor() {
-            return wheelHexColor;
+        public IndicatorBuilder leftMousePressIndicator() {
+            return leftMousePressIndicator;
         }
 
-        public String mousePressHexColor() {
-            return mousePressHexColor;
+        public IndicatorBuilder middleMousePressIndicator() {
+            return middleMousePressIndicator;
         }
 
-        public String leftMousePressHexColor() {
-            return leftMousePressHexColor;
+        public IndicatorBuilder rightMousePressIndicator() {
+            return rightMousePressIndicator;
         }
 
-        public String middleMousePressHexColor() {
-            return middleMousePressHexColor;
+        public IndicatorBuilder unhandledKeyPressIndicator() {
+            return unhandledKeyPressIndicator;
         }
 
-        public String rightMousePressHexColor() {
-            return rightMousePressHexColor;
-        }
-
-        public String unhandledKeyPressHexColor() {
-            return unhandledKeyPressHexColor;
-        }
-
-        public IndicatorConfigurationBuilder labelEnabled(boolean labelEnabled) {
-            this.labelEnabled = labelEnabled;
-            return this;
-        }
-
-        public Boolean labelEnabled() {
-            return labelEnabled;
-        }
-
-        public IndicatorConfigurationBuilder labelText(String labelText) {
-            this.labelText = labelText;
-            return this;
-        }
-
-        public String labelText() {
-            return labelText;
-        }
-
-        public FontStyleBuilder labelFontStyle() {
-            return labelFontStyle;
+        public void extend(IndicatorConfigurationBuilder parent) {
+            if (enabled == null) enabled = parent.enabled;
+            idleIndicator.extend(parent.idleIndicator);
+            moveIndicator.extend(parent.moveIndicator);
+            wheelIndicator.extend(parent.wheelIndicator);
+            mousePressIndicator.extend(parent.mousePressIndicator);
+            leftMousePressIndicator.extend(parent.leftMousePressIndicator);
+            middleMousePressIndicator.extend(parent.middleMousePressIndicator);
+            rightMousePressIndicator.extend(parent.rightMousePressIndicator);
+            unhandledKeyPressIndicator.extend(parent.unhandledKeyPressIndicator);
         }
 
         public IndicatorConfiguration build() {
-            return new IndicatorConfiguration(enabled, size, edgeCount, idleHexColor, moveHexColor, wheelHexColor,
-                    mousePressHexColor,
-                    leftMousePressHexColor,
-                    middleMousePressHexColor,
-                    rightMousePressHexColor,
-                    unhandledKeyPressHexColor,
-                    opacity,
-                    firstOutline.build(),
-                    secondOutline.build(),
-                    shadow.build(),
-                    labelEnabled, labelText, labelFontStyle.build());
+            // State inheritance: non-idle states inherit unset fields from idle.
+            // left/middle/right-mouse-press inherit from mouse-press first.
+            mousePressIndicator.extend(idleIndicator);
+            moveIndicator.extend(idleIndicator);
+            wheelIndicator.extend(idleIndicator);
+            unhandledKeyPressIndicator.extend(idleIndicator);
+            leftMousePressIndicator.extend(mousePressIndicator);
+            middleMousePressIndicator.extend(mousePressIndicator);
+            rightMousePressIndicator.extend(mousePressIndicator);
+            return new IndicatorConfiguration(enabled,
+                    idleIndicator.build(),
+                    moveIndicator.build(),
+                    wheelIndicator.build(),
+                    mousePressIndicator.build(),
+                    leftMousePressIndicator.build(),
+                    middleMousePressIndicator.build(),
+                    rightMousePressIndicator.build(),
+                    unhandledKeyPressIndicator.build());
         }
-
     }
 }
