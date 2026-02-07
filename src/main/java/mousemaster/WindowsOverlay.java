@@ -178,7 +178,8 @@ public class WindowsOverlay {
     }
 
     private record IndicatorWindow(WinDef.HWND hwnd, TransparentWindow window,
-                                   IndicatorWidget widget) {
+                                   IndicatorWidget widget,
+                                   IndicatorLabelWidget labelWidget) {
     }
 
     private static class IndicatorWidget extends QWidget {
@@ -187,9 +188,6 @@ public class WindowsOverlay {
         private int edgeCount;
         private double outlineThickness;
         private QColor outlineColor;
-        private String labelText;
-        private QFont labelFont;
-        private QColor labelColor;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -211,12 +209,6 @@ public class WindowsOverlay {
             update();
         }
 
-        void setLabel(String labelText, QFont labelFont, QColor labelColor) {
-            this.labelText = labelText;
-            this.labelFont = labelFont;
-            this.labelColor = labelColor;
-            update();
-        }
 
         private static double polygonStartAngle(int edgeCount) {
             // Odd edge count: vertex at top (pointy top, e.g. triangle ▲).
@@ -284,17 +276,6 @@ public class WindowsOverlay {
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
-            if (labelText != null && labelFont != null && labelColor != null) {
-                painter.setFont(labelFont);
-                painter.setPen(labelColor);
-                QFontMetrics fm = new QFontMetrics(labelFont);
-                int textX = (int) Math.round(centerX - fm.horizontalAdvance(labelText) / 2.0);
-                QRect tightRect = fm.tightBoundingRect(labelText);
-                // drawText y is the baseline. tightRect.y() is negative (ascent above baseline).
-                int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
-                painter.drawText(textX, textY, labelText);
-                painter.setPen(Qt.PenStyle.NoPen);
-            }
             if (outlineThickness > 0 && outlineColor != null && outlineColor.alpha() != 0) {
                 QPen pen = new QPen(outlineColor);
                 pen.setWidthF(outlineThickness);
@@ -307,6 +288,60 @@ public class WindowsOverlay {
                 QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
                 painter.drawPath(outlinePath);
             }
+            painter.end();
+        }
+    }
+
+    private static class IndicatorLabelWidget extends QWidget {
+
+        private String labelText;
+        private QFont labelFont;
+        private QColor labelColor;
+        private int outlineThickness;
+        private QColor outlineColor;
+
+        IndicatorLabelWidget(QWidget parent) {
+            super(parent);
+            setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
+        }
+
+        void setLabel(String labelText, QFont labelFont, QColor labelColor,
+                      int outlineThickness, QColor outlineColor) {
+            this.labelText = labelText;
+            this.labelFont = labelFont;
+            this.labelColor = labelColor;
+            this.outlineThickness = outlineThickness;
+            this.outlineColor = outlineColor;
+            update();
+        }
+
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            if (labelText == null || labelFont == null || labelColor == null)
+                return;
+            QPainter painter = new QPainter(this);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.setFont(labelFont);
+            QFontMetrics fm = new QFontMetrics(labelFont);
+            double centerX = width() / 2.0;
+            double centerY = height() / 2.0;
+            int textX = (int) Math.round(centerX - fm.horizontalAdvance(labelText) / 2.0);
+            QRect tightRect = fm.tightBoundingRect(labelText);
+            int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
+            // Outline: draw text path with outline pen.
+            if (outlineThickness != 0 && outlineColor != null && outlineColor.alpha() != 0) {
+                QPen outlinePen = new QPen(outlineColor);
+                outlinePen.setWidth(outlineThickness);
+                outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
+                painter.setPen(outlinePen);
+                painter.setBrush(Qt.BrushStyle.NoBrush);
+                QPainterPath textPath = new QPainterPath();
+                textPath.addText(textX, textY, labelFont, labelText);
+                painter.drawPath(textPath);
+            }
+            // Fill: draw text on top of outline.
+            painter.setPen(labelColor);
+            painter.drawText(textX, textY, labelText);
             painter.end();
         }
     }
@@ -425,6 +460,8 @@ public class WindowsOverlay {
         indicatorWindow.window.resize(windowSize, windowSize);
         indicatorWindow.widget.move(shadowPadding, shadowPadding);
         indicatorWindow.widget.resize(widgetSize, widgetSize);
+        indicatorWindow.labelWidget.move(0, 0);
+        indicatorWindow.labelWidget.resize(widgetSize, widgetSize);
     }
 
     private static void applyIndicatorShadowEffect() {
@@ -455,7 +492,8 @@ public class WindowsOverlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
-        indicatorWindow = new IndicatorWindow(hwnd, window, widget);
+        IndicatorLabelWidget labelWidget = new IndicatorLabelWidget(widget);
+        indicatorWindow = new IndicatorWindow(hwnd, window, widget, labelWidget);
         moveAndResizeIndicatorWindow();
         applyIndicatorShadowEffect();
         window.show();
@@ -2124,10 +2162,27 @@ public class WindowsOverlay {
             FontStyle lfs = indicator.labelFontStyle();
             QFont labelFont = qFont(lfs.name(), lfs.size(), lfs.weight());
             QColor labelColor = qColor(lfs.hexColor(), lfs.opacity());
-            indicatorWindow.widget.setLabel(indicator.labelText(), labelFont, labelColor);
+            QColor labelOutlineColor = qColor(lfs.outlineHexColor(), lfs.outlineOpacity());
+            indicatorWindow.labelWidget.setLabel(indicator.labelText(), labelFont, labelColor,
+                    (int) Math.round(lfs.outlineThickness()), labelOutlineColor);
+            Shadow labelShadow = lfs.shadow();
+            QColor labelShadowColor = qColor(labelShadow.hexColor(), labelShadow.opacity());
+            if (labelShadowColor.alpha() != 0) {
+                QGraphicsDropShadowEffect effect = new QGraphicsDropShadowEffect();
+                effect.setBlurRadius(labelShadow.blurRadius());
+                effect.setOffset(labelShadow.horizontalOffset(), labelShadow.verticalOffset());
+                effect.setColor(labelShadowColor);
+                indicatorWindow.labelWidget.setGraphicsEffect(effect);
+            }
+            else {
+                indicatorWindow.labelWidget.setGraphicsEffect(null);
+            }
+            indicatorWindow.labelWidget.show();
         }
         else {
-            indicatorWindow.widget.setLabel(null, null, null);
+            indicatorWindow.labelWidget.setLabel(null, null, null, 0, null);
+            indicatorWindow.labelWidget.setGraphicsEffect(null);
+            indicatorWindow.labelWidget.hide();
         }
         indicatorWindow.window.setWindowOpacity(indicator.opacity());
         indicatorWindow.window.show();
