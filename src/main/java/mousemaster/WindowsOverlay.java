@@ -187,6 +187,9 @@ public class WindowsOverlay {
         private int edgeCount;
         private double outlineThickness;
         private QColor outlineColor;
+        private String labelText;
+        private QFont labelFont;
+        private QColor labelColor;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -205,6 +208,13 @@ public class WindowsOverlay {
         void setOutline(double outlineThickness, QColor outlineColor) {
             this.outlineThickness = outlineThickness;
             this.outlineColor = outlineColor;
+            update();
+        }
+
+        void setLabel(String labelText, QFont labelFont, QColor labelColor) {
+            this.labelText = labelText;
+            this.labelFont = labelFont;
+            this.labelColor = labelColor;
             update();
         }
 
@@ -274,6 +284,17 @@ public class WindowsOverlay {
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
+            if (labelText != null && labelFont != null && labelColor != null) {
+                painter.setFont(labelFont);
+                painter.setPen(labelColor);
+                QFontMetrics fm = new QFontMetrics(labelFont);
+                int textX = (int) Math.round(centerX - fm.horizontalAdvance(labelText) / 2.0);
+                QRect tightRect = fm.tightBoundingRect(labelText);
+                // drawText y is the baseline. tightRect.y() is negative (ascent above baseline).
+                int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
+                painter.drawText(textX, textY, labelText);
+                painter.setPen(Qt.PenStyle.NoPen);
+            }
             if (outlineThickness > 0 && outlineColor != null && outlineColor.alpha() != 0) {
                 QPen pen = new QPen(outlineColor);
                 pen.setWidthF(outlineThickness);
@@ -911,26 +932,26 @@ public class WindowsOverlay {
         int minHintTop = Integer.MAX_VALUE;
         int maxHintRight = Integer.MIN_VALUE;
         int maxHintBottom = Integer.MIN_VALUE;
-        QFont font = qFont(style.fontStyle().name(), style.fontStyle().size(), style.fontStyle().weight());
+        QFont font = qFont(style.fontStyle().fontStyle().name(), style.fontStyle().fontStyle().size(), style.fontStyle().fontStyle().weight());
         LabelFontStyle labelFontStyle = new LabelFontStyle(
                 font,
                 new QFontMetrics(font),
                 new HintKeyColorMap(
-                    qColor(style.fontStyle().hexColor(), style.fontStyle().opacity()),
+                    qColor(style.fontStyle().fontStyle().hexColor(), style.fontStyle().fontStyle().opacity()),
                     qColor(style.fontStyle().selectedFontHexColor(), style.fontStyle().selectedFontOpacity()),
                     qColor(style.fontStyle().focusedFontHexColor(), style.fontStyle().focusedFontOpacity())
                 ),
                 new HintKeyColorMap(
-                    qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
+                    qColor(style.prefixFontStyle().fontStyle().hexColor(), style.prefixFontStyle().fontStyle().opacity()),
                     qColor(style.prefixFontStyle().selectedFontHexColor(), style.prefixFontStyle().selectedFontOpacity()),
                     qColor(style.prefixFontStyle().focusedFontHexColor(), style.prefixFontStyle().focusedFontOpacity())
                 ),
-                qColor(style.fontStyle().outlineHexColor(), style.fontStyle().outlineOpacity()),
-                (int) Math.round(style.fontStyle().outlineThickness() * screenScale),
-                qColor(style.fontStyle().shadow().hexColor(), style.fontStyle().shadow().opacity()),
-                style.fontStyle().shadow().blurRadius() * screenScale,
-                style.fontStyle().shadow().horizontalOffset() * screenScale,
-                style.fontStyle().shadow().verticalOffset() * screenScale,
+                qColor(style.fontStyle().fontStyle().outlineHexColor(), style.fontStyle().fontStyle().outlineOpacity()),
+                (int) Math.round(style.fontStyle().fontStyle().outlineThickness() * screenScale),
+                qColor(style.fontStyle().fontStyle().shadow().hexColor(), style.fontStyle().fontStyle().shadow().opacity()),
+                style.fontStyle().fontStyle().shadow().blurRadius() * screenScale,
+                style.fontStyle().fontStyle().shadow().horizontalOffset() * screenScale,
+                style.fontStyle().fontStyle().shadow().verticalOffset() * screenScale,
                 style.fontStyle().spacingPercent()
         );
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
@@ -1104,23 +1125,23 @@ public class WindowsOverlay {
             hintGroup.prefixHintBox = prefixHintBox;
         }
         LabelFontStyle prefixLabelFontStyle = null;
-        if (style.prefixInBackground() && style.prefixFontStyle().opacity() != 0) {
-            QFont prefixFont = qFont(style.prefixFontStyle().name(), style.prefixFontStyle().size(), style.prefixFontStyle().weight());
+        if (style.prefixInBackground() && style.prefixFontStyle().fontStyle().opacity() != 0) {
+            QFont prefixFont = qFont(style.prefixFontStyle().fontStyle().name(), style.prefixFontStyle().fontStyle().size(), style.prefixFontStyle().fontStyle().weight());
             prefixLabelFontStyle = new LabelFontStyle(
                     prefixFont,
                     new QFontMetrics(prefixFont),
                     null,
                     new HintKeyColorMap(
-                            qColor(style.prefixFontStyle().hexColor(), style.prefixFontStyle().opacity()),
+                            qColor(style.prefixFontStyle().fontStyle().hexColor(), style.prefixFontStyle().fontStyle().opacity()),
                             qColor(style.prefixFontStyle().selectedFontHexColor(), style.prefixFontStyle().selectedFontOpacity()),
                             qColor(style.prefixFontStyle().focusedFontHexColor(), style.prefixFontStyle().focusedFontOpacity())
                     ),
-                    qColor(style.prefixFontStyle().outlineHexColor(), style.prefixFontStyle().outlineOpacity()),
-                    (int) Math.round(style.prefixFontStyle().outlineThickness() * screenScale),
-                    qColor(style.prefixFontStyle().shadow().hexColor(), style.prefixFontStyle().shadow().opacity()),
-                    style.prefixFontStyle().shadow().blurRadius() * screenScale,
-                    style.prefixFontStyle().shadow().horizontalOffset() * screenScale,
-                    style.prefixFontStyle().shadow().verticalOffset() * screenScale,
+                    qColor(style.prefixFontStyle().fontStyle().outlineHexColor(), style.prefixFontStyle().fontStyle().outlineOpacity()),
+                    (int) Math.round(style.prefixFontStyle().fontStyle().outlineThickness() * screenScale),
+                    qColor(style.prefixFontStyle().fontStyle().shadow().hexColor(), style.prefixFontStyle().fontStyle().shadow().opacity()),
+                    style.prefixFontStyle().fontStyle().shadow().blurRadius() * screenScale,
+                    style.prefixFontStyle().fontStyle().shadow().horizontalOffset() * screenScale,
+                    style.prefixFontStyle().fontStyle().shadow().verticalOffset() * screenScale,
                     style.prefixFontStyle().spacingPercent()
             );
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
@@ -1238,15 +1259,15 @@ public class WindowsOverlay {
      */
     static void preWarmFontStyles(Set<HintMeshConfiguration> hintMeshConfigurations) {
         long before = System.nanoTime();
-        Set<FontStyle> fontStyles = new HashSet<>();
+        Set<HintFontStyle> fontStyles = new HashSet<>();
         for (HintMeshConfiguration hintMeshConfiguration : hintMeshConfigurations) {
             for (HintMeshStyle style : hintMeshConfiguration.styleByFilter().map().values()) {
                 fontStyles.add(style.fontStyle());
                 fontStyles.add(style.prefixFontStyle());
             }
         }
-        for (FontStyle fontStyle : fontStyles) {
-            QFont font = qFont(fontStyle.name(), fontStyle.size(), fontStyle.weight());
+        for (HintFontStyle hintFontStyle : fontStyles) {
+            QFont font = qFont(hintFontStyle.fontStyle().name(), hintFontStyle.fontStyle().size(), hintFontStyle.fontStyle().weight());
             new QFontMetrics(font).horizontalAdvance("x");
         }
         logger.debug("Pre-warmed " + fontStyles.size() + " hint font styles in " +
@@ -2099,6 +2120,15 @@ public class WindowsOverlay {
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
         indicatorWindow.widget.setOutline(indicator.outlineThickness(),
                 qColor(indicator.outlineHexColor(), indicator.outlineOpacity()));
+        if (indicator.labelText() != null && indicator.labelFontStyle() != null) {
+            FontStyle lfs = indicator.labelFontStyle();
+            QFont labelFont = qFont(lfs.name(), lfs.size(), lfs.weight());
+            QColor labelColor = qColor(lfs.hexColor(), lfs.opacity());
+            indicatorWindow.widget.setLabel(indicator.labelText(), labelFont, labelColor);
+        }
+        else {
+            indicatorWindow.widget.setLabel(null, null, null);
+        }
         indicatorWindow.window.setWindowOpacity(indicator.opacity());
         indicatorWindow.window.show();
     }

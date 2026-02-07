@@ -2,9 +2,9 @@ package mousemaster;
 
 import java.time.Duration;
 
-public record HintMeshStyle(FontStyle fontStyle,
+public record HintMeshStyle(HintFontStyle fontStyle,
                             boolean prefixInBackground,
-                            FontStyle prefixFontStyle,
+                            HintFontStyle prefixFontStyle,
                             String boxHexColor,
                             double boxOpacity,
                             double boxBorderThickness,
@@ -32,9 +32,9 @@ public record HintMeshStyle(FontStyle fontStyle,
     }
 
     public static class HintMeshStyleBuilder {
-        private FontStyle.FontStyleBuilder fontStyle = new FontStyle.FontStyleBuilder();
+        private HintFontStyle.HintFontStyleBuilder fontStyle = new HintFontStyle.HintFontStyleBuilder();
         private Boolean prefixInBackground;
-        private FontStyle.FontStyleBuilder prefixFontStyle = new FontStyle.FontStyleBuilder();
+        private HintFontStyle.HintFontStyleBuilder prefixFontStyle = new HintFontStyle.HintFontStyleBuilder();
         private String boxHexColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
@@ -199,7 +199,7 @@ public record HintMeshStyle(FontStyle fontStyle,
             return this;
         }
 
-        public FontStyle.FontStyleBuilder fontStyle() {
+        public HintFontStyle.HintFontStyleBuilder fontStyle() {
             return fontStyle;
         }
 
@@ -207,7 +207,7 @@ public record HintMeshStyle(FontStyle fontStyle,
             return prefixInBackground;
         }
 
-        public FontStyle.FontStyleBuilder prefixFontStyle() {
+        public HintFontStyle.HintFontStyleBuilder prefixFontStyle() {
             return prefixFontStyle;
         }
 

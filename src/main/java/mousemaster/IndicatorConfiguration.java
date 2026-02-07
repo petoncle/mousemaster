@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.FontStyle.FontStyleBuilder;
 import mousemaster.Shadow.ShadowBuilder;
 
 public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
@@ -13,7 +14,8 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
                                      double opacity,
                                      double outlineThickness, String outlineHexColor,
                                      double outlineOpacity,
-                                     Shadow shadow) {
+                                     Shadow shadow,
+                                     String labelText, FontStyle labelFontStyle) {
     public static class IndicatorConfigurationBuilder {
         private Boolean enabled;
         private Integer size;
@@ -31,6 +33,8 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
         private String outlineHexColor;
         private Double outlineOpacity;
         private ShadowBuilder shadow = new ShadowBuilder();
+        private String labelText;
+        private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -171,6 +175,19 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
             return unhandledKeyPressHexColor;
         }
 
+        public IndicatorConfigurationBuilder labelText(String labelText) {
+            this.labelText = labelText;
+            return this;
+        }
+
+        public String labelText() {
+            return labelText;
+        }
+
+        public FontStyleBuilder labelFontStyle() {
+            return labelFontStyle;
+        }
+
         public IndicatorConfiguration build() {
             return new IndicatorConfiguration(enabled, size, edgeCount, idleHexColor, moveHexColor, wheelHexColor,
                     mousePressHexColor,
@@ -180,7 +197,8 @@ public record IndicatorConfiguration(boolean enabled, int size, int edgeCount,
                     unhandledKeyPressHexColor,
                     opacity,
                     outlineThickness, outlineHexColor, outlineOpacity,
-                    shadow.build());
+                    shadow.build(),
+                    labelText, labelFontStyle.build());
         }
 
     }

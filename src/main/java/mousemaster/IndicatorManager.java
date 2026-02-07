@@ -25,7 +25,9 @@ public class IndicatorManager implements ModeListener {
                                 currentMode.indicator().outlineThickness(),
                                 currentMode.indicator().outlineHexColor(),
                                 currentMode.indicator().outlineOpacity(),
-                                currentMode.indicator().shadow()));
+                                currentMode.indicator().shadow(),
+                                currentMode.indicator().labelText(),
+                                currentMode.indicator().labelFontStyle()));
         }
         else
             WindowsOverlay.hideIndicator();

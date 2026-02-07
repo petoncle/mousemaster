@@ -1,7 +1,7 @@
 package mousemaster;
 
 import io.qt.gui.QFontDatabase;
-import mousemaster.FontStyle.FontStyleBuilder;
+import mousemaster.HintFontStyle.HintFontStyleBuilder;
 import mousemaster.GridArea.GridAreaType;
 import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
@@ -81,18 +81,19 @@ public class ConfigurationParser {
                 .rowKeyOffset(0);
         HintMeshStyleBuilder hintMeshStyleBuilder =
                 hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER);
-        hintMeshStyleBuilder.fontStyle()
+        hintMeshStyleBuilder.fontStyle().fontStyle()
                             .name("Consolas")
                             .weight(FontWeight.NORMAL)
                             .size(18d)
-                            .spacingPercent(0.7d)
                             .hexColor("#FFFFFF")
                             .opacity(1d)
-                            .selectedFontHexColor("#CCCCCC")
                             .outlineThickness(0d)
                             .outlineHexColor("#000000")
                             .outlineOpacity(0.5d);
-        hintMeshStyleBuilder.fontStyle().shadow()
+        hintMeshStyleBuilder.fontStyle()
+                            .spacingPercent(0.7d)
+                            .selectedFontHexColor("#CCCCCC");
+        hintMeshStyleBuilder.fontStyle().fontStyle().shadow()
                             .blurRadius(10d)
                             .hexColor("#FFFFFF")
                             .opacity(1d)
@@ -156,6 +157,21 @@ public class ConfigurationParser {
                  .blurRadius(0d)
                  .hexColor("#000000")
                  .opacity(1.0)
+                 .horizontalOffset(0d)
+                 .verticalOffset(0d);
+        indicator.labelFontStyle()
+                 .name("Arial")
+                 .weight(FontWeight.NORMAL)
+                 .size(8d)
+                 .hexColor("#FFFFFF")
+                 .opacity(1.0)
+                 .outlineThickness(0d)
+                 .outlineHexColor("#000000")
+                 .outlineOpacity(0d);
+        indicator.labelFontStyle().shadow()
+                 .blurRadius(0d)
+                 .hexColor("#000000")
+                 .opacity(0d)
                  .horizontalOffset(0d)
                  .verticalOffset(0d);
         HideCursorBuilder hideCursor =
@@ -805,45 +821,45 @@ public class ConfigurationParser {
                                                                            .layoutRowOriented(Boolean.parseBoolean(propertyValue));
                         case "selection-keys" -> mode.hintMesh.builder.keys(viewportFilter).selectionKeys(parseHintKeys(propertyValue, keyAliases, keyResolver));
                         case "row-key-offset" -> mode.hintMesh.builder.keys(viewportFilter).rowKeyOffset(parseUnsignedInteger(propertyValue, 0, 1_000));
-                        case "font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().weight(FontWeight.of(propertyValue));
-                        case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().size(parseDouble(propertyValue, false, 0, 1000));
+                        case "font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().weight(FontWeight.of(propertyValue));
+                        case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().name(parseFontName(propertyValue, fontAvailability));
+                        case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().size(parseDouble(propertyValue, false, 0, 1000));
                         case "font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().spacingPercent(parseDouble(propertyValue, true, 0, 1));
-                        case "font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().hexColor(checkColorFormat(propertyValue));
+                        case "font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
                         case "selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontHexColor(checkColorFormat(propertyValue));
                         case "selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontHexColor(checkColorFormat(propertyValue));
                         case "focused-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
+                        case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().outlineHexColor(checkColorFormat(propertyValue));
+                        case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
+                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
+                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().shadow().hexColor(checkColorFormat(propertyValue));
+                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().fontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-in-background" ->
                                 mode.hintMesh.builder.style(viewportFilter)
                                                      .prefixInBackground(Boolean.parseBoolean(propertyValue));
-                        case "prefix-font-weight" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().weight(FontWeight.of(propertyValue));
-                        case "prefix-font-name" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "prefix-font-size" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
+                        case "prefix-font-weight" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().weight(FontWeight.of(propertyValue));
+                        case "prefix-font-name" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().name(parseFontName(propertyValue, fontAvailability));
+                        case "prefix-font-size" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().size(parseDouble(propertyValue, false, 0, 1000));
                         case "prefix-font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().spacingPercent(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().hexColor(checkColorFormat(propertyValue));
+                        case "prefix-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontHexColor(checkColorFormat(propertyValue));
                         case "prefix-selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontHexColor(checkColorFormat(propertyValue));
                         case "prefix-focused-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "prefix-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
+                        case "prefix-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().outlineHexColor(checkColorFormat(propertyValue));
+                        case "prefix-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
+                        case "prefix-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().shadow().hexColor(checkColorFormat(propertyValue));
+                        case "prefix-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "prefix-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().fontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "box-color" -> mode.hintMesh.builder.style(viewportFilter).boxHexColor(
                                 checkColorFormat(propertyValue));
                         case "box-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxOpacity(
@@ -1084,6 +1100,20 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, -100, 100));
                         case "shadow-vertical-offset" -> mode.indicator.builder.shadow().verticalOffset(
                                 parseDouble(propertyValue, true, -100, 100));
+                        case "label-text" -> mode.indicator.builder.labelText(propertyValue);
+                        case "label-font-name" -> mode.indicator.builder.labelFontStyle().name(parseFontName(propertyValue, fontAvailability));
+                        case "label-font-size" -> mode.indicator.builder.labelFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
+                        case "label-font-color" -> mode.indicator.builder.labelFontStyle().hexColor(checkColorFormat(propertyValue));
+                        case "label-font-weight" -> mode.indicator.builder.labelFontStyle().weight(FontWeight.of(propertyValue));
+                        case "label-font-opacity" -> mode.indicator.builder.labelFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "label-font-outline-thickness" -> mode.indicator.builder.labelFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
+                        case "label-font-outline-color" -> mode.indicator.builder.labelFontStyle().outlineHexColor(checkColorFormat(propertyValue));
+                        case "label-font-outline-opacity" -> mode.indicator.builder.labelFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
+                        case "label-font-shadow-blur-radius" -> mode.indicator.builder.labelFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
+                        case "label-font-shadow-color" -> mode.indicator.builder.labelFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
+                        case "label-font-shadow-opacity" -> mode.indicator.builder.labelFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "label-font-shadow-horizontal-offset" -> mode.indicator.builder.labelFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
+                        case "label-font-shadow-vertical-offset" -> mode.indicator.builder.labelFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         default -> throw new IllegalArgumentException(
                                 "Invalid indicator property key");
                     }
@@ -2066,6 +2096,9 @@ public class ConfigurationParser {
                     if (builder.outlineOpacity() == null)
                         builder.outlineOpacity(parent.outlineOpacity());
                     builder.shadow().extend(parent.shadow());
+                    if (builder.labelText() == null)
+                        builder.labelText(parent.labelText());
+                    builder.labelFontStyle().extend(parent.labelFontStyle());
                 }
             };
             hideCursor = new Property<>("hide-cursor", modeName, propertyByKey,
@@ -2202,13 +2235,13 @@ public class ConfigurationParser {
                     HintMeshStyleBuilder childStyle = builder.style(filter);
                     ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
                             childStyleByFilter = builder.styleByFilter();
-                    extendFontStyleProperties(HintMeshStyleBuilder::fontStyle, childStyle.fontStyle(), parentStyle.fontStyle(), childStyleByFilter, filter);
+                    extendHintFontStyleProperties(HintMeshStyleBuilder::fontStyle, childStyle.fontStyle(), parentStyle.fontStyle(), childStyleByFilter, filter);
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::prefixInBackground,
                             childStyleByFilter, filter))
                         childStyle.prefixInBackground(
                                 parentStyle.prefixInBackground());
-                    extendFontStyleProperties(HintMeshStyleBuilder::prefixFontStyle, childStyle.prefixFontStyle(), parentStyle.prefixFontStyle(), childStyleByFilter, filter);
+                    extendHintFontStyleProperties(HintMeshStyleBuilder::prefixFontStyle, childStyle.prefixFontStyle(), parentStyle.prefixFontStyle(), childStyleByFilter, filter);
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
                             filter))
@@ -2314,101 +2347,101 @@ public class ConfigurationParser {
                     builder.unselectCombos(parent.unselectCombos());
             }
 
-            private void extendFontStyleProperties(
-                    Function<HintMeshStyleBuilder, FontStyleBuilder> fontStyleBuilderFunction,
-                    FontStyleBuilder childFontStyle, FontStyleBuilder parentFontStyle,
+            private void extendHintFontStyleProperties(
+                    Function<HintMeshStyleBuilder, HintFontStyleBuilder> fontStyleBuilderFunction,
+                    HintFontStyleBuilder childFontStyle, HintFontStyleBuilder parentFontStyle,
                     ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> childStyleByFilter,
                     ViewportFilter filter) {
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::name, childStyleByFilter,
+                        b -> b.fontStyle().name(), childStyleByFilter,
                         filter))
-                    childFontStyle.name(parentFontStyle.name());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().name(parentFontStyle.fontStyle().name());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::weight, childStyleByFilter,
+                        b -> b.fontStyle().weight(), childStyleByFilter,
                         filter))
-                    childFontStyle.weight(parentFontStyle.weight());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().weight(parentFontStyle.fontStyle().weight());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::size, childStyleByFilter,
+                        b -> b.fontStyle().size(), childStyleByFilter,
                         filter))
-                    childFontStyle.size(parentFontStyle.size());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().size(parentFontStyle.fontStyle().size());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::spacingPercent,
+                        HintFontStyleBuilder::spacingPercent,
                         childStyleByFilter, filter))
                     childFontStyle.spacingPercent(parentFontStyle.spacingPercent());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::hexColor, childStyleByFilter,
+                        b -> b.fontStyle().hexColor(), childStyleByFilter,
                         filter))
-                    childFontStyle.hexColor(parentFontStyle.hexColor());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().hexColor(parentFontStyle.fontStyle().hexColor());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::opacity, childStyleByFilter,
+                        b -> b.fontStyle().opacity(), childStyleByFilter,
                         filter))
-                    childFontStyle.opacity(parentFontStyle.opacity());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().opacity(parentFontStyle.fontStyle().opacity());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::selectedFontHexColor, childStyleByFilter,
+                        HintFontStyleBuilder::selectedFontHexColor, childStyleByFilter,
                         filter))
                     childFontStyle.selectedFontHexColor(parentFontStyle.selectedFontHexColor());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::selectedFontOpacity, childStyleByFilter,
+                        HintFontStyleBuilder::selectedFontOpacity, childStyleByFilter,
                         filter))
                     childFontStyle.selectedFontOpacity(parentFontStyle.selectedFontOpacity());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::focusedFontHexColor, childStyleByFilter,
+                        HintFontStyleBuilder::focusedFontHexColor, childStyleByFilter,
                         filter))
                     childFontStyle.focusedFontHexColor(parentFontStyle.focusedFontHexColor());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::focusedFontOpacity, childStyleByFilter,
+                        HintFontStyleBuilder::focusedFontOpacity, childStyleByFilter,
                         filter))
                     childFontStyle.focusedFontOpacity(parentFontStyle.focusedFontOpacity());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::outlineThickness,
+                        b -> b.fontStyle().outlineThickness(),
                         childStyleByFilter, filter))
-                    childFontStyle.outlineThickness(parentFontStyle.outlineThickness());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().outlineThickness(parentFontStyle.fontStyle().outlineThickness());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::outlineHexColor,
+                        b -> b.fontStyle().outlineHexColor(),
                         childStyleByFilter, filter))
-                    childFontStyle.outlineHexColor(parentFontStyle.outlineHexColor());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().outlineHexColor(parentFontStyle.fontStyle().outlineHexColor());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        FontStyleBuilder::outlineOpacity,
+                        b -> b.fontStyle().outlineOpacity(),
                         childStyleByFilter, filter))
-                    childFontStyle.outlineOpacity(parentFontStyle.outlineOpacity());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().outlineOpacity(parentFontStyle.fontStyle().outlineOpacity());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        b -> b.shadow().blurRadius(),
+                        b -> b.fontStyle().shadow().blurRadius(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadow().blurRadius(parentFontStyle.shadow().blurRadius());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().shadow().blurRadius(parentFontStyle.fontStyle().shadow().blurRadius());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        b -> b.shadow().hexColor(),
+                        b -> b.fontStyle().shadow().hexColor(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadow().hexColor(parentFontStyle.shadow().hexColor());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().shadow().hexColor(parentFontStyle.fontStyle().shadow().hexColor());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        b -> b.shadow().opacity(),
+                        b -> b.fontStyle().shadow().opacity(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadow().opacity(parentFontStyle.shadow().opacity());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().shadow().opacity(parentFontStyle.fontStyle().shadow().opacity());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        b -> b.shadow().horizontalOffset(),
+                        b -> b.fontStyle().shadow().horizontalOffset(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadow().horizontalOffset(parentFontStyle.shadow().horizontalOffset());
-                if (!fontStyleChildDoesNotNeedParentProperty(
+                    childFontStyle.fontStyle().shadow().horizontalOffset(parentFontStyle.fontStyle().shadow().horizontalOffset());
+                if (!hintFontStyleChildDoesNotNeedParentProperty(
                         fontStyleBuilderFunction,
-                        b -> b.shadow().verticalOffset(),
+                        b -> b.fontStyle().shadow().verticalOffset(),
                         childStyleByFilter, filter))
-                    childFontStyle.shadow().verticalOffset(parentFontStyle.shadow().verticalOffset());
+                    childFontStyle.fontStyle().shadow().verticalOffset(parentFontStyle.fontStyle().shadow().verticalOffset());
             }
         }
     }
@@ -2442,16 +2475,16 @@ public class ConfigurationParser {
                || filterElement != null && fieldFunction.apply(filterElement) != null;
     }
 
-    private static <B, V> boolean fontStyleChildDoesNotNeedParentProperty(
-            Function<B, FontStyleBuilder> fontStyleBuilderFunction,
-            Function<FontStyleBuilder, Object> fieldFunction,
+    private static <B, V> boolean hintFontStyleChildDoesNotNeedParentProperty(
+            Function<B, HintFontStyleBuilder> fontStyleBuilderFunction,
+            Function<HintFontStyleBuilder, Object> fieldFunction,
             ViewportFilterMapBuilder<B, V> childMapBuilder, ViewportFilter filter) {
         Map<ViewportFilter, B> childMap = childMapBuilder.map();
-        FontStyleBuilder defaultElement =
+        HintFontStyleBuilder defaultElement =
                 childMap.get(AnyViewportFilter.ANY_VIEWPORT_FILTER) == null ? null :
                         fontStyleBuilderFunction.apply(
                                 childMap.get(AnyViewportFilter.ANY_VIEWPORT_FILTER));
-        FontStyleBuilder filterElement = fontStyleBuilderFunction.apply(childMap.get(filter));
+        HintFontStyleBuilder filterElement = fontStyleBuilderFunction.apply(childMap.get(filter));
         return defaultElement != null && fieldFunction.apply(defaultElement) != null
                || filterElement != null && fieldFunction.apply(filterElement) != null;
     }
