@@ -177,8 +177,29 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
 
-    private record IndicatorWindow(WinDef.HWND hwnd, WinUser.WindowProc callback, int transparentColor) {
+    private record IndicatorWindow(WinDef.HWND hwnd, IndicatorWidget widget) {
+    }
 
+    private static class IndicatorWidget extends QWidget {
+
+        private QColor color;
+
+        IndicatorWidget() {
+            setWindowFlags(Qt.WindowType.FramelessWindowHint);
+            setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
+        }
+
+        void setColor(QColor color) {
+            this.color = color;
+            update();
+        }
+
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            QPainter painter = new QPainter(this);
+            painter.fillRect(0, 0, width(), height(), color);
+            painter.end();
+        }
     }
 
     private record GridWindow(WinDef.HWND hwnd, WinUser.WindowProc callback, int transparentColor) {
@@ -268,14 +289,24 @@ public class WindowsOverlay {
     }
 
     private static void createIndicatorWindow() {
-        WinUser.WindowProc callback = WindowsOverlay::indicatorWindowCallback;
-        // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
-        WinDef.HWND hwnd = createWindow("Indicator",
-                bestIndicatorX(),
-                bestIndicatorY(),
-                indicatorSize() + 1,
-                indicatorSize() + 1, callback);
-        indicatorWindow = new IndicatorWindow(hwnd, callback, 0);
+        int x = bestIndicatorX();
+        int y = bestIndicatorY();
+        int size = indicatorSize();
+        IndicatorWidget widget = new IndicatorWidget();
+        widget.move(x, y);
+        widget.resize(size, size);
+        widget.show();
+        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(widget.winId()));
+        long currentStyle =
+                User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
+                               .longValue();
+        long newStyle = currentStyle | User32.WS_EX_TOPMOST |
+                        ExtendedUser32.WS_EX_NOACTIVATE |
+                        ExtendedUser32.WS_EX_TOOLWINDOW |
+                        ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
+        User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
+                new Pointer(newStyle));
+        indicatorWindow = new IndicatorWindow(hwnd, widget);
         updateZoomExcludedWindows();
     }
 
@@ -1717,23 +1748,7 @@ public class WindowsOverlay {
         return hostHwnd;
     }
 
-    private static WinDef.LRESULT indicatorWindowCallback(WinDef.HWND hwnd, int uMsg,
-                                                          WinDef.WPARAM wParam,
-                                                          WinDef.LPARAM lParam) {
-        switch (uMsg) {
-            case WinUser.WM_PAINT:
-                ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                clearWindow(hdc, ps.rcPaint, 0);
-                if (showingIndicator) {
-                    clearWindow(hdc, ps.rcPaint,
-                            hexColorStringToInt(currentIndicator.hexColor()));
-                }
-                ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
-                break;
-        }
-        return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
-    }
+
 
     private static WinDef.LRESULT gridWindowCallback(WinDef.HWND hwnd, int uMsg,
                                                      WinDef.WPARAM wParam,
@@ -1938,14 +1953,13 @@ public class WindowsOverlay {
             createIndicatorWindow();
         }
         else if (indicator.size() != oldIndicator.size()) {
-            User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, bestIndicatorX(),
-                    bestIndicatorY(),
-                    indicatorSize() + 1,
-                    indicatorSize() + 1,
-                    User32.SWP_NOZORDER);
+            int size = indicatorSize();
+            indicatorWindow.widget.move(bestIndicatorX(), bestIndicatorY());
+            indicatorWindow.widget.resize(size, size);
         }
         showingIndicator = true;
-        requestWindowRepaint(indicatorWindow.hwnd);
+        indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
+        indicatorWindow.widget.show();
     }
 
     public static void setZoom(Zoom zoom) {
@@ -2009,14 +2023,9 @@ public class WindowsOverlay {
                     User32.SWP_NOZORDER);
         }
         if (indicatorWindow != null) {
-            User32.INSTANCE.SetWindowPos(indicatorWindow.hwnd(), null, bestIndicatorX(),
-                    bestIndicatorY(),
-                    indicatorSize() + 1,
-                    indicatorSize() + 1,
-                    User32.SWP_NOZORDER);
-            if (showingIndicator) {
-                User32.INSTANCE.InvalidateRect(indicatorWindow.hwnd, null, true);
-            }
+            int size = indicatorSize();
+            indicatorWindow.widget.move(bestIndicatorX(), bestIndicatorY());
+            indicatorWindow.widget.resize(size, size);
         }
         if (showingHintMesh) {
             for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
@@ -2068,7 +2077,7 @@ public class WindowsOverlay {
         if (!showingIndicator)
             return;
         showingIndicator = false;
-        requestWindowRepaint(indicatorWindow.hwnd);
+        indicatorWindow.widget.hide();
     }
 
     public static void setGrid(Grid grid) {
@@ -2216,11 +2225,10 @@ public class WindowsOverlay {
     static void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
             return;
-        User32.INSTANCE.MoveWindow(indicatorWindow.hwnd,
-                bestIndicatorX(mousePosition),
-                bestIndicatorY(mousePosition),
-                indicatorSize(mousePosition) + 1,
-                indicatorSize(mousePosition) + 1, false);
+        int size = indicatorSize(mousePosition);
+        indicatorWindow.widget.move(bestIndicatorX(mousePosition),
+                bestIndicatorY(mousePosition));
+        indicatorWindow.widget.resize(size, size);
     }
 
 }
