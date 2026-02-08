@@ -227,9 +227,20 @@ public class WindowsOverlay {
             update();
         }
 
-        // For a regular polygon, the visible outline width at edge midpoints is
-        // (T-I)/2*cos + (T+I)/2 rather than T (where I=inwardOverlap=1, cos=cos(pi/n)).
-        // Solving for T gives a slightly larger thickness for fewer edges.
+        /**
+         * Padding needed around the fill polygon to fit the outline's miter tips.
+         * The pen center path is at fillRadius + (corrected - 1) / 2 from center
+         * (1 = inward overlap). For a regular n-gon, offsetting edges outward by
+         * penWidth/2 gives a circumradius of R + penWidth / (2*cos(pi/n)),
+         * where penWidth = corrected + 1 (includes inward overlap).
+         * The result is the distance from a fill vertex to the miter tip.
+         */
+        private static double miterPadding(double visualThickness, int edgeCount) {
+            double cos = Math.cos(Math.PI / edgeCount);
+            double corrected = (2 * visualThickness - (1 - cos)) / (1 + cos);
+            return (corrected - 1.0) / 2.0 + (corrected + 1.0) / (2.0 * cos);
+        }
+
         private double correctedOutlineThickness(double visualThickness) {
             double cos = Math.cos(Math.PI / edgeCount);
             return (2 * visualThickness - (1 - cos)) / (1 + cos);
@@ -237,7 +248,7 @@ public class WindowsOverlay {
 
         double maxOutlineThickness() {
             double scaled = Math.max(firstOutlineThickness, secondOutlineThickness) * outlineScale;
-            return correctedOutlineThickness(scaled);
+            return miterPadding(scaled, edgeCount);
         }
 
 
@@ -391,22 +402,20 @@ public class WindowsOverlay {
             double centerX = width() / 2.0 + layout.offsetX;
             double centerY = height() / 2.0 + layout.offsetY;
             double fillRadius = layout.radius;
-            // Extend fill slightly under the outline to prevent antialiasing seam.
-            double extendedFillRadius = maxOutlineThickness() > 0 ? fillRadius + 0.5 : fillRadius;
-            QPainterPath fillPath = polygonPath(centerX, centerY, extendedFillRadius, edgeCount);
+            QPainterPath fillPath = polygonPath(centerX, centerY, fillRadius, edgeCount);
             lastFillPath = fillPath;
             double scaledFirst = firstOutlineThickness * outlineScale;
             double scaledSecond = secondOutlineThickness * outlineScale;
             double correctedFirst = correctedOutlineThickness(scaledFirst);
             double correctedSecond = correctedOutlineThickness(scaledSecond);
-            // Both outlines are drawn from fillRadius. The visible outer ring at
-            // edge midpoints = scaledFirst - scaledSecond, exact for all edge counts.
-            // Draw order: outer outline, fill (covers outer's inner bleed), inner outline.
+            // Draw outer outline first (miter tips extend beyond fill polygon).
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedFirst, firstOutlineColor, firstOutlineFillPercent, 1.0);
+            // Draw fill on top (covers inward overlap of outer outline).
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
+            // Draw inner outline on top of fill.
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedSecond, secondOutlineColor, secondOutlineFillPercent, 1.0);
             painter.end();
@@ -591,9 +600,10 @@ public class WindowsOverlay {
     }
 
     private static int indicatorOutlinePadding(double scale) {
-        return (int) Math.ceil(Math.max(
+        double scaled = Math.max(
                 currentIndicator.firstOutline().thickness(),
-                currentIndicator.secondOutline().thickness()) * scale * zoomPercent());
+                currentIndicator.secondOutline().thickness()) * scale * zoomPercent();
+        return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, currentIndicator.edgeCount()));
     }
 
     private static int indicatorShadowPadding(double scale) {
