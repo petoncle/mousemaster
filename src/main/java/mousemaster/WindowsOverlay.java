@@ -389,10 +389,18 @@ public class WindowsOverlay {
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
+            double scaledFirst = firstOutlineThickness * outlineScale;
+            double scaledSecond = secondOutlineThickness * outlineScale;
+            // Draw outer outline only in the ring beyond the inner outline,
+            // so no outer-outline antialiased pixels bleed near the fill.
+            double outerOnlyThickness = scaledFirst - scaledSecond;
+            if (outerOnlyThickness > 0) {
+                drawOutline(painter, centerX, centerY,
+                        fillRadius + scaledSecond, outerOnlyThickness,
+                        firstOutlineColor, firstOutlineFillPercent, 1.0);
+            }
             drawOutline(painter, centerX, centerY, fillRadius,
-                    firstOutlineThickness * outlineScale, firstOutlineColor, firstOutlineFillPercent, 0);
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    secondOutlineThickness * outlineScale, secondOutlineColor, secondOutlineFillPercent, 1.0);
+                    scaledSecond, secondOutlineColor, secondOutlineFillPercent, 1.0);
             painter.end();
         }
     }
