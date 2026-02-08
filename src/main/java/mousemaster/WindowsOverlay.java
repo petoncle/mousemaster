@@ -227,8 +227,17 @@ public class WindowsOverlay {
             update();
         }
 
+        // For a regular polygon, the visible outline width at edge midpoints is
+        // (T-I)/2*cos + (T+I)/2 rather than T (where I=inwardOverlap=1, cos=cos(pi/n)).
+        // Solving for T gives a slightly larger thickness for fewer edges.
+        private double correctedOutlineThickness(double visualThickness) {
+            double cos = Math.cos(Math.PI / edgeCount);
+            return (2 * visualThickness - (1 - cos)) / (1 + cos);
+        }
+
         double maxOutlineThickness() {
-            return Math.max(firstOutlineThickness, secondOutlineThickness) * outlineScale;
+            double scaled = Math.max(firstOutlineThickness, secondOutlineThickness) * outlineScale;
+            return correctedOutlineThickness(scaled);
         }
 
 
@@ -386,21 +395,20 @@ public class WindowsOverlay {
             double extendedFillRadius = maxOutlineThickness() > 0 ? fillRadius + 0.5 : fillRadius;
             QPainterPath fillPath = polygonPath(centerX, centerY, extendedFillRadius, edgeCount);
             lastFillPath = fillPath;
+            double scaledFirst = firstOutlineThickness * outlineScale;
+            double scaledSecond = secondOutlineThickness * outlineScale;
+            double correctedFirst = correctedOutlineThickness(scaledFirst);
+            double correctedSecond = correctedOutlineThickness(scaledSecond);
+            // Both outlines are drawn from fillRadius. The visible outer ring at
+            // edge midpoints = scaledFirst - scaledSecond, exact for all edge counts.
+            // Draw order: outer outline, fill (covers outer's inner bleed), inner outline.
+            drawOutline(painter, centerX, centerY, fillRadius,
+                    correctedFirst, firstOutlineColor, firstOutlineFillPercent, 1.0);
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
-            double scaledFirst = firstOutlineThickness * outlineScale;
-            double scaledSecond = secondOutlineThickness * outlineScale;
-            // Draw outer outline only in the ring beyond the inner outline,
-            // so no outer-outline antialiased pixels bleed near the fill.
-            double outerOnlyThickness = scaledFirst - scaledSecond;
-            if (outerOnlyThickness > 0) {
-                drawOutline(painter, centerX, centerY,
-                        fillRadius + scaledSecond, outerOnlyThickness,
-                        firstOutlineColor, firstOutlineFillPercent, 1.0);
-            }
             drawOutline(painter, centerX, centerY, fillRadius,
-                    scaledSecond, secondOutlineColor, secondOutlineFillPercent, 1.0);
+                    correctedSecond, secondOutlineColor, secondOutlineFillPercent, 1.0);
             painter.end();
         }
     }
