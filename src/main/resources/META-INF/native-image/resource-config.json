@@ -21,11 +21,19 @@
   }, {
     "pattern":"\\Qapplication.properties\\E"
   }, {
-    "pattern":"\\Qkeyboard-layouts.json\\E"
+    "pattern":"\\Qbin/QtJambi6.dll\\E"
+  }, {
+    "pattern":"\\Qbin/QtJambiCore6.dll\\E"
+  }, {
+    "pattern":"\\Qbin/QtJambiGui6.dll\\E"
+  }, {
+    "pattern":"\\Qbin/QtJambiWidgets6.dll\\E"
   }, {
     "pattern":"\\Qcom/sun/jna/win32-x86-64/jnidispatch.dll\\E"
   }, {
     "pattern":"\\Qio/qt/internal/LibraryUtility.class\\E"
+  }, {
+    "pattern":"\\Qkeyboard-layouts.json\\E"
   }, {
     "pattern":"\\Qlogback-test.scmo\\E"
   }, {
@@ -34,14 +42,6 @@
     "pattern":"\\Qlogback.scmo\\E"
   }, {
     "pattern":"\\Qlogback.xml\\E"
-  }, {
-    "pattern":"\\Qbin/QtJambi6.dll\\E"
-  }, {
-    "pattern":"\\Qbin/QtJambiCore6.dll\\E"
-  }, {
-    "pattern":"\\Qbin/QtJambiGui6.dll\\E"
-  }, {
-    "pattern":"\\Qbin/QtJambiWidgets6.dll\\E"
   }, {
     "pattern":"\\Qqt-msvcp/msvcp140.dll\\E"
   }, {

@@ -189,7 +189,7 @@
 {
   "name":"io.qt.core.QObject",
   "fields":[{"name":"destroyed"}, {"name":"objectNameChanged"}],
-  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"childEvent","parameterTypes":["io.qt.core.QChildEvent"] }, {"name":"connectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"customEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"disconnectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"eventFilter","parameterTypes":["io.qt.core.QObject","io.qt.core.QEvent"] }, {"name":"timerEvent","parameterTypes":["io.qt.core.QTimerEvent"] }]
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"childEvent","parameterTypes":["io.qt.core.QChildEvent"] }, {"name":"connectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"customEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"disconnectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"event","parameterTypes":["io.qt.core.QEvent"] }, {"name":"eventFilter","parameterTypes":["io.qt.core.QObject","io.qt.core.QEvent"] }, {"name":"timerEvent","parameterTypes":["io.qt.core.QTimerEvent"] }]
 },
 {
   "name":"io.qt.core.QObject$QDeclarativeConstructor"
@@ -206,7 +206,7 @@
 {
   "name":"io.qt.core.QPointF"
 },
-  {
+{
   "name":"io.qt.core.QRect",
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
@@ -227,10 +227,6 @@
 },
 {
   "name":"io.qt.core.QString",
-  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
-},
-{
-  "name":"io.qt.gui.QTransform",
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
@@ -363,11 +359,11 @@
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"beginPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }, {"name":"endPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }]
 },
 {
-  "name":"io.qt.gui.QPen",
-  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+  "name":"io.qt.gui.QPdfWriter"
 },
 {
-  "name":"io.qt.gui.QPdfWriter"
+  "name":"io.qt.gui.QPen",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.gui.QPicture"
@@ -399,6 +395,10 @@
 },
 {
   "name":"io.qt.gui.QTextObjectInterface"
+},
+{
+  "name":"io.qt.gui.QTransform",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.gui.nativeinterface.QWGLContext"
@@ -500,12 +500,12 @@
 {
   "name":"io.qt.widgets.QGraphicsDropShadowEffect",
   "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}],
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"boundingRectFor","parameterTypes":["io.qt.core.QRectF"] }, {"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
   "name":"io.qt.widgets.QGraphicsEffect",
   "fields":[{"name":"enabledChanged"}],
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"sourceChanged","parameterTypes":["io.qt.widgets.QGraphicsEffect$ChangeFlags"] }]
 },
 {
   "name":"io.qt.widgets.QGraphicsItem"
@@ -705,15 +705,15 @@
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorLabelWidget",
-  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorShadowEffect",
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorWidget",
-  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+  "methods":[{"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
 },
 {
   "name":"mousemaster.qt.TransparentWindow",
