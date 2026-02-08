@@ -486,24 +486,14 @@ public class WindowsOverlay {
 
     }
 
-    private static int indicatorSize() {
-        return indicatorSize(WindowsMouse.findMousePosition());
+    private static int indicatorSize(double screenScale) {
+        return scaledPixels(currentIndicator.size(), screenScale);
     }
 
-    private static int indicatorSize(WinDef.POINT mousePosition) {
-        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-        return scaledPixels(currentIndicator.size(), activeScreen.scale());
-    }
-
-    private static int bestIndicatorX() {
-        return bestIndicatorX(WindowsMouse.findMousePosition());
-    }
-
-    private static int bestIndicatorX(WinDef.POINT mousePosition) {
-        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+    private static int bestIndicatorX(WinDef.POINT mousePosition, Screen activeScreen, int indicatorSize) {
         MouseSize mouseSize = WindowsMouse.mouseSize();
         return (int) Math.round(zoomedX(bestIndicatorX(mousePosition.x, mouseSize.width(),
-                activeScreen.rectangle(), indicatorSize(mousePosition))));
+                activeScreen.rectangle(), indicatorSize)));
     }
 
     private static double zoomedX(double x) {
@@ -518,15 +508,10 @@ public class WindowsOverlay {
         return currentZoom.zoomedY(y);
     }
 
-    private static int bestIndicatorY() {
-        return bestIndicatorY(WindowsMouse.findMousePosition());
-    }
-
-    private static int bestIndicatorY(WinDef.POINT mousePosition) {
-        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+    private static int bestIndicatorY(WinDef.POINT mousePosition, Screen activeScreen, int indicatorSize) {
         MouseSize mouseSize = WindowsMouse.mouseSize();
         return (int) Math.round(zoomedY(bestIndicatorY(mousePosition.y, mouseSize.height(),
-                activeScreen.rectangle(), indicatorSize(mousePosition))));
+                activeScreen.rectangle(), indicatorSize)));
     }
 
     private static int bestIndicatorX(int mouseX, int cursorWidth, Rectangle screenRectangle,
@@ -576,15 +561,15 @@ public class WindowsOverlay {
     private static void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         double screenScale = activeScreen.scale();
-        int size = indicatorSize(mousePosition);
+        int size = indicatorSize(screenScale);
         int outlinePadding = indicatorOutlinePadding(screenScale);
         indicatorWindow.widget.setOutlineScale(screenScale * zoomPercent());
         int shadowPadding = indicatorShadowPadding(screenScale * zoomPercent());
         int totalPadding = outlinePadding + shadowPadding;
         int widgetSize = size + 2 * outlinePadding;
         int windowSize = size + 2 * totalPadding;
-        indicatorWindow.window.move(bestIndicatorX(mousePosition) - totalPadding,
-                bestIndicatorY(mousePosition) - totalPadding);
+        indicatorWindow.window.move(bestIndicatorX(mousePosition, activeScreen, size) - totalPadding,
+                bestIndicatorY(mousePosition, activeScreen, size) - totalPadding);
         indicatorWindow.window.resize(windowSize, windowSize);
         indicatorWindow.widget.move(shadowPadding, shadowPadding);
         indicatorWindow.widget.resize(widgetSize, widgetSize);
