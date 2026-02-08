@@ -211,6 +211,10 @@
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
+  "name":"io.qt.core.QRectF",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
   "name":"io.qt.core.QRunnable"
 },
 {
@@ -223,6 +227,10 @@
 },
 {
   "name":"io.qt.core.QString",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.gui.QTransform",
   "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
@@ -352,7 +360,7 @@
 },
 {
   "name":"io.qt.gui.QPainter",
-  "methods":[{"name":"beginPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }, {"name":"endPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }]
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }, {"name":"beginPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }, {"name":"endPaint","parameterTypes":["io.qt.gui.QPaintDevice"] }]
 },
 {
   "name":"io.qt.gui.QPen",
@@ -491,11 +499,13 @@
 },
 {
   "name":"io.qt.widgets.QGraphicsDropShadowEffect",
-  "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}]
+  "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}],
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
   "name":"io.qt.widgets.QGraphicsEffect",
-  "fields":[{"name":"enabledChanged"}]
+  "fields":[{"name":"enabledChanged"}],
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
   "name":"io.qt.widgets.QGraphicsItem"
@@ -696,6 +706,10 @@
 {
   "name":"mousemaster.WindowsOverlay$IndicatorLabelWidget",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$IndicatorShadowEffect",
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorWidget",

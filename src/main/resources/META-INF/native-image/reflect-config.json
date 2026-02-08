@@ -450,6 +450,10 @@
   "fields":[{"name":"availableGeometryChanged"}, {"name":"geometryChanged"}, {"name":"logicalDotsPerInchChanged"}, {"name":"orientationChanged"}, {"name":"physicalDotsPerInchChanged"}, {"name":"physicalSizeChanged"}, {"name":"primaryOrientationChanged"}, {"name":"refreshRateChanged"}, {"name":"virtualGeometryChanged"}]
 },
 {
+  "name":"io.qt.gui.QPainter",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
   "name":"io.qt.gui.QtJambi_LibraryUtilities",
   "methods":[{"name":"initialize","parameterTypes":[] }]
 },
@@ -494,11 +498,13 @@
 },
 {
   "name":"io.qt.widgets.QGraphicsDropShadowEffect",
-  "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}]
+  "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}],
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
   "name":"io.qt.widgets.QGraphicsEffect",
-  "fields":[{"name":"enabledChanged"}]
+  "fields":[{"name":"enabledChanged"}],
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
   "name":"io.qt.widgets.QLabel",
@@ -768,6 +774,14 @@
   "queryAllDeclaredMethods":true,
   "queryAllDeclaredConstructors":true,
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.WindowsOverlay$IndicatorShadowEffect",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorWidget",

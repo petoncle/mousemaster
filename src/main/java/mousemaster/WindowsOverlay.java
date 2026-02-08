@@ -193,6 +193,8 @@ public class WindowsOverlay {
         private QColor secondOutlineColor;
         private double secondOutlineFillPercent = 1.0;
         private double outlineScale = 1.0;
+        private IndicatorShadowEffect customGraphicsEffect;
+        QPainterPath lastFillPath;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -239,8 +241,8 @@ public class WindowsOverlay {
             return startAngle;
         }
 
-        private static QPainterPath polygonPath(double centerX, double centerY,
-                                                double radius, int edgeCount) {
+        static QPainterPath polygonPath(double centerX, double centerY,
+                                       double radius, int edgeCount) {
             QPainterPath path = new QPainterPath();
             double startAngle = polygonStartAngle(edgeCount);
             for (int i = 0; i < edgeCount; i++) {
@@ -383,6 +385,7 @@ public class WindowsOverlay {
             // Extend fill slightly under the outline to prevent antialiasing seam.
             double extendedFillRadius = maxOutlineThickness() > 0 ? fillRadius + 0.5 : fillRadius;
             QPainterPath fillPath = polygonPath(centerX, centerY, extendedFillRadius, edgeCount);
+            lastFillPath = fillPath;
             painter.setPen(Qt.PenStyle.NoPen);
             painter.setBrush(new QBrush(color));
             painter.drawPath(fillPath);
@@ -391,6 +394,38 @@ public class WindowsOverlay {
             drawOutline(painter, centerX, centerY, fillRadius,
                     secondOutlineThickness * outlineScale, secondOutlineColor, secondOutlineFillPercent, 1.0);
             painter.end();
+        }
+    }
+
+    public static class IndicatorShadowEffect extends QGraphicsDropShadowEffect {
+
+        private final IndicatorWidget widget;
+        private QColor fillColor;
+
+        IndicatorShadowEffect(IndicatorWidget widget) {
+            this.widget = widget;
+        }
+
+        void setFillColor(QColor fillColor) {
+            this.fillColor = fillColor;
+        }
+
+        @Override
+        protected void draw(QPainter painter) {
+            super.draw(painter);
+            if (fillColor == null || fillColor.alpha() >= 255 || widget.lastFillPath == null)
+                return;
+            // After super.draw(), the shadow + opaque source have been composited.
+            // The painter's transform is restored, so widget-coordinate paths
+            // align with where the source was drawn.
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+            painter.setPen(Qt.PenStyle.NoPen);
+            painter.setBrush(new QBrush(new QColor(0, 0, 0)));
+            painter.drawPath(widget.lastFillPath);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            painter.setBrush(new QBrush(fillColor));
+            painter.drawPath(widget.lastFillPath);
         }
     }
 
@@ -442,7 +477,6 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setFont(labelFont);
             QFontMetrics fm = new QFontMetrics(labelFont);
-            // Compute the same polygon center as IndicatorWidget.
             double availableSize = Math.min(width(), height()) - 2 * indicatorOutlinePadding;
             IndicatorWidget.PolygonLayout polygonLayout =
                     IndicatorWidget.polygonLayout(availableSize, edgeCount);
@@ -573,7 +607,7 @@ public class WindowsOverlay {
         indicatorWindow.window.resize(windowSize, windowSize);
         indicatorWindow.widget.move(shadowPadding, shadowPadding);
         indicatorWindow.widget.resize(widgetSize, widgetSize);
-        indicatorWindow.labelWidget.move(0, 0);
+        indicatorWindow.labelWidget.move(shadowPadding, shadowPadding);
         indicatorWindow.labelWidget.resize(widgetSize, widgetSize);
         indicatorWindow.labelWidget.setIndicatorOutlinePadding(outlinePadding);
         indicatorWindow.labelWidget.setLabelFontScale(zoomPercent());
@@ -583,14 +617,25 @@ public class WindowsOverlay {
         Shadow shadow = currentIndicator.shadow();
         QColor shadowColor = qColor(shadow.hexColor(), shadow.opacity());
         if (shadowColor.alpha() != 0 && shadow.blurRadius() > 0) {
-            QGraphicsDropShadowEffect effect = new QGraphicsDropShadowEffect();
+            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget);
             effect.setBlurRadius(shadow.blurRadius() * scale);
             effect.setOffset(shadow.horizontalOffset() * scale,
                     shadow.verticalOffset() * scale);
             effect.setColor(shadowColor);
+            effect.setFillColor(qColor(currentIndicator.hexColor(), currentIndicator.opacity()));
+            indicatorWindow.widget.customGraphicsEffect = effect;
+            indicatorWindow.widget.setGraphicsEffect(effect);
+        }
+        else if (currentIndicator.opacity() < 1.0) {
+            // No shadow, but still need fill opacity: use effect with zero shadow.
+            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget);
+            effect.setBlurRadius(0);
+            effect.setFillColor(qColor(currentIndicator.hexColor(), currentIndicator.opacity()));
+            indicatorWindow.widget.customGraphicsEffect = effect;
             indicatorWindow.widget.setGraphicsEffect(effect);
         }
         else {
+            indicatorWindow.widget.customGraphicsEffect = null;
             indicatorWindow.widget.setGraphicsEffect(null);
         }
     }
@@ -608,7 +653,9 @@ public class WindowsOverlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
-        IndicatorLabelWidget labelWidget = new IndicatorLabelWidget(widget);
+        // Label widget is a child of window (not widget) so it renders on top
+        // of the shadow effect and can clear/redraw the fill area.
+        IndicatorLabelWidget labelWidget = new IndicatorLabelWidget(window);
         indicatorWindow = new IndicatorWindow(hwnd, window, widget, labelWidget);
         moveAndResizeIndicatorWindow();
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
@@ -2266,7 +2313,8 @@ public class WindowsOverlay {
                     indicator.edgeCount() != oldIndicator.edgeCount() ||
                     indicator.firstOutline().thickness() != oldIndicator.firstOutline().thickness() ||
                     indicator.secondOutline().thickness() != oldIndicator.secondOutline().thickness() ||
-                    !indicator.shadow().equals(oldIndicator.shadow());
+                    !indicator.shadow().equals(oldIndicator.shadow()) ||
+                    indicator.opacity() != oldIndicator.opacity();
             if (sizeOrShadowChanged) {
                 moveAndResizeIndicatorWindow();
                 WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
@@ -2277,6 +2325,10 @@ public class WindowsOverlay {
         showingIndicator = true;
         indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
+        // Update fill color on the shadow effect (handles fill opacity).
+        if (indicatorWindow.widget.customGraphicsEffect != null) {
+            indicatorWindow.widget.customGraphicsEffect.setFillColor(qColor(indicator.hexColor(), indicator.opacity()));
+        }
         IndicatorOutline first = indicator.firstOutline();
         IndicatorOutline second = indicator.secondOutline();
         indicatorWindow.widget.setOutlines(
@@ -2314,7 +2366,6 @@ public class WindowsOverlay {
             indicatorWindow.labelWidget.setGraphicsEffect(null);
             indicatorWindow.labelWidget.hide();
         }
-        indicatorWindow.window.setWindowOpacity(indicator.opacity());
         indicatorWindow.window.show();
     }
 

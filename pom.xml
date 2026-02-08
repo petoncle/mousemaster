@@ -108,7 +108,7 @@
                                 <enabled>true</enabled>
                                 <defaultMode>direct</defaultMode>
                                 <modes>
-                                    <direct>config-output-dir=src/main/resources/META-INF/native-image</direct>
+                                    <direct>config-merge-dir=src/main/resources/META-INF/native-image</direct>
                                 </modes>
                             </agent>
                         </configuration>
