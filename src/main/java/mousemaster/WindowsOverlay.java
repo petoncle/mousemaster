@@ -194,7 +194,6 @@ public class WindowsOverlay {
         private double secondOutlineFillPercent = 1.0;
         private double outlineScale = 1.0;
         private IndicatorShadowEffect customGraphicsEffect;
-        QPainterPath lastFillPath;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -362,6 +361,14 @@ public class WindowsOverlay {
             return path;
         }
 
+        private void clearOutline(QPainter painter, double centerX, double centerY,
+                                  double fillRadius, double thickness, double fillPercent) {
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+            drawOutline(painter, centerX, centerY, fillRadius,
+                    thickness, new QColor(0, 0, 0), fillPercent, 1.0);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+        }
+
         private void drawOutline(QPainter painter, double centerX, double centerY,
                                  double fillRadius, double thickness, QColor color,
                                  double fillPercent, double inwardOverlap) {
@@ -392,32 +399,60 @@ public class WindowsOverlay {
             }
         }
 
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            QPainter painter = new QPainter(this);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            int outlinePadding = (int) Math.ceil(maxOutlineThickness());
+        void drawContent(QPainter painter, QColor fillColor,
+                         QColor firstOutlineColor, QColor secondOutlineColor) {
+            double maxMiterPad = maxOutlineThickness();
+            int outlinePadding = (int) Math.ceil(maxMiterPad);
             double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
             PolygonLayout layout = polygonLayout(availableSize, edgeCount);
             double centerX = width() / 2.0 + layout.offsetX;
             double centerY = height() / 2.0 + layout.offsetY;
             double fillRadius = layout.radius;
             QPainterPath fillPath = polygonPath(centerX, centerY, fillRadius, edgeCount);
-            lastFillPath = fillPath;
             double scaledFirst = firstOutlineThickness * outlineScale;
             double scaledSecond = secondOutlineThickness * outlineScale;
             double correctedFirst = correctedOutlineThickness(scaledFirst);
             double correctedSecond = correctedOutlineThickness(scaledSecond);
+            // If any part is transparent, clear the entire indicator area first
+            // so the shadow (composited by the effect) doesn't show through.
+            if (indicatorHasTransparency()) {
+                QPainterPath outerBoundary = polygonPath(centerX, centerY,
+                        fillRadius + maxMiterPad, edgeCount);
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+                painter.setPen(Qt.PenStyle.NoPen);
+                painter.setBrush(new QBrush(new QColor(0, 0, 0)));
+                painter.drawPath(outerBoundary);
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            }
             // Draw outer outline first (miter tips extend beyond fill polygon).
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedFirst, firstOutlineColor, firstOutlineFillPercent, 1.0);
             // Draw fill on top (covers inward overlap of outer outline).
+            if (currentIndicator.opacity() < 1.0) {
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+                painter.setPen(Qt.PenStyle.NoPen);
+                painter.setBrush(new QBrush(new QColor(0, 0, 0)));
+                painter.drawPath(fillPath);
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            }
             painter.setPen(Qt.PenStyle.NoPen);
-            painter.setBrush(new QBrush(color));
+            painter.setBrush(new QBrush(fillColor));
             painter.drawPath(fillPath);
             // Draw inner outline on top of fill.
+            // Clear its area first if transparent, so outer outline doesn't show through.
+            if (currentIndicator.secondOutline().opacity() < 1.0) {
+                clearOutline(painter, centerX, centerY, fillRadius,
+                        correctedSecond, secondOutlineFillPercent);
+            }
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedSecond, secondOutlineColor, secondOutlineFillPercent, 1.0);
+        }
+
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            QPainter painter = new QPainter(this);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            drawContent(painter, color, firstOutlineColor, secondOutlineColor);
             painter.end();
         }
     }
@@ -426,31 +461,29 @@ public class WindowsOverlay {
 
         private final IndicatorWidget widget;
         private QColor fillColor;
+        private QColor firstOutlineColor;
+        private QColor secondOutlineColor;
 
         IndicatorShadowEffect(IndicatorWidget widget) {
             this.widget = widget;
         }
 
-        void setFillColor(QColor fillColor) {
+        void setColors(QColor fillColor, QColor firstOutlineColor,
+                       QColor secondOutlineColor) {
             this.fillColor = fillColor;
+            this.firstOutlineColor = firstOutlineColor;
+            this.secondOutlineColor = secondOutlineColor;
         }
 
         @Override
         protected void draw(QPainter painter) {
             super.draw(painter);
-            if (fillColor == null || fillColor.alpha() >= 255 || widget.lastFillPath == null)
+            if (!indicatorHasTransparency())
                 return;
-            // After super.draw(), the shadow + opaque source have been composited.
-            // The painter's transform is restored, so widget-coordinate paths
-            // align with where the source was drawn.
+            // Redraw with real colors; drawContent clears the indicator area
+            // so the shadow doesn't show through transparent parts.
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-            painter.setPen(Qt.PenStyle.NoPen);
-            painter.setBrush(new QBrush(new QColor(0, 0, 0)));
-            painter.drawPath(widget.lastFillPath);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-            painter.setBrush(new QBrush(fillColor));
-            painter.drawPath(widget.lastFillPath);
+            widget.drawContent(painter, fillColor, firstOutlineColor, secondOutlineColor);
         }
     }
 
@@ -639,6 +672,24 @@ public class WindowsOverlay {
         indicatorWindow.labelWidget.setLabelFontScale(zoomPercent());
     }
 
+    private static boolean indicatorHasTransparency() {
+        if (currentIndicator.opacity() < 1.0)
+            return true;
+        IndicatorOutline first = currentIndicator.firstOutline();
+        IndicatorOutline second = currentIndicator.secondOutline();
+        return (first.thickness() > 0 && first.opacity() < 1.0) ||
+               (second.thickness() > 0 && second.opacity() < 1.0);
+    }
+
+    private static void setIndicatorEffectColors(IndicatorShadowEffect effect) {
+        IndicatorOutline first = currentIndicator.firstOutline();
+        IndicatorOutline second = currentIndicator.secondOutline();
+        effect.setColors(
+                qColor(currentIndicator.hexColor(), currentIndicator.opacity()),
+                qColor(first.hexColor(), first.opacity()),
+                qColor(second.hexColor(), second.opacity()));
+    }
+
     private static void applyIndicatorShadowEffect(double scale) {
         Shadow shadow = currentIndicator.shadow();
         QColor shadowColor = qColor(shadow.hexColor(), shadow.opacity());
@@ -648,15 +699,14 @@ public class WindowsOverlay {
             effect.setOffset(shadow.horizontalOffset() * scale,
                     shadow.verticalOffset() * scale);
             effect.setColor(shadowColor);
-            effect.setFillColor(qColor(currentIndicator.hexColor(), currentIndicator.opacity()));
+            setIndicatorEffectColors(effect);
             indicatorWindow.widget.customGraphicsEffect = effect;
             indicatorWindow.widget.setGraphicsEffect(effect);
         }
-        else if (currentIndicator.opacity() < 1.0) {
-            // No shadow, but still need fill opacity: use effect with zero shadow.
+        else if (indicatorHasTransparency()) {
             IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget);
             effect.setBlurRadius(0);
-            effect.setFillColor(qColor(currentIndicator.hexColor(), currentIndicator.opacity()));
+            setIndicatorEffectColors(effect);
             indicatorWindow.widget.customGraphicsEffect = effect;
             indicatorWindow.widget.setGraphicsEffect(effect);
         }
@@ -2340,7 +2390,9 @@ public class WindowsOverlay {
                     indicator.firstOutline().thickness() != oldIndicator.firstOutline().thickness() ||
                     indicator.secondOutline().thickness() != oldIndicator.secondOutline().thickness() ||
                     !indicator.shadow().equals(oldIndicator.shadow()) ||
-                    indicator.opacity() != oldIndicator.opacity();
+                    indicator.opacity() != oldIndicator.opacity() ||
+                    indicator.firstOutline().opacity() != oldIndicator.firstOutline().opacity() ||
+                    indicator.secondOutline().opacity() != oldIndicator.secondOutline().opacity();
             if (sizeOrShadowChanged) {
                 moveAndResizeIndicatorWindow();
                 WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
@@ -2351,15 +2403,15 @@ public class WindowsOverlay {
         showingIndicator = true;
         indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
         indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
-        // Update fill color on the shadow effect (handles fill opacity).
-        if (indicatorWindow.widget.customGraphicsEffect != null) {
-            indicatorWindow.widget.customGraphicsEffect.setFillColor(qColor(indicator.hexColor(), indicator.opacity()));
-        }
         IndicatorOutline first = indicator.firstOutline();
         IndicatorOutline second = indicator.secondOutline();
+        // Widget draws opaque; the shadow effect redraws with real opacity.
         indicatorWindow.widget.setOutlines(
-                first.thickness(), qColor(first.hexColor(), first.opacity()), first.fillPercent(),
-                second.thickness(), qColor(second.hexColor(), second.opacity()), second.fillPercent());
+                first.thickness(), new QColor(first.hexColor()), first.fillPercent(),
+                second.thickness(), new QColor(second.hexColor()), second.fillPercent());
+        if (indicatorWindow.widget.customGraphicsEffect != null) {
+            setIndicatorEffectColors(indicatorWindow.widget.customGraphicsEffect);
+        }
         if (indicator.labelEnabled() && indicator.labelText() != null && indicator.labelFontStyle() != null) {
             FontStyle labelFontStyle = indicator.labelFontStyle();
             QFont labelFont = qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
