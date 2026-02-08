@@ -1,10 +1,7 @@
 package mousemaster;
 
 import com.sun.jna.Native;
-import com.sun.jna.platform.win32.Kernel32;
-import com.sun.jna.platform.win32.User32;
-import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinNT;
+import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +45,11 @@ public class ActiveAppFinder {
                     windowRect);
             return new App(lastExecutableName);
         }
+        // IsIconic can return false for some minimized/off-screen windows.
+        // Use MonitorFromRect to find out if a window intersects with a monitor.
         boolean isMinimized = ExtendedUser32.INSTANCE.IsIconic(hwnd) ||
-                           // IsIconic can return false while the window is still at minimized-like coordinates (around -32000).
-                           windowRect.left < -30_000 || windowRect.top < -30_000;
+                              User32.INSTANCE.MonitorFromRect(windowRect,
+                                      WinUser.MONITOR_DEFAULTTONULL) == null;
         if (isMinimized) {
             logger.debug(
                     "Ignoring active app change from " + lastExecutableName + " to " +
