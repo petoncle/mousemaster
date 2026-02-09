@@ -15,11 +15,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class WindowsUiAutomation {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(WindowsUiAutomation.class);
+    private static final Logger logger = LoggerFactory.getLogger(WindowsUiAutomation.class);
 
     private static final Guid.CLSID CLSID_CUIAutomation =
             new Guid.CLSID("FF48DBA4-60EF-4201-AA87-54103EEF594E");
@@ -65,8 +65,8 @@ public class WindowsUiAutomation {
                 t.setDaemon(true);
                 return t;
             });
-    private static volatile long lastPrefetchedHwnd;
-    private static volatile boolean prefetchInProgress;
+    private static volatile Future<?> prefetchFuture;
+    private static volatile long hwndBeingPrefetched;
 
     private static String eventName(int event) {
         return switch (event) {
@@ -260,50 +260,73 @@ public class WindowsUiAutomation {
         if (hwnd == null)
             return;
         long hwndKey = Pointer.nativeValue(hwnd.getPointer());
-        if (hwndKey == lastPrefetchedHwnd)
-            return;
-        lastPrefetchedHwnd = hwndKey;
         if (uiElementsByHwndCache.containsKey(hwndKey))
             return;
-        if (prefetchInProgress)
+        if (hwndBeingPrefetched == hwndKey)
             return;
-        prefetchInProgress = true;
-        prefetchExecutor.submit(() -> {
+        if (prefetchFuture != null)
+            prefetchFuture.cancel(false);
+        prefetchFuture = prefetchExecutor.submit(() -> {
             try {
+                hwndBeingPrefetched = hwndKey;
                 backgroundQueryUiElements(hwndKey);
             }
             catch (Exception e) {
                 logger.warn("Background UIA prefetch failed", e);
             }
             finally {
-                prefetchInProgress = false;
+                hwndBeingPrefetched = -1;
             }
         });
     }
 
     private static volatile boolean backgroundComInitialized;
 
-    private static List<UiElement> queryUiElements(HWND hwnd) {
+    // Queries UI elements from the given window and all visible windows on the same thread
+    // (e.g. popup menus are separate windows on the same thread).
+    private static List<UiElement> queryUiElementsOfWindowAndChildren(HWND foregroundHwnd) {
+        int threadId = User32.INSTANCE.GetWindowThreadProcessId(foregroundHwnd, null);
+        List<HWND> windows = new ArrayList<>();
+        windows.add(foregroundHwnd);
+        long foregroundKey = Pointer.nativeValue(foregroundHwnd.getPointer());
+        ExtendedUser32.INSTANCE.EnumThreadWindows(threadId, (hwnd, data) -> {
+            if (Pointer.nativeValue(hwnd.getPointer()) != foregroundKey &&
+                User32.INSTANCE.IsWindowVisible(hwnd))
+                windows.add(hwnd);
+            return true;
+        }, null);
+        List<UiElement> uiElements = new ArrayList<>();
+        long before = System.nanoTime();
+        for (HWND window : windows) {
+            queryUiElementsOfWindow(window, uiElements);
+        }
+        logger.debug("queryUiElementsOfWindowAndChildren for hwnd {}: {}ms ({} windows, {} elements)",
+                foregroundKey, (System.nanoTime() - before) / 1e6,
+                windows.size(), uiElements.size());
+        return uiElements;
+    }
+
+    private static void queryUiElementsOfWindow(HWND hwnd,
+                                                List<UiElement> uiElements) {
         WinDef.RECT windowRect = new WinDef.RECT();
         if (!User32.INSTANCE.GetWindowRect(hwnd, windowRect))
-            return null;
+            return;
         UIAutomation uia = new UIAutomation(automation);
         UIAutomationElement root = null;
         UIAutomationElementArray array = null;
         try {
             root = uia.elementFromHandle(hwnd);
             if (root == null)
-                return null;
+                return;
             long beforeFindAllBuildCache = System.nanoTime();
             array = root.findAllBuildCache(TreeScope_Descendants,
                     cachedCondition, cachedCacheRequest);
             long afterFindAllBuildCache = System.nanoTime();
             if (array == null)
-                return null;
+                return;
             int length = array.getLength();
-            logger.debug("FindAllBuildCache: {}ms ({} elements)",
-                    (afterFindAllBuildCache - beforeFindAllBuildCache) / 1e6, length);
-            List<UiElement> uiElements = new ArrayList<>();
+            logger.trace("FindAllBuildCache for hwnd {}: {}ms ({} elements)", Pointer.nativeValue(hwnd.getPointer()),
+                    (afterFindAllBuildCache  - beforeFindAllBuildCache) / 1e6, length);
             for (int i = 0; i < length; i++) {
                 UIAutomationElement element = array.getElement(i);
                 if (element == null)
@@ -332,9 +355,6 @@ public class WindowsUiAutomation {
                     element.Release();
                 }
             }
-            logger.debug("UI element iteration: {} unique elements",
-                    uiElements.size());
-            return uiElements;
         }
         finally {
             if (array != null)
@@ -351,26 +371,10 @@ public class WindowsUiAutomation {
             backgroundComInitialized = true;
         }
         HWND hwnd = new HWND(new Pointer(hwndKey));
-        List<UiElement> uiElements = queryUiElements(hwnd);
-        if (uiElements == null)
-            return;
+        List<UiElement> uiElements = queryUiElementsOfWindowAndChildren(hwnd);
         uiElementsByHwndCache.putIfAbsent(hwndKey, uiElements);
-        logger.debug("Background prefetch: {} elements for hwnd={}",
-                uiElements.size(), hwndKey);
-    }
-
-    private static List<HWND> findThreadWindows(HWND foregroundHwnd) {
-        int threadId = User32.INSTANCE.GetWindowThreadProcessId(foregroundHwnd, null);
-        List<HWND> windows = new ArrayList<>();
-        windows.add(foregroundHwnd);
-        long foregroundKey = Pointer.nativeValue(foregroundHwnd.getPointer());
-        ExtendedUser32.INSTANCE.EnumThreadWindows(threadId, (hwnd, data) -> {
-            if (Pointer.nativeValue(hwnd.getPointer()) != foregroundKey &&
-                User32.INSTANCE.IsWindowVisible(hwnd))
-                windows.add(hwnd);
-            return true;
-        }, null);
-        return windows;
+        logger.debug("Background prefetch for hwnd={}: {} elements",
+                hwndKey, uiElements.size());
     }
 
     static List<UiElement> findInteractiveUiElements() {
@@ -381,19 +385,23 @@ public class WindowsUiAutomation {
         if (cachedCondition == null || cachedCacheRequest == null)
             return List.of();
         long hwndKey = Pointer.nativeValue(hwnd.getPointer());
+        // If background prefetch is in progress for this hwnd, wait for it.
+        if (hwndBeingPrefetched == hwndKey && prefetchFuture != null) {
+            try {
+                logger.debug("Waiting for background prefetch of hwnd={}", hwndKey);
+                prefetchFuture.get();
+            }
+            catch (Exception e) {
+                logger.warn("Background prefetch wait failed", e);
+            }
+        }
         List<UiElement> cached = uiElementsByHwndCache.get(hwndKey);
         if (cached != null) {
             logger.debug("Using cached UI elements ({} elements)", cached.size());
             createWinEventHook(hwnd);
             return cached;
         }
-        List<UiElement> uiElements = new ArrayList<>();
-        // VLC menu is a popup shown in a separate child window (same thread).
-        for (HWND window : findThreadWindows(hwnd)) {
-            List<UiElement> elements = queryUiElements(window);
-            if (elements != null)
-                uiElements.addAll(elements);
-        }
+        List<UiElement> uiElements = queryUiElementsOfWindowAndChildren(hwnd);
         uiElementsByHwndCache.put(hwndKey, uiElements);
         createWinEventHook(hwnd);
         return uiElements;
