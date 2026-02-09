@@ -33,10 +33,10 @@ public record PressKeyEventProcessingSet(
                                 .anyMatch(PressKeyEventProcessing::isPartOfComboSequence);
     }
 
-    public boolean isPartOfCompletedComboSequenceMustBeEaten() {
+    public boolean isPartOfCompletedComboSequenceAndMustBeEaten() {
         return processingByCombo.values().stream()
                                 .anyMatch(
-                                        PressKeyEventProcessing::isPartOfCompletedComboSequenceMustBeEaten);
+                                        PressKeyEventProcessing::isPartOfCompletedComboSequenceAndMustBeEaten);
     }
 
     public boolean isPartOfCompletedComboSequence() {

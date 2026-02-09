@@ -49,10 +49,6 @@ public enum PressKeyEventProcessing {
         return this == PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN;
     }
 
-    public boolean isPartOfCompletedComboSequenceMustBeEaten() {
-        return this == PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN;
-    }
-
     public boolean isPartOfCompletedComboSequence() {
         return this == PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN ||
                this == PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_NOT_BE_EATEN ||
@@ -72,6 +68,10 @@ public enum PressKeyEventProcessing {
         return isPartOfComboSequence() ||
                isPartOfPressedComboPreconditionOnly() ||
                isPartOfUnpressedComboPreconditionOnly();
+    }
+
+    public boolean isPartOfCompletedComboSequenceAndMustBeEaten() {
+        return isPartOfCompletedComboSequence() && mustBeEaten();
     }
 
     public boolean isComboPreparationBreaker() {

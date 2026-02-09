@@ -228,7 +228,7 @@ public class KeyboardManager {
                            Set<Key> keysToRegurgitate, Key eatenKey) {
         // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
         if (processingSet.mustBeEaten() &&
-            !processingSet.isPartOfCompletedComboSequenceMustBeEaten()) {
+            !processingSet.isPartOfCompletedComboSequenceAndMustBeEaten()) {
             keysToRegurgitate.add(eatenKey);
             // Change the key's processing to must not be eaten
             // so that it cannot be regurgitated a second time.
