@@ -218,7 +218,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 }
             }
         }
-        else if (type instanceof HintMeshType.HintUi) {
+        else if (type instanceof HintMeshType.UiHintMesh) {
             Rectangle activeWindowRectangle =
                     WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
             Point center = activeWindowRectangle.center();
@@ -333,7 +333,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1);
         }
-        else if (type instanceof HintMeshType.HintUi) {
+        else if (type instanceof HintMeshType.UiHintMesh) {
             List<WindowsUiAutomation.UiElement> uiElements =
                     WindowsUiAutomation.findInteractiveElements();
             if (uiElements.isEmpty()) {

@@ -21,7 +21,7 @@ public sealed interface HintMeshType {
 
     }
 
-    record HintUi() implements HintMeshType {
+    record UiHintMesh() implements HintMeshType {
 
     }
 
@@ -55,7 +55,7 @@ public sealed interface HintMeshType {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
                     this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
                 }
-                case HintUi hintUi -> {
+                case UiHintMesh uiHintMesh -> {
                     this.type = HintMeshTypeType.UI;
                     this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
                 }
@@ -88,7 +88,7 @@ public sealed interface HintMeshType {
             return switch (type) {
                 case GRID -> new HintGrid(gridArea.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
                 case POSITION_HISTORY -> new HintPositionHistory();
-                case UI -> new HintUi();
+                case UI -> new UiHintMesh();
             };
         }
     }
