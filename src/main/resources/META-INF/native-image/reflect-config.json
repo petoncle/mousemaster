@@ -389,6 +389,12 @@
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
 },
 {
+  "name":"com.sun.jna.platform.win32.WinUser$WNDENUMPROC",
+  "queryAllDeclaredMethods":true,
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"callback","parameterTypes":["com.sun.jna.platform.win32.WinDef$HWND","com.sun.jna.Pointer"] }]
+},
+{
   "name":"com.sun.jna.platform.win32.WinUser$WindowProc",
   "queryAllDeclaredMethods":true,
   "queryAllPublicMethods":true,

@@ -127,4 +127,6 @@ public interface ExtendedUser32 extends User32 {
 
     HWND GetAncestor(HWND hwnd, int gaFlags);
 
+    boolean EnumThreadWindows(int dwThreadId, WinUser.WNDENUMPROC lpfn, Pointer lParam);
+
 }

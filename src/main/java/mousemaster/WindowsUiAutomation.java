@@ -359,6 +359,20 @@ public class WindowsUiAutomation {
                 uiElements.size(), hwndKey);
     }
 
+    private static List<HWND> findThreadWindows(HWND foregroundHwnd) {
+        int threadId = User32.INSTANCE.GetWindowThreadProcessId(foregroundHwnd, null);
+        List<HWND> windows = new ArrayList<>();
+        windows.add(foregroundHwnd);
+        long foregroundKey = Pointer.nativeValue(foregroundHwnd.getPointer());
+        ExtendedUser32.INSTANCE.EnumThreadWindows(threadId, (hwnd, data) -> {
+            if (Pointer.nativeValue(hwnd.getPointer()) != foregroundKey &&
+                User32.INSTANCE.IsWindowVisible(hwnd))
+                windows.add(hwnd);
+            return true;
+        }, null);
+        return windows;
+    }
+
     static List<UiElement> findInteractiveUiElements() {
         ensureInitialized();
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
@@ -373,9 +387,13 @@ public class WindowsUiAutomation {
             createWinEventHook(hwnd);
             return cached;
         }
-        List<UiElement> uiElements = queryUiElements(hwnd);
-        if (uiElements == null)
-            return List.of();
+        List<UiElement> uiElements = new ArrayList<>();
+        // VLC menu is a popup shown in a separate child window (same thread).
+        for (HWND window : findThreadWindows(hwnd)) {
+            List<UiElement> elements = queryUiElements(window);
+            if (elements != null)
+                uiElements.addAll(elements);
+        }
         uiElementsByHwndCache.put(hwndKey, uiElements);
         createWinEventHook(hwnd);
         return uiElements;
