@@ -58,6 +58,7 @@ public class WindowsUiAutomation {
     // WinEvent hooks for cache invalidation (one per process)
     private static final int EVENT_OBJECT_CREATE = 0x8000;
     private static final int EVENT_OBJECT_STATECHANGE = 0x800A;
+    private static final int EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
     private static final int WINEVENT_OUTOFCONTEXT = 0x0000;
     private static final int GA_ROOTOWNER = 3;
 
@@ -281,7 +282,7 @@ public class WindowsUiAutomation {
             };
         }
         Pointer hook = ExtendedUser32.INSTANCE.SetWinEventHook(
-                EVENT_OBJECT_CREATE, EVENT_OBJECT_STATECHANGE,
+                EVENT_OBJECT_CREATE, EVENT_OBJECT_LOCATIONCHANGE,
                 Pointer.NULL, winEventProc, pid, 0, WINEVENT_OUTOFCONTEXT);
         if (hook != null) {
             winEventHookByPid.put(pid, hook);
@@ -451,19 +452,10 @@ public class WindowsUiAutomation {
         if (cachedCondition == null || cachedCacheRequest == null)
             return List.of();
         long hwndKey = Pointer.nativeValue(hwnd.getPointer());
-        // Fresh cache hit.
-        CachedWindow cached = windowCache.get(hwndKey);
-        if (cached != null && !cached.invalidatedByWinEvent()) {
-            logger.debug("Using cached UI elements ({} elements)",
-                    cached.elements().size());
-            createWinEventHook(hwnd);
-            return cached.elements();
-        }
-        // Ensure a background query is running for this hwnd.
-        if (hwndBeingQueried != hwndKey || prefetchFuture == null)
-            submitBackgroundQuery(hwndKey);
+        // Always re-query: some apps (e.g. UWP) don't fire WinEvents on scroll,
+        // so the cache may be stale even without invalidation.
+        submitBackgroundQuery(hwndKey);
         Future<?> future = prefetchFuture;
-        // Wait up to 100ms for the background query to complete.
         try {
             future.get();
         } catch (InterruptedException | ExecutionException e) {
