@@ -813,28 +813,10 @@ public class WindowsOverlay {
             List<Hint> hintsInScreen = entry.getValue();
             HintMeshWindow existingWindow = hintMeshWindows.get(screen);
             if (existingWindow == null) {
-//                for (QScreen qScreen : QGuiApplication.screens()) {
-//                    QRect availableGeometry = qScreen.availableGeometry();
-//                    logger.info("QScreen " + availableGeometry.x() + " " + availableGeometry.y() + " " + availableGeometry.width() + " " + availableGeometry.height());
-//                }
-                TransparentWindow window = new TransparentWindow();
-                WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
-                long currentStyle =
-                        User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
-                                       .longValue();
-                long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
-                                ExtendedUser32.WS_EX_TOOLWINDOW |
-                                ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
-                User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
-                        new Pointer(newStyle));
-                window.move(screen.rectangle().x(), screen.rectangle().y());
-                window.resize(screen.rectangle().width(), screen.rectangle().height());
                 HintMeshWindow hintMeshWindow =
-                        new HintMeshWindow(hwnd, window, hintsInScreen, zoom,
-                                new ArrayList<>(), new ArrayList<>(), new AtomicReference<>());
+                        createHintMeshWindow(screen, hintsInScreen, zoom);
                 hintMeshWindows.put(screen, hintMeshWindow);
                 createdAtLeastOneWindow = true;
-//                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + window.x() + " " + window.y() + " " + window.width() + " " + window.height());
                 setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, false,
                         null);
             }
@@ -1567,28 +1549,31 @@ public class WindowsOverlay {
         return hintBoxGeometries;
     }
 
+    private static HintMeshWindow createHintMeshWindow(Screen screen, List<Hint> hints,
+                                                       Zoom zoom) {
+        TransparentWindow window = new TransparentWindow();
+        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
+        long currentStyle =
+                User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
+                               .longValue();
+        long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
+                        ExtendedUser32.WS_EX_TOOLWINDOW |
+                        ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
+        User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
+                new Pointer(newStyle));
+        window.move(screen.rectangle().x(), screen.rectangle().y());
+        window.resize(screen.rectangle().width(), screen.rectangle().height());
+        return new HintMeshWindow(hwnd, window, hints, zoom,
+                new ArrayList<>(), new ArrayList<>(), new AtomicReference<>());
+    }
+
     static void preWarmHintMeshWindows() {
         long before = System.nanoTime();
         Set<Screen> screens = WindowsScreen.findScreens();
         for (Screen screen : screens) {
             if (hintMeshWindows.containsKey(screen))
                 continue;
-            TransparentWindow window = new TransparentWindow();
-            WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
-            long currentStyle =
-                    User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
-                                   .longValue();
-            long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
-                            ExtendedUser32.WS_EX_TOOLWINDOW |
-                            ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
-            User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
-                    new Pointer(newStyle));
-            window.move(screen.rectangle().x(), screen.rectangle().y());
-            window.resize(screen.rectangle().width(), screen.rectangle().height());
-            HintMeshWindow hintMeshWindow =
-                    new HintMeshWindow(hwnd, window, new ArrayList<>(), null,
-                            new ArrayList<>(), new ArrayList<>(), new AtomicReference<>());
-            hintMeshWindows.put(screen, hintMeshWindow);
+            hintMeshWindows.put(screen, createHintMeshWindow(screen, List.of(), null));
         }
         logger.info("Pre-warmed hint mesh windows for " + screens.size() +
                 " screens in " + (System.nanoTime() - before) / 1e6 + "ms");
