@@ -29,6 +29,9 @@ public class WindowsUiAutomation {
     private static final int UIA_IsEnabledPropertyId = 30010;
     private static final int UIA_IsKeyboardFocusablePropertyId = 30009;
     private static final int UIA_IsInvokePatternAvailablePropertyId = 30031;
+    private static final int UIA_IsExpandCollapsePatternAvailablePropertyId = 30028;
+    private static final int UIA_IsTogglePatternAvailablePropertyId = 30041;
+    private static final int UIA_IsSelectionItemPatternAvailablePropertyId = 30036;
 
     private static final int UIA_ButtonControlTypeId = 50000;
 
@@ -152,13 +155,16 @@ public class WindowsUiAutomation {
 
     /**
      * IsOffscreen=false AND IsEnabled=true
-     * AND (IsKeyboardFocusable OR IsInvokePatternAvailable OR ControlType=Button)
+     * AND (IsKeyboardFocusable OR IsInvokePatternAvailable OR ControlType=Button
+     *      OR IsExpandCollapsePatternAvailable OR IsTogglePatternAvailable
+     *      OR IsSelectionItemPatternAvailable)
      */
     private static UIAutomationCondition buildUiAutomationCondition(UIAutomation uia) {
         Memory boolTrue = createBoolVariantTrue();
         Memory boolFalse = createBoolVariantFalse();
         UIAutomationCondition focusable = null, invokable = null,
-                button = null, onscreen = null, enabled = null;
+                button = null, expandCollapse = null, toggle = null,
+                selectionItem = null, onscreen = null, enabled = null;
         try {
             focusable = uia.createPropertyCondition(
                     UIA_IsKeyboardFocusablePropertyId, boolTrue);
@@ -167,12 +173,20 @@ public class WindowsUiAutomation {
             button = uia.createPropertyCondition(
                     UIA_ControlTypePropertyId,
                     createIntVariant(UIA_ButtonControlTypeId));
+            expandCollapse = uia.createPropertyCondition(
+                    UIA_IsExpandCollapsePatternAvailablePropertyId, boolTrue);
+            toggle = uia.createPropertyCondition(
+                    UIA_IsTogglePatternAvailablePropertyId, boolTrue);
+            selectionItem = uia.createPropertyCondition(
+                    UIA_IsSelectionItemPatternAvailablePropertyId, boolTrue);
             onscreen = uia.createPropertyCondition(
                     UIA_IsOffscreenPropertyId, boolFalse);
             enabled = uia.createPropertyCondition(
                     UIA_IsEnabledPropertyId, boolTrue);
             if (focusable == null || invokable == null ||
-                button == null || onscreen == null || enabled == null)
+                button == null || expandCollapse == null ||
+                toggle == null || selectionItem == null ||
+                onscreen == null || enabled == null)
                 return null;
             UIAutomationCondition or1 =
                     uia.createOrCondition(focusable, invokable);
@@ -183,9 +197,24 @@ public class WindowsUiAutomation {
             or1.Release();
             if (or2 == null)
                 return null;
-            UIAutomationCondition and1 =
-                    uia.createAndCondition(or2, onscreen);
+            UIAutomationCondition or3 =
+                    uia.createOrCondition(or2, expandCollapse);
             or2.Release();
+            if (or3 == null)
+                return null;
+            UIAutomationCondition or4 =
+                    uia.createOrCondition(or3, toggle);
+            or3.Release();
+            if (or4 == null)
+                return null;
+            UIAutomationCondition or5 =
+                    uia.createOrCondition(or4, selectionItem);
+            or4.Release();
+            if (or5 == null)
+                return null;
+            UIAutomationCondition and1 =
+                    uia.createAndCondition(or5, onscreen);
+            or5.Release();
             if (and1 == null)
                 return null;
             UIAutomationCondition result =
@@ -199,6 +228,12 @@ public class WindowsUiAutomation {
                 invokable.Release();
             if (button != null)
                 button.Release();
+            if (expandCollapse != null)
+                expandCollapse.Release();
+            if (toggle != null)
+                toggle.Release();
+            if (selectionItem != null)
+                selectionItem.Release();
             if (onscreen != null)
                 onscreen.Release();
             if (enabled != null)
