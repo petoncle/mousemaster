@@ -66,6 +66,7 @@ public class WindowsPlatform implements Platform {
             WindowsOverlay.setTopmost();
         }
         WindowsOverlay.update(delta);
+        WindowsUiAutomation.eagerlyFindUiElements();
     }
 
     @Override

@@ -10,9 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class WindowsUiAutomation {
 
@@ -45,7 +47,7 @@ public class WindowsUiAutomation {
     private static UIAutomationCondition cachedCondition;
     private static UIAutomationCacheRequest cachedCacheRequest;
 
-    private static final Map<Long, List<UiElement>> uiElementsByHwndCache = new HashMap<>();
+    private static final Map<Long, List<UiElement>> uiElementsByHwndCache = new ConcurrentHashMap<>();
 
     // WinEvent hooks for cache invalidation (one per process)
     private static final int EVENT_OBJECT_CREATE = 0x8000;
@@ -55,7 +57,16 @@ public class WindowsUiAutomation {
 
     // Single shared callback (prevent GC), one hook handle per process
     private static ExtendedUser32.WinEventProc winEventProc;
-    private static final Map<Integer, Pointer> winEventHookByPid = new HashMap<>();
+    private static final Map<Integer, Pointer> winEventHookByPid = new ConcurrentHashMap<>();
+
+    private static final ExecutorService prefetchExecutor =
+            Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "uia-prefetch");
+                t.setDaemon(true);
+                return t;
+            });
+    private static volatile long lastPrefetchedHwnd;
+    private static volatile boolean prefetchInProgress;
 
     private static String eventName(int event) {
         return switch (event) {
@@ -237,42 +248,61 @@ public class WindowsUiAutomation {
         }
     }
 
-    static List<UiElement> findInteractiveUiElements() {
-        long before = System.nanoTime();
-        ensureInitialized();
+    /**
+     * Called from the main loop. If the foreground window changed and its
+     * elements are not cached, starts a background UIA query so results
+     * are ready by the time the user triggers hint mode.
+     */
+    static void eagerlyFindUiElements() {
+        if (automation == null)
+            return; // Not initialized yet (no UI hint mode triggered yet)
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         if (hwnd == null)
-            return List.of();
-        if (cachedCondition == null || cachedCacheRequest == null)
-            return List.of();
+            return;
         long hwndKey = Pointer.nativeValue(hwnd.getPointer());
-        List<UiElement> cached = uiElementsByHwndCache.get(hwndKey);
-        if (cached != null) {
-            logger.debug("Using cached UI elements ({} elements)", cached.size());
-            return cached;
-        }
+        if (hwndKey == lastPrefetchedHwnd)
+            return;
+        lastPrefetchedHwnd = hwndKey;
+        if (uiElementsByHwndCache.containsKey(hwndKey))
+            return;
+        if (prefetchInProgress)
+            return;
+        prefetchInProgress = true;
+        prefetchExecutor.submit(() -> {
+            try {
+                backgroundQueryUiElements(hwndKey);
+            }
+            catch (Exception e) {
+                logger.warn("Background UIA prefetch failed", e);
+            }
+            finally {
+                prefetchInProgress = false;
+            }
+        });
+    }
+
+    private static volatile boolean backgroundComInitialized;
+
+    private static List<UiElement> queryUiElements(HWND hwnd) {
         WinDef.RECT windowRect = new WinDef.RECT();
         if (!User32.INSTANCE.GetWindowRect(hwnd, windowRect))
-            return List.of();
+            return null;
         UIAutomation uia = new UIAutomation(automation);
         UIAutomationElement root = null;
         UIAutomationElementArray array = null;
         try {
             root = uia.elementFromHandle(hwnd);
             if (root == null)
-                return List.of();
+                return null;
             long beforeFindAllBuildCache = System.nanoTime();
             array = root.findAllBuildCache(TreeScope_Descendants,
                     cachedCondition, cachedCacheRequest);
             long afterFindAllBuildCache = System.nanoTime();
-            if (array == null) {
-                logger.debug("FindAllBuildCache returned null");
-                return List.of();
-            }
+            if (array == null)
+                return null;
             int length = array.getLength();
             logger.debug("FindAllBuildCache: {}ms ({} elements)",
-                    (afterFindAllBuildCache - beforeFindAllBuildCache) / 1e6,
-                    length);
+                    (afterFindAllBuildCache - beforeFindAllBuildCache) / 1e6, length);
             List<UiElement> uiElements = new ArrayList<>();
             for (int i = 0; i < length; i++) {
                 UIAutomationElement element = array.getElement(i);
@@ -293,7 +323,8 @@ public class WindowsUiAutomation {
                         centerY < windowRect.top ||
                         centerY > windowRect.bottom)
                         continue;
-                    if (isTooCloseToExistingUiElements(uiElements, centerX, centerY))
+                    if (isTooCloseToExistingUiElements(uiElements,
+                            centerX, centerY))
                         continue;
                     uiElements.add(new UiElement(centerX, centerY));
                 }
@@ -301,13 +332,8 @@ public class WindowsUiAutomation {
                     element.Release();
                 }
             }
-            long afterUiElementIteration = System.nanoTime();
-            logger.debug("UI element iteration: {}ms ({} unique elements)",
-                    (afterUiElementIteration - afterFindAllBuildCache) / 1e6, uiElements.size());
-            logger.debug("findInteractiveElements: {}ms",
-                    (afterUiElementIteration - before) / 1e6);
-            uiElementsByHwndCache.put(hwndKey, uiElements);
-            createWinEventHook(hwnd);
+            logger.debug("UI element iteration: {} unique elements",
+                    uiElements.size());
             return uiElements;
         }
         finally {
@@ -316,6 +342,43 @@ public class WindowsUiAutomation {
             if (root != null)
                 root.Release();
         }
+    }
+
+    private static void backgroundQueryUiElements(long hwndKey) {
+        if (!backgroundComInitialized) {
+            Ole32.INSTANCE.CoInitializeEx(Pointer.NULL,
+                    Ole32.COINIT_MULTITHREADED);
+            backgroundComInitialized = true;
+        }
+        HWND hwnd = new HWND(new Pointer(hwndKey));
+        List<UiElement> uiElements = queryUiElements(hwnd);
+        if (uiElements == null)
+            return;
+        uiElementsByHwndCache.putIfAbsent(hwndKey, uiElements);
+        logger.debug("Background prefetch: {} elements for hwnd={}",
+                uiElements.size(), hwndKey);
+    }
+
+    static List<UiElement> findInteractiveUiElements() {
+        ensureInitialized();
+        HWND hwnd = User32.INSTANCE.GetForegroundWindow();
+        if (hwnd == null)
+            return List.of();
+        if (cachedCondition == null || cachedCacheRequest == null)
+            return List.of();
+        long hwndKey = Pointer.nativeValue(hwnd.getPointer());
+        List<UiElement> cached = uiElementsByHwndCache.get(hwndKey);
+        if (cached != null) {
+            logger.debug("Using cached UI elements ({} elements)", cached.size());
+            createWinEventHook(hwnd);
+            return cached;
+        }
+        List<UiElement> uiElements = queryUiElements(hwnd);
+        if (uiElements == null)
+            return List.of();
+        uiElementsByHwndCache.put(hwndKey, uiElements);
+        createWinEventHook(hwnd);
+        return uiElements;
     }
 
     // COM wrappers
