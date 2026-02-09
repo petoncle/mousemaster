@@ -227,17 +227,35 @@ public class WindowsOverlay {
         }
 
         /**
-         * Padding needed around the fill polygon to fit the outline's miter tips.
+         * Radial distance from a fill vertex to the outline's miter tip,
+         * measured along the circumradius direction.
          * The pen center path is at fillRadius + (corrected - 1) / 2 from center
          * (1 = inward overlap). For a regular n-gon, offsetting edges outward by
          * penWidth/2 gives a circumradius of R + penWidth / (2*cos(pi/n)),
          * where penWidth = corrected + 1 (includes inward overlap).
-         * The result is the distance from a fill vertex to the miter tip.
          */
-        private static double miterPadding(double visualThickness, int edgeCount) {
+        private static double radialMiterPadding(double visualThickness, int edgeCount) {
             double cos = Math.cos(Math.PI / edgeCount);
             double corrected = (2 * visualThickness - (1 - cos)) / (1 + cos);
             return (corrected - 1.0) / 2.0 + (corrected + 1.0) / (2.0 * cos);
+        }
+
+        /**
+         * Axis-aligned padding needed around the fill's bounding box to fit
+         * the outline's miter tips within a rectangular widget.
+         * Projects the radial miter extension onto the x/y axes for each vertex
+         * and returns the maximum.
+         */
+        static double miterPadding(double visualThickness, int edgeCount) {
+            double radial = radialMiterPadding(visualThickness, edgeCount);
+            double startAngle = polygonStartAngle(edgeCount);
+            double maxProjection = 0;
+            for (int i = 0; i < edgeCount; i++) {
+                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
+                maxProjection = Math.max(maxProjection,
+                        Math.max(Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle))));
+            }
+            return radial * maxProjection;
         }
 
         private double correctedOutlineThickness(double visualThickness) {
@@ -401,8 +419,8 @@ public class WindowsOverlay {
 
         void drawContent(QPainter painter, QColor fillColor,
                          QColor firstOutlineColor, QColor secondOutlineColor) {
-            double maxMiterPad = maxOutlineThickness();
-            int outlinePadding = (int) Math.ceil(maxMiterPad);
+            double maxOutlinePadding = maxOutlineThickness();
+            int outlinePadding = (int) Math.ceil(maxOutlinePadding);
             double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
             PolygonLayout layout = polygonLayout(availableSize, edgeCount);
             double centerX = width() / 2.0 + layout.offsetX;
@@ -416,8 +434,12 @@ public class WindowsOverlay {
             // If any part is transparent, clear the entire indicator area first
             // so the shadow (composited by the effect) doesn't show through.
             if (indicatorHasTransparency()) {
+                // Use radialMiterPadding (not miterPadding) so the clearing
+                // polygon reaches every miter tip.
+                double maxScaled = Math.max(scaledFirst, scaledSecond);
+                double radialPad = radialMiterPadding(maxScaled, edgeCount);
                 QPainterPath outerBoundary = polygonPath(centerX, centerY,
-                        fillRadius + maxMiterPad, edgeCount);
+                        fillRadius + radialPad, edgeCount);
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
                 painter.setPen(Qt.PenStyle.NoPen);
                 painter.setBrush(new QBrush(new QColor(0, 0, 0)));
@@ -661,8 +683,9 @@ public class WindowsOverlay {
         int totalPadding = outlinePadding + shadowPadding;
         int widgetSize = size + 2 * outlinePadding;
         int windowSize = size + 2 * totalPadding;
-        indicatorWindow.window.move(bestIndicatorX(mousePosition, activeScreen, size) - totalPadding,
-                bestIndicatorY(mousePosition, activeScreen, size) - totalPadding);
+        int visualSize = size + 2 * outlinePadding;
+        indicatorWindow.window.move(bestIndicatorX(mousePosition, activeScreen, visualSize) - shadowPadding,
+                bestIndicatorY(mousePosition, activeScreen, visualSize) - shadowPadding);
         indicatorWindow.window.resize(windowSize, windowSize);
         indicatorWindow.widget.move(shadowPadding, shadowPadding);
         indicatorWindow.widget.resize(widgetSize, widgetSize);
