@@ -844,7 +844,7 @@ public class WindowsOverlay {
                         hintsInScreen, zoom, existingWindow.animations(),
                         existingWindow.animationCallbacks(),
                         existingWindow.lastHintMeshKeyReference());
-                boolean zoomChanged = !existingWindow.zoom.equals(zoom);
+                boolean zoomChanged = existingWindow.zoom == null || !existingWindow.zoom.equals(zoom);
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
 //                logger.debug("Showing hints " + hintsInScreen.size() + " for " + screen + ", window = " + existingWindow.window.x() + " " + existingWindow.window.y() + " " + existingWindow.window.width() + " " + existingWindow.window.height());
@@ -1565,6 +1565,34 @@ public class WindowsOverlay {
             hintLabelLayer.setGraphicsEffect(hintShadow);
         }
         return hintBoxGeometries;
+    }
+
+    static void preWarmHintMeshWindows() {
+        long before = System.nanoTime();
+        Set<Screen> screens = WindowsScreen.findScreens();
+        for (Screen screen : screens) {
+            if (hintMeshWindows.containsKey(screen))
+                continue;
+            TransparentWindow window = new TransparentWindow();
+            WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
+            long currentStyle =
+                    User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
+                                   .longValue();
+            long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
+                            ExtendedUser32.WS_EX_TOOLWINDOW |
+                            ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
+            User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
+                    new Pointer(newStyle));
+            window.move(screen.rectangle().x(), screen.rectangle().y());
+            window.resize(screen.rectangle().width(), screen.rectangle().height());
+            HintMeshWindow hintMeshWindow =
+                    new HintMeshWindow(hwnd, window, new ArrayList<>(), null,
+                            new ArrayList<>(), new ArrayList<>(), new AtomicReference<>());
+            hintMeshWindows.put(screen, hintMeshWindow);
+        }
+        logger.info("Pre-warmed hint mesh windows for " + screens.size() +
+                " screens in " + (System.nanoTime() - before) / 1e6 + "ms");
+        updateZoomExcludedWindows();
     }
 
     /**

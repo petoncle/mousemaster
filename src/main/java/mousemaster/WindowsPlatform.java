@@ -133,6 +133,7 @@ public class WindowsPlatform implements Platform {
                 WindowsOverlay.flushCache();
             }
             WindowsOverlay.preWarmFontStyles(newHintMeshConfigurations);
+            WindowsOverlay.preWarmHintMeshWindows();
         }
         this.modeMap = newModeMap;
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
