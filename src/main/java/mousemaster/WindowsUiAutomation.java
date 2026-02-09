@@ -1,8 +1,8 @@
 package mousemaster;
 
-import com.sun.jna.Memory;
-import com.sun.jna.Pointer;
+import com.sun.jna.*;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.platform.win32.COM.Unknown;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
@@ -42,6 +42,38 @@ public class WindowsUiAutomation {
     private static Pointer automation;
     private static UIAutomationCondition cachedCondition;
     private static UIAutomationCacheRequest cachedCacheRequest;
+
+    // Cache for findInteractiveElements results
+    private static HWND cachedHwnd;
+    private static List<UiElement> cachedElements;
+    private static volatile boolean cacheValid;
+
+    // WinEvent hook for cache invalidation
+    private static final int EVENT_OBJECT_CREATE = 0x8000;
+    private static final int EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
+    private static final int WINEVENT_OUTOFCONTEXT = 0x0000;
+
+    private interface WinEventProc extends StdCallLibrary.StdCallCallback {
+        void callback(Pointer hWinEventHook, int event, HWND hwnd,
+                      int idObject, int idChild, int idEventThread,
+                      int dwmsEventTime);
+    }
+
+    private interface User32Ex extends StdCallLibrary {
+        User32Ex INSTANCE = Native.load("user32", User32Ex.class);
+
+        Pointer SetWinEventHook(int eventMin, int eventMax,
+                                Pointer hmodWinEventProc,
+                                WinEventProc pfnWinEventProc,
+                                int idProcess, int idThread, int dwFlags);
+
+        boolean UnhookWinEvent(Pointer hWinEventHook);
+    }
+
+    // prevent GC of the callback
+    private static WinEventProc winEventProc;
+    private static Pointer winEventHook;
+    private static int subscribedProcessId;
 
     record UiElement(double centerX, double centerY) {
     }
@@ -184,6 +216,45 @@ public class WindowsUiAutomation {
         return false;
     }
 
+    private static void subscribeToWinEvents(HWND hwnd) {
+        IntByReference pidRef = new IntByReference();
+        User32.INSTANCE.GetWindowThreadProcessId(hwnd, pidRef);
+        int pid = pidRef.getValue();
+        // Already subscribed to the same process
+        if (winEventHook != null && pid == subscribedProcessId)
+            return;
+        unsubscribeFromWinEvents();
+        winEventProc = (hWinEventHook, event, eventHwnd, idObject, idChild,
+                        idEventThread, dwmsEventTime) -> {
+            cacheValid = false;
+        };
+        winEventHook = User32Ex.INSTANCE.SetWinEventHook(
+                EVENT_OBJECT_CREATE, EVENT_OBJECT_LOCATIONCHANGE,
+                Pointer.NULL, winEventProc, pid, 0, WINEVENT_OUTOFCONTEXT);
+        if (winEventHook != null) {
+            subscribedProcessId = pid;
+            logger.info("Subscribed to WinEvents for PID {}", pid);
+        }
+        else {
+            logger.warn("Failed to subscribe to WinEvents");
+        }
+    }
+
+    private static void unsubscribeFromWinEvents() {
+        if (winEventHook != null) {
+            User32Ex.INSTANCE.UnhookWinEvent(winEventHook);
+            winEventHook = null;
+            winEventProc = null;
+            subscribedProcessId = 0;
+        }
+    }
+
+    private static boolean isSameHwnd(HWND a, HWND b) {
+        if (a == null || b == null) return false;
+        return Pointer.nativeValue(a.getPointer()) ==
+               Pointer.nativeValue(b.getPointer());
+    }
+
     static List<UiElement> findInteractiveElements() {
         long t0 = System.nanoTime();
         ensureInitialized();
@@ -192,6 +263,18 @@ public class WindowsUiAutomation {
             return List.of();
         if (cachedCondition == null || cachedCacheRequest == null)
             return List.of();
+
+        // Check cache: same window and not invalidated by structure change
+        if (isSameHwnd(hwnd, cachedHwnd) && cacheValid) {
+            logger.info("Using cached UI elements ({} elements)",
+                    cachedElements.size());
+            return cachedElements;
+        }
+
+        // Cache miss
+        logger.info("Cache miss (sameHwnd={}, cacheValid={})",
+                isSameHwnd(hwnd, cachedHwnd), cacheValid);
+
         WinDef.RECT windowRect = new WinDef.RECT();
         if (!User32.INSTANCE.GetWindowRect(hwnd, windowRect))
             return List.of();
@@ -246,6 +329,13 @@ public class WindowsUiAutomation {
                     (t3 - t2) / 1_000_000.0, elements.size());
             logger.debug("Total findInteractiveElements: {}ms",
                     (t3 - t0) / 1_000_000.0);
+
+            // Cache results and subscribe to WinEvents for invalidation
+            cachedHwnd = hwnd;
+            cachedElements = elements;
+            cacheValid = true;
+            subscribeToWinEvents(hwnd);
+
             return elements;
         }
         finally {
@@ -348,6 +438,7 @@ public class WindowsUiAutomation {
             }
             return new UIAutomationCondition(ppCondition.getValue());
         }
+
     }
 
     private static class UIAutomationElement extends Unknown {
