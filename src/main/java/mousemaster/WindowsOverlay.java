@@ -29,6 +29,7 @@ public class WindowsOverlay {
     private static IndicatorWindow indicatorWindow;
     private static boolean showingIndicator;
     private static Indicator currentIndicator;
+    private static int maxIndicatorShadowPadding;
     private static GridWindow gridWindow, standByGridWindow;
     private static boolean standByGridCanBeHidden;
     private static boolean showingGrid;
@@ -680,6 +681,19 @@ public class WindowsOverlay {
         int outlinePadding = indicatorOutlinePadding(screenScale);
         indicatorWindow.widget.setOutlineScale(screenScale * zoomPercent());
         int shadowPadding = indicatorShadowPadding(screenScale * zoomPercent());
+        // When switching from a shadow indicator to a no-shadow indicator, the window
+        // used to shrink dramatically (e.g., 62px to 26px).
+        // The DWM compositor shows the old window surface at the new smaller size for
+        // one frame before the new paint arrives, causing the indicator to appear
+        // mispositioned. By never shrinking, the window stays at 62px — no resize means
+        // no stale frame from the compositor.
+        // - The window is larger than needed when the current indicator has no shadow.
+        // The extra area is transparent and invisible.
+        // - The indicator position is unaffected: the window is at bestX - shadowPadding,
+        // the widget is at (shadowPadding, shadowPadding) within it, so the visible
+        // indicator is always at bestX regardless of how large the shadow padding is.
+        maxIndicatorShadowPadding = Math.max(maxIndicatorShadowPadding, shadowPadding);
+        shadowPadding = maxIndicatorShadowPadding;
         int totalPadding = outlinePadding + shadowPadding;
         int widgetSize = size + 2 * outlinePadding;
         int windowSize = size + 2 * totalPadding;
@@ -2417,10 +2431,10 @@ public class WindowsOverlay {
                     indicator.firstOutline().opacity() != oldIndicator.firstOutline().opacity() ||
                     indicator.secondOutline().opacity() != oldIndicator.secondOutline().opacity();
             if (sizeOrShadowChanged) {
-                moveAndResizeIndicatorWindow();
                 WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
                 Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
                 applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
+                moveAndResizeIndicatorWindow();
             }
         }
         showingIndicator = true;
