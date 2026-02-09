@@ -1641,6 +1641,9 @@ public class ConfigurationParser {
                 case POSITION_HISTORY -> {
                     // No op.
                 }
+                case UI -> {
+                    // No op.
+                }
             }
         }
         HintGridArea.HintGridAreaBuilder hintGridArea = hintMeshType.gridArea();
@@ -1847,10 +1850,11 @@ public class ConfigurationParser {
             case "grid" -> HintMeshType.HintMeshTypeType.GRID;
             case "position-history" ->
                     HintMeshType.HintMeshTypeType.POSITION_HISTORY;
+            case "ui" -> HintMeshType.HintMeshTypeType.UI;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": type should be one of " +
-                    List.of("grid", "position-history"));
+                    List.of("grid", "position-history", "ui"));
         };
     }
 

@@ -218,6 +218,13 @@ public class HintManager implements ModeListener, MousePositionListener {
                 }
             }
         }
+        else if (type instanceof HintMeshType.HintUi) {
+            Rectangle activeWindowRectangle =
+                    WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
+            Point center = activeWindowRectangle.center();
+            Screen screen = screenManager.screenContaining(center.x(), center.y());
+            return ViewportFilter.of(screen);
+        }
         else {
             Screen firstHintScreen =
                     screenManager.screenContaining(positionHistory.getFirst().x(),
@@ -321,6 +328,35 @@ public class HintManager implements ModeListener, MousePositionListener {
                         zoom, prefixLengths));
                 beginSubgridIndex +=
                         fixedSizeHintGrid.subgridCount(layoutRowCount, layoutColumnCount);
+            }
+            hintMesh.hints(hints)
+                    .prefixLength(prefixLengths.size() == 1 ?
+                            prefixLengths.iterator().next() : -1);
+        }
+        else if (type instanceof HintMeshType.HintUi) {
+            List<WindowsUiAutomation.UiElement> uiElements =
+                    WindowsUiAutomation.findInteractiveElements();
+            if (uiElements.isEmpty()) {
+                hintMesh.visible(false)
+                        .hints(List.of())
+                        .prefixLength(-1);
+                return hintMesh.build();
+            }
+            int hintCount = uiElements.size();
+            List<Hint> hints = new ArrayList<>(hintCount);
+            HintMeshKeys hintMeshKeys =
+                    hintMeshConfiguration.keysByFilter().get(screenFilter);
+            List<Key> selectionKeys = hintMeshKeys.selectionKeys();
+            Set<Integer> prefixLengths = new HashSet<>();
+            int rowKeyOffset = hintMeshKeys.rowKeyOffset();
+            for (int i = 0; i < uiElements.size(); i++) {
+                WindowsUiAutomation.UiElement element = uiElements.get(i);
+                List<Key> keySequence = hintKeySequence(
+                        selectionKeys, rowKeyOffset, hintCount,
+                        0, -1, i,
+                        -1, -1, -1, -1, -1, -1, false, prefixLengths);
+                hints.add(new Hint(element.centerX(), element.centerY(),
+                        -1, -1, keySequence));
             }
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
