@@ -47,9 +47,13 @@ public class WindowsUiAutomation {
     private static UIAutomationCondition cachedCondition;
     private static UIAutomationCacheRequest cachedCacheRequest;
 
-    private static final Map<Long, List<UiElement>> uiElementsByHwndCache = new ConcurrentHashMap<>();
-    private static final Map<Long, Long> lastQueryTimeByHwnd = new ConcurrentHashMap<>();
+    record CachedWindow(List<UiElement> elements, boolean invalidatedByWinEvent,
+                        long queryTimeNanos) {
+    }
+
+    private static final Map<Long, CachedWindow> windowCache = new ConcurrentHashMap<>();
     private static final long PREFETCH_COOLDOWN_NS = 10_000_000_000L; // 10 seconds
+    private static final long MAIN_THREAD_QUERY_TIMEOUT_MS = 100;
 
     // WinEvent hooks for cache invalidation (one per process)
     private static final int EVENT_OBJECT_CREATE = 0x8000;
@@ -68,7 +72,7 @@ public class WindowsUiAutomation {
                 return t;
             });
     private static volatile Future<?> prefetchFuture;
-    private static volatile long hwndBeingPrefetched;
+    private static volatile long hwndBeingQueried;
 
     private static String eventName(int event) {
         return switch (event) {
@@ -231,10 +235,15 @@ public class WindowsUiAutomation {
                         ExtendedUser32.INSTANCE.GetAncestor(eventHwnd, GA_ROOTOWNER);
                 if (topLevel != null) {
                     long key = Pointer.nativeValue(topLevel.getPointer());
-                    if (uiElementsByHwndCache.remove(key) != null) {
-                        logger.debug("Cache invalidated: event={}, hwnd={}",
-                                eventName(event), key);
-                    }
+                    windowCache.computeIfPresent(key, (k, cached) -> {
+                        if (!cached.invalidatedByWinEvent()) {
+                            logger.debug("Cache invalidated: event={}, hwnd={}",
+                                    eventName(event), key);
+                            return new CachedWindow(cached.elements(), true,
+                                    cached.queryTimeNanos());
+                        }
+                        return cached;
+                    });
                 }
             };
         }
@@ -262,25 +271,31 @@ public class WindowsUiAutomation {
         if (hwnd == null)
             return;
         long hwndKey = Pointer.nativeValue(hwnd.getPointer());
-        if (uiElementsByHwndCache.containsKey(hwndKey))
+        CachedWindow cached = windowCache.get(hwndKey);
+        if (cached != null && !cached.invalidatedByWinEvent())
             return;
-        if (hwndBeingPrefetched == hwndKey)
+        if (hwndBeingQueried == hwndKey)
             return;
-        Long lastQueryTime = lastQueryTimeByHwnd.get(hwndKey);
-        if (lastQueryTime != null && System.nanoTime() - lastQueryTime < PREFETCH_COOLDOWN_NS)
+        if (cached != null && System.nanoTime() - cached.queryTimeNanos() < PREFETCH_COOLDOWN_NS)
+            return;
+        submitBackgroundQuery(hwndKey);
+    }
+
+    private static void submitBackgroundQuery(long hwndKey) {
+        if (hwndBeingQueried == hwndKey)
             return;
         if (prefetchFuture != null)
             prefetchFuture.cancel(false);
         prefetchFuture = prefetchExecutor.submit(() -> {
             try {
-                hwndBeingPrefetched = hwndKey;
+                hwndBeingQueried = hwndKey;
                 backgroundQueryUiElements(hwndKey);
             }
             catch (Exception e) {
-                logger.warn("Background UIA prefetch failed", e);
+                logger.warn("Background UIA query failed", e);
             }
             finally {
-                hwndBeingPrefetched = -1;
+                hwndBeingQueried = -1;
             }
         });
     }
@@ -377,9 +392,9 @@ public class WindowsUiAutomation {
         }
         HWND hwnd = new HWND(new Pointer(hwndKey));
         List<UiElement> uiElements = queryUiElementsOfWindowAndChildren(hwnd);
-        lastQueryTimeByHwnd.put(hwndKey, System.nanoTime());
-        uiElementsByHwndCache.putIfAbsent(hwndKey, uiElements);
-        logger.debug("Background prefetch for hwnd={}: {} elements",
+        windowCache.put(hwndKey,
+                new CachedWindow(uiElements, false, System.nanoTime()));
+        logger.debug("Background query for hwnd={}: {} elements",
                 hwndKey, uiElements.size());
     }
 
@@ -391,27 +406,55 @@ public class WindowsUiAutomation {
         if (cachedCondition == null || cachedCacheRequest == null)
             return List.of();
         long hwndKey = Pointer.nativeValue(hwnd.getPointer());
-        // If background prefetch is in progress for this hwnd, wait for it.
-        if (hwndBeingPrefetched == hwndKey && prefetchFuture != null) {
-            try {
-                logger.debug("Waiting for background prefetch of hwnd={}", hwndKey);
-                prefetchFuture.get();
-            }
-            catch (Exception e) {
-                logger.warn("Background prefetch wait failed", e);
-            }
-        }
-        List<UiElement> cached = uiElementsByHwndCache.get(hwndKey);
-        if (cached != null) {
-            logger.debug("Using cached UI elements ({} elements)", cached.size());
+        // Fresh cache hit.
+        CachedWindow cached = windowCache.get(hwndKey);
+        if (cached != null && !cached.invalidatedByWinEvent()) {
+            logger.debug("Using cached UI elements ({} elements)",
+                    cached.elements().size());
             createWinEventHook(hwnd);
-            return cached;
+            // If cache is old, refresh in background (but don't wait, it's for having fresh results next time).
+            if (System.nanoTime() - cached.queryTimeNanos() >= PREFETCH_COOLDOWN_NS)
+                submitBackgroundQuery(hwndKey);
+            return cached.elements();
         }
-        List<UiElement> uiElements = queryUiElementsOfWindowAndChildren(hwnd);
-        lastQueryTimeByHwnd.put(hwndKey, System.nanoTime());
-        uiElementsByHwndCache.put(hwndKey, uiElements);
-        createWinEventHook(hwnd);
-        return uiElements;
+        // Ensure a background query is running for this hwnd.
+        if (hwndBeingQueried != hwndKey || prefetchFuture == null)
+            submitBackgroundQuery(hwndKey);
+        Future<?> future = prefetchFuture;
+        // Wait up to 100ms for the background query to complete.
+        try {
+            future.get(MAIN_THREAD_QUERY_TIMEOUT_MS,
+                    java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
+        catch (java.util.concurrent.TimeoutException e) {
+            // Query taking too long. Use invalidated cache if recent enough.
+            if (cached != null &&
+                System.nanoTime() - cached.queryTimeNanos() < PREFETCH_COOLDOWN_NS) {
+                logger.debug("Query >{}ms, using invalidated cache ({} elements)",
+                        MAIN_THREAD_QUERY_TIMEOUT_MS, cached.elements().size());
+                createWinEventHook(hwnd);
+                return cached.elements();
+            }
+            // No recent cache, must wait for full query.
+            try {
+                future.get();
+            }
+            catch (Exception ex) {
+                logger.warn("Background UIA query failed", ex);
+                return List.of();
+            }
+        }
+        catch (Exception e) {
+            logger.warn("Background UIA query failed", e);
+            return List.of();
+        }
+        // Background query completed.
+        CachedWindow fresh = windowCache.get(hwndKey);
+        if (fresh != null) {
+            createWinEventHook(hwnd);
+            return fresh.elements();
+        }
+        return List.of();
     }
 
     // COM wrappers
