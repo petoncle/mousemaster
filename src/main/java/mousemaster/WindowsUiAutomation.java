@@ -48,6 +48,8 @@ public class WindowsUiAutomation {
     private static UIAutomationCacheRequest cachedCacheRequest;
 
     private static final Map<Long, List<UiElement>> uiElementsByHwndCache = new ConcurrentHashMap<>();
+    private static final Map<Long, Long> lastQueryTimeByHwnd = new ConcurrentHashMap<>();
+    private static final long PREFETCH_COOLDOWN_NS = 10_000_000_000L; // 10 seconds
 
     // WinEvent hooks for cache invalidation (one per process)
     private static final int EVENT_OBJECT_CREATE = 0x8000;
@@ -253,7 +255,7 @@ public class WindowsUiAutomation {
      * elements are not cached, starts a background UIA query so results
      * are ready by the time the user triggers hint mode.
      */
-    static void eagerlyFindUiElements() {
+    static void eagerlyQueryUiElements() {
         if (automation == null)
             return; // Not initialized yet (no UI hint mode triggered yet)
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
@@ -263,6 +265,9 @@ public class WindowsUiAutomation {
         if (uiElementsByHwndCache.containsKey(hwndKey))
             return;
         if (hwndBeingPrefetched == hwndKey)
+            return;
+        Long lastQueryTime = lastQueryTimeByHwnd.get(hwndKey);
+        if (lastQueryTime != null && System.nanoTime() - lastQueryTime < PREFETCH_COOLDOWN_NS)
             return;
         if (prefetchFuture != null)
             prefetchFuture.cancel(false);
@@ -372,6 +377,7 @@ public class WindowsUiAutomation {
         }
         HWND hwnd = new HWND(new Pointer(hwndKey));
         List<UiElement> uiElements = queryUiElementsOfWindowAndChildren(hwnd);
+        lastQueryTimeByHwnd.put(hwndKey, System.nanoTime());
         uiElementsByHwndCache.putIfAbsent(hwndKey, uiElements);
         logger.debug("Background prefetch for hwnd={}: {} elements",
                 hwndKey, uiElements.size());
@@ -402,6 +408,7 @@ public class WindowsUiAutomation {
             return cached;
         }
         List<UiElement> uiElements = queryUiElementsOfWindowAndChildren(hwnd);
+        lastQueryTimeByHwnd.put(hwndKey, System.nanoTime());
         uiElementsByHwndCache.put(hwndKey, uiElements);
         createWinEventHook(hwnd);
         return uiElements;
