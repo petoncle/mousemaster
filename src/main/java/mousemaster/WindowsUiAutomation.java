@@ -52,12 +52,12 @@ public class WindowsUiAutomation {
     }
 
     private static final Map<Long, CachedWindow> windowCache = new ConcurrentHashMap<>();
-    private static final long PREFETCH_COOLDOWN_NS = 10_000_000_000L; // 10 seconds
+    private static final long STALE_CACHE_NS = 10_000_000_000L; // 10 seconds
     private static final long MAIN_THREAD_QUERY_TIMEOUT_MS = 100;
 
     // WinEvent hooks for cache invalidation (one per process)
     private static final int EVENT_OBJECT_CREATE = 0x8000;
-    private static final int EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
+    private static final int EVENT_OBJECT_STATECHANGE = 0x800A;
     private static final int WINEVENT_OUTOFCONTEXT = 0x0000;
     private static final int GA_ROOTOWNER = 3;
 
@@ -73,6 +73,7 @@ public class WindowsUiAutomation {
             });
     private static volatile Future<?> prefetchFuture;
     private static volatile long hwndBeingQueried;
+    private static long lastForegroundHwnd;
 
     private static String eventName(int event) {
         return switch (event) {
@@ -248,7 +249,7 @@ public class WindowsUiAutomation {
             };
         }
         Pointer hook = ExtendedUser32.INSTANCE.SetWinEventHook(
-                EVENT_OBJECT_CREATE, EVENT_OBJECT_LOCATIONCHANGE,
+                EVENT_OBJECT_CREATE, EVENT_OBJECT_STATECHANGE,
                 Pointer.NULL, winEventProc, pid, 0, WINEVENT_OUTOFCONTEXT);
         if (hook != null) {
             winEventHookByPid.put(pid, hook);
@@ -271,12 +272,20 @@ public class WindowsUiAutomation {
         if (hwnd == null)
             return;
         long hwndKey = Pointer.nativeValue(hwnd.getPointer());
+        boolean foregroundChanged = hwndKey != lastForegroundHwnd;
+        if (foregroundChanged) {
+            logger.info("Foreground window changed: hwnd={}", hwndKey);
+            lastForegroundHwnd = hwndKey;
+        }
         CachedWindow cached = windowCache.get(hwndKey);
-        if (cached != null && !cached.invalidatedByWinEvent())
+        boolean needsQuery = cached == null ||
+                             cached.invalidatedByWinEvent() ||
+                             foregroundChanged;
+        if (!needsQuery)
             return;
         if (hwndBeingQueried == hwndKey)
             return;
-        if (cached != null && System.nanoTime() - cached.queryTimeNanos() < PREFETCH_COOLDOWN_NS)
+        if (cached != null && System.nanoTime() - cached.queryTimeNanos() < STALE_CACHE_NS)
             return;
         submitBackgroundQuery(hwndKey);
     }
@@ -384,6 +393,8 @@ public class WindowsUiAutomation {
         }
     }
 
+    private static final long FOLLOW_UP_DELAY_MS = 500;
+
     private static void backgroundQueryUiElements(long hwndKey) {
         if (!backgroundComInitialized) {
             Ole32.INSTANCE.CoInitializeEx(Pointer.NULL,
@@ -391,11 +402,29 @@ public class WindowsUiAutomation {
             backgroundComInitialized = true;
         }
         HWND hwnd = new HWND(new Pointer(hwndKey));
+        CachedWindow oldCached = windowCache.get(hwndKey);
+        boolean wasInvalidated = oldCached != null && oldCached.invalidatedByWinEvent();
         List<UiElement> uiElements = queryUiElementsOfWindowAndChildren(hwnd);
         windowCache.put(hwndKey,
                 new CachedWindow(uiElements, false, System.nanoTime()));
         logger.debug("Background query for hwnd={}: {} elements",
                 hwndKey, uiElements.size());
+        // After WinEvent-triggered re-query, do a follow-up to capture post-transition state.
+        // This is for: when switching Firefox tab, hidden tab triggers a hide event,
+        // we requery the UI elements before the new tab is shown (bad).
+        if (wasInvalidated) {
+            try {
+                Thread.sleep(FOLLOW_UP_DELAY_MS);
+            }
+            catch (InterruptedException e) {
+                return;
+            }
+            uiElements = queryUiElementsOfWindowAndChildren(hwnd);
+            windowCache.put(hwndKey,
+                    new CachedWindow(uiElements, false, System.nanoTime()));
+            logger.debug("Follow-up query for hwnd={}: {} elements",
+                    hwndKey, uiElements.size());
+        }
     }
 
     static List<UiElement> findInteractiveUiElements() {
@@ -413,7 +442,7 @@ public class WindowsUiAutomation {
                     cached.elements().size());
             createWinEventHook(hwnd);
             // If cache is old, refresh in background (but don't wait, it's for having fresh results next time).
-            if (System.nanoTime() - cached.queryTimeNanos() >= PREFETCH_COOLDOWN_NS)
+            if (System.nanoTime() - cached.queryTimeNanos() >= STALE_CACHE_NS)
                 submitBackgroundQuery(hwndKey);
             return cached.elements();
         }
@@ -429,7 +458,7 @@ public class WindowsUiAutomation {
         catch (java.util.concurrent.TimeoutException e) {
             // Query taking too long. Use invalidated cache if recent enough.
             if (cached != null &&
-                System.nanoTime() - cached.queryTimeNanos() < PREFETCH_COOLDOWN_NS) {
+                System.nanoTime() - cached.queryTimeNanos() < STALE_CACHE_NS) {
                 logger.debug("Query >{}ms, using invalidated cache ({} elements)",
                         MAIN_THREAD_QUERY_TIMEOUT_MS, cached.elements().size());
                 createWinEventHook(hwnd);
