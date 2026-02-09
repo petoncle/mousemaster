@@ -11,9 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 public class WindowsUiAutomation {
 
@@ -172,6 +170,20 @@ public class WindowsUiAutomation {
         }
     }
 
+    private static final double MIN_DISTANCE_BETWEEN_HINTS = 40;
+
+    private static boolean tooCloseToExisting(List<UiElement> elements,
+                                               double x, double y) {
+        for (UiElement e : elements) {
+            double dx = e.centerX() - x;
+            double dy = e.centerY() - y;
+            if (dx * dx + dy * dy <
+                MIN_DISTANCE_BETWEEN_HINTS * MIN_DISTANCE_BETWEEN_HINTS)
+                return true;
+        }
+        return false;
+    }
+
     static List<UiElement> findInteractiveElements() {
         long t0 = System.nanoTime();
         ensureInitialized();
@@ -201,7 +213,7 @@ public class WindowsUiAutomation {
             int length = array.getLength();
             logger.debug("FindAllBuildCache: {}ms ({} elements)",
                     (t2 - t1) / 1_000_000.0, length);
-            Set<UiElement> elements = new LinkedHashSet<>();
+            List<UiElement> elements = new ArrayList<>();
             for (int i = 0; i < length; i++) {
                 UIAutomationElement element = array.getElement(i);
                 if (element == null)
@@ -221,6 +233,8 @@ public class WindowsUiAutomation {
                         centerY < windowRect.top ||
                         centerY > windowRect.bottom)
                         continue;
+                    if (tooCloseToExisting(elements, centerX, centerY))
+                        continue;
                     elements.add(new UiElement(centerX, centerY));
                 }
                 finally {
@@ -232,7 +246,7 @@ public class WindowsUiAutomation {
                     (t3 - t2) / 1_000_000.0, elements.size());
             logger.debug("Total findInteractiveElements: {}ms",
                     (t3 - t0) / 1_000_000.0);
-            return new ArrayList<>(elements);
+            return elements;
         }
         finally {
             if (array != null)
