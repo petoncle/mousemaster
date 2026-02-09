@@ -1302,11 +1302,11 @@ public class WindowsOverlay {
             // The default size is used and it is too small (and will be less than totalXAdvance).
             double cellWidth = hint.cellWidth() != -1 ?
                     Math.max(totalXAdvance, hint.cellWidth()) :
-                    totalXAdvance;
+                    totalXAdvance + 2 * style.boxHorizontalPadding();
             int lineHeight = labelFontStyle.metrics.height();
             double cellHeight = hint.cellHeight() != -1 ?
                     Math.max(lineHeight, hint.cellHeight()) :
-                    lineHeight;
+                    lineHeight + 2 * style.boxVerticalPadding();
             int fullBoxWidth = (int) cellWidth;
             int fullBoxHeight = (int) cellHeight;
             int x = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
