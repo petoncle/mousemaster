@@ -2,7 +2,6 @@ package mousemaster;
 
 import com.sun.jna.*;
 import com.sun.jna.platform.win32.*;
-import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.platform.win32.COM.Unknown;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
@@ -11,7 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class WindowsUiAutomation {
 
@@ -38,52 +39,45 @@ public class WindowsUiAutomation {
     private static final short VT_BOOL = 0x000B;
     private static final short VT_I4 = 3;
     private static final short VARIANT_TRUE = -1;
+    private static final short VARIANT_FALSE = 0;
 
     private static Pointer automation;
     private static UIAutomationCondition cachedCondition;
     private static UIAutomationCacheRequest cachedCacheRequest;
 
-    // Cache for findInteractiveElements results
-    private static HWND cachedHwnd;
-    private static List<UiElement> cachedElements;
-    private static volatile boolean cacheValid;
+    private static final Map<Long, List<UiElement>> uiElementsByHwndCache = new HashMap<>();
 
-    // WinEvent hook for cache invalidation
+    // WinEvent hooks for cache invalidation (one per process)
     private static final int EVENT_OBJECT_CREATE = 0x8000;
     private static final int EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
     private static final int WINEVENT_OUTOFCONTEXT = 0x0000;
+    private static final int GA_ROOTOWNER = 3;
 
-    private interface WinEventProc extends StdCallLibrary.StdCallCallback {
-        void callback(Pointer hWinEventHook, int event, HWND hwnd,
-                      int idObject, int idChild, int idEventThread,
-                      int dwmsEventTime);
+    // Single shared callback (prevent GC), one hook handle per process
+    private static ExtendedUser32.WinEventProc winEventProc;
+    private static final Map<Integer, Pointer> winEventHookByPid = new HashMap<>();
+
+    private static String eventName(int event) {
+        return switch (event) {
+            case 0x8000 -> "OBJECT_CREATE";
+            case 0x8001 -> "OBJECT_DESTROY";
+            case 0x8002 -> "OBJECT_SHOW";
+            case 0x8003 -> "OBJECT_HIDE";
+            case 0x8004 -> "OBJECT_REORDER";
+            case 0x8005 -> "OBJECT_FOCUS";
+            case 0x8006 -> "OBJECT_SELECTION";
+            case 0x8007 -> "OBJECT_SELECTIONADD";
+            case 0x8008 -> "OBJECT_SELECTIONREMOVE";
+            case 0x8009 -> "OBJECT_SELECTIONWITHIN";
+            case 0x800A -> "OBJECT_STATECHANGE";
+            case 0x800B -> "OBJECT_LOCATIONCHANGE";
+            default -> "0x" + Integer.toHexString(event);
+        };
     }
-
-    private interface User32Ex extends StdCallLibrary {
-        User32Ex INSTANCE = Native.load("user32", User32Ex.class);
-
-        Pointer SetWinEventHook(int eventMin, int eventMax,
-                                Pointer hmodWinEventProc,
-                                WinEventProc pfnWinEventProc,
-                                int idProcess, int idThread, int dwFlags);
-
-        boolean UnhookWinEvent(Pointer hWinEventHook);
-    }
-
-    // prevent GC of the callback
-    private static WinEventProc winEventProc;
-    private static Pointer winEventHook;
-    private static int subscribedProcessId;
 
     record UiElement(double centerX, double centerY) {
     }
 
-    /**
-     * Creates a 16-byte VARIANT(VT_BOOL, VARIANT_TRUE) in native memory.
-     * On x64: vt at offset 0 (2 bytes), value at offset 8 (2 bytes).
-     * On x64 ABI, structs >8 bytes are passed by hidden pointer,
-     * so passing this Memory (a Pointer) to COM works naturally.
-     */
     private static Memory createBoolVariantTrue() {
         Memory variant = new Memory(16);
         variant.clear();
@@ -96,7 +90,7 @@ public class WindowsUiAutomation {
         Memory variant = new Memory(16);
         variant.clear();
         variant.setShort(0, VT_BOOL);
-        variant.setShort(8, (short) 0); // VARIANT_FALSE
+        variant.setShort(8, VARIANT_FALSE);
         return variant;
     }
 
@@ -129,11 +123,7 @@ public class WindowsUiAutomation {
                     Integer.toHexString(hr.intValue()));
         automation = pAutomation.getValue();
         UIAutomation uia = new UIAutomation(automation);
-        // Build condition:
-        // IsOffscreen=false AND IsEnabled=true
-        // AND (IsKeyboardFocusable=true OR IsInvokePatternAvailable=true
-        //      OR ControlType=Button)
-        cachedCondition = buildCondition(uia);
+        cachedCondition = buildUiAutomationCondition(uia);
         if (cachedCondition == null) {
             logger.warn("Failed to create conditions, " +
                          "falling back to TrueCondition");
@@ -146,11 +136,10 @@ public class WindowsUiAutomation {
     }
 
     /**
-     * Builds: IsOffscreen=false AND IsEnabled=true
-     *     AND (IsKeyboardFocusable OR IsInvokePatternAvailable OR ControlType=Button)
-     * Returns null if any step fails.
+     * IsOffscreen=false AND IsEnabled=true
+     * AND (IsKeyboardFocusable OR IsInvokePatternAvailable OR ControlType=Button)
      */
-    private static UIAutomationCondition buildCondition(UIAutomation uia) {
+    private static UIAutomationCondition buildUiAutomationCondition(UIAutomation uia) {
         Memory boolTrue = createBoolVariantTrue();
         Memory boolFalse = createBoolVariantFalse();
         UIAutomationCondition focusable = null, invokable = null,
@@ -170,42 +159,42 @@ public class WindowsUiAutomation {
             if (focusable == null || invokable == null ||
                 button == null || onscreen == null || enabled == null)
                 return null;
-            // focusable OR invokable
             UIAutomationCondition or1 =
                     uia.createOrCondition(focusable, invokable);
             if (or1 == null)
                 return null;
-            // (focusable OR invokable) OR button
             UIAutomationCondition or2 =
                     uia.createOrCondition(or1, button);
             or1.Release();
             if (or2 == null)
                 return null;
-            // ... AND onscreen
             UIAutomationCondition and1 =
                     uia.createAndCondition(or2, onscreen);
             or2.Release();
             if (and1 == null)
                 return null;
-            // ... AND enabled
             UIAutomationCondition result =
                     uia.createAndCondition(and1, enabled);
             and1.Release();
             return result;
-        }
-        finally {
-            if (focusable != null) focusable.Release();
-            if (invokable != null) invokable.Release();
-            if (button != null) button.Release();
-            if (onscreen != null) onscreen.Release();
-            if (enabled != null) enabled.Release();
+        } finally {
+            if (focusable != null)
+                focusable.Release();
+            if (invokable != null)
+                invokable.Release();
+            if (button != null)
+                button.Release();
+            if (onscreen != null)
+                onscreen.Release();
+            if (enabled != null)
+                enabled.Release();
         }
     }
 
     private static final double MIN_DISTANCE_BETWEEN_HINTS = 40;
 
-    private static boolean tooCloseToExisting(List<UiElement> elements,
-                                               double x, double y) {
+    private static boolean isTooCloseToExistingUiElements(List<UiElement> elements,
+                                                          double x, double y) {
         for (UiElement e : elements) {
             double dx = e.centerX() - x;
             double dy = e.centerY() - y;
@@ -216,65 +205,52 @@ public class WindowsUiAutomation {
         return false;
     }
 
-    private static void subscribeToWinEvents(HWND hwnd) {
+    private static void createWinEventHook(HWND hwnd) {
         IntByReference pidRef = new IntByReference();
         User32.INSTANCE.GetWindowThreadProcessId(hwnd, pidRef);
         int pid = pidRef.getValue();
-        // Already subscribed to the same process
-        if (winEventHook != null && pid == subscribedProcessId)
+        if (winEventHookByPid.containsKey(pid))
             return;
-        unsubscribeFromWinEvents();
-        winEventProc = (hWinEventHook, event, eventHwnd, idObject, idChild,
-                        idEventThread, dwmsEventTime) -> {
-            cacheValid = false;
-        };
-        winEventHook = User32Ex.INSTANCE.SetWinEventHook(
+        if (winEventProc == null) {
+            winEventProc = (hWinEventHook, event, eventHwnd, idObject,
+                            idChild, idEventThread, dwmsEventTime) -> {
+                HWND topLevel =
+                        ExtendedUser32.INSTANCE.GetAncestor(eventHwnd, GA_ROOTOWNER);
+                if (topLevel != null) {
+                    long key = Pointer.nativeValue(topLevel.getPointer());
+                    if (uiElementsByHwndCache.remove(key) != null) {
+                        logger.debug("Cache invalidated: event={}, hwnd={}",
+                                eventName(event), key);
+                    }
+                }
+            };
+        }
+        Pointer hook = ExtendedUser32.INSTANCE.SetWinEventHook(
                 EVENT_OBJECT_CREATE, EVENT_OBJECT_LOCATIONCHANGE,
                 Pointer.NULL, winEventProc, pid, 0, WINEVENT_OUTOFCONTEXT);
-        if (winEventHook != null) {
-            subscribedProcessId = pid;
-            logger.info("Subscribed to WinEvents for PID {}", pid);
+        if (hook != null) {
+            winEventHookByPid.put(pid, hook);
+            logger.debug("Subscribed to WinEvents for PID {}", pid);
         }
         else {
-            logger.warn("Failed to subscribe to WinEvents");
+            logger.warn("Failed to subscribe to WinEvents for PID {}", pid);
         }
     }
 
-    private static void unsubscribeFromWinEvents() {
-        if (winEventHook != null) {
-            User32Ex.INSTANCE.UnhookWinEvent(winEventHook);
-            winEventHook = null;
-            winEventProc = null;
-            subscribedProcessId = 0;
-        }
-    }
-
-    private static boolean isSameHwnd(HWND a, HWND b) {
-        if (a == null || b == null) return false;
-        return Pointer.nativeValue(a.getPointer()) ==
-               Pointer.nativeValue(b.getPointer());
-    }
-
-    static List<UiElement> findInteractiveElements() {
-        long t0 = System.nanoTime();
+    static List<UiElement> findInteractiveUiElements() {
+        long before = System.nanoTime();
         ensureInitialized();
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         if (hwnd == null)
             return List.of();
         if (cachedCondition == null || cachedCacheRequest == null)
             return List.of();
-
-        // Check cache: same window and not invalidated by structure change
-        if (isSameHwnd(hwnd, cachedHwnd) && cacheValid) {
-            logger.info("Using cached UI elements ({} elements)",
-                    cachedElements.size());
-            return cachedElements;
+        long hwndKey = Pointer.nativeValue(hwnd.getPointer());
+        List<UiElement> cached = uiElementsByHwndCache.get(hwndKey);
+        if (cached != null) {
+            logger.debug("Using cached UI elements ({} elements)", cached.size());
+            return cached;
         }
-
-        // Cache miss
-        logger.info("Cache miss (sameHwnd={}, cacheValid={})",
-                isSameHwnd(hwnd, cachedHwnd), cacheValid);
-
         WinDef.RECT windowRect = new WinDef.RECT();
         if (!User32.INSTANCE.GetWindowRect(hwnd, windowRect))
             return List.of();
@@ -285,18 +261,19 @@ public class WindowsUiAutomation {
             root = uia.elementFromHandle(hwnd);
             if (root == null)
                 return List.of();
-            long t1 = System.nanoTime();
+            long beforeFindAllBuildCache = System.nanoTime();
             array = root.findAllBuildCache(TreeScope_Descendants,
                     cachedCondition, cachedCacheRequest);
-            long t2 = System.nanoTime();
+            long afterFindAllBuildCache = System.nanoTime();
             if (array == null) {
                 logger.debug("FindAllBuildCache returned null");
                 return List.of();
             }
             int length = array.getLength();
             logger.debug("FindAllBuildCache: {}ms ({} elements)",
-                    (t2 - t1) / 1_000_000.0, length);
-            List<UiElement> elements = new ArrayList<>();
+                    (afterFindAllBuildCache - beforeFindAllBuildCache) / 1e6,
+                    length);
+            List<UiElement> uiElements = new ArrayList<>();
             for (int i = 0; i < length; i++) {
                 UIAutomationElement element = array.getElement(i);
                 if (element == null)
@@ -316,27 +293,22 @@ public class WindowsUiAutomation {
                         centerY < windowRect.top ||
                         centerY > windowRect.bottom)
                         continue;
-                    if (tooCloseToExisting(elements, centerX, centerY))
+                    if (isTooCloseToExistingUiElements(uiElements, centerX, centerY))
                         continue;
-                    elements.add(new UiElement(centerX, centerY));
+                    uiElements.add(new UiElement(centerX, centerY));
                 }
                 finally {
                     element.Release();
                 }
             }
-            long t3 = System.nanoTime();
-            logger.debug("Element iteration: {}ms ({} unique interactive)",
-                    (t3 - t2) / 1_000_000.0, elements.size());
-            logger.debug("Total findInteractiveElements: {}ms",
-                    (t3 - t0) / 1_000_000.0);
-
-            // Cache results and subscribe to WinEvents for invalidation
-            cachedHwnd = hwnd;
-            cachedElements = elements;
-            cacheValid = true;
-            subscribeToWinEvents(hwnd);
-
-            return elements;
+            long afterUiElementIteration = System.nanoTime();
+            logger.debug("UI element iteration: {}ms ({} unique elements)",
+                    (afterUiElementIteration - afterFindAllBuildCache) / 1e6, uiElements.size());
+            logger.debug("findInteractiveElements: {}ms",
+                    (afterUiElementIteration - before) / 1e6);
+            uiElementsByHwndCache.put(hwndKey, uiElements);
+            createWinEventHook(hwnd);
+            return uiElements;
         }
         finally {
             if (array != null)
@@ -346,7 +318,7 @@ public class WindowsUiAutomation {
         }
     }
 
-    // --- COM wrappers ---
+    // COM wrappers
 
     private static class UIAutomation extends Unknown {
 

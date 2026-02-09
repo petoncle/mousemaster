@@ -9,6 +9,9 @@
     "interfaces":["com.sun.jna.platform.win32.Kernel32"]
   },
   {
+    "interfaces":["com.sun.jna.platform.win32.Ole32"]
+  },
+  {
     "interfaces":["com.sun.jna.platform.win32.User32"]
   },
   {

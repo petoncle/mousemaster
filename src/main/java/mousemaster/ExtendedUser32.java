@@ -4,6 +4,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
 
 import java.util.List;
@@ -112,5 +113,18 @@ public interface ExtendedUser32 extends User32 {
      * Determines whether the specified window is minimized (iconic).
      */
     boolean IsIconic(WinDef.HWND hWnd);
+
+    interface WinEventProc extends StdCallLibrary.StdCallCallback {
+        void callback(Pointer hWinEventHook, int event, HWND hwnd,
+                      int idObject, int idChild, int idEventThread,
+                      int dwmsEventTime);
+    }
+
+    Pointer SetWinEventHook(int eventMin, int eventMax,
+                            Pointer hmodWinEventProc,
+                            WinEventProc pfnWinEventProc,
+                            int idProcess, int idThread, int dwFlags);
+
+    HWND GetAncestor(HWND hwnd, int gaFlags);
 
 }

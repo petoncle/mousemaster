@@ -712,7 +712,7 @@
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorShadowEffect",
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }]
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorWidget",

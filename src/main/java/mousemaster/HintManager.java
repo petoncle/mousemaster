@@ -335,7 +335,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         else if (type instanceof HintMeshType.UiHintMesh) {
             List<WindowsUiAutomation.UiElement> uiElements =
-                    WindowsUiAutomation.findInteractiveElements();
+                    WindowsUiAutomation.findInteractiveUiElements();
             if (uiElements.isEmpty()) {
                 hintMesh.visible(false)
                         .hints(List.of())

@@ -9,6 +9,9 @@
   "name":"[Lcom.sun.jna.platform.win32.WinNT$LUID_AND_ATTRIBUTES;"
 },
 {
+  "name":"[Lcom.sun.jna.platform.win32.WinUser$INPUT;"
+},
+{
   "name":"boolean"
 },
 {
@@ -108,6 +111,19 @@
 {
   "name":"com.sun.jna.platform.win32.BaseTSD$ULONG_PTR",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.jna.platform.win32.Guid$CLSID",
+  "allDeclaredFields":true
+},
+{
+  "name":"com.sun.jna.platform.win32.Guid$GUID",
+  "allDeclaredFields":true,
+  "allPublicFields":true
+},
+{
+  "name":"com.sun.jna.platform.win32.Guid$IID",
+  "allDeclaredFields":true
 },
 {
   "name":"com.sun.jna.platform.win32.Tlhelp32$PROCESSENTRY32",
@@ -411,11 +427,11 @@
 },
 {
   "name":"io.qt.QtObject",
-  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
+  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
 },
 {
   "name":"io.qt.Utility$Object",
-  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
+  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
 },
 {
   "name":"io.qt.core.QAbstractAnimation",
@@ -433,7 +449,7 @@
   "name":"io.qt.core.QObject",
   "queryAllDeclaredMethods":true,
   "fields":[{"name":"destroyed"}, {"name":"objectNameChanged"}],
-  "methods":[{"name":"childEvent","parameterTypes":["io.qt.core.QChildEvent"] }, {"name":"connectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"customEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"disconnectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"event","parameterTypes":["io.qt.core.QEvent"] }, {"name":"eventFilter","parameterTypes":["io.qt.core.QObject","io.qt.core.QEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }, {"name":"timerEvent","parameterTypes":["io.qt.core.QTimerEvent"] }]
+  "methods":[{"name":"childEvent","parameterTypes":["io.qt.core.QChildEvent"] }, {"name":"connectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"customEvent","parameterTypes":["io.qt.core.QEvent"] }, {"name":"disconnectNotify","parameterTypes":["io.qt.core.QMetaMethod"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"event","parameterTypes":["io.qt.core.QEvent"] }, {"name":"eventFilter","parameterTypes":["io.qt.core.QObject","io.qt.core.QEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }, {"name":"timerEvent","parameterTypes":["io.qt.core.QTimerEvent"] }]
 },
 {
   "name":"io.qt.core.QThread",
@@ -479,7 +495,7 @@
 },
 {
   "name":"io.qt.internal.NativeUtility$Object",
-  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
+  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
 },
 {
   "name":"io.qt.internal.NativeUtility$QueuedCleaner",
@@ -510,13 +526,13 @@
   "name":"io.qt.widgets.QGraphicsDropShadowEffect",
   "queryAllDeclaredMethods":true,
   "fields":[{"name":"blurRadiusChanged"}, {"name":"colorChanged"}, {"name":"offsetChanged"}],
-  "methods":[{"name":"boundingRectFor","parameterTypes":["io.qt.core.QRectF"] }, {"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }]
+  "methods":[{"name":"boundingRectFor","parameterTypes":["io.qt.core.QRectF"] }, {"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }]
 },
 {
   "name":"io.qt.widgets.QGraphicsEffect",
   "queryAllDeclaredMethods":true,
   "fields":[{"name":"enabledChanged"}],
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"sourceChanged","parameterTypes":["io.qt.widgets.QGraphicsEffect$ChangeFlags"] }]
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"sourceChanged","parameterTypes":["io.qt.widgets.QGraphicsEffect$ChangeFlags"] }]
 },
 {
   "name":"io.qt.widgets.QLabel",
@@ -547,7 +563,7 @@
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
   "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }, {"name":"toString","parameterTypes":[] }]
+  "methods":[{"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }, {"name":"toString","parameterTypes":[] }]
 },
 {
   "name":"java.lang.Object$1"
@@ -704,6 +720,12 @@
 {
   "name":"mousemaster.ExtendedUser32$PAINTSTRUCT",
   "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.ExtendedUser32$WinEventProc",
+  "queryAllDeclaredMethods":true,
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"callback","parameterTypes":["com.sun.jna.Pointer","int","com.sun.jna.platform.win32.WinDef$HWND","int","int","int","int"] }]
 },
 {
   "name":"mousemaster.Gdiplus$CharacterRange",
