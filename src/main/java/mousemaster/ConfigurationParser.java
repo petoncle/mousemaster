@@ -150,12 +150,12 @@ public class ConfigurationParser {
                      .edgeCount(4)
                      .hexColor("#FF0000")
                      .opacity(1.0);
-        idleIndicator.firstOutline()
+        idleIndicator.outerOutline()
                      .thickness(0)
                      .hexColor("#000000")
                      .opacity(1.0)
                      .fillPercent(1.0);
-        idleIndicator.secondOutline()
+        idleIndicator.innerOutline()
                      .thickness(0)
                      .hexColor("#000000")
                      .opacity(1.0)
@@ -1736,14 +1736,14 @@ public class ConfigurationParser {
             case "edge-count" -> indicator.edgeCount(parseUnsignedInteger(propertyValue, 3, 100));
             case "color" -> indicator.hexColor(checkColorFormat(propertyValue));
             case "opacity" -> indicator.opacity(parseDouble(propertyValue, true, 0, 1));
-            case "first-outline-thickness" -> indicator.firstOutline().thickness(parseDouble(propertyValue, true, 0, 100));
-            case "first-outline-color" -> indicator.firstOutline().hexColor(checkColorFormat(propertyValue));
-            case "first-outline-opacity" -> indicator.firstOutline().opacity(parseDouble(propertyValue, true, 0, 1));
-            case "first-outline-fill-percent" -> indicator.firstOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
-            case "second-outline-thickness" -> indicator.secondOutline().thickness(parseDouble(propertyValue, true, 0, 100));
-            case "second-outline-color" -> indicator.secondOutline().hexColor(checkColorFormat(propertyValue));
-            case "second-outline-opacity" -> indicator.secondOutline().opacity(parseDouble(propertyValue, true, 0, 1));
-            case "second-outline-fill-percent" -> indicator.secondOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
+            case "outer-outline-thickness" -> indicator.outerOutline().thickness(parseDouble(propertyValue, true, 0, 100));
+            case "outer-outline-color" -> indicator.outerOutline().hexColor(checkColorFormat(propertyValue));
+            case "outer-outline-opacity" -> indicator.outerOutline().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "outer-outline-fill-percent" -> indicator.outerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
+            case "inner-outline-thickness" -> indicator.innerOutline().thickness(parseDouble(propertyValue, true, 0, 100));
+            case "inner-outline-color" -> indicator.innerOutline().hexColor(checkColorFormat(propertyValue));
+            case "inner-outline-opacity" -> indicator.innerOutline().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "inner-outline-fill-percent" -> indicator.innerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
             case "shadow-blur-radius" -> indicator.shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
             case "shadow-color" -> indicator.shadow().hexColor(checkColorFormat(propertyValue));
             case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, 1));

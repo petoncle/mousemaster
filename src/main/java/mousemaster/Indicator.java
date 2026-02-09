@@ -5,7 +5,7 @@ import mousemaster.IndicatorOutline.IndicatorOutlineBuilder;
 import mousemaster.Shadow.ShadowBuilder;
 
 public record Indicator(int size, int edgeCount, String hexColor, double opacity,
-                        IndicatorOutline firstOutline, IndicatorOutline secondOutline,
+                        IndicatorOutline outerOutline, IndicatorOutline innerOutline,
                         Shadow shadow,
                         boolean labelEnabled, String labelText,
                         FontStyle labelFontStyle) {
@@ -15,8 +15,8 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
         private Integer edgeCount;
         private String hexColor;
         private Double opacity;
-        private IndicatorOutlineBuilder firstOutline = new IndicatorOutlineBuilder();
-        private IndicatorOutlineBuilder secondOutline = new IndicatorOutlineBuilder();
+        private IndicatorOutlineBuilder outerOutline = new IndicatorOutlineBuilder();
+        private IndicatorOutlineBuilder innerOutline = new IndicatorOutlineBuilder();
         private ShadowBuilder shadow = new ShadowBuilder();
         private Boolean labelEnabled;
         private String labelText;
@@ -58,12 +58,12 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
             return opacity;
         }
 
-        public IndicatorOutlineBuilder firstOutline() {
-            return firstOutline;
+        public IndicatorOutlineBuilder outerOutline() {
+            return outerOutline;
         }
 
-        public IndicatorOutlineBuilder secondOutline() {
-            return secondOutline;
+        public IndicatorOutlineBuilder innerOutline() {
+            return innerOutline;
         }
 
         public ShadowBuilder shadow() {
@@ -97,8 +97,8 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
             if (edgeCount == null) edgeCount = parent.edgeCount;
             if (hexColor == null) hexColor = parent.hexColor;
             if (opacity == null) opacity = parent.opacity;
-            firstOutline.extend(parent.firstOutline);
-            secondOutline.extend(parent.secondOutline);
+            outerOutline.extend(parent.outerOutline);
+            innerOutline.extend(parent.innerOutline);
             shadow.extend(parent.shadow);
             if (labelEnabled == null) labelEnabled = parent.labelEnabled;
             if (labelText == null) labelText = parent.labelText;
@@ -107,7 +107,7 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
 
         public Indicator build() {
             return new Indicator(size, edgeCount, hexColor, opacity,
-                    firstOutline.build(), secondOutline.build(),
+                    outerOutline.build(), innerOutline.build(),
                     shadow.build(),
                     labelEnabled, labelText, labelFontStyle.build());
         }
