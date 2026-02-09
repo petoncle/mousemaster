@@ -1070,10 +1070,26 @@ public class ConfigurationParser {
                                 Boolean.parseBoolean(propertyValue));
                     }
                     else {
-                        if (keyMatcher.group(group5) == null)
-                            throw new IllegalArgumentException(
-                                    "Invalid indicator property key: " + stateOrKey);
                         String subKey = keyMatcher.group(group5);
+                        if (subKey == null) {
+                            // Backward compatibility: idle-color (old) -> idle.color (new)
+                            for (String state : List.of(
+                                    "unhandled-key-press", "middle-mouse-press", "right-mouse-press",
+                                    "left-mouse-press", "mouse-press", "wheel", "idle", "move")) {
+                                if (stateOrKey.startsWith(state + "-")) {
+                                    subKey = stateOrKey.substring(state.length() + 1);
+                                    stateOrKey = state;
+                                    break;
+                                }
+                            }
+                            if (subKey == null)
+                                throw new IllegalArgumentException(
+                                        "Invalid indicator property key: " + stateOrKey);
+                            logger.warn(propertyKey + " is deprecated, use " +
+                                    propertyKey.replace("." + stateOrKey + "-" + subKey,
+                                            "." + stateOrKey + "." + subKey) +
+                                    " instead");
+                        }
                         IndicatorBuilder targetIndicator = switch (stateOrKey) {
                             case "idle" -> mode.indicator.builder.idleIndicator();
                             case "move" -> mode.indicator.builder.moveIndicator();
