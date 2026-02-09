@@ -1,5 +1,6 @@
 package mousemaster;
 
+import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.platform.win32.COM.Unknown;
@@ -10,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -23,26 +25,57 @@ public class WindowsUiAutomation {
     private static final Guid.IID IID_IUIAutomation =
             new Guid.IID("30CBE57D-D9D0-452A-AB13-7AC5AC4825EE");
 
-    private static final Set<Integer> INTERACTIVE_CONTROL_TYPES = Set.of(
-            50000, // Button
-            50002, // CheckBox
-            50003, // ComboBox
-            50004, // Edit
-            50005, // Hyperlink
-            50007, // ListItem
-            50011, // MenuItem
-            50013, // RadioButton
-            50019, // TabItem
-            50024, // TreeItem
-            50031  // SplitButton
-    );
+    private static final int UIA_BoundingRectanglePropertyId = 30001;
+    private static final int UIA_ControlTypePropertyId = 30003;
+    private static final int UIA_IsOffscreenPropertyId = 30022;
+    private static final int UIA_IsEnabledPropertyId = 30010;
+    private static final int UIA_IsKeyboardFocusablePropertyId = 30009;
+    private static final int UIA_IsInvokePatternAvailablePropertyId = 30031;
 
-    private static final int TreeScope_Children = 2;
+    private static final int UIA_ButtonControlTypeId = 50000;
+
     private static final int TreeScope_Descendants = 4;
 
+    // VARIANT constants
+    private static final short VT_BOOL = 0x000B;
+    private static final short VT_I4 = 3;
+    private static final short VARIANT_TRUE = -1;
+
     private static Pointer automation;
+    private static UIAutomationCondition cachedCondition;
+    private static UIAutomationCacheRequest cachedCacheRequest;
 
     record UiElement(double centerX, double centerY) {
+    }
+
+    /**
+     * Creates a 16-byte VARIANT(VT_BOOL, VARIANT_TRUE) in native memory.
+     * On x64: vt at offset 0 (2 bytes), value at offset 8 (2 bytes).
+     * On x64 ABI, structs >8 bytes are passed by hidden pointer,
+     * so passing this Memory (a Pointer) to COM works naturally.
+     */
+    private static Memory createBoolVariantTrue() {
+        Memory variant = new Memory(16);
+        variant.clear();
+        variant.setShort(0, VT_BOOL);
+        variant.setShort(8, VARIANT_TRUE);
+        return variant;
+    }
+
+    private static Memory createBoolVariantFalse() {
+        Memory variant = new Memory(16);
+        variant.clear();
+        variant.setShort(0, VT_BOOL);
+        variant.setShort(8, (short) 0); // VARIANT_FALSE
+        return variant;
+    }
+
+    private static Memory createIntVariant(int value) {
+        Memory variant = new Memory(16);
+        variant.clear();
+        variant.setShort(0, VT_I4);
+        variant.setInt(8, value);
+        return variant;
     }
 
     private static void ensureInitialized() {
@@ -65,54 +98,116 @@ public class WindowsUiAutomation {
                     "Failed to create IUIAutomation: 0x" +
                     Integer.toHexString(hr.intValue()));
         automation = pAutomation.getValue();
+        UIAutomation uia = new UIAutomation(automation);
+        // Build condition:
+        // IsOffscreen=false AND IsEnabled=true
+        // AND (IsKeyboardFocusable=true OR IsInvokePatternAvailable=true
+        //      OR ControlType=Button)
+        cachedCondition = buildCondition(uia);
+        if (cachedCondition == null) {
+            logger.warn("Failed to create conditions, " +
+                         "falling back to TrueCondition");
+            cachedCondition = uia.createTrueCondition();
+        }
+        cachedCacheRequest = uia.createCacheRequest();
+        if (cachedCacheRequest != null) {
+            cachedCacheRequest.addProperty(UIA_BoundingRectanglePropertyId);
+        }
+    }
+
+    /**
+     * Builds: IsOffscreen=false AND IsEnabled=true
+     *     AND (IsKeyboardFocusable OR IsInvokePatternAvailable OR ControlType=Button)
+     * Returns null if any step fails.
+     */
+    private static UIAutomationCondition buildCondition(UIAutomation uia) {
+        Memory boolTrue = createBoolVariantTrue();
+        Memory boolFalse = createBoolVariantFalse();
+        UIAutomationCondition focusable = null, invokable = null,
+                button = null, onscreen = null, enabled = null;
+        try {
+            focusable = uia.createPropertyCondition(
+                    UIA_IsKeyboardFocusablePropertyId, boolTrue);
+            invokable = uia.createPropertyCondition(
+                    UIA_IsInvokePatternAvailablePropertyId, boolTrue);
+            button = uia.createPropertyCondition(
+                    UIA_ControlTypePropertyId,
+                    createIntVariant(UIA_ButtonControlTypeId));
+            onscreen = uia.createPropertyCondition(
+                    UIA_IsOffscreenPropertyId, boolFalse);
+            enabled = uia.createPropertyCondition(
+                    UIA_IsEnabledPropertyId, boolTrue);
+            if (focusable == null || invokable == null ||
+                button == null || onscreen == null || enabled == null)
+                return null;
+            // focusable OR invokable
+            UIAutomationCondition or1 =
+                    uia.createOrCondition(focusable, invokable);
+            if (or1 == null)
+                return null;
+            // (focusable OR invokable) OR button
+            UIAutomationCondition or2 =
+                    uia.createOrCondition(or1, button);
+            or1.Release();
+            if (or2 == null)
+                return null;
+            // ... AND onscreen
+            UIAutomationCondition and1 =
+                    uia.createAndCondition(or2, onscreen);
+            or2.Release();
+            if (and1 == null)
+                return null;
+            // ... AND enabled
+            UIAutomationCondition result =
+                    uia.createAndCondition(and1, enabled);
+            and1.Release();
+            return result;
+        }
+        finally {
+            if (focusable != null) focusable.Release();
+            if (invokable != null) invokable.Release();
+            if (button != null) button.Release();
+            if (onscreen != null) onscreen.Release();
+            if (enabled != null) enabled.Release();
+        }
     }
 
     static List<UiElement> findInteractiveElements() {
+        long t0 = System.nanoTime();
         ensureInitialized();
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         if (hwnd == null)
             return List.of();
-        char[] windowTitle = new char[256];
-        User32.INSTANCE.GetWindowText(hwnd, windowTitle, 256);
-        logger.debug("Foreground HWND={}, title='{}'",
-                Pointer.nativeValue(hwnd.getPointer()),
-                com.sun.jna.Native.toString(windowTitle));
+        if (cachedCondition == null || cachedCacheRequest == null)
+            return List.of();
+        WinDef.RECT windowRect = new WinDef.RECT();
+        if (!User32.INSTANCE.GetWindowRect(hwnd, windowRect))
+            return List.of();
         UIAutomation uia = new UIAutomation(automation);
         UIAutomationElement root = null;
-        UIAutomationCondition condition = null;
         UIAutomationElementArray array = null;
         try {
             root = uia.elementFromHandle(hwnd);
-            if (root == null) {
-                logger.debug("elementFromHandle returned null");
+            if (root == null)
                 return List.of();
-            }
-            condition = uia.createTrueCondition();
-            if (condition == null) {
-                logger.debug("createTrueCondition returned null");
-                return List.of();
-            }
-            array = root.findAll(TreeScope_Descendants, condition);
+            long t1 = System.nanoTime();
+            array = root.findAllBuildCache(TreeScope_Descendants,
+                    cachedCondition, cachedCacheRequest);
+            long t2 = System.nanoTime();
             if (array == null) {
-                logger.debug("FindAll returned null");
+                logger.debug("FindAllBuildCache returned null");
                 return List.of();
             }
             int length = array.getLength();
-            logger.debug("UI Automation FindAll found {} total elements", length);
-            java.util.Map<Integer, Integer> controlTypeCounts = new java.util.TreeMap<>();
-            List<UiElement> elements = new ArrayList<>();
+            logger.debug("FindAllBuildCache: {}ms ({} elements)",
+                    (t2 - t1) / 1_000_000.0, length);
+            Set<UiElement> elements = new LinkedHashSet<>();
             for (int i = 0; i < length; i++) {
                 UIAutomationElement element = array.getElement(i);
                 if (element == null)
                     continue;
                 try {
-                    int controlType = element.getCurrentControlType();
-                    controlTypeCounts.merge(controlType, 1, Integer::sum);
-                    if (!INTERACTIVE_CONTROL_TYPES.contains(controlType))
-                        continue;
-                    if (element.isCurrentOffscreen())
-                        continue;
-                    WinDef.RECT rect = element.getCurrentBoundingRectangle();
+                    WinDef.RECT rect = element.getCachedBoundingRectangle();
                     if (rect == null)
                         continue;
                     int width = rect.right - rect.left;
@@ -121,21 +216,27 @@ public class WindowsUiAutomation {
                         continue;
                     double centerX = rect.left + width / 2.0;
                     double centerY = rect.top + height / 2.0;
+                    if (centerX < windowRect.left ||
+                        centerX > windowRect.right ||
+                        centerY < windowRect.top ||
+                        centerY > windowRect.bottom)
+                        continue;
                     elements.add(new UiElement(centerX, centerY));
                 }
                 finally {
                     element.Release();
                 }
             }
-            logger.debug("Control type distribution: {}", controlTypeCounts);
-            logger.debug("Found {} interactive UI elements", elements.size());
-            return elements;
+            long t3 = System.nanoTime();
+            logger.debug("Element iteration: {}ms ({} unique interactive)",
+                    (t3 - t2) / 1_000_000.0, elements.size());
+            logger.debug("Total findInteractiveElements: {}ms",
+                    (t3 - t0) / 1_000_000.0);
+            return new ArrayList<>(elements);
         }
         finally {
             if (array != null)
                 array.Release();
-            if (condition != null)
-                condition.Release();
             if (root != null)
                 root.Release();
         }
@@ -160,28 +261,15 @@ public class WindowsUiAutomation {
             return new UIAutomationElement(ppElement.getValue());
         }
 
-        // IUIAutomation::GetRootElement — vtable index 5
-        UIAutomationElement getRootElement() {
-            PointerByReference ppElement = new PointerByReference();
-            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(5,
-                    new Object[]{getPointer(), ppElement},
+        // IUIAutomation::CreateCacheRequest — vtable index 20
+        UIAutomationCacheRequest createCacheRequest() {
+            PointerByReference ppRequest = new PointerByReference();
+            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(20,
+                    new Object[]{getPointer(), ppRequest},
                     WinNT.HRESULT.class);
-            if (W32Errors.FAILED(hr) || ppElement.getValue() == null)
+            if (W32Errors.FAILED(hr) || ppRequest.getValue() == null)
                 return null;
-            return new UIAutomationElement(ppElement.getValue());
-        }
-
-        // IUIAutomation::get_RawViewCondition — vtable index 16
-        UIAutomationCondition getRawViewCondition() {
-            PointerByReference ppCondition = new PointerByReference();
-            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(16,
-                    new Object[]{getPointer(), ppCondition},
-                    WinNT.HRESULT.class);
-            logger.debug("getRawViewCondition hr=0x{}",
-                    Integer.toHexString(hr.intValue()));
-            if (W32Errors.FAILED(hr) || ppCondition.getValue() == null)
-                return null;
-            return new UIAutomationCondition(ppCondition.getValue());
+            return new UIAutomationCacheRequest(ppRequest.getValue());
         }
 
         // IUIAutomation::CreateTrueCondition — vtable index 21
@@ -194,6 +282,58 @@ public class WindowsUiAutomation {
                 return null;
             return new UIAutomationCondition(ppCondition.getValue());
         }
+
+        // IUIAutomation::CreatePropertyCondition — vtable index 23
+        // HRESULT CreatePropertyCondition(PROPERTYID, VARIANT, IUIAutomationCondition**)
+        // On x64, VARIANT (16 bytes) is passed by hidden pointer.
+        UIAutomationCondition createPropertyCondition(int propertyId,
+                                                       Memory variant) {
+            PointerByReference ppCondition = new PointerByReference();
+            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(23,
+                    new Object[]{getPointer(), propertyId, variant,
+                            ppCondition},
+                    WinNT.HRESULT.class);
+            if (W32Errors.FAILED(hr) || ppCondition.getValue() == null) {
+                logger.warn("CreatePropertyCondition({}) failed: 0x{}",
+                        propertyId,
+                        Integer.toHexString(hr.intValue()));
+                return null;
+            }
+            return new UIAutomationCondition(ppCondition.getValue());
+        }
+
+        // IUIAutomation::CreateAndCondition — vtable index 25
+        UIAutomationCondition createAndCondition(UIAutomationCondition c1,
+                                                  UIAutomationCondition c2) {
+            PointerByReference ppCondition = new PointerByReference();
+            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(25,
+                    new Object[]{getPointer(), c1.getPointer(),
+                            c2.getPointer(), ppCondition},
+                    WinNT.HRESULT.class);
+            if (W32Errors.FAILED(hr) || ppCondition.getValue() == null) {
+                logger.warn("CreateAndCondition failed: 0x{}",
+                        Integer.toHexString(hr.intValue()));
+                return null;
+            }
+            return new UIAutomationCondition(ppCondition.getValue());
+        }
+
+        // IUIAutomation::CreateOrCondition — vtable index 28
+        // (25=CreateAndCondition, 26=..FromArray, 27=..FromNativeArray, 28=CreateOrCondition)
+        UIAutomationCondition createOrCondition(UIAutomationCondition c1,
+                                                 UIAutomationCondition c2) {
+            PointerByReference ppCondition = new PointerByReference();
+            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(28,
+                    new Object[]{getPointer(), c1.getPointer(),
+                            c2.getPointer(), ppCondition},
+                    WinNT.HRESULT.class);
+            if (W32Errors.FAILED(hr) || ppCondition.getValue() == null) {
+                logger.warn("CreateOrCondition failed: 0x{}",
+                        Integer.toHexString(hr.intValue()));
+                return null;
+            }
+            return new UIAutomationCondition(ppCondition.getValue());
+        }
     }
 
     private static class UIAutomationElement extends Unknown {
@@ -202,48 +342,25 @@ public class WindowsUiAutomation {
             super(p);
         }
 
-        // IUIAutomationElement::FindAll — vtable index 6
-        UIAutomationElementArray findAll(
-                int scope, UIAutomationCondition condition) {
+        // IUIAutomationElement::FindAllBuildCache — vtable index 8
+        UIAutomationElementArray findAllBuildCache(
+                int scope, UIAutomationCondition condition,
+                UIAutomationCacheRequest cacheRequest) {
             PointerByReference ppArray = new PointerByReference();
-            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(6,
+            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(8,
                     new Object[]{getPointer(), scope,
-                            condition.getPointer(), ppArray},
+                            condition.getPointer(),
+                            cacheRequest.getPointer(), ppArray},
                     WinNT.HRESULT.class);
-            logger.debug("FindAll hr=0x{}, ppArray={}",
-                    Integer.toHexString(hr.intValue()),
-                    ppArray.getValue());
             if (W32Errors.FAILED(hr) || ppArray.getValue() == null)
                 return null;
             return new UIAutomationElementArray(ppArray.getValue());
         }
 
-        // IUIAutomationElement::get_CurrentControlType — vtable index 21
-        int getCurrentControlType() {
-            IntByReference pRetVal = new IntByReference();
-            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(21,
-                    new Object[]{getPointer(), pRetVal},
-                    WinNT.HRESULT.class);
-            if (W32Errors.FAILED(hr))
-                return -1;
-            return pRetVal.getValue();
-        }
-
-        // IUIAutomationElement::get_CurrentIsOffscreen — vtable index 38
-        boolean isCurrentOffscreen() {
-            IntByReference pRetVal = new IntByReference();
-            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(38,
-                    new Object[]{getPointer(), pRetVal},
-                    WinNT.HRESULT.class);
-            if (W32Errors.FAILED(hr))
-                return true;
-            return pRetVal.getValue() != 0;
-        }
-
-        // IUIAutomationElement::get_CurrentBoundingRectangle — vtable index 43
-        WinDef.RECT getCurrentBoundingRectangle() {
+        // IUIAutomationElement::get_CachedBoundingRectangle — vtable index 75
+        WinDef.RECT getCachedBoundingRectangle() {
             WinDef.RECT rect = new WinDef.RECT();
-            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(43,
+            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(75,
                     new Object[]{getPointer(), rect},
                     WinNT.HRESULT.class);
             if (W32Errors.FAILED(hr))
@@ -285,7 +402,24 @@ public class WindowsUiAutomation {
 
         UIAutomationCondition(Pointer p) {
             super(p);
+        }
     }
+
+    private static class UIAutomationCacheRequest extends Unknown {
+
+        UIAutomationCacheRequest(Pointer p) {
+            super(p);
+        }
+
+        // IUIAutomationCacheRequest::AddProperty — vtable index 3
+        void addProperty(int propertyId) {
+            WinNT.HRESULT hr = (WinNT.HRESULT) _invokeNativeObject(3,
+                    new Object[]{getPointer(), propertyId},
+                    WinNT.HRESULT.class);
+            if (W32Errors.FAILED(hr))
+                logger.warn("AddProperty({}) failed: 0x{}",
+                        propertyId, Integer.toHexString(hr.intValue()));
+        }
     }
 
 }
