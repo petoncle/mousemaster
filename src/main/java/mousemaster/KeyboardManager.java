@@ -193,8 +193,11 @@ public class KeyboardManager {
             completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();
 
             for (Key key : pressedKeysInCompletedCombo) {
+                PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
+                if (processingSet == null)
+                    continue;
                 Map<Combo, PressKeyEventProcessing> processingByCombo =
-                        currentlyPressedKeys.get(key).processingByCombo();
+                        processingSet.processingByCombo();
                 PressKeyEventProcessing processing = processingByCombo.get(combo);
                 // Can be null with (when going from temp-screen-snap-mode.to.idle-mode,
                 // , is pressed and idle-mode's alttab combo is not registered for +rightalt):
