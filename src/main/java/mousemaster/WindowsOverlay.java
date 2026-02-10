@@ -981,7 +981,7 @@ public class WindowsOverlay {
                                         style, qtScaleFactor,
                                         container
                                 );
-                        logger.debug("Built hint mesh window in " + (System.nanoTime() - before) / 1e6 + "ms");
+                        logger.debug("Built hint mesh window in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
                         hintBoxGeometriesByHintMeshKey.put(hintMeshKey,
                                 hintBoxGeometries);
                         transitionHintContainers(
@@ -1576,7 +1576,7 @@ public class WindowsOverlay {
             hintMeshWindows.put(screen, createHintMeshWindow(screen, List.of(), null));
         }
         logger.info("Pre-warmed hint mesh windows for " + screens.size() +
-                " screens in " + (System.nanoTime() - before) / 1e6 + "ms");
+                " screens in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
         updateZoomExcludedWindows();
     }
 
@@ -1600,7 +1600,7 @@ public class WindowsOverlay {
             new QFontMetrics(font).horizontalAdvance("x");
         }
         logger.debug("Pre-warmed " + fontStyles.size() + " hint font styles in " +
-                (System.nanoTime() - before) / 1e6 + "ms");
+                (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
     private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
@@ -1619,7 +1619,7 @@ public class WindowsOverlay {
                 new PixmapAndPosition(pixmap, container.x(), container.y(), hintMesh,
                         window.x(), window.y());
         logger.debug("Cached " + pixmapAndPosition + " in " +
-                     (System.nanoTime() - before) / 1e6 + "ms (cache size is " +
+                     (long) ((System.nanoTime() - before) / 1e6) + "ms (cache size is " +
                      hintMeshPixmaps.size() + ")");
         // pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
