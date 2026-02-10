@@ -480,24 +480,9 @@ public class WindowsOverlay {
         }
     }
 
-    public static class IndicatorShadowEffect extends QGraphicsDropShadowEffect {
+    public static class StackedShadowEffect extends QGraphicsDropShadowEffect {
 
-        private final IndicatorWidget widget;
-        private QColor fillColor;
-        private QColor outerOutlineColor;
-        private QColor innerOutlineColor;
-        private double stackedOpacity;
-
-        IndicatorShadowEffect(IndicatorWidget widget) {
-            this.widget = widget;
-        }
-
-        void setColors(QColor fillColor, QColor outerOutlineColor,
-                       QColor innerOutlineColor) {
-            this.fillColor = fillColor;
-            this.outerOutlineColor = outerOutlineColor;
-            this.innerOutlineColor = innerOutlineColor;
-        }
+        private double stackedOpacity = 1.0;
 
         void setStackedOpacity(double stackedOpacity) {
             this.stackedOpacity = stackedOpacity;
@@ -526,13 +511,55 @@ public class WindowsOverlay {
                     painter.setOpacity(beforeOpacity);
                 }
             }
+            redrawSourceOverShadow(painter);
+        }
+
+        protected void redrawSourceOverShadow(QPainter painter) {
+            // No-op by default. Subclasses override to clear and redraw
+            // source content, preventing shadow from showing through
+            // transparent parts.
+        }
+    }
+
+    public static class IndicatorShadowEffect extends StackedShadowEffect {
+
+        private final IndicatorWidget widget;
+        private QColor fillColor;
+        private QColor outerOutlineColor;
+        private QColor innerOutlineColor;
+
+        IndicatorShadowEffect(IndicatorWidget widget) {
+            this.widget = widget;
+        }
+
+        void setColors(QColor fillColor, QColor outerOutlineColor,
+                       QColor innerOutlineColor) {
+            this.fillColor = fillColor;
+            this.outerOutlineColor = outerOutlineColor;
+            this.innerOutlineColor = innerOutlineColor;
+        }
+
+        @Override
+        protected void redrawSourceOverShadow(QPainter painter) {
             if (!indicatorHasTransparency())
                 return;
-            // drawContent clears the indicator area
-            // so the shadow doesn't show through transparent parts.
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             widget.drawContent(painter, fillColor, outerOutlineColor, innerOutlineColor);
         }
+    }
+
+    public static class HintLabelShadowEffect extends StackedShadowEffect {
+
+        HintLabelShadowEffect() {
+        }
+
+        // TODO: Implement transparency override (transparent text should
+        // not show shadow behind it). Unlike the indicator, the hint label
+        // layer shares a parent with the box layers. CompositionMode_Clear
+        // on the effect's painter (which is the parent's painter) would
+        // erase the boxes. A buffer-based approach is needed: render
+        // shadow+source to a QImage, do the clear+redraw there, then
+        // draw the QImage to the parent's painter with SourceOver.
     }
 
     private static class IndicatorLabelWidget extends QWidget {
@@ -1278,7 +1305,8 @@ public class WindowsOverlay {
                 ),
                 qColor(style.fontStyle().fontStyle().outlineHexColor(), style.fontStyle().fontStyle().outlineOpacity()),
                 (int) Math.round(style.fontStyle().fontStyle().outlineThickness() * screenScale),
-                qColor(style.fontStyle().fontStyle().shadow().hexColor(), style.fontStyle().fontStyle().shadow().opacity()),
+                stackedShadowColor(style.fontStyle().fontStyle().shadow()),
+                style.fontStyle().fontStyle().shadow().opacity(),
                 style.fontStyle().fontStyle().shadow().blurRadius() * screenScale,
                 style.fontStyle().fontStyle().shadow().horizontalOffset() * screenScale,
                 style.fontStyle().fontStyle().shadow().verticalOffset() * screenScale,
@@ -1477,7 +1505,8 @@ public class WindowsOverlay {
                     ),
                     qColor(style.prefixFontStyle().fontStyle().outlineHexColor(), style.prefixFontStyle().fontStyle().outlineOpacity()),
                     (int) Math.round(style.prefixFontStyle().fontStyle().outlineThickness() * screenScale),
-                    qColor(style.prefixFontStyle().fontStyle().shadow().hexColor(), style.prefixFontStyle().fontStyle().shadow().opacity()),
+                    stackedShadowColor(style.prefixFontStyle().fontStyle().shadow()),
+                    style.prefixFontStyle().fontStyle().shadow().opacity(),
                     style.prefixFontStyle().fontStyle().shadow().blurRadius() * screenScale,
                     style.prefixFontStyle().fontStyle().shadow().horizontalOffset() * screenScale,
                     style.prefixFontStyle().fontStyle().shadow().verticalOffset() * screenScale,
@@ -1569,22 +1598,24 @@ public class WindowsOverlay {
         HintPaintLayer prefixLabelLayer = new HintPaintLayer(container, List.of(), prefixLabels);
         prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         if (prefixLabelFontStyle != null && prefixLabelFontStyle.shadowColor.alpha() != 0) {
-            QGraphicsDropShadowEffect prefixShadow = new QGraphicsDropShadowEffect();
+            HintLabelShadowEffect prefixShadow = new HintLabelShadowEffect();
             prefixShadow.setBlurRadius(prefixLabelFontStyle.shadowBlurRadius);
             prefixShadow.setOffset(prefixLabelFontStyle.shadowHorizontalOffset,
                     prefixLabelFontStyle.shadowVerticalOffset);
             prefixShadow.setColor(prefixLabelFontStyle.shadowColor);
+            prefixShadow.setStackedOpacity(prefixLabelFontStyle.shadowOpacity);
             prefixLabelLayer.setGraphicsEffect(prefixShadow);
         }
         // Layer 4: Hint labels (with shadow effect if configured).
         HintPaintLayer hintLabelLayer = new HintPaintLayer(container, List.of(), hintLabels);
         hintLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         if (labelFontStyle.shadowColor.alpha() != 0) {
-            QGraphicsDropShadowEffect hintShadow = new QGraphicsDropShadowEffect();
+            HintLabelShadowEffect hintShadow = new HintLabelShadowEffect();
             hintShadow.setBlurRadius(labelFontStyle.shadowBlurRadius);
             hintShadow.setOffset(labelFontStyle.shadowHorizontalOffset,
                     labelFontStyle.shadowVerticalOffset);
             hintShadow.setColor(labelFontStyle.shadowColor);
+            hintShadow.setStackedOpacity(labelFontStyle.shadowOpacity);
             hintLabelLayer.setGraphicsEffect(hintShadow);
         }
         return hintBoxGeometries;
@@ -2050,11 +2081,25 @@ public class WindowsOverlay {
         return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
     }
 
+    /**
+     * For opacity <= 1.0, bake alpha into the color.
+     * For opacity > 1.0, use full alpha; stacking is handled in
+     * {@link StackedShadowEffect#draw}.
+     */
+    private static QColor stackedShadowColor(Shadow shadow) {
+        double opacity = shadow.opacity();
+        int alpha = (int) Math.round(Math.min(opacity, 1.0) * 255);
+        QColor base = qColor(shadow.hexColor(), 1.0);
+        return new QColor(base.red(), base.green(), base.blue(), alpha);
+    }
+
     public record LabelFontStyle(QFont font, QFontMetrics metrics,
                                  HintKeyColorMap hintKeyColorMap,
                                  HintKeyColorMap prefixHintKeyColorMap,
                                  QColor outlineColor,
-                                 int outlineThickness, QColor shadowColor, double shadowBlurRadius,
+                                 int outlineThickness, QColor shadowColor,
+                                 double shadowOpacity,
+                                 double shadowBlurRadius,
                                  double shadowHorizontalOffset, double shadowVerticalOffset,
                                  double fontSpacingPercent) {
 
