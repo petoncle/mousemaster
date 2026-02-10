@@ -114,19 +114,6 @@ public interface ExtendedUser32 extends User32 {
      */
     boolean IsIconic(WinDef.HWND hWnd);
 
-    interface WinEventProc extends StdCallLibrary.StdCallCallback {
-        void callback(Pointer hWinEventHook, int event, HWND hwnd,
-                      int idObject, int idChild, int idEventThread,
-                      int dwmsEventTime);
-    }
-
-    Pointer SetWinEventHook(int eventMin, int eventMax,
-                            Pointer hmodWinEventProc,
-                            WinEventProc pfnWinEventProc,
-                            int idProcess, int idThread, int dwFlags);
-
-    HWND GetAncestor(HWND hwnd, int gaFlags);
-
     boolean EnumThreadWindows(int dwThreadId, WinUser.WNDENUMPROC lpfn, Pointer lParam);
 
 }
