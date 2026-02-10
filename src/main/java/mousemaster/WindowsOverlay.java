@@ -7,6 +7,8 @@ import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.QApplication;
 import io.qt.widgets.QGraphicsDropShadowEffect;
+import io.qt.widgets.QGraphicsPixmapItem;
+import io.qt.widgets.QGraphicsScene;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
 import mousemaster.WindowsMouse.MouseSize;
@@ -548,19 +550,6 @@ public class WindowsOverlay {
         }
     }
 
-    public static class HintLabelShadowEffect extends StackedShadowEffect {
-
-        HintLabelShadowEffect() {
-        }
-
-        // TODO: Implement transparency override (transparent text should
-        // not show shadow behind it). Unlike the indicator, the hint label
-        // layer shares a parent with the box layers. CompositionMode_Clear
-        // on the effect's painter (which is the parent's painter) would
-        // erase the boxes. A buffer-based approach is needed: render
-        // shadow+source to a QImage, do the clear+redraw there, then
-        // draw the QImage to the parent's painter with SourceOver.
-    }
 
     private static class IndicatorLabelWidget extends QWidget {
 
@@ -768,6 +757,23 @@ public class WindowsOverlay {
         IndicatorOutline inner = currentIndicator.innerOutline();
         return (outer.thickness() > 0 && outer.opacity() < 1.0) ||
                (inner.thickness() > 0 && inner.opacity() < 1.0);
+    }
+
+    private static boolean labelFontStyleHasTransparency(LabelFontStyle style) {
+        if (style.outlineThickness != 0 && style.outlineColor.alpha() < 255)
+            return true;
+        HintKeyColorMap colors = style.hintKeyColorMap;
+        if (colors.color().alpha() < 255 || colors.selectedColor().alpha() < 255 ||
+                colors.focusedColor().alpha() < 255)
+            return true;
+        if (style.prefixHintKeyColorMap != null) {
+            HintKeyColorMap prefixColors = style.prefixHintKeyColorMap;
+            if (prefixColors.color().alpha() < 255 ||
+                    prefixColors.selectedColor().alpha() < 255 ||
+                    prefixColors.focusedColor().alpha() < 255)
+                return true;
+        }
+        return false;
     }
 
     private static void setIndicatorEffectColors(IndicatorShadowEffect effect) {
@@ -1594,30 +1600,20 @@ public class WindowsOverlay {
         // Layer 2: Prefix boxes.
         HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        // Layer 3: Prefix labels (with shadow effect if configured).
-        HintPaintLayer prefixLabelLayer = new HintPaintLayer(container, List.of(), prefixLabels);
+        // Layer 3: Prefix labels.
+        HintPaintLayer prefixLabelLayer =
+                new HintPaintLayer(container, List.of(), prefixLabels);
         prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        if (prefixLabelFontStyle != null && prefixLabelFontStyle.shadowColor.alpha() != 0) {
-            HintLabelShadowEffect prefixShadow = new HintLabelShadowEffect();
-            prefixShadow.setBlurRadius(prefixLabelFontStyle.shadowBlurRadius);
-            prefixShadow.setOffset(prefixLabelFontStyle.shadowHorizontalOffset,
-                    prefixLabelFontStyle.shadowVerticalOffset);
-            prefixShadow.setColor(prefixLabelFontStyle.shadowColor);
-            prefixShadow.setStackedOpacity(prefixLabelFontStyle.shadowOpacity);
-            prefixLabelLayer.setGraphicsEffect(prefixShadow);
+        if (prefixLabelFontStyle != null) {
+            applyLabelShadow(prefixLabelLayer, prefixLabels,
+                    prefixLabelFontStyle, containerWidth, containerHeight);
         }
-        // Layer 4: Hint labels (with shadow effect if configured).
-        HintPaintLayer hintLabelLayer = new HintPaintLayer(container, List.of(), hintLabels);
+        // Layer 4: Hint labels.
+        HintPaintLayer hintLabelLayer =
+                new HintPaintLayer(container, List.of(), hintLabels);
         hintLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        if (labelFontStyle.shadowColor.alpha() != 0) {
-            HintLabelShadowEffect hintShadow = new HintLabelShadowEffect();
-            hintShadow.setBlurRadius(labelFontStyle.shadowBlurRadius);
-            hintShadow.setOffset(labelFontStyle.shadowHorizontalOffset,
-                    labelFontStyle.shadowVerticalOffset);
-            hintShadow.setColor(labelFontStyle.shadowColor);
-            hintShadow.setStackedOpacity(labelFontStyle.shadowOpacity);
-            hintLabelLayer.setGraphicsEffect(hintShadow);
-        }
+        applyLabelShadow(hintLabelLayer, hintLabels,
+                labelFontStyle, containerWidth, containerHeight);
         return hintBoxGeometries;
     }
 
@@ -2084,7 +2080,7 @@ public class WindowsOverlay {
     /**
      * For opacity <= 1.0, bake alpha into the color.
      * For opacity > 1.0, use full alpha; stacking is handled in
-     * {@link StackedShadowEffect#draw}.
+     * StackedShadowEffect#draw(QPainter).
      */
     private static QColor stackedShadowColor(Shadow shadow) {
         double opacity = shadow.opacity();
@@ -2121,7 +2117,7 @@ public class WindowsOverlay {
         private final boolean overwriteBackground;
         int left;
         int top;
-        private int x, y, width, height;
+        int x, y, width, height;
 
         public HintLabel(List<Key> keySequence, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
@@ -2214,6 +2210,24 @@ public class WindowsOverlay {
         }
 
         public void paint(QPainter painter) {
+            paint(painter, false);
+        }
+
+        /**
+         * Paints with all colors forced to fully opaque (alpha=255).
+         * Used for shadow source rendering: the shadow effect generates
+         * shadow strength from the source alpha, so the source must be
+         * fully opaque to not get a weaker shadow when text is transparent.
+         */
+        void paintOpaque(QPainter painter) {
+            paint(painter, true);
+        }
+
+        private static QColor opaqueColor(QColor c) {
+            return c.alpha() == 255 ? c : new QColor(c.red(), c.green(), c.blue(), 255);
+        }
+
+        private void paint(QPainter painter, boolean forceOpaque) {
             painter.save();
             painter.translate(x, y);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
@@ -2226,7 +2240,10 @@ public class WindowsOverlay {
             if (!overwriteBackground)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (labelFontStyle.outlineThickness != 0 && labelFontStyle.outlineColor().alpha() != 0) {
-                QPen outlinePen = new QPen(labelFontStyle.outlineColor);
+                QColor outlineColor = forceOpaque ?
+                        opaqueColor(labelFontStyle.outlineColor) :
+                        labelFontStyle.outlineColor;
+                QPen outlinePen = new QPen(outlineColor);
                 outlinePen.setWidth(labelFontStyle.outlineThickness);
                 outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
                 painter.setPen(outlinePen);
@@ -2246,12 +2263,14 @@ public class WindowsOverlay {
                 HintKeyColorMap colorMap =
                         keyText.isPrefix() ? labelFontStyle.prefixHintKeyColorMap :
                                 labelFontStyle.hintKeyColorMap;
+                QColor color;
                 if (keyText.isSelected())
-                    painter.setPen(colorMap.selectedColor());
+                    color = colorMap.selectedColor();
                 else if (keyText.isFocused())
-                    painter.setPen(colorMap.focusedColor());
+                    color = colorMap.focusedColor();
                 else
-                    painter.setPen(colorMap.color());
+                    color = colorMap.color();
+                painter.setPen(forceOpaque ? opaqueColor(color) : color);
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.restore();
@@ -2264,10 +2283,112 @@ public class WindowsOverlay {
 
     }
 
+    /**
+     * Applies shadow to a label layer. When text is fully opaque, uses Qt's
+     * QGraphicsDropShadowEffect directly on the widget (fast path). When text
+     * has transparency, pre-renders the shadow off-screen and punches out the
+     * text shape so shadow doesn't show through transparent text.
+     */
+    private static void applyLabelShadow(HintPaintLayer layer,
+                                         List<HintLabel> labels,
+                                         LabelFontStyle style,
+                                         int containerWidth,
+                                         int containerHeight) {
+        if (style.shadowColor.alpha() == 0)
+            return;
+        if (!labelFontStyleHasTransparency(style)) {
+            // Fast path: opaque text, use Qt's effect directly.
+            StackedShadowEffect effect = new StackedShadowEffect();
+            effect.setBlurRadius(style.shadowBlurRadius);
+            effect.setOffset(style.shadowHorizontalOffset,
+                    style.shadowVerticalOffset);
+            effect.setColor(style.shadowColor);
+            effect.setStackedOpacity(style.shadowOpacity);
+            layer.setGraphicsEffect(effect);
+        }
+        else {
+            // Slow path: transparent text, pre-render shadow off-screen.
+            preRenderLabelShadow(layer, labels, style,
+                    containerWidth, containerHeight);
+        }
+    }
+
+    /**
+     * Pre-renders a shadow-only pixmap for a label layer using Qt's
+     * QGraphicsDropShadowEffect via QGraphicsScene. The shadow is rendered
+     * off-screen, then the source text shape is punched out so shadow doesn't
+     * show through transparent text.
+     * Stacking (opacity > 1) is handled at draw time in paintEvent.
+     */
+    private static void preRenderLabelShadow(HintPaintLayer layer,
+                                             List<HintLabel> labels,
+                                             LabelFontStyle style,
+                                             int containerWidth,
+                                             int containerHeight) {
+        // 1. Render labels into a source image with forced opaque colors.
+        QImage sourceImage = new QImage(containerWidth, containerHeight,
+                QImage.Format.Format_ARGB32_Premultiplied);
+        sourceImage.fill(new QColor(0, 0, 0, 0));
+        QPainter srcPainter = new QPainter(sourceImage);
+        for (HintLabel label : labels) {
+            label.paintOpaque(srcPainter);
+        }
+        srcPainter.end();
+        // 2. Use QGraphicsScene + QGraphicsDropShadowEffect to render shadow.
+        QGraphicsScene scene = new QGraphicsScene();
+        QGraphicsPixmapItem item =
+                scene.addPixmap(QPixmap.fromImage(sourceImage));
+        StackedShadowEffect effect = new StackedShadowEffect();
+        effect.setBlurRadius(style.shadowBlurRadius);
+        effect.setOffset(style.shadowHorizontalOffset,
+                style.shadowVerticalOffset);
+        effect.setColor(style.shadowColor);
+        // For the pre-render, use opacity capped at 1.0; stacking is
+        // handled by drawing the pixmap multiple times in paintEvent.
+        effect.setStackedOpacity(1.0);
+        item.setGraphicsEffect(effect);
+        // 3. Render the scene (shadow + source) into a result image.
+        // The effect extends beyond the source, so use itemsBoundingRect.
+        QRectF bounds = scene.itemsBoundingRect();
+        QImage resultImage = new QImage(
+                (int) Math.ceil(bounds.width()),
+                (int) Math.ceil(bounds.height()),
+                QImage.Format.Format_ARGB32_Premultiplied);
+        resultImage.fill(new QColor(0, 0, 0, 0));
+        QPainter resultPainter = new QPainter(resultImage);
+        scene.render(resultPainter, new QRectF(resultImage.rect()), bounds);
+        resultPainter.end();
+        // 4. Remove the source text from the result, leaving shadow only.
+        // This also handles transparent text: shadow is punched out where
+        // source pixels exist, so shadow never shows through text.
+        QPainter maskPainter = new QPainter(resultImage);
+        maskPainter.setCompositionMode(
+                QPainter.CompositionMode.CompositionMode_DestinationOut);
+        // The source is at scene position (0,0). bounds.x/y are <= 0
+        // (the shadow effect extends outward), so -bounds.x/y gives
+        // the source's position within the result image.
+        maskPainter.drawImage((int) Math.round(-bounds.x()),
+                (int) Math.round(-bounds.y()), sourceImage);
+        maskPainter.end();
+        sourceImage.dispose();
+        scene.dispose();
+        // 5. Store the shadow-only pixmap in the layer.
+        layer.setShadowPixmap(QPixmap.fromImage(resultImage),
+                (int) Math.round(bounds.x()),
+                (int) Math.round(bounds.y()));
+        layer.shadowOpacity = style.shadowOpacity;
+        resultImage.dispose();
+    }
+
     private static class HintPaintLayer extends QWidget {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
+        // Pre-rendered shadow-only pixmap (null if no shadow configured).
+        private QPixmap shadowPixmap;
+        private int shadowPixmapX, shadowPixmapY;
+        // Shadow stacking: opacity > 1 means multiple layers.
+        private double shadowOpacity;
 
         HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels) {
             super(parent);
@@ -2275,11 +2396,38 @@ public class WindowsOverlay {
             this.labels = labels;
         }
 
+        void setShadowPixmap(QPixmap shadowPixmap, int x, int y) {
+            this.shadowPixmap = shadowPixmap;
+            this.shadowPixmapX = x;
+            this.shadowPixmapY = y;
+        }
+
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
             for (HintBox box : boxes) {
                 box.paint(painter);
+            }
+            if (shadowPixmap != null) {
+                if (shadowOpacity <= 1.0) {
+                    painter.drawPixmap(shadowPixmapX, shadowPixmapY,
+                            shadowPixmap);
+                }
+                else {
+                    int fullLayers = (int) shadowOpacity;
+                    double remainder = shadowOpacity - fullLayers;
+                    for (int i = 0; i < fullLayers; i++) {
+                        painter.drawPixmap(shadowPixmapX, shadowPixmapY,
+                                shadowPixmap);
+                    }
+                    if (remainder > 1e-6) {
+                        double before = painter.opacity();
+                        painter.setOpacity(before * remainder);
+                        painter.drawPixmap(shadowPixmapX, shadowPixmapY,
+                                shadowPixmap);
+                        painter.setOpacity(before);
+                    }
+                }
             }
             for (HintLabel label : labels) {
                 label.paint(painter);
