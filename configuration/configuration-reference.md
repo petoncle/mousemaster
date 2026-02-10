@@ -406,6 +406,7 @@ hint-mode.hint.type=grid
 The **`type`** property determines what hints are displayed:
 - `grid`: Displays a grid of hints laid out across the screen
 - `position-history`: Displays discrete absolutely positioned hints at previously saved positions (see [Position history](#position-history))
+- `ui`: Displays hints at interactive UI elements (buttons, links, text fields, etc.) of the active window, using the Windows UI Automation API
 
 ### Hint layout and positioning
 
@@ -505,8 +506,14 @@ hint-mode.hint.box-border-thickness=1
 hint-mode.hint.box-border-length=1000
 hint-mode.hint.box-border-color=#FFFFFF
 hint-mode.hint.box-border-opacity=0.4
+
+# Box size relative to the grid cell (for the hint grid only)
 hint-mode.hint.box-width-percent=1.0
 hint-mode.hint.box-height-percent=1.0
+
+# Box padding for UI hints and position history hints only
+hint-mode.hint.box-horizontal-padding=0
+hint-mode.hint.box-vertical-padding=0
 
 # Font appearance
 hint-mode.hint.font-name=Consolas
