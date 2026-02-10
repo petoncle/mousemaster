@@ -1613,7 +1613,7 @@ public class WindowsOverlay {
         for (Screen screen : screens) {
             if (hintMeshWindows.containsKey(screen))
                 continue;
-            hintMeshWindows.put(screen, createHintMeshWindow(screen, List.of(), null));
+            hintMeshWindows.put(screen, createHintMeshWindow(screen, new ArrayList<>(), null));
         }
         logger.info("Pre-warmed hint mesh windows for " + screens.size() +
                 " screens in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
