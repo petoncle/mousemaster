@@ -1265,7 +1265,7 @@ public class WindowsOverlay {
         QFont font = qFont(style.fontStyle().fontStyle().name(), style.fontStyle().fontStyle().size(), style.fontStyle().fontStyle().weight());
         LabelFontStyle labelFontStyle = new LabelFontStyle(
                 font,
-                new QFontMetrics(font),
+                correctedFontMetricsForScreenDpi(font, style.fontStyle().fontStyle().size(), screenScale),
                 new HintKeyColorMap(
                     qColor(style.fontStyle().fontStyle().hexColor(), style.fontStyle().fontStyle().opacity()),
                     qColor(style.fontStyle().selectedFontHexColor(), style.fontStyle().selectedFontOpacity()),
@@ -1467,7 +1467,8 @@ public class WindowsOverlay {
             QFont prefixFont = qFont(style.prefixFontStyle().fontStyle().name(), style.prefixFontStyle().fontStyle().size(), style.prefixFontStyle().fontStyle().weight());
             prefixLabelFontStyle = new LabelFontStyle(
                     prefixFont,
-                    new QFontMetrics(prefixFont),
+                    correctedFontMetricsForScreenDpi(prefixFont, style.prefixFontStyle().fontStyle().size(),
+                            screenScale),
                     null,
                     new HintKeyColorMap(
                             qColor(style.prefixFontStyle().fontStyle().hexColor(), style.prefixFontStyle().fontStyle().opacity()),
@@ -1649,6 +1650,36 @@ public class WindowsOverlay {
         font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
         font.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
         return font;
+    }
+
+    /**
+     * GDI renders text at the monitor's actual DPI, but QFontMetrics uses Qt's
+     * logical DPI (the primary screen's DPI when QT_ENABLE_HIGHDPI_SCALING=0).
+     * On multi-monitor setups with different scales, create a pixel-size font
+     * for metrics so they match the actual GDI rendering on the target screen.
+     *
+     * Note: we use the primary screen's DPI rather than window.logicalDpiX()
+     * because QFontMetrics always resolves point-size fonts using the primary
+     * screen's DPI, but window.logicalDpiX() can change after the window is
+     * shown on a non-primary screen (Qt detects the monitor DPI), creating a
+     * false "no correction needed" match on subsequent calls.
+     */
+    private static QFontMetrics correctedFontMetricsForScreenDpi(QFont renderFont, double fontSizePoints,
+                                                double screenScale) {
+        double primaryScreenDpi = QApplication.primaryScreen().logicalDotsPerInchX();
+        double targetDpi = screenScale * 96.0;
+        if (Math.abs(primaryScreenDpi - targetDpi) < 1) {
+            // QFontMetrics already matches the target DPI, no correction needed.
+            return new QFontMetrics(renderFont);
+        }
+        // Create a metrics-only font with the pixel size that GDI will use.
+        int correctedPixelSize = (int) Math.round(fontSizePoints * targetDpi / 72.0);
+        QFont metricsFont = new QFont(renderFont.family());
+        metricsFont.setPixelSize(correctedPixelSize);
+        metricsFont.setWeight(renderFont.weight());
+        metricsFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
+        metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
+        return new QFontMetrics(metricsFont);
     }
 
     private static void cacheQtHintWindowIntoPixmap(TransparentWindow window, QWidget container,
@@ -2736,7 +2767,6 @@ public class WindowsOverlay {
     }
 
     public static void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
-//        logger.info("setHintMesh selectedKeySequence().size() = " + hintMesh.selectedKeySequence().size() + ", hintMatch = " + hintMatch, new Throwable());
         Objects.requireNonNull(hintMesh);
         if (!hintMesh.visible()) {
             hideHintMesh();
