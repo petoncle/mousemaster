@@ -306,31 +306,111 @@ normal-mode.wheel.acceleration=500
 
 ### Indicator properties
 
+The indicator is a small polygon displayed next to the cursor. Each indicator property can be customized per mouse state (idle, move, wheel, mouse-press, etc.) and per mode.
+
+Non-idle states inherit from the idle state. The `left-mouse-press`, `middle-mouse-press`, and `right-mouse-press` states inherit from `mouse-press`, which itself inherits from `idle`.
+
+#### Per-state property syntax
+
+Properties use the format `<mode>.indicator.<state>.<property>`:
+
 ```properties
-normal-mode.indicator.enabled=true
-normal-mode.indicator.idle-color=#FF0000
-normal-mode.indicator.move-color=#FF0000
-normal-mode.indicator.wheel-color=#FFFF00
-normal-mode.indicator.mouse-press-color=#00FF00
-normal-mode.indicator.unhandled-key-press-color=#0000FF
-normal-mode.indicator.edge-count=4
-normal-mode.indicator.opacity=1.0
-normal-mode.indicator.outline-thickness=2
-normal-mode.indicator.outline-color=#000000
-normal-mode.indicator.outline-opacity=1.0
-normal-mode.indicator.shadow-blur-radius=10
-normal-mode.indicator.shadow-color=#000000
-normal-mode.indicator.shadow-opacity=1.0
-normal-mode.indicator.shadow-horizontal-offset=0
-normal-mode.indicator.shadow-vertical-offset=0
+normal-mode.indicator.idle.color=#FF0000
+normal-mode.indicator.move.color=#FF0000
+normal-mode.indicator.wheel.color=#FFFF00
+normal-mode.indicator.mouse-press.color=#00FF00
+normal-mode.indicator.left-mouse-press.color=#00FF00
+normal-mode.indicator.middle-mouse-press.color=#00FF00
+normal-mode.indicator.right-mouse-press.color=#00FF00
+normal-mode.indicator.unhandled-key-press.color=#0000FF
 ```
-The color of the indicator can be changed depending on the current action being performed.
 
-The shape of the indicator is controlled by `edge-count`: 4 for a square (default), 3 for a triangle, 6 for a hexagon, etc.
+#### Polygon shape and appearance
 
-An outline can be added to the indicator using the outline properties. Set `outline-thickness` to a value greater than 0 to enable the outline.
+Each state can have its own polygon shape, size, color, and opacity:
 
-A drop shadow can be added to the indicator using the shadow properties. Set `shadow-blur-radius` to a value greater than 0 to enable the shadow.
+```properties
+normal-mode.indicator.idle.size=12
+normal-mode.indicator.idle.edge-count=4
+normal-mode.indicator.idle.color=#FF0000
+normal-mode.indicator.idle.opacity=1.0
+```
+
+- **`size`**: Size of the indicator in pixels (1-100, default 12)
+- **`edge-count`**: Number of polygon edges (3-100, default 4). 3 = triangle, 4 = square, 6 = hexagon, 30+ = circle
+
+#### Outlines
+
+Two optional outlines can be drawn around the polygon: an outer outline and an inner outline.
+
+```properties
+# Outer outline
+normal-mode.indicator.idle.outer-outline-thickness=3
+normal-mode.indicator.idle.outer-outline-color=#FFFFFF
+normal-mode.indicator.idle.outer-outline-opacity=1
+normal-mode.indicator.idle.outer-outline-fill-percent=1.0
+
+# Inner outline
+normal-mode.indicator.idle.inner-outline-thickness=1
+normal-mode.indicator.idle.inner-outline-color=#CC0000
+normal-mode.indicator.idle.inner-outline-opacity=1
+normal-mode.indicator.idle.inner-outline-fill-percent=1
+```
+
+- **`outer-outline-fill-percent`** / **`inner-outline-fill-percent`**: How much of the outline is filled (0.0-1.0, default 1.0)
+
+`outline-*` is equivalent to `outer-outline-*`.
+
+#### Shadow
+
+An optional drop shadow can be added to the indicator:
+
+```properties
+normal-mode.indicator.idle.shadow-blur-radius=10
+normal-mode.indicator.idle.shadow-color=#000000
+normal-mode.indicator.idle.shadow-opacity=0.5
+normal-mode.indicator.idle.shadow-horizontal-offset=2
+normal-mode.indicator.idle.shadow-vertical-offset=2
+```
+
+- **`shadow-blur-radius`**: Blur radius in pixels (0-1000, default 0). Set to > 0 to enable.
+- **`shadow-color`**: Hex color of the shadow
+- **`shadow-opacity`**: Opacity (0.0-1.0)
+- **`shadow-horizontal-offset`** / **`shadow-vertical-offset`**: Shadow offset in pixels (-100 to 100)
+
+#### Label
+
+An optional text label can be displayed inside the indicator:
+
+```properties
+normal-mode.indicator.idle.label-enabled=false
+normal-mode.indicator.idle.label-text=N
+normal-mode.indicator.idle.label-font-name=Arial
+normal-mode.indicator.idle.label-font-size=8
+normal-mode.indicator.idle.label-font-weight=normal
+normal-mode.indicator.idle.label-font-color=#FFFFFF
+normal-mode.indicator.idle.label-font-opacity=1.0
+
+# Label font outline
+normal-mode.indicator.idle.label-font-outline-thickness=0
+normal-mode.indicator.idle.label-font-outline-color=#000000
+normal-mode.indicator.idle.label-font-outline-opacity=0.0
+
+# Label font shadow
+normal-mode.indicator.idle.label-font-shadow-blur-radius=0
+normal-mode.indicator.idle.label-font-shadow-color=#000000
+normal-mode.indicator.idle.label-font-shadow-opacity=0.0
+normal-mode.indicator.idle.label-font-shadow-horizontal-offset=0
+normal-mode.indicator.idle.label-font-shadow-vertical-offset=0
+```
+
+- **`label-enabled`**: Whether to show a text label (default false). Automatically set to true if any `label-` property is set.
+- **`label-text`**: The text to display
+- **`label-font-name`**: Font family name (default Arial)
+- **`label-font-size`**: Font size in points
+- **`label-font-weight`**: Font weight (e.g. normal, bold)
+- **`label-font-color`**: Hex color of the label text
+- **`label-font-opacity`**: Opacity of the label text (0.0-1.0)
 
 ### Cursor properties
 
