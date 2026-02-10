@@ -1758,7 +1758,7 @@ public class ConfigurationParser {
                                                 Predicate<String> fontAvailability) {
         switch (key) {
             case "size" -> indicator.size(parseUnsignedInteger(propertyValue, 1, 100));
-            case "edge-count" -> indicator.edgeCount(parseUnsignedInteger(propertyValue, 3, 100));
+            case "edge-count" -> indicator.edgeCount(parseUnsignedInteger(propertyValue, 3, 1000));
             case "color" -> indicator.hexColor(checkColorFormat(propertyValue));
             case "opacity" -> indicator.opacity(parseDouble(propertyValue, true, 0, 1));
             // "outer-" is optional in "outer-outline".
@@ -1772,7 +1772,7 @@ public class ConfigurationParser {
             case "inner-outline-fill-percent" -> indicator.innerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
             case "shadow-blur-radius" -> indicator.shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
             case "shadow-color" -> indicator.shadow().hexColor(checkColorFormat(propertyValue));
-            case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
             case "shadow-horizontal-offset" -> indicator.shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
             case "shadow-vertical-offset" -> indicator.shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
             case "label-enabled" -> indicator.labelEnabled(Boolean.parseBoolean(propertyValue));

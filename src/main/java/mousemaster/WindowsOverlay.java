@@ -486,6 +486,7 @@ public class WindowsOverlay {
         private QColor fillColor;
         private QColor outerOutlineColor;
         private QColor innerOutlineColor;
+        private double stackedOpacity;
 
         IndicatorShadowEffect(IndicatorWidget widget) {
             this.widget = widget;
@@ -498,12 +499,36 @@ public class WindowsOverlay {
             this.innerOutlineColor = innerOutlineColor;
         }
 
+        void setStackedOpacity(double stackedOpacity) {
+            this.stackedOpacity = stackedOpacity;
+        }
+
         @Override
         protected void draw(QPainter painter) {
-            super.draw(painter);
+            // For opacity <= 1.0, the alpha is baked into the color.
+            // For opacity > 1.0, stacked shadows: e.g. 1.5 = one full
+            // shadow + one 0.5 opacity shadow. painter.setOpacity() is
+            // used for the fractional layer (avoids calling setColor()
+            // inside draw() which would trigger a repaint loop).
+            if (stackedOpacity <= 1.0) {
+                super.draw(painter);
+            }
+            else {
+                int fullLayers = (int) stackedOpacity;
+                double remainder = stackedOpacity - fullLayers;
+                for (int i = 0; i < fullLayers; i++) {
+                    super.draw(painter);
+                }
+                if (remainder > 1e-6) {
+                    double beforeOpacity = painter.opacity();
+                    painter.setOpacity(beforeOpacity * remainder);
+                    super.draw(painter);
+                    painter.setOpacity(beforeOpacity);
+                }
+            }
             if (!indicatorHasTransparency())
                 return;
-            // Redraw with real colors; drawContent clears the indicator area
+            // drawContent clears the indicator area
             // so the shadow doesn't show through transparent parts.
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             widget.drawContent(painter, fillColor, outerOutlineColor, innerOutlineColor);
@@ -729,13 +754,20 @@ public class WindowsOverlay {
 
     private static void applyIndicatorShadowEffect(double scale) {
         Shadow shadow = currentIndicator.shadow();
-        QColor shadowColor = qColor(shadow.hexColor(), shadow.opacity());
-        if (shadowColor.alpha() != 0 && shadow.blurRadius() > 0) {
+        QColor baseColor = qColor(shadow.hexColor(), 1.0);
+        boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
+        if (hasShadow) {
             IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget);
             effect.setBlurRadius(shadow.blurRadius() * scale);
             effect.setOffset(shadow.horizontalOffset() * scale,
                     shadow.verticalOffset() * scale);
-            effect.setColor(shadowColor);
+            double stackedOpacity = shadow.opacity();
+            // For opacity <= 1.0, bake alpha into the color.
+            // For opacity > 1.0, use full alpha; stacking handled in draw().
+            int alpha = (int) Math.round(Math.min(stackedOpacity, 1.0) * 255);
+            effect.setColor(new QColor(baseColor.red(), baseColor.green(),
+                    baseColor.blue(), alpha));
+            effect.setStackedOpacity(stackedOpacity);
             setIndicatorEffectColors(effect);
             indicatorWindow.widget.customGraphicsEffect = effect;
             indicatorWindow.widget.setGraphicsEffect(effect);
