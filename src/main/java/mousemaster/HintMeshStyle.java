@@ -11,6 +11,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double boxBorderLength,
                             String boxBorderHexColor,
                             double boxBorderOpacity,
+                            double boxBorderRadius,
                             boolean prefixBoxEnabled,
                             double prefixBoxBorderThickness,
                             double prefixBoxBorderLength,
@@ -43,6 +44,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double boxBorderLength;
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
+        private Double boxBorderRadius;
         private Boolean prefixBoxEnabled;
         private Double prefixBoxBorderThickness;
         private Double prefixBoxBorderLength;
@@ -75,6 +77,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.boxBorderLength = style.boxBorderLength;
             this.boxBorderHexColor = style.boxBorderHexColor;
             this.boxBorderOpacity = style.boxBorderOpacity;
+            this.boxBorderRadius = style.boxBorderRadius;
             this.prefixBoxEnabled = style.prefixBoxEnabled;
             this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
             this.prefixBoxBorderLength = style.prefixBoxBorderLength;
@@ -127,6 +130,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintMeshStyleBuilder boxBorderOpacity(Double boxBorderOpacity) {
             this.boxBorderOpacity = boxBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder boxBorderRadius(Double boxBorderRadius) {
+            this.boxBorderRadius = boxBorderRadius;
             return this;
         }
 
@@ -251,6 +259,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxBorderOpacity;
         }
 
+        public Double boxBorderRadius() {
+            return boxBorderRadius;
+        }
+
         public Boolean prefixBoxEnabled() {
             return prefixBoxEnabled;
         }
@@ -337,6 +349,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxBorderLength == null ? defaultStyle.boxBorderLength : boxBorderLength,
                     boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
                     boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
+                    boxBorderRadius == null ? defaultStyle.boxBorderRadius : boxBorderRadius,
                     prefixBoxEnabled == null ? defaultStyle.prefixBoxEnabled : prefixBoxEnabled,
                     prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
                     prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,

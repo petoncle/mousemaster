@@ -1403,7 +1403,8 @@ public class WindowsOverlay {
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                             true,
-                            qtScaleFactor
+                            qtScaleFactor,
+                            (int) Math.round(style.boxBorderRadius())
                     );
             hintBoxes.add(hintBox);
             HintBox[][] subgridBoxes = addSubgridBoxes(hintBox, qtScaleFactor,
@@ -1490,7 +1491,8 @@ public class WindowsOverlay {
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                             true,
-                            qtScaleFactor
+                            qtScaleFactor,
+                            0
                     );
             prefixHintBox.setGeometry(hintGroup.left, hintGroup.top,
                     hintGroup.right - hintGroup.left,
@@ -1771,7 +1773,8 @@ public class WindowsOverlay {
                         true,
                         gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                         false,
-                        qtScaleFactor
+                        qtScaleFactor,
+                        0
                 );
                 hintBox.subgridBoxes.add(subBox);
                 hintBoxes[subgridRowIndex][subgridColumnIndex] = subBox;
@@ -1823,7 +1826,7 @@ public class WindowsOverlay {
         private final int borderThickness;
         private final QColor color;
         private final QColor borderColor;
-        private final int borderRadius = 0;
+        private final int borderRadius;
         private int x, y, width, height;
         final List<HintBox> subgridBoxes = new ArrayList<>();
 
@@ -1831,7 +1834,8 @@ public class WindowsOverlay {
                        boolean isHintPartOfGrid,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        boolean drawGridEdgeBorders,
-                       double qtScaleFactor) {
+                       double qtScaleFactor,
+                       int borderRadius) {
             this.hint = hint;
             this.isHintPartOfGrid = isHintPartOfGrid;
             this.gridLeftEdge = gridLeftEdge;
@@ -1844,6 +1848,7 @@ public class WindowsOverlay {
             this.borderThickness = borderThickness;
             this.color = color;
             this.borderColor = borderColor;
+            this.borderRadius = borderRadius;
         }
 
         public void setGeometry(int x, int y, int width, int height) {
@@ -1870,17 +1875,37 @@ public class WindowsOverlay {
         public void paint(QPainter painter) {
             painter.save();
             painter.translate(x, y);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
-            // Draw background.
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-            if (color.alpha() != 0) {
-                painter.setBrush(new QBrush(color));
-                painter.setPen(Qt.PenStyle.NoPen);
-                painter.drawRoundedRect(0, 0, width, height, borderRadius,
-                        borderRadius);
+            if (borderRadius > 0) {
+                // Draw background and border as a single rounded rect so
+                // the background does not bleed outside the border at corners.
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+                if (borderThickness != 0) {
+                    painter.setBrush(color.alpha() != 0 ? new QBrush(color) : new QBrush(Qt.BrushStyle.NoBrush));
+                    QPen pen = createPen(borderColor, borderThickness);
+                    painter.setPen(pen);
+                    int offset = borderThickness / 2;
+                    painter.drawRoundedRect(offset, offset,
+                            width - borderThickness, height - borderThickness,
+                            borderRadius, borderRadius);
+                    pen.dispose();
+                } else if (color.alpha() != 0) {
+                    painter.setBrush(new QBrush(color));
+                    painter.setPen(Qt.PenStyle.NoPen);
+                    painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
+                }
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
-            if (borderThickness != 0)
-                drawBorders(painter);
+            else {
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+                if (color.alpha() != 0) {
+                    painter.setBrush(new QBrush(color));
+                    painter.setPen(Qt.PenStyle.NoPen);
+                    painter.drawRoundedRect(0, 0, width, height, 0, 0);
+                }
+                if (borderThickness != 0)
+                    drawBorders(painter);
+            }
             for (HintBox subBox : subgridBoxes) {
                 subBox.paint(painter);
             }

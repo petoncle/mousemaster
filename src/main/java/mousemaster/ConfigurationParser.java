@@ -108,6 +108,7 @@ public class ConfigurationParser {
                 .boxBorderLength(10_000d)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
+                .boxBorderRadius(0d)
                 .prefixBoxEnabled(false)
                 .prefixBoxBorderThickness(4d)
                 .prefixBoxBorderLength(10_000d)
@@ -885,6 +886,8 @@ public class ConfigurationParser {
                                 checkColorFormat(propertyValue));
                         case "box-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxBorderOpacity(
                                 parseDouble(propertyValue, true, 0, 1));
+                        case "box-border-radius" -> mode.hintMesh.builder.style(viewportFilter).boxBorderRadius(
+                                parseDouble(propertyValue, true, 0, 1000));
                         case "prefix-box-enabled" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(Boolean.parseBoolean(propertyValue));
                         case "prefix-box-border-thickness" -> {
                             if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
@@ -2276,6 +2279,10 @@ public class ConfigurationParser {
                             HintMeshStyleBuilder::boxBorderOpacity,
                             childStyleByFilter, filter))
                         childStyle.boxBorderOpacity(parentStyle.boxBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::boxBorderRadius,
+                            childStyleByFilter, filter))
+                        childStyle.boxBorderRadius(parentStyle.boxBorderRadius());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::prefixBoxEnabled,
                             childStyleByFilter, filter))
