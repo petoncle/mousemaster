@@ -267,7 +267,7 @@ public class ConfigurationParser {
         boolean logToFile = false;
         boolean hideConsole = false;
         ComboMoveDuration defaultComboMoveDuration =
-                new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(150));
+                new ComboMoveDuration(Duration.ZERO, null);
         int maxPositionHistorySize = 16;
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Map<PropertyKey, Property<?>> propertyByKey = new HashMap<>();

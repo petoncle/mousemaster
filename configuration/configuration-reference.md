@@ -72,15 +72,15 @@ Combos are sequences of key presses and releases that trigger commands in mousem
 
 ### Combo duration
 
-1. Default duration: `+leftctrl` is equivalent to `+leftctrl-0-250`, meaning leftctrl must be pressed for a duration between 0 and 250 milliseconds. mousemaster won't consider the combo complete if you press leftctrl for longer than 250ms.
+1. Default duration: `+leftctrl` is equivalent to `+leftctrl-0`, meaning leftctrl must be pressed for at least 0ms, with no upper limit.
 
 2. Custom duration: you can specify custom durations:
-   - `+leftctrl-0-500`: Press leftctrl for 0-500ms
-   - `+leftctrl-0`: Press leftctrl for at least 0ms, with no upper limit
+   - `+leftctrl-0-500`: Press leftctrl for 0-500ms. mousemaster won't consider the combo successful if you press leftctrl for longer than 500ms.
+   - `+leftctrl-1000`: Press leftctrl for at least 1000ms, with no upper limit
 
 3. Default duration configuration: change the default combo move duration with:
    ```properties
-   default-combo-move-duration-millis=0-250
+   default-combo-move-duration-millis=150
    ```
 
 ### Combo preconditions
