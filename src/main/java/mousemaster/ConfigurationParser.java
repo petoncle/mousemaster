@@ -148,26 +148,26 @@ public class ConfigurationParser {
         indicator.enabled(false);
         // Defaults are set on idle indicator; other states inherit during build.
         IndicatorBuilder idleIndicator = indicator.idleIndicator();
-        idleIndicator.size(12)
-                     .edgeCount(4)
+        idleIndicator.size(6)
+                     .edgeCount(30)
                      .hexColor("#FF0000")
                      .opacity(1.0);
         idleIndicator.outerOutline()
-                     .thickness(0)
-                     .hexColor("#000000")
+                     .thickness(3)
+                     .hexColor("#FFFFFF")
                      .opacity(1.0)
                      .fillPercent(1.0);
         idleIndicator.innerOutline()
-                     .thickness(0)
-                     .hexColor("#000000")
+                     .thickness(1)
+                     .hexColor("#CC0000")
                      .opacity(1.0)
                      .fillPercent(1.0);
         idleIndicator.shadow()
-                     .blurRadius(0d)
+                     .blurRadius(10d)
                      .hexColor("#000000")
-                     .opacity(1.0)
-                     .horizontalOffset(0d)
-                     .verticalOffset(0d);
+                     .opacity(0.5d)
+                     .horizontalOffset(2d)
+                     .verticalOffset(2d);
         idleIndicator.labelEnabled(false);
         idleIndicator.labelFontStyle()
                      .name("Arial")
