@@ -16,6 +16,7 @@ import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -2350,41 +2351,63 @@ public class WindowsOverlay {
         // 3. Render the scene (shadow + source) into a result image.
         // The effect extends beyond the source, so use itemsBoundingRect.
         QRectF bounds = scene.itemsBoundingRect();
-        QImage resultImage = new QImage(
-                (int) Math.ceil(bounds.width()),
-                (int) Math.ceil(bounds.height()),
+        int boundsX = (int) Math.floor(bounds.x());
+        int boundsY = (int) Math.floor(bounds.y());
+        int boundsW = (int) Math.ceil(bounds.x() + bounds.width()) - boundsX;
+        int boundsH = (int) Math.ceil(bounds.y() + bounds.height()) - boundsY;
+        QRectF intBounds = new QRectF(boundsX, boundsY, boundsW, boundsH);
+        QImage resultImage = new QImage(boundsW, boundsH,
                 QImage.Format.Format_ARGB32_Premultiplied);
         resultImage.fill(new QColor(0, 0, 0, 0));
         QPainter resultPainter = new QPainter(resultImage);
-        scene.render(resultPainter, new QRectF(resultImage.rect()), bounds);
+        QRectF target = new QRectF(resultImage.rect());
+        scene.render(resultPainter, target, intBounds);
         resultPainter.end();
         // 4. Remove the source text from the result, leaving shadow only.
-        // This also handles transparent text: shadow is punched out where
-        // source pixels exist, so shadow never shows through text.
-        QPainter maskPainter = new QPainter(resultImage);
-        maskPainter.setCompositionMode(
-                QPainter.CompositionMode.CompositionMode_DestinationOut);
-        // The source is at scene position (0,0). bounds.x/y are <= 0
-        // (the shadow effect extends outward), so -bounds.x/y gives
-        // the source's position within the result image.
-        maskPainter.drawImage((int) Math.round(-bounds.x()),
-                (int) Math.round(-bounds.y()), sourceImage);
-        maskPainter.end();
+        // Render the scene without the effect to get the source pixels.
+        item.setGraphicsEffect(null);
+        QImage sourceOnly = new QImage(boundsW, boundsH,
+                QImage.Format.Format_ARGB32_Premultiplied);
+        sourceOnly.fill(new QColor(0, 0, 0, 0));
+        QPainter srcOnlyPainter = new QPainter(sourceOnly);
+        scene.render(srcOnlyPainter, target, intBounds);
+        srcOnlyPainter.end();
+        // Per-pixel subtraction: shadow = combined - source.
+        // Qt's composition mode DestinationOut (dest * (1-source_alpha)) leaves residual source
+        // color at antialiased text edges. Direct subtraction correctly
+        // recovers the shadow contribution: shadow_premul * (1-source_alpha).
+        // Uses QImage.bits() for bulk read and constructs a new QImage from
+        // the result byte array — avoids per-pixel JNI calls.
+        ByteBuffer combinedBuf = resultImage.bits();
+        ByteBuffer sourceBuf = sourceOnly.bits();
+        int totalBytes = (int) resultImage.sizeInBytes();
+        byte[] shadowBytes = new byte[totalBytes];
+        combinedBuf.get(0, shadowBytes, 0, totalBytes);
+        byte[] sourceBytes = new byte[totalBytes];
+        sourceBuf.get(0, sourceBytes, 0, totalBytes);
+        for (int i = 0; i < totalBytes; i++) {
+            int c = shadowBytes[i] & 0xFF;
+            int s = sourceBytes[i] & 0xFF;
+            shadowBytes[i] = (byte) Math.max(0, c - s);
+        }
+        resultImage.dispose();
         sourceImage.dispose();
+        sourceOnly.dispose();
         scene.dispose();
         // 5. Store the shadow-only pixmap in the layer.
-        layer.setShadowPixmap(QPixmap.fromImage(resultImage),
-                (int) Math.round(bounds.x()),
-                (int) Math.round(bounds.y()));
+        QImage shadowImage = new QImage(shadowBytes, boundsW, boundsH,
+                QImage.Format.Format_ARGB32_Premultiplied);
+        layer.setShadowPixmap(QPixmap.fromImage(shadowImage),
+                boundsX, boundsY);
         layer.shadowOpacity = style.shadowOpacity;
-        resultImage.dispose();
+        shadowImage.dispose();
     }
 
     private static class HintPaintLayer extends QWidget {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
-        // Pre-rendered shadow-only pixmap (null if no shadow configured).
+        // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
         // Shadow stacking: opacity > 1 means multiple layers.

@@ -275,6 +275,10 @@
   "name":"io.qt.core.Qt$WindowFlags"
 },
 {
+  "name":"io.qt.core.SmartPointer",
+  "methods":[{"name":"get","parameterTypes":[] }]
+},
+{
   "name":"io.qt.gui.QAbstractUndoItem"
 },
 {
@@ -638,6 +642,10 @@
   "methods":[{"name":"<init>","parameterTypes":["java.lang.Class"] }]
 },
 {
+  "name":"java.lang.ref.Reference",
+  "methods":[{"name":"get","parameterTypes":[] }]
+},
+{
   "name":"java.lang.reflect.Executable",
   "methods":[{"name":"getModifiers","parameterTypes":[] }, {"name":"getParameterTypes","parameterTypes":[] }]
 },
@@ -659,15 +667,72 @@
 },
 {
   "name":"java.nio.Buffer",
-  "methods":[{"name":"position","parameterTypes":[] }]
+  "fields":[{"name":"capacity"}],
+  "methods":[{"name":"array","parameterTypes":[] }, {"name":"arrayOffset","parameterTypes":[] }, {"name":"capacity","parameterTypes":[] }, {"name":"clear","parameterTypes":[] }, {"name":"hasArray","parameterTypes":[] }, {"name":"isDirect","parameterTypes":[] }, {"name":"isReadOnly","parameterTypes":[] }, {"name":"limit","parameterTypes":[] }, {"name":"limit","parameterTypes":["int"] }, {"name":"mark","parameterTypes":[] }, {"name":"position","parameterTypes":[] }]
 },
 {
   "name":"java.nio.ByteBuffer",
-  "methods":[{"name":"array","parameterTypes":[] }, {"name":"arrayOffset","parameterTypes":[] }]
+  "methods":[{"name":"allocate","parameterTypes":["int"] }, {"name":"allocateDirect","parameterTypes":["int"] }, {"name":"array","parameterTypes":[] }, {"name":"arrayOffset","parameterTypes":[] }, {"name":"asCharBuffer","parameterTypes":[] }, {"name":"asDoubleBuffer","parameterTypes":[] }, {"name":"asFloatBuffer","parameterTypes":[] }, {"name":"asIntBuffer","parameterTypes":[] }, {"name":"asLongBuffer","parameterTypes":[] }, {"name":"asReadOnlyBuffer","parameterTypes":[] }, {"name":"asShortBuffer","parameterTypes":[] }, {"name":"get","parameterTypes":["int"] }, {"name":"order","parameterTypes":[] }, {"name":"order","parameterTypes":["java.nio.ByteOrder"] }, {"name":"put","parameterTypes":["int","byte"] }]
+},
+{
+  "name":"java.nio.ByteOrder",
+  "methods":[{"name":"nativeOrder","parameterTypes":[] }]
 },
 {
   "name":"java.nio.CharBuffer",
   "methods":[{"name":"array","parameterTypes":[] }, {"name":"arrayOffset","parameterTypes":[] }]
+},
+{
+  "name":"java.nio.DirectByteBuffer",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectCharBufferS",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectCharBufferU",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectDoubleBufferS",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectDoubleBufferU",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectFloatBufferS",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectFloatBufferU",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectIntBufferS",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectIntBufferU",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectLongBufferS",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectLongBufferU",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectShortBufferS",
+  "fields":[{"name":"att"}]
+},
+{
+  "name":"java.nio.DirectShortBufferU",
+  "fields":[{"name":"att"}]
 },
 {
   "name":"java.nio.DoubleBuffer",
