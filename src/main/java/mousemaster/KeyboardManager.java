@@ -99,7 +99,7 @@ public class KeyboardManager {
                     for (Map.Entry<Key, PressKeyEventProcessingSet> entry : currentlyPressedKeys.entrySet()) {
                         if (entry.getValue().processingByCombo().keySet().stream().anyMatch(currentCombos::contains))
                             continue;
-                        regurgitate(entry.getValue(), keysToRegurgitate, entry.getKey());
+                        regurgitate(entry.getValue(), keysToRegurgitate, entry.getKey(), false);
                     }
                 }
                 currentlyPressedKeys.put(key, processingSet);
@@ -139,7 +139,7 @@ public class KeyboardManager {
                             if (!releaseProcessingSet.handled()) {
                                 keysToRegurgitate = regurgitatePressedKeys(null);
                             }
-                        else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
+                            else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
                                 for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
                                                                                                            .entrySet()) {
                                     // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
@@ -222,16 +222,23 @@ public class KeyboardManager {
             if (releasedKey != null && !eatenKey.equals(releasedKey))
                 continue;
             PressKeyEventProcessingSet processingSet = setEntry.getValue();
-            regurgitate(processingSet, keysToRegurgitate, eatenKey);
+            regurgitate(processingSet, keysToRegurgitate, eatenKey, releasedKey != null);
         }
         return keysToRegurgitate;
     }
 
     private void regurgitate(PressKeyEventProcessingSet processingSet,
-                           Set<Key> keysToRegurgitate, Key eatenKey) {
+                           Set<Key> keysToRegurgitate, Key eatenKey, boolean isRelease) {
         // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
         if (processingSet.mustBeEaten() &&
-            !processingSet.isPartOfCompletedComboSequenceAndMustBeEaten()) {
+            !processingSet.isPartOfCompletedComboSequenceAndMustBeEaten() &&
+            // Releases are always PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_NOT_BE_EATEN
+            // (instead of PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN).
+            // And if a key is released and it is part of a completed combo sequence (and
+            // if we're here it means this key release was the last move of the combo),
+            // then it should not be regurgitated.
+            !(isRelease && processingSet.isPartOfCompletedComboSequence())
+        ) {
             keysToRegurgitate.add(eatenKey);
             // Change the key's processing to must not be eaten
             // so that it cannot be regurgitated a second time.
