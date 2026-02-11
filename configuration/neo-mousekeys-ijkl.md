@@ -49,7 +49,19 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys-ijkl.properties](neo-mousekeys-ijkl.properties).
 - Go back to normal mode with _esc_ or _backspace_.
 
+## UI Hint Mode (hold _leftalt_ then press _f_ in normal mode)
+
+- Display labels on interactive UI elements (buttons, links, etc.) of the active window.
+- Select a hint to move the mouse to that UI element.
+- Undo an accidental key press with _backspace_.
+- Go back to normal mode with _esc_ or _backspace_.
+
 ## Screen Selection Mode (_c_ in normal mode)
 
 - Display one large hint label on each screen for quickly moving from one screen to another.
 - Go back to normal mode with _c_, _esc_ or _backspace_.
+
+## Center Mouse after Alt-Tab
+
+- After using Alt-Tab to switch windows, the mouse is automatically centered on the newly active window.
+- This works by detecting the Alt-Tab combo (_leftalt + tab_), waiting for _leftalt_ to be released, then waiting for the Alt-Tab menu (Explorer.EXE) to lose focus before centering the mouse.
