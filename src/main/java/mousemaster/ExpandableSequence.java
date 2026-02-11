@@ -34,26 +34,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 String[] moveTokens = content.split("\\s+");
                 Set<ComboAliasMove> moveSet = new LinkedHashSet<>();
                 for (String moveToken : moveTokens) {
-                    ComboAliasMove move = parseMove(moveToken, defaultMoveDuration);
-                    KeyAlias alias = aliases.get(move.aliasOrKeyName());
-                    if (alias != null) {
-                        // Expand alias into one move per key in this move set.
-                        for (Key key : alias.keys()) {
-                            moveSet.add(switch (move) {
-                                case ComboAliasMove.PressComboAliasMove p ->
-                                        new ComboAliasMove.PressComboAliasMove(
-                                                key.name(), p.eventMustBeEaten(),
-                                                p.duration(), p.optional());
-                                case ComboAliasMove.ReleaseComboAliasMove r ->
-                                        new ComboAliasMove.ReleaseComboAliasMove(
-                                                key.name(), r.duration(),
-                                                r.optional());
-                            });
-                        }
-                    }
-                    else {
-                        moveSet.add(move);
-                    }
+                    moveSet.add(parseMove(moveToken, defaultMoveDuration));
                 }
                 moveSets.add(moveSet);
             }
