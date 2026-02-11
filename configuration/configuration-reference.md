@@ -500,7 +500,34 @@ hint-mode.hint.type=grid
 The **`type`** property determines what hints are displayed:
 - `grid`: Displays a grid of hints laid out across the screen
 - `position-history`: Displays discrete absolutely positioned hints at previously saved positions (see [Position history](#position-history))
-- `ui`: Displays hints at interactive UI elements (buttons, links, text fields, etc.) of the active window, using the Windows UI Automation API
+- `ui`: Displays hints at interactive UI elements of the active window
+
+### UI hints
+
+UI hints use the Windows UI Automation API to detect interactive elements (buttons, links,
+text fields, checkboxes, etc.) in the active window and display a hint label on each one.
+Unlike grid hints, UI hints are positioned based on the UI elements' locations.
+
+```properties
+ui-hint-mode.hint.type=ui
+ui-hint-mode.hint.selection-keys=selectionkey
+ui-hint-mode.hint.select=+selectionkey
+ui-hint-mode.hint.undo=backspace
+ui-hint-mode.hint.mouse-movement=mouse-follows-selected-hint
+ui-hint-mode.hint.font-size=10
+ui-hint-mode.hint.font-weight=bold
+ui-hint-mode.hint.font-color=#FFFFFF
+ui-hint-mode.hint.box-color=#204E8A
+ui-hint-mode.hint.box-opacity=1
+ui-hint-mode.hint.box-horizontal-padding=8
+ui-hint-mode.hint.box-vertical-padding=0
+ui-hint-mode.hint.box-border-radius=3
+```
+
+UI hints use the same appearance properties as other hint types (`box-*`, `font-*`, etc.).
+The `box-horizontal-padding` and `box-vertical-padding` properties are particularly useful
+for UI hints since the hint boxes are sized to fit the label text rather than a fixed grid
+cell.
 
 ### Hint layout and positioning
 
@@ -600,6 +627,7 @@ hint-mode.hint.box-border-thickness=1
 hint-mode.hint.box-border-length=1000
 hint-mode.hint.box-border-color=#FFFFFF
 hint-mode.hint.box-border-opacity=0.4
+hint-mode.hint.box-border-radius=0
 
 # Box size relative to the grid cell (for the hint grid only)
 hint-mode.hint.box-width-percent=1.0
@@ -644,6 +672,7 @@ hint-mode.hint.transition-animation-duration-millis=100
 
 - Box appearance: controls the background and border of hint boxes
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
+  - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
