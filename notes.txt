@@ -118,3 +118,10 @@
  - E.g. open hint, then select and click JI to focus Firefox address bar: +rightalt -rightalt +rightalt -rightalt +j -j +space +i -i -space
  https://github.com/babashka/babashka/blob/master/.github/workflows/build-windows.yml
  + SendInput KEYEVENTF_UNICODE for sending character or strings independently of active layout (e.g. %)
+
+- ^{leftctrl f} as combo move to mean "release both in any order" = -leftctrl -f | -f -leftctrl
+ - _{leftctrl f} as combo move means "press both in any order" = #leftctrl #f | #f #leftctrl
+ - Or: {+leftctrl -f} as combo move set means "both move in any order" = +leftctrl -f | -f +leftctrl
+  - +leftctrl {-leftctrl -f} = +leftctrl -leftctrl -f | +leftctrl -f -leftctrl
+  - {+leftctrl +f} {-leftctrl -f} = +leftctrl +f -leftctrl -f | +f +leftctrl -leftctrl -f | +leftctrl +f -f -leftctrl | +f +leftctrl -f -leftctrl
+  - Moves in brackets can be alias, and they will have to be expanded.

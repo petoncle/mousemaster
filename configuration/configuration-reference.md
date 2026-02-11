@@ -143,6 +143,20 @@ One command can be assigned multiple combo. As soon as one of the combos is comp
 normal-mode.to.idle-mode=+exit | -clickthendisable
 ```
 
+### Any-order move set
+
+An any-order move set `{...}` groups moves that can occur in any order. It is expanded into all possible orderings at parse time.
+
+```properties
+# Release leftctrl and f in any order
+normal-mode.to.idle-mode=+leftctrl +f {-f -leftctrl}
+```
+
+This is equivalent to:
+```properties
+normal-mode.to.idle-mode=+leftctrl +f -f -leftctrl | +leftctrl +f -leftctrl -f
+```
+
 ## Modes
 
 Modes are a fundamental concept in mousemaster. Each mode represents a different state of the application with its own set of key bindings and behaviors.

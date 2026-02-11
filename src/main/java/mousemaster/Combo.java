@@ -86,7 +86,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             ExpandableSequence expandableSequence =
                     ExpandableSequence.parseSequence(sequenceString, defaultMoveDuration,
                             keyAliases);
-            Map<AliasResolution, ComboSequence> expandedSequences =
+            Map<AliasResolution, List<ComboSequence>> expandedSequences =
                     expandableSequence.expand(keyAliases, keyResolver);
             return ofExpandedSequences(string, expandedSequences,
                     unpressedKeySet,
@@ -97,7 +97,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     private static List<AliasResolvedCombo> ofExpandedSequences(String string,
-                                                   Map<AliasResolution, ComboSequence> expandedSequences,
+                                                   Map<AliasResolution, List<ComboSequence>> expandedSequences,
                                                    Set<Key> unpressedKeySet,
                                                    String unpressedKeySetString,
                                                    String sequenceString,
@@ -106,17 +106,18 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                                    Set<App> mustNotBeActiveApps,
                                                    Set<App> mustBeActiveApps) {
         List<AliasResolvedCombo> aliasResolvedCombos = new ArrayList<>();
-        for (Map.Entry<AliasResolution, ComboSequence> entry : expandedSequences.entrySet()) {
+        for (Map.Entry<AliasResolution, List<ComboSequence>> entry : expandedSequences.entrySet()) {
             AliasResolution aliasResolution = entry.getKey();
-            ComboSequence sequence = entry.getValue();
-            Combo combo = of(string, sequence,
-                    unpressedKeySet,
-                    unpressedKeySetString,
-                    sequenceString,
-                    pressedKeySets,
-                    pressedKeySetsString,
-                    mustNotBeActiveApps, mustBeActiveApps);
-            aliasResolvedCombos.add(new AliasResolvedCombo(aliasResolution, combo));
+            for (ComboSequence sequence : entry.getValue()) {
+                Combo combo = of(string, sequence,
+                        unpressedKeySet,
+                        unpressedKeySetString,
+                        sequenceString,
+                        pressedKeySets,
+                        pressedKeySetsString,
+                        mustNotBeActiveApps, mustBeActiveApps);
+                aliasResolvedCombos.add(new AliasResolvedCombo(aliasResolution, combo));
+            }
         }
         return aliasResolvedCombos;
     }
