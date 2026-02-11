@@ -11,7 +11,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             Pattern.compile("\\{([^}]+)\\}|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
-            Pattern.compile("([+\\-#])([^-]+?)(-(\\d+)(-(\\d+))?)?");
+            Pattern.compile("([+\\-#])([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
 
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
@@ -22,7 +22,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 !trimmed.matches("^[+\\-#].*")) {
             ComboAliasMove.PressComboAliasMove move =
                     new ComboAliasMove.PressComboAliasMove(trimmed, true,
-                            defaultMoveDuration);
+                            defaultMoveDuration, false);
             return new ExpandableSequence(List.of(Set.of(move)));
         }
         List<Set<ComboAliasMove>> moveSets = new ArrayList<>();
@@ -62,14 +62,16 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     matcher.group(6) == null ? null : Duration.ofMillis(
                             Integer.parseUnsignedInt(matcher.group(6))));
         String aliasName = matcher.group(2);
+        boolean optional = matcher.group(7) != null;
         ComboAliasMove move;
         if (press) {
             boolean eventMustBeEaten = moveString.startsWith("+");
             move = new ComboAliasMove.PressComboAliasMove(aliasName, eventMustBeEaten,
-                    moveDuration);
+                    moveDuration, optional);
         }
         else
-            move = new ComboAliasMove.ReleaseComboAliasMove(aliasName, moveDuration);
+            move = new ComboAliasMove.ReleaseComboAliasMove(aliasName, moveDuration,
+                    optional);
         return move;
     }
 
@@ -99,22 +101,65 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         }
         Set<ComboAliasMove> moveSet = moveSets.get(index);
         if (moveSet.size() == 1) {
-            // Singleton: just append the single move
-            current.add(moveSet.iterator().next());
-            expandMoveSets(moveSets, index + 1, current, result);
-            current.removeLast();
+            ComboAliasMove move = moveSet.iterator().next();
+            if (move.optional()) {
+                // Optional singleton: branch: skip or include.
+                // Skip branch.
+                expandMoveSets(moveSets, index + 1, current, result);
+                // Include branch.
+                current.add(move);
+                expandMoveSets(moveSets, index + 1, current, result);
+                current.removeLast();
+            }
+            else {
+                // Required singleton: just append
+                current.add(move);
+                expandMoveSets(moveSets, index + 1, current, result);
+                current.removeLast();
+            }
         }
         else {
-            // Multi-element: generate all permutations of this set
-            List<ComboAliasMove> elements = new ArrayList<>(moveSet);
-            List<List<ComboAliasMove>> permutations = new ArrayList<>();
-            generatePermutations(elements, 0, permutations);
-            for (List<ComboAliasMove> perm : permutations) {
-                current.addAll(perm);
-                expandMoveSets(moveSets, index + 1, current, result);
-                // Remove the last perm.size() elements (backtrack)
-                for (int i = 0; i < perm.size(); i++) {
-                    current.removeLast();
+            // Multi-element set: separate required and optional moves
+            List<ComboAliasMove> required = new ArrayList<>();
+            List<ComboAliasMove> optional = new ArrayList<>();
+            for (ComboAliasMove move : moveSet) {
+                if (move.optional())
+                    optional.add(move);
+                else
+                    required.add(move);
+            }
+            if (optional.isEmpty()) {
+                // No optional moves: generate all permutations (existing behavior)
+                List<ComboAliasMove> elements = new ArrayList<>(moveSet);
+                List<List<ComboAliasMove>> permutations = new ArrayList<>();
+                generatePermutations(elements, 0, permutations);
+                for (List<ComboAliasMove> perm : permutations) {
+                    current.addAll(perm);
+                    expandMoveSets(moveSets, index + 1, current, result);
+                    for (int i = 0; i < perm.size(); i++)
+                        current.removeLast();
+                }
+            }
+            else {
+                // Generate all subsets of optional moves.
+                int n = optional.size();
+                for (int mask = 0; mask < (1 << n); mask++) {
+                    List<ComboAliasMove> subset = new ArrayList<>(required);
+                    for (int bit = 0; bit < n; bit++) {
+                        if ((mask & (1 << bit)) != 0)
+                            subset.add(optional.get(bit));
+                    }
+                    if (subset.isEmpty())
+                        continue; // All optional, none selected: skip empty set.
+                    // Generate all permutations of this subset.
+                    List<List<ComboAliasMove>> permutations = new ArrayList<>();
+                    generatePermutations(subset, 0, permutations);
+                    for (List<ComboAliasMove> perm : permutations) {
+                        current.addAll(perm);
+                        expandMoveSets(moveSets, index + 1, current, result);
+                        for (int i = 0; i < perm.size(); i++)
+                            current.removeLast();
+                    }
                 }
             }
         }
