@@ -1612,7 +1612,7 @@ public class ConfigurationParser {
             throw new IllegalArgumentException(
                     "Definition of timeout for " + mode.modeName +
                     " is incomplete: expected " +
-                    List.of("enabled", "duration", "mode", "only-if-idle"));
+                    List.of("enabled", "duration-millis", "mode", "only-if-idle"));
         if (mode.hideCursor.builder.enabled() != null && mode.hideCursor.builder.enabled() &&
             mode.hideCursor.builder.idleDuration() == null)
             throw new IllegalArgumentException(
