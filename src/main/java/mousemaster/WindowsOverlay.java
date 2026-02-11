@@ -2363,37 +2363,39 @@ public class WindowsOverlay {
         QRectF target = new QRectF(resultImage.rect());
         scene.render(resultPainter, target, intBounds);
         resultPainter.end();
+        scene.dispose();
         // 4. Remove the source text from the result, leaving shadow only.
-        // Render the scene without the effect to get the source pixels.
-        item.setGraphicsEffect(null);
-        QImage sourceOnly = new QImage(boundsW, boundsH,
-                QImage.Format.Format_ARGB32_Premultiplied);
-        sourceOnly.fill(new QColor(0, 0, 0, 0));
-        QPainter srcOnlyPainter = new QPainter(sourceOnly);
-        scene.render(srcOnlyPainter, target, intBounds);
-        srcOnlyPainter.end();
         // Per-pixel subtraction: shadow = combined - source.
-        // Qt's composition mode DestinationOut (dest * (1-source_alpha)) leaves residual source
+        // Qt's DestinationOut (dest * (1-source_alpha)) leaves residual source
         // color at antialiased text edges. Direct subtraction correctly
         // recovers the shadow contribution: shadow_premul * (1-source_alpha).
-        // Uses QImage.bits() for bulk read and constructs a new QImage from
-        // the result byte array — avoids per-pixel JNI calls.
+        // Uses QImage.bits() for bulk read — no per-pixel JNI calls.
+        // The sourceImage is at (0,0) in scene coordinates, which maps to
+        // (-boundsX, -boundsY) in the resultImage coordinate space.
         ByteBuffer combinedBuf = resultImage.bits();
-        ByteBuffer sourceBuf = sourceOnly.bits();
-        int totalBytes = (int) resultImage.sizeInBytes();
+        ByteBuffer sourceBuf = sourceImage.bits();
+        int resultBytesPerLine = boundsW * 4;
+        int sourceBytesPerLine = containerWidth * 4;
+        int totalBytes = resultBytesPerLine * boundsH;
         byte[] shadowBytes = new byte[totalBytes];
         combinedBuf.get(0, shadowBytes, 0, totalBytes);
-        byte[] sourceBytes = new byte[totalBytes];
-        sourceBuf.get(0, sourceBytes, 0, totalBytes);
-        for (int i = 0; i < totalBytes; i++) {
-            int c = shadowBytes[i] & 0xFF;
-            int s = sourceBytes[i] & 0xFF;
-            shadowBytes[i] = (byte) Math.max(0, c - s);
+        // boundsX/boundsY are <= 0, so -boundsX/-boundsY are >= 0: offset
+        // of the source within the (larger) result image.
+        int srcOffX = -boundsX;
+        int srcOffY = -boundsY;
+        int overlapW = Math.min(containerWidth, boundsW - srcOffX);
+        int overlapH = Math.min(containerHeight, boundsH - srcOffY);
+        for (int py = 0; py < overlapH; py++) {
+            int resultRowStart = (py + srcOffY) * resultBytesPerLine + srcOffX * 4;
+            int sourceRowStart = py * sourceBytesPerLine;
+            for (int i = 0; i < overlapW * 4; i++) {
+                int c = shadowBytes[resultRowStart + i] & 0xFF;
+                int s = sourceBuf.get(sourceRowStart + i) & 0xFF;
+                shadowBytes[resultRowStart + i] = (byte) Math.max(0, c - s);
+            }
         }
         resultImage.dispose();
         sourceImage.dispose();
-        sourceOnly.dispose();
-        scene.dispose();
         // 5. Store the shadow-only pixmap in the layer.
         QImage shadowImage = new QImage(shadowBytes, boundsW, boundsH,
                 QImage.Format.Format_ARGB32_Premultiplied);
