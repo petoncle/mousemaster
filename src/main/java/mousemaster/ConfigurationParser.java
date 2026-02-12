@@ -995,8 +995,6 @@ public class ConfigurationParser {
             }
             case "remapping" -> {
                 if (keyMatcher.group(group3) == null) {
-                    logger.warn(modeName + ".remapping is deprecated: use " +
-                            modeName + ".macro instead");
                     mode.comboMap.macro.parsePropertyReference(propertyKey,
                             propertyValue,
                             childPropertiesByParentProperty,
@@ -1006,9 +1004,6 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid remapping property key");
                 else {
-                    logger.warn(modeName + ".remapping." + keyMatcher.group(group4) +
-                            " is deprecated: use " + modeName + ".macro." +
-                            keyMatcher.group(group4) + " instead");
                     parseMacroMapping("remapping", keyMatcher.group(group4),
                             propertyValue, defaultComboMoveDuration,
                             keyAliases, appAliases,

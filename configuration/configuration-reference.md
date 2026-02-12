@@ -1069,6 +1069,8 @@ A macro is defined with:
 mode-name.macro.macro-name=combo -> output
 ```
 
+`macro` and `remapping` mean the same thing and can be used interchangeably (e.g. `mode-name.remapping.macro-name=...`).
+
 Where:
 - `combo` is the trigger combo (same syntax as other combos)
 - `output` is the sequence of key moves to execute
