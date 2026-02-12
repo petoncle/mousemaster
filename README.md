@@ -27,11 +27,21 @@ https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
   <img src="https://github.com/user-attachments/assets/6b2fb130-3213-4338-bda5-0c7c4969a433" style="width: 100%; height: 100%;" />
 </p>
 
+### UI Hints Demo
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/357aca5e-3971-4d29-959c-48dbf61913c2" style="width: 100%; height: 100%;" />
+</p>
+
 ### Grid Demo
 https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
 
 ### Mouse Movements Demo
 https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
+
+### Indicator Customization
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/85b8b0c7-fa5e-429c-bbe6-1eabf55c4c20" style="width: 100%; height: 100%;" />
+</p>
 
 ## Overview
 
@@ -90,21 +100,25 @@ For a complete reference, see the [neo-mousekeys-ijkl documentation](configurati
 
 4. **Multi-monitor support**.
 
-5. **Grid navigation**: Implements a grid-based cursor positioning system that can target either the active screen or the active window.
+5. **Grid navigation**: Divides the screen into 2x2 sections that shrink with each key press, progressively narrowing down to a precise cursor position.
 
-6. **Hint-based navigation**: Features a Vimium-style hint system that can target the active screen, active window, or all screens.
+6. **Hint navigation**: Displays hints (letters) across the screen. Type the letters to instantly move the cursor to that location.
 
-7. **Key remapping system**: Includes a way to remap keys and activate the remapping only in specific modes. For example, you can make it so pressing a single key is equivalent to sending the combo _⊞ Win + down arrow_, which will minimize the current window.
+7. **UI hint navigation**: Detects interactive elements (buttons, links, text fields, etc.) in the active window and displays a label on each one.
 
-8. **Zoom functionality**: Supports configurable zoom behavior per mode.
+8. **Key remapping**: Remap keys in specific modes. For example, pressing a single key can send _Ctrl+V_ or _⊞ Win + down arrow_.
 
-9. **Application-specific configurations**: Provides context-aware mode switching based on the focused application, allowing for application-specific behavior (e.g., disabling mousemaster shortcuts in games).
+9. **Macros**: Macros can chain key presses, launch apps, type text, or automate mousemaster commands like selecting a specific screen in one key press.
 
-10. **Live configuration**: Implements automatic configuration reloading when the configuration file is modified.
+10. **Zoom functionality**: Supports configurable zoom behavior per mode.
 
-11. **Visual feedback system**: Provides an optional mouse indicator that changes color based on cursor state (idle, moving, clicking, scrolling) and repositions to remain visible near screen edges.
+11. **Application-specific configurations**: Provides context-aware mode switching based on the focused application, allowing for application-specific behavior (e.g., disabling mousemaster shortcuts in games).
 
-12. **Position history hints**: absolute positions can be saved on the fly to make it possible to move the mouse to them later.
+12. **Live configuration**: Implements automatic configuration reloading when the configuration file is modified.
+
+13. **Customizable indicator**: The cursor indicator supports custom shapes (triangle, square, circle, etc.), inner/outer outlines, drop shadow, opacity, text labels, and per-mouse-state styling.
+
+14. **Position history hints**: Absolute positions can be saved on the fly to make it possible to move the mouse to them later.
 
 ## Configuration
 
