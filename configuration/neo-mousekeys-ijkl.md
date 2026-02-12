@@ -64,4 +64,4 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 ## Center Mouse after Alt-Tab
 
 - After using Alt-Tab to switch windows, the mouse is automatically centered on the newly active window.
-- This works by detecting the Alt-Tab combo (_leftalt + tab_), waiting for _leftalt_ to be released, then waiting for the Alt-Tab menu (Explorer.EXE) to lose focus before centering the mouse.
+- This works by detecting the Alt-Tab combo, waiting for _leftalt_ to be released, then waiting for the Alt-Tab menu (Explorer.EXE) to lose focus before centering the mouse.
