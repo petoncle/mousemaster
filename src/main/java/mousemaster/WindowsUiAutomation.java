@@ -263,6 +263,10 @@ public class WindowsUiAutomation {
         WinDef.RECT windowRect = new WinDef.RECT();
         if (!User32.INSTANCE.GetWindowRect(hwnd, windowRect))
             return;
+        if (User32.INSTANCE.MonitorFromRect(windowRect,
+                WinUser.MONITOR_DEFAULTTONULL) == null)
+            // The window is not within a screen.
+            return;
         UIAutomation uia = new UIAutomation(automation);
         UIAutomationElement root = null;
         try {
