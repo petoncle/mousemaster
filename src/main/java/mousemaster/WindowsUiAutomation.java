@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class WindowsUiAutomation {
 
@@ -44,6 +47,14 @@ public class WindowsUiAutomation {
     private static Pointer automation;
     private static UIAutomationCondition cachedCondition;
     private static UIAutomationCacheRequest cachedCacheRequest;
+
+    private static final ExecutorService queryExecutor =
+            Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "uia-query");
+                t.setDaemon(true);
+                return t;
+            });
+    private static volatile boolean backgroundComInitialized;
 
     record UiElement(double centerX, double centerY) {
     }
@@ -299,14 +310,25 @@ public class WindowsUiAutomation {
         }
     }
 
-    static List<UiElement> findInteractiveUiElements() {
+    /**
+     * Starts an asynchronous UI element query on a background thread.
+     */
+    public static Future<List<UiElement>> startFindInteractiveUiElements() {
         ensureInitialized();
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
-        if (hwnd == null)
-            return List.of();
-        if (cachedCondition == null || cachedCacheRequest == null)
-            return List.of();
-        return queryUiElementsOfWindowAndChildren(hwnd);
+        long hwndKey = hwnd != null ? Pointer.nativeValue(hwnd.getPointer()) : 0;
+        return queryExecutor.submit(() -> {
+            if (hwndKey == 0 || cachedCondition == null ||
+                cachedCacheRequest == null)
+                return List.of();
+            if (!backgroundComInitialized) {
+                Ole32.INSTANCE.CoInitializeEx(Pointer.NULL,
+                        Ole32.COINIT_MULTITHREADED);
+                backgroundComInitialized = true;
+            }
+            return queryUiElementsOfWindowAndChildren(
+                    new HWND(new Pointer(hwndKey)));
+        });
     }
 
     // COM wrappers

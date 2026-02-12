@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class HintManager implements ModeListener, MousePositionListener {
@@ -36,6 +38,15 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int positionCycleIndex = 0;
 
     private boolean lastHintCommandSupercedesOtherCommands;
+
+    private record PendingUiHintQuery(
+            Future<List<WindowsUiAutomation.UiElement>> future,
+            HintMeshConfiguration hintMeshConfig,
+            Zoom zoom,
+            ViewportFilter screenFilter) {
+    }
+
+    private PendingUiHintQuery pendingUiHintQuery;
 
     /**
      * It would be better to have an instance of Zoom instead of ZoomConfiguration
@@ -89,6 +100,10 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
+        if (pendingUiHintQuery != null) {
+            pendingUiHintQuery.future().cancel(false);
+            pendingUiHintQuery = null;
+        }
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory) {
             if (positionHistory.isEmpty())
@@ -140,7 +155,19 @@ public class HintManager implements ModeListener, MousePositionListener {
         Zoom newZoom = new Zoom(newMode.zoom().percent(),
                 zoomCenterPoint, screenManager.screenContaining(zoomCenterPoint.x(),
                 zoomCenterPoint.y()).rectangle());
-        HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom, newScreenFilter);
+        if (hintMeshConfiguration.type() instanceof HintMeshType.UiHintMesh) {
+            pendingUiHintQuery = new PendingUiHintQuery(
+                    WindowsUiAutomation.startFindInteractiveUiElements(),
+                    hintMeshConfiguration, newZoom, newScreenFilter);
+            currentMode = newMode;
+            currentZoom = newZoom;
+            screenFilter = newScreenFilter;
+            selectionKeySubset = Set.of();
+            return;
+        }
+        HintMesh newHintMesh =
+                buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
+                        newScreenFilter, null);
         if (currentMode != null && newMode.hintMesh().equals(currentMode.hintMesh()) &&
             newHintMesh.equals(hintMesh))
             return;
@@ -192,7 +219,47 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public boolean showingHintMesh() {
-        return !hintMeshStates.isEmpty() && !hintJustSelected;
+        return pendingUiHintQuery != null ||
+               (!hintMeshStates.isEmpty() && !hintJustSelected);
+    }
+
+    public void completePendingUiHintQuery() {
+        if (pendingUiHintQuery == null || !pendingUiHintQuery.future().isDone())
+            return;
+        PendingUiHintQuery pending = pendingUiHintQuery;
+        pendingUiHintQuery = null;
+        List<WindowsUiAutomation.UiElement> uiElements;
+        try {
+            uiElements = pending.future().get();
+        }
+        catch (ExecutionException e) {
+            logger.warn("UI element query failed", e.getCause());
+            return;
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        if (uiElements.isEmpty())
+            return;
+        HintMesh newHintMesh = buildHintMesh(pending.hintMeshConfig(),
+                currentMode.zoom(), pending.zoom(), pending.screenFilter(),
+                uiElements);
+        selectionKeySubset = newHintMesh.hints()
+                                        .stream()
+                                        .map(Hint::keySequence)
+                                        .flatMap(Collection::stream)
+                                        .collect(Collectors.toSet());
+        List<Key> selectionKeys =
+                pending.hintMeshConfig().keysByFilter()
+                                        .get(pending.screenFilter())
+                                        .selectionKeys();
+        hintMeshStates.put(
+                new HintMeshKey(pending.hintMeshConfig().type(),
+                        selectionKeys, currentMode.zoom()),
+                new HintMeshState(newHintMesh, lastSelectedHintPoint));
+        hintMesh = newHintMesh;
+        WindowsOverlay.setHintMesh(hintMesh, pending.zoom());
     }
 
     private ViewportFilter screenFilter(HintMeshConfiguration hintMeshConfiguration) {
@@ -236,7 +303,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     private HintMesh buildHintMesh(
             HintMeshConfiguration hintMeshConfiguration,
             ZoomConfiguration zoomConfiguration, Zoom zoom,
-            ViewportFilter screenFilter) {
+            ViewportFilter screenFilter,
+            List<WindowsUiAutomation.UiElement> uiElements) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
                 .styleByFilter(hintMeshConfiguration.styleByFilter());
@@ -334,9 +402,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             prefixLengths.iterator().next() : -1);
         }
         else if (type instanceof HintMeshType.UiHintMesh) {
-            List<WindowsUiAutomation.UiElement> uiElements =
-                    WindowsUiAutomation.findInteractiveUiElements();
-            if (uiElements.isEmpty()) {
+            if (uiElements == null || uiElements.isEmpty()) {
                 hintMesh.visible(false)
                         .hints(List.of())
                         .prefixLength(-1);
