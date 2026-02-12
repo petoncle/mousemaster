@@ -33,8 +33,7 @@ public class WindowsUiAutomation {
 
     private static final int UIA_ButtonControlTypeId = 50000;
 
-    private static final int TreeScope_Children = 2;
-    private static final int TreeScope_Subtree = 7;
+    private static final int TreeScope_Descendants = 4;
 
     // VARIANT constants
     private static final short VT_BOOL = 0x000B;
@@ -44,7 +43,6 @@ public class WindowsUiAutomation {
 
     private static Pointer automation;
     private static UIAutomationCondition cachedCondition;
-    private static UIAutomationCondition cachedVisibilityCondition;
     private static UIAutomationCacheRequest cachedCacheRequest;
 
     record UiElement(double centerX, double centerY) {
@@ -101,7 +99,6 @@ public class WindowsUiAutomation {
                          "falling back to TrueCondition");
             cachedCondition = uia.createTrueCondition();
         }
-        cachedVisibilityCondition = buildVisibilityCondition(uia);
         cachedCacheRequest = uia.createCacheRequest();
         if (cachedCacheRequest != null) {
             cachedCacheRequest.addProperty(UIA_BoundingRectanglePropertyId);
@@ -196,30 +193,6 @@ public class WindowsUiAutomation {
         }
     }
 
-    /**
-     * IsOffscreen=false AND IsEnabled=true.
-     * Used to find visible direct children before searching their subtrees.
-     */
-    private static UIAutomationCondition buildVisibilityCondition(UIAutomation uia) {
-        Memory boolTrue = createBoolVariantTrue();
-        Memory boolFalse = createBoolVariantFalse();
-        UIAutomationCondition onscreen = null, enabled = null;
-        try {
-            onscreen = uia.createPropertyCondition(
-                    UIA_IsOffscreenPropertyId, boolFalse);
-            enabled = uia.createPropertyCondition(
-                    UIA_IsEnabledPropertyId, boolTrue);
-            if (onscreen == null || enabled == null)
-                return null;
-            return uia.createAndCondition(onscreen, enabled);
-        } finally {
-            if (onscreen != null)
-                onscreen.Release();
-            if (enabled != null)
-                enabled.Release();
-        }
-    }
-
     private static final double MIN_DISTANCE_BETWEEN_HINTS = 40;
 
     private static boolean isTooCloseToExistingUiElements(List<UiElement> elements,
@@ -269,49 +242,24 @@ public class WindowsUiAutomation {
             return;
         UIAutomation uia = new UIAutomation(automation);
         UIAutomationElement root = null;
+        UIAutomationElementArray array = null;
         try {
             root = uia.elementFromHandle(hwnd);
             if (root == null)
                 return;
             long beforeQuery = System.nanoTime();
-            // Two-step search: find visible direct children first, then search
-            // each child's subtree. Avoids traversing offscreen subtrees
-            // (e.g. hidden Firefox tabs).
-            UIAutomationElementArray children = null;
-            try {
-                children = root.findAllBuildCache(TreeScope_Children,
-                        cachedVisibilityCondition, cachedCacheRequest);
-                if (children == null)
-                    return;
-                int childCount = children.getLength();
-                for (int i = 0; i < childCount; i++) {
-                    UIAutomationElement child = children.getElement(i);
-                    if (child == null)
-                        continue;
-                    UIAutomationElementArray results = null;
-                    try {
-                        results = child.findAllBuildCache(TreeScope_Subtree,
-                                cachedCondition, cachedCacheRequest);
-                        if (results != null)
-                            collectElements(results, windowRect, uiElements);
-                    }
-                    finally {
-                        if (results != null)
-                            results.Release();
-                        child.Release();
-                    }
-                }
-            }
-            finally {
-                if (children != null)
-                    children.Release();
-            }
+            array = root.findAllBuildCache(TreeScope_Descendants,
+                    cachedCondition, cachedCacheRequest);
+            if (array != null)
+                collectElements(array, windowRect, uiElements);
             logger.trace("Found {} UI elements in HWND {} in {}ms",
                     uiElements.size(),
                     Pointer.nativeValue(hwnd.getPointer()),
                     (long) ((System.nanoTime() - beforeQuery) / 1e6));
         }
         finally {
+            if (array != null)
+                array.Release();
             if (root != null)
                 root.Release();
         }
