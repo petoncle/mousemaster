@@ -156,6 +156,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                 zoomCenterPoint, screenManager.screenContaining(zoomCenterPoint.x(),
                 zoomCenterPoint.y()).rectangle());
         if (hintMeshConfiguration.type() instanceof HintMeshType.UiHintMesh) {
+            if (currentMode != null &&
+                currentMode.hintMesh().type() instanceof HintMeshType.UiHintMesh)
+                // Do not recompute UI hints when switching between two UI hint modes.
+                return;
             pendingUiHintQuery = new PendingUiHintQuery(
                     WindowsUiAutomation.startFindInteractiveUiElements(),
                     hintMeshConfiguration, newZoom, newScreenFilter);
