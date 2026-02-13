@@ -22,10 +22,10 @@ public record ComboPreparation(List<KeyEvent> events) {
      * We try the longest (most MoveSets) match first, and for each, the most events first.
      * The matched events are always a suffix of the preparation (most recent events).
      */
-    public Match match(ComboSequence sequence) {
+    public ComboSequenceMatch match(ComboSequence sequence) {
         List<MoveSet> moveSets = sequence.moveSets();
         if (moveSets.isEmpty() || events.isEmpty())
-            return Match.noMatch();
+            return ComboSequenceMatch.noMatch();
 
         // Try matching the first K moveSets, starting with K = all (complete match)
         // and decreasing to K = 1 (partial match of just the first MoveSet).
@@ -50,11 +50,11 @@ public record ComboPreparation(List<KeyEvent> events) {
                         regionBeginIndex + totalEventCount, regionBeginIndex,
                         matchedMoves)) {
                     boolean complete = (k == moveSets.size());
-                    return new Match(List.copyOf(matchedMoves), complete);
+                    return new ComboSequenceMatch(List.copyOf(matchedMoves), complete);
                 }
             }
         }
-        return Match.noMatch();
+        return ComboSequenceMatch.noMatch();
     }
 
     /**

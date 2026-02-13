@@ -186,12 +186,12 @@ public class KeyboardManager {
         }
     }
 
-    private boolean markOtherKeysOfTheseCombosAsCompleted(List<ComboWithMatch> completedCombos,
+    private boolean markOtherKeysOfTheseCombosAsCompleted(List<ComboAndMatch> completedCombos,
                                                           boolean forceIsComboPreparationBreaker) {
         boolean completedCombosHavePressedKeys = false;
-        for (ComboWithMatch comboWithMatch : completedCombos) {
-            Combo combo = comboWithMatch.combo();
-            Match match = comboWithMatch.match();
+        for (ComboAndMatch comboAndMatch : completedCombos) {
+            Combo combo = comboAndMatch.combo();
+            ComboSequenceMatch match = comboAndMatch.match();
             Set<Key> pressedKeysInCompletedCombo =
                     combo.keysPressedAfterMoves(Set.of(), match.matchedMoves());
             completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();

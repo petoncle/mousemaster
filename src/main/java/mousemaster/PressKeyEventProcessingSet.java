@@ -6,7 +6,7 @@ import java.util.Set;
 
 public record PressKeyEventProcessingSet(
         Map<Combo, PressKeyEventProcessing> processingByCombo,
-        Map<Combo, Match> matchByCombo) {
+        Map<Combo, ComboSequenceMatch> matchByCombo) {
 
     /**
      * Used for hints and unknown combo (combo of another mode, for which the key is a precondition key).
@@ -45,13 +45,13 @@ public record PressKeyEventProcessingSet(
                                         PressKeyEventProcessing::isPartOfCompletedComboSequence);
     }
 
-    public List<ComboWithMatch> partOfCompletedComboSequenceCombosWithMatches() {
-        List<ComboWithMatch> result = new java.util.ArrayList<>();
+    public List<ComboAndMatch> partOfCompletedComboSequenceCombosWithMatches() {
+        List<ComboAndMatch> result = new java.util.ArrayList<>();
         for (Map.Entry<Combo, PressKeyEventProcessing> entry : processingByCombo.entrySet()) {
             if (entry.getValue().isPartOfCompletedComboSequence()) {
                 Combo combo = entry.getKey();
-                Match match = matchByCombo.getOrDefault(combo, Match.noMatch());
-                result.add(new ComboWithMatch(combo, match));
+                ComboSequenceMatch match = matchByCombo.getOrDefault(combo, ComboSequenceMatch.noMatch());
+                result.add(new ComboAndMatch(combo, match));
             }
         }
         return result;

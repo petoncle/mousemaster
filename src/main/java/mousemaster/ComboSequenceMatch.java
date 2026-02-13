@@ -2,11 +2,11 @@ package mousemaster;
 
 import java.util.List;
 
-public record Match(List<ComboMove> matchedMoves, boolean complete) {
+public record ComboSequenceMatch(List<ComboMove> matchedMoves, boolean complete) {
 
-    private static final Match NO_MATCH = new Match(List.of(), false);
+    private static final ComboSequenceMatch NO_MATCH = new ComboSequenceMatch(List.of(), false);
 
-    public static Match noMatch() {
+    public static ComboSequenceMatch noMatch() {
         return NO_MATCH;
     }
 
