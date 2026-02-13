@@ -1,6 +1,7 @@
 package mousemaster;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public record ComboPreparation(List<KeyEvent> events) {
@@ -9,12 +10,25 @@ public record ComboPreparation(List<KeyEvent> events) {
         return new ComboPreparation(new ArrayList<>());
     }
 
+    /**
+     * Matches the most recent events in this preparation against a combo sequence.
+     * A combo sequence is an ordered list of MoveSets. Each MoveSet contains required
+     * and optional moves that can be matched in any order.
+     * <p>
+     * Example: sequence [{+a #b?} +c] with events [+a +c] matches the first MoveSet
+     * with just +a (skipping optional #b), then the second MoveSet with +c.
+     * <p>
+     * The match is "complete" if all MoveSets are matched, "partial" if only a prefix is.
+     * We try the longest (most MoveSets) match first, and for each, the most events first.
+     * The matched events are always a suffix of the preparation (most recent events).
+     */
     public MatchResult match(ComboSequence sequence) {
         List<MoveSet> moveSets = sequence.moveSets();
         if (moveSets.isEmpty() || events.isEmpty())
             return MatchResult.noMatch();
 
-        // Try first K moveSets (K from total down to 1).
+        // Try matching the first K moveSets, starting with K = all (complete match)
+        // and decreasing to K = 1 (partial match of just the first MoveSet).
         for (int k = moveSets.size(); k >= 1; k--) {
             List<MoveSet> subMoveSets = moveSets.subList(0, k);
             int minTotalEventCount = 0, maxTotalEventCount = 0;
@@ -26,7 +40,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                 continue;
             int effectiveMaxEventCount = Math.min(maxTotalEventCount, events.size());
 
-            // Try total event counts from max down to min.
+            // Try consuming totalEventCount events from the end of the preparation,
+            // starting with the most events (greediest match) first.
             for (int totalEventCount = effectiveMaxEventCount;
                  totalEventCount >= minTotalEventCount; totalEventCount--) {
                 int regionBeginIndex = events.size() - totalEventCount;
@@ -43,6 +58,13 @@ public record ComboPreparation(List<KeyEvent> events) {
         return MatchResult.noMatch();
     }
 
+    /**
+     * Recursively partitions a contiguous range of events among consecutive MoveSets.
+     * Each MoveSet consumes between minMoveCount and maxMoveCount events.
+     * The events assigned to each MoveSet must match that MoveSet (checked by
+     * tryMatchMoveSetEvents). Tries the greediest partition first (give as many
+     * events as possible to the current MoveSet).
+     */
     private boolean tryAssignEventsToMoveSets(
             List<MoveSet> moveSets, int moveSetIndex, int eventIndex,
             int eventEndIndex, int regionBeginIndex,
@@ -78,6 +100,16 @@ public record ComboPreparation(List<KeyEvent> events) {
         return false;
     }
 
+    /**
+     * Tries to match eventCount consecutive events (starting at eventBeginIndex)
+     * against a single MoveSet. All required moves must be matched. The remaining
+     * event slots (eventCount - requiredCount) are filled by selecting that many
+     * optional moves.
+     * <p>
+     * Duration constraint: the time between consecutive events must satisfy the
+     * duration of the previous matched move. The first event in the matched region
+     * has no duration constraint.
+     */
     private boolean tryMatchMoveSetEvents(
             int eventBeginIndex, int eventCount, MoveSet moveSet,
             int regionBeginIndex, List<ComboMove> previousMatchedMoves,
@@ -112,6 +144,11 @@ public record ComboPreparation(List<KeyEvent> events) {
                 regionBeginIndex, previousMatchedMoves, matchedMoves);
     }
 
+    /**
+     * Recursively selects optionalToUseCount optional moves to include alongside
+     * the required moves. Once enough optionals are selected, attempts a bipartite
+     * match of the combined moves against the events.
+     */
     private boolean tryOptionalSubsets(
             int eventBeginIndex, int eventCount,
             List<ComboMove> optional,
@@ -141,6 +178,11 @@ public record ComboPreparation(List<KeyEvent> events) {
                 regionBeginIndex, previousMatchedMoves, matchedMoves);
     }
 
+    /**
+     * Tries to find a one-to-one assignment between moves and events.
+     * Moves within a MoveSet are unordered: {+a #b} can match events [+a #b] or [#b +a].
+     * Each assignment must satisfy key/press-release matching and duration constraints.
+     */
     private boolean tryBipartiteMatch(
             int eventBeginIndex, int eventCount, List<ComboMove> moves,
             int regionBeginIndex, List<ComboMove> previousMatchedMoves,
@@ -150,12 +192,17 @@ public record ComboPreparation(List<KeyEvent> events) {
         if (assignEvents(eventBeginIndex, 0, eventCount, moves, moveUsed,
                 assignedMoves, regionBeginIndex, previousMatchedMoves)) {
             matchedMoves.clear();
-            for (ComboMove move : assignedMoves) matchedMoves.add(move);
+            Collections.addAll(matchedMoves, assignedMoves);
             return true;
         }
         return false;
     }
 
+    /**
+     * Recursively assigns moves to events one at a time. For each event, tries
+     * every unused move that matches the event's key and press/release. Backtracks
+     * if no valid assignment is found for subsequent events.
+     */
     private boolean assignEvents(
             int eventBeginIndex, int eventOffset, int eventCount,
             List<ComboMove> moves, boolean[] moveUsed,
