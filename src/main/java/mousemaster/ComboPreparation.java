@@ -17,23 +17,25 @@ public record ComboPreparation(List<KeyEvent> events) {
         // Try first K moveSets (K from total down to 1).
         for (int k = moveSets.size(); k >= 1; k--) {
             List<MoveSet> subMoveSets = moveSets.subList(0, k);
-            int minTotal = 0, maxTotal = 0;
-            for (MoveSet ms : subMoveSets) {
-                minTotal += ms.minEvents();
-                maxTotal += ms.maxEvents();
+            int minTotalEventCount = 0, maxTotalEventCount = 0;
+            for (MoveSet moveSet : subMoveSets) {
+                minTotalEventCount += moveSet.minMoveCount();
+                maxTotalEventCount += moveSet.maxMoveCount();
             }
-            if (minTotal > events.size())
+            if (minTotalEventCount > events.size())
                 continue;
-            int effectiveMax = Math.min(maxTotal, events.size());
+            int effectiveMaxEventCount = Math.min(maxTotalEventCount, events.size());
 
             // Try total event counts from max down to min.
-            for (int totalEvents = effectiveMax; totalEvents >= minTotal; totalEvents--) {
-                int regionStart = events.size() - totalEvents;
+            for (int totalEventCount = effectiveMaxEventCount;
+                 totalEventCount >= minTotalEventCount; totalEventCount--) {
+                int regionBeginIndex = events.size() - totalEventCount;
                 List<ComboMove> matchedMoves = new ArrayList<>();
-                if (tryAssignEventsToMoveSets(subMoveSets, 0, regionStart,
-                        regionStart + totalEvents, regionStart, matchedMoves)) {
+                if (tryAssignEventsToMoveSets(subMoveSets, 0, regionBeginIndex,
+                        regionBeginIndex + totalEventCount, regionBeginIndex,
+                        matchedMoves)) {
                     boolean complete = (k == moveSets.size());
-                    return new MatchResult(totalEvents, complete,
+                    return new MatchResult(totalEventCount, complete,
                             List.copyOf(matchedMoves));
                 }
             }
@@ -42,143 +44,153 @@ public record ComboPreparation(List<KeyEvent> events) {
     }
 
     private boolean tryAssignEventsToMoveSets(
-            List<MoveSet> moveSets, int moveSetIndex, int eventIndex, int eventEnd,
-            int regionStart, List<ComboMove> matchedMoves) {
+            List<MoveSet> moveSets, int moveSetIndex, int eventIndex,
+            int eventEndIndex, int regionBeginIndex,
+            List<ComboMove> matchedMoves) {
         if (moveSetIndex == moveSets.size())
-            return eventIndex == eventEnd;
+            return eventIndex == eventEndIndex;
 
-        MoveSet ms = moveSets.get(moveSetIndex);
-        int remaining = eventEnd - eventIndex;
-        int minForLater = 0;
-        for (int i = moveSetIndex + 1; i < moveSets.size(); i++)
-            minForLater += moveSets.get(i).minEvents();
-        int maxForThis = Math.min(ms.maxEvents(), remaining - minForLater);
+        MoveSet moveSet = moveSets.get(moveSetIndex);
+        int remainingEventCount = eventEndIndex - eventIndex;
+        int minEventCountForRemainingMoveSets = 0;
+        for (int laterMoveSetIndex = moveSetIndex + 1;
+             laterMoveSetIndex < moveSets.size(); laterMoveSetIndex++)
+            minEventCountForRemainingMoveSets +=
+                    moveSets.get(laterMoveSetIndex).minMoveCount();
+        int maxEventCountForMoveSet = Math.min(moveSet.maxMoveCount(),
+                remainingEventCount - minEventCountForRemainingMoveSets);
 
-        for (int evCount = maxForThis; evCount >= ms.minEvents(); evCount--) {
-            List<ComboMove> moveSetMatched = new ArrayList<>();
-            if (tryMatchMoveSetEvents(eventIndex, evCount, ms, regionStart, matchedMoves,
-                    moveSetMatched)) {
+        for (int eventCount = maxEventCountForMoveSet;
+             eventCount >= moveSet.minMoveCount(); eventCount--) {
+            List<ComboMove> moveSetMatchedMoves = new ArrayList<>();
+            if (tryMatchMoveSetEvents(eventIndex, eventCount, moveSet,
+                    regionBeginIndex, matchedMoves, moveSetMatchedMoves)) {
                 int savedSize = matchedMoves.size();
-                matchedMoves.addAll(moveSetMatched);
+                matchedMoves.addAll(moveSetMatchedMoves);
                 if (tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
-                        eventIndex + evCount, eventEnd, regionStart, matchedMoves))
+                        eventIndex + eventCount, eventEndIndex,
+                        regionBeginIndex, matchedMoves))
                     return true;
-                while (matchedMoves.size() > savedSize) matchedMoves.removeLast();
+                while (matchedMoves.size() > savedSize)
+                    matchedMoves.removeLast();
             }
         }
         return false;
     }
 
     private boolean tryMatchMoveSetEvents(
-            int eventStart, int eventCount, MoveSet moveSet,
-            int regionStart, List<ComboMove> previousMatchedMoves,
-            List<ComboMove> outMatchedMoves) {
+            int eventBeginIndex, int eventCount, MoveSet moveSet,
+            int regionBeginIndex, List<ComboMove> previousMatchedMoves,
+            List<ComboMove> matchedMoves) {
         if (eventCount == 0)
             return true;
         List<ComboMove> required = moveSet.requiredMoves();
         List<ComboMove> optional = moveSet.optionalMoves();
-        int optionalToUse = eventCount - required.size();
-        if (optionalToUse < 0 || optionalToUse > optional.size())
+        int optionalToUseCount = eventCount - required.size();
+        if (optionalToUseCount < 0 || optionalToUseCount > optional.size())
             return false;
 
         // Fast path: singleton MoveSet (one required, no optionals).
         if (eventCount == 1 && required.size() == 1 && optional.isEmpty()) {
             ComboMove move = required.getFirst();
-            KeyEvent event = events.get(eventStart);
+            KeyEvent event = events.get(eventBeginIndex);
             if (!event.key().equals(move.key()) || event.isPress() != move.isPress())
                 return false;
-            if (eventStart > regionStart) {
-                KeyEvent prevEvent = events.get(eventStart - 1);
-                ComboMove prevMove = previousMatchedMoves.getLast();
-                if (!prevMove.duration().satisfied(prevEvent.time(), event.time()))
+            if (eventBeginIndex > regionBeginIndex) {
+                KeyEvent previousEvent = events.get(eventBeginIndex - 1);
+                ComboMove previousMove = previousMatchedMoves.getLast();
+                if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
                     return false;
             }
-            outMatchedMoves.add(move);
+            matchedMoves.add(move);
             return true;
         }
 
         // General path: try subsets of optional moves, then bipartite match.
-        return tryOptionalSubsets(eventStart, eventCount, optional,
-                optionalToUse, 0, new ArrayList<>(required),
-                regionStart, previousMatchedMoves, outMatchedMoves);
+        return tryOptionalSubsets(eventBeginIndex, eventCount, optional,
+                optionalToUseCount, 0, new ArrayList<>(required),
+                regionBeginIndex, previousMatchedMoves, matchedMoves);
     }
 
     private boolean tryOptionalSubsets(
-            int eventStart, int eventCount,
+            int eventBeginIndex, int eventCount,
             List<ComboMove> optional,
-            int optionalToUse, int optionalIndex,
-            List<ComboMove> candidates,
-            int regionStart, List<ComboMove> previousMatchedMoves,
-            List<ComboMove> outMatchedMoves) {
-        if (optionalToUse == 0) {
-            return tryBipartiteMatch(eventStart, eventCount, candidates,
-                    regionStart, previousMatchedMoves, outMatchedMoves);
+            int optionalToUseCount, int optionalIndex,
+            List<ComboMove> moves,
+            int regionBeginIndex, List<ComboMove> previousMatchedMoves,
+            List<ComboMove> matchedMoves) {
+        if (optionalToUseCount == 0) {
+            return tryBipartiteMatch(eventBeginIndex, eventCount, moves,
+                    regionBeginIndex, previousMatchedMoves, matchedMoves);
         }
-        int remaining = optional.size() - optionalIndex;
-        if (remaining < optionalToUse)
+        int remainingOptionalCount = optional.size() - optionalIndex;
+        if (remainingOptionalCount < optionalToUseCount)
             return false;
 
         // Include optional[optionalIndex].
-        candidates.add(optional.get(optionalIndex));
-        if (tryOptionalSubsets(eventStart, eventCount, optional,
-                optionalToUse - 1, optionalIndex + 1, candidates,
-                regionStart, previousMatchedMoves, outMatchedMoves))
+        moves.add(optional.get(optionalIndex));
+        if (tryOptionalSubsets(eventBeginIndex, eventCount, optional,
+                optionalToUseCount - 1, optionalIndex + 1, moves,
+                regionBeginIndex, previousMatchedMoves, matchedMoves))
             return true;
-        candidates.removeLast();
+        moves.removeLast();
 
         // Skip optional[optionalIndex].
-        return tryOptionalSubsets(eventStart, eventCount, optional,
-                optionalToUse, optionalIndex + 1, candidates,
-                regionStart, previousMatchedMoves, outMatchedMoves);
+        return tryOptionalSubsets(eventBeginIndex, eventCount, optional,
+                optionalToUseCount, optionalIndex + 1, moves,
+                regionBeginIndex, previousMatchedMoves, matchedMoves);
     }
 
     private boolean tryBipartiteMatch(
-            int eventStart, int eventCount, List<ComboMove> candidates,
-            int regionStart, List<ComboMove> previousMatchedMoves,
-            List<ComboMove> outMatchedMoves) {
-        boolean[] used = new boolean[candidates.size()];
-        ComboMove[] assignment = new ComboMove[eventCount];
-        if (assignEvents(eventStart, 0, eventCount, candidates, used, assignment,
-                regionStart, previousMatchedMoves)) {
-            outMatchedMoves.clear();
-            for (ComboMove m : assignment) outMatchedMoves.add(m);
+            int eventBeginIndex, int eventCount, List<ComboMove> moves,
+            int regionBeginIndex, List<ComboMove> previousMatchedMoves,
+            List<ComboMove> matchedMoves) {
+        boolean[] moveUsed = new boolean[moves.size()];
+        ComboMove[] assignedMoves = new ComboMove[eventCount];
+        if (assignEvents(eventBeginIndex, 0, eventCount, moves, moveUsed,
+                assignedMoves, regionBeginIndex, previousMatchedMoves)) {
+            matchedMoves.clear();
+            for (ComboMove move : assignedMoves) matchedMoves.add(move);
             return true;
         }
         return false;
     }
 
     private boolean assignEvents(
-            int eventStart, int eventOffset, int eventCount,
-            List<ComboMove> candidates, boolean[] used, ComboMove[] assignment,
-            int regionStart, List<ComboMove> previousMatchedMoves) {
+            int eventBeginIndex, int eventOffset, int eventCount,
+            List<ComboMove> moves, boolean[] moveUsed,
+            ComboMove[] assignedMoves,
+            int regionBeginIndex, List<ComboMove> previousMatchedMoves) {
         if (eventOffset == eventCount)
             return true;
 
-        int globalEventIndex = eventStart + eventOffset;
+        int globalEventIndex = eventBeginIndex + eventOffset;
         KeyEvent event = events.get(globalEventIndex);
 
         // Duration check: skip for the first event in the matched region.
-        if (globalEventIndex > regionStart) {
-            KeyEvent prevEvent = events.get(globalEventIndex - 1);
-            ComboMove prevMove;
+        if (globalEventIndex > regionBeginIndex) {
+            KeyEvent previousEvent = events.get(globalEventIndex - 1);
+            ComboMove previousMove;
             if (eventOffset > 0)
-                prevMove = assignment[eventOffset - 1];
+                previousMove = assignedMoves[eventOffset - 1];
             else
-                prevMove = previousMatchedMoves.getLast();
-            if (!prevMove.duration().satisfied(prevEvent.time(), event.time()))
+                previousMove = previousMatchedMoves.getLast();
+            if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
                 return false;
         }
 
-        for (int i = 0; i < candidates.size(); i++) {
-            if (used[i]) continue;
-            ComboMove candidate = candidates.get(i);
-            if (event.key().equals(candidate.key()) && event.isPress() == candidate.isPress()) {
-                used[i] = true;
-                assignment[eventOffset] = candidate;
-                if (assignEvents(eventStart, eventOffset + 1, eventCount,
-                        candidates, used, assignment, regionStart, previousMatchedMoves))
+        for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
+            if (moveUsed[moveIndex]) continue;
+            ComboMove move = moves.get(moveIndex);
+            if (event.key().equals(move.key()) &&
+                event.isPress() == move.isPress()) {
+                moveUsed[moveIndex] = true;
+                assignedMoves[eventOffset] = move;
+                if (assignEvents(eventBeginIndex, eventOffset + 1, eventCount,
+                        moves, moveUsed, assignedMoves, regionBeginIndex,
+                        previousMatchedMoves))
                     return true;
-                used[i] = false;
+                moveUsed[moveIndex] = false;
             }
         }
         return false;

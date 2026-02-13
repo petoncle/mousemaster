@@ -12,17 +12,17 @@ public record ComboSequence(List<MoveSet> moveSets) {
     }
 
     public int maxMoveCount() {
-        return moveSets.stream().mapToInt(MoveSet::maxEvents).sum();
+        return moveSets.stream().mapToInt(MoveSet::maxMoveCount).sum();
     }
 
     public Set<Key> allKeys() {
         return moveSets.stream()
-                       .flatMap(ms -> ms.allMoves().stream())
+                       .flatMap(moveSet -> moveSet.allMoves().stream())
                        .map(ComboMove::key)
                        .collect(Collectors.toSet());
     }
 
-    public static ComboSequence fromFlatMoves(List<ComboMove> moves) {
+    public static ComboSequence ofMoves(List<ComboMove> moves) {
         List<MoveSet> moveSets = new ArrayList<>();
         for (ComboMove move : moves) {
             moveSets.add(new MoveSet(List.of(move), List.of()));

@@ -6,11 +6,11 @@ import java.util.stream.Stream;
 
 public record MoveSet(List<ComboMove> requiredMoves, List<ComboMove> optionalMoves) {
 
-    int minEvents() {
+    int minMoveCount() {
         return requiredMoves.size();
     }
 
-    int maxEvents() {
+    int maxMoveCount() {
         return requiredMoves.size() + optionalMoves.size();
     }
 
