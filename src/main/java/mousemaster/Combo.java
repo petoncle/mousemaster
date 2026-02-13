@@ -148,13 +148,11 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                             String pressedKeySetsString,
                             Set<App> mustNotBeActiveApps,
                             Set<App> mustBeActiveApps) {
-        Set<Key> sequenceKeys =
-                sequence.moves().stream().map(ComboMove::key).collect(Collectors.toSet());
         ComboPrecondition precondition = new ComboPrecondition(
                 new ComboKeyPrecondition(unpressedKeySet,
                         pressedKeySets),
                 new ComboAppPrecondition(mustNotBeActiveApps, mustBeActiveApps));
-        if (precondition.isEmpty() && sequence.moves().isEmpty())
+        if (precondition.isEmpty() && sequence.isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
         return new Combo(precondition, sequence);
     }
@@ -335,12 +333,10 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         return (precondition.isEmpty() ? "" : precondition + " ") + sequence;
     }
 
-    public Set<Key> keysPressedInComboPriorToMoveOfIndex(
-            Set<Key> preconditionPressedKeySet, int maxMoveIndex) {
+    public Set<Key> keysPressedAfterMoves(Set<Key> preconditionPressedKeySet,
+                                           List<ComboMove> matchedMoves) {
         Set<Key> pressedKeys = new HashSet<>(preconditionPressedKeySet);
-        for (int moveIndex = 0;
-             moveIndex <= maxMoveIndex; moveIndex++) {
-            ComboMove move = sequence().moves().get(moveIndex);
+        for (ComboMove move : matchedMoves) {
             if (move.isPress())
                 pressedKeys.add(move.key());
             else

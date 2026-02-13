@@ -464,7 +464,7 @@ public class ConfigurationParser {
                 new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()));
         return hintSelectionKeys.stream()
                                 .map(key -> new Combo(emptyComboPrecondition,
-                                        new ComboSequence(
+                                        ComboSequence.fromFlatMoves(
                                                 List.of(new ComboMove.PressComboMove(
                                                         key, true,
                                                         defaultComboMoveDuration)))))
@@ -513,11 +513,7 @@ public class ConfigurationParser {
             allComboAndMacroKeys.addAll(combo.precondition()
                                                  .keyPrecondition()
                                                  .unpressedKeySet());
-            combo.sequence()
-                 .moves()
-                 .stream()
-                 .map(ComboMove::key)
-                 .forEach(allComboAndMacroKeys::add);
+            allComboAndMacroKeys.addAll(combo.sequence().allKeys());
             for (Command command : commands) {
                 if (command instanceof Command.MacroCommand(Macro macro)) {
                     for (MacroParallel parallel : macro.output().parallels()) {

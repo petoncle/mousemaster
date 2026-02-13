@@ -77,129 +77,54 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
 
     public Map<AliasResolution, List<ComboSequence>> expand(
             Map<String, KeyAlias> aliases, KeyResolver keyResolver) {
-        // Step 1: Expand move sets into all permutations
-        List<List<ComboAliasMove>> expandedMoveLists = new ArrayList<>();
-        expandMoveSets(moveSets, 0, new ArrayList<>(), expandedMoveLists);
-
-        // Step 2: For each permutation, expand aliases
-        Map<AliasResolution, List<ComboSequence>> sequencesByAliasResolution = new HashMap<>();
-        for (List<ComboAliasMove> moves : expandedMoveLists) {
-            expandAliases(moves, new HashMap<>(),
-                    moves.stream().map(ComboAliasMove::aliasOrKeyName)
-                         .filter(aliases.keySet()::contains).distinct().toList(),
-                    sequencesByAliasResolution, aliases, keyResolver);
+        // Collect all alias names used across all move sets.
+        Set<String> aliasNameSet = new LinkedHashSet<>();
+        for (Set<ComboAliasMove> moveSet : moveSets) {
+            for (ComboAliasMove move : moveSet) {
+                if (aliases.containsKey(move.aliasOrKeyName()))
+                    aliasNameSet.add(move.aliasOrKeyName());
+            }
         }
+        List<String> aliasNames = new ArrayList<>(aliasNameSet);
+        Map<AliasResolution, List<ComboSequence>> sequencesByAliasResolution = new HashMap<>();
+        expandAliasesStructured(moveSets, new HashMap<>(), aliasNames,
+                sequencesByAliasResolution, aliases, keyResolver);
         return sequencesByAliasResolution;
     }
 
-    private static void expandMoveSets(List<Set<ComboAliasMove>> moveSets, int index,
-                                       List<ComboAliasMove> current,
-                                       List<List<ComboAliasMove>> result) {
-        if (index == moveSets.size()) {
-            result.add(new ArrayList<>(current));
-            return;
-        }
-        Set<ComboAliasMove> moveSet = moveSets.get(index);
-        if (moveSet.size() == 1) {
-            ComboAliasMove move = moveSet.iterator().next();
-            if (move.optional()) {
-                // Optional singleton: branch: skip or include.
-                // Skip branch.
-                expandMoveSets(moveSets, index + 1, current, result);
-                // Include branch.
-                current.add(move);
-                expandMoveSets(moveSets, index + 1, current, result);
-                current.removeLast();
-            }
-            else {
-                // Required singleton: just append
-                current.add(move);
-                expandMoveSets(moveSets, index + 1, current, result);
-                current.removeLast();
-            }
-        }
-        else {
-            // Multi-element set: separate required and optional moves
-            List<ComboAliasMove> required = new ArrayList<>();
-            List<ComboAliasMove> optional = new ArrayList<>();
-            for (ComboAliasMove move : moveSet) {
-                if (move.optional())
-                    optional.add(move);
-                else
-                    required.add(move);
-            }
-            if (optional.isEmpty()) {
-                // No optional moves: generate all permutations (existing behavior)
-                List<ComboAliasMove> elements = new ArrayList<>(moveSet);
-                List<List<ComboAliasMove>> permutations = new ArrayList<>();
-                generatePermutations(elements, 0, permutations);
-                for (List<ComboAliasMove> perm : permutations) {
-                    current.addAll(perm);
-                    expandMoveSets(moveSets, index + 1, current, result);
-                    for (int i = 0; i < perm.size(); i++)
-                        current.removeLast();
-                }
-            }
-            else {
-                // Generate all subsets of optional moves.
-                int n = optional.size();
-                for (int mask = 0; mask < (1 << n); mask++) {
-                    List<ComboAliasMove> subset = new ArrayList<>(required);
-                    for (int bit = 0; bit < n; bit++) {
-                        if ((mask & (1 << bit)) != 0)
-                            subset.add(optional.get(bit));
-                    }
-                    if (subset.isEmpty())
-                        continue; // All optional, none selected: skip empty set.
-                    // Generate all permutations of this subset.
-                    List<List<ComboAliasMove>> permutations = new ArrayList<>();
-                    generatePermutations(subset, 0, permutations);
-                    for (List<ComboAliasMove> perm : permutations) {
-                        current.addAll(perm);
-                        expandMoveSets(moveSets, index + 1, current, result);
-                        for (int i = 0; i < perm.size(); i++)
-                            current.removeLast();
-                    }
-                }
-            }
-        }
-    }
-
-    private static void generatePermutations(List<ComboAliasMove> elements, int start,
-                                             List<List<ComboAliasMove>> result) {
-        if (start == elements.size()) {
-            result.add(new ArrayList<>(elements));
-            return;
-        }
-        for (int i = start; i < elements.size(); i++) {
-            Collections.swap(elements, start, i);
-            generatePermutations(elements, start + 1, result);
-            Collections.swap(elements, start, i);
-        }
-    }
-
-    private static void expandAliases(List<ComboAliasMove> moves,
-                                      Map<String, Key> fixedKeyByAliasName,
-                                      List<String> aliasNames,
-                                      Map<AliasResolution, List<ComboSequence>> sequencesByAliasResolution,
-                                      Map<String, KeyAlias> aliasByName,
-                                      KeyResolver keyResolver) {
+    private static void expandAliasesStructured(
+            List<Set<ComboAliasMove>> aliasMoveSetList,
+            Map<String, Key> fixedKeyByAliasName,
+            List<String> aliasNames,
+            Map<AliasResolution, List<ComboSequence>> sequencesByAliasResolution,
+            Map<String, KeyAlias> aliasByName,
+            KeyResolver keyResolver) {
         if (fixedKeyByAliasName.size() == aliasNames.size()) {
-            List<ComboMove> comboMoves = new ArrayList<>();
-            for (ComboAliasMove aliasMove : moves) {
-                Key aliasKey = fixedKeyByAliasName.get(aliasMove.aliasOrKeyName());
-                Key key = aliasKey == null ? keyResolver.resolve(aliasMove.aliasOrKeyName()) :
-                        aliasKey;
-                comboMoves.add(switch (aliasMove) {
-                    case ComboAliasMove.PressComboAliasMove pressComboAliasMove ->
-                            new ComboMove.PressComboMove(key,
-                                    pressComboAliasMove.eventMustBeEaten(),
-                                    aliasMove.duration());
-                    case ComboAliasMove.ReleaseComboAliasMove releaseComboAliasMove ->
-                            new ComboMove.ReleaseComboMove(key, aliasMove.duration());
-                });
+            // All aliases resolved — convert each Set<ComboAliasMove> to a MoveSet.
+            List<MoveSet> resolvedMoveSets = new ArrayList<>();
+            for (Set<ComboAliasMove> aliasMoveSet : aliasMoveSetList) {
+                List<ComboMove> required = new ArrayList<>();
+                List<ComboMove> optional = new ArrayList<>();
+                for (ComboAliasMove aliasMove : aliasMoveSet) {
+                    Key aliasKey = fixedKeyByAliasName.get(aliasMove.aliasOrKeyName());
+                    Key key = aliasKey == null ?
+                            keyResolver.resolve(aliasMove.aliasOrKeyName()) : aliasKey;
+                    ComboMove comboMove = switch (aliasMove) {
+                        case ComboAliasMove.PressComboAliasMove pressMove ->
+                                new ComboMove.PressComboMove(key,
+                                        pressMove.eventMustBeEaten(),
+                                        aliasMove.duration());
+                        case ComboAliasMove.ReleaseComboAliasMove releaseMove ->
+                                new ComboMove.ReleaseComboMove(key, aliasMove.duration());
+                    };
+                    if (aliasMove.optional())
+                        optional.add(comboMove);
+                    else
+                        required.add(comboMove);
+                }
+                resolvedMoveSets.add(new MoveSet(List.copyOf(required), List.copyOf(optional)));
             }
-            ComboSequence sequence = new ComboSequence(comboMoves);
+            ComboSequence sequence = new ComboSequence(List.copyOf(resolvedMoveSets));
             sequencesByAliasResolution.computeIfAbsent(
                     new AliasResolution(Map.copyOf(fixedKeyByAliasName)),
                     k -> new ArrayList<>()).add(sequence);
@@ -209,7 +134,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         KeyAlias alias = aliasByName.get(fixedAliasOrKeyName);
         for (Key fixedKey : alias.keys()) {
             fixedKeyByAliasName.put(fixedAliasOrKeyName, fixedKey);
-            expandAliases(moves, fixedKeyByAliasName, aliasNames,
+            expandAliasesStructured(aliasMoveSetList, fixedKeyByAliasName, aliasNames,
                     sequencesByAliasResolution, aliasByName, keyResolver);
             fixedKeyByAliasName.remove(fixedAliasOrKeyName);
         }

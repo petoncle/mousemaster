@@ -1,12 +1,12 @@
 package mousemaster;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public record PressKeyEventProcessingSet(
-        Map<Combo, PressKeyEventProcessing> processingByCombo) {
+        Map<Combo, PressKeyEventProcessing> processingByCombo,
+        Map<Combo, MatchResult> matchResultByCombo) {
 
     /**
      * Used for hints and unknown combo (combo of another mode, for which the key is a precondition key).
@@ -45,14 +45,16 @@ public record PressKeyEventProcessingSet(
                                         PressKeyEventProcessing::isPartOfCompletedComboSequence);
     }
 
-    public Set<Combo> partOfCompletedComboSequenceCombos() {
-        Set<Combo> completedCombos = new HashSet<>();
+    public List<ComboWithMatchResult> partOfCompletedComboSequenceCombosWithMatchResults() {
+        List<ComboWithMatchResult> result = new java.util.ArrayList<>();
         for (Map.Entry<Combo, PressKeyEventProcessing> entry : processingByCombo.entrySet()) {
             if (entry.getValue().isPartOfCompletedComboSequence()) {
-                completedCombos.add(entry.getKey());
+                Combo combo = entry.getKey();
+                MatchResult matchResult = matchResultByCombo.getOrDefault(combo, MatchResult.noMatch());
+                result.add(new ComboWithMatchResult(combo, matchResult));
             }
         }
-        return completedCombos;
+        return result;
     }
 
     public boolean isPartOfPressedComboPreconditionOnly() {

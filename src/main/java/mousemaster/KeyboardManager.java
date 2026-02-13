@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -83,10 +84,11 @@ public class KeyboardManager {
                             comboWatcher.keyEvent(keyEvent);
                     Map<Combo, PressKeyEventProcessing> processingByCombo =
                             new HashMap<>(comboWatcherProcessingSet.processingByCombo());
-                    processingSet = new PressKeyEventProcessingSet(processingByCombo);
+                    processingSet = new PressKeyEventProcessingSet(processingByCombo,
+                            new HashMap<>(comboWatcherProcessingSet.matchResultByCombo()));
                 }
                 else {
-                    processingSet = new PressKeyEventProcessingSet(Map.of());
+                    processingSet = new PressKeyEventProcessingSet(Map.of(), Map.of());
                 }
                 if (!processingSet.isPartOfComboSequence()) {
                     keysToRegurgitate = regurgitatePressedKeys(null);
@@ -104,7 +106,8 @@ public class KeyboardManager {
                 }
                 currentlyPressedKeys.put(key, processingSet);
                 if (processingSet.isPartOfCompletedComboSequence()) {
-                    markOtherKeysOfTheseCombosAsCompleted(processingSet.partOfCompletedComboSequenceCombos(), false);
+                    markOtherKeysOfTheseCombosAsCompleted(
+                            processingSet.partOfCompletedComboSequenceCombosWithMatchResults(), false);
                 }
                 if (processingSet.isComboPreparationBreaker()) {
                     comboWatcher.reset(key);
@@ -157,7 +160,7 @@ public class KeyboardManager {
                                                          });
                                 }
                                 markOtherKeysOfTheseCombosAsCompleted(
-                                        releaseProcessingSet.partOfCompletedComboSequenceCombos(),
+                                        releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatchResults(),
                                         false);
                                 keysToRegurgitate = regurgitatePressedKeys(key);
                             }
@@ -183,13 +186,14 @@ public class KeyboardManager {
         }
     }
 
-    private boolean markOtherKeysOfTheseCombosAsCompleted(Set<Combo> completedCombos,
+    private boolean markOtherKeysOfTheseCombosAsCompleted(List<ComboWithMatchResult> completedCombos,
                                                           boolean forceIsComboPreparationBreaker) {
         boolean completedCombosHavePressedKeys = false;
-        for (Combo combo : completedCombos) {
+        for (ComboWithMatchResult comboWithMatchResult : completedCombos) {
+            Combo combo = comboWithMatchResult.combo();
+            MatchResult matchResult = comboWithMatchResult.matchResult();
             Set<Key> pressedKeysInCompletedCombo =
-                    combo.keysPressedInComboPriorToMoveOfIndex(Set.of(),
-                            combo.sequence().moves().size() - 1);
+                    combo.keysPressedAfterMoves(Set.of(), matchResult.matchedMoves());
             completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();
 
             for (Key key : pressedKeysInCompletedCombo) {
