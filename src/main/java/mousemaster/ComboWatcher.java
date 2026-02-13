@@ -261,9 +261,7 @@ public class ComboWatcher implements ModeListener {
                 continue;
             if (!combo.precondition().appPrecondition().isEmpty() && combo.sequence().isEmpty())
                 continue; // Active app changes are handled in ComboWatcher#update.
-            ComboSequenceMatch match = combo.sequence().isEmpty() ?
-                    ComboSequenceMatch.noMatch() :
-                    comboPreparation.match(combo.sequence());
+            ComboSequenceMatch match = comboPreparation.match(combo.sequence());
             ComboMove currentMove = match.hasMatch() ?
                     match.lastMatchedMove() : null;
             // For release combos (like -up), we ignore the currently pressed keys:

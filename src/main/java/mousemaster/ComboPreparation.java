@@ -24,7 +24,9 @@ public record ComboPreparation(List<KeyEvent> events) {
      */
     public ComboSequenceMatch match(ComboSequence sequence) {
         List<MoveSet> moveSets = sequence.moveSets();
-        if (moveSets.isEmpty() || events.isEmpty())
+        if (moveSets.isEmpty())
+            return new ComboSequenceMatch(List.of(), true);
+        if (events.isEmpty())
             return ComboSequenceMatch.noMatch();
 
         // Try matching the first K moveSets, starting with K = all (complete match)
