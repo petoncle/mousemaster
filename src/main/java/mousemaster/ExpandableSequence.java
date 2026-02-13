@@ -87,12 +87,12 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         }
         List<String> aliasNames = new ArrayList<>(aliasNameSet);
         Map<AliasResolution, List<ComboSequence>> sequencesByAliasResolution = new HashMap<>();
-        expandAliasesStructured(moveSets, new HashMap<>(), aliasNames,
+        expandAliases(moveSets, new HashMap<>(), aliasNames,
                 sequencesByAliasResolution, aliases, keyResolver);
         return sequencesByAliasResolution;
     }
 
-    private static void expandAliasesStructured(
+    private static void expandAliases(
             List<Set<ComboAliasMove>> aliasMoveSetList,
             Map<String, Key> fixedKeyByAliasName,
             List<String> aliasNames,
@@ -134,7 +134,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         KeyAlias alias = aliasByName.get(fixedAliasOrKeyName);
         for (Key fixedKey : alias.keys()) {
             fixedKeyByAliasName.put(fixedAliasOrKeyName, fixedKey);
-            expandAliasesStructured(aliasMoveSetList, fixedKeyByAliasName, aliasNames,
+            expandAliases(aliasMoveSetList, fixedKeyByAliasName, aliasNames,
                     sequencesByAliasResolution, aliasByName, keyResolver);
             fixedKeyByAliasName.remove(fixedAliasOrKeyName);
         }
