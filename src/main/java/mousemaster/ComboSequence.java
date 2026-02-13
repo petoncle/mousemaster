@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public record ComboSequence(List<MoveSet> moveSets) {
 
@@ -11,13 +12,11 @@ public record ComboSequence(List<MoveSet> moveSets) {
         return moveSets.isEmpty();
     }
 
-    public int maxMoveCount() {
-        return moveSets.stream().mapToInt(MoveSet::maxMoveCount).sum();
-    }
-
     public Set<Key> allKeys() {
         return moveSets.stream()
-                       .flatMap(moveSet -> moveSet.allMoves().stream())
+                       .flatMap(moveSet -> Stream.concat(
+                               moveSet.requiredMoves().stream(),
+                               moveSet.optionalMoves().stream()))
                        .map(ComboMove::key)
                        .collect(Collectors.toSet());
     }
