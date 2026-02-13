@@ -1,0 +1,458 @@
+package mousemaster;
+
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ComboPreparationTest {
+
+    static final Key a = Key.ofName("a");
+    static final Key b = Key.ofName("b");
+    static final Key c = Key.ofName("c");
+    static final Key d = Key.ofName("d");
+    static final Key x = Key.ofName("x");
+    static final Key y = Key.ofName("y");
+
+    static final ComboMoveDuration defaultDuration = new ComboMoveDuration(Duration.ZERO, null);
+
+    static KeyEvent press(Key key, Instant time) {
+        return new KeyEvent.PressKeyEvent(time, key);
+    }
+
+    static KeyEvent release(Key key, Instant time) {
+        return new KeyEvent.ReleaseKeyEvent(time, key);
+    }
+
+    static Instant t(long millis) {
+        return Instant.EPOCH.plusMillis(millis);
+    }
+
+    /** Press move with eventMustBeEaten=true (the + prefix). */
+    static ComboMove pressMove(Key key) {
+        return new ComboMove.PressComboMove(key, true, defaultDuration);
+    }
+
+    /** Press move with eventMustBeEaten=true and custom duration. */
+    static ComboMove pressMove(Key key, ComboMoveDuration duration) {
+        return new ComboMove.PressComboMove(key, true, duration);
+    }
+
+    /** Press move with eventMustBeEaten=false (the # prefix). */
+    static ComboMove hashPressMove(Key key) {
+        return new ComboMove.PressComboMove(key, false, defaultDuration);
+    }
+
+    /** Release move (the - prefix). */
+    static ComboMove releaseMove(Key key) {
+        return new ComboMove.ReleaseComboMove(key, defaultDuration);
+    }
+
+    static ComboMove releaseMove(Key key, ComboMoveDuration duration) {
+        return new ComboMove.ReleaseComboMove(key, duration);
+    }
+
+    static ComboPreparation prep(KeyEvent... events) {
+        return new ComboPreparation(new ArrayList<>(Arrays.asList(events)));
+    }
+
+    static ComboSequence seq(MoveSet... moveSets) {
+        return new ComboSequence(List.of(moveSets));
+    }
+
+    static MoveSet required(ComboMove... moves) {
+        return new MoveSet(List.of(moves), List.of());
+    }
+
+    static MoveSet withOptional(List<ComboMove> requiredMoves,
+                                List<ComboMove> optionalMoves) {
+        return new MoveSet(requiredMoves, optionalMoves);
+    }
+
+    @Test
+    void emptySequence_returnsComplete() {
+        ComboSequenceMatch match = prep(press(a, t(0))).match(seq());
+        assertTrue(match.complete());
+        assertTrue(match.matchedMoves().isEmpty());
+    }
+
+    @Test
+    void emptyEvents_nonEmptySequence_returnsNoMatch() {
+        ComboSequenceMatch match = prep().match(seq(required(pressMove(a))));
+        assertFalse(match.hasMatch());
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void bothEmpty_returnsComplete() {
+        ComboSequenceMatch match = prep().match(seq());
+        assertTrue(match.complete());
+        assertTrue(match.matchedMoves().isEmpty());
+    }
+
+    // 2. Single required move
+
+    @Test
+    void singlePress_matchingKey_complete() {
+        ComboSequenceMatch match = prep(press(a, t(0)))
+                .match(seq(required(pressMove(a))));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+        assertEquals(a, match.matchedMoves().getFirst().key());
+        assertTrue(match.matchedMoves().getFirst().isPress());
+    }
+
+    @Test
+    void singlePress_wrongKey_noMatch() {
+        ComboSequenceMatch match = prep(press(b, t(0)))
+                .match(seq(required(pressMove(a))));
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void singlePress_wrongDirection_noMatch() {
+        // Event is release, move expects press.
+        ComboSequenceMatch match = prep(release(a, t(0)))
+                .match(seq(required(pressMove(a))));
+        assertFalse(match.hasMatch());
+    }
+
+    // 3. Sequential required moves (+a then +b)
+
+    @Test
+    void twoSequentialMoves_correctOrder_complete() {
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
+                .match(seq(required(pressMove(a)), required(pressMove(b))));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void twoSequentialMoves_wrongOrder_partialSuffixMatch() {
+        // Events [+b, +a] with sequence [+a, +b]: can't complete-match because
+        // order between MoveSets matters. But the suffix [+a] matches the first
+        // MoveSet, so it returns a partial match.
+        ComboSequenceMatch match = prep(press(b, t(0)), press(a, t(10)))
+                .match(seq(required(pressMove(a)), required(pressMove(b))));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+        assertEquals(a, match.matchedMoves().getFirst().key());
+    }
+
+    @Test
+    void twoSequentialMoves_onlyFirst_partial() {
+        ComboSequenceMatch match = prep(press(a, t(0)))
+                .match(seq(required(pressMove(a)), required(pressMove(b))));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+        assertEquals(a, match.matchedMoves().getFirst().key());
+    }
+
+    // 4. Suffix matching
+
+    @Test
+    void suffixMatch_extraPrefixEvents_complete() {
+        // Events [+x, +a, +b], sequence [+a, +b] — should match the last 2 events.
+        ComboSequenceMatch match = prep(
+                press(x, t(0)), press(a, t(10)), press(b, t(20)))
+                .match(seq(required(pressMove(a)), required(pressMove(b))));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void suffixMatch_multipleExtraPrefixEvents_complete() {
+        // Events [+x, +y, +a], sequence [+a].
+        ComboSequenceMatch match = prep(
+                press(x, t(0)), press(y, t(10)), press(a, t(20)))
+                .match(seq(required(pressMove(a))));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+    }
+
+    // 5. Any-order within MoveSet ({+a +b})
+
+    @Test
+    void anyOrderInMoveSet_normalOrder_complete() {
+        // MoveSet {+a +b}: events [+a, +b].
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
+                .match(seq(required(pressMove(a), pressMove(b))));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void anyOrderInMoveSet_reversedOrder_complete() {
+        // MoveSet {+a +b}: events [+b, +a].
+        ComboSequenceMatch match = prep(press(b, t(0)), press(a, t(10)))
+                .match(seq(required(pressMove(a), pressMove(b))));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    // 6. Optional moves ({+a #b?})
+
+    @Test
+    void optionalSkipped_requiredOnly_complete() {
+        // Sequence [{+a #b?}]: events [+a] — optional #b skipped.
+        MoveSet moveSet = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        ComboSequenceMatch match = prep(press(a, t(0))).match(seq(moveSet));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+    }
+
+    @Test
+    void optionalIncluded_complete() {
+        // Sequence [{+a #b?}]: events [+a, +b] — optional included.
+        MoveSet moveSet = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
+                .match(seq(moveSet));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void optionalIncluded_reversedOrder_complete() {
+        // Sequence [{+a #b?}]: events [+b, +a] — reversed order, both match.
+        MoveSet moveSet = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        ComboSequenceMatch match = prep(press(b, t(0)), press(a, t(10)))
+                .match(seq(moveSet));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void optionalOnly_requiredMissing_noMatch() {
+        // Sequence [{+a #b?}]: events [+b] — required +a missing.
+        MoveSet moveSet = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        ComboSequenceMatch match = prep(press(b, t(0))).match(seq(moveSet));
+        assertFalse(match.hasMatch());
+    }
+
+    // 7. All-optional MoveSet (#a? as standalone)
+
+    @Test
+    void allOptionalMoveSet_matchingEvent_complete() {
+        // Sequence [{#a?}]: events [+a] → complete.
+        MoveSet moveSet = withOptional(List.of(), List.of(hashPressMove(a)));
+        ComboSequenceMatch match = prep(press(a, t(0))).match(seq(moveSet));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+    }
+
+    @Test
+    void allOptionalMoveSet_noMatchingEvent_complete() {
+        // Sequence [{#a?}]: events [+x] → still complete because minMoveCount=0.
+        MoveSet moveSet = withOptional(List.of(), List.of(hashPressMove(a)));
+        ComboSequenceMatch match = prep(press(x, t(0))).match(seq(moveSet));
+        assertTrue(match.complete());
+        assertEquals(0, match.matchedMoves().size());
+    }
+
+    // 8. Greedy matching
+
+    @Test
+    void greedy_optionalSkippedWhenNeeded() {
+        // Sequence [{+a #b?} +c]: events [+a, +c].
+        // First MoveSet takes +a (skips optional #b), second takes +c.
+        MoveSet first = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        MoveSet second = required(pressMove(c));
+        ComboSequenceMatch match = prep(press(a, t(0)), press(c, t(10)))
+                .match(seq(first, second));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void greedy_optionalIncludedWhenPossible() {
+        // Sequence [{+a #b?} +c]: events [+b, +a, +c].
+        // First MoveSet greedily takes +b and +a, second takes +c.
+        MoveSet first = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        MoveSet second = required(pressMove(c));
+        ComboSequenceMatch match = prep(
+                press(b, t(0)), press(a, t(10)), press(c, t(20)))
+                .match(seq(first, second));
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedMoves().size());
+    }
+
+    // 9. Duration constraints
+
+    @Test
+    void duration_withinMax_matches() {
+        // Max 100ms between moves, events 50ms apart.
+        ComboMoveDuration dur = new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(100));
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(50)))
+                .match(seq(required(pressMove(a, dur)), required(pressMove(b))));
+        assertTrue(match.complete());
+    }
+
+    @Test
+    void duration_exceedsMax_noMatch() {
+        // Max 100ms, events 200ms apart → no match.
+        ComboMoveDuration dur = new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(100));
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(200)))
+                .match(seq(required(pressMove(a, dur)), required(pressMove(b))));
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void duration_firstEventInRegion_noDurationConstraint() {
+        // Even if the event before the region is far away, the first event in
+        // the region has no duration constraint.
+        // Events: [+x at t=0, +a at t=5000], sequence [+a].
+        // +a is the first event in the matched region; no prior move's duration
+        // applies to it.
+        ComboSequenceMatch match = prep(press(x, t(0)), press(a, t(5000)))
+                .match(seq(required(pressMove(a))));
+        assertTrue(match.complete());
+    }
+
+    @Test
+    void duration_betweenMoveSets() {
+        // Duration on last move of first MoveSet constrains gap to first event
+        // of second MoveSet.
+        ComboMoveDuration dur = new ComboMoveDuration(Duration.ZERO, Duration.ofMillis(50));
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(100)))
+                .match(seq(required(pressMove(a, dur)), required(pressMove(b))));
+        // 100ms > 50ms max → should not match.
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void duration_minNotSatisfied_noMatch() {
+        // Min 100ms between moves, events only 10ms apart → too fast.
+        ComboMoveDuration dur = new ComboMoveDuration(Duration.ofMillis(100), null);
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
+                .match(seq(required(pressMove(a, dur)), required(pressMove(b))));
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void duration_minSatisfied_matches() {
+        // Min 100ms, events 150ms apart → satisfies.
+        ComboMoveDuration dur = new ComboMoveDuration(Duration.ofMillis(100), null);
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(150)))
+                .match(seq(required(pressMove(a, dur)), required(pressMove(b))));
+        assertTrue(match.complete());
+    }
+
+    // 10. Multiple MoveSets with optionals
+
+    @Test
+    void multiMoveSets_bothOptionalsSkipped_complete() {
+        // Sequence [{+a #b?} {+c #d?}]: events [+a, +c].
+        MoveSet first = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        MoveSet second = withOptional(
+                List.of(pressMove(c)), List.of(hashPressMove(d)));
+        ComboSequenceMatch match = prep(press(a, t(0)), press(c, t(10)))
+                .match(seq(first, second));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void multiMoveSets_firstOptionalIncluded_complete() {
+        // Sequence [{+a #b?} {+c #d?}]: events [+a, +b, +c].
+        MoveSet first = withOptional(
+                List.of(pressMove(a)), List.of(hashPressMove(b)));
+        MoveSet second = withOptional(
+                List.of(pressMove(c)), List.of(hashPressMove(d)));
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(b, t(10)), press(c, t(20)))
+                .match(seq(first, second));
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedMoves().size());
+    }
+
+    // 11. Release moves
+
+    @Test
+    void singleRelease_complete() {
+        ComboSequenceMatch match = prep(release(a, t(0)))
+                .match(seq(required(releaseMove(a))));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+        assertTrue(match.matchedMoves().getFirst().isRelease());
+    }
+
+    @Test
+    void pressAndRelease_complete() {
+        ComboSequenceMatch match = prep(press(a, t(0)), release(a, t(50)))
+                .match(seq(required(pressMove(a)), required(releaseMove(a))));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    // 12. Partial match preference
+
+    @Test
+    void partialMatch_longestPrefix() {
+        // Sequence [+a, +b, +c]: events [+a, +b] → partial with 2 matched moves.
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
+                .match(seq(
+                        required(pressMove(a)),
+                        required(pressMove(b)),
+                        required(pressMove(c))));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+
+    @Test
+    void partialMatch_singleMoveOfThree() {
+        // Sequence [+a, +b, +c]: events [+a] → partial with 1 matched move.
+        ComboSequenceMatch match = prep(press(a, t(0)))
+                .match(seq(
+                        required(pressMove(a)),
+                        required(pressMove(b)),
+                        required(pressMove(c))));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(1, match.matchedMoves().size());
+    }
+
+    @Test
+    void partialMatch_preferLongerOverShorter() {
+        // With events [+a, +b, +x], sequence [+a, +b, +c]:
+        // Suffix matching means only the last N events are considered.
+        // The suffix [+x] doesn't match +a, and suffix [+b, +x] doesn't
+        // match [+a, +b]. So no match is possible.
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(b, t(10)), press(x, t(20)))
+                .match(seq(
+                        required(pressMove(a)),
+                        required(pressMove(b)),
+                        required(pressMove(c))));
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void partialMatch_suffixAligns() {
+        // Events [+x, +a, +b], sequence [+a, +b, +c]:
+        // Suffix [+a, +b] matches the first 2 MoveSets → partial with 2 moves.
+        ComboSequenceMatch match = prep(
+                press(x, t(0)), press(a, t(10)), press(b, t(20)))
+                .match(seq(
+                        required(pressMove(a)),
+                        required(pressMove(b)),
+                        required(pressMove(c))));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(2, match.matchedMoves().size());
+    }
+}
