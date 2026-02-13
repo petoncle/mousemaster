@@ -85,7 +85,7 @@ public class KeyboardManager {
                     Map<Combo, PressKeyEventProcessing> processingByCombo =
                             new HashMap<>(comboWatcherProcessingSet.processingByCombo());
                     processingSet = new PressKeyEventProcessingSet(processingByCombo,
-                            new HashMap<>(comboWatcherProcessingSet.matchResultByCombo()));
+                            new HashMap<>(comboWatcherProcessingSet.matchByCombo()));
                 }
                 else {
                     processingSet = new PressKeyEventProcessingSet(Map.of(), Map.of());
@@ -107,7 +107,7 @@ public class KeyboardManager {
                 currentlyPressedKeys.put(key, processingSet);
                 if (processingSet.isPartOfCompletedComboSequence()) {
                     markOtherKeysOfTheseCombosAsCompleted(
-                            processingSet.partOfCompletedComboSequenceCombosWithMatchResults(), false);
+                            processingSet.partOfCompletedComboSequenceCombosWithMatches(), false);
                 }
                 if (processingSet.isComboPreparationBreaker()) {
                     comboWatcher.reset(key);
@@ -160,7 +160,7 @@ public class KeyboardManager {
                                                          });
                                 }
                                 markOtherKeysOfTheseCombosAsCompleted(
-                                        releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatchResults(),
+                                        releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatches(),
                                         false);
                                 keysToRegurgitate = regurgitatePressedKeys(key);
                             }
@@ -186,14 +186,14 @@ public class KeyboardManager {
         }
     }
 
-    private boolean markOtherKeysOfTheseCombosAsCompleted(List<ComboWithMatchResult> completedCombos,
+    private boolean markOtherKeysOfTheseCombosAsCompleted(List<ComboWithMatch> completedCombos,
                                                           boolean forceIsComboPreparationBreaker) {
         boolean completedCombosHavePressedKeys = false;
-        for (ComboWithMatchResult comboWithMatchResult : completedCombos) {
-            Combo combo = comboWithMatchResult.combo();
-            MatchResult matchResult = comboWithMatchResult.matchResult();
+        for (ComboWithMatch comboWithMatch : completedCombos) {
+            Combo combo = comboWithMatch.combo();
+            Match match = comboWithMatch.match();
             Set<Key> pressedKeysInCompletedCombo =
-                    combo.keysPressedAfterMoves(Set.of(), matchResult.matchedMoves());
+                    combo.keysPressedAfterMoves(Set.of(), match.matchedMoves());
             completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();
 
             for (Key key : pressedKeysInCompletedCombo) {
