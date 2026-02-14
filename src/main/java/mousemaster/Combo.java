@@ -17,48 +17,48 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                  Map<String, KeyAlias> keyAliases,
                                  Map<String, AppAlias> appAliases,
                                  KeyResolver keyResolver) {
-        Matcher mustNotMatcher = Pattern.compile("\\^\\{([^{}]+)\\}\\s*").matcher(string);
+        // Match ^{...} and _{...} preconditions in any order.
+        Matcher preconditionMatcher = Pattern.compile("([\\^_])\\{([^{}]+)\\}\\s*").matcher(string);
         String mustNotBeActiveAppsString = null;
         Set<App> mustNotBeActiveApps = Set.of();
         String unpressedKeySetString = null;
         Set<Key> unpressedKeySet = Set.of();
-        String mustString = string;
-        while (mustNotMatcher.find()) {
-            String mustNotSetString = mustNotMatcher.group(1);
-            if (isAppSetString(mustNotSetString, appAliases)) {
-                // ^{firefox.exe chrome.exe}
-                mustNotBeActiveAppsString = mustNotSetString;
-                mustNotBeActiveApps =
-                        parseMustNotBeActiveApps(mustNotBeActiveAppsString, appAliases);
-            }
-            else {
-                unpressedKeySetString = mustNotSetString;
-                unpressedKeySet =
-                        parseUnpressedKeySet(unpressedKeySetString,
-                                keyAliases, keyResolver);
-            }
-            mustString = string.substring(mustNotMatcher.end());
-        }
-        Matcher mustMatcher = Pattern.compile("_\\{([^{}]+)\\}\\s*").matcher(mustString);
         String mustBeActiveAppsString = null;
         Set<App> mustBeActiveApps = Set.of();
         String pressedKeyPreconditionString = null;
         PressedKeyPrecondition pressedKeyPrecondition = new PressedKeyPrecondition(List.of());
-        String sequenceString = mustString;
-        while (mustMatcher.find()) {
-            String mustSetsString = mustMatcher.group(1);
-            if (isAppSetString(mustSetsString, appAliases)) {
-                // _{firefox.exe | chrome.exe}
-                mustBeActiveAppsString = mustSetsString;
-                mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString, appAliases);
+        String sequenceString = string;
+        while (preconditionMatcher.find()) {
+            String prefix = preconditionMatcher.group(1);
+            String content = preconditionMatcher.group(2);
+            if (prefix.equals("^")) {
+                if (isAppSetString(content, appAliases)) {
+                    // ^{firefox.exe chrome.exe}
+                    mustNotBeActiveAppsString = content;
+                    mustNotBeActiveApps =
+                            parseMustNotBeActiveApps(mustNotBeActiveAppsString, appAliases);
+                }
+                else {
+                    unpressedKeySetString = content;
+                    unpressedKeySet =
+                            parseUnpressedKeySet(unpressedKeySetString,
+                                    keyAliases, keyResolver);
+                }
             }
             else {
-                pressedKeyPreconditionString = mustSetsString;
-                pressedKeyPrecondition =
-                        parsePressedKeyPrecondition(pressedKeyPreconditionString,
-                                keyAliases, keyResolver);
+                if (isAppSetString(content, appAliases)) {
+                    // _{firefox.exe | chrome.exe}
+                    mustBeActiveAppsString = content;
+                    mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString, appAliases);
+                }
+                else {
+                    pressedKeyPreconditionString = content;
+                    pressedKeyPrecondition =
+                            parsePressedKeyPrecondition(pressedKeyPreconditionString,
+                                    keyAliases, keyResolver);
+                }
             }
-            sequenceString = mustString.substring(mustMatcher.end());
+            sequenceString = string.substring(preconditionMatcher.end());
         }
         if (mustNotBeActiveApps.stream().anyMatch(mustBeActiveApps::contains)) {
             throw new IllegalArgumentException(
