@@ -57,6 +57,11 @@ public class WindowsOverlay {
      */
     private static Runnable setUncachedHintMeshWindowRunnable;
     private static Runnable cacheQtHintWindowIntoPixmapRunnable;
+    private static Runnable windowsMessagePump;
+
+    static void setWindowsMessagePump(Runnable pump) {
+        windowsMessagePump = pump;
+    }
 
     public static void update(double delta) {
         if (setUncachedHintMeshWindowRunnable != null) {
@@ -1042,13 +1047,11 @@ public class WindowsOverlay {
                                 cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh);
                         }
                     };
-            if (true || !isHintGrid // They are not cached anyway.
-                || !hintMesh.selectedKeySequence().isEmpty() // To avoid an empty frame.
-                    || hintMesh.hints().size() < 100 // To avoid an empty frame.
-            ) {
-                setUncachedHintMeshWindowRunnable.run();
-                setUncachedHintMeshWindowRunnable = null;
-            }
+            // The build is deferred to update() so it does not run inside
+            // the keyboard hook callback. Running inside the hook would block
+            // the hook for 300ms+, causing Windows to time out and let the
+            // key release pass through. From update() context, we can pump
+            // messages during the build to keep the hook responsive.
         }
     }
 
@@ -1295,6 +1298,7 @@ public class WindowsOverlay {
 //            hintKeyMaxXAdvance = metrics.maxWidth();
         List<HintBox> hintBoxes = new ArrayList<>();
         List<HintLabel> hintLabels = new ArrayList<>();
+        long lastPumpTime = System.nanoTime();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.selectedKeySequence()))
@@ -1421,7 +1425,13 @@ public class WindowsOverlay {
                     subBox.setGeometry(subBoxX, subBoxY, subBoxWidth, subBoxHeight);
                 }
             }
+            if (windowsMessagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
+                windowsMessagePump.run();
+                lastPumpTime = System.nanoTime();
+            }
         }
+        if (windowsMessagePump != null)
+            windowsMessagePump.run();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             if (!hintGroup.atLeastOneHintVisible)
                 continue;

@@ -140,6 +140,7 @@ public class WindowsPlatform implements Platform {
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
                         mousePosition.y));
+        WindowsOverlay.setWindowsMessagePump(this::windowsMessagePump);
         if (keyboardHookCallback == null)
             installHooks();
     }
