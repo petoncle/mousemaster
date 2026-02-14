@@ -486,34 +486,16 @@ public class WindowsOverlay {
 
     public static class StackedShadowEffect extends QGraphicsDropShadowEffect {
 
-        private double stackedOpacity = 1.0;
+        private int stackCount;
 
-        void setStackedOpacity(double stackedOpacity) {
-            this.stackedOpacity = stackedOpacity;
+        void setStackCount(int stackCount) {
+            this.stackCount = stackCount;
         }
 
         @Override
         protected void draw(QPainter painter) {
-            // For opacity <= 1.0, the alpha is baked into the color.
-            // For opacity > 1.0, stacked shadows: e.g. 1.5 = one full
-            // shadow + one 0.5 opacity shadow. painter.setOpacity() is
-            // used for the fractional layer (avoids calling setColor()
-            // inside draw() which would trigger a repaint loop).
-            if (stackedOpacity <= 1.0) {
+            for (int i = 0; i < stackCount; i++) {
                 super.draw(painter);
-            }
-            else {
-                int fullLayers = (int) stackedOpacity;
-                double remainder = stackedOpacity - fullLayers;
-                for (int i = 0; i < fullLayers; i++) {
-                    super.draw(painter);
-                }
-                if (remainder > 1e-6) {
-                    double beforeOpacity = painter.opacity();
-                    painter.setOpacity(beforeOpacity * remainder);
-                    super.draw(painter);
-                    painter.setOpacity(beforeOpacity);
-                }
             }
             redrawSourceOverShadow(painter);
         }
@@ -795,13 +777,10 @@ public class WindowsOverlay {
             effect.setBlurRadius(shadow.blurRadius() * scale);
             effect.setOffset(shadow.horizontalOffset() * scale,
                     shadow.verticalOffset() * scale);
-            double stackedOpacity = shadow.opacity();
-            // For opacity <= 1.0, bake alpha into the color.
-            // For opacity > 1.0, use full alpha; stacking handled in draw().
-            int alpha = (int) Math.round(Math.min(stackedOpacity, 1.0) * 255);
+            int alpha = (int) Math.round(shadow.opacity() * 255);
             effect.setColor(new QColor(baseColor.red(), baseColor.green(),
                     baseColor.blue(), alpha));
-            effect.setStackedOpacity(stackedOpacity);
+            effect.setStackCount(shadow.stackCount());
             setIndicatorEffectColors(effect);
             indicatorWindow.widget.customGraphicsEffect = effect;
             indicatorWindow.widget.setGraphicsEffect(effect);
@@ -2071,16 +2050,8 @@ public class WindowsOverlay {
         return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
     }
 
-    /**
-     * For opacity <= 1.0, bake alpha into the color.
-     * For opacity > 1.0, use full alpha; stacking is handled in
-     * StackedShadowEffect#draw(QPainter).
-     */
-    private static QColor stackedShadowColor(Shadow shadow) {
-        double opacity = shadow.opacity();
-        int alpha = (int) Math.round(Math.min(opacity, 1.0) * 255);
-        QColor base = qColor(shadow.hexColor(), 1.0);
-        return new QColor(base.red(), base.green(), base.blue(), alpha);
+    private static QColor shadowColor(Shadow shadow) {
+        return qColor(shadow.hexColor(), shadow.opacity());
     }
 
     private static QtFontStyle buildQtFontStyle(FontStyle fs, QFont font,
@@ -2095,13 +2066,13 @@ public class WindowsOverlay {
                 prefixColor,
                 qColor(fs.outlineHexColor(), fs.outlineOpacity()),
                 (int) Math.round(fs.outlineThickness() * screenScale),
-                stackedShadowColor(fs.shadow()),
-                fs.shadow().opacity(),
+                shadowColor(fs.shadow()),
+                fs.shadow().stackCount(),
                 fs.shadow().blurRadius() * screenScale,
                 fs.shadow().horizontalOffset() * screenScale,
                 fs.shadow().verticalOffset() * screenScale,
-                stackedShadowColor(ps),
-                ps.opacity(),
+                shadowColor(ps),
+                ps.stackCount(),
                 ps.blurRadius() * screenScale,
                 ps.horizontalOffset() * screenScale,
                 ps.verticalOffset() * screenScale
@@ -2171,10 +2142,10 @@ public class WindowsOverlay {
     record QtFontStyle(QFont font, QFontMetrics metrics,
                              QColor color, QColor prefixColor,
                              QColor outlineColor, int outlineThickness,
-                             QColor shadowColor, double shadowOpacity,
+                             QColor shadowColor, int shadowStackCount,
                              double shadowBlurRadius,
                              double shadowHorizontalOffset, double shadowVerticalOffset,
-                             QColor prefixShadowColor, double prefixShadowOpacity,
+                             QColor prefixShadowColor, int prefixShadowStackCount,
                              double prefixShadowBlurRadius,
                              double prefixShadowHorizontalOffset,
                              double prefixShadowVerticalOffset) {
@@ -2394,23 +2365,24 @@ public class WindowsOverlay {
         ShadowGroupKey shadowGroupKey(HintKeyText keyText) {
             QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
             QColor c;
-            double opacity, blurRadius, horizontalOffset, verticalOffset;
+            int stackCount;
+            double blurRadius, horizontalOffset, verticalOffset;
             if (keyText.isPrefix()) {
                 c = qtFontStyle.prefixShadowColor();
-                opacity = qtFontStyle.prefixShadowOpacity();
+                stackCount = qtFontStyle.prefixShadowStackCount();
                 blurRadius = qtFontStyle.prefixShadowBlurRadius();
                 horizontalOffset = qtFontStyle.prefixShadowHorizontalOffset();
                 verticalOffset = qtFontStyle.prefixShadowVerticalOffset();
             }
             else {
                 c = qtFontStyle.shadowColor();
-                opacity = qtFontStyle.shadowOpacity();
+                stackCount = qtFontStyle.shadowStackCount();
                 blurRadius = qtFontStyle.shadowBlurRadius();
                 horizontalOffset = qtFontStyle.shadowHorizontalOffset();
                 verticalOffset = qtFontStyle.shadowVerticalOffset();
             }
             return new ShadowGroupKey(c.red(), c.green(), c.blue(), c.alpha(),
-                                      opacity, blurRadius, horizontalOffset, verticalOffset);
+                                      stackCount, blurRadius, horizontalOffset, verticalOffset);
         }
 
         void paintOpaqueFiltered(QPainter painter,
@@ -2444,7 +2416,7 @@ public class WindowsOverlay {
     }
 
     private record ShadowGroupKey(int r, int g, int b, int a,
-                                  double opacity, double blurRadius,
+                                  int stackCount, double blurRadius,
                                   double horizontalOffset, double verticalOffset) {
     }
 
@@ -2481,7 +2453,7 @@ public class WindowsOverlay {
             effect.setOffset(defaultStyle.shadowHorizontalOffset(),
                     defaultStyle.shadowVerticalOffset());
             effect.setColor(defaultStyle.shadowColor());
-            effect.setStackedOpacity(defaultStyle.shadowOpacity());
+            effect.setStackCount(defaultStyle.shadowStackCount());
             layer.setGraphicsEffect(effect);
         }
         else {
@@ -2513,10 +2485,10 @@ public class WindowsOverlay {
         ShadowImage shadow = renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
                 shadowStyle.shadowBlurRadius(), shadowStyle.shadowHorizontalOffset(),
                 shadowStyle.shadowVerticalOffset(), containerWidth, containerHeight);
-        layer.setShadowPixmap(QPixmap.fromImage(shadow.image()),
+        QImage shadowImage = bakeShadowStacking(shadow.image(), shadowStyle.shadowStackCount());
+        layer.setShadowPixmap(QPixmap.fromImage(shadowImage),
                 shadow.x(), shadow.y());
-        layer.shadowOpacity = shadowStyle.shadowOpacity();
-        shadow.image().dispose();
+        shadowImage.dispose();
     }
 
     private record ShadowImage(QImage image, int x, int y) {
@@ -2537,7 +2509,7 @@ public class WindowsOverlay {
         effect.setBlurRadius(blurRadius);
         effect.setOffset(horizontalOffset, verticalOffset);
         effect.setColor(shadowColor);
-        effect.setStackedOpacity(1.0);
+        effect.setStackCount(1);
         item.setGraphicsEffect(effect);
         QRectF bounds = scene.itemsBoundingRect();
         int boundsX = (int) Math.floor(bounds.x());
@@ -2581,9 +2553,29 @@ public class WindowsOverlay {
 
 
     /**
+     * Draws the shadow image multiple times on top of itself to intensify it.
+     * Returns the original image unchanged if stackCount is 1.
+     * Disposes the input image and returns a new one if stackCount > 1.
+     */
+    private static QImage bakeShadowStacking(QImage shadowImage, int stackCount) {
+        if (stackCount <= 1)
+            return shadowImage;
+        QImage stacked = new QImage(shadowImage.width(), shadowImage.height(),
+                QImage.Format.Format_ARGB32_Premultiplied);
+        stacked.fill(new QColor(0, 0, 0, 0));
+        QPainter painter = new QPainter(stacked);
+        for (int i = 0; i < stackCount; i++) {
+            painter.drawImage(0, 0, shadowImage);
+        }
+        painter.end();
+        shadowImage.dispose();
+        return stacked;
+    }
+
+    /**
      * Per-group shadow rendering: groups keys by their effective shadow
      * settings (state + prefix/non-prefix), renders each group separately,
-     * bakes stacking opacity, and composites into a single shadow pixmap.
+     * bakes stacking, and composites into a single shadow pixmap.
      */
     private static void preRenderPerGroupShadow(
             HintPaintLayer layer, List<HintLabel> labels,
@@ -2599,7 +2591,7 @@ public class WindowsOverlay {
         QImage combinedShadow = null;
         int combinedX = 0, combinedY = 0;
         for (ShadowGroupKey group : groups) {
-            if (group.a() == 0 || group.opacity() == 0)
+            if (group.a() == 0)
                 continue;
             // Render source image with only keys matching this group.
             QImage sourceImage = new QImage(containerWidth, containerHeight,
@@ -2615,31 +2607,9 @@ public class WindowsOverlay {
             ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
                     group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
                     containerWidth, containerHeight);
-            QImage groupShadow = shadow.image();
+            QImage stackedShadow = bakeShadowStacking(shadow.image(), group.stackCount());
             int boundsX = shadow.x();
             int boundsY = shadow.y();
-            // Bake stacking opacity into the group shadow image.
-            QImage stackedShadow;
-            if (group.opacity() > 1.0) {
-                stackedShadow = new QImage(groupShadow.width(), groupShadow.height(),
-                        QImage.Format.Format_ARGB32_Premultiplied);
-                stackedShadow.fill(new QColor(0, 0, 0, 0));
-                QPainter stackPainter = new QPainter(stackedShadow);
-                int fullLayers = (int) group.opacity();
-                double remainder = group.opacity() - fullLayers;
-                for (int i = 0; i < fullLayers; i++) {
-                    stackPainter.drawImage(0, 0, groupShadow);
-                }
-                if (remainder > 1e-6) {
-                    stackPainter.setOpacity(remainder);
-                    stackPainter.drawImage(0, 0, groupShadow);
-                }
-                stackPainter.end();
-                groupShadow.dispose();
-            }
-            else {
-                stackedShadow = groupShadow;
-            }
             // Composite into final image.
             if (combinedShadow == null) {
                 combinedShadow = stackedShadow;
@@ -2674,7 +2644,6 @@ public class WindowsOverlay {
         if (combinedShadow != null) {
             layer.setShadowPixmap(QPixmap.fromImage(combinedShadow),
                     combinedX, combinedY);
-            layer.shadowOpacity = 1.0; // Stacking already baked in.
             combinedShadow.dispose();
         }
     }
@@ -2686,8 +2655,6 @@ public class WindowsOverlay {
         // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
-        // Shadow stacking: opacity > 1 means multiple layers.
-        private double shadowOpacity;
 
         HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels) {
             super(parent);
@@ -2708,25 +2675,7 @@ public class WindowsOverlay {
                 box.paint(painter);
             }
             if (shadowPixmap != null) {
-                if (shadowOpacity <= 1.0) {
-                    painter.drawPixmap(shadowPixmapX, shadowPixmapY,
-                            shadowPixmap);
-                }
-                else {
-                    int fullLayers = (int) shadowOpacity;
-                    double remainder = shadowOpacity - fullLayers;
-                    for (int i = 0; i < fullLayers; i++) {
-                        painter.drawPixmap(shadowPixmapX, shadowPixmapY,
-                                shadowPixmap);
-                    }
-                    if (remainder > 1e-6) {
-                        double before = painter.opacity();
-                        painter.setOpacity(before * remainder);
-                        painter.drawPixmap(shadowPixmapX, shadowPixmapY,
-                                shadowPixmap);
-                        painter.setOpacity(before);
-                    }
-                }
+                painter.drawPixmap(shadowPixmapX, shadowPixmapY, shadowPixmap);
             }
             for (HintLabel label : labels) {
                 label.paint(painter);

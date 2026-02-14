@@ -100,7 +100,8 @@ public class ConfigurationParser {
                             .hexColor("#FFFFFF")
                             .opacity(1d)
                             .horizontalOffset(0d)
-                            .verticalOffset(0d);
+                            .verticalOffset(0d)
+                            .stackCount(1);
         hintMeshStyleBuilder
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
@@ -169,7 +170,8 @@ public class ConfigurationParser {
                      .hexColor("#000000")
                      .opacity(0.5d)
                      .horizontalOffset(2d)
-                     .verticalOffset(2d);
+                     .verticalOffset(2d)
+                     .stackCount(1);
         idleIndicator.labelEnabled(false);
         idleIndicator.labelFontStyle()
                      .name("Arial")
@@ -185,7 +187,8 @@ public class ConfigurationParser {
                      .hexColor("#000000")
                      .opacity(0d)
                      .horizontalOffset(0d)
-                     .verticalOffset(0d);
+                     .verticalOffset(0d)
+                     .stackCount(1);
         HideCursorBuilder hideCursor =
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
@@ -832,7 +835,8 @@ public class ConfigurationParser {
                         case "selected-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "selected-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
                         case "selected-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "selected-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
+                        case "selected-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "selected-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
                         case "selected-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "selected-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().hexColor(checkColorFormat(propertyValue));
@@ -845,7 +849,8 @@ public class ConfigurationParser {
                         case "focused-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "focused-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
                         case "focused-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "focused-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
+                        case "focused-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "focused-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
                         case "focused-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "focused-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
@@ -853,7 +858,8 @@ public class ConfigurationParser {
                         case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
                         case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
+                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
                         case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-in-background" ->
@@ -875,7 +881,8 @@ public class ConfigurationParser {
                         case "prefix-selected-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-selected-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
                         case "prefix-selected-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-selected-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
+                        case "prefix-selected-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-selected-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
                         case "prefix-selected-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-selected-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().hexColor(checkColorFormat(propertyValue));
@@ -888,7 +895,8 @@ public class ConfigurationParser {
                         case "prefix-focused-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-focused-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
                         case "prefix-focused-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-focused-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
+                        case "prefix-focused-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-focused-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
                         case "prefix-focused-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-focused-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
@@ -896,7 +904,8 @@ public class ConfigurationParser {
                         case "prefix-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
                         case "prefix-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
                         case "prefix-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
+                        case "prefix-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+                        case "prefix-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
                         case "prefix-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "prefix-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
                         case "box-color" -> mode.hintMesh.builder.style(viewportFilter).boxHexColor(
@@ -1798,7 +1807,8 @@ public class ConfigurationParser {
             case "inner-outline-fill-percent" -> indicator.innerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
             case "shadow-blur-radius" -> indicator.shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
             case "shadow-color" -> indicator.shadow().hexColor(checkColorFormat(propertyValue));
-            case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, Double.MAX_VALUE));
+            case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "shadow-stack-count" -> indicator.shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
             case "shadow-horizontal-offset" -> indicator.shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
             case "shadow-vertical-offset" -> indicator.shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
             case "label-enabled" -> indicator.labelEnabled(Boolean.parseBoolean(propertyValue));
@@ -1814,6 +1824,7 @@ public class ConfigurationParser {
             case "label-font-shadow-blur-radius" -> indicator.labelFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
             case "label-font-shadow-color" -> indicator.labelFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
             case "label-font-shadow-opacity" -> indicator.labelFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
+            case "label-font-shadow-stack-count" -> indicator.labelFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
             case "label-font-shadow-horizontal-offset" -> indicator.labelFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
             case "label-font-shadow-vertical-offset" -> indicator.labelFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
             default -> throw new IllegalArgumentException("Invalid indicator property key: " + key);
@@ -2412,6 +2423,7 @@ public class ConfigurationParser {
                 extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).opacity(), child::opacity, parent.opacity(), childStyleByFilter, filter);
                 extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).horizontalOffset(), child::horizontalOffset, parent.horizontalOffset(), childStyleByFilter, filter);
                 extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).verticalOffset(), child::verticalOffset, parent.verticalOffset(), childStyleByFilter, filter);
+                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).stackCount(), child::stackCount, parent.stackCount(), childStyleByFilter, filter);
             }
 
             private void extendFontStyleBuilderProperties(

@@ -1,7 +1,8 @@
 package mousemaster;
 
 public record Shadow(double blurRadius, String hexColor, double opacity,
-                     double horizontalOffset, double verticalOffset) {
+                     double horizontalOffset, double verticalOffset,
+                     int stackCount) {
 
     public static class ShadowBuilder {
 
@@ -10,6 +11,7 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
         private Double opacity;
         private Double horizontalOffset;
         private Double verticalOffset;
+        private Integer stackCount;
 
         public ShadowBuilder() {
         }
@@ -20,6 +22,7 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
             this.opacity = shadow.opacity;
             this.horizontalOffset = shadow.horizontalOffset;
             this.verticalOffset = shadow.verticalOffset;
+            this.stackCount = shadow.stackCount;
         }
 
         public Double blurRadius() {
@@ -40,6 +43,10 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
 
         public Double verticalOffset() {
             return verticalOffset;
+        }
+
+        public Integer stackCount() {
+            return stackCount;
         }
 
         public ShadowBuilder blurRadius(Double blurRadius) {
@@ -67,16 +74,23 @@ public record Shadow(double blurRadius, String hexColor, double opacity,
             return this;
         }
 
+        public ShadowBuilder stackCount(Integer stackCount) {
+            this.stackCount = stackCount;
+            return this;
+        }
+
         public void extend(ShadowBuilder defaultShadow) {
             if (blurRadius == null) blurRadius = defaultShadow.blurRadius;
             if (hexColor == null) hexColor = defaultShadow.hexColor;
             if (opacity == null) opacity = defaultShadow.opacity;
             if (horizontalOffset == null) horizontalOffset = defaultShadow.horizontalOffset;
             if (verticalOffset == null) verticalOffset = defaultShadow.verticalOffset;
+            if (stackCount == null) stackCount = defaultShadow.stackCount;
         }
 
         public Shadow build() {
-            return new Shadow(blurRadius, hexColor, opacity, horizontalOffset, verticalOffset);
+            return new Shadow(blurRadius, hexColor, opacity, horizontalOffset, verticalOffset,
+                    stackCount);
         }
 
     }
