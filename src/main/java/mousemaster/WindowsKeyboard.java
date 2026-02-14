@@ -40,9 +40,9 @@ public class WindowsKeyboard {
     /**
      * For some reason, sending more than one input per SendInput call rarely work (?).
      */
-    public static void sendInputKeys(List<KeyMacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
+    public static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
         if (oneInputPerCall) {
-            for (KeyMacroMove move : moves) {
+            for (ResolvedKeyMacroMove move : moves) {
                 sendInputKeys(List.of(move), startRepeat);
             }
         }
@@ -72,12 +72,12 @@ public class WindowsKeyboard {
             return;
         durationUntilNextKeyPressRepeat -= delta;
         if (durationUntilNextKeyPressRepeat <= 0) {
-            sendInputKeys(List.of(new KeyMacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
+            sendInputKeys(List.of(new ResolvedKeyMacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
             durationUntilNextKeyPressRepeat = 0.025d;
         }
     }
 
-    private static void sendInputKeys(List<KeyMacroMove> moves, boolean triggerKeyRepeating) {
+    private static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean triggerKeyRepeating) {
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
@@ -89,7 +89,7 @@ public class WindowsKeyboard {
             return;
         }
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
-            KeyMacroMove move = moves.get(moveIndex);
+            ResolvedKeyMacroMove move = moves.get(moveIndex);
             WindowsVirtualKey windowsVirtualKey =
                     WindowsVirtualKey.windowsVirtualKeyFromKey(move.key(),
                             activeKeyboardLayout);

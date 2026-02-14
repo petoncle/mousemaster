@@ -91,7 +91,8 @@ public class CommandRunner {
             case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
             case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
 
-            case MacroCommand macro -> macroPlayer.submit(macro.macro());
+            case MacroCommand(Macro macro, AliasResolution aliasResolution) ->
+                    macroPlayer.submit(macro.resolve(aliasResolution));
 
             // Complex command that is manually handled by ComboWatcher and KeyManager.
             case BreakComboPreparation breakComboPreparation -> {}

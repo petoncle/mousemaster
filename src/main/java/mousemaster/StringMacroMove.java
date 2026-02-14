@@ -1,6 +1,6 @@
 package mousemaster;
 
-public record StringMacroMove(String string) implements MacroMove {
+public record StringMacroMove(String string) implements MacroMove, ResolvedMacroMove {
 
     @Override
     public MacroMoveDestination destination() {

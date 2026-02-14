@@ -35,26 +35,26 @@ class ComboPreparationTest {
 
     /** Press move with eventMustBeEaten=true (the + prefix). */
     static ComboMove pressMove(Key key) {
-        return new ComboMove.PressComboMove(key, true, defaultDuration);
+        return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), true, defaultDuration);
     }
 
     /** Press move with eventMustBeEaten=true and custom duration. */
     static ComboMove pressMove(Key key, ComboMoveDuration duration) {
-        return new ComboMove.PressComboMove(key, true, duration);
+        return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), true, duration);
     }
 
     /** Press move with eventMustBeEaten=false (the # prefix). */
     static ComboMove hashPressMove(Key key) {
-        return new ComboMove.PressComboMove(key, false, defaultDuration);
+        return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), false, defaultDuration);
     }
 
     /** Release move (the - prefix). */
     static ComboMove releaseMove(Key key) {
-        return new ComboMove.ReleaseComboMove(key, defaultDuration);
+        return new ComboMove.ReleaseComboMove(KeyOrAlias.ofKey(key), defaultDuration);
     }
 
     static ComboMove releaseMove(Key key, ComboMoveDuration duration) {
-        return new ComboMove.ReleaseComboMove(key, duration);
+        return new ComboMove.ReleaseComboMove(KeyOrAlias.ofKey(key), duration);
     }
 
     static ComboPreparation prep(KeyEvent... events) {

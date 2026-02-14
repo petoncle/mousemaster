@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.ResolvedComboMove.ResolvedPressComboMove;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +80,7 @@ public class ComboWatcher implements ModeListener {
                     continue;
                 if (!combo.sequence().isEmpty())
                     continue;
-                List<ComboMove> noMatchedMoves = List.of();
+                List<ResolvedComboMove> noMatchedMoves = List.of();
                 Set<Key> currentlyPressedKeys = currentlyPressedComboKeys;
                 if (findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
                             currentlyPressedCompletedComboKeys, noMatchedMoves) == null)
@@ -106,7 +107,7 @@ public class ComboWatcher implements ModeListener {
                     atLeastOneProcessingIsComboSequenceMustBeEaten = true;
                     ComboSequenceMatch match = comboPreparation.match(combo.sequence());
                     if (match.hasMatch()) {
-                        ComboMove currentMove = match.lastMatchedMove();
+                        ResolvedComboMove currentMove = match.lastMatchedMove();
                         KeyEvent currentKeyEvent = comboPreparation.events().getLast();
                         if (!currentMove.duration()
                                         .tooMuchTimeHasPassed(currentKeyEvent.time(),
@@ -265,7 +266,7 @@ public class ComboWatcher implements ModeListener {
             if (!combo.precondition().appPrecondition().isEmpty() && combo.sequence().isEmpty())
                 continue; // Active app changes are handled in ComboWatcher#update.
             ComboSequenceMatch match = comboPreparation.match(combo.sequence());
-            ComboMove currentMove = match.hasMatch() ?
+            ResolvedComboMove currentMove = match.hasMatch() ?
                     match.lastMatchedMove() : null;
             // For release combos (like -up), we ignore the currently pressed keys:
             // even if there is a pressed key that is not in the combo precondition, we
@@ -287,8 +288,8 @@ public class ComboWatcher implements ModeListener {
             boolean partOfComboSequence = false;
             if (match.hasMatch()) {
                 boolean currentMoveMustBeEaten =
-                        currentMove instanceof ComboMove.PressComboMove pressComboMove &&
-                        pressComboMove.eventMustBeEaten();
+                        currentMove instanceof ResolvedPressComboMove pressMove &&
+                        pressMove.eventMustBeEaten();
                 mustBeEaten = currentMoveMustBeEaten;
                 partOfComboSequence = true;
                 if (newComboDuration == null) {
@@ -309,7 +310,7 @@ public class ComboWatcher implements ModeListener {
                 }
             }
             boolean preparationComplete = match.complete();
-            ComboMove comboLastMove = match.lastMatchedMove();
+            ResolvedComboMove comboLastMove = match.lastMatchedMove();
             boolean lastMoveIsWaitingMove = comboLastMove != null &&
                                         !comboLastMove.duration().min().equals(Duration.ZERO);
             if (event != null) {
@@ -400,13 +401,13 @@ public class ComboWatcher implements ModeListener {
         return processingSet;
     }
 
-    private static boolean isReleaseCombo(Combo combo, List<ComboMove> matchedMoves) {
+    private static boolean isReleaseCombo(Combo combo, List<ResolvedComboMove> matchedMoves) {
         return combo.precondition()
                     .keyPrecondition()
                     .pressedKeyPrecondition()
                     .isEmpty() &&
                (combo.sequence().isEmpty() ||
-                (!matchedMoves.isEmpty() && matchedMoves.stream().allMatch(ComboMove::isRelease)));
+                (!matchedMoves.isEmpty() && matchedMoves.stream().allMatch(ResolvedComboMove::isRelease)));
     }
 
     private void runCommands(List<Command> commandsToRun) {
@@ -445,7 +446,7 @@ public class ComboWatcher implements ModeListener {
     private Set<Key> findSatisfiedPressedPreconditionKeys(Combo combo,
                                                        Set<Key> currentlyPressedKeys,
                                                        Set<Key> currentlyPressedCompletedComboKeys,
-                                                       List<ComboMove> matchedMoves) {
+                                                       List<ResolvedComboMove> matchedMoves) {
         PressedKeyPrecondition precondition = combo.precondition()
                                                    .keyPrecondition()
                                                    .pressedKeyPrecondition();
@@ -463,7 +464,7 @@ public class ComboWatcher implements ModeListener {
             }
             // Reverse-apply matched moves: remove pressed keys, add released keys.
             for (int i = matchedMoves.size() - 1; i >= 0; i--) {
-                ComboMove move = matchedMoves.get(i);
+                ResolvedComboMove move = matchedMoves.get(i);
                 if (move.isPress())
                     candidatePressedPreconditionKeys.remove(move.key());
                 else
@@ -477,7 +478,7 @@ public class ComboWatcher implements ModeListener {
 
     private boolean comboUnpressedPreconditionSatisfied(Combo combo,
                                                         Set<Key> currentlyPressedComboKeys,
-                                                        List<ComboMove> matchedMoves) {
+                                                        List<ResolvedComboMove> matchedMoves) {
         for (Key unpressedPreconditionKey : combo.precondition()
                                                  .keyPrecondition()
                                                  .unpressedKeySet()) {
@@ -542,6 +543,9 @@ public class ComboWatcher implements ModeListener {
      * - Move the Switch commands last: useful for saving a mouse position then switching to position-history mode
      */
     private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
+        // Resolve macro aliases before deduplication: each macro command's
+        // aliases are resolved using the alias bindings from its combo match.
+        attachMacroAliasResolutions(commandsToRun);
         return commandsToRun.stream()
                             .sorted(Comparator.comparingInt(
                                     cac -> cac.match.matchedMoves().size()))
@@ -550,6 +554,28 @@ public class ComboWatcher implements ModeListener {
                             .distinct()
                             .sorted(Comparator.comparing(ComboWatcher::commandOrder))
                             .toList();
+    }
+
+    private static void attachMacroAliasResolutions(List<ComboAndCommands> comboAndCommandsList) {
+        for (int i = 0; i < comboAndCommandsList.size(); i++) {
+            ComboAndCommands cac = comboAndCommandsList.get(i);
+            AliasResolution resolution = cac.match.aliasResolution();
+            List<Command> resolvedCommands = new ArrayList<>();
+            boolean changed = false;
+            for (Command command : cac.commands) {
+                if (command instanceof Command.MacroCommand(Macro macro, var __)) {
+                    resolvedCommands.add(new Command.MacroCommand(macro, resolution));
+                    changed = true;
+                }
+                else {
+                    resolvedCommands.add(command);
+                }
+            }
+            if (changed) {
+                comboAndCommandsList.set(i,
+                        new ComboAndCommands(cac.combo, resolvedCommands, cac.match));
+            }
+        }
     }
 
     public void breakComboPreparation() {

@@ -467,7 +467,7 @@ public class ConfigurationParser {
                                 .map(key -> new Combo(emptyComboPrecondition,
                                         ComboSequence.ofMoves(
                                                 List.of(new ComboMove.PressComboMove(
-                                                        key, true,
+                                                        KeyOrAlias.ofKey(key), true,
                                                         defaultComboMoveDuration)))))
                                 .toList();
     }
@@ -514,11 +514,11 @@ public class ConfigurationParser {
                                                  .unpressedKeySet());
             allComboAndMacroKeys.addAll(combo.sequence().allKeys());
             for (Command command : commands) {
-                if (command instanceof Command.MacroCommand(Macro macro)) {
+                if (command instanceof Command.MacroCommand(Macro macro, var __)) {
                     for (MacroParallel parallel : macro.output().parallels()) {
                         for (MacroMove move : parallel.moves()) {
                             if (move instanceof KeyMacroMove keyMacroMove)
-                                allComboAndMacroKeys.add(keyMacroMove.key());
+                                allComboAndMacroKeys.addAll(keyMacroMove.keyOrAlias().possibleKeys());
                         }
                     }
                 }
@@ -538,45 +538,33 @@ public class ConfigurationParser {
         if (split.length != 2)
             throw new IllegalArgumentException(
                     "Invalid " + propertyType + ": " + propertyValue);
-        List<AliasResolvedCombo> aliasResolvedCombos =
+        List<Combo> combos =
                 Combo.multiCombo(split[0], defaultComboMoveDuration,
                         keyAliases,
                         appAliases, keyResolver);
         // Aliases used in the macro output must be used in all of the
         // combos of that multi combo.
         Set<String> comboAliasNameIntersection = new HashSet<>(
-                aliasResolvedCombos.getFirst()
-                                   .aliasResolution()
-                                   .keyByAliasName()
-                                   .keySet());
-        for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
-            comboAliasNameIntersection.retainAll(
-                    aliasResolvedCombo.aliasResolution()
-                                      .keyByAliasName()
-                                      .keySet());
+                combos.getFirst().sequence().aliasNames());
+        for (Combo combo : combos) {
+            comboAliasNameIntersection.retainAll(combo.sequence().aliasNames());
         }
-        for (AliasResolvedCombo aliasResolvedCombo : aliasResolvedCombos) {
-            String output = split[1];
-            Set<String> aliasNamesUsedInOutput =
-                    Macro.aliasNamesUsedInOutput(output,
-                            keyAliases.keySet());
-            if (!comboAliasNameIntersection.containsAll(
-                    aliasNamesUsedInOutput)) {
-                Set<String> aliasesNotUsedInComboSequence =
-                        new HashSet<>(aliasNamesUsedInOutput);
-                aliasNamesUsedInOutput.removeAll(
-                        comboAliasNameIntersection);
-                throw new IllegalArgumentException(
-                        "Key aliases " + aliasesNotUsedInComboSequence +
-                        " cannot be used in the " + propertyType + " output because they are not used in the combo sequence");
-            }
-            Macro macro = Macro.of(name, output, aliasResolvedCombo.aliasResolution(),
-                    keyResolver);
-            Command command = new MacroCommand(macro);
-            for (Combo combo : List.of(aliasResolvedCombo.combo()))
-                builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
-                       .add(command);
+        String output = split[1];
+        Set<String> aliasNamesUsedInOutput =
+                Macro.aliasNamesUsedInOutput(output, keyAliases.keySet());
+        if (!comboAliasNameIntersection.containsAll(aliasNamesUsedInOutput)) {
+            Set<String> aliasesNotUsedInComboSequence =
+                    new HashSet<>(aliasNamesUsedInOutput);
+            aliasesNotUsedInComboSequence.removeAll(comboAliasNameIntersection);
+            throw new IllegalArgumentException(
+                    "Key aliases " + aliasesNotUsedInComboSequence +
+                    " cannot be used in the " + propertyType + " output because they are not used in the combo sequence");
         }
+        Macro macro = Macro.of(name, output, keyAliases, keyResolver);
+        Command command = new MacroCommand(macro, null);
+        for (Combo combo : combos)
+            builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
+                   .add(command);
     }
 
     private static void parseLine(String group2, ModeBuilder mode, String propertyKey,
@@ -1952,12 +1940,8 @@ public class ConfigurationParser {
                                            Map<String, KeyAlias> keyAliases,
                                            Map<String, AppAlias> appAliases,
                                            KeyResolver keyResolver) {
-        List<AliasResolvedCombo> aliasResolvedCombos =
-                Combo.multiCombo(multiComboString, defaultComboMoveDuration, keyAliases,
+        return Combo.multiCombo(multiComboString, defaultComboMoveDuration, keyAliases,
                         appAliases, keyResolver);
-        List<Combo> combos =
-                aliasResolvedCombos.stream().map(AliasResolvedCombo::combo).toList();
-        return combos;
     }
 
     /**

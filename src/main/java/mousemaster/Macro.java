@@ -1,10 +1,7 @@
 package mousemaster;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,7 +17,7 @@ public record Macro(String name, MacroSequence output) {
      * - 'text' = send string to OS
      */
     public static Macro of(String name, String string,
-                           AliasResolution aliasResolution, KeyResolver keyResolver) {
+                           Map<String, KeyAlias> keyAliases, KeyResolver keyResolver) {
         List<MacroParallel> parallels = new ArrayList<>();
         Duration parallelDuration;
         List<MacroMove> moves = new ArrayList<>();
@@ -39,11 +36,11 @@ public record Macro(String name, MacroSequence output) {
                 continue;
             }
             if (!token.matches("[+\\-#~].*")) {
-                moves.add(parseKeyMacroMove(aliasResolution, token, keyResolver, true, MacroMoveDestination.COMBO_WATCHER));
-                moves.add(parseKeyMacroMove(aliasResolution, token, keyResolver, false, MacroMoveDestination.COMBO_WATCHER));
+                moves.add(parseKeyMacroMove(keyAliases, token, keyResolver, true, MacroMoveDestination.COMBO_WATCHER));
+                moves.add(parseKeyMacroMove(keyAliases, token, keyResolver, false, MacroMoveDestination.COMBO_WATCHER));
             }
             else {
-                moves.add(parseKeyMacroMove(name, aliasResolution, keyResolver, token));
+                moves.add(parseKeyMacroMove(name, keyAliases, keyResolver, token));
             }
         }
         if (!moves.isEmpty())
@@ -94,7 +91,7 @@ public record Macro(String name, MacroSequence output) {
         return sb.toString();
     }
 
-    private static KeyMacroMove parseKeyMacroMove(String name, AliasResolution aliasResolution,
+    private static KeyMacroMove parseKeyMacroMove(String name, Map<String, KeyAlias> keyAliases,
                                             KeyResolver keyResolver, String word) {
         Matcher moveMatcher = Pattern.compile("([+\\-#~])(.+)").matcher(word);
         if (!moveMatcher.matches())
@@ -106,17 +103,45 @@ public record Macro(String name, MacroSequence output) {
         MacroMoveDestination destination = (prefix.equals("+") || prefix.equals("-"))
                 ? MacroMoveDestination.OS
                 : MacroMoveDestination.COMBO_WATCHER;
-        return parseKeyMacroMove(aliasResolution, keyOrAliasName, keyResolver, press,
+        return parseKeyMacroMove(keyAliases, keyOrAliasName, keyResolver, press,
                 destination);
     }
 
     private static KeyMacroMove parseKeyMacroMove(
-            AliasResolution aliasResolution,
+            Map<String, KeyAlias> keyAliases,
             String keyOrAliasName, KeyResolver keyResolver, boolean press,
             MacroMoveDestination destination) {
-        Key aliasKey = aliasResolution.keyByAliasName().get(keyOrAliasName);
-        Key key = aliasKey == null ? keyResolver.resolve(keyOrAliasName) : aliasKey;
-        return new KeyMacroMove(key, press, destination);
+        KeyAlias alias = keyAliases.get(keyOrAliasName);
+        KeyOrAlias keyOrAlias;
+        if (alias != null)
+            keyOrAlias = KeyOrAlias.ofAlias(alias);
+        else
+            keyOrAlias = KeyOrAlias.ofKey(keyResolver.resolve(keyOrAliasName));
+        return new KeyMacroMove(keyOrAlias, press, destination);
+    }
+
+    public ResolvedMacro resolve(AliasResolution aliasResolution) {
+        List<ResolvedMacroParallel> resolvedParallels = new ArrayList<>();
+        for (MacroParallel parallel : output.parallels()) {
+            List<ResolvedMacroMove> resolvedMoves = new ArrayList<>();
+            for (MacroMove move : parallel.moves()) {
+                switch (move) {
+                    case KeyMacroMove(KeyOrAlias keyOrAlias, boolean press,
+                                      MacroMoveDestination destination) -> {
+                        Key key = keyOrAlias.isAlias()
+                                ? aliasResolution.keyByAliasName()
+                                                 .get(keyOrAlias.aliasName())
+                                : keyOrAlias.key();
+                        resolvedMoves.add(
+                                new ResolvedKeyMacroMove(key, press, destination));
+                    }
+                    case StringMacroMove stringMove -> resolvedMoves.add(stringMove);
+                }
+            }
+            resolvedParallels.add(
+                    new ResolvedMacroParallel(resolvedMoves, parallel.duration()));
+        }
+        return new ResolvedMacro(name, new ResolvedMacroSequence(resolvedParallels));
     }
 
     public static Set<String> aliasNamesUsedInOutput(String string,

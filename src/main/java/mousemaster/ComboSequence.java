@@ -17,7 +17,17 @@ public record ComboSequence(List<MoveSet> moveSets) {
                        .flatMap(moveSet -> Stream.concat(
                                moveSet.requiredMoves().stream(),
                                moveSet.optionalMoves().stream()))
-                       .map(ComboMove::key)
+                       .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
+                       .collect(Collectors.toSet());
+    }
+
+    public Set<String> aliasNames() {
+        return moveSets.stream()
+                       .flatMap(moveSet -> Stream.concat(
+                               moveSet.requiredMoves().stream(),
+                               moveSet.optionalMoves().stream()))
+                       .filter(move -> move.keyOrAlias().isAlias())
+                       .map(move -> move.keyOrAlias().aliasName())
                        .collect(Collectors.toSet());
     }
 

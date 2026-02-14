@@ -2,7 +2,7 @@ package mousemaster;
 
 public sealed interface ComboMove {
 
-    Key key();
+    KeyOrAlias keyOrAlias();
     ComboMoveDuration duration();
 
     default boolean isPress() {
@@ -13,19 +13,19 @@ public sealed interface ComboMove {
         return !isPress();
     }
 
-    record PressComboMove(Key key, boolean eventMustBeEaten, ComboMoveDuration duration)
+    record PressComboMove(KeyOrAlias keyOrAlias, boolean eventMustBeEaten, ComboMoveDuration duration)
             implements ComboMove {
         @Override
         public String toString() {
-            return (eventMustBeEaten ? "+" : "#") + key.name();
+            return (eventMustBeEaten ? "+" : "#") + keyOrAlias;
         }
 
     }
 
-    record ReleaseComboMove(Key key, ComboMoveDuration duration) implements ComboMove {
+    record ReleaseComboMove(KeyOrAlias keyOrAlias, ComboMoveDuration duration) implements ComboMove {
         @Override
         public String toString() {
-            return "-" + key.name();
+            return "-" + keyOrAlias;
         }
 
     }
