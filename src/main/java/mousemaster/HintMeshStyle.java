@@ -332,12 +332,17 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         }
 
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
+            // Fill selected/focused from the local default BEFORE inheriting
+            // from the parent. This ensures viewport-specific font-size
+            // overrides (e.g. font-size.3840x2160-300%=10) propagate to
+            // selected/focused, rather than being shadowed by the parent's
+            // auto-filled values (e.g. font-size=15 from AnyViewportFilter).
+            fontStyle.extendSelectedAndFocusedFromMain();
+            prefixFontStyle.extendSelectedAndFocusedFromMain();
             if (defaultStyle != null) {
                 fontStyle.extend(defaultStyle.fontStyle.builder());
                 prefixFontStyle.extend(defaultStyle.prefixFontStyle.builder());
             }
-            fontStyle.extendSelectedAndFocusedFromMain();
-            prefixFontStyle.extendSelectedAndFocusedFromMain();
             prefixFontStyle.extend(fontStyle);
             return new HintMeshStyle(
                     fontStyle.build(),
