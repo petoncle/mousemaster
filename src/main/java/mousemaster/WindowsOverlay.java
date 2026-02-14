@@ -1367,8 +1367,7 @@ public class WindowsOverlay {
                             labelFontStyle,
                             hintKeyMaxXAdvance,
                             hintMesh.selectedKeySequence().size() - 1
-                            - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0),
-                            true);
+                            - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0));
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
@@ -1508,7 +1507,7 @@ public class WindowsOverlay {
                                 hintMesh.prefixLength(),
                                 prefixQtHintFontStyle,
                                 prefixHintKeyMaxXAdvance,
-                                hintMesh.selectedKeySequence().size() - 1, false);
+                                hintMesh.selectedKeySequence().size() - 1);
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, qtScaleFactor);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, qtScaleFactor);
                 int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
@@ -2197,7 +2196,6 @@ public class WindowsOverlay {
         final int tightHintBoxTop;
         final int tightHintBoxWidth;
         final int tightHintBoxHeight;
-        private final boolean overwriteBackground;
         int left;
         int top;
         int x, y, width, height;
@@ -2206,10 +2204,8 @@ public class WindowsOverlay {
                          int boxWidth,
                          int boxHeight, int totalXAdvance, int prefixLength,
                          QtHintFontStyle labelFontStyle,
-                         int hintKeyMaxXAdvance, int selectedKeyEndIndex,
-                         boolean overwriteBackground) {
+                         int hintKeyMaxXAdvance, int selectedKeyEndIndex) {
             this.labelFontStyle = labelFontStyle;
-            this.overwriteBackground = overwriteBackground;
 
             int y = (boxHeight + labelFontStyle.defaultStyle().metrics().ascent() - labelFontStyle.defaultStyle().metrics().descent()) / 2;
 
@@ -2340,11 +2336,6 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
             painter.setFont(labelFontStyle.defaultStyle().font());
 
-            // For transparent prefix text in background, we want to see the grid lines
-            // through the transparent prefix.
-            if (!overwriteBackground)
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-
             // Draw outlines per state (each state may have different outline settings).
             paintOutlineForState(painter, forceOpaque, labelFontStyle.defaultStyle(),
                     keyText -> !keyText.isSelected() && !keyText.isFocused());
@@ -2353,9 +2344,8 @@ public class WindowsOverlay {
             paintOutlineForState(painter, forceOpaque, labelFontStyle.focusedStyle(),
                     HintKeyText::isFocused);
 
-            // Avoid blending the text with the outline. Text should override the outline.
-            if (overwriteBackground)
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            // Text should override outline and background (punches through with its alpha).
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
                 QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
                 QColor color = keyText.isPrefix() && qtFontStyle.prefixColor() != null ?
@@ -2429,16 +2419,13 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
             painter.setFont(labelFontStyle.defaultStyle().font());
-            if (!overwriteBackground)
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             paintOutlineForState(painter, true, labelFontStyle.defaultStyle(),
                     k -> filter.test(k) && !k.isSelected() && !k.isFocused());
             paintOutlineForState(painter, true, labelFontStyle.selectedStyle(),
                     k -> filter.test(k) && k.isSelected());
             paintOutlineForState(painter, true, labelFontStyle.focusedStyle(),
                     k -> filter.test(k) && k.isFocused());
-            if (overwriteBackground)
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
                 if (!filter.test(keyText))
                     continue;
