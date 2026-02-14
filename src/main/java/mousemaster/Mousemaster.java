@@ -212,8 +212,10 @@ public class Mousemaster {
                         hintManager,
                         // ZoomManager must be notified after HintManager because it calls
                         // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
-                        List.of(platform, comboWatcher, mouseController, indicatorManager,
-                                gridManager, hintManager, zoomManager));
+                        // ComboWatcher must be notified last because it can trigger
+                        // another mode switch (^{uihintkey}).
+                        List.of(platform, mouseController, indicatorManager, gridManager,
+                                hintManager, zoomManager, comboWatcher));
         commandRunner.setModeController(modeController);
         commandRunner.setMacroPlayer(macroPlayer);
         hintManager.setModeController(modeController);
