@@ -2,6 +2,8 @@ package mousemaster;
 
 import mousemaster.ComboPrecondition.ComboAppPrecondition;
 import mousemaster.ComboPrecondition.ComboKeyPrecondition;
+import mousemaster.ComboPrecondition.PressedKeyGroup;
+import mousemaster.ComboPrecondition.PressedKeyPrecondition;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -40,8 +42,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         Matcher mustMatcher = Pattern.compile("_\\{([^{}]+)\\}\\s*").matcher(mustString);
         String mustBeActiveAppsString = null;
         Set<App> mustBeActiveApps = Set.of();
-        String pressedKeySetsString = null;
-        Set<Set<Key>> pressedKeySets = Set.of();
+        String pressedKeyPreconditionString = null;
+        PressedKeyPrecondition pressedKeyPrecondition = new PressedKeyPrecondition(List.of());
         String sequenceString = mustString;
         while (mustMatcher.find()) {
             String mustSetsString = mustMatcher.group(1);
@@ -51,9 +53,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString, appAliases);
             }
             else {
-                pressedKeySetsString = mustSetsString;
-                pressedKeySets =
-                        parsePressedKeySets(pressedKeySetsString,
+                pressedKeyPreconditionString = mustSetsString;
+                pressedKeyPrecondition =
+                        parsePressedKeyPrecondition(pressedKeyPreconditionString,
                                 keyAliases, keyResolver);
             }
             sequenceString = mustString.substring(mustMatcher.end());
@@ -65,22 +67,18 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                     mustBeActiveAppsString + "}");
         }
         if (unpressedKeySet.stream()
-                           .anyMatch(pressedKeySets.stream()
-                                                                       .flatMap(
-                                                                               Collection::stream)
-                                                                       .collect(
-                                                                               Collectors.toSet())::contains)) {
+                           .anyMatch(pressedKeyPrecondition.allKeys()::contains)) {
             throw new IllegalArgumentException(
                     "There cannot be an overlap between unpressed and pressed precondition keys: " +
                     "^{" + unpressedKeySetString + "} _{" +
-                    pressedKeySetsString + "}");
+                    pressedKeyPreconditionString + "}");
         }
         if (sequenceString.isEmpty())
             return List.of(
                     new AliasResolvedCombo(new AliasResolution(Map.of()),
                             of(string, new ComboSequence(List.of()), unpressedKeySet,
                                     unpressedKeySetString, sequenceString,
-                                    pressedKeySets, pressedKeySetsString,
+                                    pressedKeyPrecondition, pressedKeyPreconditionString,
                                     mustNotBeActiveApps, mustBeActiveApps)));
         else {
             ExpandableSequence expandableSequence =
@@ -91,7 +89,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             return ofExpandedSequences(string, expandedSequences,
                     unpressedKeySet,
                     unpressedKeySetString, sequenceString,
-                    pressedKeySets, pressedKeySetsString,
+                    pressedKeyPrecondition, pressedKeyPreconditionString,
                     mustNotBeActiveApps, mustBeActiveApps);
         }
     }
@@ -101,8 +99,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                                    Set<Key> unpressedKeySet,
                                                    String unpressedKeySetString,
                                                    String sequenceString,
-                                                   Set<Set<Key>> pressedKeySets,
-                                                   String pressedKeySetsString,
+                                                   PressedKeyPrecondition pressedKeyPrecondition,
+                                                   String pressedKeyPreconditionString,
                                                    Set<App> mustNotBeActiveApps,
                                                    Set<App> mustBeActiveApps) {
         List<AliasResolvedCombo> aliasResolvedCombos = new ArrayList<>();
@@ -113,8 +111,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                         unpressedKeySet,
                         unpressedKeySetString,
                         sequenceString,
-                        pressedKeySets,
-                        pressedKeySetsString,
+                        pressedKeyPrecondition,
+                        pressedKeyPreconditionString,
                         mustNotBeActiveApps, mustBeActiveApps);
                 aliasResolvedCombos.add(new AliasResolvedCombo(aliasResolution, combo));
             }
@@ -144,13 +142,13 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                             Set<Key> unpressedKeySet,
                             String unpressedKeySetString,
                             String sequenceString,
-                            Set<Set<Key>> pressedKeySets,
-                            String pressedKeySetsString,
+                            PressedKeyPrecondition pressedKeyPrecondition,
+                            String pressedKeyPreconditionString,
                             Set<App> mustNotBeActiveApps,
                             Set<App> mustBeActiveApps) {
         ComboPrecondition precondition = new ComboPrecondition(
                 new ComboKeyPrecondition(unpressedKeySet,
-                        pressedKeySets),
+                        pressedKeyPrecondition),
                 new ComboAppPrecondition(mustNotBeActiveApps, mustBeActiveApps));
         if (precondition.isEmpty() && sequence.isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
@@ -190,34 +188,34 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         return appStrings.stream().allMatch(appAliases::containsKey);
     }
 
-    private static Set<Set<Key>> parsePressedKeySets(String keySetsString,
-                                                     Map<String, KeyAlias> aliases,
-                                                     KeyResolver keyResolver) {
-        String[] keySetStrings = keySetsString.split("\\s*\\|\\s*");
-        Set<Set<Key>> pressedKeySets = Arrays.stream(keySetStrings)
-                                      .map(complexKeySetString -> parsePressedKeySet(
-                                              complexKeySetString, aliases, keyResolver))
-                                      .flatMap(Collection::stream)
-                                      .collect(Collectors.toSet());
-        if (pressedKeySets.equals(Set.of(Set.of())))
-            pressedKeySets = Set.of();
-        return pressedKeySets;
+    private static PressedKeyPrecondition parsePressedKeyPrecondition(
+            String keySetsString,
+            Map<String, KeyAlias> aliases,
+            KeyResolver keyResolver) {
+        String[] groupStrings = keySetsString.split("\\s*\\|\\s*");
+        List<PressedKeyGroup> groups = Arrays.stream(groupStrings)
+                                      .map(groupString -> parsePressedKeyGroup(
+                                              groupString, aliases, keyResolver))
+                                      .collect(Collectors.toList());
+        // _{none} alone is equivalent to no precondition constraint.
+        if (groups.size() == 1 && groups.getFirst().keySets().isEmpty())
+            groups = List.of();
+        return new PressedKeyPrecondition(groups);
     }
 
-    private static Set<Set<Key>> parsePressedKeySet(String keySetString,
-                                                    Map<String, KeyAlias> aliases,
-                                                    KeyResolver keyResolver) {
-        // rightctrl up*down -> (rightctrl, up), (rightctrl, down), (rightctrl, up, down)
-        boolean containsEmptyKeySet = false;
-        List<Set<Set<Key>>> combinations = new ArrayList<>();
+    private static PressedKeyGroup parsePressedKeyGroup(String keySetString,
+                                                        Map<String, KeyAlias> aliases,
+                                                        KeyResolver keyResolver) {
+        boolean containsNone = false;
+        List<Set<Key>> keySets = new ArrayList<>();
         String[] split = keySetString.split("\\s+");
         for (String complexKeyString : split) {
             if (complexKeyString.equals("none"))
-                containsEmptyKeySet = true;
+                containsNone = true;
             else if (!complexKeyString.contains("*")) {
                 Set<Key> expandedKeys = expandKeyAlias(complexKeyString, aliases,
                         keyResolver);
-                combinations.add(generateCombinations(expandedKeys));
+                keySets.add(expandedKeys);
             }
             else {
                 Set<Key> keys = new HashSet<>();
@@ -225,69 +223,14 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                     Set<Key> expandedKeys = expandKeyAlias(keyName, aliases, keyResolver);
                     keys.addAll(expandedKeys);
                 }
-                combinations.add(generateCombinations(keys));
+                keySets.add(keys);
             }
         }
-        if (containsEmptyKeySet && !combinations.isEmpty())
+        if (containsNone && !keySets.isEmpty())
             // "none rightctrl" is invalid
             // "none up*down" is invalid
             throw new IllegalArgumentException("Invalid key set: " + keySetString);
-        // leftctrl*leftshift up*down
-        // _{alias1 alias2}: one or more keys of alias1 must be pressed, and same for alias2
-        Set<Set<Key>> pressedKeySet = new HashSet<>();
-        recursivelyExpandCombinations(new HashMap<>(), combinations,
-                pressedKeySet);
-        return pressedKeySet;
-    }
-
-    private static void recursivelyExpandCombinations(Map<Integer, Set<Key>> fixedCombinationBySetIndex,
-                                           List<Set<Set<Key>>> combinations,
-                                           Set<Set<Key>> result) {
-        if (fixedCombinationBySetIndex.size() == combinations.size()) {
-            Set<Key> mergedCombination = new HashSet<>();
-            for (Set<Key> fixedCombination : fixedCombinationBySetIndex.values())
-                mergedCombination.addAll(fixedCombination);
-            result.add(mergedCombination);
-            return;
-        }
-        int fixedCombinationSetIndex = fixedCombinationBySetIndex.size();
-        Set<Set<Key>> fixedCombinationSet = combinations.get(fixedCombinationSetIndex);
-        for (Set<Key> fixedCombination : fixedCombinationSet) {
-            fixedCombinationBySetIndex.put(fixedCombinationSetIndex, fixedCombination);
-            recursivelyExpandCombinations(fixedCombinationBySetIndex, combinations, result);
-            fixedCombinationBySetIndex.remove(fixedCombinationSetIndex);
-        }
-    }
-
-    /**
-     * Input: Set.of(1, 2, 3)
-     * Output: Set.of(Set.of(1), Set.of(2), Set.of(3), Set.of(1, 2), Set.of(1, 3), Set.of(2, 3), Set.of(1, 2, 3))
-     */
-    public static <T> Set<Set<T>> generateCombinations(Set<T> originalSet) {
-        Set<Set<T>> combinations = new HashSet<>();
-        if (originalSet.isEmpty()) {
-            combinations.add(new HashSet<>());
-            return combinations;
-        }
-        List<T> list = List.copyOf(originalSet);
-        // Start from an empty set and build up combinations.
-        recursivelyGenerateCombinations(combinations, list, new HashSet<>(), 0);
-        // Remove the empty set from the combinations.
-        combinations.remove(Set.of());
-        return combinations;
-    }
-
-    private static <T> void recursivelyGenerateCombinations(Set<Set<T>> combinations,
-                                                            List<T> originalList,
-                                                            Set<T> current, int index) {
-        if (index == originalList.size()) {
-            combinations.add(new HashSet<>(current));
-            return;
-        }
-        recursivelyGenerateCombinations(combinations, originalList, current, index + 1);
-        current.add(originalList.get(index));
-        recursivelyGenerateCombinations(combinations, originalList, current, index + 1);
-        current.remove(originalList.get(index));
+        return new PressedKeyGroup(keySets);
     }
 
     public static List<AliasResolvedCombo> multiCombo(String multiComboString,

@@ -3,6 +3,9 @@ package mousemaster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import mousemaster.ComboPrecondition.PressedKeyGroup;
+import mousemaster.ComboPrecondition.PressedKeyPrecondition;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -78,7 +81,7 @@ public class ComboWatcher implements ModeListener {
                     continue;
                 List<ComboMove> noMatchedMoves = List.of();
                 Set<Key> currentlyPressedKeys = currentlyPressedComboKeys;
-                if (satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
+                if (findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
                             currentlyPressedCompletedComboKeys, noMatchedMoves) == null)
                     continue;
                 if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys, noMatchedMoves))
@@ -268,7 +271,7 @@ public class ComboWatcher implements ModeListener {
             // even if there is a pressed key that is not in the combo precondition, we
             // still consider the combo as completed.
             if (!isReleaseCombo(combo, match.matchedMoves()) &&
-                satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
+                findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
                         currentlyPressedCompletedComboKeys, match.matchedMoves()) == null) {
                 // Then it's as if the currently pressed precondition key is an unhandled key:
                 // other keys that are pressed should not even be considered but passed onto other apps.
@@ -400,7 +403,7 @@ public class ComboWatcher implements ModeListener {
     private static boolean isReleaseCombo(Combo combo, List<ComboMove> matchedMoves) {
         return combo.precondition()
                     .keyPrecondition()
-                    .pressedKeySets()
+                    .pressedKeyPrecondition()
                     .isEmpty() &&
                (combo.sequence().isEmpty() ||
                 (!matchedMoves.isEmpty() && matchedMoves.stream().allMatch(ComboMove::isRelease)));
@@ -439,30 +442,35 @@ public class ComboWatcher implements ModeListener {
         commandsWaitingForAtomicCommandToComplete.addAll(commands);
     }
 
-    private Set<Key> satisfiedComboPressedPrecondition(Combo combo,
+    private Set<Key> findSatisfiedPressedPreconditionKeys(Combo combo,
                                                        Set<Key> currentlyPressedKeys,
                                                        Set<Key> currentlyPressedCompletedComboKeys,
                                                        List<ComboMove> matchedMoves) {
-        Set<Set<Key>> preconditionPressedKeySets = combo.precondition()
-                                                        .keyPrecondition()
-                                                        .pressedKeySets();
-        if (preconditionPressedKeySets.isEmpty())
-            preconditionPressedKeySets = Set.of(Set.of());
-        for (Set<Key> preconditionPressedKeySet : preconditionPressedKeySets) {
-            Set<Key> keysPressedInComboPriorToMove =
-                    combo.keysPressedAfterMoves(preconditionPressedKeySet,
-                            matchedMoves);
-            Set<Key> currentlyPressedKeysNotPartOfAlreadyCompletedCombo =
-                    new HashSet<>(currentlyPressedKeys);
-            for (Key currentlyPressedCompletedComboKey : currentlyPressedCompletedComboKeys) {
-                if (!keysPressedInComboPriorToMove.contains(
-                        currentlyPressedCompletedComboKey))
-                    currentlyPressedKeysNotPartOfAlreadyCompletedCombo.remove(
-                            currentlyPressedCompletedComboKey);
+        PressedKeyPrecondition precondition = combo.precondition()
+                                                   .keyPrecondition()
+                                                   .pressedKeyPrecondition();
+        List<PressedKeyGroup> groups = precondition.groups();
+        if (groups.isEmpty())
+            groups = List.of(new PressedKeyGroup(List.of()));
+        for (PressedKeyGroup group : groups) {
+            Set<Key> allGroupKeys = group.allKeys();
+            // Start with currently pressed keys.
+            Set<Key> candidatePressedPreconditionKeys = new HashSet<>(currentlyPressedKeys);
+            // Remove completed combo keys that are NOT in allGroupKeys.
+            for (Key completedKey : currentlyPressedCompletedComboKeys) {
+                if (!allGroupKeys.contains(completedKey))
+                    candidatePressedPreconditionKeys.remove(completedKey);
             }
-            if (currentlyPressedKeysNotPartOfAlreadyCompletedCombo.equals(
-                    keysPressedInComboPriorToMove))
-                return preconditionPressedKeySet;
+            // Reverse-apply matched moves: remove pressed keys, add released keys.
+            for (int i = matchedMoves.size() - 1; i >= 0; i--) {
+                ComboMove move = matchedMoves.get(i);
+                if (move.isPress())
+                    candidatePressedPreconditionKeys.remove(move.key());
+                else
+                    candidatePressedPreconditionKeys.add(move.key());
+            }
+            if (group.satisfiedBy(candidatePressedPreconditionKeys))
+                return candidatePressedPreconditionKeys;
         }
         return null;
     }
@@ -487,7 +495,7 @@ public class ComboWatcher implements ModeListener {
         if (isReleaseCombo(combo, match.matchedMoves()))
             return;
         Set<Key> satisfiedPressPreconditionKeys =
-                satisfiedComboPressedPrecondition(combo, currentlyPressedKeys,
+                findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
                         currentlyPressedCompletedComboKeys,
                         match.matchedMoves());
         if (satisfiedPressPreconditionKeys == null)

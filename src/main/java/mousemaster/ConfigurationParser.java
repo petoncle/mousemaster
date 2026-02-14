@@ -460,7 +460,8 @@ public class ConfigurationParser {
                                      .flatMap(Collection::stream)
                                      .collect(Collectors.toSet());
         ComboPrecondition emptyComboPrecondition = new ComboPrecondition(
-                new ComboPrecondition.ComboKeyPrecondition(Set.of(), Set.of()),
+                new ComboPrecondition.ComboKeyPrecondition(Set.of(),
+                        new ComboPrecondition.PressedKeyPrecondition(List.of())),
                 new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()));
         return hintSelectionKeys.stream()
                                 .map(key -> new Combo(emptyComboPrecondition,
@@ -504,12 +505,10 @@ public class ConfigurationParser {
         for (Map.Entry<Combo, List<Command>> entry : comboMap.commandsByCombo().entrySet()) {
             Combo combo = entry.getKey();
             List<Command> commands = entry.getValue();
-            combo.precondition()
-                 .keyPrecondition()
-                 .pressedKeySets()
-                 .stream()
-                 .flatMap(Collection::stream)
-                 .forEach(allComboAndMacroKeys::add);
+            allComboAndMacroKeys.addAll(combo.precondition()
+                                             .keyPrecondition()
+                                             .pressedKeyPrecondition()
+                                             .allKeys());
             allComboAndMacroKeys.addAll(combo.precondition()
                                                  .keyPrecondition()
                                                  .unpressedKeySet());

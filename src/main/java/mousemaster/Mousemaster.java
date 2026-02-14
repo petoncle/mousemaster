@@ -185,17 +185,14 @@ public class Mousemaster {
         for (Mode mode : configuration.modeMap().modes()) {
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 unpressedComboPreconditionKeys.addAll(combo.precondition()
-                                                                     .keyPrecondition()
-                                                                     .unpressedKeySet()
-                                                                     .stream()
-                                                                     .toList());
+                                                           .keyPrecondition()
+                                                           .unpressedKeySet()
+                                                           .stream()
+                                                           .toList());
                 pressedComboPreconditionKeys.addAll(combo.precondition()
-                                                                   .keyPrecondition()
-                                                                   .pressedKeySets()
-                                                                   .stream()
-                                                                   .flatMap(
-                                                                           Collection::stream)
-                                                                   .toList());
+                                                         .keyPrecondition()
+                                                         .pressedKeyPrecondition()
+                                                         .allKeys());
             }
         }
         ComboWatcher comboWatcher =
