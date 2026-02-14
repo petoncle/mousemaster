@@ -510,9 +510,24 @@ public class WindowsOverlay {
 
         @Override
         protected void draw(QPainter painter) {
-            for (int i = 0; i < stackCount; i++) {
+            if (stackCount <= 1) {
                 super.draw(painter);
+                redrawSourceOverShadow(painter);
+                return;
             }
+            // Render shadow+source once into a temp image, apply stacking
+            // in-place, then composite onto the real painter.
+            int w = painter.device().width();
+            int h = painter.device().height();
+            QImage temp = new QImage(w, h, QImage.Format.Format_ARGB32_Premultiplied);
+            temp.fill(new QColor(0, 0, 0, 0));
+            QPainter tempPainter = new QPainter(temp);
+            super.draw(tempPainter);
+            tempPainter.end();
+            QImage stacked = bakeStacking(temp, stackCount);
+            temp.dispose();
+            painter.drawImage(0, 0, stacked);
+            stacked.dispose();
             redrawSourceOverShadow(painter);
         }
 
@@ -520,6 +535,43 @@ public class WindowsOverlay {
             // No-op by default. Subclasses override to clear and redraw
             // source content, preventing shadow from showing through
             // transparent parts.
+        }
+
+        /**
+         * Intensifies an image by computing the closed-form result of compositing
+         * it on top of itself stackCount times (premultiplied alpha geometric series).
+         * Returns a new QImage (caller must dispose the original if different).
+         */
+        static QImage bakeStacking(QImage image, int stackCount) {
+            if (stackCount <= 1)
+                return image;
+            int w = image.width();
+            int h = image.height();
+            int totalBytes = w * h * 4;
+            ByteBuffer buf = image.bits();
+            byte[] pixels = new byte[totalBytes];
+            buf.position(0);
+            buf.get(pixels);
+            // Precompute multiplier for each possible alpha value.
+            // For premultiplied alpha, stacking N times multiplies all channels by
+            // (1 - t^N) / (1 - t) where t = 1 - a/255.
+            double[] multiplier = new double[256];
+            for (int a = 1; a <= 255; a++) {
+                double t = 1.0 - a / 255.0;
+                multiplier[a] = (1.0 - Math.pow(t, stackCount)) / (a / 255.0);
+            }
+            // ARGB32_Premultiplied, little-endian: B, G, R, A.
+            for (int i = 0; i < totalBytes; i += 4) {
+                int a = pixels[i + 3] & 0xFF;
+                if (a == 0) continue;
+                double m = multiplier[a];
+                pixels[i]     = (byte) Math.min(255, (int) (((pixels[i]     & 0xFF) * m) + 0.5));
+                pixels[i + 1] = (byte) Math.min(255, (int) (((pixels[i + 1] & 0xFF) * m) + 0.5));
+                pixels[i + 2] = (byte) Math.min(255, (int) (((pixels[i + 2] & 0xFF) * m) + 0.5));
+                pixels[i + 3] = (byte) Math.min(255, (int) ((a * m) + 0.5));
+            }
+            image.dispose();
+            return new QImage(pixels, w, h, QImage.Format.Format_ARGB32_Premultiplied);
         }
     }
 
@@ -2537,7 +2589,7 @@ public class WindowsOverlay {
         ShadowImage shadow = renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
                 shadowStyle.shadowBlurRadius(), shadowStyle.shadowHorizontalOffset(),
                 shadowStyle.shadowVerticalOffset(), containerWidth, containerHeight);
-        QImage shadowImage = bakeShadowStacking(shadow.image(), shadowStyle.shadowStackCount());
+        QImage shadowImage = StackedShadowEffect.bakeStacking(shadow.image(), shadowStyle.shadowStackCount());
         layer.setShadowPixmap(QPixmap.fromImage(shadowImage),
                 shadow.x(), shadow.y());
         shadowImage.dispose();
@@ -2604,25 +2656,6 @@ public class WindowsOverlay {
     }
 
 
-    /**
-     * Draws the shadow image multiple times on top of itself to intensify it.
-     * Returns the original image unchanged if stackCount is 1.
-     * Disposes the input image and returns a new one if stackCount > 1.
-     */
-    private static QImage bakeShadowStacking(QImage shadowImage, int stackCount) {
-        if (stackCount <= 1)
-            return shadowImage;
-        QImage stacked = new QImage(shadowImage.width(), shadowImage.height(),
-                QImage.Format.Format_ARGB32_Premultiplied);
-        stacked.fill(new QColor(0, 0, 0, 0));
-        QPainter painter = new QPainter(stacked);
-        for (int i = 0; i < stackCount; i++) {
-            painter.drawImage(0, 0, shadowImage);
-        }
-        painter.end();
-        shadowImage.dispose();
-        return stacked;
-    }
 
     /**
      * Per-group shadow rendering: groups keys by their effective shadow
@@ -2659,7 +2692,7 @@ public class WindowsOverlay {
             ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
                     group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
                     containerWidth, containerHeight);
-            QImage stackedShadow = bakeShadowStacking(shadow.image(), group.stackCount());
+            QImage stackedShadow = StackedShadowEffect.bakeStacking(shadow.image(), group.stackCount());
             int boundsX = shadow.x();
             int boundsY = shadow.y();
             // Composite into final image.
