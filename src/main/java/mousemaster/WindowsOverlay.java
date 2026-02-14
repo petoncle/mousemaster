@@ -471,16 +471,20 @@ public class WindowsOverlay {
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedOuter, outerOutlineColor, outerOutlineFillPercent, 1.0);
             // Draw fill on top (covers inward overlap of outer outline).
-            if (currentIndicator.opacity() < 1.0) {
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+            if (fillColor.alpha() != 0) {
+                if (currentIndicator.opacity() < 1.0) {
+                    painter.setCompositionMode(
+                            QPainter.CompositionMode.CompositionMode_Clear);
+                    painter.setPen(Qt.PenStyle.NoPen);
+                    painter.setBrush(new QBrush(new QColor(0, 0, 0)));
+                    painter.drawPath(fillPath);
+                    painter.setCompositionMode(
+                            QPainter.CompositionMode.CompositionMode_SourceOver);
+                }
                 painter.setPen(Qt.PenStyle.NoPen);
-                painter.setBrush(new QBrush(new QColor(0, 0, 0)));
+                painter.setBrush(new QBrush(fillColor));
                 painter.drawPath(fillPath);
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             }
-            painter.setPen(Qt.PenStyle.NoPen);
-            painter.setBrush(new QBrush(fillColor));
-            painter.drawPath(fillPath);
             // Draw inner outline on top of fill.
             // Clear its area first if transparent, so outer outline doesn't show through.
             if (currentIndicator.innerOutline().opacity() < 1.0) {
@@ -671,8 +675,10 @@ public class WindowsOverlay {
                 painter.drawPath(textPath);
             }
             // Fill: draw text on top of outline.
-            painter.setPen(labelColor);
-            painter.drawText(textX, textY, labelText);
+            if (labelColor.alpha() != 0) {
+                painter.setPen(labelColor);
+                painter.drawText(textX, textY, labelText);
+            }
             painter.end();
         }
     }
