@@ -2548,7 +2548,8 @@ public class WindowsOverlay {
         QtFontStyle defaultStyle = style.defaultStyle();
         if (defaultStyle.shadowColor().alpha() == 0)
             return;
-        if (!qtHintFontStyleHasTransparency(style, hasSelectedKeys)) {
+        if (!qtHintFontStyleHasTransparency(style, hasSelectedKeys) &&
+            defaultStyle.shadowStackCount() == 1) {
             // Fast path: opaque text, use Qt's effect directly.
             logger.debug("Shadow rendering: opaque text, applying effect directly");
             StackedShadowEffect effect = new StackedShadowEffect();
@@ -2561,7 +2562,14 @@ public class WindowsOverlay {
         }
         else {
             // Slow path: transparent text, pre-render shadow off-screen.
-            logger.debug("Shadow rendering: transparent text, pre-rendering off-screen");
+            if (defaultStyle.shadowStackCount() != 1)
+                // Even though multiple stacks can be done with StackedShadowEffect, it
+                // is faster to do it this way.
+                logger.debug("Shadow rendering: shadow stack count is " +
+                             defaultStyle.shadowStackCount() +
+                             ", pre-rendering off-screen");
+            else
+                logger.debug("Shadow rendering: transparent text, pre-rendering off-screen");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight);
         }
