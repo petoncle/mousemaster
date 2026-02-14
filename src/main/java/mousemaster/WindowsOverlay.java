@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class WindowsOverlay {
@@ -760,21 +761,20 @@ public class WindowsOverlay {
                (inner.thickness() > 0 && inner.opacity() < 1.0);
     }
 
-    private static boolean labelFontStyleHasTransparency(LabelFontStyle style) {
-        if (style.outlineThickness != 0 && style.outlineColor.alpha() < 255)
+    private static boolean qtFontStyleHasTransparency(QtFontStyle qtFontStyle) {
+        if (qtFontStyle.outlineThickness() != 0 && qtFontStyle.outlineColor().alpha() < 255)
             return true;
-        HintKeyColorMap colors = style.hintKeyColorMap;
-        if (colors.color().alpha() < 255 || colors.selectedColor().alpha() < 255 ||
-                colors.focusedColor().alpha() < 255)
+        if (qtFontStyle.color().alpha() < 255)
             return true;
-        if (style.prefixHintKeyColorMap != null) {
-            HintKeyColorMap prefixColors = style.prefixHintKeyColorMap;
-            if (prefixColors.color().alpha() < 255 ||
-                    prefixColors.selectedColor().alpha() < 255 ||
-                    prefixColors.focusedColor().alpha() < 255)
-                return true;
-        }
+        if (qtFontStyle.prefixColor() != null && qtFontStyle.prefixColor().alpha() < 255)
+            return true;
         return false;
+    }
+
+    private static boolean qtHintFontStyleHasTransparency(QtHintFontStyle style) {
+        return qtFontStyleHasTransparency(style.defaultStyle()) ||
+               qtFontStyleHasTransparency(style.selectedStyle()) ||
+               qtFontStyleHasTransparency(style.focusedStyle());
     }
 
     private static void setIndicatorEffectColors(IndicatorShadowEffect effect) {
@@ -1296,29 +1296,7 @@ public class WindowsOverlay {
         int minHintTop = Integer.MAX_VALUE;
         int maxHintRight = Integer.MIN_VALUE;
         int maxHintBottom = Integer.MIN_VALUE;
-        QFont font = qFont(style.fontStyle().fontStyle().name(), style.fontStyle().fontStyle().size(), style.fontStyle().fontStyle().weight());
-        LabelFontStyle labelFontStyle = new LabelFontStyle(
-                font,
-                correctedFontMetricsForScreenDpi(font, style.fontStyle().fontStyle().size(), screenScale),
-                new HintKeyColorMap(
-                    qColor(style.fontStyle().fontStyle().hexColor(), style.fontStyle().fontStyle().opacity()),
-                    qColor(style.fontStyle().selectedFontHexColor(), style.fontStyle().selectedFontOpacity()),
-                    qColor(style.fontStyle().focusedFontHexColor(), style.fontStyle().focusedFontOpacity())
-                ),
-                new HintKeyColorMap(
-                    qColor(style.prefixFontStyle().fontStyle().hexColor(), style.prefixFontStyle().fontStyle().opacity()),
-                    qColor(style.prefixFontStyle().selectedFontHexColor(), style.prefixFontStyle().selectedFontOpacity()),
-                    qColor(style.prefixFontStyle().focusedFontHexColor(), style.prefixFontStyle().focusedFontOpacity())
-                ),
-                qColor(style.fontStyle().fontStyle().outlineHexColor(), style.fontStyle().fontStyle().outlineOpacity()),
-                (int) Math.round(style.fontStyle().fontStyle().outlineThickness() * screenScale),
-                stackedShadowColor(style.fontStyle().fontStyle().shadow()),
-                style.fontStyle().fontStyle().shadow().opacity(),
-                style.fontStyle().fontStyle().shadow().blurRadius() * screenScale,
-                style.fontStyle().fontStyle().shadow().horizontalOffset() * screenScale,
-                style.fontStyle().fontStyle().shadow().verticalOffset() * screenScale,
-                style.fontStyle().spacingPercent()
-        );
+        QtHintFontStyle labelFontStyle = buildQtHintFontStyle(style.fontStyle(), style.prefixFontStyle(), screenScale);
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
@@ -1332,7 +1310,7 @@ public class WindowsOverlay {
             for (Key key : hint.keySequence()) {
                 hintKeyMaxXAdvance = Math.max(hintKeyMaxXAdvance,
                         xAdvancesByString.computeIfAbsent(key.hintLabel(),
-                                labelFontStyle.metrics::horizontalAdvance));
+                                labelFontStyle.defaultStyle().metrics()::horizontalAdvance));
             }
         }
 //            hintKeyMaxXAdvance = metrics.maxWidth();
@@ -1342,17 +1320,19 @@ public class WindowsOverlay {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
-            int totalXAdvance = labelFontStyle.metrics.horizontalAdvance(hint.keySequence()
-                                                                             .stream()
-                                                                             .map(Key::hintLabel)
-                                                                             .collect(
-                                                                                Collectors.joining()));
+            int totalXAdvance = labelFontStyle.defaultStyle()
+                                              .metrics()
+                                              .horizontalAdvance(hint.keySequence()
+                                                                     .stream()
+                                                                     .map(Key::hintLabel)
+                                                                     .collect(
+                                                                             Collectors.joining()));
             // Size of cell for screen selection hint is not configured by user.
             // The default size is used and it is too small (and will be less than totalXAdvance).
             double cellWidth = hint.cellWidth() != -1 ?
                     Math.max(totalXAdvance, hint.cellWidth()) :
                     totalXAdvance;
-            int lineHeight = labelFontStyle.metrics.height();
+            int lineHeight = labelFontStyle.defaultStyle().metrics().height();
             double cellHeight = hint.cellHeight() != -1 ?
                     Math.max(lineHeight, hint.cellHeight()) :
                     lineHeight;
@@ -1499,35 +1479,16 @@ public class WindowsOverlay {
                     hintGroup.bottom - hintGroup.top);
             hintGroup.prefixHintBox = prefixHintBox;
         }
-        LabelFontStyle prefixLabelFontStyle = null;
-        if (style.prefixInBackground() && style.prefixFontStyle().fontStyle().opacity() != 0) {
-            QFont prefixFont = qFont(style.prefixFontStyle().fontStyle().name(), style.prefixFontStyle().fontStyle().size(), style.prefixFontStyle().fontStyle().weight());
-            prefixLabelFontStyle = new LabelFontStyle(
-                    prefixFont,
-                    correctedFontMetricsForScreenDpi(prefixFont, style.prefixFontStyle().fontStyle().size(),
-                            screenScale),
-                    null,
-                    new HintKeyColorMap(
-                            qColor(style.prefixFontStyle().fontStyle().hexColor(), style.prefixFontStyle().fontStyle().opacity()),
-                            qColor(style.prefixFontStyle().selectedFontHexColor(), style.prefixFontStyle().selectedFontOpacity()),
-                            qColor(style.prefixFontStyle().focusedFontHexColor(), style.prefixFontStyle().focusedFontOpacity())
-                    ),
-                    qColor(style.prefixFontStyle().fontStyle().outlineHexColor(), style.prefixFontStyle().fontStyle().outlineOpacity()),
-                    (int) Math.round(style.prefixFontStyle().fontStyle().outlineThickness() * screenScale),
-                    stackedShadowColor(style.prefixFontStyle().fontStyle().shadow()),
-                    style.prefixFontStyle().fontStyle().shadow().opacity(),
-                    style.prefixFontStyle().fontStyle().shadow().blurRadius() * screenScale,
-                    style.prefixFontStyle().fontStyle().shadow().horizontalOffset() * screenScale,
-                    style.prefixFontStyle().fontStyle().shadow().verticalOffset() * screenScale,
-                    style.prefixFontStyle().spacingPercent()
-            );
+        QtHintFontStyle prefixQtHintFontStyle = null;
+        if (style.prefixInBackground() && style.prefixFontStyle().defaultFontStyle().opacity() != 0) {
+            prefixQtHintFontStyle = buildQtHintFontStyle(style.prefixFontStyle(), null, screenScale);
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;
             for (List<Key> prefix : hintGroupByPrefix.keySet()) {
                 for (Key key : prefix) {
                     prefixHintKeyMaxXAdvance = Math.max(prefixHintKeyMaxXAdvance,
                             prefixXAdvancesByString.computeIfAbsent(key.hintLabel(),
-                                    prefixLabelFontStyle.metrics::horizontalAdvance));
+                                    prefixQtHintFontStyle.defaultStyle().metrics()::horizontalAdvance));
                 }
             }
             for (Map.Entry<List<Key>, HintGroup> entry : hintGroupByPrefix.entrySet()) {
@@ -1535,7 +1496,7 @@ public class WindowsOverlay {
                 HintGroup hintGroup = entry.getValue();
                 if (!hintGroup.atLeastOneHintVisible)
                     continue;
-                int totalXAdvance = prefixLabelFontStyle.metrics.horizontalAdvance(
+                int totalXAdvance = prefixQtHintFontStyle.defaultStyle().metrics().horizontalAdvance(
                         prefix.stream()
                               .map(Key::hintLabel)
                               .collect(Collectors.joining()));
@@ -1545,7 +1506,7 @@ public class WindowsOverlay {
                         new HintLabel(prefix, prefixXAdvancesByString, fullBoxWidth,
                                 fullBoxHeight, totalXAdvance,
                                 hintMesh.prefixLength(),
-                                prefixLabelFontStyle,
+                                prefixQtHintFontStyle,
                                 prefixHintKeyMaxXAdvance,
                                 hintMesh.selectedKeySequence().size() - 1, false);
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, qtScaleFactor);
@@ -1607,9 +1568,9 @@ public class WindowsOverlay {
         HintPaintLayer prefixLabelLayer =
                 new HintPaintLayer(container, List.of(), prefixLabels);
         prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        if (prefixLabelFontStyle != null) {
+        if (prefixQtHintFontStyle != null) {
             applyLabelShadow(prefixLabelLayer, prefixLabels,
-                    prefixLabelFontStyle, containerWidth, containerHeight);
+                    prefixQtHintFontStyle, containerWidth, containerHeight);
         }
         // Layer 4: Hint labels.
         HintPaintLayer hintLabelLayer =
@@ -1667,8 +1628,16 @@ public class WindowsOverlay {
             }
         }
         for (HintFontStyle hintFontStyle : fontStyles) {
-            QFont font = qFont(hintFontStyle.fontStyle().name(), hintFontStyle.fontStyle().size(), hintFontStyle.fontStyle().weight());
+            QFont font = qFont(hintFontStyle.defaultFontStyle().name(), hintFontStyle.defaultFontStyle().size(), hintFontStyle.defaultFontStyle().weight());
             new QFontMetrics(font).horizontalAdvance("x");
+            if (!fontShapeEquals(hintFontStyle.defaultFontStyle(), hintFontStyle.selectedFontStyle())) {
+                QFont selectedFont = qFont(hintFontStyle.selectedFontStyle().name(), hintFontStyle.selectedFontStyle().size(), hintFontStyle.selectedFontStyle().weight());
+                new QFontMetrics(selectedFont).horizontalAdvance("x");
+            }
+            if (!fontShapeEquals(hintFontStyle.defaultFontStyle(), hintFontStyle.focusedFontStyle())) {
+                QFont focusedFont = qFont(hintFontStyle.focusedFontStyle().name(), hintFontStyle.focusedFontStyle().size(), hintFontStyle.focusedFontStyle().weight());
+                new QFontMetrics(focusedFont).horizontalAdvance("x");
+            }
         }
         logger.debug("Pre-warmed " + fontStyles.size() + " hint font styles in " +
                 (long) ((System.nanoTime() - before) / 1e6) + "ms");
@@ -2115,26 +2084,114 @@ public class WindowsOverlay {
         return new QColor(base.red(), base.green(), base.blue(), alpha);
     }
 
-    public record LabelFontStyle(QFont font, QFontMetrics metrics,
-                                 HintKeyColorMap hintKeyColorMap,
-                                 HintKeyColorMap prefixHintKeyColorMap,
-                                 QColor outlineColor,
-                                 int outlineThickness, QColor shadowColor,
-                                 double shadowOpacity,
-                                 double shadowBlurRadius,
-                                 double shadowHorizontalOffset, double shadowVerticalOffset,
-                                 double fontSpacingPercent) {
-
+    private static QtFontStyle buildQtFontStyle(FontStyle fs, QFont font,
+                                                            QFontMetrics metrics,
+                                                            QColor prefixColor,
+                                                            Shadow prefixShadow,
+                                                            double screenScale) {
+        Shadow ps = prefixShadow != null ? prefixShadow : fs.shadow();
+        return new QtFontStyle(
+                font, metrics,
+                qColor(fs.hexColor(), fs.opacity()),
+                prefixColor,
+                qColor(fs.outlineHexColor(), fs.outlineOpacity()),
+                (int) Math.round(fs.outlineThickness() * screenScale),
+                stackedShadowColor(fs.shadow()),
+                fs.shadow().opacity(),
+                fs.shadow().blurRadius() * screenScale,
+                fs.shadow().horizontalOffset() * screenScale,
+                fs.shadow().verticalOffset() * screenScale,
+                stackedShadowColor(ps),
+                ps.opacity(),
+                ps.blurRadius() * screenScale,
+                ps.horizontalOffset() * screenScale,
+                ps.verticalOffset() * screenScale
+        );
     }
 
-    public record HintKeyColorMap(QColor color, QColor selectedColor,
-                                  QColor focusedColor) {
+    private static boolean fontShapeEquals(FontStyle a, FontStyle b) {
+        return a.name().equals(b.name()) &&
+               a.weight() == b.weight() &&
+               Double.compare(a.size(), b.size()) == 0;
+    }
 
+
+    private static QtHintFontStyle buildQtHintFontStyle(HintFontStyle hintFontStyle,
+                                                       HintFontStyle prefixHintFontStyle,
+                                                       double screenScale) {
+        FontStyle defaultFontStyle = hintFontStyle.defaultFontStyle();
+        FontStyle selectedFontStyle = hintFontStyle.selectedFontStyle();
+        FontStyle focusedFontStyle = hintFontStyle.focusedFontStyle();
+        boolean perKeyFont = !fontShapeEquals(defaultFontStyle, selectedFontStyle) ||
+                             !fontShapeEquals(defaultFontStyle, focusedFontStyle);
+        Shadow defaultShadow = defaultFontStyle.shadow();
+        boolean perKeyShadow = !defaultShadow.equals(selectedFontStyle.shadow()) ||
+                               !defaultShadow.equals(focusedFontStyle.shadow());
+        if (prefixHintFontStyle != null) {
+            perKeyShadow = perKeyShadow ||
+                           !defaultShadow.equals(prefixHintFontStyle.defaultFontStyle().shadow()) ||
+                           !defaultShadow.equals(prefixHintFontStyle.selectedFontStyle().shadow()) ||
+                           !defaultShadow.equals(prefixHintFontStyle.focusedFontStyle().shadow());
+        }
+        QFont defaultFont = qFont(defaultFontStyle.name(), defaultFontStyle.size(), defaultFontStyle.weight());
+        QFontMetrics defaultMetrics = correctedFontMetricsForScreenDpi(defaultFont, defaultFontStyle.size(), screenScale);
+        QColor defaultPrefixColor = prefixHintFontStyle != null ?
+                qColor(prefixHintFontStyle.defaultFontStyle().hexColor(), prefixHintFontStyle.defaultFontStyle().opacity()) : null;
+        QColor selectedPrefixColor = prefixHintFontStyle != null ?
+                qColor(prefixHintFontStyle.selectedFontStyle().hexColor(), prefixHintFontStyle.selectedFontStyle().opacity()) : null;
+        QColor focusedPrefixColor = prefixHintFontStyle != null ?
+                qColor(prefixHintFontStyle.focusedFontStyle().hexColor(), prefixHintFontStyle.focusedFontStyle().opacity()) : null;
+        Shadow defaultPrefixShadow = prefixHintFontStyle != null ? prefixHintFontStyle.defaultFontStyle().shadow() : null;
+        Shadow selectedPrefixShadow = prefixHintFontStyle != null ? prefixHintFontStyle.selectedFontStyle().shadow() : null;
+        Shadow focusedPrefixShadow = prefixHintFontStyle != null ? prefixHintFontStyle.focusedFontStyle().shadow() : null;
+        QtFontStyle defaultQtFontStyle = buildQtFontStyle(defaultFontStyle, defaultFont, defaultMetrics,
+                defaultPrefixColor, defaultPrefixShadow, screenScale);
+        QtFontStyle selectedQtFontStyle;
+        QtFontStyle focusedQtFontStyle;
+        if (perKeyFont) {
+            QFont selectedFont = qFont(selectedFontStyle.name(), selectedFontStyle.size(), selectedFontStyle.weight());
+            QFontMetrics selectedMetrics = correctedFontMetricsForScreenDpi(selectedFont, selectedFontStyle.size(), screenScale);
+            selectedQtFontStyle = buildQtFontStyle(selectedFontStyle, selectedFont, selectedMetrics,
+                    selectedPrefixColor, selectedPrefixShadow, screenScale);
+            QFont focusedFont = qFont(focusedFontStyle.name(), focusedFontStyle.size(), focusedFontStyle.weight());
+            QFontMetrics focusedMetrics = correctedFontMetricsForScreenDpi(focusedFont, focusedFontStyle.size(), screenScale);
+            focusedQtFontStyle = buildQtFontStyle(focusedFontStyle, focusedFont, focusedMetrics,
+                    focusedPrefixColor, focusedPrefixShadow, screenScale);
+        }
+        else {
+            // Share same QFont/QFontMetrics as default
+            selectedQtFontStyle = buildQtFontStyle(selectedFontStyle, defaultFont, defaultMetrics,
+                    selectedPrefixColor, selectedPrefixShadow, screenScale);
+            focusedQtFontStyle = buildQtFontStyle(focusedFontStyle, defaultFont, defaultMetrics,
+                    focusedPrefixColor, focusedPrefixShadow, screenScale);
+        }
+        return new QtHintFontStyle(defaultQtFontStyle, selectedQtFontStyle, focusedQtFontStyle,
+                perKeyFont, perKeyShadow, hintFontStyle.spacingPercent());
+    }
+
+    record QtFontStyle(QFont font, QFontMetrics metrics,
+                             QColor color, QColor prefixColor,
+                             QColor outlineColor, int outlineThickness,
+                             QColor shadowColor, double shadowOpacity,
+                             double shadowBlurRadius,
+                             double shadowHorizontalOffset, double shadowVerticalOffset,
+                             QColor prefixShadowColor, double prefixShadowOpacity,
+                             double prefixShadowBlurRadius,
+                             double prefixShadowHorizontalOffset,
+                             double prefixShadowVerticalOffset) {
+    }
+
+    public record QtHintFontStyle(QtFontStyle defaultStyle,
+                                        QtFontStyle selectedStyle,
+                                        QtFontStyle focusedStyle,
+                                        boolean perKeyFont,
+                                        boolean perKeyShadow,
+                                        double fontSpacingPercent) {
     }
 
     public static class HintLabel {
 
-        private final LabelFontStyle labelFontStyle;
+        private final QtHintFontStyle labelFontStyle;
         private final List<HintKeyText> keyTexts;
         final int tightHintBoxLeft;
         final int tightHintBoxTop;
@@ -2148,21 +2205,21 @@ public class WindowsOverlay {
         public HintLabel(List<Key> keySequence, Map<String, Integer> xAdvancesByString,
                          int boxWidth,
                          int boxHeight, int totalXAdvance, int prefixLength,
-                         LabelFontStyle labelFontStyle,
+                         QtHintFontStyle labelFontStyle,
                          int hintKeyMaxXAdvance, int selectedKeyEndIndex,
                          boolean overwriteBackground) {
             this.labelFontStyle = labelFontStyle;
             this.overwriteBackground = overwriteBackground;
 
-            int y = (boxHeight + labelFontStyle.metrics.ascent() - labelFontStyle.metrics.descent()) / 2;
+            int y = (boxHeight + labelFontStyle.defaultStyle().metrics().ascent() - labelFontStyle.defaultStyle().metrics().descent()) / 2;
 
             double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
                     Math.min(1, smallestColAlignedFontBoxWidth / boxWidth);
             // We want font spacing percent 0.5 be the min spacing that keeps column alignment.
-            double adjustedFontBoxWidthPercent = labelFontStyle.fontSpacingPercent < 0.5d ?
-                    (labelFontStyle.fontSpacingPercent * 2) * smallestColAlignedFontBoxWidthPercent
-                    : smallestColAlignedFontBoxWidthPercent + (labelFontStyle.fontSpacingPercent - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
+            double adjustedFontBoxWidthPercent = labelFontStyle.fontSpacingPercent() < 0.5d ?
+                    (labelFontStyle.fontSpacingPercent() * 2) * smallestColAlignedFontBoxWidthPercent
+                    : smallestColAlignedFontBoxWidthPercent + (labelFontStyle.fontSpacingPercent() - 0.5d) * 2 * (1 - smallestColAlignedFontBoxWidthPercent) ;
             boolean doNotColAlign = keySequence.size() != 1 &&
                                     adjustedFontBoxWidthPercent < smallestColAlignedFontBoxWidthPercent;
             double extraNotAlignedWidth = smallestColAlignedFontBoxWidth -
@@ -2212,13 +2269,27 @@ public class WindowsOverlay {
                         smallestHintBoxWidth = x - smallestHintBoxLeft + textWidth;
                     }
                 }
-                keyTexts.add(new HintKeyText(keyText, x, y, keyWidth,
+                int textX = x;
+                int textY = y;
+                if (labelFontStyle.perKeyFont()) {
+                    QtFontStyle qtFontStyle;
+                    if (keyIndex <= selectedKeyEndIndex)
+                        qtFontStyle = labelFontStyle.selectedStyle();
+                    else if (keyIndex == selectedKeyEndIndex + 1)
+                        qtFontStyle = labelFontStyle.focusedStyle();
+                    else
+                        qtFontStyle = labelFontStyle.defaultStyle();
+                    int actualTextWidth = qtFontStyle.metrics().horizontalAdvance(keyText);
+                    textX += (textWidth - actualTextWidth) / 2;
+                    textY = (boxHeight + qtFontStyle.metrics().ascent() - qtFontStyle.metrics().descent()) / 2;
+                }
+                keyTexts.add(new HintKeyText(keyText, textX, textY, keyWidth,
                         keyIndex <= selectedKeyEndIndex,
                         keyIndex == selectedKeyEndIndex + 1,
                         prefixLength != -1 && keyIndex <= prefixLength - 1));
             }
-            int smallestHintBoxTop = y - labelFontStyle.metrics.ascent();
-            int smallestHintBoxHeight = labelFontStyle.metrics.height();
+            int smallestHintBoxTop = y - labelFontStyle.defaultStyle().metrics().ascent();
+            int smallestHintBoxHeight = labelFontStyle.defaultStyle().metrics().height();
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxTop = smallestHintBoxTop;
             this.tightHintBoxWidth = smallestHintBoxWidth;
@@ -2253,54 +2324,139 @@ public class WindowsOverlay {
             return c.alpha() == 255 ? c : new QColor(c.red(), c.green(), c.blue(), 255);
         }
 
+        private QtFontStyle hintKeyTextQtFontStyle(HintKeyText keyText) {
+            if (keyText.isSelected())
+                return labelFontStyle.selectedStyle();
+            if (keyText.isFocused())
+                return labelFontStyle.focusedStyle();
+            return labelFontStyle.defaultStyle();
+        }
+
         private void paint(QPainter painter, boolean forceOpaque) {
             painter.save();
             painter.translate(x, y);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
-            painter.setFont(labelFontStyle.font);
+            painter.setFont(labelFontStyle.defaultStyle().font());
 
             // For transparent prefix text in background, we want to see the grid lines
             // through the transparent prefix.
             if (!overwriteBackground)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-            if (labelFontStyle.outlineThickness != 0 && labelFontStyle.outlineColor().alpha() != 0) {
-                QColor outlineColor = forceOpaque ?
-                        opaqueColor(labelFontStyle.outlineColor) :
-                        labelFontStyle.outlineColor;
-                QPen outlinePen = new QPen(outlineColor);
-                outlinePen.setWidth(labelFontStyle.outlineThickness);
-                outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
-                painter.setPen(outlinePen);
-                painter.setBrush(Qt.BrushStyle.NoBrush); // No fill, only stroke
-                QPainterPath outlinePath = new QPainterPath();
-                for (HintKeyText keyText : keyTexts) {
-                    outlinePath.addText(keyText.x() - left, keyText.y() - top,
-                            labelFontStyle.font, keyText.text());
-                }
-                painter.drawPath(outlinePath);
-            }
+
+            // Draw outlines per state (each state may have different outline settings).
+            paintOutlineForState(painter, forceOpaque, labelFontStyle.defaultStyle(),
+                    keyText -> !keyText.isSelected() && !keyText.isFocused());
+            paintOutlineForState(painter, forceOpaque, labelFontStyle.selectedStyle(),
+                    HintKeyText::isSelected);
+            paintOutlineForState(painter, forceOpaque, labelFontStyle.focusedStyle(),
+                    HintKeyText::isFocused);
 
             // Avoid blending the text with the outline. Text should override the outline.
             if (overwriteBackground)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
-                HintKeyColorMap colorMap =
-                        keyText.isPrefix() ? labelFontStyle.prefixHintKeyColorMap :
-                                labelFontStyle.hintKeyColorMap;
-                QColor color;
-                if (keyText.isSelected())
-                    color = colorMap.selectedColor();
-                else if (keyText.isFocused())
-                    color = colorMap.focusedColor();
-                else
-                    color = colorMap.color();
+                QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
+                QColor color = keyText.isPrefix() && qtFontStyle.prefixColor() != null ?
+                        qtFontStyle.prefixColor() : qtFontStyle.color();
+                if (labelFontStyle.perKeyFont())
+                    painter.setFont(qtFontStyle.font());
                 painter.setPen(forceOpaque ? opaqueColor(color) : color);
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.restore();
         }
+
+        private void paintOutlineForState(QPainter painter, boolean forceOpaque,
+                                          QtFontStyle qtFontStyle,
+                                          Predicate<HintKeyText> filter) {
+            if (qtFontStyle.outlineThickness() == 0 || qtFontStyle.outlineColor().alpha() == 0)
+                return;
+            boolean hasKeys = false;
+            for (HintKeyText keyText : keyTexts) {
+                if (filter.test(keyText)) {
+                    hasKeys = true;
+                    break;
+                }
+            }
+            if (!hasKeys)
+                return;
+            QColor outlineColor = forceOpaque ?
+                    opaqueColor(qtFontStyle.outlineColor()) : qtFontStyle.outlineColor();
+            QPen outlinePen = new QPen(outlineColor);
+            outlinePen.setWidth(qtFontStyle.outlineThickness());
+            outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
+            painter.setPen(outlinePen);
+            painter.setBrush(Qt.BrushStyle.NoBrush);
+            QPainterPath outlinePath = new QPainterPath();
+            for (HintKeyText keyText : keyTexts) {
+                if (!filter.test(keyText))
+                    continue;
+                outlinePath.addText(keyText.x() - left, keyText.y() - top,
+                        qtFontStyle.font(), keyText.text());
+            }
+            painter.drawPath(outlinePath);
+        }
+
+        ShadowGroupKey shadowGroupKey(HintKeyText keyText) {
+            QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
+            QColor c;
+            double opacity, blurRadius, horizontalOffset, verticalOffset;
+            if (keyText.isPrefix()) {
+                c = qtFontStyle.prefixShadowColor();
+                opacity = qtFontStyle.prefixShadowOpacity();
+                blurRadius = qtFontStyle.prefixShadowBlurRadius();
+                horizontalOffset = qtFontStyle.prefixShadowHorizontalOffset();
+                verticalOffset = qtFontStyle.prefixShadowVerticalOffset();
+            }
+            else {
+                c = qtFontStyle.shadowColor();
+                opacity = qtFontStyle.shadowOpacity();
+                blurRadius = qtFontStyle.shadowBlurRadius();
+                horizontalOffset = qtFontStyle.shadowHorizontalOffset();
+                verticalOffset = qtFontStyle.shadowVerticalOffset();
+            }
+            return new ShadowGroupKey(c.red(), c.green(), c.blue(), c.alpha(),
+                                      opacity, blurRadius, horizontalOffset, verticalOffset);
+        }
+
+        void paintOpaqueFiltered(QPainter painter,
+                                 Predicate<HintKeyText> filter) {
+            painter.save();
+            painter.translate(x, y);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
+            painter.setFont(labelFontStyle.defaultStyle().font());
+            if (!overwriteBackground)
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            paintOutlineForState(painter, true, labelFontStyle.defaultStyle(),
+                    k -> filter.test(k) && !k.isSelected() && !k.isFocused());
+            paintOutlineForState(painter, true, labelFontStyle.selectedStyle(),
+                    k -> filter.test(k) && k.isSelected());
+            paintOutlineForState(painter, true, labelFontStyle.focusedStyle(),
+                    k -> filter.test(k) && k.isFocused());
+            if (overwriteBackground)
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            for (HintKeyText keyText : keyTexts) {
+                if (!filter.test(keyText))
+                    continue;
+                QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
+                QColor color = keyText.isPrefix() && qtFontStyle.prefixColor() != null ?
+                        qtFontStyle.prefixColor() : qtFontStyle.color();
+                if (labelFontStyle.perKeyFont())
+                    painter.setFont(qtFontStyle.font());
+                painter.setPen(opaqueColor(color));
+                painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
+            }
+            painter.restore();
+        }
+    }
+
+    private record ShadowGroupKey(int r, int g, int b, int a,
+                                  double opacity, double blurRadius,
+                                  double horizontalOffset, double verticalOffset) {
     }
 
     private record HintKeyText(String text, int x, int y, int width, boolean isSelected,
@@ -2317,19 +2473,26 @@ public class WindowsOverlay {
      */
     private static void applyLabelShadow(HintPaintLayer layer,
                                          List<HintLabel> labels,
-                                         LabelFontStyle style,
+                                         QtHintFontStyle style,
                                          int containerWidth,
                                          int containerHeight) {
-        if (style.shadowColor.alpha() == 0)
+        if (style.perKeyShadow()) {
+            // Per-key shadow: always pre-render with per-group passes.
+            preRenderLabelShadow(layer, labels, style,
+                    containerWidth, containerHeight);
             return;
-        if (!labelFontStyleHasTransparency(style)) {
+        }
+        QtFontStyle defaultStyle = style.defaultStyle();
+        if (defaultStyle.shadowColor().alpha() == 0)
+            return;
+        if (!qtHintFontStyleHasTransparency(style)) {
             // Fast path: opaque text, use Qt's effect directly.
             StackedShadowEffect effect = new StackedShadowEffect();
-            effect.setBlurRadius(style.shadowBlurRadius);
-            effect.setOffset(style.shadowHorizontalOffset,
-                    style.shadowVerticalOffset);
-            effect.setColor(style.shadowColor);
-            effect.setStackedOpacity(style.shadowOpacity);
+            effect.setBlurRadius(defaultStyle.shadowBlurRadius());
+            effect.setOffset(defaultStyle.shadowHorizontalOffset(),
+                    defaultStyle.shadowVerticalOffset());
+            effect.setColor(defaultStyle.shadowColor());
+            effect.setStackedOpacity(defaultStyle.shadowOpacity());
             layer.setGraphicsEffect(effect);
         }
         else {
@@ -2339,19 +2502,17 @@ public class WindowsOverlay {
         }
     }
 
-    /**
-     * Pre-renders a shadow-only pixmap for a label layer using Qt's
-     * QGraphicsDropShadowEffect via QGraphicsScene. The shadow is rendered
-     * off-screen, then the source text shape is punched out so shadow doesn't
-     * show through transparent text.
-     * Stacking (opacity > 1) is handled at draw time in paintEvent.
-     */
     private static void preRenderLabelShadow(HintPaintLayer layer,
                                              List<HintLabel> labels,
-                                             LabelFontStyle style,
+                                             QtHintFontStyle style,
                                              int containerWidth,
                                              int containerHeight) {
-        // 1. Render labels into a source image with forced opaque colors.
+        if (style.perKeyShadow()) {
+            preRenderPerGroupShadow(layer, labels, containerWidth, containerHeight);
+            return;
+        }
+        QtFontStyle shadowStyle = style.defaultStyle();
+        // Render labels into a source image with forced opaque colors.
         QImage sourceImage = new QImage(containerWidth, containerHeight,
                 QImage.Format.Format_ARGB32_Premultiplied);
         sourceImage.fill(new QColor(0, 0, 0, 0));
@@ -2360,21 +2521,35 @@ public class WindowsOverlay {
             label.paintOpaque(srcPainter);
         }
         srcPainter.end();
-        // 2. Use QGraphicsScene + QGraphicsDropShadowEffect to render shadow.
+        ShadowImage shadow = renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
+                shadowStyle.shadowBlurRadius(), shadowStyle.shadowHorizontalOffset(),
+                shadowStyle.shadowVerticalOffset(), containerWidth, containerHeight);
+        layer.setShadowPixmap(QPixmap.fromImage(shadow.image()),
+                shadow.x(), shadow.y());
+        layer.shadowOpacity = shadowStyle.shadowOpacity();
+        shadow.image().dispose();
+    }
+
+    private record ShadowImage(QImage image, int x, int y) {
+    }
+
+    /**
+     * Applies a shadow effect to the source image, then subtracts the source
+     * pixels so only the shadow remains. Disposes the source image.
+     */
+    private static ShadowImage renderShadowOnly(
+            QImage sourceImage, QColor shadowColor, double blurRadius,
+            double horizontalOffset, double verticalOffset,
+            int containerWidth, int containerHeight) {
         QGraphicsScene scene = new QGraphicsScene();
         QGraphicsPixmapItem item =
                 scene.addPixmap(QPixmap.fromImage(sourceImage));
         StackedShadowEffect effect = new StackedShadowEffect();
-        effect.setBlurRadius(style.shadowBlurRadius);
-        effect.setOffset(style.shadowHorizontalOffset,
-                style.shadowVerticalOffset);
-        effect.setColor(style.shadowColor);
-        // For the pre-render, use opacity capped at 1.0; stacking is
-        // handled by drawing the pixmap multiple times in paintEvent.
+        effect.setBlurRadius(blurRadius);
+        effect.setOffset(horizontalOffset, verticalOffset);
+        effect.setColor(shadowColor);
         effect.setStackedOpacity(1.0);
         item.setGraphicsEffect(effect);
-        // 3. Render the scene (shadow + source) into a result image.
-        // The effect extends beyond the source, so use itemsBoundingRect.
         QRectF bounds = scene.itemsBoundingRect();
         int boundsX = (int) Math.floor(bounds.x());
         int boundsY = (int) Math.floor(bounds.y());
@@ -2385,18 +2560,9 @@ public class WindowsOverlay {
                 QImage.Format.Format_ARGB32_Premultiplied);
         resultImage.fill(new QColor(0, 0, 0, 0));
         QPainter resultPainter = new QPainter(resultImage);
-        QRectF target = new QRectF(resultImage.rect());
-        scene.render(resultPainter, target, intBounds);
+        scene.render(resultPainter, new QRectF(resultImage.rect()), intBounds);
         resultPainter.end();
         scene.dispose();
-        // 4. Remove the source text from the result, leaving shadow only.
-        // Per-pixel subtraction: shadow = combined - source.
-        // Qt's DestinationOut (dest * (1-source_alpha)) leaves residual source
-        // color at antialiased text edges. Direct subtraction correctly
-        // recovers the shadow contribution: shadow_premul * (1-source_alpha).
-        // Uses QImage.bits() for bulk read — no per-pixel JNI calls.
-        // The sourceImage is at (0,0) in scene coordinates, which maps to
-        // (-boundsX, -boundsY) in the resultImage coordinate space.
         ByteBuffer combinedBuf = resultImage.bits();
         ByteBuffer sourceBuf = sourceImage.bits();
         int resultBytesPerLine = boundsW * 4;
@@ -2404,8 +2570,6 @@ public class WindowsOverlay {
         int totalBytes = resultBytesPerLine * boundsH;
         byte[] shadowBytes = new byte[totalBytes];
         combinedBuf.get(0, shadowBytes, 0, totalBytes);
-        // boundsX/boundsY are <= 0, so -boundsX/-boundsY are >= 0: offset
-        // of the source within the (larger) result image.
         int srcOffX = -boundsX;
         int srcOffY = -boundsY;
         int overlapW = Math.min(containerWidth, boundsW - srcOffX);
@@ -2421,13 +2585,109 @@ public class WindowsOverlay {
         }
         resultImage.dispose();
         sourceImage.dispose();
-        // 5. Store the shadow-only pixmap in the layer.
         QImage shadowImage = new QImage(shadowBytes, boundsW, boundsH,
                 QImage.Format.Format_ARGB32_Premultiplied);
-        layer.setShadowPixmap(QPixmap.fromImage(shadowImage),
-                boundsX, boundsY);
-        layer.shadowOpacity = style.shadowOpacity;
-        shadowImage.dispose();
+        return new ShadowImage(shadowImage, boundsX, boundsY);
+    }
+
+
+    /**
+     * Per-group shadow rendering: groups keys by their effective shadow
+     * settings (state + prefix/non-prefix), renders each group separately,
+     * bakes stacking opacity, and composites into a single shadow pixmap.
+     */
+    private static void preRenderPerGroupShadow(
+            HintPaintLayer layer, List<HintLabel> labels,
+            int containerWidth, int containerHeight) {
+        // 1. Collect unique shadow groups.
+        Set<ShadowGroupKey> groups = new LinkedHashSet<>();
+        for (HintLabel label : labels) {
+            for (HintKeyText keyText : label.keyTexts) {
+                groups.add(label.shadowGroupKey(keyText));
+            }
+        }
+        // 2. Render each group.
+        QImage combinedShadow = null;
+        int combinedX = 0, combinedY = 0;
+        for (ShadowGroupKey group : groups) {
+            if (group.a() == 0 || group.opacity() == 0)
+                continue;
+            // Render source image with only keys matching this group.
+            QImage sourceImage = new QImage(containerWidth, containerHeight,
+                    QImage.Format.Format_ARGB32_Premultiplied);
+            sourceImage.fill(new QColor(0, 0, 0, 0));
+            QPainter srcPainter = new QPainter(sourceImage);
+            for (HintLabel label : labels) {
+                label.paintOpaqueFiltered(srcPainter,
+                        keyText -> label.shadowGroupKey(keyText).equals(group));
+            }
+            srcPainter.end();
+            QColor shadowColor = new QColor(group.r(), group.g(), group.b(), group.a());
+            ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
+                    group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
+                    containerWidth, containerHeight);
+            QImage groupShadow = shadow.image();
+            int boundsX = shadow.x();
+            int boundsY = shadow.y();
+            // Bake stacking opacity into the group shadow image.
+            QImage stackedShadow;
+            if (group.opacity() > 1.0) {
+                stackedShadow = new QImage(groupShadow.width(), groupShadow.height(),
+                        QImage.Format.Format_ARGB32_Premultiplied);
+                stackedShadow.fill(new QColor(0, 0, 0, 0));
+                QPainter stackPainter = new QPainter(stackedShadow);
+                int fullLayers = (int) group.opacity();
+                double remainder = group.opacity() - fullLayers;
+                for (int i = 0; i < fullLayers; i++) {
+                    stackPainter.drawImage(0, 0, groupShadow);
+                }
+                if (remainder > 1e-6) {
+                    stackPainter.setOpacity(remainder);
+                    stackPainter.drawImage(0, 0, groupShadow);
+                }
+                stackPainter.end();
+                groupShadow.dispose();
+            }
+            else {
+                stackedShadow = groupShadow;
+            }
+            // Composite into final image.
+            if (combinedShadow == null) {
+                combinedShadow = stackedShadow;
+                combinedX = boundsX;
+                combinedY = boundsY;
+            }
+            else {
+                int newX = Math.min(combinedX, boundsX);
+                int newY = Math.min(combinedY, boundsY);
+                int newRight = Math.max(combinedX + combinedShadow.width(),
+                        boundsX + stackedShadow.width());
+                int newBottom = Math.max(combinedY + combinedShadow.height(),
+                        boundsY + stackedShadow.height());
+                int newW = newRight - newX;
+                int newH = newBottom - newY;
+                QImage newCombined = new QImage(newW, newH,
+                        QImage.Format.Format_ARGB32_Premultiplied);
+                newCombined.fill(new QColor(0, 0, 0, 0));
+                QPainter combinePainter = new QPainter(newCombined);
+                combinePainter.drawImage(combinedX - newX, combinedY - newY,
+                        combinedShadow);
+                combinePainter.drawImage(boundsX - newX, boundsY - newY,
+                        stackedShadow);
+                combinePainter.end();
+                combinedShadow.dispose();
+                stackedShadow.dispose();
+                combinedShadow = newCombined;
+                combinedX = newX;
+                combinedY = newY;
+            }
+        }
+        if (combinedShadow != null) {
+            layer.setShadowPixmap(QPixmap.fromImage(combinedShadow),
+                    combinedX, combinedY);
+            layer.shadowOpacity = 1.0; // Stacking already baked in.
+            combinedShadow.dispose();
+        }
     }
 
     private static class HintPaintLayer extends QWidget {

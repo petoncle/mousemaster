@@ -2,11 +2,9 @@ package mousemaster;
 
 import mousemaster.FontStyle.FontStyleBuilder;
 
-public record HintFontStyle(FontStyle fontStyle, double spacingPercent,
-                            String selectedFontHexColor,
-                            double selectedFontOpacity,
-                            String focusedFontHexColor,
-                            double focusedFontOpacity) {
+public record HintFontStyle(FontStyle defaultFontStyle, double spacingPercent,
+                            FontStyle selectedFontStyle,
+                            FontStyle focusedFontStyle) {
 
     public HintFontStyleBuilder builder() {
         return new HintFontStyleBuilder(this);
@@ -14,48 +12,36 @@ public record HintFontStyle(FontStyle fontStyle, double spacingPercent,
 
     public static class HintFontStyleBuilder {
 
-        private FontStyleBuilder fontStyle = new FontStyleBuilder();
+        private FontStyleBuilder defaultFontStyle = new FontStyleBuilder();
         private Double spacingPercent;
-        private String selectedFontHexColor;
-        private Double selectedFontOpacity;
-        private String focusedFontHexColor;
-        private Double focusedFontOpacity;
+        private FontStyleBuilder selectedFontStyle = new FontStyleBuilder();
+        private FontStyleBuilder focusedFontStyle = new FontStyleBuilder();
 
         public HintFontStyleBuilder() {
 
         }
 
         public HintFontStyleBuilder(HintFontStyle hintFontStyle) {
-            this.fontStyle = new FontStyleBuilder(hintFontStyle.fontStyle);
+            this.defaultFontStyle = new FontStyleBuilder(hintFontStyle.defaultFontStyle);
             this.spacingPercent = hintFontStyle.spacingPercent;
-            this.selectedFontHexColor = hintFontStyle.selectedFontHexColor;
-            this.selectedFontOpacity = hintFontStyle.selectedFontOpacity;
-            this.focusedFontHexColor = hintFontStyle.focusedFontHexColor;
-            this.focusedFontOpacity = hintFontStyle.focusedFontOpacity;
+            this.selectedFontStyle = new FontStyleBuilder(hintFontStyle.selectedFontStyle);
+            this.focusedFontStyle = new FontStyleBuilder(hintFontStyle.focusedFontStyle);
         }
 
-        public FontStyleBuilder fontStyle() {
-            return fontStyle;
+        public FontStyleBuilder defaultFontStyle() {
+            return defaultFontStyle;
         }
 
         public Double spacingPercent() {
             return spacingPercent;
         }
 
-        public String selectedFontHexColor() {
-            return selectedFontHexColor;
+        public FontStyleBuilder selectedFontStyle() {
+            return selectedFontStyle;
         }
 
-        public Double selectedFontOpacity() {
-            return selectedFontOpacity;
-        }
-
-        public String focusedFontHexColor() {
-            return focusedFontHexColor;
-        }
-
-        public Double focusedFontOpacity() {
-            return focusedFontOpacity;
+        public FontStyleBuilder focusedFontStyle() {
+            return focusedFontStyle;
         }
 
         public HintFontStyleBuilder spacingPercent(Double fontSpacingPercent) {
@@ -63,50 +49,24 @@ public record HintFontStyle(FontStyle fontStyle, double spacingPercent,
             return this;
         }
 
-        public HintFontStyleBuilder selectedFontHexColor(String selectedFontHexColor) {
-            this.selectedFontHexColor = selectedFontHexColor;
-            return this;
-        }
-
-        public HintFontStyleBuilder selectedFontOpacity(Double selectedFontOpacity) {
-            this.selectedFontOpacity = selectedFontOpacity;
-            return this;
-        }
-
-        public HintFontStyleBuilder focusedFontHexColor(String focusedFontHexColor) {
-            this.focusedFontHexColor = focusedFontHexColor;
-            return this;
-        }
-
-        public HintFontStyleBuilder focusedFontOpacity(Double focusedFontOpacity) {
-            this.focusedFontOpacity = focusedFontOpacity;
-            return this;
-        }
-
         void extend(HintFontStyleBuilder defaultStyle) {
-            fontStyle.extend(defaultStyle.fontStyle);
+            defaultFontStyle.extend(defaultStyle.defaultFontStyle);
             if (spacingPercent == null) spacingPercent = defaultStyle.spacingPercent;
-            if (selectedFontHexColor == null) selectedFontHexColor = defaultStyle.selectedFontHexColor;
-            if (selectedFontOpacity == null) selectedFontOpacity = defaultStyle.selectedFontOpacity;
-            if (focusedFontHexColor == null) focusedFontHexColor = defaultStyle.focusedFontHexColor;
-            if (focusedFontOpacity == null) focusedFontOpacity = defaultStyle.focusedFontOpacity;
+            selectedFontStyle.extend(defaultStyle.selectedFontStyle);
+            focusedFontStyle.extend(defaultStyle.focusedFontStyle);
         }
 
         void extendSelectedAndFocusedFromMain() {
-            if (selectedFontHexColor == null) selectedFontHexColor = fontStyle.hexColor();
-            if (selectedFontOpacity == null) selectedFontOpacity = fontStyle.opacity();
-            if (focusedFontHexColor == null) focusedFontHexColor = fontStyle.hexColor();
-            if (focusedFontOpacity == null) focusedFontOpacity = fontStyle.opacity();
+            selectedFontStyle.extend(defaultFontStyle);
+            focusedFontStyle.extend(defaultFontStyle);
         }
 
         public HintFontStyle build() {
             return new HintFontStyle(
-                    fontStyle.build(),
+                    defaultFontStyle.build(),
                     spacingPercent,
-                    selectedFontHexColor,
-                    selectedFontOpacity,
-                    focusedFontHexColor,
-                    focusedFontOpacity
+                    selectedFontStyle.build(),
+                    focusedFontStyle.build()
             );
         }
 
