@@ -2109,6 +2109,13 @@ public class WindowsOverlay {
         );
     }
 
+    /**
+     * Zero opacity means shadow will not be rendered.
+     */
+    private static boolean shadowAreDifferentAndNotZeroOpacity(Shadow a, Shadow b) {
+        return a.opacity() != 0 && b.opacity() != 0 && !a.equals(b);
+    }
+
     private static boolean fontShapeEquals(FontStyle a, FontStyle b) {
         return a.name().equals(b.name()) &&
                a.weight() == b.weight() &&
@@ -2125,13 +2132,13 @@ public class WindowsOverlay {
         boolean perKeyFont = !fontShapeEquals(defaultFontStyle, selectedFontStyle) ||
                              !fontShapeEquals(defaultFontStyle, focusedFontStyle);
         Shadow defaultShadow = defaultFontStyle.shadow();
-        boolean perKeyShadow = !defaultShadow.equals(selectedFontStyle.shadow()) ||
-                               !defaultShadow.equals(focusedFontStyle.shadow());
+        boolean perKeyShadow = shadowAreDifferentAndNotZeroOpacity(defaultShadow, selectedFontStyle.shadow()) ||
+                               shadowAreDifferentAndNotZeroOpacity(defaultShadow, focusedFontStyle.shadow());
         if (prefixHintFontStyle != null) {
             perKeyShadow = perKeyShadow ||
-                           !defaultShadow.equals(prefixHintFontStyle.defaultFontStyle().shadow()) ||
-                           !defaultShadow.equals(prefixHintFontStyle.selectedFontStyle().shadow()) ||
-                           !defaultShadow.equals(prefixHintFontStyle.focusedFontStyle().shadow());
+                           shadowAreDifferentAndNotZeroOpacity(defaultShadow, prefixHintFontStyle.defaultFontStyle().shadow()) ||
+                           shadowAreDifferentAndNotZeroOpacity(defaultShadow, prefixHintFontStyle.selectedFontStyle().shadow()) ||
+                           shadowAreDifferentAndNotZeroOpacity(defaultShadow, prefixHintFontStyle.focusedFontStyle().shadow());
         }
         QFont defaultFont = qFont(defaultFontStyle.name(), defaultFontStyle.size(), defaultFontStyle.weight());
         QFontMetrics defaultMetrics = correctedFontMetricsForScreenDpi(defaultFont, defaultFontStyle.size(), screenScale);
@@ -2471,7 +2478,7 @@ public class WindowsOverlay {
                                          int containerHeight) {
         if (style.perKeyShadow()) {
             // Per-key shadow: always pre-render with per-group passes.
-            logger.debug("Shadow rendering: slow path (transparent text, pre-render)");
+            logger.debug("Shadow rendering: per-key shadow, pre-rendering per group");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight);
             return;
@@ -2481,7 +2488,7 @@ public class WindowsOverlay {
             return;
         if (!qtHintFontStyleHasTransparency(style)) {
             // Fast path: opaque text, use Qt's effect directly.
-            logger.debug("Shadow rendering: fast path (opaque text, Qt effect)");
+            logger.debug("Shadow rendering: opaque text, applying effect directly");
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(defaultStyle.shadowBlurRadius());
             effect.setOffset(defaultStyle.shadowHorizontalOffset(),
@@ -2492,7 +2499,7 @@ public class WindowsOverlay {
         }
         else {
             // Slow path: transparent text, pre-render shadow off-screen.
-            logger.debug("Shadow rendering: slow path (transparent text, pre-render)");
+            logger.debug("Shadow rendering: transparent text, pre-rendering off-screen");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight);
         }
