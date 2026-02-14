@@ -1596,6 +1596,15 @@ public class WindowsOverlay {
                 hintGroup.prefixHintLabel = prefixHintLabel;
             }
         }
+        // Expand container bounds to accommodate the antialiased rounded
+        // border stroke extending outside the box fill area.
+        if (style.boxBorderRadius() > 0 && style.boxBorderThickness() > 0) {
+            int borderPad = (int) Math.ceil(style.boxBorderThickness() / 2.0);
+            minHintLeft -= borderPad;
+            minHintTop -= borderPad;
+            maxHintRight += borderPad;
+            maxHintBottom += borderPad;
+        }
         // Expand container bounds to accommodate box shadow extent.
         Shadow boxShadow = style.boxShadow();
         if (boxShadow.opacity() > 0) {
