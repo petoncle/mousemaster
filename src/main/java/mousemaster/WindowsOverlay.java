@@ -2913,7 +2913,7 @@ public class WindowsOverlay {
         int red = (colorInt >> 16) & 0xFF;
         int green = (colorInt >> 8) & 0xFF;
         int blue = colorInt & 0xFF;
-        int alpha = (int) (opacity * 255) & 0xFF;
+        int alpha = opacity > 0 ? Math.max(1, (int) (opacity * 255) & 0xFF) : 0;
         return (alpha << 24) | (red << 16) | (green << 8) | blue;
     }
 
