@@ -374,13 +374,6 @@ public class ComboWatcher implements ModeListener {
         commandsToRun.addAll(completeCombosCommandsToRun);
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
-        logger.debug("currentMode = " + currentMode.name() +
-                     ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
-                     ", comboPreparation = " +
-                     (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
-                     ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
-                     ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
-                     completeCombosCommandsToRun);
         if (!comboAndCommandsToRun.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
@@ -393,11 +386,15 @@ public class ComboWatcher implements ModeListener {
             }
         }
         long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
-        if (processKeyEventDurationMs > 0)
-            logger.info("processKeyEventForCurrentMode " + processKeyEventDurationMs +
-                    "ms, mode=" + currentMode.name() +
-                    ", comboCount=" + currentMode.comboMap().commandsByCombo().size() +
-                    ", event=" + (logRedactKeys ? "<redacted>" : event));
+        logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
+                "ms, mode = " + currentMode.name() +
+                ", comboCount = " + currentMode.comboMap().commandsByCombo().size() +
+                ", event = " + (logRedactKeys ? "<redacted>" : event) +
+                ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
+                ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
+                ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
+                ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
+                completeCombosCommandsToRun);
         return processingSet;
     }
 
