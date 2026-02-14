@@ -1122,10 +1122,12 @@ public class WindowsOverlay {
                                 cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh);
                         }
                     };
-            // Run immediately when the build is expected to be fast (subsequent updates
-            // or small hint sets). Defer the expensive initial build to update() where we
-            // can pump messages without being inside the keyboard hook callback.
-            if (!hintMesh.selectedKeySequence().isEmpty()
+            // Run immediately when hints are already visible (to avoid a
+            // blank frame), or when the build is expected to be fast.
+            // Defer the expensive initial build to update() where we can
+            // pump messages without being inside the keyboard hook callback.
+            if (!oldContainerHidden
+                    || !hintMesh.selectedKeySequence().isEmpty()
                     || hintMesh.hints().size() < 100
             ) {
                 setUncachedHintMeshWindowRunnable.run();
