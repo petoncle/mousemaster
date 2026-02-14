@@ -700,48 +700,36 @@ Then, when typing K:
 - J and the first K are selected.
 - The second K is focused.
 
-The font styles are divided into two categories: the main (default) font style and the optional prefix font style.  
-The main font style has the following properties:
-- hint.font-color
-- hint.font-opacity
-- hint.selected-font-color
-- hint.selected-font-opacity
-- hint.focused-font-color
-- hint.focused-font-opacity
-- hint.font-name
-- hint.font-weight
-- hint.font-size
-- hint.font-spacing-percent
-- hint.font-outline-thickness
-- hint.font-outline-color
-- hint.font-outline-opacity
-- hint.font-shadow-blur-radius
-- hint.font-shadow-color
-- hint.font-shadow-opacity
-- hint.font-shadow-horizontal-offset
-- hint.font-shadow-vertical-offset
+Each hint key can be in one of three states: default, selected, or focused.
+Font styles are configured per state and per category (non-prefix and prefix).
 
-The prefix font style has the following properties:
-- hint.prefix-font-color
-- hint.prefix-font-opacity
-- hint.prefix-selected-font-color
-- hint.prefix-selected-font-opacity
-- hint.prefix-focused-font-color
-- hint.prefix-focused-font-opacity
+The `font-*` properties define the default state. The `selected-font-*` and `focused-font-*` properties override specific values for selected and focused keys. Unset selected/focused properties inherit from the default state. The `prefix-` variants follow the same pattern, with unset prefix properties inheriting from the corresponding non-prefix properties.
 
-If the prefix is in the background, then the prefix font style has additional properties:
-- hint.prefix-font-name
-- hint.prefix-font-weight
-- hint.prefix-font-size
-- hint.prefix-font-spacing-percent
-- hint.prefix-font-outline-thickness
-- hint.prefix-font-outline-color
-- hint.prefix-font-outline-opacity
-- hint.prefix-font-shadow-blur-radius
-- hint.prefix-font-shadow-color
-- hint.prefix-font-shadow-opacity
-- hint.prefix-font-shadow-horizontal-offset
-- hint.prefix-font-shadow-vertical-offset
+Each state supports the following font properties:
+- `font-name`
+- `font-weight`
+- `font-size`
+- `font-color`
+- `font-opacity`
+- `font-outline-thickness`
+- `font-outline-color`
+- `font-outline-opacity`
+- `font-shadow-blur-radius`
+- `font-shadow-color`
+- `font-shadow-opacity`
+- `font-shadow-stack-count`
+- `font-shadow-horizontal-offset`
+- `font-shadow-vertical-offset`
+
+There is only one `font-spacing-percent` (and one `prefix-font-spacing-percent`), shared across all 3 states.
+
+The property naming pattern is:
+- Default: `hint.font-*`
+- Selected: `hint.selected-font-*`
+- Focused: `hint.focused-font-*`
+- Prefix default: `hint.prefix-font-*`
+- Prefix selected: `hint.prefix-selected-font-*`
+- Prefix focused: `hint.prefix-focused-font-*`
 
 ### Multi-level hint example
 
