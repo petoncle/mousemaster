@@ -2336,7 +2336,9 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
             painter.setFont(labelFontStyle.defaultStyle().font());
 
+            // Outline should override background (punches through with its alpha).
             // Draw outlines per state (each state may have different outline settings).
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             paintOutlineForState(painter, forceOpaque, labelFontStyle.defaultStyle(),
                     keyText -> !keyText.isSelected() && !keyText.isFocused());
             paintOutlineForState(painter, forceOpaque, labelFontStyle.selectedStyle(),
@@ -2419,13 +2421,13 @@ public class WindowsOverlay {
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, true);
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
             painter.setFont(labelFontStyle.defaultStyle().font());
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             paintOutlineForState(painter, true, labelFontStyle.defaultStyle(),
                     k -> filter.test(k) && !k.isSelected() && !k.isFocused());
             paintOutlineForState(painter, true, labelFontStyle.selectedStyle(),
                     k -> filter.test(k) && k.isSelected());
             paintOutlineForState(painter, true, labelFontStyle.focusedStyle(),
                     k -> filter.test(k) && k.isFocused());
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             for (HintKeyText keyText : keyTexts) {
                 if (!filter.test(keyText))
                     continue;
