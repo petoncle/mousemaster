@@ -1590,6 +1590,18 @@ public class WindowsOverlay {
                 hintGroup.prefixHintLabel = prefixHintLabel;
             }
         }
+        // Expand container bounds to accommodate box shadow extent.
+        Shadow boxShadow = style.boxShadow();
+        if (boxShadow.opacity() > 0) {
+            int shadowPadLeft = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, -boxShadow.horizontalOffset()));
+            int shadowPadRight = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, boxShadow.horizontalOffset()));
+            int shadowPadTop = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, -boxShadow.verticalOffset()));
+            int shadowPadBottom = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, boxShadow.verticalOffset()));
+            minHintLeft -= shadowPadLeft;
+            minHintTop -= shadowPadTop;
+            maxHintRight += shadowPadRight;
+            maxHintBottom += shadowPadBottom;
+        }
         int offsetX = minHintLeft - hintMeshWindow.window.x();
         int offsetY = minHintTop - hintMeshWindow.window.y();
         Map<List<Key>, QRect> hintBoxGeometries = new HashMap<>();
@@ -2575,7 +2587,7 @@ public class WindowsOverlay {
         boolean opaqueBox = boxColor.alpha() == 255 &&
                             (boxBorderThickness == 0 || boxBorderColor.alpha() == 255);
         if (opaqueBox && boxShadow.stackCount() == 1) {
-            // Fast path: opaque box, apply effect directly.
+            logger.debug("Box shadow: opaque box, applying effect directly");
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(boxShadow.blurRadius());
             effect.setOffset(boxShadow.horizontalOffset(), boxShadow.verticalOffset());
@@ -2584,7 +2596,12 @@ public class WindowsOverlay {
             boxLayer.setGraphicsEffect(effect);
         }
         else {
-            // Slow path: transparent box or stackCount > 1.
+            if (boxShadow.stackCount() != 1)
+                logger.debug("Box shadow: shadow stack count is " +
+                             boxShadow.stackCount() +
+                             ", pre-rendering off-screen");
+            else
+                logger.debug("Box shadow: transparent box, pre-rendering off-screen");
             QImage sourceImage = new QImage(containerWidth, containerHeight,
                     QImage.Format.Format_ARGB32_Premultiplied);
             sourceImage.fill(new QColor(0, 0, 0, 0));
@@ -2617,8 +2634,7 @@ public class WindowsOverlay {
                                          int containerWidth,
                                          int containerHeight) {
         if (style.perKeyShadow()) {
-            // Per-key shadow: always pre-render with per-group passes.
-            logger.debug("Shadow rendering: per-key shadow, pre-rendering per group");
+            logger.debug("Hint label shadow: per-key shadow, pre-rendering per group");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight);
             return;
@@ -2628,8 +2644,7 @@ public class WindowsOverlay {
             return;
         if (!qtHintFontStyleHasTransparency(style, hasSelectedKeys) &&
             defaultStyle.shadowStackCount() == 1) {
-            // Fast path: opaque text, use Qt's effect directly.
-            logger.debug("Shadow rendering: opaque text, applying effect directly");
+            logger.debug("Hint label shadow: opaque text, applying effect directly");
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(defaultStyle.shadowBlurRadius());
             effect.setOffset(defaultStyle.shadowHorizontalOffset(),
@@ -2639,15 +2654,14 @@ public class WindowsOverlay {
             layer.setGraphicsEffect(effect);
         }
         else {
-            // Slow path: transparent text, pre-render shadow off-screen.
             if (defaultStyle.shadowStackCount() != 1)
                 // Even though multiple stacks can be done with StackedShadowEffect, it
                 // is faster to do it this way.
-                logger.debug("Shadow rendering: shadow stack count is " +
+                logger.debug("Hint label shadow: shadow stack count is " +
                              defaultStyle.shadowStackCount() +
                              ", pre-rendering off-screen");
             else
-                logger.debug("Shadow rendering: transparent text, pre-rendering off-screen");
+                logger.debug("Hint label shadow: transparent text, pre-rendering off-screen");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight);
         }
