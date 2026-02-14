@@ -1623,10 +1623,17 @@ public class WindowsOverlay {
         int containerWidth = maxHintRight - minHintLeft;
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
-        // Layer 1: Hint boxes (with subgrid children).
+        // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
+        HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
+        boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        // Layer 2: Hint boxes (with subgrid children).
         HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
         boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        // Layer 2: Prefix boxes.
+        applyBoxShadow(boxLayer, boxShadowLayer, hintBoxes, style.boxShadow(),
+                boxColor, boxBorderColor,
+                (int) Math.round(style.boxBorderThickness()),
+                containerWidth, containerHeight);
+        // Layer 3: Prefix boxes.
         HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 3: Prefix labels.
@@ -1944,6 +1951,28 @@ public class WindowsOverlay {
             }
             for (HintBox subBox : subgridBoxes) {
                 subBox.paint(painter);
+            }
+            painter.restore();
+        }
+
+        /**
+         * Paints the box shape with opaque white, used as the source
+         * image for shadow rendering. The overall box silhouette
+         * (fill area including border thickness) is all that matters.
+         */
+        public void paintOpaque(QPainter painter) {
+            painter.save();
+            painter.translate(x, y);
+            QColor opaque = new QColor(255, 255, 255, 255);
+            painter.setBrush(new QBrush(opaque));
+            painter.setPen(Qt.PenStyle.NoPen);
+            if (borderRadius > 0) {
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+                painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+            }
+            else {
+                painter.drawRect(0, 0, width, height);
             }
             painter.restore();
         }
@@ -2524,6 +2553,55 @@ public class WindowsOverlay {
                                boolean isFocused,
                                boolean isPrefix) {
 
+    }
+
+    /**
+     * Applies shadow to the box layer. When boxes are fully opaque and
+     * stackCount == 1, uses Qt's effect directly (fast path). Otherwise,
+     * pre-renders the shadow off-screen into a separate layer.
+     */
+    private static void applyBoxShadow(HintPaintLayer boxLayer,
+                                       HintPaintLayer boxShadowLayer,
+                                       List<HintBox> hintBoxes,
+                                       Shadow boxShadow,
+                                       QColor boxColor,
+                                       QColor boxBorderColor,
+                                       int boxBorderThickness,
+                                       int containerWidth,
+                                       int containerHeight) {
+        QColor shadowColor = shadowColor(boxShadow);
+        if (shadowColor.alpha() == 0)
+            return;
+        boolean opaqueBox = boxColor.alpha() == 255 &&
+                            (boxBorderThickness == 0 || boxBorderColor.alpha() == 255);
+        if (opaqueBox && boxShadow.stackCount() == 1) {
+            // Fast path: opaque box, apply effect directly.
+            StackedShadowEffect effect = new StackedShadowEffect();
+            effect.setBlurRadius(boxShadow.blurRadius());
+            effect.setOffset(boxShadow.horizontalOffset(), boxShadow.verticalOffset());
+            effect.setColor(shadowColor);
+            effect.setStackCount(1);
+            boxLayer.setGraphicsEffect(effect);
+        }
+        else {
+            // Slow path: transparent box or stackCount > 1.
+            QImage sourceImage = new QImage(containerWidth, containerHeight,
+                    QImage.Format.Format_ARGB32_Premultiplied);
+            sourceImage.fill(new QColor(0, 0, 0, 0));
+            QPainter srcPainter = new QPainter(sourceImage);
+            for (HintBox box : hintBoxes) {
+                box.paintOpaque(srcPainter);
+            }
+            srcPainter.end();
+            ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
+                    boxShadow.blurRadius(), boxShadow.horizontalOffset(),
+                    boxShadow.verticalOffset(), containerWidth, containerHeight);
+            QImage shadowImage = StackedShadowEffect.bakeStacking(
+                    shadow.image(), boxShadow.stackCount());
+            boxShadowLayer.setShadowPixmap(QPixmap.fromImage(shadowImage),
+                    shadow.x(), shadow.y());
+            shadowImage.dispose();
+        }
     }
 
     /**

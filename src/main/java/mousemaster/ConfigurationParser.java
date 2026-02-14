@@ -110,7 +110,15 @@ public class ConfigurationParser {
                 .boxBorderLength(10_000d)
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
-                .boxBorderRadius(0d)
+                .boxBorderRadius(0d);
+        hintMeshStyleBuilder.boxShadow()
+                .blurRadius(10d)
+                .hexColor("#000000")
+                .opacity(0d)
+                .horizontalOffset(2d)
+                .verticalOffset(2d)
+                .stackCount(1);
+        hintMeshStyleBuilder
                 .prefixBoxEnabled(false)
                 .prefixBoxBorderThickness(4d)
                 .prefixBoxBorderLength(10_000d)
@@ -925,6 +933,18 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, 0, 1));
                         case "box-border-radius" -> mode.hintMesh.builder.style(viewportFilter).boxBorderRadius(
                                 parseDouble(propertyValue, true, 0, 1000));
+                        case "box-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().blurRadius(
+                                parseDouble(propertyValue, true, 0, 1000));
+                        case "box-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().hexColor(
+                                checkColorFormat(propertyValue));
+                        case "box-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().opacity(
+                                parseDouble(propertyValue, true, 0, 1));
+                        case "box-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().stackCount(
+                                parseUnsignedInteger(propertyValue, 1, 100));
+                        case "box-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().horizontalOffset(
+                                parseDouble(propertyValue, true, -100, 100));
+                        case "box-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().verticalOffset(
+                                parseDouble(propertyValue, true, -100, 100));
                         case "prefix-box-enabled" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(Boolean.parseBoolean(propertyValue));
                         case "prefix-box-border-thickness" -> {
                             if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
@@ -2324,6 +2344,7 @@ public class ConfigurationParser {
                             HintMeshStyleBuilder::boxBorderRadius,
                             childStyleByFilter, filter))
                         childStyle.boxBorderRadius(parentStyle.boxBorderRadius());
+                    childStyle.boxShadow().extend(parentStyle.boxShadow());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::prefixBoxEnabled,
                             childStyleByFilter, filter))

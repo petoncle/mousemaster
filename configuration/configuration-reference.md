@@ -629,6 +629,14 @@ hint-mode.hint.box-border-color=#FFFFFF
 hint-mode.hint.box-border-opacity=0.4
 hint-mode.hint.box-border-radius=0
 
+# Box shadow for UI hints and position history hints only
+hint-mode.hint.box-shadow-blur-radius=10
+hint-mode.hint.box-shadow-color=#000000
+hint-mode.hint.box-shadow-opacity=0
+hint-mode.hint.box-shadow-stack-count=1
+hint-mode.hint.box-shadow-horizontal-offset=2
+hint-mode.hint.box-shadow-vertical-offset=2
+
 # Box size relative to the grid cell (for the hint grid only)
 hint-mode.hint.box-width-percent=1.0
 hint-mode.hint.box-height-percent=1.0
@@ -673,6 +681,12 @@ hint-mode.hint.transition-animation-duration-millis=100
 - Box appearance: controls the background and border of hint boxes
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
+  - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).
+  - `box-shadow-color`: Shadow color (hex, default #000000).
+  - `box-shadow-opacity`: Shadow opacity (0-1, default 0 = disabled).
+  - `box-shadow-stack-count`: Number of times the shadow is composited on itself for stronger effect (1-100, default 1).
+  - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 0).
+  - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)

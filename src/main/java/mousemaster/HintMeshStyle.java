@@ -12,6 +12,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             String boxBorderHexColor,
                             double boxBorderOpacity,
                             double boxBorderRadius,
+                            Shadow boxShadow,
                             boolean prefixBoxEnabled,
                             double prefixBoxBorderThickness,
                             double prefixBoxBorderLength,
@@ -45,6 +46,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
         private Double boxBorderRadius;
+        private Shadow.ShadowBuilder boxShadow = new Shadow.ShadowBuilder();
         private Boolean prefixBoxEnabled;
         private Double prefixBoxBorderThickness;
         private Double prefixBoxBorderLength;
@@ -78,6 +80,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.boxBorderHexColor = style.boxBorderHexColor;
             this.boxBorderOpacity = style.boxBorderOpacity;
             this.boxBorderRadius = style.boxBorderRadius;
+            this.boxShadow = new Shadow.ShadowBuilder(style.boxShadow);
             this.prefixBoxEnabled = style.prefixBoxEnabled;
             this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
             this.prefixBoxBorderLength = style.prefixBoxBorderLength;
@@ -263,6 +266,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxBorderRadius;
         }
 
+        public Shadow.ShadowBuilder boxShadow() {
+            return boxShadow;
+        }
+
         public Boolean prefixBoxEnabled() {
             return prefixBoxEnabled;
         }
@@ -342,6 +349,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             if (defaultStyle != null) {
                 fontStyle.extend(defaultStyle.fontStyle.builder());
                 prefixFontStyle.extend(defaultStyle.prefixFontStyle.builder());
+                boxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.boxShadow));
             }
             prefixFontStyle.extend(fontStyle);
             return new HintMeshStyle(
@@ -355,6 +363,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
                     boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
                     boxBorderRadius == null ? defaultStyle.boxBorderRadius : boxBorderRadius,
+                    boxShadow.build(),
                     prefixBoxEnabled == null ? defaultStyle.prefixBoxEnabled : prefixBoxEnabled,
                     prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
                     prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,
