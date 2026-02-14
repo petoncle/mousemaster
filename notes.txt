@@ -126,12 +126,17 @@
   - {+leftctrl +f} {-leftctrl -f} = +leftctrl +f -leftctrl -f | +f +leftctrl -leftctrl -f | +leftctrl +f -f -leftctrl | +f +leftctrl -f -leftctrl
   - Moves in brackets can be alias, and they will have to be expanded.
 
-+ Fix unnecessary forced order: ^{} must come before _{}
-- Complete priority for selected font-size on viewport X (first non-null wins):
-  1. Explicit selected-font-size.X
-  2. Parent mode's selected-font-size.X
-  3. Local font-size.X
-  4. Base (no viewport suffix) resolved selected font-size, which is:
-    - a. Explicit selected-font-size
-    - b. Parent mode's selected-font-size
-    - c. Local font-size
++ Complete priority for prefix-selected-font-size on viewport X (first non-null wins):
+  Child's own explicit values (pre-pass, before parent extend):
+    1. Explicit prefix-selected-font-size.X
+    2. prefix-font-size.X (selected inherits from default)
+    3. selected-font-size.X (prefix inherits from non-prefix)
+    4. font-size.X (selected inherits from default, then prefix inherits from non-prefix)
+  Parent extend:
+    5. Parent mode's prefix-selected-font-size.X (and same cascade 1-4 for parent)
+  Viewport fallback (viewport X falls back to non-viewport):
+    6. prefix-selected-font-size
+    7. prefix-font-size
+    8. selected-font-size
+    9. font-size
+    (same child-before-parent priority as steps 1-5)

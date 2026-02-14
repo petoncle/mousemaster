@@ -2267,6 +2267,17 @@ public class ConfigurationParser {
                             filter))
                         childKeys.rowKeyOffset(parentKeys.rowKeyOffset());
                 }
+                // Pre-pass: propagate child's own explicit values before parent extend.
+                // This ensures child's explicit default (e.g. font-size.X=10) propagates to
+                // selected/focused/prefix before parent's per-state values shadow them.
+                // build() runs the same operations again as round 2 to catch parent-inherited
+                // defaults (e.g. parent's font-size.X=15 propagating to child's selected).
+                for (var childEntry : builder.styleByFilter().map().entrySet()) {
+                    HintMeshStyleBuilder childStyle = childEntry.getValue();
+                    childStyle.fontStyle().extendSelectedAndFocusedFromMain();
+                    childStyle.prefixFontStyle().extendSelectedAndFocusedFromMain();
+                    childStyle.prefixFontStyle().extend(childStyle.fontStyle());
+                }
                 for (var parentEntry : parent.styleByFilter().map()
                                              .entrySet().stream()
                                              .sorted(defaultFilterLastComparator())
