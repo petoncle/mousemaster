@@ -749,7 +749,10 @@ public class WindowsOverlay {
     }
 
     private static boolean qtFontStyleHasTransparency(QtFontStyle qtFontStyle) {
-        if (qtFontStyle.outlineThickness() != 0 && qtFontStyle.outlineColor().alpha() < 255)
+        if (qtFontStyle.outlineThickness() != 0 &&
+            qtFontStyle.outlineColor().alpha() < 255 &&
+            // 0 means outline will not be rendered.
+            qtFontStyle.outlineColor().alpha() != 0)
             return true;
         if (qtFontStyle.color().alpha() < 255)
             return true;
@@ -2460,6 +2463,7 @@ public class WindowsOverlay {
             return;
         if (!qtHintFontStyleHasTransparency(style)) {
             // Fast path: opaque text, use Qt's effect directly.
+            logger.debug("Shadow rendering: fast path (opaque text, Qt effect)");
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(defaultStyle.shadowBlurRadius());
             effect.setOffset(defaultStyle.shadowHorizontalOffset(),
@@ -2470,6 +2474,7 @@ public class WindowsOverlay {
         }
         else {
             // Slow path: transparent text, pre-render shadow off-screen.
+            logger.debug("Shadow rendering: slow path (transparent text, pre-render)");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight);
         }
