@@ -75,8 +75,11 @@ public class WindowsOverlay {
             setUncachedHintMeshWindowRunnable.run();
             pumpDuringHintBuild = false;
             setUncachedHintMeshWindowRunnable = null;
+            // Don't run the cache grab in the same tick: Qt hasn't painted
+            // the window yet (processEvents runs before update in the main
+            // loop). Let the next tick's processEvents paint, then grab.
         }
-        if (cacheQtHintWindowIntoPixmapRunnable != null) {
+        else if (cacheQtHintWindowIntoPixmapRunnable != null) {
             cacheQtHintWindowIntoPixmapRunnable.run();
             cacheQtHintWindowIntoPixmapRunnable = null;
         }
@@ -762,9 +765,11 @@ public class WindowsOverlay {
             // 0 means outline will not be rendered.
             qtFontStyle.outlineColor().alpha() != 0)
             return true;
-        if (qtFontStyle.color().alpha() < 255)
+        if (qtFontStyle.color().alpha() < 255 && qtFontStyle.color().alpha() != 0)
             return true;
-        if (qtFontStyle.prefixColor() != null && qtFontStyle.prefixColor().alpha() < 255)
+        if (qtFontStyle.prefixColor() != null &&
+            qtFontStyle.prefixColor().alpha() < 255 &&
+            qtFontStyle.prefixColor().alpha() != 0)
             return true;
         return false;
     }
@@ -2466,6 +2471,7 @@ public class WindowsOverlay {
                                          int containerHeight) {
         if (style.perKeyShadow()) {
             // Per-key shadow: always pre-render with per-group passes.
+            logger.debug("Shadow rendering: slow path (transparent text, pre-render)");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight);
             return;
