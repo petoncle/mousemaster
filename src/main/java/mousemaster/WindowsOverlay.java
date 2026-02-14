@@ -1458,7 +1458,7 @@ public class WindowsOverlay {
             hintGroup.prefixHintBox = prefixHintBox;
         }
         QtHintFontStyle prefixQtHintFontStyle = null;
-        if (style.prefixInBackground() && style.prefixFontStyle().defaultFontStyle().opacity() != 0) {
+        if (style.prefixInBackground()) {
             prefixQtHintFontStyle = buildQtHintFontStyle(style.prefixFontStyle(), null, screenScale);
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;
@@ -2323,6 +2323,8 @@ public class WindowsOverlay {
                 QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
                 QColor color = keyText.isPrefix() && qtFontStyle.prefixColor() != null ?
                         qtFontStyle.prefixColor() : qtFontStyle.color();
+                if (!forceOpaque && color.alpha() == 0)
+                    continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
                 painter.setPen(forceOpaque ? opaqueColor(color) : color);
@@ -2406,6 +2408,8 @@ public class WindowsOverlay {
                 QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
                 QColor color = keyText.isPrefix() && qtFontStyle.prefixColor() != null ?
                         qtFontStyle.prefixColor() : qtFontStyle.color();
+                if (color.alpha() == 0)
+                    continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
                 painter.setPen(opaqueColor(color));
