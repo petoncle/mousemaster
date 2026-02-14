@@ -57,15 +57,23 @@ public class WindowsOverlay {
      */
     private static Runnable setUncachedHintMeshWindowRunnable;
     private static Runnable cacheQtHintWindowIntoPixmapRunnable;
-    private static Runnable windowsMessagePump;
+    private static Runnable messagePump;
+    /**
+     * True when the build is running from update() (deferred), meaning we are
+     * NOT inside a keyboard hook callback and can safely pump messages to keep
+     * the hook responsive. False when running inline from the hook callback.
+     */
+    private static boolean pumpDuringHintBuild;
 
-    static void setWindowsMessagePump(Runnable pump) {
-        windowsMessagePump = pump;
+    static void setMessagePump(Runnable pump) {
+        messagePump = pump;
     }
 
     public static void update(double delta) {
         if (setUncachedHintMeshWindowRunnable != null) {
+            pumpDuringHintBuild = true;
             setUncachedHintMeshWindowRunnable.run();
+            pumpDuringHintBuild = false;
             setUncachedHintMeshWindowRunnable = null;
         }
         if (cacheQtHintWindowIntoPixmapRunnable != null) {
@@ -1050,11 +1058,15 @@ public class WindowsOverlay {
                                 cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh);
                         }
                     };
-            // The build is deferred to update() so it does not run inside
-            // the keyboard hook callback. Running inside the hook would block
-            // the hook for 300ms+, causing Windows to time out and let the
-            // key release pass through. From update() context, we can pump
-            // messages during the build to keep the hook responsive.
+            // Run immediately when the build is expected to be fast (subsequent updates
+            // or small hint sets). Defer the expensive initial build to update() where we
+            // can pump messages without being inside the keyboard hook callback.
+            if (!hintMesh.selectedKeySequence().isEmpty()
+                    || hintMesh.hints().size() < 100
+            ) {
+                setUncachedHintMeshWindowRunnable.run();
+                setUncachedHintMeshWindowRunnable = null;
+            }
         }
     }
 
@@ -1428,13 +1440,13 @@ public class WindowsOverlay {
                     subBox.setGeometry(subBoxX, subBoxY, subBoxWidth, subBoxHeight);
                 }
             }
-            if (windowsMessagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
-                windowsMessagePump.run();
+            if (pumpDuringHintBuild && messagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
+                messagePump.run();
                 lastPumpTime = System.nanoTime();
             }
         }
-        if (windowsMessagePump != null)
-            windowsMessagePump.run();
+        if (pumpDuringHintBuild && messagePump != null)
+            messagePump.run();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
             if (!hintGroup.atLeastOneHintVisible)
                 continue;

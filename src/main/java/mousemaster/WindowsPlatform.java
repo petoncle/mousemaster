@@ -76,6 +76,7 @@ public class WindowsPlatform implements Platform {
         }
     }
 
+
     @Override
     public void sleep() throws InterruptedException {
         windowsMessagePump();
@@ -140,7 +141,7 @@ public class WindowsPlatform implements Platform {
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
                         mousePosition.y));
-        WindowsOverlay.setWindowsMessagePump(this::windowsMessagePump);
+        WindowsOverlay.setMessagePump(this::windowsMessagePump);
         if (keyboardHookCallback == null)
             installHooks();
     }
