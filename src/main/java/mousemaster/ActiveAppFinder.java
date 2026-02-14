@@ -15,6 +15,7 @@ public class ActiveAppFinder {
     private IntByReference processId = new IntByReference();
     private byte[] executableNameBytes = new byte[1024];
     String lastExecutableName;
+    private String lastIgnoredExecutableName;
 
     public App activeApp() {
         WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
@@ -39,10 +40,13 @@ public class ActiveAppFinder {
         WinDef.RECT windowRect = WindowsOverlay.windowRectExcludingShadow(hwnd);
         if (windowRect.right - windowRect.left == 0 ||
             windowRect.bottom - windowRect.top == 0) {
-            logger.debug(
-                    "Ignoring active app change from " + lastExecutableName + " to " +
-                    executableName + " because " + executableName + " is zero-sized: " +
-                    windowRect);
+            if (!executableName.equals(lastIgnoredExecutableName)) {
+                logger.debug(
+                        "Ignoring active app change from " + lastExecutableName + " to " +
+                        executableName + " because " + executableName + " is zero-sized: " +
+                        windowRect);
+                lastIgnoredExecutableName = executableName;
+            }
             return new App(lastExecutableName);
         }
         // IsIconic can return false for some minimized/off-screen windows.
@@ -51,12 +55,16 @@ public class ActiveAppFinder {
                               User32.INSTANCE.MonitorFromRect(windowRect,
                                       WinUser.MONITOR_DEFAULTTONULL) == null;
         if (isMinimized) {
-            logger.debug(
-                    "Ignoring active app change from " + lastExecutableName + " to " +
-                    executableName + " because " + executableName + " is minimized: " +
-                    windowRect);
+            if (!executableName.equals(lastIgnoredExecutableName)) {
+                logger.debug(
+                        "Ignoring active app change from " + lastExecutableName + " to " +
+                        executableName + " because " + executableName + " is minimized: " +
+                        windowRect);
+                lastIgnoredExecutableName = executableName;
+            }
             return new App(lastExecutableName);
         }
+        lastIgnoredExecutableName = null;
         if (!Objects.equals(executableName, lastExecutableName)) {
             logger.debug("Detected active app change from " + lastExecutableName + " to " + executableName + " " + windowRect);
             lastExecutableName = executableName;
