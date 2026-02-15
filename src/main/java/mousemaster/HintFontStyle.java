@@ -49,18 +49,6 @@ public record HintFontStyle(FontStyle defaultFontStyle, double spacingPercent,
             return this;
         }
 
-        void extend(HintFontStyleBuilder defaultStyle) {
-            defaultFontStyle.extend(defaultStyle.defaultFontStyle);
-            if (spacingPercent == null) spacingPercent = defaultStyle.spacingPercent;
-            selectedFontStyle.extend(defaultStyle.selectedFontStyle);
-            focusedFontStyle.extend(defaultStyle.focusedFontStyle);
-        }
-
-        void extendSelectedAndFocusedFromMain() {
-            selectedFontStyle.extend(defaultFontStyle);
-            focusedFontStyle.extend(defaultFontStyle);
-        }
-
         public HintFontStyle build() {
             return new HintFontStyle(
                     defaultFontStyle.build(),

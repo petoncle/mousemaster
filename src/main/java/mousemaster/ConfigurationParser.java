@@ -1,7 +1,6 @@
 package mousemaster;
 
 import io.qt.gui.QFontDatabase;
-import mousemaster.HintFontStyle.HintFontStyleBuilder;
 import mousemaster.GridArea.GridAreaType;
 import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
@@ -2287,17 +2286,6 @@ public class ConfigurationParser {
                             filter))
                         childKeys.rowKeyOffset(parentKeys.rowKeyOffset());
                 }
-                // Pre-pass: propagate child's own explicit values before parent extend.
-                // This ensures child's explicit default (e.g. font-size.X=10) propagates to
-                // selected/focused/prefix before parent's per-state values shadow them.
-                // build() runs the same operations again as round 2 to catch parent-inherited
-                // defaults (e.g. parent's font-size.X=15 propagating to child's selected).
-                for (var childEntry : builder.styleByFilter().map().entrySet()) {
-                    HintMeshStyleBuilder childStyle = childEntry.getValue();
-                    childStyle.fontStyle().extendSelectedAndFocusedFromMain();
-                    childStyle.prefixFontStyle().extendSelectedAndFocusedFromMain();
-                    childStyle.prefixFontStyle().extend(childStyle.fontStyle());
-                }
                 for (var parentEntry : parent.styleByFilter().map()
                                              .entrySet().stream()
                                              .sorted(defaultFilterLastComparator())
@@ -2308,13 +2296,11 @@ public class ConfigurationParser {
                     HintMeshStyleBuilder childStyle = builder.style(filter);
                     ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
                             childStyleByFilter = builder.styleByFilter();
-                    extendHintFontStyleProperties(HintMeshStyleBuilder::fontStyle, childStyle.fontStyle(), parentStyle.fontStyle(), childStyleByFilter, filter);
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::prefixInBackground,
                             childStyleByFilter, filter))
                         childStyle.prefixInBackground(
                                 parentStyle.prefixInBackground());
-                    extendHintFontStyleProperties(HintMeshStyleBuilder::prefixFontStyle, childStyle.prefixFontStyle(), parentStyle.prefixFontStyle(), childStyleByFilter, filter);
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
                             filter))
@@ -2423,6 +2409,23 @@ public class ConfigurationParser {
                         childStyle.transitionAnimationDuration(
                                 parentStyle.transitionAnimationDuration());
                 }
+                // Font-style cascade: for each viewport filter, resolve all font
+                // properties (child.X, child.any, parent.X, parent.any).
+                for (ViewportFilter filter : builder.styleByFilter().map().keySet()
+                        .stream()
+                        .sorted(Comparator.comparing(
+                                f -> f instanceof AnyViewportFilter ? 1 : 0))
+                        .toList()) {
+                    HintMeshStyleBuilder childX = builder.styleByFilter().map().get(filter);
+                    HintMeshStyleBuilder childAny = builder.styleByFilter().map()
+                            .get(AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                    HintMeshStyleBuilder parentX = parent == null ? null :
+                            parent.styleByFilter().map().get(filter);
+                    HintMeshStyleBuilder parentAny = parent == null ? null :
+                            parent.styleByFilter().map()
+                                    .get(AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                    cascadeAllFontStyles(childX, childAny, parentX, parentAny);
+                }
                 if (builder.modeAfterSelection() == null)
                     builder.modeAfterSelection(parent.modeAfterSelection());
                 if (builder.eatUnusedSelectionKeys() == null)
@@ -2433,58 +2436,6 @@ public class ConfigurationParser {
                     builder.unselectCombos(parent.unselectCombos());
             }
 
-            private <T> void extendHintFontStyleProperty(
-                    Function<HintMeshStyleBuilder, HintFontStyleBuilder> fontStyleBuilderFunction,
-                    Function<HintFontStyleBuilder, T> propertyGetter,
-                    Consumer<T> propertySetter, T parentValue,
-                    ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> childStyleByFilter,
-                    ViewportFilter filter) {
-                if (!hintFontStyleChildDoesNotNeedParentProperty(
-                        fontStyleBuilderFunction, propertyGetter, childStyleByFilter, filter))
-                    propertySetter.accept(parentValue);
-            }
-
-            private void extendShadowBuilderProperties(
-                    Function<HintMeshStyleBuilder, HintFontStyleBuilder> fontStyleBuilderFunction,
-                    Function<HintFontStyleBuilder, Shadow.ShadowBuilder> shadowAccessor,
-                    Shadow.ShadowBuilder child, Shadow.ShadowBuilder parent,
-                    ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> childStyleByFilter,
-                    ViewportFilter filter) {
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).blurRadius(), child::blurRadius, parent.blurRadius(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).hexColor(), child::hexColor, parent.hexColor(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).opacity(), child::opacity, parent.opacity(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).horizontalOffset(), child::horizontalOffset, parent.horizontalOffset(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).verticalOffset(), child::verticalOffset, parent.verticalOffset(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> shadowAccessor.apply(b).stackCount(), child::stackCount, parent.stackCount(), childStyleByFilter, filter);
-            }
-
-            private void extendFontStyleBuilderProperties(
-                    Function<HintMeshStyleBuilder, HintFontStyleBuilder> fontStyleBuilderFunction,
-                    Function<HintFontStyleBuilder, FontStyle.FontStyleBuilder> fontAccessor,
-                    FontStyle.FontStyleBuilder child, FontStyle.FontStyleBuilder parent,
-                    ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> childStyleByFilter,
-                    ViewportFilter filter) {
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).name(), child::name, parent.name(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).weight(), child::weight, parent.weight(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).size(), child::size, parent.size(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).hexColor(), child::hexColor, parent.hexColor(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).opacity(), child::opacity, parent.opacity(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).outlineThickness(), child::outlineThickness, parent.outlineThickness(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).outlineHexColor(), child::outlineHexColor, parent.outlineHexColor(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, b -> fontAccessor.apply(b).outlineOpacity(), child::outlineOpacity, parent.outlineOpacity(), childStyleByFilter, filter);
-                extendShadowBuilderProperties(fontStyleBuilderFunction, b -> fontAccessor.apply(b).shadow(), child.shadow(), parent.shadow(), childStyleByFilter, filter);
-            }
-
-            private void extendHintFontStyleProperties(
-                    Function<HintMeshStyleBuilder, HintFontStyleBuilder> fontStyleBuilderFunction,
-                    HintFontStyleBuilder childFontStyle, HintFontStyleBuilder parentFontStyle,
-                    ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> childStyleByFilter,
-                    ViewportFilter filter) {
-                extendFontStyleBuilderProperties(fontStyleBuilderFunction, HintFontStyleBuilder::defaultFontStyle, childFontStyle.defaultFontStyle(), parentFontStyle.defaultFontStyle(), childStyleByFilter, filter);
-                extendHintFontStyleProperty(fontStyleBuilderFunction, HintFontStyleBuilder::spacingPercent, childFontStyle::spacingPercent, parentFontStyle.spacingPercent(), childStyleByFilter, filter);
-                extendFontStyleBuilderProperties(fontStyleBuilderFunction, HintFontStyleBuilder::selectedFontStyle, childFontStyle.selectedFontStyle(), parentFontStyle.selectedFontStyle(), childStyleByFilter, filter);
-                extendFontStyleBuilderProperties(fontStyleBuilderFunction, HintFontStyleBuilder::focusedFontStyle, childFontStyle.focusedFontStyle(), parentFontStyle.focusedFontStyle(), childStyleByFilter, filter);
-            }
         }
     }
 
@@ -2517,18 +2468,108 @@ public class ConfigurationParser {
                || filterElement != null && fieldFunction.apply(filterElement) != null;
     }
 
-    private static <B, V> boolean hintFontStyleChildDoesNotNeedParentProperty(
-            Function<B, HintFontStyleBuilder> fontStyleBuilderFunction,
-            Function<HintFontStyleBuilder, ?> fieldFunction,
-            ViewportFilterMapBuilder<B, V> childMapBuilder, ViewportFilter filter) {
-        Map<ViewportFilter, B> childMap = childMapBuilder.map();
-        HintFontStyleBuilder defaultElement =
-                childMap.get(AnyViewportFilter.ANY_VIEWPORT_FILTER) == null ? null :
-                        fontStyleBuilderFunction.apply(
-                                childMap.get(AnyViewportFilter.ANY_VIEWPORT_FILTER));
-        HintFontStyleBuilder filterElement = fontStyleBuilderFunction.apply(childMap.get(filter));
-        return defaultElement != null && fieldFunction.apply(defaultElement) != null
-               || filterElement != null && fieldFunction.apply(filterElement) != null;
+    private static void cascadeFontStyle(FontStyle.FontStyleBuilder target,
+            FontStyle.FontStyleBuilder... sources) {
+        String name = null, hexColor = null, outlineHexColor = null;
+        FontWeight weight = null;
+        Double size = null, opacity = null, outlineThickness = null, outlineOpacity = null;
+        Double shadowBlur = null, shadowOpacity = null, shadowHOff = null, shadowVOff = null;
+        String shadowHexColor = null;
+        Integer shadowStackCount = null;
+        for (FontStyle.FontStyleBuilder source : sources) {
+            if (source == null) continue;
+            if (name == null) name = source.name();
+            if (weight == null) weight = source.weight();
+            if (size == null) size = source.size();
+            if (hexColor == null) hexColor = source.hexColor();
+            if (opacity == null) opacity = source.opacity();
+            if (outlineThickness == null) outlineThickness = source.outlineThickness();
+            if (outlineHexColor == null) outlineHexColor = source.outlineHexColor();
+            if (outlineOpacity == null) outlineOpacity = source.outlineOpacity();
+            Shadow.ShadowBuilder sh = source.shadow();
+            if (shadowBlur == null) shadowBlur = sh.blurRadius();
+            if (shadowHexColor == null) shadowHexColor = sh.hexColor();
+            if (shadowOpacity == null) shadowOpacity = sh.opacity();
+            if (shadowHOff == null) shadowHOff = sh.horizontalOffset();
+            if (shadowVOff == null) shadowVOff = sh.verticalOffset();
+            if (shadowStackCount == null) shadowStackCount = sh.stackCount();
+        }
+        target.name(name); target.weight(weight); target.size(size);
+        target.hexColor(hexColor); target.opacity(opacity);
+        target.outlineThickness(outlineThickness); target.outlineHexColor(outlineHexColor);
+        target.outlineOpacity(outlineOpacity);
+        target.shadow().blurRadius(shadowBlur); target.shadow().hexColor(shadowHexColor);
+        target.shadow().opacity(shadowOpacity); target.shadow().horizontalOffset(shadowHOff);
+        target.shadow().verticalOffset(shadowVOff); target.shadow().stackCount(shadowStackCount);
+    }
+
+    private static void cascadeAllFontStyles(
+            HintMeshStyleBuilder childX, HintMeshStyleBuilder childAny,
+            HintMeshStyleBuilder parentX, HintMeshStyleBuilder parentAny) {
+        // fontStyle sources
+        FontStyle.FontStyleBuilder cxSel = childX.fontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder caSel = childAny == null ? null : childAny.fontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder pxSel = parentX == null ? null : parentX.fontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder paSel = parentAny == null ? null : parentAny.fontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder cxDef = childX.fontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder caDef = childAny == null ? null : childAny.fontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder pxDef = parentX == null ? null : parentX.fontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder paDef = parentAny == null ? null : parentAny.fontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder cxFoc = childX.fontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder caFoc = childAny == null ? null : childAny.fontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder pxFoc = parentX == null ? null : parentX.fontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder paFoc = parentAny == null ? null : parentAny.fontStyle().focusedFontStyle();
+        // prefixFontStyle sources
+        FontStyle.FontStyleBuilder cxPSel = childX.prefixFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder caPSel = childAny == null ? null : childAny.prefixFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder pxPSel = parentX == null ? null : parentX.prefixFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder paPSel = parentAny == null ? null : parentAny.prefixFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder cxPDef = childX.prefixFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder caPDef = childAny == null ? null : childAny.prefixFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder pxPDef = parentX == null ? null : parentX.prefixFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder paPDef = parentAny == null ? null : parentAny.prefixFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder cxPFoc = childX.prefixFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder caPFoc = childAny == null ? null : childAny.prefixFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder pxPFoc = parentX == null ? null : parentX.prefixFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder paPFoc = parentAny == null ? null : parentAny.prefixFontStyle().focusedFontStyle();
+        // Cascade prefix font styles, then font styles.
+        // prefix-selected: prefix-selected -> prefix-default -> selected -> default
+        cascadeFontStyle(cxPSel, cxPSel, caPSel, pxPSel, paPSel,
+                cxPDef, caPDef, pxPDef, paPDef,
+                cxSel, caSel, pxSel, paSel,
+                cxDef, caDef, pxDef, paDef);
+        // prefix-focused: prefix-focused -> prefix-default -> focused -> default
+        cascadeFontStyle(cxPFoc, cxPFoc, caPFoc, pxPFoc, paPFoc,
+                cxPDef, caPDef, pxPDef, paPDef,
+                cxFoc, caFoc, pxFoc, paFoc,
+                cxDef, caDef, pxDef, paDef);
+        // prefix-default: prefix-default -> default
+        cascadeFontStyle(cxPDef, cxPDef, caPDef, pxPDef, paPDef,
+                cxDef, caDef, pxDef, paDef);
+        // prefix spacingPercent
+        Double prefixSpacing = childX.prefixFontStyle().spacingPercent();
+        if (prefixSpacing == null && childAny != null) prefixSpacing = childAny.prefixFontStyle().spacingPercent();
+        if (prefixSpacing == null && parentX != null) prefixSpacing = parentX.prefixFontStyle().spacingPercent();
+        if (prefixSpacing == null && parentAny != null) prefixSpacing = parentAny.prefixFontStyle().spacingPercent();
+        if (prefixSpacing == null) prefixSpacing = childX.fontStyle().spacingPercent();
+        if (prefixSpacing == null && childAny != null) prefixSpacing = childAny.fontStyle().spacingPercent();
+        if (prefixSpacing == null && parentX != null) prefixSpacing = parentX.fontStyle().spacingPercent();
+        if (prefixSpacing == null && parentAny != null) prefixSpacing = parentAny.fontStyle().spacingPercent();
+        childX.prefixFontStyle().spacingPercent(prefixSpacing);
+        // fontStyle selected: selected -> default
+        cascadeFontStyle(cxSel, cxSel, caSel, pxSel, paSel,
+                cxDef, caDef, pxDef, paDef);
+        // fontStyle focused: focused -> default
+        cascadeFontStyle(cxFoc, cxFoc, caFoc, pxFoc, paFoc,
+                cxDef, caDef, pxDef, paDef);
+        // fontStyle default
+        cascadeFontStyle(cxDef, cxDef, caDef, pxDef, paDef);
+        // fontStyle spacingPercent
+        Double fontSpacing = childX.fontStyle().spacingPercent();
+        if (fontSpacing == null && childAny != null) fontSpacing = childAny.fontStyle().spacingPercent();
+        if (fontSpacing == null && parentX != null) fontSpacing = parentX.fontStyle().spacingPercent();
+        if (fontSpacing == null && parentAny != null) fontSpacing = parentAny.fontStyle().spacingPercent();
+        childX.fontStyle().spacingPercent(fontSpacing);
     }
 
       @SuppressWarnings("unchecked")
