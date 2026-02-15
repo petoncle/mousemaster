@@ -130,8 +130,10 @@
   Child's own explicit values (pre-pass, before parent extend):
     1. prefix-selected.X (child viewport)
     2. prefix-selected (child no-viewport)
-    3. prefix-selected.X (parent viewport)
-    4. prefix-selected (parent no-viewport)
-    5-8. prefix-default: same pattern
-    9-12. selected: same pattern
-    13-16. font-size: same pattern
+    3. prefix default (child viewport)
+    4. prefix default (child no-viewport)
+    5. selected (child viewport)
+    6. selected (child no-viewport)
+    7. font-size (child viewport)
+    8. font-size (child no-viewport)
+    9. Same as 1-8 but for parent

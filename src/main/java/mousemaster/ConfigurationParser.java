@@ -92,8 +92,6 @@ public class ConfigurationParser {
                             .outlineOpacity(0.5d);
         hintMeshStyleBuilder.fontStyle()
                             .spacingPercent(0.7d);
-        hintMeshStyleBuilder.fontStyle().selectedFontStyle()
-                            .hexColor("#CCCCCC");
         hintMeshStyleBuilder.fontStyle().defaultFontStyle().shadow()
                             .blurRadius(10d)
                             .hexColor("#FFFFFF")
@@ -2533,38 +2531,42 @@ public class ConfigurationParser {
         FontStyle.FontStyleBuilder pxPFoc = parentX == null ? null : parentX.prefixFontStyle().focusedFontStyle();
         FontStyle.FontStyleBuilder paPFoc = parentAny == null ? null : parentAny.prefixFontStyle().focusedFontStyle();
         // Cascade prefix font styles, then font styles.
-        // prefix-selected: prefix-selected -> prefix-default -> selected -> default
-        cascadeFontStyle(cxPSel, cxPSel, caPSel, pxPSel, paPSel,
-                cxPDef, caPDef, pxPDef, paPDef,
-                cxSel, caSel, pxSel, paSel,
-                cxDef, caDef, pxDef, paDef);
-        // prefix-focused: prefix-focused -> prefix-default -> focused -> default
-        cascadeFontStyle(cxPFoc, cxPFoc, caPFoc, pxPFoc, paPFoc,
-                cxPDef, caPDef, pxPDef, paPDef,
-                cxFoc, caFoc, pxFoc, paFoc,
-                cxDef, caDef, pxDef, paDef);
-        // prefix-default: prefix-default -> default
-        cascadeFontStyle(cxPDef, cxPDef, caPDef, pxPDef, paPDef,
-                cxDef, caDef, pxDef, paDef);
-        // prefix spacingPercent
+        // Child sources are exhausted before parent sources.
+        // prefix-selected: child(prefix-selected, prefix-default, selected, default),
+        //                   parent(prefix-selected, prefix-default, selected, default)
+        cascadeFontStyle(cxPSel,
+                cxPSel, caPSel, cxPDef, caPDef, cxSel, caSel, cxDef, caDef,
+                pxPSel, paPSel, pxPDef, paPDef, pxSel, paSel, pxDef, paDef);
+        // prefix-focused: child(prefix-focused, prefix-default, focused, default),
+        //                  parent(prefix-focused, prefix-default, focused, default)
+        cascadeFontStyle(cxPFoc,
+                cxPFoc, caPFoc, cxPDef, caPDef, cxFoc, caFoc, cxDef, caDef,
+                pxPFoc, paPFoc, pxPDef, paPDef, pxFoc, paFoc, pxDef, paDef);
+        // prefix-default: child(prefix-default, default), parent(prefix-default, default)
+        cascadeFontStyle(cxPDef,
+                cxPDef, caPDef, cxDef, caDef,
+                pxPDef, paPDef, pxDef, paDef);
+        // prefix spacingPercent: child(prefix, font), parent(prefix, font)
         Double prefixSpacing = childX.prefixFontStyle().spacingPercent();
         if (prefixSpacing == null && childAny != null) prefixSpacing = childAny.prefixFontStyle().spacingPercent();
-        if (prefixSpacing == null && parentX != null) prefixSpacing = parentX.prefixFontStyle().spacingPercent();
-        if (prefixSpacing == null && parentAny != null) prefixSpacing = parentAny.prefixFontStyle().spacingPercent();
         if (prefixSpacing == null) prefixSpacing = childX.fontStyle().spacingPercent();
         if (prefixSpacing == null && childAny != null) prefixSpacing = childAny.fontStyle().spacingPercent();
+        if (prefixSpacing == null && parentX != null) prefixSpacing = parentX.prefixFontStyle().spacingPercent();
+        if (prefixSpacing == null && parentAny != null) prefixSpacing = parentAny.prefixFontStyle().spacingPercent();
         if (prefixSpacing == null && parentX != null) prefixSpacing = parentX.fontStyle().spacingPercent();
         if (prefixSpacing == null && parentAny != null) prefixSpacing = parentAny.fontStyle().spacingPercent();
         childX.prefixFontStyle().spacingPercent(prefixSpacing);
-        // fontStyle selected: selected -> default
-        cascadeFontStyle(cxSel, cxSel, caSel, pxSel, paSel,
-                cxDef, caDef, pxDef, paDef);
-        // fontStyle focused: focused -> default
-        cascadeFontStyle(cxFoc, cxFoc, caFoc, pxFoc, paFoc,
-                cxDef, caDef, pxDef, paDef);
-        // fontStyle default
+        // fontStyle selected: child(selected, default), parent(selected, default)
+        cascadeFontStyle(cxSel,
+                cxSel, caSel, cxDef, caDef,
+                pxSel, paSel, pxDef, paDef);
+        // fontStyle focused: child(focused, default), parent(focused, default)
+        cascadeFontStyle(cxFoc,
+                cxFoc, caFoc, cxDef, caDef,
+                pxFoc, paFoc, pxDef, paDef);
+        // fontStyle default: child, parent
         cascadeFontStyle(cxDef, cxDef, caDef, pxDef, paDef);
-        // fontStyle spacingPercent
+        // fontStyle spacingPercent: child, parent
         Double fontSpacing = childX.fontStyle().spacingPercent();
         if (fontSpacing == null && childAny != null) fontSpacing = childAny.fontStyle().spacingPercent();
         if (fontSpacing == null && parentX != null) fontSpacing = parentX.fontStyle().spacingPercent();
