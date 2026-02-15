@@ -283,7 +283,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                     Point gridCenter = activeWindowRectangle.center();
                     Screen screen =
-                            screenManager.screenContaining(gridCenter.x(),
+                            screenManager.nearestScreenContaining(gridCenter.x(),
                                     gridCenter.y());
                     return ViewportFilter.of(screen);
                 }
@@ -293,7 +293,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             Rectangle activeWindowRectangle =
                     WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
             Point center = activeWindowRectangle.center();
-            Screen screen = screenManager.screenContaining(center.x(), center.y());
+            Screen screen = screenManager.nearestScreenContaining(center.x(), center.y());
             return ViewportFilter.of(screen);
         }
         else {
@@ -354,7 +354,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                 Point gridCenter = activeWindowRectangle.center();
                 Screen screen =
-                        screenManager.screenContaining(gridCenter.x(), gridCenter.y());
+                        screenManager.nearestScreenContaining(gridCenter.x(), gridCenter.y());
                 HintGridLayout gridLayout = hintGrid.layout(screenFilter);
                 FixedSizeHintGrid fixedSizeHintGrid =
                         fixedSizeHintGrid(activeWindowRectangle, gridCenter,
