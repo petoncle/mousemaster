@@ -3455,6 +3455,11 @@ public class WindowsOverlay {
         if (hintMeshEndAnimation)
             return;
         showingHintMesh = false;
+        // Cancel any pending build/cache runnables that reference containers
+        // about to be hidden. Otherwise container.grab() in the next update()
+        // would paint a destroyed widget, causing a native _purecall crash.
+        setUncachedHintMeshWindowRunnable = null;
+        cacheQtHintWindowIntoPixmapRunnable = null;
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
             hintMeshWindow.window.hideChildren();
         }
