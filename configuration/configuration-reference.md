@@ -519,13 +519,13 @@ ui-hint-mode.hint.font-weight=bold
 ui-hint-mode.hint.font-color=#FFFFFF
 ui-hint-mode.hint.box-color=#204E8A
 ui-hint-mode.hint.box-opacity=1
-ui-hint-mode.hint.box-horizontal-padding=8
-ui-hint-mode.hint.box-vertical-padding=0
+ui-hint-mode.hint.cell-horizontal-padding=8
+ui-hint-mode.hint.cell-vertical-padding=0
 ui-hint-mode.hint.box-border-radius=3
 ```
 
 UI hints use the same appearance properties as other hint types (`box-*`, `font-*`, etc.).
-The `box-horizontal-padding` and `box-vertical-padding` properties are particularly useful
+The `cell-horizontal-padding` and `cell-vertical-padding` properties are particularly useful
 for UI hints since the hint boxes are sized to fit the label text rather than a fixed grid
 cell.
 
@@ -641,9 +641,9 @@ hint-mode.hint.box-shadow-vertical-offset=2
 hint-mode.hint.box-width-percent=1.0
 hint-mode.hint.box-height-percent=1.0
 
-# Box padding for UI hints and position history hints only
-hint-mode.hint.box-horizontal-padding=0
-hint-mode.hint.box-vertical-padding=0
+# Cell padding for UI hints and position history hints only
+hint-mode.hint.cell-horizontal-padding=0
+hint-mode.hint.cell-vertical-padding=0
 
 # Font appearance
 hint-mode.hint.font-name=Consolas

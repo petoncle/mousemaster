@@ -1397,13 +1397,15 @@ public class WindowsOverlay {
                                                                              Collectors.joining()));
             // Size of cell for screen selection hint is not configured by user.
             // The default size is used and it is too small (and will be less than totalXAdvance).
-            double cellWidth = hint.cellWidth() != -1 ?
+            int cellHorizontalPadding = (int) Math.round(style.cellHorizontalPadding());
+            int cellVerticalPadding = (int) Math.round(style.cellVerticalPadding());
+            double cellWidth = (hint.cellWidth() != -1 ?
                     Math.max(totalXAdvance, hint.cellWidth()) :
-                    totalXAdvance;
+                    totalXAdvance) + 2 * cellHorizontalPadding;
             int lineHeight = labelFontStyle.defaultStyle().metrics().height();
-            double cellHeight = hint.cellHeight() != -1 ?
+            double cellHeight = (hint.cellHeight() != -1 ?
                     Math.max(lineHeight, hint.cellHeight()) :
-                    lineHeight;
+                    lineHeight) + 2 * cellVerticalPadding;
             int fullBoxWidth = (int) cellWidth;
             int fullBoxHeight = (int) cellHeight;
             int x = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
@@ -1476,20 +1478,15 @@ public class WindowsOverlay {
             else if (y + boxHeight == hintMeshWindow.window.y() + hintMeshWindow.window.height() + 1)
                 boxHeight--;
 //            logger.debug("x + boxWidth: " + (x+boxWidth) + ", (y+boxHeight): " + (y+boxHeight));
-            int boxHorizontalPadding = (int) Math.round(style.boxHorizontalPadding());
-            int boxVerticalPadding = (int) Math.round(style.boxVerticalPadding());
-            minHintLeft = Math.min(minHintLeft, x - boxHorizontalPadding);
-            minHintTop = Math.min(minHintTop, y - boxVerticalPadding);
-            maxHintRight = Math.max(maxHintRight, x + boxWidth + boxHorizontalPadding);
-            maxHintBottom = Math.max(maxHintBottom, y + boxHeight + boxVerticalPadding);
-            hintBox.setGeometry(x - hintMeshWindow.window.x() - boxHorizontalPadding,
-                    y - hintMeshWindow.window.y() - boxVerticalPadding,
-                    boxWidth + 2 * boxHorizontalPadding,
-                    boxHeight + 2 * boxVerticalPadding);
-            hintLabel.left -= boxHorizontalPadding;
-            hintLabel.top -= boxVerticalPadding;
-            hintLabel.setFixedSize(boxWidth + 2 * boxHorizontalPadding,
-                    boxHeight + 2 * boxVerticalPadding);
+            minHintLeft = Math.min(minHintLeft, x);
+            minHintTop = Math.min(minHintTop, y);
+            maxHintRight = Math.max(maxHintRight, x + boxWidth);
+            maxHintBottom = Math.max(maxHintBottom, y + boxHeight);
+            hintBox.setGeometry(x - hintMeshWindow.window.x(),
+                    y - hintMeshWindow.window.y(),
+                    boxWidth,
+                    boxHeight);
+            hintLabel.setFixedSize(boxWidth, boxHeight);
             HintGroup hintGroup = hintGroupByPrefix.get(prefix);
             if (hintGroup != null) {
                 hintGroup.left = Math.min(hintGroup.left, hintBox.x());

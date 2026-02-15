@@ -20,8 +20,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double prefixBoxBorderOpacity,
                             double boxWidthPercent,
                             double boxHeightPercent,
-                            double boxHorizontalPadding,
-                            double boxVerticalPadding,
+                            double cellHorizontalPadding,
+                            double cellVerticalPadding,
                             int subgridRowCount,
                             int subgridColumnCount,
                             double subgridBorderThickness,
@@ -54,8 +54,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double prefixBoxBorderOpacity;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
-        private Double boxHorizontalPadding;
-        private Double boxVerticalPadding;
+        private Double cellHorizontalPadding;
+        private Double cellVerticalPadding;
         private Integer subgridRowCount;
         private Integer subgridColumnCount;
         private Double subgridBorderThickness;
@@ -88,8 +88,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.prefixBoxBorderOpacity = style.prefixBoxBorderOpacity;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
-            this.boxHorizontalPadding = style.boxHorizontalPadding;
-            this.boxVerticalPadding = style.boxVerticalPadding;
+            this.cellHorizontalPadding = style.cellHorizontalPadding;
+            this.cellVerticalPadding = style.cellVerticalPadding;
             this.subgridRowCount = style.subgridRowCount;
             this.subgridColumnCount = style.subgridColumnCount;
             this.subgridBorderThickness = style.subgridBorderThickness;
@@ -176,13 +176,13 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder boxHorizontalPadding(Double boxHorizontalPadding) {
-            this.boxHorizontalPadding = boxHorizontalPadding;
+        public HintMeshStyleBuilder cellHorizontalPadding(Double cellHorizontalPadding) {
+            this.cellHorizontalPadding = cellHorizontalPadding;
             return this;
         }
 
-        public HintMeshStyleBuilder boxVerticalPadding(Double boxVerticalPadding) {
-            this.boxVerticalPadding = boxVerticalPadding;
+        public HintMeshStyleBuilder cellVerticalPadding(Double cellVerticalPadding) {
+            this.cellVerticalPadding = cellVerticalPadding;
             return this;
         }
 
@@ -298,12 +298,12 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxHeightPercent;
         }
 
-        public Double boxHorizontalPadding() {
-            return boxHorizontalPadding;
+        public Double cellHorizontalPadding() {
+            return cellHorizontalPadding;
         }
 
-        public Double boxVerticalPadding() {
-            return boxVerticalPadding;
+        public Double cellVerticalPadding() {
+            return cellVerticalPadding;
         }
 
         public Integer subgridRowCount() {
@@ -361,8 +361,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     prefixBoxBorderOpacity == null ? defaultStyle.prefixBoxBorderOpacity : prefixBoxBorderOpacity,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
-                    boxHorizontalPadding == null ? defaultStyle.boxHorizontalPadding : boxHorizontalPadding,
-                    boxVerticalPadding == null ? defaultStyle.boxVerticalPadding : boxVerticalPadding,
+                    cellHorizontalPadding == null ? defaultStyle.cellHorizontalPadding : cellHorizontalPadding,
+                    cellVerticalPadding == null ? defaultStyle.cellVerticalPadding : cellVerticalPadding,
                     subgridRowCount == null ? defaultStyle.subgridRowCount : subgridRowCount,
                     subgridColumnCount == null ? defaultStyle.subgridColumnCount : subgridColumnCount,
                     subgridBorderThickness == null ? defaultStyle.subgridBorderThickness : subgridBorderThickness,
