@@ -1948,7 +1948,7 @@ public class WindowsOverlay {
         public void paint(QPainter painter) {
             painter.save();
             painter.translate(x, y);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (borderRadius > 0) {
                 // Draw background and border as a single rounded rect so
                 // the background does not bleed outside the border at corners.
@@ -2496,8 +2496,8 @@ public class WindowsOverlay {
                         k -> k.isPrefix() && k.isFocused());
             }
 
-            // Text should override outline and background (punches through with its alpha).
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
+            // Text punches through outline (and shadow, handled in pre-render) but blends over the box.
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             for (HintKeyText keyText : keyTexts) {
                 QtFontStyle qtFontStyle = hintKeyTextQtFontStyle(keyText);
                 QColor color = qtFontStyle.color();
