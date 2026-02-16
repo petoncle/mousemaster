@@ -211,10 +211,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                         newMode.zoom()),
                 new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
-        if (hintMesh.hints().isEmpty()) {
-            WindowsOverlay.hideHintMesh();
-            return;
-        }
         WindowsOverlay.setHintMesh(hintMesh, newZoom);
         if (hintMeshConfiguration.mouseMovement() ==
             HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {

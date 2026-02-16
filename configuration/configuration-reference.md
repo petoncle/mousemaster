@@ -677,7 +677,7 @@ hint-mode.hint.prefix-in-background=true
 hint-mode.hint.transition-animation-enabled=true
 hint-mode.hint.transition-animation-duration-millis=100
  
-# Background
+# Background (for UI hints and position history hints only)
 hint-mode.hint.background-color=#000000
 hint-mode.hint.background-opacity=0
 ```

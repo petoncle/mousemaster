@@ -928,6 +928,19 @@ public class WindowsOverlay {
 
     private static void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom) {
         Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(hintMesh.hints());
+        if (hintsByScreen.isEmpty() && hintMesh.backgroundArea() != null) {
+            Rectangle backgroundArea = hintMesh.backgroundArea();
+            for (Screen screen : WindowsScreen.findScreens()) {
+                Rectangle screenRectangle = screen.rectangle();
+                boolean intersects =
+                        screenRectangle.x() < backgroundArea.x() + backgroundArea.width() &&
+                        backgroundArea.x() < screenRectangle.x() + screenRectangle.width() &&
+                        screenRectangle.y() < backgroundArea.y() + backgroundArea.height() &&
+                        backgroundArea.y() < screenRectangle.y() + screenRectangle.height();
+                if (intersects)
+                    hintsByScreen.put(screen, List.of());
+            }
+        }
         for (Map.Entry<Screen, HintMeshWindow> entry : hintMeshWindows.entrySet()) {
             Screen screen = entry.getKey();
             HintMeshWindow window = entry.getValue();
@@ -1096,6 +1109,13 @@ public class WindowsOverlay {
         }
         else {
             window.setBackground(null, null);
+        }
+        if (hintMeshWindow.hints().isEmpty()) {
+            QWidget container = new QWidget(window);
+            container.setGeometry(0, 0, 0, 0);
+            container.show();
+            window.show();
+            return;
         }
         HintMesh hintMeshKey = forcedPixmapAndPosition != null ? null :
                 new HintMesh.HintMeshBuilder(hintMesh)
@@ -3469,6 +3489,13 @@ public class WindowsOverlay {
         }
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return;
+        if (hintMesh.hints().isEmpty()) {
+            currentHintMesh = hintMesh;
+            hintMeshEndAnimation = false;
+            createOrUpdateHintMeshWindows(currentHintMesh, zoom);
+            showingHintMesh = true;
+            return;
+        }
         boolean isHintGrid = hintMesh.hints().getFirst().cellWidth() != -1;
         if (hintMatch) {
             if (isHintGrid)
