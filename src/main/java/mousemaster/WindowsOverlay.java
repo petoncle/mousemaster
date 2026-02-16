@@ -2083,7 +2083,7 @@ public class WindowsOverlay {
                     leftEdgePenOffset,
                     insidePenOffset,
                     top,
-                    Math.min(bottom - borderThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
+                    Math.min(bottom - borderThickness + 1, top + gridTopEdgeExtraVertical + borderLength / 2)
             );
             // Horizontal line.
             drawHorizontalGridLine(painter,
@@ -2095,7 +2095,7 @@ public class WindowsOverlay {
                     topEdgePenOffset,
                     insidePenOffset,
                     left,
-                    Math.min(right - borderThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
+                    Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
             );
             // Top right corner.
             // Vertical line.
@@ -2108,7 +2108,7 @@ public class WindowsOverlay {
                     rightEdgePenOffset - (edgeThickness - 1),
                     insidePenOffset - (bottomRightInsideThickness - 1),
                     top,
-                    Math.min(bottom - borderThickness, top + gridTopEdgeExtraVertical + borderLength / 2)
+                    Math.min(bottom - borderThickness + 1, top + gridTopEdgeExtraVertical + borderLength / 2)
             );
 
             // Horizontal line.
@@ -2146,7 +2146,7 @@ public class WindowsOverlay {
                     bottomEdgePenOffset - (edgeThickness - 1),
                     insidePenOffset - (bottomRightInsideThickness - 1),
                     left,
-                    Math.min(right - borderThickness, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
+                    Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2)
             );
             // Bottom right corner.
             // Vertical line.

@@ -676,6 +676,10 @@ hint-mode.hint.prefix-in-background=true
 # Animation
 hint-mode.hint.transition-animation-enabled=true
 hint-mode.hint.transition-animation-duration-millis=100
+ 
+# Background
+hint-mode.hint.background-color=#000000
+hint-mode.hint.background-opacity=0
 ```
 
 - Box appearance: controls the background and border of hint boxes
@@ -687,6 +691,8 @@ hint-mode.hint.transition-animation-duration-millis=100
   - `box-shadow-stack-count`: Number of times the shadow is composited on itself for stronger effect (1-100, default 1).
   - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 0).
   - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
+  - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
+  - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
