@@ -978,9 +978,9 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, 0, 1));
                         case "box-height-percent" -> mode.hintMesh.builder.style(viewportFilter).boxHeightPercent(
                                 parseDouble(propertyValue, true, 0, 1));
-                        case "cell-horizontal-padding" -> mode.hintMesh.builder.style(viewportFilter).cellHorizontalPadding(
+                        case "cell-horizontal-padding", "box-horizontal-padding" -> mode.hintMesh.builder.style(viewportFilter).cellHorizontalPadding(
                                 parseDouble(propertyValue, true, 0, 1000));
-                        case "cell-vertical-padding" -> mode.hintMesh.builder.style(viewportFilter).cellVerticalPadding(
+                        case "cell-vertical-padding", "box-vertical-padding" -> mode.hintMesh.builder.style(viewportFilter).cellVerticalPadding(
                                 parseDouble(propertyValue, true, 0, 1000));
                         case "subgrid-row-count" -> mode.hintMesh.builder.style(viewportFilter).subgridRowCount(parseUnsignedInteger(
                                 propertyValue, 1, 1_000));
