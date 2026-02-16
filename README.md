@@ -29,7 +29,7 @@ https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
 
 ### UI Hints Demo
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/357aca5e-3971-4d29-959c-48dbf61913c2" style="width: 100%; height: 100%;" />
+  <img src="https://github.com/user-attachments/assets/adada1bb-faaa-4946-bacc-aaa6b1807597" style="width: 100%; height: 100%;" />
 </p>
 
 ### Grid Demo
