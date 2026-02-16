@@ -1412,10 +1412,18 @@ public class ConfigurationParser {
                 }
             }
             case "position-history" -> {
-                if (keyMatcher.group(group3) == null)
-                    mode.wheel.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty,
-                            nonRootPropertyKeys);
+                if (keyMatcher.group(group3) == null) {
+                    mode.comboMap.savePosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.unsavePosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.clearPositionHistory.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.cycleNextPosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.cyclePreviousPosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                }
                 else if (keyMatcher.group(group4) == null)
                     throw new IllegalArgumentException(
                             "Invalid position-history property key");
