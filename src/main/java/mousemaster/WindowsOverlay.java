@@ -2219,10 +2219,13 @@ public class WindowsOverlay {
     }
 
     /**
-     * Zero opacity means shadow will not be rendered.
+     * Returns true if the two shadows differ and at least one has non-zero opacity.
+     * When both are zero-opacity neither renders, so no per-key processing is needed.
+     * When one is zero and the other is not, per-key processing is needed to exclude
+     * the zero-opacity keys from the other's shadow.
      */
-    private static boolean shadowAreDifferentAndNotZeroOpacity(Shadow a, Shadow b) {
-        return a.opacity() != 0 && b.opacity() != 0 && !a.equals(b);
+    private static boolean shadowsNeedPerKeyProcessing(Shadow a, Shadow b) {
+        return (a.opacity() != 0 || b.opacity() != 0) && !a.equals(b);
     }
 
     private static boolean fontShapeEquals(FontStyle a, FontStyle b) {
@@ -2249,13 +2252,13 @@ public class WindowsOverlay {
         }
         Shadow defaultShadow = defaultFontStyle.shadow();
         boolean perKeyShadow =
-                (hasSelectedKeys && shadowAreDifferentAndNotZeroOpacity(defaultShadow, selectedFontStyle.shadow())) ||
-                shadowAreDifferentAndNotZeroOpacity(defaultShadow, focusedFontStyle.shadow());
+                (hasSelectedKeys && shadowsNeedPerKeyProcessing(defaultShadow, selectedFontStyle.shadow())) ||
+                shadowsNeedPerKeyProcessing(defaultShadow, focusedFontStyle.shadow());
         if (prefixHintFontStyle != null) {
             perKeyShadow = perKeyShadow ||
-                           shadowAreDifferentAndNotZeroOpacity(defaultShadow, prefixHintFontStyle.defaultFontStyle().shadow()) ||
-                           (hasSelectedKeys && shadowAreDifferentAndNotZeroOpacity(defaultShadow, prefixHintFontStyle.selectedFontStyle().shadow())) ||
-                           shadowAreDifferentAndNotZeroOpacity(defaultShadow, prefixHintFontStyle.focusedFontStyle().shadow());
+                           shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.defaultFontStyle().shadow()) ||
+                           (hasSelectedKeys && shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.selectedFontStyle().shadow())) ||
+                           shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.focusedFontStyle().shadow());
         }
         QFont defaultFont = qFont(defaultFontStyle.name(), defaultFontStyle.size(), defaultFontStyle.weight());
         QFontMetrics defaultMetrics = correctedFontMetricsForScreenDpi(defaultFont, defaultFontStyle.size(), screenScale);
