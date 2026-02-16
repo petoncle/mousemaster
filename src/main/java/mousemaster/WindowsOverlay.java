@@ -1371,6 +1371,7 @@ public class WindowsOverlay {
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
+        QColor backgroundColor = qColor(style.backgroundHexColor(), style.backgroundOpacity());
         QColor subgridBoxColor = qColor("#000000", 0);
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
@@ -1654,21 +1655,21 @@ public class WindowsOverlay {
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
-        HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
+        HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of(), backgroundColor);
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 2: Hint boxes (with subgrid children).
-        HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
+        HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of(), null);
         boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(boxLayer, boxShadowLayer, hintBoxes, style.boxShadow(),
                 boxColor, boxBorderColor,
                 (int) Math.round(style.boxBorderThickness()),
                 containerWidth, containerHeight);
         // Layer 3: Prefix boxes.
-        HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
+        HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of(), null);
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 3: Prefix labels.
         HintPaintLayer prefixLabelLayer =
-                new HintPaintLayer(container, List.of(), prefixLabels);
+                new HintPaintLayer(container, List.of(), prefixLabels, null);
         prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         if (prefixQtHintFontStyle != null) {
             applyLabelShadow(prefixLabelLayer, prefixLabels,
@@ -1677,7 +1678,7 @@ public class WindowsOverlay {
         }
         // Layer 4: Hint labels.
         HintPaintLayer hintLabelLayer =
-                new HintPaintLayer(container, List.of(), hintLabels);
+                new HintPaintLayer(container, List.of(), hintLabels, null);
         hintLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyLabelShadow(hintLabelLayer, hintLabels,
                 labelFontStyle, hasSelectedKeys,
@@ -2871,14 +2872,17 @@ public class WindowsOverlay {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
+        private final QColor backgroundColor;
         // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
 
-        HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels) {
+        HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels,
+                       QColor backgroundColor) {
             super(parent);
             this.boxes = boxes;
             this.labels = labels;
+            this.backgroundColor = backgroundColor;
         }
 
         void setShadowPixmap(QPixmap shadowPixmap, int x, int y) {
@@ -2890,6 +2894,9 @@ public class WindowsOverlay {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
+            if (backgroundColor != null && backgroundColor.alpha() != 0) {
+                painter.fillRect(0, 0, width(), height(), backgroundColor);
+            }
             for (HintBox box : boxes) {
                 box.paint(painter);
             }

@@ -132,7 +132,9 @@ public class ConfigurationParser {
                 .subgridBorderHexColor("#FFFFFF")
                 .subgridBorderOpacity(1d)
                 .transitionAnimationEnabled(true)
-                .transitionAnimationDuration(Duration.ofMillis(100));
+                .transitionAnimationDuration(Duration.ofMillis(100))
+                .backgroundHexColor("#000000")
+                .backgroundOpacity(0d);
         hintMesh.eatUnusedSelectionKeys(true);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
@@ -996,6 +998,10 @@ public class ConfigurationParser {
                                 parseDouble(propertyValue, true, 0, 1));
                         case "transition-animation-enabled" -> mode.hintMesh.builder.style(viewportFilter).transitionAnimationEnabled(Boolean.parseBoolean(propertyValue));
                         case "transition-animation-duration-millis" -> mode.hintMesh.builder.style(viewportFilter).transitionAnimationDuration(parseDuration(propertyValue));
+                        case "background-color" -> mode.hintMesh.builder.style(viewportFilter).backgroundHexColor(
+                                checkColorFormat(propertyValue));
+                        case "background-opacity" -> mode.hintMesh.builder.style(viewportFilter).backgroundOpacity(
+                                parseDouble(propertyValue, true, 0, 1));
                         case "mode-after-selection" -> {
                             String modeAfterSelection = propertyValue;
                             modeReferences.add(
@@ -2406,6 +2412,16 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.transitionAnimationDuration(
                                 parentStyle.transitionAnimationDuration());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::backgroundHexColor,
+                            childStyleByFilter, filter))
+                        childStyle.backgroundHexColor(
+                                parentStyle.backgroundHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::backgroundOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.backgroundOpacity(
+                                parentStyle.backgroundOpacity());
                 }
                 // Font-style cascade: for each viewport filter, resolve all font
                 // properties (child.X, child.any, parent.X, parent.any).

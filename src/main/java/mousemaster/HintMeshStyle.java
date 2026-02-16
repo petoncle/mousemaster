@@ -29,7 +29,9 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             String subgridBorderHexColor,
                             double subgridBorderOpacity,
                             boolean transitionAnimationEnabled,
-                            Duration transitionAnimationDuration) {
+                            Duration transitionAnimationDuration,
+                            String backgroundHexColor,
+                            double backgroundOpacity) {
 
     public HintMeshStyleBuilder builder() {
         return new HintMeshStyleBuilder(this);
@@ -64,6 +66,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double subgridBorderOpacity;
         private Boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
+        private String backgroundHexColor;
+        private Double backgroundOpacity;
 
         public HintMeshStyleBuilder() {
 
@@ -98,6 +102,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.subgridBorderOpacity = style.subgridBorderOpacity;
             this.transitionAnimationEnabled = style.transitionAnimationEnabled;
             this.transitionAnimationDuration = style.transitionAnimationDuration;
+            this.backgroundHexColor = style.backgroundHexColor;
+            this.backgroundOpacity = style.backgroundOpacity;
         }
 
         public HintMeshStyleBuilder prefixInBackground(
@@ -226,6 +232,16 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
+        public HintMeshStyleBuilder backgroundHexColor(String backgroundHexColor) {
+            this.backgroundHexColor = backgroundHexColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder backgroundOpacity(Double backgroundOpacity) {
+            this.backgroundOpacity = backgroundOpacity;
+            return this;
+        }
+
         public HintFontStyle.HintFontStyleBuilder fontStyle() {
             return fontStyle;
         }
@@ -338,6 +354,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return transitionAnimationDuration;
         }
 
+        public String backgroundHexColor() {
+            return backgroundHexColor;
+        }
+
+        public Double backgroundOpacity() {
+            return backgroundOpacity;
+        }
+
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
             if (defaultStyle != null) {
                 boxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.boxShadow));
@@ -370,7 +394,9 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     subgridBorderHexColor == null ? defaultStyle.subgridBorderHexColor : subgridBorderHexColor,
                     subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity,
                     transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
-                    transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration
+                    transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,
+                    backgroundHexColor == null ? defaultStyle.backgroundHexColor : backgroundHexColor,
+                    backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity
             );
         }
 
