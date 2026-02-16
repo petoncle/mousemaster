@@ -348,9 +348,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                         gridLayout.cellWidth() * screenManager.activeScreen().scale(),
                         gridLayout.cellHeight() * screenManager.activeScreen().scale());
                 fixedSizeHintGrids.add(fixedSizeHintGrid);
+                hintMesh.backgroundArea(gridScreen.rectangle());
             }
             else if (hintGrid.area() instanceof AllScreensHintGridArea allScreensHintGridArea) {
                 List<Screen> sortedScreens = sortedScreens();
+                int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE;
+                int right = Integer.MIN_VALUE, bottom = Integer.MIN_VALUE;
                 for (Screen screen : sortedScreens) {
                     Point gridCenter = screen.rectangle().center();
                     HintGridLayout gridLayout = hintGrid.layout(
@@ -362,7 +365,12 @@ public class HintManager implements ModeListener, MousePositionListener {
                                     gridLayout.cellWidth() * screen.scale(),
                                     gridLayout.cellHeight() * screen.scale());
                     fixedSizeHintGrids.add(fixedSizeHintGrid);
+                    left = Math.min(left, screen.rectangle().x());
+                    top = Math.min(top, screen.rectangle().y());
+                    right = Math.max(right, screen.rectangle().x() + screen.rectangle().width());
+                    bottom = Math.max(bottom, screen.rectangle().y() + screen.rectangle().height());
                 }
+                hintMesh.backgroundArea(new Rectangle(left, top, right - left, bottom - top));
             }
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle =
@@ -377,6 +385,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                 gridLayout.cellWidth() * screen.scale(),
                                 gridLayout.cellHeight() * screen.scale());
                 fixedSizeHintGrids.add(fixedSizeHintGrid);
+                hintMesh.backgroundArea(activeWindowRectangle);
             }
             else
                 throw new IllegalStateException();
@@ -428,7 +437,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                     prefixLengths, hints);
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
-                            prefixLengths.iterator().next() : -1);
+                            prefixLengths.iterator().next() : -1)
+                    .backgroundArea(
+                            WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0));
         }
         else {
             int hintCount = positionHistory.size();
@@ -455,6 +466,21 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1);
+            // Background covers all screens that contain at least one hint.
+            int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE;
+            int right = Integer.MIN_VALUE, bottom = Integer.MIN_VALUE;
+            for (Screen screen : screenManager.screens()) {
+                boolean screenHasHint = hints.stream().anyMatch(
+                        hint -> screen.rectangle().contains(hint.centerX(), hint.centerY()));
+                if (screenHasHint) {
+                    left = Math.min(left, screen.rectangle().x());
+                    top = Math.min(top, screen.rectangle().y());
+                    right = Math.max(right, screen.rectangle().x() + screen.rectangle().width());
+                    bottom = Math.max(bottom, screen.rectangle().y() + screen.rectangle().height());
+                }
+            }
+            if (left != Integer.MAX_VALUE)
+                hintMesh.backgroundArea(new Rectangle(left, top, right - left, bottom - top));
         }
         HintMeshState previousHintMeshState = hintMeshStates.get(
                 new HintMeshKey(hintMeshConfiguration.type(),

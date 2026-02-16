@@ -1004,12 +1004,18 @@ public class WindowsOverlay {
     }
 
     private static class ClearBackgroundQLabel extends QLabel {
+        private QColor clearColor = new QColor(0, 0, 0, 0);
+
+        void setClearColor(QColor clearColor) {
+            this.clearColor = clearColor;
+        }
+
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             // Clear what's behind (when we're drawing the old container behind).
-            painter.fillRect(rect(), qColor("#000000", 0));
+            painter.fillRect(rect(), clearColor);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             super.paintEvent(event);
         }
@@ -1064,6 +1070,33 @@ public class WindowsOverlay {
                         (QWidget) window.children().getFirst();
         boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
         window.clearWindow();
+        // Compute background color for both the window and the container clear.
+        Rectangle backgroundArea = hintMesh.backgroundArea();
+        QColor backgroundColor = backgroundArea != null && style.backgroundOpacity() > 0 ?
+                qColor(style.backgroundHexColor(), style.backgroundOpacity()) : null;
+        if (backgroundColor != null) {
+            // Set background on the window itself (painted before child containers,
+            // covers the area outside the container).
+            int backgroundX = backgroundArea.x() - window.x();
+            int backgroundY = backgroundArea.y() - window.y();
+            int left = Math.max(0, backgroundX);
+            int top = Math.max(0, backgroundY);
+            int right = Math.min(window.width(), backgroundX + backgroundArea.width());
+            int bottom = Math.min(window.height(), backgroundY + backgroundArea.height());
+            if (right > left && bottom > top) {
+                window.setBackground(backgroundColor,
+                        new QRect(left, top, right - left, bottom - top));
+                // Without this, Qt only repaints the container's area,
+                // missing the background outside of it.
+                window.update(new QRect(left, top, right - left, bottom - top));
+            }
+            else {
+                window.setBackground(null, null);
+            }
+        }
+        else {
+            window.setBackground(null, null);
+        }
         HintMesh hintMeshKey = forcedPixmapAndPosition != null ? null :
                 new HintMesh.HintMeshBuilder(hintMesh)
                         .hints(trimmedHints(hintMeshWindow.hints(),
@@ -1098,7 +1131,9 @@ public class WindowsOverlay {
         else {
             // Uses ClearBackgroundQLabel because when in the mergedContainer,
             // the top-level container must override the container below.
-            QWidget container = new ClearBackgroundQLabel();
+            ClearBackgroundQLabel container = new ClearBackgroundQLabel();
+            if (backgroundColor != null)
+                container.setClearColor(backgroundColor);
             container.setStyleSheet("background: transparent;");
             newContainer = container;
             setUncachedHintMeshWindowRunnable =
@@ -1371,7 +1406,6 @@ public class WindowsOverlay {
         QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
-        QColor backgroundColor = qColor(style.backgroundHexColor(), style.backgroundOpacity());
         QColor subgridBoxColor = qColor("#000000", 0);
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
@@ -1655,21 +1689,21 @@ public class WindowsOverlay {
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
-        HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of(), backgroundColor);
+        HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 2: Hint boxes (with subgrid children).
-        HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of(), null);
+        HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
         boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(boxLayer, boxShadowLayer, hintBoxes, style.boxShadow(),
                 boxColor, boxBorderColor,
                 (int) Math.round(style.boxBorderThickness()),
                 containerWidth, containerHeight);
         // Layer 3: Prefix boxes.
-        HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of(), null);
+        HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         // Layer 3: Prefix labels.
         HintPaintLayer prefixLabelLayer =
-                new HintPaintLayer(container, List.of(), prefixLabels, null);
+                new HintPaintLayer(container, List.of(), prefixLabels);
         prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         if (prefixQtHintFontStyle != null) {
             applyLabelShadow(prefixLabelLayer, prefixLabels,
@@ -1678,7 +1712,7 @@ public class WindowsOverlay {
         }
         // Layer 4: Hint labels.
         HintPaintLayer hintLabelLayer =
-                new HintPaintLayer(container, List.of(), hintLabels, null);
+                new HintPaintLayer(container, List.of(), hintLabels);
         hintLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyLabelShadow(hintLabelLayer, hintLabels,
                 labelFontStyle, hasSelectedKeys,
@@ -2872,17 +2906,14 @@ public class WindowsOverlay {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
-        private final QColor backgroundColor;
         // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
 
-        HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels,
-                       QColor backgroundColor) {
+        HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels) {
             super(parent);
             this.boxes = boxes;
             this.labels = labels;
-            this.backgroundColor = backgroundColor;
         }
 
         void setShadowPixmap(QPixmap shadowPixmap, int x, int y) {
@@ -2894,9 +2925,6 @@ public class WindowsOverlay {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
-            if (backgroundColor != null && backgroundColor.alpha() != 0) {
-                painter.fillRect(0, 0, width(), height(), backgroundColor);
-            }
             for (HintBox box : boxes) {
                 box.paint(painter);
             }
@@ -3488,7 +3516,9 @@ public class WindowsOverlay {
         setUncachedHintMeshWindowRunnable = null;
         cacheQtHintWindowIntoPixmapRunnable = null;
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+            hintMeshWindow.window.setBackground(null, null);
             hintMeshWindow.window.hideChildren();
+            hintMeshWindow.window.repaint();
         }
     }
 
