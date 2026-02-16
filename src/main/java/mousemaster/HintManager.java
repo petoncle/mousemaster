@@ -838,6 +838,8 @@ public class HintManager implements ModeListener, MousePositionListener {
      * Undo.
      */
     public void unselectHintKey() {
+        if (pendingUiHintQuery != null)
+            return;
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
             return;
