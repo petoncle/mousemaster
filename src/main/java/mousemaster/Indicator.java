@@ -8,7 +8,8 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
                         IndicatorOutline outerOutline, IndicatorOutline innerOutline,
                         Shadow shadow,
                         boolean labelEnabled, String labelText,
-                        FontStyle labelFontStyle) {
+                        FontStyle labelFontStyle,
+                        IndicatorPosition position) {
 
     public static class IndicatorBuilder {
         private Integer size;
@@ -21,7 +22,7 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
         private Boolean labelEnabled;
         private String labelText;
         private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
-
+        private IndicatorPosition position;
 
         public IndicatorBuilder size(int size) {
             this.size = size;
@@ -93,6 +94,15 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
             return labelFontStyle;
         }
 
+        public IndicatorBuilder position(IndicatorPosition position) {
+            this.position = position;
+            return this;
+        }
+
+        public IndicatorPosition position() {
+            return position;
+        }
+
         public void extend(IndicatorBuilder parent) {
             if (size == null) size = parent.size;
             if (edgeCount == null) edgeCount = parent.edgeCount;
@@ -104,13 +114,15 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
             if (labelEnabled == null) labelEnabled = parent.labelEnabled;
             if (labelText == null) labelText = parent.labelText;
             labelFontStyle.extend(parent.labelFontStyle);
-}
+            if (position == null) position = parent.position;
+        }
 
         public Indicator build() {
             return new Indicator(size, edgeCount, hexColor, opacity,
                     outerOutline.build(), innerOutline.build(),
                     shadow.build(),
-                    labelEnabled, labelText, labelFontStyle.build());
+                    labelEnabled, labelText, labelFontStyle.build(),
+                    position);
         }
     }
 }

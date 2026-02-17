@@ -721,19 +721,51 @@ public class WindowsOverlay {
         return currentZoom.zoomedY(y);
     }
 
+    private static final int indicatorEdgeThreshold = 100;
+
     /**
-     * Returns the indicator center position offset from the cursor's visual center,
-     * clamped to screen bounds.
+     * Returns the indicator top-left position for the given indicator size.
+     * For CENTER, the indicator is centered on the cursor's visual center.
+     * For corner positions, the indicator is placed in that corner relative to the cursor,
+     * flipping to the opposite side when near the corresponding screen edge.
      */
-    private static Point indicatorCenter(WinDef.POINT mousePosition,
-                                         Screen activeScreen) {
-        Point cursorCenter = WindowsMouse.cursorVisualCenter();
-        double centerX = mousePosition.x + cursorCenter.x();
-        double centerY = mousePosition.y + cursorCenter.y();
+    private static Point indicatorTopLeft(WinDef.POINT mousePosition,
+                                          Screen activeScreen, int visualSize) {
         Rectangle screen = activeScreen.rectangle();
-        centerX = Math.max(screen.x(), Math.min(centerX, screen.x() + screen.width()));
-        centerY = Math.max(screen.y(), Math.min(centerY, screen.y() + screen.height()));
-        return new Point(zoomedX(centerX), zoomedY(centerY));
+        if (currentIndicator.position() == IndicatorPosition.CENTER) {
+            Point cursorCenter = WindowsMouse.cursorVisualCenter();
+            double centerX = mousePosition.x + cursorCenter.x();
+            double centerY = mousePosition.y + cursorCenter.y();
+            centerX = Math.max(screen.x(), Math.min(centerX, screen.x() + screen.width()));
+            centerY = Math.max(screen.y(), Math.min(centerY, screen.y() + screen.height()));
+            return new Point(zoomedX(centerX) - visualSize / 2.0,
+                    zoomedY(centerY) - visualSize / 2.0);
+        }
+        WindowsMouse.MouseSize mouseSize = WindowsMouse.mouseSize();
+        int mouseX = Math.max(screen.x(), Math.min(mousePosition.x,
+                screen.x() + screen.width()));
+        int mouseY = Math.max(screen.y(), Math.min(mousePosition.y,
+                screen.y() + screen.height()));
+        IndicatorPosition position = currentIndicator.position();
+        boolean defaultRight = position == IndicatorPosition.BOTTOM_RIGHT ||
+                               position == IndicatorPosition.TOP_RIGHT;
+        boolean defaultBottom = position == IndicatorPosition.BOTTOM_RIGHT ||
+                                position == IndicatorPosition.BOTTOM_LEFT;
+        boolean nearRightEdge = mouseX >=
+                screen.x() + screen.width() - indicatorEdgeThreshold;
+        boolean nearLeftEdge = mouseX <=
+                screen.x() + indicatorEdgeThreshold;
+        boolean placeRight = defaultRight ? !nearRightEdge : nearLeftEdge;
+        int indicatorX = placeRight ?
+                mouseX + mouseSize.width() / 2 : mouseX - visualSize;
+        boolean nearBottomEdge = mouseY >=
+                screen.y() + screen.height() - indicatorEdgeThreshold;
+        boolean nearTopEdge = mouseY <=
+                screen.y() + indicatorEdgeThreshold;
+        boolean placeBottom = defaultBottom ? !nearBottomEdge : nearTopEdge;
+        int indicatorY = placeBottom ?
+                mouseY + mouseSize.height() / 2 : mouseY - visualSize;
+        return new Point(zoomedX(indicatorX), zoomedY(indicatorY));
     }
 
     private static int indicatorOutlinePadding(double scale) {
@@ -779,9 +811,9 @@ public class WindowsOverlay {
         int widgetSize = size + 2 * outlinePadding;
         int windowSize = size + 2 * totalPadding;
         int visualSize = size + 2 * outlinePadding;
-        Point center = indicatorCenter(mousePosition, activeScreen);
-        int indicatorX = (int) Math.round(center.x()) - visualSize / 2;
-        int indicatorY = (int) Math.round(center.y()) - visualSize / 2;
+        Point topLeft = indicatorTopLeft(mousePosition, activeScreen, visualSize);
+        int indicatorX = (int) Math.round(topLeft.x());
+        int indicatorY = (int) Math.round(topLeft.y());
         indicatorWindow.window.move(indicatorX - shadowPadding,
                 indicatorY - shadowPadding);
         indicatorWindow.window.resize(windowSize, windowSize);
@@ -3214,10 +3246,14 @@ public class WindowsOverlay {
                     indicator.opacity() != oldIndicator.opacity() ||
                     indicator.outerOutline().opacity() != oldIndicator.outerOutline().opacity() ||
                     indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity();
-            if (sizeOrShadowChanged) {
-                WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
-                Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-                applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
+            boolean positionChanged = oldIndicator == null ||
+                    indicator.position() != oldIndicator.position();
+            if (sizeOrShadowChanged || positionChanged) {
+                if (sizeOrShadowChanged) {
+                    WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+                    Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+                    applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
+                }
                 moveAndResizeIndicatorWindow();
             }
         }
