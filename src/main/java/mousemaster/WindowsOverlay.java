@@ -435,7 +435,8 @@ public class WindowsOverlay {
         }
 
         void drawContent(QPainter painter, QColor fillColor,
-                         QColor outerOutlineColor, QColor innerOutlineColor) {
+                         QColor outerOutlineColor, QColor innerOutlineColor,
+                         boolean clearFullArea) {
             double maxOutlinePadding = maxOutlineThickness();
             int outlinePadding = (int) Math.ceil(maxOutlinePadding);
             double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
@@ -448,20 +449,30 @@ public class WindowsOverlay {
             double scaledInner = innerOutlineThickness * outlineScale;
             double correctedOuter = correctedOutlineThickness(scaledOuter);
             double correctedInner = correctedOutlineThickness(scaledInner);
-            // If any part is transparent, clear the entire indicator area first
-            // so the shadow (composited by the effect) doesn't show through.
+            // If any part is transparent, clear the area first so the shadow
+            // (composited by the effect) doesn't show through.
             if (indicatorHasTransparency()) {
-                // Use radialMiterPadding (not miterPadding) so the clearing
-                // polygon reaches every miter tip.
-                double maxScaled = Math.max(scaledOuter, scaledInner);
-                double radialPad = radialMiterPadding(maxScaled, edgeCount);
-                QPainterPath outerBoundary = polygonPath(centerX, centerY,
-                        fillRadius + radialPad, edgeCount);
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-                painter.setPen(Qt.PenStyle.NoPen);
-                painter.setBrush(new QBrush(new QColor(0, 0, 0)));
-                painter.drawPath(outerBoundary);
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+                if (clearFullArea) {
+                    // paintEvent: clear the entire indicator area (widget starts
+                    // transparent, so this ensures a clean slate).
+                    double maxScaled = Math.max(scaledOuter, scaledInner);
+                    double radialPad = radialMiterPadding(maxScaled, edgeCount);
+                    QPainterPath outerBoundary = polygonPath(centerX, centerY,
+                            fillRadius + radialPad, edgeCount);
+                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+                    painter.setPen(Qt.PenStyle.NoPen);
+                    painter.setBrush(new QBrush(new QColor(0, 0, 0)));
+                    painter.drawPath(outerBoundary);
+                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+                }
+                else {
+                    // redrawSourceOverShadow: only clear areas where content will
+                    // be drawn, so the shadow in empty areas (e.g. gaps in partial
+                    // outlines, transparent fill) is preserved.
+                    if (currentIndicator.outerOutline().opacity() < 1.0)
+                        clearOutline(painter, centerX, centerY, fillRadius,
+                                correctedOuter, outerOutlineFillPercent);
+                }
             }
             // Draw outer outline first (miter tips extend beyond fill polygon).
             drawOutline(painter, centerX, centerY, fillRadius,
@@ -495,7 +506,7 @@ public class WindowsOverlay {
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            drawContent(painter, color, outerOutlineColor, innerOutlineColor);
+            drawContent(painter, color, outerOutlineColor, innerOutlineColor, true);
             painter.end();
         }
     }
@@ -524,19 +535,25 @@ public class WindowsOverlay {
                 redrawSourceOverShadow(painter);
                 return;
             }
-            // Render shadow+source once into a temp image, apply stacking
-            // in-place, then composite onto the real painter.
-            int w = painter.device().width();
-            int h = painter.device().height();
-            QImage temp = new QImage(w, h, QImage.Format.Format_ARGB32_Premultiplied);
-            temp.fill(new QColor(0, 0, 0, 0));
-            QPainter tempPainter = new QPainter(temp);
-            super.draw(tempPainter);
-            tempPainter.end();
-            QImage stacked = bakeStacking(temp, stackCount);
-            temp.dispose();
-            painter.drawImage(0, 0, stacked);
-            stacked.dispose();
+            // Pre-render the shadow separately, bake stacking, then draw
+            // the stacked shadow and source independently.
+            QPoint sourceOffset = new QPoint();
+            QPixmap sourcePixmap = sourcePixmap(
+                    Qt.CoordinateSystem.DeviceCoordinates, sourceOffset,
+                    PixmapPadMode.PadToEffectiveBoundingRect);
+            QImage sourceImage = sourcePixmap.toImage();
+            int w = sourceImage.width();
+            int h = sourceImage.height();
+            ShadowImage shadow = renderShadowOnly(sourceImage, color(),
+                    blurRadius(), xOffset(), yOffset(), w, h);
+            QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
+            QTransform savedTransform = painter.worldTransform();
+            painter.setWorldTransform(new QTransform());
+            painter.drawImage(sourceOffset.x() + shadow.x(),
+                    sourceOffset.y() + shadow.y(), stackedShadow);
+            stackedShadow.dispose();
+            painter.setWorldTransform(savedTransform);
+            drawSource(painter);
             redrawSourceOverShadow(painter);
         }
 
@@ -607,7 +624,7 @@ public class WindowsOverlay {
             if (!indicatorHasTransparency())
                 return;
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            widget.drawContent(painter, fillColor, outerOutlineColor, innerOutlineColor);
+            widget.drawContent(painter, fillColor, outerOutlineColor, innerOutlineColor, false);
         }
     }
 
