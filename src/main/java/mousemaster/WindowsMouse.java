@@ -1,11 +1,12 @@
 package mousemaster;
 
+import com.sun.jna.Memory;
+import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.stream.LongStream;
@@ -328,5 +329,85 @@ public class WindowsMouse {
 
     public record MouseSize(int width, int height) {
 
+    }
+
+    private static final Map<Pointer, Point> centerByCursorHandle = new HashMap<>();
+
+    /**
+     * Returns the visual center of the current cursor relative to its hotspot,
+     * computed by finding the bounding box of non-transparent pixels.
+     * Results are cached per cursor handle.
+     */
+    static Point cursorVisualCenter() {
+        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
+        if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) ||
+            cursorInfo.hCursor == null)
+            return new Point(0, 0);
+        Pointer cursorHandle = cursorInfo.hCursor.getPointer();
+        return centerByCursorHandle.computeIfAbsent(cursorHandle,
+                handle -> computeCursorVisualCenter(cursorInfo));
+    }
+
+    private static Point computeCursorVisualCenter(
+            ExtendedUser32.CURSORINFO cursorInfo) {
+        WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+        if (!User32.INSTANCE.GetIconInfo(
+                new WinDef.HICON(cursorInfo.hCursor), iconInfo))
+            return new Point(0, 0);
+        try {
+            int hotspotX = iconInfo.xHotspot;
+            int hotspotY = iconInfo.yHotspot;
+            WinDef.HBITMAP bitmap =
+                    iconInfo.hbmColor != null ? iconInfo.hbmColor : iconInfo.hbmMask;
+            WinGDI.BITMAP bmp = new WinGDI.BITMAP();
+            GDI32.INSTANCE.GetObject(bitmap, bmp.size(), bmp.getPointer());
+            bmp.read();
+            int width = bmp.bmWidth.intValue();
+            int height = bmp.bmHeight.intValue();
+            if (iconInfo.hbmColor == null)
+                height /= 2; // Monochrome: top half is AND mask
+            if (width <= 0 || height <= 0)
+                return new Point(0, 0);
+            // Set up BITMAPINFO for 32-bit top-down reading.
+            WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
+            bitmapInfo.bmiHeader.biWidth = width;
+            bitmapInfo.bmiHeader.biHeight = -height; // Negative = top-down
+            bitmapInfo.bmiHeader.biPlanes = 1;
+            bitmapInfo.bmiHeader.biBitCount = 32;
+            // biCompression = BI_RGB (0), rest is 0
+            Memory pixels = new Memory((long) width * height * 4);
+            WinDef.HDC hdc = GDI32.INSTANCE.CreateCompatibleDC(null);
+            int result = GDI32.INSTANCE.GetDIBits(
+                    hdc, bitmap, 0, height, pixels, bitmapInfo,
+                    WinGDI.DIB_RGB_COLORS);
+            GDI32.INSTANCE.DeleteDC(hdc);
+            if (result == 0)
+                return new Point(0, 0);
+            // Find bounding box of non-transparent pixels.
+            int minX = width, maxX = 0, minY = height, maxY = 0;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    long offset = ((long) y * width + x) * 4;
+                    int alpha = pixels.getByte(offset + 3) & 0xFF;
+                    if (alpha > 0) {
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            if (maxX < minX)
+                return new Point(0, 0); // No visible pixels found
+            double centerX = (minX + maxX) / 2.0 - hotspotX;
+            double centerY = (minY + maxY) / 2.0 - hotspotY;
+            return new Point(centerX, centerY);
+        }
+        finally {
+            if (iconInfo.hbmColor != null)
+                GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
+            if (iconInfo.hbmMask != null)
+                GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
+        }
     }
 }

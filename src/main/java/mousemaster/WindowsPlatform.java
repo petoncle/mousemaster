@@ -95,6 +95,12 @@ public class WindowsPlatform implements Platform {
                 listener.mouseMoved(mousePosition.x, mousePosition.y);
             }
         }
+        else if (lastMousePosition != null) {
+            // Mouse position hasn't changed, but the cursor shape may have changed
+            // (e.g., arrow to hand after keyboard-driven movement stopped).
+            // Reposition the indicator with the updated cursor visual center.
+            WindowsOverlay.mouseMoved(lastMousePosition);
+        }
         windowsMessagePump();
         long beforeTime = System.nanoTime();
         while (true) {
