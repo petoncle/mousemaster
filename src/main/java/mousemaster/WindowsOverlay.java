@@ -498,14 +498,18 @@ public class WindowsOverlay {
             }
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedOuter, outerOutlineColor, outerOutlineFillPercent, 1.0);
-            // Draw inner outline on top of outer outline.
+            // Draw inner outline on top of outer outline. Use a larger
+            // inwardOverlap so the inner outline's antialiased inner edge
+            // doesn't coincide with the outer outline's inner edge (which
+            // would let the outer outline color bleed through).
+            double innerInwardOverlap = correctedOuter > 0 ? 2.0 : 1.0;
             if (!clearFullArea && innerOutlineColor != null && innerOutlineColor.alpha() > 0
                     && innerOutlineColor.alpha() < 255) {
                 clearOutline(painter, centerX, centerY, fillRadius,
                         correctedInner, innerOutlineFillPercent);
             }
             drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedInner, innerOutlineColor, innerOutlineFillPercent, 1.0);
+                    correctedInner, innerOutlineColor, innerOutlineFillPercent, innerInwardOverlap);
         }
 
         @Override
