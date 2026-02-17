@@ -214,6 +214,7 @@ public class WindowsOverlay {
         private double innerOutlineFillPercent;
         private double outlineScale;
         private IndicatorShadowEffect customGraphicsEffect;
+        private boolean cleared;
 
         IndicatorWidget(QWidget parent) {
             super(parent);
@@ -531,6 +532,14 @@ public class WindowsOverlay {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
+            if (cleared) {
+                // Paint fully transparent so DWM's cached surface is blank.
+                painter.setCompositionMode(
+                        QPainter.CompositionMode.CompositionMode_Clear);
+                painter.fillRect(rect(), new QColor(0, 0, 0, 0));
+                painter.end();
+                return;
+            }
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             drawContent(painter, color, outerOutlineColor, innerOutlineColor, true);
             painter.end();
@@ -643,6 +652,17 @@ public class WindowsOverlay {
             this.fillColor = fillColor;
             this.outerOutlineColor = outerOutlineColor;
             this.innerOutlineColor = innerOutlineColor;
+        }
+
+        @Override
+        protected void draw(QPainter painter) {
+            if (widget.cleared) {
+                // Just draw the source (triggers paintEvent which clears).
+                // Skip shadow and redrawSourceOverShadow.
+                drawSource(painter);
+                return;
+            }
+            super.draw(painter);
         }
 
         @Override
@@ -959,11 +979,9 @@ public class WindowsOverlay {
         // of the shadow effect and can clear/redraw the fill area.
         IndicatorLabelWidget labelWidget = new IndicatorLabelWidget(window);
         indicatorWindow = new IndicatorWindow(hwnd, window, widget, labelWidget);
-        moveAndResizeIndicatorWindow();
         WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
-        window.show();
         updateZoomExcludedWindows();
     }
 
@@ -3276,7 +3294,9 @@ public class WindowsOverlay {
             return;
         Indicator oldIndicator = currentIndicator;
         currentIndicator = indicator;
-        if (indicatorWindow == null) {
+        boolean created = indicatorWindow == null;
+        boolean sizeOrShadowOrPositionChanged = false;
+        if (created) {
             createIndicatorWindow();
         }
         else {
@@ -3291,22 +3311,19 @@ public class WindowsOverlay {
                     indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity();
             boolean positionChanged = oldIndicator == null ||
                     indicator.position() != oldIndicator.position();
-            if (sizeOrShadowChanged || positionChanged) {
-                if (sizeOrShadowChanged) {
-                    WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
-                    Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-                    applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
-                }
-                moveAndResizeIndicatorWindow();
+            if (sizeOrShadowChanged) {
+                WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+                Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
+                applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
             }
+            sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
         }
-        showingIndicator = true;
+        indicatorWindow.widget.cleared = false;
         indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
         indicatorWindow.widget.setColor(indicator.opacity() > 0
                 ? new QColor(indicator.hexColor()) : new QColor(0, 0, 0, 0));
         IndicatorOutline outer = indicator.outerOutline();
         IndicatorOutline inner = indicator.innerOutline();
-        // Widget draws opaque; the shadow effect redraws with real opacity.
         indicatorWindow.widget.setOutlines(
                 outer.thickness(),
                 outer.opacity() > 0 ? new QColor(outer.hexColor()) : new QColor(0, 0, 0, 0),
@@ -3317,6 +3334,10 @@ public class WindowsOverlay {
         if (indicatorWindow.widget.customGraphicsEffect != null) {
             setIndicatorEffectColors(indicatorWindow.widget.customGraphicsEffect);
         }
+        if (created || sizeOrShadowOrPositionChanged) {
+            moveAndResizeIndicatorWindow();
+        }
+        showingIndicator = true;
         if (indicator.labelEnabled() && indicator.labelText() != null && indicator.labelFontStyle() != null) {
             FontStyle labelFontStyle = indicator.labelFontStyle();
             QFont labelFont = qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
@@ -3349,11 +3370,8 @@ public class WindowsOverlay {
             indicatorWindow.labelWidget.setGraphicsEffect(null);
             indicatorWindow.labelWidget.hide();
         }
-        // Synchronous repaint before showing so the surface has the new
-        // content. An async update() would let DWM show the old surface
-        // for one frame.
-        indicatorWindow.widget.repaint();
         indicatorWindow.window.show();
+        indicatorWindow.widget.repaint();
     }
 
     public static void setZoom(Zoom zoom) {
@@ -3469,6 +3487,9 @@ public class WindowsOverlay {
         if (!showingIndicator)
             return;
         showingIndicator = false;
+        // Paint the surface fully transparent before hiding.
+        indicatorWindow.widget.cleared = true;
+        indicatorWindow.widget.repaint();
         indicatorWindow.window.hide();
     }
 

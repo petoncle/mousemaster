@@ -796,14 +796,14 @@
 },
 {
   "name":"mousemaster.WindowsOverlay$IndicatorWidget",
-  "methods":[{"name":"clearOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","double"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
+  "methods":[{"name":"clearOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","double"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor","boolean"] }, {"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$StackedShadowEffect",
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"redrawSourceOverShadow","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setStackedOpacity","parameterTypes":["double"] }]
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"redrawSourceOverShadow","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setStackCount","parameterTypes":["int"] }, {"name":"setStackedOpacity","parameterTypes":["double"] }, {"name":"setTransparencyOnly","parameterTypes":["boolean"] }]
 },
 {
   "name":"mousemaster.qt.TransparentWindow",
-  "methods":[{"name":"clearWindow","parameterTypes":[] }, {"name":"hideChildren","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+  "methods":[{"name":"clearWindow","parameterTypes":[] }, {"name":"hideChildren","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setBackground","parameterTypes":["io.qt.gui.QColor","io.qt.core.QRect"] }]
 }
 ]
