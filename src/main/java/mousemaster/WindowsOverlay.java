@@ -226,12 +226,10 @@ public class WindowsOverlay {
 
         void setColor(QColor color) {
             this.color = color;
-            update();
         }
 
         void setEdgeCount(int edgeCount) {
             this.edgeCount = edgeCount;
-            update();
         }
 
         void setOutlines(double outerOutlineThickness, QColor outerOutlineColor,
@@ -244,7 +242,6 @@ public class WindowsOverlay {
             this.innerOutlineThickness = innerOutlineThickness;
             this.innerOutlineColor = innerOutlineColor;
             this.innerOutlineFillPercent = innerOutlineFillPercent;
-            update();
         }
 
         /**
@@ -3238,13 +3235,19 @@ public class WindowsOverlay {
         }
         showingIndicator = true;
         indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
-        indicatorWindow.widget.setColor(new QColor(indicator.hexColor()));
+        indicatorWindow.widget.setColor(indicator.opacity() > 0
+                ? new QColor(indicator.hexColor()) : new QColor(0, 0, 0, 0));
         IndicatorOutline outer = indicator.outerOutline();
         IndicatorOutline inner = indicator.innerOutline();
         // Widget draws opaque; the shadow effect redraws with real opacity.
         indicatorWindow.widget.setOutlines(
-                outer.thickness(), new QColor(outer.hexColor()), outer.fillPercent(),
-                inner.thickness(), new QColor(inner.hexColor()), inner.fillPercent());
+                outer.thickness(),
+                outer.opacity() > 0 ? new QColor(outer.hexColor()) : new QColor(0, 0, 0, 0),
+                outer.fillPercent(),
+                inner.thickness(),
+                inner.opacity() > 0 ? new QColor(inner.hexColor()) : new QColor(0, 0, 0, 0),
+                inner.fillPercent());
+        indicatorWindow.widget.update();
         if (indicatorWindow.widget.customGraphicsEffect != null) {
             setIndicatorEffectColors(indicatorWindow.widget.customGraphicsEffect);
         }
