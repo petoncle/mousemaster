@@ -357,50 +357,29 @@ public class WindowsMouse {
         try {
             int hotspotX = iconInfo.xHotspot;
             int hotspotY = iconInfo.yHotspot;
-            WinDef.HBITMAP bitmap =
-                    iconInfo.hbmColor != null ? iconInfo.hbmColor : iconInfo.hbmMask;
-            WinGDI.BITMAP bmp = new WinGDI.BITMAP();
-            GDI32.INSTANCE.GetObject(bitmap, bmp.size(), bmp.getPointer());
-            bmp.read();
-            int width = bmp.bmWidth.intValue();
-            int height = bmp.bmHeight.intValue();
-            if (iconInfo.hbmColor == null)
-                height /= 2; // Monochrome: top half is AND mask
-            if (width <= 0 || height <= 0)
-                return new Point(0, 0);
-            // Set up BITMAPINFO for 32-bit top-down reading.
-            WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
-            bitmapInfo.bmiHeader.biWidth = width;
-            bitmapInfo.bmiHeader.biHeight = -height; // Negative = top-down
-            bitmapInfo.bmiHeader.biPlanes = 1;
-            bitmapInfo.bmiHeader.biBitCount = 32;
-            // biCompression = BI_RGB (0), rest is 0
-            Memory pixels = new Memory((long) width * height * 4);
-            WinDef.HDC hdc = GDI32.INSTANCE.CreateCompatibleDC(null);
-            int result = GDI32.INSTANCE.GetDIBits(
-                    hdc, bitmap, 0, height, pixels, bitmapInfo,
-                    WinGDI.DIB_RGB_COLORS);
-            GDI32.INSTANCE.DeleteDC(hdc);
-            if (result == 0)
-                return new Point(0, 0);
-            // Find bounding box of non-transparent pixels.
-            int minX = width, maxX = 0, minY = height, maxY = 0;
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    long offset = ((long) y * width + x) * 4;
-                    int alpha = pixels.getByte(offset + 3) & 0xFF;
-                    if (alpha > 0) {
-                        minX = Math.min(minX, x);
-                        maxX = Math.max(maxX, x);
-                        minY = Math.min(minY, y);
-                        maxY = Math.max(maxY, y);
-                    }
-                }
+            // Try color bitmap first (alpha-based detection).
+            Rectangle bounds = null;
+            String method = "none";
+            if (iconInfo.hbmColor != null) {
+                bounds = colorBitmapBounds(iconInfo.hbmColor);
+                if (bounds != null)
+                    method = "color";
             }
-            if (maxX < minX)
-                return new Point(0, 0); // No visible pixels found
-            double centerX = (minX + maxX) / 2.0 - hotspotX;
-            double centerY = (minY + maxY) / 2.0 - hotspotY;
+            // Fall back to mask bitmap if color had no visible pixels
+            // or no color bitmap exists.
+            if (bounds == null && iconInfo.hbmMask != null) {
+                boolean hasColorBitmap = iconInfo.hbmColor != null;
+                bounds = maskBitmapBounds(iconInfo.hbmMask, hasColorBitmap);
+                if (bounds != null)
+                    method = hasColorBitmap ? "mask-and" : "mask-andxor";
+            }
+            if (bounds == null)
+                return new Point(0, 0);
+            double centerX = bounds.x() + bounds.width() / 2.0 - hotspotX;
+            double centerY = bounds.y() + bounds.height() / 2.0 - hotspotY;
+            logger.info("Cursor visual center: method={}, bounds={}x{} at ({},{}), hotspot=({},{}), center=({},{})",
+                    method, bounds.width(), bounds.height(), bounds.x(), bounds.y(),
+                    hotspotX, hotspotY, centerX, centerY);
             return new Point(centerX, centerY);
         }
         finally {
@@ -409,5 +388,122 @@ public class WindowsMouse {
             if (iconInfo.hbmMask != null)
                 GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
         }
+    }
+
+    /**
+     * Returns the bounding box of visible pixels in a color bitmap.
+     * Tries alpha > 0 first; if no pixels found, falls back to
+     * checking for non-black RGB (for XOR/inversion cursors like I-beam where
+     * alpha is 0 but RGB encodes the visible shape).
+     */
+    private static Rectangle colorBitmapBounds(WinDef.HBITMAP bitmap) {
+        WinGDI.BITMAP bmp = new WinGDI.BITMAP();
+        GDI32.INSTANCE.GetObject(bitmap, bmp.size(), bmp.getPointer());
+        bmp.read();
+        int width = bmp.bmWidth.intValue();
+        int height = bmp.bmHeight.intValue();
+        if (width <= 0 || height <= 0)
+            return null;
+        try (Memory pixels = readBitmap32(bitmap, width, height)) {
+            if (pixels == null)
+                return null;
+            // First pass: alpha > 0 (standard 32-bit alpha cursors).
+            int minX = width, maxX = 0, minY = height, maxY = 0;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int alpha = pixels.getByte(((long) y * width + x) * 4 + 3) & 0xFF;
+                    if (alpha > 0) {
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            if (maxX >= minX)
+                return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
+            // Second pass: non-black RGB (XOR/inversion cursors with alpha=0).
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    long offset = ((long) y * width + x) * 4;
+                    boolean nonBlack =
+                            (pixels.getByte(offset) & 0xFF) != 0 ||
+                            (pixels.getByte(offset + 1) & 0xFF) != 0 ||
+                            (pixels.getByte(offset + 2) & 0xFF) != 0;
+                    if (nonBlack) {
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            return maxX >= minX ? new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1) : null;
+        }
+    }
+
+    /**
+     * Returns bounding rectangle of visible pixels in a mask bitmap.
+     * @param andOnly true for color cursors (single-height AND-only mask: AND=0 is visible).
+     *               false for monochrome cursors (double-height: top=AND, bottom=XOR;
+     *               visible if AND=0 or XOR is non-zero).
+     */
+    private static Rectangle maskBitmapBounds(WinDef.HBITMAP bitmap, boolean andOnly) {
+        WinGDI.BITMAP bmp = new WinGDI.BITMAP();
+        GDI32.INSTANCE.GetObject(bitmap, bmp.size(), bmp.getPointer());
+        bmp.read();
+        int width = bmp.bmWidth.intValue();
+        int fullHeight = bmp.bmHeight.intValue();
+        int height = andOnly ? fullHeight : fullHeight / 2;
+        if (width <= 0 || height <= 0)
+            return null;
+        int readHeight = andOnly ? height : fullHeight;
+        try (Memory pixels = readBitmap32(bitmap, width, readHeight)) {
+            if (pixels == null)
+                return null;
+            int minX = width, maxX = 0, minY = height, maxY = 0;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    long andOffset = ((long) y * width + x) * 4;
+                    boolean andOpaque =
+                            (pixels.getByte(andOffset) & 0xFF) == 0 &&
+                            (pixels.getByte(andOffset + 1) & 0xFF) == 0 &&
+                            (pixels.getByte(andOffset + 2) & 0xFF) == 0;
+                    boolean visible;
+                    if (andOnly) {
+                        visible = andOpaque;
+                    } else {
+                        long xorOffset = ((long) (y + height) * width + x) * 4;
+                        boolean xorVisible =
+                                (pixels.getByte(xorOffset) & 0xFF) != 0 ||
+                                (pixels.getByte(xorOffset + 1) & 0xFF) != 0 ||
+                                (pixels.getByte(xorOffset + 2) & 0xFF) != 0;
+                        visible = andOpaque || xorVisible;
+                    }
+                    if (visible) {
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            return maxX >= minX ? new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1) : null;
+        }
+    }
+
+    private static Memory readBitmap32(WinDef.HBITMAP bitmap, int width, int height) {
+        WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
+        bitmapInfo.bmiHeader.biWidth = width;
+        bitmapInfo.bmiHeader.biHeight = -height; // Negative = top-down
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biBitCount = 32;
+        Memory pixels = new Memory((long) width * height * 4);
+        WinDef.HDC hdc = GDI32.INSTANCE.CreateCompatibleDC(null);
+        int result = GDI32.INSTANCE.GetDIBits(
+                hdc, bitmap, 0, height, pixels, bitmapInfo,
+                WinGDI.DIB_RGB_COLORS);
+        GDI32.INSTANCE.DeleteDC(hdc);
+        return result != 0 ? pixels : null;
     }
 }
