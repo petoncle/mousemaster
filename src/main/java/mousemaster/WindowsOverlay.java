@@ -1806,7 +1806,7 @@ public class WindowsOverlay {
         if (prefixQtHintFontStyle != null) {
             applyLabelShadow(prefixLabelLayer, prefixLabels,
                     prefixQtHintFontStyle, hasSelectedKeys,
-                    containerWidth, containerHeight);
+                    containerWidth, containerHeight, screenScale);
         }
         // Layer 4: Hint labels.
         HintPaintLayer hintLabelLayer =
@@ -1814,7 +1814,7 @@ public class WindowsOverlay {
         hintLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyLabelShadow(hintLabelLayer, hintLabels,
                 labelFontStyle, hasSelectedKeys,
-                containerWidth, containerHeight);
+                containerWidth, containerHeight, screenScale);
         return hintBoxGeometries;
     }
 
@@ -1916,6 +1916,18 @@ public class WindowsOverlay {
         metricsFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
         metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
         return new QFontMetrics(metricsFont);
+    }
+
+    /**
+     * Sets the QImage DPI to match the target screen so that point-size fonts
+     * render at the correct pixel size. Without this, text painted into off-screen
+     * QImages uses the primary screen's DPI, causing wrong-sized glyphs on
+     * secondary screens with different scaling.
+     */
+    private static void setQImageDpiForScreen(QImage image, double screenScale) {
+        int dotsPerMeter = (int) Math.round(screenScale * 96.0 / 0.0254);
+        image.setDotsPerMeterX(dotsPerMeter);
+        image.setDotsPerMeterY(dotsPerMeter);
     }
 
     private static void cacheQtHintWindowIntoPixmap(TransparentWindow window, QWidget container,
@@ -2799,11 +2811,12 @@ public class WindowsOverlay {
                                          QtHintFontStyle style,
                                          boolean hasSelectedKeys,
                                          int containerWidth,
-                                         int containerHeight) {
+                                         int containerHeight,
+                                         double screenScale) {
         if (style.perKeyShadow()) {
             logger.debug("Hint label shadow: per-key shadow, pre-rendering per group");
             preRenderLabelShadow(layer, labels, style,
-                    containerWidth, containerHeight);
+                    containerWidth, containerHeight, screenScale);
             return;
         }
         QtFontStyle defaultStyle = style.defaultStyle();
@@ -2830,7 +2843,7 @@ public class WindowsOverlay {
             else
                 logger.debug("Hint label shadow: transparent text, pre-rendering off-screen");
             preRenderLabelShadow(layer, labels, style,
-                    containerWidth, containerHeight);
+                    containerWidth, containerHeight, screenScale);
         }
     }
 
@@ -2838,15 +2851,17 @@ public class WindowsOverlay {
                                              List<HintLabel> labels,
                                              QtHintFontStyle style,
                                              int containerWidth,
-                                             int containerHeight) {
+                                             int containerHeight,
+                                             double screenScale) {
         if (style.perKeyShadow()) {
-            preRenderPerGroupShadow(layer, labels, containerWidth, containerHeight);
+            preRenderPerGroupShadow(layer, labels, containerWidth, containerHeight, screenScale);
             return;
         }
         QtFontStyle shadowStyle = style.defaultStyle();
         // Render labels into a source image with forced opaque colors.
         QImage sourceImage = new QImage(containerWidth, containerHeight,
                 QImage.Format.Format_ARGB32_Premultiplied);
+        setQImageDpiForScreen(sourceImage, screenScale);
         sourceImage.fill(new QColor(0, 0, 0, 0));
         QPainter srcPainter = new QPainter(sourceImage);
         for (HintLabel label : labels) {
@@ -2931,7 +2946,8 @@ public class WindowsOverlay {
      */
     private static void preRenderPerGroupShadow(
             HintPaintLayer layer, List<HintLabel> labels,
-            int containerWidth, int containerHeight) {
+            int containerWidth, int containerHeight,
+            double screenScale) {
         // 1. Collect unique shadow groups.
         Set<ShadowGroupKey> groups = new LinkedHashSet<>();
         for (HintLabel label : labels) {
@@ -2948,6 +2964,7 @@ public class WindowsOverlay {
             // Render source image with only keys matching this group.
             QImage sourceImage = new QImage(containerWidth, containerHeight,
                     QImage.Format.Format_ARGB32_Premultiplied);
+            setQImageDpiForScreen(sourceImage, screenScale);
             sourceImage.fill(new QColor(0, 0, 0, 0));
             QPainter srcPainter = new QPainter(sourceImage);
             for (HintLabel label : labels) {
