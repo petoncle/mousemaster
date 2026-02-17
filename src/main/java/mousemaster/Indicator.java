@@ -8,8 +8,7 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
                         IndicatorOutline outerOutline, IndicatorOutline innerOutline,
                         Shadow shadow,
                         boolean labelEnabled, String labelText,
-                        FontStyle labelFontStyle,
-                        double horizontalOffset, double verticalOffset) {
+                        FontStyle labelFontStyle) {
 
     public static class IndicatorBuilder {
         private Integer size;
@@ -22,8 +21,7 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
         private Boolean labelEnabled;
         private String labelText;
         private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
-        private Double horizontalOffset;
-        private Double verticalOffset;
+
 
         public IndicatorBuilder size(int size) {
             this.size = size;
@@ -95,24 +93,6 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
             return labelFontStyle;
         }
 
-        public IndicatorBuilder horizontalOffset(double horizontalOffset) {
-            this.horizontalOffset = horizontalOffset;
-            return this;
-        }
-
-        public Double horizontalOffset() {
-            return horizontalOffset;
-        }
-
-        public IndicatorBuilder verticalOffset(double verticalOffset) {
-            this.verticalOffset = verticalOffset;
-            return this;
-        }
-
-        public Double verticalOffset() {
-            return verticalOffset;
-        }
-
         public void extend(IndicatorBuilder parent) {
             if (size == null) size = parent.size;
             if (edgeCount == null) edgeCount = parent.edgeCount;
@@ -124,16 +104,13 @@ public record Indicator(int size, int edgeCount, String hexColor, double opacity
             if (labelEnabled == null) labelEnabled = parent.labelEnabled;
             if (labelText == null) labelText = parent.labelText;
             labelFontStyle.extend(parent.labelFontStyle);
-            if (horizontalOffset == null) horizontalOffset = parent.horizontalOffset;
-            if (verticalOffset == null) verticalOffset = parent.verticalOffset;
-        }
+}
 
         public Indicator build() {
             return new Indicator(size, edgeCount, hexColor, opacity,
                     outerOutline.build(), innerOutline.build(),
                     shadow.build(),
-                    labelEnabled, labelText, labelFontStyle.build(),
-                    horizontalOffset, verticalOffset);
+                    labelEnabled, labelText, labelFontStyle.build());
         }
     }
 }

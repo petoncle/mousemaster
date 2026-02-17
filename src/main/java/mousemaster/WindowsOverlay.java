@@ -728,8 +728,8 @@ public class WindowsOverlay {
     private static Point indicatorCenter(WinDef.POINT mousePosition,
                                          Screen activeScreen) {
         Point cursorCenter = WindowsMouse.cursorVisualCenter();
-        double centerX = mousePosition.x + cursorCenter.x() + currentIndicator.horizontalOffset();
-        double centerY = mousePosition.y + cursorCenter.y() + currentIndicator.verticalOffset();
+        double centerX = mousePosition.x + cursorCenter.x();
+        double centerY = mousePosition.y + cursorCenter.y();
         Rectangle screen = activeScreen.rectangle();
         centerX = Math.max(screen.x(), Math.min(centerX, screen.x() + screen.width()));
         centerY = Math.max(screen.y(), Math.min(centerY, screen.y() + screen.height()));
@@ -3213,9 +3213,7 @@ public class WindowsOverlay {
                     !indicator.shadow().equals(oldIndicator.shadow()) ||
                     indicator.opacity() != oldIndicator.opacity() ||
                     indicator.outerOutline().opacity() != oldIndicator.outerOutline().opacity() ||
-                    indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity() ||
-                    indicator.horizontalOffset() != oldIndicator.horizontalOffset() ||
-                    indicator.verticalOffset() != oldIndicator.verticalOffset();
+                    indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity();
             if (sizeOrShadowChanged) {
                 WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
                 Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);

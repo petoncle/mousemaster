@@ -161,9 +161,7 @@ public class ConfigurationParser {
         idleIndicator.size(6)
                      .edgeCount(30)
                      .hexColor("#FF0000")
-                     .opacity(1.0)
-                     .horizontalOffset(15.0)
-                     .verticalOffset(15.0);
+                     .opacity(1.0);
         idleIndicator.outerOutline()
                      .thickness(3)
                      .hexColor("#FFFFFF")
@@ -1860,8 +1858,6 @@ public class ConfigurationParser {
             case "label-font-shadow-stack-count" -> indicator.labelFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
             case "label-font-shadow-horizontal-offset" -> indicator.labelFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
             case "label-font-shadow-vertical-offset" -> indicator.labelFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-            case "horizontal-offset" -> indicator.horizontalOffset(parseDouble(propertyValue, true, -1000, 1000));
-            case "vertical-offset" -> indicator.verticalOffset(parseDouble(propertyValue, true, -1000, 1000));
             default -> throw new IllegalArgumentException("Invalid indicator property key: " + key);
         }
     }
