@@ -465,25 +465,14 @@ public class WindowsOverlay {
                     painter.drawPath(outerBoundary);
                     painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
                 }
-                else {
-                    // redrawSourceOverShadow: only clear areas where content will
-                    // be drawn, so the shadow in empty areas (e.g. gaps in partial
-                    // outlines, transparent fill) is preserved.
-                    if (outerOutlineColor != null && outerOutlineColor.alpha() < 255)
-                        clearOutline(painter, centerX, centerY, fillRadius,
-                                correctedOuter, outerOutlineFillPercent);
-                }
-            }
-            // Draw outer outline first (miter tips extend beyond fill polygon).
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedOuter, outerOutlineColor, outerOutlineFillPercent, 1.0);
-            // Draw fill on top (covers inward overlap of outer outline).
+             }
+            // Draw fill first, then outlines on top. Outlines cover the fill
+            // boundary with their inwardOverlap, preventing artifacts from
+            // opacity differences between fill and outline.
             if (fillColor.alpha() != 0) {
-                  if (!clearFullArea && fillColor.alpha() < 255) {
+                if (!clearFullArea && fillColor.alpha() < 255) {
                     // redrawSourceOverShadow with semi-transparent fill: use
                     // Source mode to replace the opaque content from drawSource.
-                    // Clear+SourceOver would create an antialiasing seam at
-                    // the boundary between the cleared fill and the outline.
                     painter.setCompositionMode(
                             QPainter.CompositionMode.CompositionMode_Source);
                     painter.setPen(Qt.PenStyle.NoPen);
@@ -493,16 +482,25 @@ public class WindowsOverlay {
                             QPainter.CompositionMode.CompositionMode_SourceOver);
                 }
                 else {
-                    // Opaque fill (paintEvent): just draw on top, covering
-                    // the outline's inward overlap.
                     painter.setPen(Qt.PenStyle.NoPen);
                     painter.setBrush(new QBrush(fillColor));
                     painter.drawPath(fillPath);
                 }
             }
-            // Draw inner outline on top of fill.
-            // Clear its area first if not fully opaque, so outer outline doesn't show through.
-            if (innerOutlineColor != null && innerOutlineColor.alpha() < 255) {
+            // Draw outer outline on top of fill.
+            if (!clearFullArea && outerOutlineColor != null && outerOutlineColor.alpha() > 0
+                    && outerOutlineColor.alpha() < 255) {
+                // redrawSourceOverShadow: clear the outline area first to
+                // remove the opaque outline from drawSource, preserving shadow
+                // in gaps of partial outlines.
+                clearOutline(painter, centerX, centerY, fillRadius,
+                        correctedOuter, outerOutlineFillPercent);
+            }
+            drawOutline(painter, centerX, centerY, fillRadius,
+                    correctedOuter, outerOutlineColor, outerOutlineFillPercent, 1.0);
+            // Draw inner outline on top of outer outline.
+            if (!clearFullArea && innerOutlineColor != null && innerOutlineColor.alpha() > 0
+                    && innerOutlineColor.alpha() < 255) {
                 clearOutline(painter, centerX, centerY, fillRadius,
                         correctedInner, innerOutlineFillPercent);
             }
