@@ -504,13 +504,22 @@ public class WindowsOverlay {
     public static class StackedShadowEffect extends QGraphicsDropShadowEffect {
 
         private int stackCount;
+        private boolean transparencyOnly;
 
         void setStackCount(int stackCount) {
             this.stackCount = stackCount;
         }
 
+        void setTransparencyOnly(boolean transparencyOnly) {
+            this.transparencyOnly = transparencyOnly;
+        }
+
         @Override
         protected void draw(QPainter painter) {
+            if (transparencyOnly) {
+                redrawSourceOverShadow(painter);
+                return;
+            }
             if (stackCount <= 1) {
                 super.draw(painter);
                 redrawSourceOverShadow(painter);
@@ -868,7 +877,7 @@ public class WindowsOverlay {
         }
         else if (indicatorHasTransparency()) {
             IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget);
-            effect.setBlurRadius(0);
+            effect.setTransparencyOnly(true);
             setIndicatorEffectColors(effect);
             indicatorWindow.widget.customGraphicsEffect = effect;
             indicatorWindow.widget.setGraphicsEffect(effect);
