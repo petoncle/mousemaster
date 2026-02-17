@@ -498,11 +498,27 @@ public class WindowsOverlay {
             }
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedOuter, outerOutlineColor, outerOutlineFillPercent, 1.0);
-            // Draw inner outline on top of outer outline. Use a larger
-            // inwardOverlap so the inner outline's antialiased inner edge
-            // doesn't coincide with the outer outline's inner edge (which
-            // would let the outer outline color bleed through).
-            double innerInwardOverlap = correctedOuter > 0 ? 2.0 : 1.0;
+            // Draw inner outline on top of outer outline. Compute a larger
+            // inwardOverlap so the inner outline's inner miter tip extends
+            // past the outer outline's inner miter tip by at least `margin`
+            // pixels. Without this, the outer outline color bleeds through
+            // the inner outline's antialiased inner edge, especially at
+            // vertices of low-edge-count polygons (e.g. triangles).
+            // Formula derived from equating the radial miter tip positions:
+            //   tip = fillRadius + (corrected - overlap)/2
+            //         - (corrected + overlap) / (2*cos(PI/n))
+            double innerInwardOverlap;
+            if (correctedOuter > 0 && correctedInner > 0) {
+                double cos = Math.cos(Math.PI / edgeCount);
+                double D = correctedOuter - correctedInner;
+                double margin = 1.5;
+                innerInwardOverlap = D * (1 - cos) / (1 + cos)
+                        + 1.0 + 2.0 * margin * cos / (1 + cos);
+                innerInwardOverlap = Math.max(innerInwardOverlap, 1.0);
+            }
+            else {
+                innerInwardOverlap = 1.0;
+            }
             if (!clearFullArea && innerOutlineColor != null && innerOutlineColor.alpha() > 0
                     && innerOutlineColor.alpha() < 255) {
                 clearOutline(painter, centerX, centerY, fillRadius,
@@ -3298,7 +3314,6 @@ public class WindowsOverlay {
                 inner.thickness(),
                 inner.opacity() > 0 ? new QColor(inner.hexColor()) : new QColor(0, 0, 0, 0),
                 inner.fillPercent());
-        indicatorWindow.widget.update();
         if (indicatorWindow.widget.customGraphicsEffect != null) {
             setIndicatorEffectColors(indicatorWindow.widget.customGraphicsEffect);
         }
@@ -3334,6 +3349,10 @@ public class WindowsOverlay {
             indicatorWindow.labelWidget.setGraphicsEffect(null);
             indicatorWindow.labelWidget.hide();
         }
+        // Synchronous repaint before showing so the surface has the new
+        // content. An async update() would let DWM show the old surface
+        // for one frame.
+        indicatorWindow.widget.repaint();
         indicatorWindow.window.show();
     }
 
