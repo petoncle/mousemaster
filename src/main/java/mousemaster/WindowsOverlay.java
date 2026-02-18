@@ -2173,8 +2173,11 @@ public class WindowsOverlay {
             QPen edgePen = createPen(borderColor, edgeThickness);
             QPen insidePen = createPen(borderColor, topLeftInsideThickness);
             // penOffset so that drawLine(x) draws at x, x+1, ... (no x-1, x-2, ...)
-            int topEdgePenOffset = edgeThickness / 2;
-            int leftEdgePenOffset = edgeThickness / 2;
+            // For grid edge borders, offset so the full border is inside the cell.
+            // For non-edge borders, center the pen on the cell boundary (offset=0)
+            // so that half the border is in each adjacent cell.
+            int topEdgePenOffset = gridTopEdge ? edgeThickness / 2 : 0;
+            int leftEdgePenOffset = gridLeftEdge ? edgeThickness / 2 : 0;
             int bottomEdgePenOffset = edgeThickness / 2;
             int rightEdgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
@@ -2195,8 +2198,21 @@ public class WindowsOverlay {
             if (leftMerged) {
                 boolean topHorzDrawn = drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge);
                 boolean bottomHorzDrawn = (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridLeftEdge);
-                leftTopStart = topHorzDrawn ? top + borderThickness : top;
-                leftTopEnd = bottomHorzDrawn ? bottom - borderThickness + 1 : bottom + 1;
+                // Non-edge horizontal border is centered on cell boundary,
+                // so only half its thickness is inside the cell.
+                int topShortenAmount = gridTopEdge ? borderThickness : (borderThickness + 1) / 2;
+                int bottomShortenAmount;
+                if (bottomHorzDrawn) {
+                    // This cell draws BOTTOM (edge border, fully inside cell).
+                    bottomShortenAmount = borderThickness;
+                } else if (drawGridEdgeBorders && !gridBottomEdge) {
+                    // Cell below draws TOP centered on boundary (half inside this cell).
+                    bottomShortenAmount = (borderThickness + 1) / 2;
+                } else {
+                    bottomShortenAmount = 0;
+                }
+                leftTopStart = topHorzDrawn ? top + topShortenAmount : top;
+                leftTopEnd = bottom + 1 - bottomShortenAmount;
             }
             // TOP border: TL horizontal (left half) and TR horizontal (right half).
             int topLeftEnd = Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2);
@@ -2213,8 +2229,17 @@ public class WindowsOverlay {
             if (rightMerged) {
                 boolean topHorzDrawn = drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge);
                 boolean bottomHorzDrawn = (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridRightEdge);
-                rightTopStart = topHorzDrawn ? top + borderThickness : top;
-                rightTopEnd = bottomHorzDrawn ? bottom - borderThickness + 1 : bottom + 1;
+                int topShortenAmount = gridTopEdge ? borderThickness : (borderThickness + 1) / 2;
+                int bottomShortenAmount;
+                if (bottomHorzDrawn) {
+                    bottomShortenAmount = borderThickness;
+                } else if (drawGridEdgeBorders && !gridBottomEdge) {
+                    bottomShortenAmount = (borderThickness + 1) / 2;
+                } else {
+                    bottomShortenAmount = 0;
+                }
+                rightTopStart = topHorzDrawn ? top + topShortenAmount : top;
+                rightTopEnd = bottom + 1 - bottomShortenAmount;
             }
             // BOTTOM border: BL horizontal (left half) and BR horizontal (right half).
             int bottomLeftEnd = Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2);
