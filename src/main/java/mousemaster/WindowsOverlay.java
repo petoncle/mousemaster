@@ -2189,8 +2189,8 @@ public class WindowsOverlay {
                 horzLeftExtra = gridLeftEdge ? borderThickness : (borderThickness + 1) / 2;
                 horzRightExtra = gridRightEdge ? borderThickness : borderThickness / 2;
             } else {
-                horzLeftExtra = gridLeftEdge ? edgeThickness / 2 : 0;
-                horzRightExtra = gridRightEdge ? edgeThickness / 2 : 0;
+                horzLeftExtra = gridLeftEdge ? edgeThickness / 2 : (borderThickness + 1) / 2;
+                horzRightExtra = gridRightEdge ? edgeThickness / 2 : (borderThickness + 1) / 2;
             }
             // Compute segment endpoints for each border edge pair (top-left half + bottom-right half).
             // When borderLength is large, the two halves can overlap.
@@ -2205,7 +2205,13 @@ public class WindowsOverlay {
             int leftTopShortenAmount = leftTopHorzDrawn ? (gridTopEdge ? borderThickness : (borderThickness + 1) / 2) : 0;
             int leftBottomShortenAmount;
             if (leftBottomHorzDrawn) {
-                leftBottomShortenAmount = borderThickness;
+                boolean bottomIsEdge = drawGridEdgeBorders || gridBottomEdge;
+                if (bottomIsEdge) {
+                    leftBottomShortenAmount = borderThickness;
+                } else {
+                    // Inside pen coverage from bottom.
+                    leftBottomShortenAmount = bottomRightInsideThickness - insidePenOffset + topLeftInsideThickness / 2;
+                }
             } else if (drawGridEdgeBorders && !gridBottomEdge) {
                 // Adjacent cell's horizontal pen extends borderThickness/2 into this cell.
                 leftBottomShortenAmount = borderThickness / 2;
@@ -2233,7 +2239,13 @@ public class WindowsOverlay {
             int rightTopShortenAmount = rightTopHorzDrawn ? (gridTopEdge ? borderThickness : (borderThickness + 1) / 2) : 0;
             int rightBottomShortenAmount;
             if (rightBottomHorzDrawn) {
-                rightBottomShortenAmount = borderThickness;
+                boolean bottomIsEdge = drawGridEdgeBorders || gridBottomEdge;
+                if (bottomIsEdge) {
+                    rightBottomShortenAmount = borderThickness;
+                } else {
+                    // Inside pen coverage from bottom.
+                    rightBottomShortenAmount = bottomRightInsideThickness - insidePenOffset + topLeftInsideThickness / 2;
+                }
             } else if (drawGridEdgeBorders && !gridBottomEdge) {
                 // Adjacent cell's horizontal pen extends borderThickness/2 into this cell.
                 rightBottomShortenAmount = borderThickness / 2;
