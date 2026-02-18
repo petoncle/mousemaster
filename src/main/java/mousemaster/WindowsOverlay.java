@@ -1449,13 +1449,13 @@ public class WindowsOverlay {
 
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
-        double maxHintCenterX = 0;
-        double maxHintCenterY = 0;
+        double maxHintCenterX = -Double.MAX_VALUE;
+        double maxHintCenterY = -Double.MAX_VALUE;
         boolean atLeastOneHintVisible = false;
         int left = Integer.MAX_VALUE;
         int top = Integer.MAX_VALUE;
-        int right = 0;
-        int bottom = 0;
+        int right = Integer.MIN_VALUE;
+        int bottom = Integer.MIN_VALUE;
         HintBox prefixHintBox;
         HintLabel prefixHintLabel;
         int x, y;
@@ -1469,8 +1469,8 @@ public class WindowsOverlay {
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
-        double maxHintCenterX = 0;
-        double maxHintCenterY = 0;
+        double maxHintCenterX = -Double.MAX_VALUE;
+        double maxHintCenterY = -Double.MAX_VALUE;
         Map<List<Key>, HintGroup> hintGroupByPrefix = new HashMap<>();
         for (Hint hint : hintMeshWindow.hints()) {
             if (hintMesh.prefixLength() != -1) {
