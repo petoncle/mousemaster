@@ -1603,7 +1603,10 @@ public class WindowsOverlay {
                     style.subgridRowCount(), style.subgridColumnCount(),
                     style.subgridBorderLength(), style.subgridBorderThickness());
             int boxWidth, boxHeight;
-            if (isHintPartOfGrid) {
+            if (isHintPartOfGrid
+                // Exclude single-hint grids (e.g. screen selection hint) so the box
+                // can expand to fit its text.
+                && hints.size() != 1) {
                 // For grid hints, box size is determined by the grid cell, not the text.
                 boxWidth = (int) (fullBoxWidth * style.boxWidthPercent());
                 boxHeight = (int) (fullBoxHeight * style.boxHeightPercent());
