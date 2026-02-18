@@ -2183,42 +2183,48 @@ public class WindowsOverlay {
             int gridLeftEdgeExtraHorizontal = (drawGridEdgeBorders || gridLeftEdge) ? edgeThickness / 2 : 0;
             int gridRightEdgeExtraHorizontal = gridRightEdge ? edgeThickness / 2 : 0;
             // Compute segment endpoints for each border edge pair (top-left half + bottom-right half).
-            // When borderLength is large, the two halves can overlap, causing double-opacity.
-            // Clamp so they meet without overlapping.
+            // When borderLength is large, the two halves can overlap.
+            // In that case, merge into a single draw covering the full edge,
+            // and shorten vertical borders at corners where horizontal borders
+            // are drawn, so each corner pixel is drawn exactly once.
             // LEFT border: TL vertical (top half) and BL vertical (bottom half).
+            int leftTopStart = top;
             int leftTopEnd = Math.min(bottom - borderThickness + 1, top + gridTopEdgeExtraVertical + borderLength / 2);
             int leftBottomStart = Math.max(top + borderThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2);
-            if (leftTopEnd >= leftBottomStart) {
-                int mid = (leftTopEnd + leftBottomStart) / 2;
-                leftTopEnd = mid;
-                leftBottomStart = mid + 1;
+            boolean leftMerged = leftTopEnd >= leftBottomStart;
+            if (leftMerged) {
+                boolean topHorzDrawn = drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge);
+                boolean bottomHorzDrawn = (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridLeftEdge);
+                leftTopStart = topHorzDrawn ? top + borderThickness : top;
+                leftTopEnd = bottomHorzDrawn ? bottom - borderThickness + 1 : bottom + 1;
             }
             // TOP border: TL horizontal (left half) and TR horizontal (right half).
             int topLeftEnd = Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2);
             int topRightStart = Math.max(left + borderThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2);
-            if (topLeftEnd >= topRightStart) {
-                int mid = (topLeftEnd + topRightStart) / 2;
-                topLeftEnd = mid;
-                topRightStart = mid + 1;
+            boolean topMerged = topLeftEnd >= topRightStart;
+            if (topMerged) {
+                topLeftEnd = right + 1;
             }
             // RIGHT border: TR vertical (top half) and BR vertical (bottom half).
+            int rightTopStart = top;
             int rightTopEnd = Math.min(bottom - borderThickness + 1, top + gridTopEdgeExtraVertical + borderLength / 2);
             int rightBottomStart = Math.max(top + borderThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2);
-            if (rightTopEnd >= rightBottomStart) {
-                int mid = (rightTopEnd + rightBottomStart) / 2;
-                rightTopEnd = mid;
-                rightBottomStart = mid + 1;
+            boolean rightMerged = rightTopEnd >= rightBottomStart;
+            if (rightMerged) {
+                boolean topHorzDrawn = drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge);
+                boolean bottomHorzDrawn = (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridRightEdge);
+                rightTopStart = topHorzDrawn ? top + borderThickness : top;
+                rightTopEnd = bottomHorzDrawn ? bottom - borderThickness + 1 : bottom + 1;
             }
             // BOTTOM border: BL horizontal (left half) and BR horizontal (right half).
             int bottomLeftEnd = Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2);
             int bottomRightStart = Math.max(left + borderThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2);
-            if (bottomLeftEnd >= bottomRightStart) {
-                int mid = (bottomLeftEnd + bottomRightStart) / 2;
-                bottomLeftEnd = mid;
-                bottomRightStart = mid + 1;
+            boolean bottomMerged = bottomLeftEnd >= bottomRightStart;
+            if (bottomMerged) {
+                bottomLeftEnd = right + 1;
             }
             // Top left corner.
-            // Vertical line.
+            // Vertical line (LEFT top half, or full LEFT if merged).
             drawVerticalGridLine(painter,
                     drawGridEdgeBorders || (!gridLeftEdge && !gridTopEdge),
                     drawGridEdgeBorders || gridLeftEdge,
@@ -2227,10 +2233,10 @@ public class WindowsOverlay {
                     left,
                     leftEdgePenOffset,
                     insidePenOffset,
-                    top,
+                    leftTopStart,
                     leftTopEnd
             );
-            // Horizontal line.
+            // Horizontal line (TOP left half, or full TOP if merged).
             drawHorizontalGridLine(painter,
                     drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge),
                     drawGridEdgeBorders || gridTopEdge,
@@ -2243,7 +2249,7 @@ public class WindowsOverlay {
                     topLeftEnd
             );
             // Top right corner.
-            // Vertical line.
+            // Vertical line (RIGHT top half, or full RIGHT if merged).
             drawVerticalGridLine(painter,
                     (drawGridEdgeBorders && gridRightEdge) || (!drawGridEdgeBorders && !gridRightEdge && !gridTopEdge),
                     drawGridEdgeBorders || gridRightEdge,
@@ -2252,13 +2258,12 @@ public class WindowsOverlay {
                     right,
                     rightEdgePenOffset - (edgeThickness - 1),
                     insidePenOffset - (bottomRightInsideThickness - 1),
-                    top,
+                    rightTopStart,
                     rightTopEnd
             );
-
-            // Horizontal line.
+            // Horizontal line (TOP right half, skipped if merged).
             drawHorizontalGridLine(painter,
-                    drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge),
+                    !topMerged && (drawGridEdgeBorders || (!gridTopEdge && !gridRightEdge)),
                     drawGridEdgeBorders || gridTopEdge,
                     edgePen,
                     insidePen,
@@ -2269,9 +2274,9 @@ public class WindowsOverlay {
                     right + 1
             );
             // Bottom left corner.
-            // Vertical line.
+            // Vertical line (LEFT bottom half, skipped if merged).
             drawVerticalGridLine(painter,
-                    drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge),
+                    !leftMerged && (drawGridEdgeBorders || (!gridLeftEdge && !gridBottomEdge)),
                     drawGridEdgeBorders || gridLeftEdge,
                     edgePen,
                     insidePen,
@@ -2281,7 +2286,7 @@ public class WindowsOverlay {
                     leftBottomStart,
                     bottom + 1
             );
-            // Horizontal line.
+            // Horizontal line (BOTTOM left half, or full BOTTOM if merged).
             drawHorizontalGridLine(painter,
                     (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridLeftEdge),
                     drawGridEdgeBorders || gridBottomEdge,
@@ -2294,9 +2299,9 @@ public class WindowsOverlay {
                     bottomLeftEnd
             );
             // Bottom right corner.
-            // Vertical line.
+            // Vertical line (RIGHT bottom half, skipped if merged).
             drawVerticalGridLine(painter,
-                    (drawGridEdgeBorders && gridRightEdge) || (!drawGridEdgeBorders && !gridRightEdge && !gridBottomEdge),
+                    !rightMerged && ((drawGridEdgeBorders && gridRightEdge) || (!drawGridEdgeBorders && !gridRightEdge && !gridBottomEdge)),
                     drawGridEdgeBorders || gridRightEdge,
                     edgePen,
                     insidePen,
@@ -2306,9 +2311,9 @@ public class WindowsOverlay {
                     rightBottomStart,
                     bottom + 1
             );
-            // Horizontal line.
+            // Horizontal line (BOTTOM right half, skipped if merged).
             drawHorizontalGridLine(painter,
-                    (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridRightEdge),
+                    !bottomMerged && ((drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridRightEdge)),
                     drawGridEdgeBorders || gridBottomEdge,
                     edgePen,
                     insidePen,
@@ -2336,6 +2341,8 @@ public class WindowsOverlay {
         ) {
             if (!condition)
                 return;
+            if (y1 > y2)
+                return;
             painter.setPen(isEdge ? edgePen : insidePen);
             if (painter.pen().width() == 0)
                 return;
@@ -2356,6 +2363,8 @@ public class WindowsOverlay {
                 int x2
         ) {
             if (!condition)
+                return;
+            if (x1 > x2)
                 return;
             painter.setPen(isEdge ? edgePen : insidePen);
             if (painter.pen().width() == 0)
