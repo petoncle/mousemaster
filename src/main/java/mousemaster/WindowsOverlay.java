@@ -1537,11 +1537,15 @@ public class WindowsOverlay {
             int cellHorizontalPadding = (int) Math.round(style.cellHorizontalPadding());
             int cellVerticalPadding = (int) Math.round(style.cellVerticalPadding());
             double cellWidth = (hint.cellWidth() != -1 ?
-                    Math.max(totalXAdvance, hint.cellWidth()) :
+                    // For grid hints, use the grid cell width as-is so boxes tile
+                    // perfectly. Text that overflows is handled by the label layer.
+                    (isHintPartOfGrid ? hint.cellWidth() :
+                            Math.max(totalXAdvance, hint.cellWidth())) :
                     totalXAdvance) + 2 * cellHorizontalPadding;
             int lineHeight = labelFontStyle.defaultStyle().metrics().height();
             double cellHeight = (hint.cellHeight() != -1 ?
-                    Math.max(lineHeight, hint.cellHeight()) :
+                    (isHintPartOfGrid ? hint.cellHeight() :
+                            Math.max(lineHeight, hint.cellHeight())) :
                     lineHeight) + 2 * cellVerticalPadding;
             int fullBoxWidth = (int) cellWidth;
             int fullBoxHeight = (int) cellHeight;
@@ -1598,10 +1602,18 @@ public class WindowsOverlay {
                     subgridBoxBorderColor,
                     style.subgridRowCount(), style.subgridColumnCount(),
                     style.subgridBorderLength(), style.subgridBorderThickness());
-            int boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
-            int boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
-            hintLabel.left = boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
-            hintLabel.top = boxHeight == hintLabel.tightHintBoxHeight ? hintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
+            int boxWidth, boxHeight;
+            if (isHintPartOfGrid) {
+                // For grid hints, box size is determined by the grid cell, not the text.
+                boxWidth = (int) (fullBoxWidth * style.boxWidthPercent());
+                boxHeight = (int) (fullBoxHeight * style.boxHeightPercent());
+            }
+            else {
+                boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
+                boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
+            }
+            hintLabel.left = !isHintPartOfGrid && boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
+            hintLabel.top = !isHintPartOfGrid && boxHeight == hintLabel.tightHintBoxHeight ? hintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
             x += hintLabel.left;
             y += hintLabel.top;
             // Not sure why required, but this help having the grid match the screen
@@ -1940,7 +1952,7 @@ public class WindowsOverlay {
         logger.debug("Cached " + pixmapAndPosition + " in " +
                      (long) ((System.nanoTime() - before) / 1e6) + "ms (cache size is " +
                      hintMeshPixmaps.size() + ")");
-//         pixmap.save("screenshot.png", "PNG");
+         pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
     }
 
