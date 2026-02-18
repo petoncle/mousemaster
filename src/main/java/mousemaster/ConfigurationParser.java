@@ -167,12 +167,16 @@ public class ConfigurationParser {
                      .thickness(3)
                      .hexColor("#FFFFFF")
                      .opacity(1.0)
-                     .fillPercent(1.0);
+                     .fillPercent(1.0)
+                     .fillStartAngle(180)
+                     .fillDirection(FillDirection.COUNTERCLOCKWISE);
         idleIndicator.innerOutline()
                      .thickness(1)
                      .hexColor("#CC0000")
                      .opacity(1.0)
-                     .fillPercent(1.0);
+                     .fillPercent(1.0)
+                     .fillStartAngle(180)
+                     .fillDirection(FillDirection.COUNTERCLOCKWISE);
         idleIndicator.shadow()
                      .blurRadius(10d)
                      .hexColor("#000000")
@@ -1833,10 +1837,14 @@ public class ConfigurationParser {
             case "outer-outline-color", "outline-color" -> indicator.outerOutline().hexColor(checkColorFormat(propertyValue));
             case "outer-outline-opacity", "outline-opacity" -> indicator.outerOutline().opacity(parseDouble(propertyValue, true, 0, 1));
             case "outer-outline-fill-percent", "outline-fill-percent" -> indicator.outerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
+            case "outer-outline-fill-start-angle", "outline-fill-start-angle" -> indicator.outerOutline().fillStartAngle(parseDouble(propertyValue, true, 0, 360));
+            case "outer-outline-fill-direction", "outline-fill-direction" -> indicator.outerOutline().fillDirection(FillDirection.fromString(propertyValue));
             case "inner-outline-thickness" -> indicator.innerOutline().thickness(parseDouble(propertyValue, true, 0, 100));
             case "inner-outline-color" -> indicator.innerOutline().hexColor(checkColorFormat(propertyValue));
             case "inner-outline-opacity" -> indicator.innerOutline().opacity(parseDouble(propertyValue, true, 0, 1));
             case "inner-outline-fill-percent" -> indicator.innerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
+            case "inner-outline-fill-start-angle" -> indicator.innerOutline().fillStartAngle(parseDouble(propertyValue, true, 0, 360));
+            case "inner-outline-fill-direction" -> indicator.innerOutline().fillDirection(FillDirection.fromString(propertyValue));
             case "shadow-blur-radius" -> indicator.shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
             case "shadow-color" -> indicator.shadow().hexColor(checkColorFormat(propertyValue));
             case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, 1));

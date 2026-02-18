@@ -209,9 +209,13 @@ public class WindowsOverlay {
         private double outerOutlineThickness;
         private QColor outerOutlineColor;
         private double outerOutlineFillPercent;
+        private double outerOutlineFillStartAngle;
+        private FillDirection outerOutlineFillDirection;
         private double innerOutlineThickness;
         private QColor innerOutlineColor;
         private double innerOutlineFillPercent;
+        private double innerOutlineFillStartAngle;
+        private FillDirection innerOutlineFillDirection;
         private double outlineScale;
         private IndicatorShadowEffect customGraphicsEffect;
         private boolean cleared;
@@ -234,14 +238,22 @@ public class WindowsOverlay {
 
         void setOutlines(double outerOutlineThickness, QColor outerOutlineColor,
                          double outerOutlineFillPercent,
+                         double outerOutlineFillStartAngle,
+                         FillDirection outerOutlineFillDirection,
                          double innerOutlineThickness, QColor innerOutlineColor,
-                         double innerOutlineFillPercent) {
+                         double innerOutlineFillPercent,
+                         double innerOutlineFillStartAngle,
+                         FillDirection innerOutlineFillDirection) {
             this.outerOutlineThickness = outerOutlineThickness;
             this.outerOutlineColor = outerOutlineColor;
             this.outerOutlineFillPercent = outerOutlineFillPercent;
+            this.outerOutlineFillStartAngle = outerOutlineFillStartAngle;
+            this.outerOutlineFillDirection = outerOutlineFillDirection;
             this.innerOutlineThickness = innerOutlineThickness;
             this.innerOutlineColor = innerOutlineColor;
             this.innerOutlineFillPercent = innerOutlineFillPercent;
+            this.innerOutlineFillStartAngle = innerOutlineFillStartAngle;
+            this.innerOutlineFillDirection = innerOutlineFillDirection;
         }
 
         /**
@@ -341,73 +353,171 @@ public class WindowsOverlay {
 
         /**
          * Builds an open path tracing a portion of the polygon outline.
-         * The visible portion starts at the bottom center and extends clockwise
-         * (up the right side first), like a gauge being filled.
+         * fillStartAngle: 0 = top (12 o'clock), increases clockwise, in degrees.
+         * fillDirection: BOTH = expand symmetrically from anchor.
          */
         private static QPainterPath partialPolygonPath(double centerX, double centerY,
                                                        double radius, int edgeCount,
-                                                       double fillPercent) {
-            double startAngle = polygonStartAngle(edgeCount);
+                                                       double fillPercent,
+                                                       double fillStartAngle,
+                                                       FillDirection fillDirection) {
+            double polyStartAngle = polygonStartAngle(edgeCount);
             double[] vx = new double[edgeCount];
             double[] vy = new double[edgeCount];
             for (int i = 0; i < edgeCount; i++) {
-                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
+                double angle = polyStartAngle + 2.0 * Math.PI * i / edgeCount;
                 vx[i] = centerX + radius * Math.cos(angle);
                 vy[i] = centerY + radius * Math.sin(angle);
             }
             double edgeLength = Math.hypot(vx[1] - vx[0], vy[1] - vy[0]);
             double totalLength = edgeCount * edgeLength;
             double fillLength = fillPercent * totalLength;
-            // Bottom center = midpoint of the bottom edge.
-            int bottomEdgeIndex = (edgeCount - 1) / 2;
-            double bottomPos = (bottomEdgeIndex + 0.5) * edgeLength;
-            // The fill goes clockwise from bottom (= backwards along the path).
-            // In forward path terms, the visible segment is from startPos to bottomPos.
-            double startPos = bottomPos - fillLength;
-            if (startPos < 0) startPos += totalLength;
-            // Find starting edge and fractional position within it.
+            // Convert fillStartAngle (0=top, CW) to math angle for ray intersection.
+            // Math convention: 0=right, counter-clockwise positive.
+            // Screen coords: y increases downward, so sin is negated.
+            double mathAngle = Math.toRadians(90 - fillStartAngle);
+            double rayDx = Math.cos(mathAngle);
+            double rayDy = -Math.sin(mathAngle); // negate for screen coords
+            // Find anchor position on perimeter by intersecting ray from center with polygon edges.
+            double anchorPos = findAnchorPos(centerX, centerY, rayDx, rayDy,
+                    vx, vy, edgeCount, edgeLength);
+            // Build path(s) based on direction.
+            // Vertex order is clockwise on screen. Forward = CW, backward = CCW.
+            if (fillDirection == FillDirection.BOTH) {
+                double halfLength = fillLength / 2.0;
+                QPainterPath cwPath = traceAlongPerimeter(
+                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, true);
+                QPainterPath ccwPath = traceAlongPerimeter(
+                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, false);
+                QPainterPath combined = ccwPath.toReversed();
+                combined.connectPath(cwPath);
+                return combined;
+            }
+            else {
+                boolean forward = fillDirection == FillDirection.CLOCKWISE;
+                return traceAlongPerimeter(
+                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, fillLength, forward);
+            }
+        }
+
+        /**
+         * Finds the perimeter position (distance along polygon edges from vertex 0)
+         * where a ray from center in direction (rayDx, rayDy) intersects the polygon.
+         */
+        private static double findAnchorPos(double centerX, double centerY,
+                                            double rayDx, double rayDy,
+                                            double[] vx, double[] vy,
+                                            int edgeCount, double edgeLength) {
+            double bestT = Double.MAX_VALUE;
+            int bestEdge = 0;
+            double bestFrac = 0;
+            for (int i = 0; i < edgeCount; i++) {
+                int j = (i + 1) % edgeCount;
+                double ex = vx[j] - vx[i];
+                double ey = vy[j] - vy[i];
+                // Solve: center + t * ray = vertex[i] + s * edge
+                double denom = rayDx * ey - rayDy * ex;
+                if (Math.abs(denom) < 1e-12)
+                    continue;
+                double dx = vx[i] - centerX;
+                double dy = vy[i] - centerY;
+                double t = (dx * ey - dy * ex) / denom;
+                double s = (dx * rayDy - dy * rayDx) / denom;
+                if (t > 1e-9 && s >= -1e-9 && s <= 1 + 1e-9) {
+                    if (t < bestT) {
+                        bestT = t;
+                        bestEdge = i;
+                        bestFrac = Math.max(0, Math.min(1, s));
+                    }
+                }
+            }
+            return bestEdge * edgeLength + bestFrac * edgeLength;
+        }
+
+        /**
+         * Traces a path along the polygon perimeter starting from anchorPos
+         * for the given length, either forward (increasing vertex index) or
+         * backward (decreasing vertex index).
+         */
+        private static QPainterPath traceAlongPerimeter(double[] vx, double[] vy,
+                                                        int edgeCount, double edgeLength,
+                                                        double totalLength, double anchorPos,
+                                                        double length, boolean forward) {
+            // Compute start point on the perimeter.
+            double startPos = forward ? anchorPos : anchorPos;
             int startEdge = (int) (startPos / edgeLength);
+            if (startEdge >= edgeCount)
+                startEdge = edgeCount - 1;
             double startFrac = (startPos - startEdge * edgeLength) / edgeLength;
+            startFrac = Math.max(0, Math.min(1, startFrac));
             int v0 = startEdge;
             int v1 = (startEdge + 1) % edgeCount;
             double sx = vx[v0] + startFrac * (vx[v1] - vx[v0]);
             double sy = vy[v0] + startFrac * (vy[v1] - vy[v0]);
             QPainterPath path = new QPainterPath();
             path.moveTo(sx, sy);
-            double remaining = fillLength;
-            double distInCurrentEdge = (1 - startFrac) * edgeLength;
-            int currentEdge = startEdge;
-            while (remaining > 1e-6) {
-                int nextV = (currentEdge + 1) % edgeCount;
-                if (remaining >= distInCurrentEdge - 1e-6) {
-                    path.lineTo(vx[nextV], vy[nextV]);
-                    remaining -= distInCurrentEdge;
-                    currentEdge = (currentEdge + 1) % edgeCount;
-                    distInCurrentEdge = edgeLength;
+            double remaining = length;
+            if (forward) {
+                double distInCurrentEdge = (1 - startFrac) * edgeLength;
+                int currentEdge = startEdge;
+                while (remaining > 1e-6) {
+                    int nextV = (currentEdge + 1) % edgeCount;
+                    if (remaining >= distInCurrentEdge - 1e-6) {
+                        path.lineTo(vx[nextV], vy[nextV]);
+                        remaining -= distInCurrentEdge;
+                        currentEdge = (currentEdge + 1) % edgeCount;
+                        distInCurrentEdge = edgeLength;
+                    }
+                    else {
+                        double frac = remaining / edgeLength;
+                        int curV = currentEdge;
+                        int nxtV = (currentEdge + 1) % edgeCount;
+                        double ex = vx[curV] + frac * (vx[nxtV] - vx[curV]);
+                        double ey = vy[curV] + frac * (vy[nxtV] - vy[curV]);
+                        path.lineTo(ex, ey);
+                        remaining = 0;
+                    }
                 }
-                else {
-                    double frac = remaining / edgeLength;
+            }
+            else {
+                // Backward: traverse edges in decreasing index order.
+                double distInCurrentEdge = startFrac * edgeLength;
+                int currentEdge = startEdge;
+                while (remaining > 1e-6) {
                     int curV = currentEdge;
-                    double ex = vx[curV] + frac * (vx[nextV] - vx[curV]);
-                    double ey = vy[curV] + frac * (vy[nextV] - vy[curV]);
-                    path.lineTo(ex, ey);
-                    remaining = 0;
+                    if (remaining >= distInCurrentEdge - 1e-6) {
+                        path.lineTo(vx[curV], vy[curV]);
+                        remaining -= distInCurrentEdge;
+                        currentEdge = (currentEdge - 1 + edgeCount) % edgeCount;
+                        distInCurrentEdge = edgeLength;
+                    }
+                    else {
+                        int nextV = (currentEdge + 1) % edgeCount;
+                        double frac = 1.0 - remaining / edgeLength;
+                        double ex = vx[curV] + frac * (vx[nextV] - vx[curV]);
+                        double ey = vy[curV] + frac * (vy[nextV] - vy[curV]);
+                        path.lineTo(ex, ey);
+                        remaining = 0;
+                    }
                 }
             }
             return path;
         }
 
         private void clearOutline(QPainter painter, double centerX, double centerY,
-                                  double fillRadius, double thickness, double fillPercent) {
+                                  double fillRadius, double thickness, double fillPercent,
+                                  double fillStartAngle, FillDirection fillDirection) {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
             drawOutline(painter, centerX, centerY, fillRadius,
-                    thickness, new QColor(0, 0, 0), fillPercent, 1.0);
+                    thickness, new QColor(0, 0, 0), fillPercent,
+                    fillStartAngle, fillDirection, 1.0);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
         }
 
         private void drawOutline(QPainter painter, double centerX, double centerY,
                                  double fillRadius, double thickness, QColor color,
-                                 double fillPercent, double inwardOverlap) {
+                                 double fillPercent, double fillStartAngle,
+                                 FillDirection fillDirection, double inwardOverlap) {
             if (thickness <= 0 || color == null || color.alpha() == 0 || fillPercent <= 0)
                 return;
             // Extend the inner edge inward by inwardOverlap so that the
@@ -430,7 +540,8 @@ public class WindowsOverlay {
                 pen.setCapStyle(Qt.PenCapStyle.FlatCap);
                 painter.setPen(pen);
                 QPainterPath outlinePath = partialPolygonPath(
-                        centerX, centerY, outlineRadius, edgeCount, fillPercent);
+                        centerX, centerY, outlineRadius, edgeCount, fillPercent,
+                        fillStartAngle, fillDirection);
                 painter.drawPath(outlinePath);
             }
         }
@@ -495,10 +606,12 @@ public class WindowsOverlay {
                 // remove the opaque outline from drawSource, preserving shadow
                 // in gaps of partial outlines.
                 clearOutline(painter, centerX, centerY, fillRadius,
-                        correctedOuter, outerOutlineFillPercent);
+                        correctedOuter, outerOutlineFillPercent,
+                        outerOutlineFillStartAngle, outerOutlineFillDirection);
             }
             drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedOuter, outerOutlineColor, outerOutlineFillPercent, 1.0);
+                    correctedOuter, outerOutlineColor, outerOutlineFillPercent,
+                    outerOutlineFillStartAngle, outerOutlineFillDirection, 1.0);
             // Draw inner outline on top of outer outline. Compute a larger
             // inwardOverlap so the inner outline's inner miter tip extends
             // past the outer outline's inner miter tip by at least `margin`
@@ -523,10 +636,12 @@ public class WindowsOverlay {
             if (!clearFullArea && innerOutlineColor != null && innerOutlineColor.alpha() > 0
                     && innerOutlineColor.alpha() < 255) {
                 clearOutline(painter, centerX, centerY, fillRadius,
-                        correctedInner, innerOutlineFillPercent);
+                        correctedInner, innerOutlineFillPercent,
+                        innerOutlineFillStartAngle, innerOutlineFillDirection);
             }
             drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedInner, innerOutlineColor, innerOutlineFillPercent, innerInwardOverlap);
+                    correctedInner, innerOutlineColor, innerOutlineFillPercent,
+                    innerOutlineFillStartAngle, innerOutlineFillDirection, innerInwardOverlap);
         }
 
         @Override
@@ -3444,9 +3559,13 @@ public class WindowsOverlay {
                 outer.thickness(),
                 outer.opacity() > 0 ? new QColor(outer.hexColor()) : new QColor(0, 0, 0, 0),
                 outer.fillPercent(),
+                outer.fillStartAngle(),
+                outer.fillDirection(),
                 inner.thickness(),
                 inner.opacity() > 0 ? new QColor(inner.hexColor()) : new QColor(0, 0, 0, 0),
-                inner.fillPercent());
+                inner.fillPercent(),
+                inner.fillStartAngle(),
+                inner.fillDirection());
         if (indicatorWindow.widget.customGraphicsEffect != null) {
             setIndicatorEffectColors(indicatorWindow.widget.customGraphicsEffect);
         }

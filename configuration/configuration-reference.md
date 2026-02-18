@@ -365,15 +365,21 @@ normal-mode.indicator.idle.outer-outline-thickness=3
 normal-mode.indicator.idle.outer-outline-color=#FFFFFF
 normal-mode.indicator.idle.outer-outline-opacity=1
 normal-mode.indicator.idle.outer-outline-fill-percent=1.0
+normal-mode.indicator.idle.outer-outline-fill-start-angle=180
+normal-mode.indicator.idle.outer-outline-fill-direction=counterclockwise
 
 # Inner outline
 normal-mode.indicator.idle.inner-outline-thickness=1
 normal-mode.indicator.idle.inner-outline-color=#CC0000
 normal-mode.indicator.idle.inner-outline-opacity=1
 normal-mode.indicator.idle.inner-outline-fill-percent=1
+normal-mode.indicator.idle.inner-outline-fill-start-angle=180
+normal-mode.indicator.idle.inner-outline-fill-direction=counterclockwise
 ```
 
 - **`outer-outline-fill-percent`** / **`inner-outline-fill-percent`**: How much of the outline is filled (0.0-1.0, default 1.0)
+- **`outer-outline-fill-start-angle`** / **`inner-outline-fill-start-angle`**: Angle where the fill starts, in degrees (0-360, default 180). 0 = top (12 o'clock), 90 = 3 o'clock, 180 = bottom (6 o'clock), 270 = 9 o'clock. Increases clockwise.
+- **`outer-outline-fill-direction`** / **`inner-outline-fill-direction`**: Direction the fill grows from the start angle (`clockwise`, `counterclockwise`, or `both`, default `counterclockwise`). `both` = expands symmetrically.
 
 `outline-*` is equivalent to `outer-outline-*`.
 
