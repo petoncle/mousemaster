@@ -346,12 +346,14 @@ Each state can have its own polygon shape, size, color, and opacity:
 ```properties
 normal-mode.indicator.idle.size=12
 normal-mode.indicator.idle.edge-count=4
+normal-mode.indicator.idle.position=bottom-right
 normal-mode.indicator.idle.color=#FF0000
 normal-mode.indicator.idle.opacity=1.0
 ```
 
 - **`size`**: Size of the indicator in pixels (1-100, default 12)
 - **`edge-count`**: Number of polygon edges (3-100, default 4). 3 = triangle, 4 = square, 6 = hexagon, 30+ = circle
+- **`position`**: Position relative to the mouse cursor: `center`, `top-left`, `top-right`, `bottom-left`, `bottom-right` (default `bottom-right`). `center` places the indicator behind the cursor, centered on it (best used with a low opacity so the cursor remains visible).
 
 #### Outlines
 
