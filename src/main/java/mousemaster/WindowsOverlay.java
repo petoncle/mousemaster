@@ -1952,7 +1952,7 @@ public class WindowsOverlay {
         logger.debug("Cached " + pixmapAndPosition + " in " +
                      (long) ((System.nanoTime() - before) / 1e6) + "ms (cache size is " +
                      hintMeshPixmaps.size() + ")");
-         pixmap.save("screenshot.png", "PNG");
+//         pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
     }
 
