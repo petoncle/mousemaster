@@ -2181,9 +2181,8 @@ public class WindowsOverlay {
             int bottomEdgePenOffset = edgeThickness / 2;
             int rightEdgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
-            // Extra length for horizontal stubs: vertical pen coverage inside cell at each edge.
-            // For this cell's own pen (left): centered at x=0, coverage = (bt+1)/2.
-            // For adjacent cell's pen (right): centered at x=width, coverage = bt/2.
+            // Extra length for horizontal stubs: vertical pen coverage inside cell at each edge,
+            // so that the visible arm past the vertical border = borderLength/2.
             int horzLeftExtra, horzRightExtra;
             if (drawGridEdgeBorders) {
                 horzLeftExtra = gridLeftEdge ? borderThickness : (borderThickness + 1) / 2;
@@ -2193,13 +2192,10 @@ public class WindowsOverlay {
                 horzRightExtra = gridRightEdge ? edgeThickness / 2 : (borderThickness + 1) / 2;
             }
             // Compute segment endpoints for each border edge pair (top-left half + bottom-right half).
-            // When borderLength is large, the two halves can overlap.
-            // In that case, merge into a single draw covering the full edge,
-            // and shorten vertical borders at corners where horizontal borders
-            // are drawn, so each corner pixel is drawn exactly once.
+            // When borderLength is large, the two halves overlap; merge into a single draw.
+            // Shorten vertical borders at corners where horizontal borders are drawn,
+            // so each corner pixel is drawn exactly once (by the horizontal).
             // LEFT border: TL vertical (top half) and BL vertical (bottom half).
-            // Shorten vertical borders at corners where horizontal borders are
-            // drawn, so each corner pixel is drawn exactly once (by the horizontal).
             boolean leftTopHorzDrawn = drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge);
             boolean leftBottomHorzDrawn = (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridLeftEdge);
             int leftTopShortenAmount = leftTopHorzDrawn ? (gridTopEdge ? borderThickness : (borderThickness + 1) / 2) : 0;
@@ -2209,7 +2205,7 @@ public class WindowsOverlay {
                 if (bottomIsEdge) {
                     leftBottomShortenAmount = borderThickness;
                 } else {
-                    // Inside pen coverage from bottom.
+                    // Non-edge bottom horizontal pen coverage inside this cell.
                     leftBottomShortenAmount = bottomRightInsideThickness - insidePenOffset + topLeftInsideThickness / 2;
                 }
             } else if (drawGridEdgeBorders && !gridBottomEdge) {
@@ -2243,7 +2239,7 @@ public class WindowsOverlay {
                 if (bottomIsEdge) {
                     rightBottomShortenAmount = borderThickness;
                 } else {
-                    // Inside pen coverage from bottom.
+                    // Non-edge bottom horizontal pen coverage inside this cell.
                     rightBottomShortenAmount = bottomRightInsideThickness - insidePenOffset + topLeftInsideThickness / 2;
                 }
             } else if (drawGridEdgeBorders && !gridBottomEdge) {
