@@ -2181,10 +2181,17 @@ public class WindowsOverlay {
             int bottomEdgePenOffset = edgeThickness / 2;
             int rightEdgePenOffset = edgeThickness / 2;
             int insidePenOffset = borderThickness / 4;
-            int gridTopEdgeExtraVertical = (drawGridEdgeBorders || gridTopEdge) ? edgeThickness / 2 : 0;
-            int gridBottomEdgeExtraVertical = (drawGridEdgeBorders || gridBottomEdge) ? edgeThickness / 2 : 0;
-            int gridLeftEdgeExtraHorizontal = (drawGridEdgeBorders || gridLeftEdge) ? edgeThickness / 2 : 0;
-            int gridRightEdgeExtraHorizontal = (drawGridEdgeBorders || gridRightEdge) ? edgeThickness / 2 : 0;
+            // Extra length for horizontal stubs: vertical pen coverage inside cell at each edge.
+            // For this cell's own pen (left): centered at x=0, coverage = (bt+1)/2.
+            // For adjacent cell's pen (right): centered at x=width, coverage = bt/2.
+            int horzLeftExtra, horzRightExtra;
+            if (drawGridEdgeBorders) {
+                horzLeftExtra = gridLeftEdge ? borderThickness : (borderThickness + 1) / 2;
+                horzRightExtra = gridRightEdge ? borderThickness : borderThickness / 2;
+            } else {
+                horzLeftExtra = gridLeftEdge ? edgeThickness / 2 : 0;
+                horzRightExtra = gridRightEdge ? edgeThickness / 2 : 0;
+            }
             // Compute segment endpoints for each border edge pair (top-left half + bottom-right half).
             // When borderLength is large, the two halves can overlap.
             // In that case, merge into a single draw covering the full edge,
@@ -2200,21 +2207,22 @@ public class WindowsOverlay {
             if (leftBottomHorzDrawn) {
                 leftBottomShortenAmount = borderThickness;
             } else if (drawGridEdgeBorders && !gridBottomEdge) {
-                leftBottomShortenAmount = (borderThickness + 1) / 2;
+                // Adjacent cell's horizontal pen extends borderThickness/2 into this cell.
+                leftBottomShortenAmount = borderThickness / 2;
             } else {
                 leftBottomShortenAmount = 0;
             }
             int leftTopStart = top + leftTopShortenAmount;
-            int leftTopEnd = Math.min(bottom - borderThickness + 1, top + gridTopEdgeExtraVertical + borderLength / 2);
-            int leftBottomStart = Math.max(top + borderThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2);
+            int leftTopEnd = Math.min(bottom - borderThickness + 1, top + leftTopShortenAmount + borderLength / 2);
+            int leftBottomStart = Math.max(top + borderThickness, bottom + 1 - leftBottomShortenAmount - borderLength / 2);
             int leftBottomEnd = bottom + 1 - leftBottomShortenAmount;
             boolean leftMerged = leftTopEnd >= leftBottomStart;
             if (leftMerged) {
                 leftTopEnd = leftBottomEnd;
             }
             // TOP border: TL horizontal (left half) and TR horizontal (right half).
-            int topLeftEnd = Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2);
-            int topRightStart = Math.max(left + borderThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2);
+            int topLeftEnd = Math.min(right - borderThickness + 1, left + horzLeftExtra + borderLength / 2);
+            int topRightStart = Math.max(left + borderThickness, right + 1 - horzRightExtra - borderLength / 2);
             boolean topMerged = topLeftEnd >= topRightStart;
             if (topMerged) {
                 topLeftEnd = right + 1;
@@ -2227,21 +2235,22 @@ public class WindowsOverlay {
             if (rightBottomHorzDrawn) {
                 rightBottomShortenAmount = borderThickness;
             } else if (drawGridEdgeBorders && !gridBottomEdge) {
-                rightBottomShortenAmount = (borderThickness + 1) / 2;
+                // Adjacent cell's horizontal pen extends borderThickness/2 into this cell.
+                rightBottomShortenAmount = borderThickness / 2;
             } else {
                 rightBottomShortenAmount = 0;
             }
             int rightTopStart = top + rightTopShortenAmount;
-            int rightTopEnd = Math.min(bottom - borderThickness + 1, top + gridTopEdgeExtraVertical + borderLength / 2);
-            int rightBottomStart = Math.max(top + borderThickness, bottom - (gridBottomEdgeExtraVertical - 1) - borderLength / 2);
+            int rightTopEnd = Math.min(bottom - borderThickness + 1, top + rightTopShortenAmount + borderLength / 2);
+            int rightBottomStart = Math.max(top + borderThickness, bottom + 1 - rightBottomShortenAmount - borderLength / 2);
             int rightBottomEnd = bottom + 1 - rightBottomShortenAmount;
             boolean rightMerged = rightTopEnd >= rightBottomStart;
             if (rightMerged) {
                 rightTopEnd = rightBottomEnd;
             }
             // BOTTOM border: BL horizontal (left half) and BR horizontal (right half).
-            int bottomLeftEnd = Math.min(right - borderThickness + 1, left + gridLeftEdgeExtraHorizontal + borderLength / 2);
-            int bottomRightStart = Math.max(left + borderThickness, right - (gridRightEdgeExtraHorizontal - 1) - borderLength / 2);
+            int bottomLeftEnd = Math.min(right - borderThickness + 1, left + horzLeftExtra + borderLength / 2);
+            int bottomRightStart = Math.max(left + borderThickness, right + 1 - horzRightExtra - borderLength / 2);
             boolean bottomMerged = bottomLeftEnd >= bottomRightStart;
             if (bottomMerged) {
                 bottomLeftEnd = right + 1;
