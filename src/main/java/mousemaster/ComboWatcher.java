@@ -377,6 +377,7 @@ public class ComboWatcher implements ModeListener {
         if (!comboAndCommandsToRun.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
+        Mode beforeCommandsMode = currentMode;
         runCommands(commandsToRun);
         boolean atLeastOneComboCompleted = !comboAndCommandsToRun.isEmpty();
         if (atLeastOneComboCompleted) {
@@ -387,8 +388,8 @@ public class ComboWatcher implements ModeListener {
         }
         long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
         logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
-                "ms, mode = " + currentMode.name() +
-                ", comboCount = " + currentMode.comboMap().commandsByCombo().size() +
+                "ms, mode = " + beforeCommandsMode.name() +
+                ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
                 ", event = " + (logRedactKeys ? "<redacted>" : event) +
                 ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
                 ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
@@ -464,7 +465,9 @@ public class ComboWatcher implements ModeListener {
                 ResolvedComboMove move = matchedMoves.get(i);
                 if (move.isPress())
                     candidatePressedPreconditionKeys.remove(move.key());
-                else
+                else if (allGroupKeys.contains(move.key()))
+                    // Only add back keys that are precondition keys to avoid polluting
+                    // candidates with non-precondition keys.
                     candidatePressedPreconditionKeys.add(move.key());
             }
             if (group.satisfiedBy(candidatePressedPreconditionKeys))
