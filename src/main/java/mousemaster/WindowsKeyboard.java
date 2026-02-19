@@ -61,10 +61,7 @@ public class WindowsKeyboard {
     }
 
     public static void keyPressedByUser(Key key) {
-        if (pressedKeys.add(key)
-            // If user is holding key, no need to repeat is ourselves.
-            || key.equals(pressedKeyToRepeat))
-            pressedKeyToRepeat = null;
+        pressedKeys.add(key);
     }
 
     public static void update(double delta) {
