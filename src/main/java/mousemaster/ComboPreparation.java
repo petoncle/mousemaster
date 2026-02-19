@@ -27,6 +27,11 @@ public record ComboPreparation(List<KeyEvent> events) {
         List<MoveSet> moveSets = sequence.moveSets();
         if (moveSets.isEmpty())
             return new ComboSequenceMatch(List.of(), true, new AliasResolution(Map.of()));
+        // A sequence that is only wait moves (e.g. "wait-2000") has no event-based moves.
+        // It is "complete" with 0 matched events: ComboWatcher handles the wait duration.
+        boolean allWait = moveSets.stream().allMatch(MoveSet::isWaitMoveSet);
+        if (allWait)
+            return new ComboSequenceMatch(List.of(), true, new AliasResolution(Map.of()));
         if (events.isEmpty())
             return ComboSequenceMatch.noMatch();
 
@@ -34,6 +39,9 @@ public record ComboPreparation(List<KeyEvent> events) {
         // and decreasing to K = 1 (partial match of just the first MoveSet).
         for (int k = moveSets.size(); k >= 1; k--) {
             List<MoveSet> subMoveSets = moveSets.subList(0, k);
+            // Skip if all subMoveSets are wait-only (no events to match).
+            if (subMoveSets.stream().allMatch(MoveSet::isWaitMoveSet))
+                continue;
             int minTotalEventCount = 0, maxTotalEventCount = 0;
             for (MoveSet moveSet : subMoveSets) {
                 minTotalEventCount += moveSet.minMoveCount();
@@ -77,6 +85,24 @@ public record ComboPreparation(List<KeyEvent> events) {
             return eventIndex == eventEndIndex;
 
         MoveSet moveSet = moveSets.get(moveSetIndex);
+
+        // Wait MoveSets consume 0 events: skip to next MoveSet.
+        if (moveSet.isWaitMoveSet()) {
+            ComboMove.WaitComboMove waitMove = (ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst();
+            // For mid-sequence wait: check time gap between the last event of
+            // the previous MoveSet and the first event of the next MoveSet.
+            if (eventIndex > regionBeginIndex && eventIndex < eventEndIndex) {
+                KeyEvent previousEvent = events.get(eventIndex - 1);
+                KeyEvent nextEvent = events.get(eventIndex);
+                if (!waitMove.duration().satisfied(previousEvent.time(), nextEvent.time()))
+                    return false;
+            }
+            // For wait as last MoveSet: no time check here: ComboWatcher handles it.
+            return tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
+                    eventIndex, eventEndIndex, regionBeginIndex,
+                    matchedMoves, aliasBindings);
+        }
+
         int remainingEventCount = eventEndIndex - eventIndex;
         int minEventCountForRemainingMoveSets = 0;
         for (int laterMoveSetIndex = moveSetIndex + 1;
@@ -269,6 +295,8 @@ public record ComboPreparation(List<KeyEvent> events) {
      */
     private static boolean moveMatchesEvent(ComboMove move, KeyEvent event,
                                             Map<String, Key> aliasBindings) {
+        if (move instanceof ComboMove.WaitComboMove)
+            return false; // Wait moves don't match events.
         if (event.isPress() != move.isPress())
             return false;
         KeyOrAlias keyOrAlias = move.keyOrAlias();
@@ -302,6 +330,7 @@ public record ComboPreparation(List<KeyEvent> events) {
             case ComboMove.ReleaseComboMove r ->
                     new ResolvedComboMove.ResolvedReleaseComboMove(
                             matchedKey, r.duration());
+            case ComboMove.WaitComboMove w -> throw new IllegalStateException();
         };
     }
 

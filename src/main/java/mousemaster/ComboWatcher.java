@@ -30,12 +30,22 @@ public class ComboWatcher implements ModeListener {
     private ComboPreparation comboPreparation;
     private PressKeyEventProcessingSet lastProcessingSet;
     private ComboMoveDuration previousComboMoveDuration;
+    /**
+     * Keys that do NOT break/reset the preparation across all partially-matching combos.
+     * A key is exempt only if it doesn't break the wait in ALL matching combos.
+     * Null means no exempt keys (any key can break).
+     */
+    private Set<Key> keysNotBreakingPreparation;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
     private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
 
     private Set<Key> currentlyPressedCompletedComboKeys = new HashSet<>();
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
     private KeyEvent lastKeyEvent;
+    /**
+     * Per combo with a leading wait, the time the wait began. Reset when a breaking key event occurs.
+     */
+    private Map<Combo, Instant> waitBeginTimeByCombo = new HashMap<>();
     private App lastActiveApp;
 
     public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
@@ -150,6 +160,44 @@ public class ComboWatcher implements ModeListener {
                 completedComboAndCommands.add(comboWaitingForLastMoveToComplete.comboAndCommands);
             }
         }
+        // Handle bare/first wait-X combos (no preceding key-event moves).
+        for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
+                                                                .commandsByCombo()
+                                                                .entrySet()) {
+            Combo combo = entry.getKey();
+            if (!combo.precondition().appPrecondition().satisfied(activeAppFinder.activeApp()))
+                continue;
+            ComboSequence comboSequence = combo.sequence();
+            if (comboSequence.isEmpty())
+                continue;
+            // Check: is the first MoveSet a wait move, and are there no event-based
+            // moves before it?
+            boolean firstIsWait = comboSequence.moveSets().getFirst().isWaitMoveSet();
+            boolean allWait = comboSequence.moveSets().stream().allMatch(MoveSet::isWaitMoveSet);
+            if (!firstIsWait || !allWait)
+                continue;
+            // Preconditions must be satisfied.
+            Set<Key> currentlyPressedKeys = currentlyPressedComboKeys;
+            List<ResolvedComboMove> noMatchedMoves = List.of();
+            if (findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
+                    currentlyPressedCompletedComboKeys, noMatchedMoves) == null)
+                continue;
+            if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys, noMatchedMoves))
+                continue;
+            // Begin time: per-combo breaking event time, or now.
+            ComboMove.WaitComboMove waitMove = (ComboMove.WaitComboMove) comboSequence.moveSets().getFirst().requiredMoves().getFirst();
+            Instant currentTime = clock.now();
+            Instant waitBeginTime = waitBeginTimeByCombo.computeIfAbsent(
+                    combo, k -> currentTime);
+            if (waitBeginTime.plus(waitMove.duration().min()).isAfter(currentTime))
+                continue;
+            if (waitMove.duration().max() != null &&
+                waitBeginTime.plus(waitMove.duration().max()).isBefore(currentTime))
+                continue;
+            // Fire the combo's commands. Keep firing every tick.
+            completedComboAndCommands.add(
+                    new ComboAndCommands(combo, entry.getValue(), ComboSequenceMatch.noMatch()));
+        }
         if (!completedComboAndCommands.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
@@ -181,6 +229,26 @@ public class ComboWatcher implements ModeListener {
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
         lastKeyEvent = event;
+        // Update wait begin times: only reset for breaking key events.
+        for (Map.Entry<Combo, Instant> entry : waitBeginTimeByCombo.entrySet()) {
+            Combo combo = entry.getKey();
+            ComboMove.WaitComboMove waitMove = (ComboMove.WaitComboMove) combo.sequence().moveSets().getFirst().requiredMoves().getFirst();
+            if (!waitMove.keyBreaksWait(event.key()))
+                continue;
+            boolean allWait = combo.sequence().moveSets().stream().allMatch(MoveSet::isWaitMoveSet);
+            if (allWait) {
+                // All-wait combos: always reset (they fire continuously from update()).
+                entry.setValue(event.time());
+            }
+            else {
+                // Leading wait followed by event-based moves: only reset if the wait hasn't elapsed yet.
+                // If it has elapsed, let the key flow through to match subsequent moves.
+                Instant beginTime = entry.getValue();
+                if (beginTime.plus(waitMove.duration().min()).isAfter(event.time())) {
+                    entry.setValue(event.time());
+                }
+            }
+        }
         modeJustTimedOut = false;
         boolean isUnpressedComboPreconditionKey =
                 unpressedComboPreconditionKeys.contains(event.key());
@@ -200,13 +268,32 @@ public class ComboWatcher implements ModeListener {
                 currentlyPressedComboKeys.add(event.key());
             }
         }
-        if (!combosWaitingForLastMoveToComplete.isEmpty())
-            combosWaitingForLastMoveToComplete.clear();
+        if (!combosWaitingForLastMoveToComplete.isEmpty()) {
+            combosWaitingForLastMoveToComplete.removeIf(waiting -> {
+                ComboMove.WaitComboMove waitMove = waiting.lastWaitMove();
+                if (waitMove == null)
+                    return true; // Non-wait waiting combos: any key cancels.
+                return waitMove.keyBreaksWait(event.key());
+            });
+            // Reset the remaining wait for surviving wait combos.
+            for (ComboWaitingForLastMoveToComplete waiting : combosWaitingForLastMoveToComplete) {
+                ComboMove.WaitComboMove waitMove = waiting.lastWaitMove();
+                if (waitMove != null)
+                    waiting.remainingWait = waitMove.duration().min().toNanos() / 1e9d;
+            }
+        }
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
         if (previousEvent != null &&
-            !previousComboMoveDuration.satisfied(previousEvent.time(), event.time()))
-            comboPreparation = ComboPreparation.empty();
+            previousComboMoveDuration != null) {
+            // If the previous combo move has exempt keys (from a trailing wait),
+            // and this key is exempt in all matching combos, don't reset the preparation.
+            boolean skipDurationCheck = keysNotBreakingPreparation != null &&
+                    keysNotBreakingPreparation.contains(event.key());
+            if (!skipDurationCheck &&
+                !previousComboMoveDuration.satisfied(previousEvent.time(), event.time()))
+                comboPreparation = ComboPreparation.empty();
+        }
         comboPreparation.events().add(event);
         Mode beforeMode = currentMode;
         PressKeyEventProcessingSet processingSet =
@@ -252,6 +339,9 @@ public class ComboWatcher implements ModeListener {
         if (event != null && event.isPress())
             currentlyPressedKeys.add(event.key());
         ComboMoveDuration newComboDuration = null;
+        // Intersection of exempt keys across all partially-matching combos.
+        // null = not yet initialized, empty set = no exempt keys.
+        Set<Key> newKeysNotBreakingPreparation = null;
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
@@ -265,6 +355,23 @@ public class ComboWatcher implements ModeListener {
                 continue;
             if (!combo.precondition().appPrecondition().isEmpty() && combo.sequence().isEmpty())
                 continue; // Active app changes are handled in ComboWatcher#update.
+            // Bare wait combos (all MoveSets are wait) are handled in update().
+            if (!combo.sequence().isEmpty() &&
+                combo.sequence().moveSets().stream().allMatch(MoveSet::isWaitMoveSet))
+                continue;
+            // Leading wait: skip until the wait duration has elapsed.
+            if (!combo.sequence().isEmpty() &&
+                combo.sequence().moveSets().getFirst().isWaitMoveSet()) {
+                ComboMove.WaitComboMove leadingWait = (ComboMove.WaitComboMove)
+                        combo.sequence().moveSets().getFirst().requiredMoves().getFirst();
+                Instant now = clock.now();
+                Instant beginTime = waitBeginTimeByCombo.computeIfAbsent(combo, k -> now);
+                if (beginTime.plus(leadingWait.duration().min()).isAfter(now))
+                    continue;
+                if (leadingWait.duration().max() != null &&
+                    beginTime.plus(leadingWait.duration().max()).isBefore(now))
+                    continue;
+            }
             ComboSequenceMatch match = comboPreparation.match(combo.sequence());
             ResolvedComboMove currentMove = match.hasMatch() ?
                     match.lastMatchedMove() : null;
@@ -308,11 +415,50 @@ public class ComboWatcher implements ModeListener {
                         newComboDuration = new ComboMoveDuration(newComboDuration.min(),
                                 currentMove.duration().max());
                 }
+                // Compute exempt keys for this combo's trailing wait (if any).
+                // A key is exempt if it doesn't break the wait in ALL matching combos.
+                Set<Key> comboExemptKeys;
+                MoveSet seqLastMoveSet = combo.sequence().moveSets().getLast();
+                if (seqLastMoveSet.isWaitMoveSet()) {
+                    ComboMove.WaitComboMove wm = (ComboMove.WaitComboMove) seqLastMoveSet.requiredMoves().getFirst();
+                    if (wm.keys().isEmpty()) {
+                        // Plain wait: all keys break: no exempt keys.
+                        comboExemptKeys = Set.of();
+                    }
+                    else if (wm.keysAreExempt()) {
+                        // wait^{keys}: listed keys are exempt.
+                        comboExemptKeys = wm.keys();
+                    }
+                    else {
+                        // wait{keys}: listed keys break, everything else is exempt.
+                        // We can't represent "everything except these" as a finite set,
+                        // so we use null to mean "all keys exempt" and intersect later.
+                        comboExemptKeys = null; // all-except-break-keys
+                    }
+                }
+                else {
+                    // No trailing wait: no exempt keys for this combo.
+                    comboExemptKeys = Set.of();
+                }
+                if (newKeysNotBreakingPreparation == null) {
+                    newKeysNotBreakingPreparation = comboExemptKeys;
+                }
+                else if (comboExemptKeys != null) {
+                    // Intersection: keep only keys exempt in both.
+                    Set<Key> intersection = new HashSet<>(newKeysNotBreakingPreparation);
+                    intersection.retainAll(comboExemptKeys);
+                    newKeysNotBreakingPreparation = intersection;
+                }
+                // If comboExemptKeys is null (wait{keys} all-exempt), the existing
+                // newKeysNotBreakingPreparation is the intersection (unchanged).
             }
             boolean preparationComplete = match.complete();
             ResolvedComboMove comboLastMove = match.lastMatchedMove();
             boolean lastMoveIsWaitingMove = comboLastMove != null &&
                                         !comboLastMove.duration().min().equals(Duration.ZERO);
+            // Check if the last MoveSet in the sequence is a WaitComboMove.
+            MoveSet lastMoveSet = combo.sequence().moveSets().getLast();
+            boolean lastMoveSetIsWait = lastMoveSet.isWaitMoveSet();
             if (event != null) {
                 if (partOfComboSequence) {
                     boolean comboPreparationBreaker = entry.getValue()
@@ -321,7 +467,7 @@ public class ComboWatcher implements ModeListener {
                                                                    Command.BreakComboPreparation.class::isInstance);
                     PressKeyEventProcessing processing =
                             PressKeyEventProcessing.partOfComboSequence(mustBeEaten,
-                                    preparationComplete && !lastMoveIsWaitingMove,
+                                    preparationComplete && !lastMoveIsWaitingMove && !lastMoveSetIsWait,
                                     comboPreparationBreaker);
                     // This processingByCombo does not need to have entries about
                     // non-combo sequences (i.e. combo preconditions).
@@ -333,7 +479,16 @@ public class ComboWatcher implements ModeListener {
             }
             if (!preparationComplete)
                 continue;
-            if (lastMoveIsWaitingMove) {
+            if (lastMoveSetIsWait) {
+                // Wait as last move: all event-based moves matched, now wait.
+                ComboMove.WaitComboMove waitMove = (ComboMove.WaitComboMove) lastMoveSet.requiredMoves().getFirst();
+                List<Command> commands = entry.getValue();
+                ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
+                combosWaitingForLastMoveToComplete.add(
+                        new ComboWaitingForLastMoveToComplete(currentMode, comboAndCommands,
+                                waitMove.duration().min().toNanos() / 1e9d));
+            }
+            else if (lastMoveIsWaitingMove) {
                 List<Command> commands = entry.getValue();
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
                 combosWaitingForLastMoveToComplete.add(
@@ -365,8 +520,10 @@ public class ComboWatcher implements ModeListener {
                 comboAndCommandsToRun.add(comboAndCommands);
             }
         }
-        if (newComboDuration != null)
+        if (newComboDuration != null) {
             previousComboMoveDuration = newComboDuration;
+            keysNotBreakingPreparation = newKeysNotBreakingPreparation;
+        }
         List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
         commandsWaitingForAtomicCommandToComplete.clear();
         List<Command> completeCombosCommandsToRun =
@@ -604,6 +761,7 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
+        waitBeginTimeByCombo.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
             processKeyEventForCurrentMode(null, false);
@@ -627,6 +785,13 @@ public class ComboWatcher implements ModeListener {
              comboMode = currentMode;
              this.comboAndCommands = comboAndCommands;
              this.remainingWait = remainingWait;
+         }
+
+         /** Returns the wait move if the last MoveSet is a wait, null otherwise. */
+         ComboMove.WaitComboMove lastWaitMove() {
+             MoveSet lastMoveSet = comboAndCommands.combo.sequence().moveSets().getLast();
+             return lastMoveSet.isWaitMoveSet() ?
+                     (ComboMove.WaitComboMove) lastMoveSet.requiredMoves().getFirst() : null;
          }
 
         public ComboAndCommands comboAndCommands() {

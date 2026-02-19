@@ -13,16 +13,23 @@ public record ComboSequence(List<MoveSet> moveSets) {
     }
 
     public Set<Key> allKeys() {
-        return moveSets.stream()
-                       .flatMap(moveSet -> Stream.concat(
-                               moveSet.requiredMoves().stream(),
-                               moveSet.optionalMoves().stream()))
-                       .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
-                       .collect(Collectors.toSet());
+        Set<Key> keys = new java.util.HashSet<>();
+        for (MoveSet moveSet : moveSets) {
+            if (moveSet.isWaitMoveSet()) {
+                keys.addAll(((ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst()).keys());
+                continue;
+            }
+            Stream.concat(moveSet.requiredMoves().stream(),
+                          moveSet.optionalMoves().stream())
+                  .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
+                  .forEach(keys::add);
+        }
+        return keys;
     }
 
     public Set<String> aliasNames() {
         return moveSets.stream()
+                       .filter(moveSet -> !moveSet.isWaitMoveSet())
                        .flatMap(moveSet -> Stream.concat(
                                moveSet.requiredMoves().stream(),
                                moveSet.optionalMoves().stream()))

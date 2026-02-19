@@ -6,12 +6,17 @@ import java.util.stream.Stream;
 
 public record MoveSet(List<ComboMove> requiredMoves, List<ComboMove> optionalMoves) {
 
+    boolean isWaitMoveSet() {
+        return requiredMoves.size() == 1 && optionalMoves.isEmpty() &&
+               requiredMoves.getFirst() instanceof ComboMove.WaitComboMove;
+    }
+
     int minMoveCount() {
-        return requiredMoves.size();
+        return isWaitMoveSet() ? 0 : requiredMoves.size();
     }
 
     int maxMoveCount() {
-        return requiredMoves.size() + optionalMoves.size();
+        return isWaitMoveSet() ? 0 : requiredMoves.size() + optionalMoves.size();
     }
 
     @Override
