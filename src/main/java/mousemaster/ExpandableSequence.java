@@ -15,24 +15,24 @@ import java.util.regex.Pattern;
 public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
 
     private static final Pattern MOVE_SET_OR_TOKEN_PATTERN =
-            Pattern.compile("\\{([^}]+)\\}|(\\+?wait-ignore(?:-all-except)?\\{[^}]+\\}-\\S+)|(\\S+)");
+            Pattern.compile("\\{([^}]+)\\}|(\\+?wait-ignore(?:-all-except)?-\\{[^}]+\\}-\\S+)|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
             Pattern.compile("([+\\-#])([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
 
-    // [+]wait-MIN, [+]wait-MIN-MAX,
-    // [+]wait-ignore{keys}-MIN, [+]wait-ignore-all-MIN,
-    // [+]wait-ignore-all-except{keys}-MIN, etc.
+    // [+]wait-MIN[-MAX],
+    // [+]wait-ignore-{keys}-MIN[-MAX], [+]wait-ignore-all-MIN[-MAX],
+    // [+]wait-ignore-all-except-{keys}-MIN[-MAX]
     // Group 1: optional "+" prefix (eat absorbed events)
-    // Group 2: full ignore block (e.g. "-ignore{b c}" or "-ignore-all" or "-ignore-all-except{b c}")
-    // Group 3: "-all..." or "{keys}" part after -ignore
-    // Group 4: "-except{keys}" part (null if just -all)
+    // Group 2: full ignore block (e.g. "-ignore-{b c}" or "-ignore-all" or "-ignore-all-except-{b c}")
+    // Group 3: "-all..." or "-{keys}" part after -ignore
+    // Group 4: "-except-{keys}" part (null if just -all)
     // Group 5: key names in except block
     // Group 6: key names in ignore block (direct, without -all)
     // Group 7: min duration
     // Group 9: max duration
     private static final Pattern WAIT_PATTERN =
-            Pattern.compile("(\\+)?wait(-ignore(-all(-except\\{([^}]+)\\})?|\\{([^}]+)\\}))?-(\\d+)(-(\\d+))?");
+            Pattern.compile("(\\+)?wait(-ignore(-all(-except-\\{([^}]+)\\})?|-\\{([^}]+)\\}))?-(\\d+)(-(\\d+))?");
 
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
