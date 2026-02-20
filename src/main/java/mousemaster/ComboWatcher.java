@@ -522,8 +522,8 @@ public class ComboWatcher implements ModeListener {
             boolean lastMoveIsWaitingMove = comboLastMove != null &&
                                         !comboLastMove.duration().min().equals(Duration.ZERO);
             // Check if the last MoveSet in the sequence is a WaitMoveSet.
-            MoveSet lastMoveSet = combo.sequence().moveSets().getLast();
-            boolean lastMoveSetIsWait = lastMoveSet instanceof WaitMoveSet;
+            boolean lastMoveSetIsWait = !combo.sequence().isEmpty() &&
+                    combo.sequence().moveSets().getLast() instanceof WaitMoveSet;
             if (event != null) {
                 if (partOfComboSequence) {
                     boolean comboPreparationBreaker = entry.getValue()
@@ -544,7 +544,8 @@ public class ComboWatcher implements ModeListener {
             }
             if (!preparationComplete)
                 continue;
-            if (lastMoveSet instanceof WaitMoveSet lastWaitMoveSet) {
+            if (lastMoveSetIsWait &&
+                combo.sequence().moveSets().getLast() instanceof WaitMoveSet lastWaitMoveSet) {
                 // Wait as last move: all event-based moves matched, now wait.
                 WaitComboMove waitMove = lastWaitMoveSet.waitMove();
                 List<Command> commands = entry.getValue();
