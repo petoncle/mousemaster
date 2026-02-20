@@ -505,10 +505,10 @@ public class ComboWatcher implements ModeListener {
                     ComboMove.WaitComboMove wm = (ComboMove.WaitComboMove) lastMatchedMoveSet.requiredMoves().getFirst();
                     newComboDuration = new ComboMoveDuration(
                             newComboDuration.min(), wm.duration().max());
-                    // If the current event was absorbed by the wait (not matched
-                    // as a combo move), it should pass through to the OS.
+                    // If the current event was absorbed by the wait, eat it only
+                    // if the wait has +wait (ignoredKeysEatEvents).
                     if (match.lastEventAbsorbedByWait()) {
-                        mustBeEaten = false;
+                        mustBeEaten = wm.ignoredKeysEatEvents();
                     }
                 }
                 // Compute ignored keys from the last matched MoveSet.

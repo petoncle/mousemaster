@@ -30,7 +30,7 @@ public sealed interface ComboMove {
 
     }
 
-    record WaitComboMove(IgnoredKeySet ignoredKeySet,
+    record WaitComboMove(IgnoredKeySet ignoredKeySet, boolean ignoredKeysEatEvents,
                          ComboMoveDuration duration) implements ComboMove {
         @Override
         public KeyOrAlias keyOrAlias() {
@@ -49,7 +49,7 @@ public sealed interface ComboMove {
                         "-ignore-all-except{" + allExcept.keys().stream().map(Key::name)
                                 .reduce((a, b) -> a + " " + b).orElse("") + "}";
             };
-            return "wait" + ignorePart + "-" + duration.min().toMillis() +
+            return (ignoredKeysEatEvents ? "+" : "") + "wait" + ignorePart + "-" + duration.min().toMillis() +
                    (duration.max() == null ? "" : "-" + duration.max().toMillis());
         }
     }

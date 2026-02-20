@@ -37,7 +37,7 @@ public sealed interface ComboAliasMove {
     }
 
     record WaitComboAliasMove(Set<String> keyAliasOrKeyNames, boolean listedKeysAreIgnored,
-                              ComboMoveDuration duration) implements ComboAliasMove {
+                              boolean ignoredKeysEatEvents, ComboMoveDuration duration) implements ComboAliasMove {
         @Override
         public String aliasOrKeyName() {
             return null;
@@ -60,7 +60,7 @@ public sealed interface ComboAliasMove {
             else {
                 ignorePart = "-ignore-all-except{" + String.join(" ", keyAliasOrKeyNames) + "}";
             }
-            return "wait" + ignorePart + "-" + duration.min().toMillis() +
+            return (ignoredKeysEatEvents ? "+" : "") + "wait" + ignorePart + "-" + duration.min().toMillis() +
                    (duration.max() == null ? "" : "-" + duration.max().toMillis());
         }
     }
