@@ -77,7 +77,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                         listedKeysAreIgnored = true;
                     }
                     else if (waitMatcher.group(6) != null) {
-                        // wait-ignore{keys}: listed keys are ignored.
+                        // wait-ignore-{keys}: listed keys are ignored.
                         String[] keys = waitMatcher.group(6).strip().split("\\s+");
                         keyNames = Set.of(keys);
                         listedKeysAreIgnored = true;
@@ -88,7 +88,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                         listedKeysAreIgnored = false;
                     }
                     else {
-                        // wait-ignore-all-except{keys}: all keys except listed are ignored.
+                        // wait-ignore-all-except-{keys}: all keys except listed are ignored.
                         String[] keys = waitMatcher.group(5).strip().split("\\s+");
                         keyNames = Set.of(keys);
                         listedKeysAreIgnored = false;
