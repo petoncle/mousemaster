@@ -673,20 +673,25 @@ public class ComboWatcher implements ModeListener {
                                                        Set<Key> currentlyPressedKeys,
                                                        Set<Key> currentlyPressedCompletedComboKeys,
                                                        List<ResolvedComboMove> matchedMoves) {
+        PressedKeyPrecondition precondition = combo.precondition()
+                                                   .keyPrecondition()
+                                                   .pressedKeyPrecondition();
         // For combos with absorbing waits, ignored keys may be pressed during the wait
-        // period. Remove them from the pressed key set so they don't fail the precondition check.
+        // period. Remove them from the pressed key set so they don't fail the precondition
+        // check, but preserve precondition keys (they were pressed before the combo started).
+        Set<Key> allPreconditionKeys = new HashSet<>();
+        for (PressedKeyGroup group : precondition.groups())
+            allPreconditionKeys.addAll(group.allKeys());
         Set<Key> pressedKeys = currentlyPressedKeys;
         for (MoveSet moveSet : combo.sequence().moveSets()) {
             if (moveSet.canAbsorbEvents()) {
                 ComboMove.WaitComboMove wm = (ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst();
                 if (pressedKeys == currentlyPressedKeys)
                     pressedKeys = new HashSet<>(currentlyPressedKeys);
-                pressedKeys.removeIf(wm.ignoredKeySet()::isIgnored);
+                pressedKeys.removeIf(key -> wm.ignoredKeySet().isIgnored(key) &&
+                                            !allPreconditionKeys.contains(key));
             }
         }
-        PressedKeyPrecondition precondition = combo.precondition()
-                                                   .keyPrecondition()
-                                                   .pressedKeyPrecondition();
         List<PressedKeyGroup> groups = precondition.groups();
         if (groups.isEmpty())
             groups = List.of(new PressedKeyGroup(List.of()));
