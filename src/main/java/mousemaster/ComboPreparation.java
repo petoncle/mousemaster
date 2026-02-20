@@ -26,12 +26,12 @@ public record ComboPreparation(List<KeyEvent> events) {
     public ComboSequenceMatch match(ComboSequence sequence) {
         List<MoveSet> moveSets = sequence.moveSets();
         if (moveSets.isEmpty())
-            return new ComboSequenceMatch(List.of(), true, new AliasResolution(Map.of()));
+            return new ComboSequenceMatch(List.of(), true, 0, new AliasResolution(Map.of()));
         // A sequence that is only wait moves (e.g. "wait-2000") has no event-based moves.
         // It is "complete" with 0 matched events: ComboWatcher handles the wait duration.
         boolean allWait = moveSets.stream().allMatch(MoveSet::isWaitMoveSet);
         if (allWait)
-            return new ComboSequenceMatch(List.of(), true, new AliasResolution(Map.of()));
+            return new ComboSequenceMatch(List.of(), true, moveSets.size(), new AliasResolution(Map.of()));
         if (events.isEmpty())
             return ComboSequenceMatch.noMatch();
 
@@ -43,13 +43,18 @@ public record ComboPreparation(List<KeyEvent> events) {
             if (subMoveSets.stream().allMatch(MoveSet::isWaitMoveSet))
                 continue;
             int minTotalEventCount = 0, maxTotalEventCount = 0;
+            boolean hasAbsorbingWait = false;
             for (MoveSet moveSet : subMoveSets) {
                 minTotalEventCount += moveSet.minMoveCount();
                 maxTotalEventCount += moveSet.maxMoveCount();
+                if (moveSet.canAbsorbEvents())
+                    hasAbsorbingWait = true;
             }
             if (minTotalEventCount > events.size())
                 continue;
-            int effectiveMaxEventCount = Math.min(maxTotalEventCount, events.size());
+            // Absorbing waits can consume arbitrary events, so max is events.size().
+            int effectiveMaxEventCount = hasAbsorbingWait ?
+                    events.size() : Math.min(maxTotalEventCount, events.size());
 
             // Try consuming totalEventCount events from the end of the preparation,
             // starting with the most events (greediest match) first.
@@ -63,7 +68,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                         matchedMoves, aliasBindings)) {
                     boolean complete = (k == moveSets.size());
                     return new ComboSequenceMatch(List.copyOf(matchedMoves), complete,
-                            new AliasResolution(Map.copyOf(aliasBindings)));
+                            k, new AliasResolution(Map.copyOf(aliasBindings)));
                 }
             }
         }
@@ -86,21 +91,59 @@ public record ComboPreparation(List<KeyEvent> events) {
 
         MoveSet moveSet = moveSets.get(moveSetIndex);
 
-        // Wait MoveSets consume 0 events: skip to next MoveSet.
+        // Wait MoveSets: absorb non-breaking events, then skip to next MoveSet.
         if (moveSet.isWaitMoveSet()) {
             ComboMove.WaitComboMove waitMove = (ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst();
-            // For mid-sequence wait: check time gap between the last event of
-            // the previous MoveSet and the first event of the next MoveSet.
-            if (eventIndex > regionBeginIndex && eventIndex < eventEndIndex) {
-                KeyEvent previousEvent = events.get(eventIndex - 1);
-                KeyEvent nextEvent = events.get(eventIndex);
-                if (!waitMove.duration().satisfied(previousEvent.time(), nextEvent.time()))
-                    return false;
+            if (moveSet.canAbsorbEvents()) {
+                // Absorbing wait: try consuming 0..maxAbsorb events.
+                int minForRemaining = 0;
+                for (int later = moveSetIndex + 1; later < moveSets.size(); later++)
+                    minForRemaining += moveSets.get(later).minMoveCount();
+                int maxAbsorb = (eventEndIndex - eventIndex) - minForRemaining;
+                for (int absorb = maxAbsorb; absorb >= 0; absorb--) {
+                    // Check all absorbed events are non-breaking.
+                    boolean allNonBreaking = true;
+                    for (int i = 0; i < absorb; i++) {
+                        if (waitMove.keyBreaksWait(events.get(eventIndex + i).key())) {
+                            allNonBreaking = false;
+                            break;
+                        }
+                    }
+                    if (!allNonBreaking)
+                        continue;
+                    int nextEventIndex = eventIndex + absorb;
+                    // For mid-sequence wait: check time gap from pre-wait event
+                    // to first post-wait event.
+                    if (eventIndex > regionBeginIndex && nextEventIndex < eventEndIndex) {
+                        KeyEvent previousEvent = events.get(eventIndex - 1);
+                        KeyEvent nextEvent = events.get(nextEventIndex);
+                        if (!waitMove.duration().satisfied(previousEvent.time(), nextEvent.time()))
+                            continue;
+                    }
+                    // Pass nextEventIndex as regionBeginIndex so the first event
+                    // after the wait skips the per-move duration check (the wait
+                    // already validated the time gap).
+                    if (tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
+                            nextEventIndex, eventEndIndex, nextEventIndex,
+                            matchedMoves, aliasBindings))
+                        return true;
+                }
+                return false;
             }
-            // For wait as last MoveSet: no time check here: ComboWatcher handles it.
-            return tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
-                    eventIndex, eventEndIndex, regionBeginIndex,
-                    matchedMoves, aliasBindings);
+            else {
+                // Non-absorbing wait (plain wait: all keys break): consume 0 events.
+                if (eventIndex > regionBeginIndex && eventIndex < eventEndIndex) {
+                    KeyEvent previousEvent = events.get(eventIndex - 1);
+                    KeyEvent nextEvent = events.get(eventIndex);
+                    if (!waitMove.duration().satisfied(previousEvent.time(), nextEvent.time()))
+                        return false;
+                }
+                // Pass eventIndex as regionBeginIndex so the first event
+                // after the wait skips the per-move duration check.
+                return tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
+                        eventIndex, eventEndIndex, eventIndex,
+                        matchedMoves, aliasBindings);
+            }
         }
 
         int remainingEventCount = eventEndIndex - eventIndex;

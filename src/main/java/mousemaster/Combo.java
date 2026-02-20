@@ -18,7 +18,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                  Map<String, AppAlias> appAliases,
                                  KeyResolver keyResolver) {
         // Match ^{...} and _{...} preconditions in any order.
-        Matcher preconditionMatcher = Pattern.compile("([\\^_])\\{([^{}]+)\\}\\s*").matcher(string);
+        Matcher preconditionMatcher = Pattern.compile("\\G([\\^_])\\{([^{}]+)\\}\\s*").matcher(string);
         String mustNotBeActiveAppsString = null;
         Set<App> mustNotBeActiveApps = Set.of();
         String unpressedKeySetString = null;

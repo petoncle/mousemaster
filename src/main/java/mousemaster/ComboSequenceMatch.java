@@ -4,10 +4,11 @@ import java.util.List;
 import java.util.Map;
 
 public record ComboSequenceMatch(List<ResolvedComboMove> matchedMoves, boolean complete,
+                                 int matchedMoveSetCount,
                                  AliasResolution aliasResolution) {
 
     private static final ComboSequenceMatch NO_MATCH =
-            new ComboSequenceMatch(List.of(), false, new AliasResolution(Map.of()));
+            new ComboSequenceMatch(List.of(), false, 0, new AliasResolution(Map.of()));
 
     public static ComboSequenceMatch noMatch() {
         return NO_MATCH;

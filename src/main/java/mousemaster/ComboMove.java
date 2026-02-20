@@ -36,6 +36,7 @@ public sealed interface ComboMove {
      * @param keysAreExempt true for wait^{keys} (listed keys don't break the wait),
      *                      false for wait{keys} (only listed keys break the wait).
      *                      Empty keys + keysAreExempt=true means plain wait (all keys break).
+     *                      Empty keys + keysAreExempt=false means mid-sequence wait (no keys break).
      */
     record WaitComboMove(Set<Key> keys, boolean keysAreExempt,
                          ComboMoveDuration duration) implements ComboMove {
@@ -48,14 +49,14 @@ public sealed interface ComboMove {
          * Returns true if the given key breaks (cancels/resets) the wait.
          */
         public boolean keyBreaksWait(Key key) {
-            if (keys.isEmpty())
-                // Plain wait: all keys break.
-                return true;
             if (keysAreExempt)
-                // wait^{keys}: listed keys are exempt (don't break), everything else breaks.
+                // wait^{keys} or plain wait: listed keys are exempt (don't break),
+                // everything else breaks.
+                // Empty keys + keysAreExempt=true: all keys break (plain wait).
                 return !keys.contains(key);
             else
-                // wait{keys}: only listed keys break.
+                // wait{keys} or mid-sequence wait: only listed keys break.
+                // Empty keys + keysAreExempt=false: no keys break (mid-sequence wait).
                 return keys.contains(key);
         }
 

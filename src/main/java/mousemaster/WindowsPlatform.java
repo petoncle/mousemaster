@@ -309,84 +309,89 @@ public class WindowsPlatform implements Platform {
     private WinDef.LRESULT keyboardHookCallback(int nCode, WinDef.WPARAM wParam,
                                                 WinUser.KBDLLHOOKSTRUCT info) {
         clock.setLastKeyboardHookEventRelativeTimeMillis(info.time);
-        if (nCode >= 0) {
-            switch (wParam.intValue()) {
-                case WinUser.WM_KEYUP:
-                case WinUser.WM_KEYDOWN:
-                case WinUser.WM_SYSKEYUP:
-                case WinUser.WM_SYSKEYDOWN:
-                    String wParamString = switch (wParam.intValue()) {
-                        case WinUser.WM_KEYUP -> "WM_KEYUP";
-                        case WinUser.WM_KEYDOWN -> "WM_KEYDOWN";
-                        case WinUser.WM_SYSKEYUP -> "WM_SYSKEYUP";
-                        case WinUser.WM_SYSKEYDOWN -> "WM_SYSKEYDOWN";
-                        default -> throw new IllegalStateException();
-                    };
-                    logKeyEvent(info, wParamString);
-                    if ((info.flags & ExtendedUser32.LLKHF_INJECTED) ==
-                        ExtendedUser32.LLKHF_INJECTED) {
-                        // SendInput from another app (or from mousemaster).
-                    }
-                    else if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
-                        (info.flags & 0b10000) == 0b10000) {
-                        // 0b10000 means alt is pressed. This avoids getting two consecutive duplicate alt press,release events.
-                    }
-                    else {
-                        // Pressing altgr corresponds to the following sequence
-                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x20, wParam = WM_SYSKEYDOWN
-                        // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x21, wParam = WM_SYSKEYDOWN
-                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x80, wParam = WM_KEYUP
-                        // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x81, wParam = WM_KEYUP
-                        // Pressing leftctrl corresponds to:
-                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x0, wParam = WM_KEYDOWN
-                        // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x80, wParam = WM_KEYUP
-                        // We ignore that leftctrl in altgr.
-                        boolean altgrLeftctrl = info.vkCode ==
-                                                WindowsVirtualKey.VK_LCONTROL.virtualKeyCode &&
-                                                info.scanCode == 0x21d;
-                        boolean release = wParam.intValue() == WinUser.WM_KEYUP ||
-                                          wParam.intValue() == WinUser.WM_SYSKEYUP;
-                        Key key;
-                        if (altgrLeftctrl)
-                            // Consider altgr's leftctrl and altgr's rightalt as the same key: Key.rightalt.
-                            key = Key.rightalt;
-                        else
-                            key = WindowsVirtualKey.keyFromWindowsEvent(
-                                    WindowsVirtualKey.values.get(info.vkCode),
-                                    info.scanCode, info.flags);
-                        if (key != null) {
-                            Instant time = clock.now();
-                            if (release)
-                                WindowsKeyboard.keyReleasedByUser(key);
-                            else
-                                WindowsKeyboard.keyPressedByUser(key);
-                            KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
-                                    new PressKeyEvent(time, key);
-                            if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
-                                logger.info("Key event ignored because it is equal to the last event: " + keyEvent);
-                            }
-                            else {
-                                boolean eventMustBeEaten =
-                                        keyEvent(keyEvent, info, wParamString);
-                                if (release && eventMustBeEaten && altgrLeftctrl)
-                                    mustEatNextReleaseOfRightalt = true;
-                                else if (release && key.equals(Key.rightalt) &&
-                                         mustEatNextReleaseOfRightalt) {
-                                    eventMustBeEaten = true;
-                                    mustEatNextReleaseOfRightalt = false;
-                                }
-                                if (eventMustBeEaten)
-                                    return new WinDef.LRESULT(1);
-                            }
-                            lastKeyEvent = keyEvent;
+        try {
+            if (nCode >= 0) {
+                switch (wParam.intValue()) {
+                    case WinUser.WM_KEYUP:
+                    case WinUser.WM_KEYDOWN:
+                    case WinUser.WM_SYSKEYUP:
+                    case WinUser.WM_SYSKEYDOWN:
+                        String wParamString = switch (wParam.intValue()) {
+                            case WinUser.WM_KEYUP -> "WM_KEYUP";
+                            case WinUser.WM_KEYDOWN -> "WM_KEYDOWN";
+                            case WinUser.WM_SYSKEYUP -> "WM_SYSKEYUP";
+                            case WinUser.WM_SYSKEYDOWN -> "WM_SYSKEYDOWN";
+                            default -> throw new IllegalStateException();
+                        };
+                        logKeyEvent(info, wParamString);
+                        if ((info.flags & ExtendedUser32.LLKHF_INJECTED) ==
+                            ExtendedUser32.LLKHF_INJECTED) {
+                            // SendInput from another app (or from mousemaster).
                         }
-                    }
-                    break;
-                default:
-                    logger.debug("Received unexpected key event wParam: " + wParam.intValue());
+                        else if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
+                            (info.flags & 0b10000) == 0b10000) {
+                            // 0b10000 means alt is pressed. This avoids getting two consecutive duplicate alt press,release events.
+                        }
+                        else {
+                            // Pressing altgr corresponds to the following sequence
+                            // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x20, wParam = WM_SYSKEYDOWN
+                            // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x21, wParam = WM_SYSKEYDOWN
+                            // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x21d, flags = 0x80, wParam = WM_KEYUP
+                            // vkCode = 0xa5 (VK_RMENU), scanCode = 0x38, flags = 0x81, wParam = WM_KEYUP
+                            // Pressing leftctrl corresponds to:
+                            // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x0, wParam = WM_KEYDOWN
+                            // vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x80, wParam = WM_KEYUP
+                            // We ignore that leftctrl in altgr.
+                            boolean altgrLeftctrl = info.vkCode ==
+                                                    WindowsVirtualKey.VK_LCONTROL.virtualKeyCode &&
+                                                    info.scanCode == 0x21d;
+                            boolean release = wParam.intValue() == WinUser.WM_KEYUP ||
+                                              wParam.intValue() == WinUser.WM_SYSKEYUP;
+                            Key key;
+                            if (altgrLeftctrl)
+                                // Consider altgr's leftctrl and altgr's rightalt as the same key: Key.rightalt.
+                                key = Key.rightalt;
+                            else
+                                key = WindowsVirtualKey.keyFromWindowsEvent(
+                                        WindowsVirtualKey.values.get(info.vkCode),
+                                        info.scanCode, info.flags);
+                            if (key != null) {
+                                Instant time = clock.now();
+                                if (release)
+                                    WindowsKeyboard.keyReleasedByUser(key);
+                                else
+                                    WindowsKeyboard.keyPressedByUser(key);
+                                KeyEvent keyEvent = release ? new ReleaseKeyEvent(time, key) :
+                                        new PressKeyEvent(time, key);
+                                if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
+                                    logger.info("Key event ignored because it is equal to the last event: " + keyEvent);
+                                }
+                                else {
+                                    boolean eventMustBeEaten =
+                                            keyEvent(keyEvent, info, wParamString);
+                                    if (release && eventMustBeEaten && altgrLeftctrl)
+                                        mustEatNextReleaseOfRightalt = true;
+                                    else if (release && key.equals(Key.rightalt) &&
+                                             mustEatNextReleaseOfRightalt) {
+                                        eventMustBeEaten = true;
+                                        mustEatNextReleaseOfRightalt = false;
+                                    }
+                                    if (eventMustBeEaten)
+                                        return new WinDef.LRESULT(1);
+                                }
+                                lastKeyEvent = keyEvent;
+                            }
+                        }
+                        break;
+                    default:
+                        logger.debug("Received unexpected key event wParam: " + wParam.intValue());
+                }
             }
+            return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
         }
-        return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
+        finally {
+            clock.keyboardHookEventHandled();
+        }
     }
 
     private boolean keyEvent(KeyEvent keyEvent, WinUser.KBDLLHOOKSTRUCT info,

@@ -55,36 +55,26 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                             Duration.ofMillis(Integer.parseUnsignedInt(waitMatcher.group(3))),
                             waitMatcher.group(5) == null ? null : Duration.ofMillis(
                                     Integer.parseUnsignedInt(waitMatcher.group(5))));
-                    if (waitMatcher.group(1) == null && !moveSets.isEmpty()) {
-                        // No key block and previous moveSet exists: syntactic sugar.
-                        // Apply duration to the last move of the previous moveSet.
-                        Set<ComboAliasMove> lastMoveSet = moveSets.getLast();
-                        Set<ComboAliasMove> updatedMoveSet = new LinkedHashSet<>();
-                        for (ComboAliasMove move : lastMoveSet) {
-                            if (!move.duration().min().equals(Duration.ZERO) ||
-                                move.duration().max() != null)
-                                throw new IllegalArgumentException(
-                                        "Duration on move before wait is invalid: " + move);
-                            updatedMoveSet.add(withDuration(move, waitDuration));
-                        }
-                        moveSets.set(moveSets.size() - 1, updatedMoveSet);
+                    Set<String> keyNames;
+                    boolean keysAreExempt;
+                    if (waitMatcher.group(1) != null) {
+                        // Explicit key block: wait^{keys} or wait{keys}.
+                        String[] keys = waitMatcher.group(2).strip().split("\\s+");
+                        keyNames = Set.of(keys);
+                        keysAreExempt = waitMatcher.group(1).startsWith("^");
+                    }
+                    else if (!moveSets.isEmpty()) {
+                        // Mid-sequence wait without key block: no keys break.
+                        keyNames = Set.of();
+                        keysAreExempt = false;
                     }
                     else {
-                        // New WaitComboAliasMove.
-                        Set<String> keyNames;
-                        boolean keysAreExempt;
-                        if (waitMatcher.group(1) != null) {
-                            String[] keys = waitMatcher.group(2).strip().split("\\s+");
-                            keyNames = Set.of(keys);
-                            keysAreExempt = waitMatcher.group(1).startsWith("^");
-                        }
-                        else {
-                            keyNames = Set.of();
-                            keysAreExempt = true; // plain wait: all keys break
-                        }
-                        moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
-                                keyNames, keysAreExempt, waitDuration)));
+                        // Bare/first wait: all keys break.
+                        keyNames = Set.of();
+                        keysAreExempt = true;
                     }
+                    moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
+                            keyNames, keysAreExempt, waitDuration)));
                 }
                 else {
                     moveSets.add(Set.of(parseMove(token, defaultMoveDuration)));
