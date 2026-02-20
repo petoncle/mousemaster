@@ -104,19 +104,6 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         return new ExpandableSequence(moveSets);
     }
 
-    private static ComboAliasMove withDuration(ComboAliasMove move, ComboMoveDuration duration) {
-        return switch (move) {
-            case ComboAliasMove.PressComboAliasMove p ->
-                    new ComboAliasMove.PressComboAliasMove(p.aliasOrKeyName(),
-                            p.eventMustBeEaten(), duration, p.optional());
-            case ComboAliasMove.ReleaseComboAliasMove r ->
-                    new ComboAliasMove.ReleaseComboAliasMove(r.aliasOrKeyName(),
-                            duration, r.optional());
-            case ComboAliasMove.WaitComboAliasMove w ->
-                    throw new IllegalArgumentException("Cannot set duration on a wait move");
-        };
-    }
-
     private static ComboAliasMove parseMove(String moveString,
                                             ComboMoveDuration defaultMoveDuration) {
         Matcher matcher = MOVE_PATTERN.matcher(moveString);
