@@ -31,8 +31,8 @@ public class ComboWatcher implements ModeListener {
     private PressKeyEventProcessingSet lastProcessingSet;
     private ComboMoveDuration previousComboMoveDuration;
     /**
-     * Keys ignored across all partially-matching combos (they do not reset the preparation).
-     * A key is ignored only if it is ignored by the wait in ALL matching combos.
+     * Union of ignored keys across all partially-matching combos (they do not reset the preparation).
+     * A key is ignored if it is ignored by the wait in any matching combo.
      */
     private IgnoredKeySet ignoredKeys;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
