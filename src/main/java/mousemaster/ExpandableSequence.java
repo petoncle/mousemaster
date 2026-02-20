@@ -8,18 +8,23 @@ import java.util.regex.Pattern;
 public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
 
     private static final Pattern MOVE_SET_OR_TOKEN_PATTERN =
-            Pattern.compile("\\{([^}]+)\\}|(wait\\^?\\{[^}]+\\}-\\S+)|(\\S+)");
+            Pattern.compile("\\{([^}]+)\\}|(wait-ignore(?:-all-except)?\\{[^}]+\\}-\\S+)|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
             Pattern.compile("([+\\-#])([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
 
-    // wait-MIN, wait-MIN-MAX, wait^{keys}-MIN, wait{keys}-MIN, etc.
-    // Group 1: key block with optional ^ (e.g. "^{b c}" or "{b c}")
-    // Group 2: key names inside braces (e.g. "b c")
-    // Group 3: min duration
-    // Group 5: max duration
+    // wait-MIN, wait-MIN-MAX,
+    // wait-ignore{keys}-MIN, wait-ignore-all-MIN,
+    // wait-ignore-all-except{keys}-MIN, etc.
+    // Group 1: full ignore block (e.g. "-ignore{b c}" or "-ignore-all" or "-ignore-all-except{b c}")
+    // Group 2: "-all..." or "{keys}" part after -ignore
+    // Group 3: "-except{keys}" part (null if just -all)
+    // Group 4: key names in except block
+    // Group 5: key names in ignore block (direct, without -all)
+    // Group 6: min duration
+    // Group 8: max duration
     private static final Pattern WAIT_PATTERN =
-            Pattern.compile("wait(\\^?\\{([^}]+)\\})?-(\\d+)(-(\\d+))?");
+            Pattern.compile("wait(-ignore(-all(-except\\{([^}]+)\\})?|\\{([^}]+)\\}))?-(\\d+)(-(\\d+))?");
 
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
@@ -52,26 +57,32 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 Matcher waitMatcher = WAIT_PATTERN.matcher(token);
                 if (waitMatcher.matches()) {
                     ComboMoveDuration waitDuration = new ComboMoveDuration(
-                            Duration.ofMillis(Integer.parseUnsignedInt(waitMatcher.group(3))),
-                            waitMatcher.group(5) == null ? null : Duration.ofMillis(
-                                    Integer.parseUnsignedInt(waitMatcher.group(5))));
+                            Duration.ofMillis(Integer.parseUnsignedInt(waitMatcher.group(6))),
+                            waitMatcher.group(8) == null ? null : Duration.ofMillis(
+                                    Integer.parseUnsignedInt(waitMatcher.group(8))));
                     Set<String> keyNames;
                     boolean keysAreExempt;
-                    if (waitMatcher.group(1) != null) {
-                        // Explicit key block: wait^{keys} or wait{keys}.
-                        String[] keys = waitMatcher.group(2).strip().split("\\s+");
-                        keyNames = Set.of(keys);
-                        keysAreExempt = waitMatcher.group(1).startsWith("^");
+                    if (waitMatcher.group(1) == null) {
+                        // Plain wait: all keys break.
+                        keyNames = Set.of();
+                        keysAreExempt = true;
                     }
-                    else if (!moveSets.isEmpty()) {
-                        // Mid-sequence wait without key block: no keys break.
+                    else if (waitMatcher.group(5) != null) {
+                        // wait-ignore{keys}: listed keys don't break.
+                        String[] keys = waitMatcher.group(5).strip().split("\\s+");
+                        keyNames = Set.of(keys);
+                        keysAreExempt = true;
+                    }
+                    else if (waitMatcher.group(3) == null) {
+                        // wait-ignore-all: no keys break.
                         keyNames = Set.of();
                         keysAreExempt = false;
                     }
                     else {
-                        // Bare/first wait: all keys break.
-                        keyNames = Set.of();
-                        keysAreExempt = true;
+                        // wait-ignore-all-except{keys}: only listed keys break.
+                        String[] keys = waitMatcher.group(4).strip().split("\\s+");
+                        keyNames = Set.of(keys);
+                        keysAreExempt = false;
                     }
                     moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
                             keyNames, keysAreExempt, waitDuration)));

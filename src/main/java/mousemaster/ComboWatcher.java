@@ -517,11 +517,11 @@ public class ComboWatcher implements ModeListener {
                         comboExemptKeys = null; // all keys exempt
                     }
                     else if (wm.keysAreExempt()) {
-                        // wait^{keys}: listed keys are exempt.
+                        // wait-ignore{keys}: listed keys are ignored.
                         comboExemptKeys = wm.keys();
                     }
                     else {
-                        // wait{keys}: listed keys break, everything else is exempt.
+                        // wait-ignore-all-except{keys}: listed keys break, everything else is ignored.
                         comboExemptKeys = null; // all-except-break-keys
                     }
                 }

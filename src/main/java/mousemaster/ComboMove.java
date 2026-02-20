@@ -33,10 +33,10 @@ public sealed interface ComboMove {
     }
 
     /**
-     * @param keysAreExempt true for wait^{keys} (listed keys don't break the wait),
-     *                      false for wait{keys} (only listed keys break the wait).
+     * @param keysAreExempt true for wait-ignore{keys} (listed keys don't break the wait),
+     *                      false for wait-ignore-all-except{keys} (only listed keys break the wait).
      *                      Empty keys + keysAreExempt=true means plain wait (all keys break).
-     *                      Empty keys + keysAreExempt=false means mid-sequence wait (no keys break).
+     *                      Empty keys + keysAreExempt=false means wait-ignore-all (no keys break).
      */
     record WaitComboMove(Set<Key> keys, boolean keysAreExempt,
                          ComboMoveDuration duration) implements ComboMove {
@@ -50,21 +50,29 @@ public sealed interface ComboMove {
          */
         public boolean keyBreaksWait(Key key) {
             if (keysAreExempt)
-                // wait^{keys} or plain wait: listed keys are exempt (don't break),
+                // wait-ignore{keys} or plain wait: listed keys are ignored (don't break),
                 // everything else breaks.
                 // Empty keys + keysAreExempt=true: all keys break (plain wait).
                 return !keys.contains(key);
             else
-                // wait{keys} or mid-sequence wait: only listed keys break.
-                // Empty keys + keysAreExempt=false: no keys break (mid-sequence wait).
+                // wait-ignore-all-except{keys} or wait-ignore-all: only listed keys break.
+                // Empty keys + keysAreExempt=false: no keys break (wait-ignore-all).
                 return keys.contains(key);
         }
 
         @Override
         public String toString() {
-            String keyPart = keys.isEmpty() ? "" :
-                    (keysAreExempt ? "^" : "") + "{" + keys.stream().map(Key::name).reduce((a, b) -> a + " " + b).orElse("") + "}";
-            return "wait" + keyPart + "-" + duration.min().toMillis() +
+            String ignorePart;
+            if (keys.isEmpty()) {
+                ignorePart = keysAreExempt ? "" : "-ignore-all";
+            }
+            else if (keysAreExempt) {
+                ignorePart = "-ignore{" + keys.stream().map(Key::name).reduce((a, b) -> a + " " + b).orElse("") + "}";
+            }
+            else {
+                ignorePart = "-ignore-all-except{" + keys.stream().map(Key::name).reduce((a, b) -> a + " " + b).orElse("") + "}";
+            }
+            return "wait" + ignorePart + "-" + duration.min().toMillis() +
                    (duration.max() == null ? "" : "-" + duration.max().toMillis());
         }
     }
