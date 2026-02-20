@@ -333,12 +333,6 @@ public class ComboWatcher implements ModeListener {
                     return true; // Non-wait waiting combos: any key cancels.
                 return !waitMove.ignoredKeySet().isIgnored(event.key());
             });
-            // Reset the remaining wait for surviving wait combos.
-            for (ComboWaitingForLastMoveToComplete waiting : combosWaitingForLastMoveToComplete) {
-                ComboMove.WaitComboMove waitMove = waiting.lastWaitMove();
-                if (waitMove != null)
-                    waiting.remainingWait = waitMove.duration().min().toNanos() / 1e9d;
-            }
         }
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
