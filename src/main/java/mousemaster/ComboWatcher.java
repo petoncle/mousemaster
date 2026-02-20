@@ -830,6 +830,8 @@ public class ComboWatcher implements ModeListener {
                      combosWaitingForLastMoveToComplete);
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
+        leadingWaitBeginTimeByCombo.clear();
+        lastEventTimeByKey.clear();
     }
 
     public void reset() {
