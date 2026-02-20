@@ -482,7 +482,7 @@ public class ConfigurationParser {
         return hintSelectionKeys.stream()
                                 .map(key -> new Combo(emptyComboPrecondition,
                                         ComboSequence.ofMoves(
-                                                List.of(new ComboMove.PressComboMove(
+                                                List.<ComboMove.KeyComboMove>of(new ComboMove.PressComboMove(
                                                         KeyOrAlias.ofKey(key), true,
                                                         defaultComboMoveDuration)))))
                                 .toList();

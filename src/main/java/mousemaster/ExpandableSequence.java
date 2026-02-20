@@ -1,5 +1,8 @@
 package mousemaster;
 
+import mousemaster.MoveSet.KeyMoveSet;
+import mousemaster.MoveSet.WaitMoveSet;
+
 import java.time.Duration;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -142,28 +145,30 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                          KeyResolver keyResolver) {
         List<MoveSet> resolvedMoveSets = new ArrayList<>();
         for (Set<ComboAliasMove> aliasMoveSet : moveSets) {
-            List<ComboMove> required = new ArrayList<>();
-            List<ComboMove> optional = new ArrayList<>();
-            for (ComboAliasMove aliasMove : aliasMoveSet) {
-                if (aliasMove instanceof ComboAliasMove.WaitComboAliasMove waitAliasMove) {
-                    // Resolve key names to Key objects.
-                    Set<Key> resolvedKeys = new HashSet<>();
-                    for (String keyAliasOrKeyName : waitAliasMove.keyAliasOrKeyNames()) {
-                        KeyAlias waitAlias = aliases.get(keyAliasOrKeyName);
-                        if (waitAlias != null)
-                            resolvedKeys.addAll(waitAlias.keys());
-                        else
-                            resolvedKeys.add(keyResolver.resolve(keyAliasOrKeyName));
-                    }
-                    IgnoredKeySet ignoredKeySet = waitAliasMove.listedKeysAreIgnored() ?
-                            new IgnoredKeySet.Only(Set.copyOf(resolvedKeys)) :
-                            new IgnoredKeySet.AllExcept(Set.copyOf(resolvedKeys));
-                    ComboMove waitMove = new ComboMove.WaitComboMove(
-                            ignoredKeySet, waitAliasMove.ignoredKeysEatEvents(),
-                            waitAliasMove.duration());
-                    required.add(waitMove);
-                    continue;
+            // A MoveSet is either a single wait move or a set of key moves.
+            ComboAliasMove first = aliasMoveSet.iterator().next();
+            if (first instanceof ComboAliasMove.WaitComboAliasMove waitAliasMove) {
+                // Resolve key names to Key objects.
+                Set<Key> resolvedKeys = new HashSet<>();
+                for (String keyAliasOrKeyName : waitAliasMove.keyAliasOrKeyNames()) {
+                    KeyAlias waitAlias = aliases.get(keyAliasOrKeyName);
+                    if (waitAlias != null)
+                        resolvedKeys.addAll(waitAlias.keys());
+                    else
+                        resolvedKeys.add(keyResolver.resolve(keyAliasOrKeyName));
                 }
+                IgnoredKeySet ignoredKeySet = waitAliasMove.listedKeysAreIgnored() ?
+                        new IgnoredKeySet.Only(Set.copyOf(resolvedKeys)) :
+                        new IgnoredKeySet.AllExcept(Set.copyOf(resolvedKeys));
+                ComboMove.WaitComboMove waitMove = new ComboMove.WaitComboMove(
+                        ignoredKeySet, waitAliasMove.ignoredKeysEatEvents(),
+                        waitAliasMove.duration());
+                resolvedMoveSets.add(new WaitMoveSet(waitMove));
+                continue;
+            }
+            List<ComboMove.KeyComboMove> required = new ArrayList<>();
+            List<ComboMove.KeyComboMove> optional = new ArrayList<>();
+            for (ComboAliasMove aliasMove : aliasMoveSet) {
                 KeyOrAlias keyOrAlias;
                 KeyAlias alias = aliases.get(aliasMove.aliasOrKeyName());
                 if (alias != null)
@@ -171,7 +176,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 else
                     keyOrAlias = KeyOrAlias.ofKey(
                             keyResolver.resolve(aliasMove.aliasOrKeyName()));
-                ComboMove comboMove = switch (aliasMove) {
+                ComboMove.KeyComboMove comboMove = switch (aliasMove) {
                     case ComboAliasMove.PressComboAliasMove pressMove ->
                             new ComboMove.PressComboMove(keyOrAlias,
                                     pressMove.eventMustBeEaten(),
@@ -188,7 +193,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     required.add(comboMove);
             }
             resolvedMoveSets.add(
-                    new MoveSet(List.copyOf(required), List.copyOf(optional)));
+                    new KeyMoveSet(List.copyOf(required), List.copyOf(optional)));
         }
         return new ComboSequence(List.copyOf(resolvedMoveSets));
     }

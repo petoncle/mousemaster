@@ -1,5 +1,8 @@
 package mousemaster;
 
+import mousemaster.MoveSet.KeyMoveSet;
+import mousemaster.MoveSet.WaitMoveSet;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -15,39 +18,40 @@ public record ComboSequence(List<MoveSet> moveSets) {
     public Set<Key> allKeys() {
         Set<Key> keys = new java.util.HashSet<>();
         for (MoveSet moveSet : moveSets) {
-            if (moveSet.isWaitMoveSet()) {
-                IgnoredKeySet ignoredKeySet = ((ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst()).ignoredKeySet();
-                switch (ignoredKeySet) {
-                    case IgnoredKeySet.Only only -> keys.addAll(only.keys());
-                    case IgnoredKeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
+            switch (moveSet) {
+                case WaitMoveSet waitMoveSet -> {
+                    IgnoredKeySet ignoredKeySet = waitMoveSet.waitMove().ignoredKeySet();
+                    switch (ignoredKeySet) {
+                        case IgnoredKeySet.Only only -> keys.addAll(only.keys());
+                        case IgnoredKeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
+                    }
                 }
-                continue;
+                case KeyMoveSet keyMoveSet ->
+                    Stream.concat(keyMoveSet.requiredMoves().stream(),
+                                  keyMoveSet.optionalMoves().stream())
+                          .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
+                          .forEach(keys::add);
             }
-            Stream.concat(moveSet.requiredMoves().stream(),
-                          moveSet.optionalMoves().stream())
-                  .map(move -> (ComboMove.KeyComboMove) move)
-                  .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
-                  .forEach(keys::add);
         }
         return keys;
     }
 
     public Set<String> aliasNames() {
         return moveSets.stream()
-                       .filter(moveSet -> !moveSet.isWaitMoveSet())
+                       .filter(moveSet -> moveSet instanceof KeyMoveSet)
+                       .map(moveSet -> (KeyMoveSet) moveSet)
                        .flatMap(moveSet -> Stream.concat(
                                moveSet.requiredMoves().stream(),
                                moveSet.optionalMoves().stream()))
-                       .map(move -> (ComboMove.KeyComboMove) move)
                        .filter(move -> move.keyOrAlias().isAlias())
                        .map(move -> move.keyOrAlias().aliasName())
                        .collect(Collectors.toSet());
     }
 
-    public static ComboSequence ofMoves(List<ComboMove> moves) {
+    public static ComboSequence ofMoves(List<ComboMove.KeyComboMove> moves) {
         List<MoveSet> moveSets = new ArrayList<>();
-        for (ComboMove move : moves) {
-            moveSets.add(new MoveSet(List.of(move), List.of()));
+        for (ComboMove.KeyComboMove move : moves) {
+            moveSets.add(new KeyMoveSet(List.of(move), List.of()));
         }
         return new ComboSequence(moveSets);
     }

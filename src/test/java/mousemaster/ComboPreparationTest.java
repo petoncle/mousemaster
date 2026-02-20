@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import mousemaster.MoveSet.KeyMoveSet;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class ComboPreparationTest {
@@ -34,26 +36,26 @@ class ComboPreparationTest {
     }
 
     /** Press move with eventMustBeEaten=true (the + prefix). */
-    static ComboMove pressMove(Key key) {
+    static ComboMove.KeyComboMove pressMove(Key key) {
         return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), true, defaultDuration);
     }
 
     /** Press move with eventMustBeEaten=true and custom duration. */
-    static ComboMove pressMove(Key key, ComboMoveDuration duration) {
+    static ComboMove.KeyComboMove pressMove(Key key, ComboMoveDuration duration) {
         return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), true, duration);
     }
 
     /** Press move with eventMustBeEaten=false (the # prefix). */
-    static ComboMove hashPressMove(Key key) {
+    static ComboMove.KeyComboMove hashPressMove(Key key) {
         return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), false, defaultDuration);
     }
 
     /** Release move (the - prefix). */
-    static ComboMove releaseMove(Key key) {
+    static ComboMove.KeyComboMove releaseMove(Key key) {
         return new ComboMove.ReleaseComboMove(KeyOrAlias.ofKey(key), defaultDuration);
     }
 
-    static ComboMove releaseMove(Key key, ComboMoveDuration duration) {
+    static ComboMove.KeyComboMove releaseMove(Key key, ComboMoveDuration duration) {
         return new ComboMove.ReleaseComboMove(KeyOrAlias.ofKey(key), duration);
     }
 
@@ -65,13 +67,13 @@ class ComboPreparationTest {
         return new ComboSequence(List.of(moveSets));
     }
 
-    static MoveSet required(ComboMove... moves) {
-        return new MoveSet(List.of(moves), List.of());
+    static MoveSet required(ComboMove.KeyComboMove... moves) {
+        return new KeyMoveSet(List.of(moves), List.of());
     }
 
-    static MoveSet withOptional(List<ComboMove> requiredMoves,
-                                List<ComboMove> optionalMoves) {
-        return new MoveSet(requiredMoves, optionalMoves);
+    static MoveSet withOptional(List<ComboMove.KeyComboMove> requiredMoves,
+                                List<ComboMove.KeyComboMove> optionalMoves) {
+        return new KeyMoveSet(requiredMoves, optionalMoves);
     }
 
     @Test

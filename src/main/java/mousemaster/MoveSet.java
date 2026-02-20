@@ -4,43 +4,68 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public record MoveSet(List<ComboMove> requiredMoves, List<ComboMove> optionalMoves) {
+public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet {
 
-    boolean isWaitMoveSet() {
-        return requiredMoves.size() == 1 && optionalMoves.isEmpty() &&
-               requiredMoves.getFirst() instanceof ComboMove.WaitComboMove;
-    }
+    int minMoveCount();
 
-    /**
-     * Returns true if this wait MoveSet can absorb (skip over) events during matching.
-     * A wait can absorb events unless no key is ignored (plain wait).
-     */
-    boolean canAbsorbEvents() {
-        if (!isWaitMoveSet())
-            return false;
-        ComboMove.WaitComboMove wait = (ComboMove.WaitComboMove) requiredMoves.getFirst();
-        return !wait.ignoredKeySet().equals(IgnoredKeySet.NONE);
-    }
+    int maxMoveCount();
 
-    int minMoveCount() {
-        return isWaitMoveSet() ? 0 : requiredMoves.size();
-    }
+    boolean canAbsorbEvents();
 
-    int maxMoveCount() {
-        return isWaitMoveSet() ? 0 : requiredMoves.size() + optionalMoves.size();
-    }
+    record KeyMoveSet(List<ComboMove.KeyComboMove> requiredMoves,
+                      List<ComboMove.KeyComboMove> optionalMoves) implements MoveSet {
 
-    @Override
-    public String toString() {
-        if (requiredMoves.size() + optionalMoves.size() == 1) {
-            ComboMove move = requiredMoves.isEmpty() ? optionalMoves.getFirst() : requiredMoves.getFirst();
-            return move.toString() + (requiredMoves.isEmpty() ? "?" : "");
+        @Override
+        public int minMoveCount() {
+            return requiredMoves.size();
         }
-        return "{"
-               + Stream.concat(requiredMoves.stream().map(Object::toString),
-                               optionalMoves.stream().map(m -> m.toString() + "?"))
-                       .collect(Collectors.joining(" "))
-               + "}";
+
+        @Override
+        public int maxMoveCount() {
+            return requiredMoves.size() + optionalMoves.size();
+        }
+
+        @Override
+        public boolean canAbsorbEvents() {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            if (requiredMoves.size() + optionalMoves.size() == 1) {
+                ComboMove move = requiredMoves.isEmpty() ? optionalMoves.getFirst() :
+                        requiredMoves.getFirst();
+                return move.toString() + (requiredMoves.isEmpty() ? "?" : "");
+            }
+            return "{"
+                   + Stream.concat(requiredMoves.stream().map(Object::toString),
+                                   optionalMoves.stream().map(m -> m.toString() + "?"))
+                           .collect(Collectors.joining(" "))
+                   + "}";
+        }
+    }
+
+    record WaitMoveSet(ComboMove.WaitComboMove waitMove) implements MoveSet {
+
+        @Override
+        public int minMoveCount() {
+            return 0;
+        }
+
+        @Override
+        public int maxMoveCount() {
+            return 0;
+        }
+
+        @Override
+        public boolean canAbsorbEvents() {
+            return !waitMove.ignoredKeySet().equals(IgnoredKeySet.NONE);
+        }
+
+        @Override
+        public String toString() {
+            return waitMove.toString();
+        }
     }
 
 }
