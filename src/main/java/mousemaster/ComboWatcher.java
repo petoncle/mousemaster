@@ -107,14 +107,14 @@ public class ComboWatcher implements ModeListener {
             // If it is not, then it means a key is being pressed for longer than what the combo expects,
             // and the key can be regurgitated (just like it is regurgitated upon key release).
             // (Regurgitate only +key, not #key.)
-            boolean atLeastOneProcessingIsComboSequenceMustBeEaten = false;
+            boolean atLeastOneProcessingIsPartOfComboSequence = false;
             boolean preparationIsStillPrefixOfAtLeastOneCombo = false;
             Instant currentTime = clock.now();
             for (var entry : lastProcessingSet.processingByCombo().entrySet()) {
                 Combo combo = entry.getKey();
                 PressKeyEventProcessing processing = entry.getValue();
-                if (processing.isPartOfComboSequenceMustBeEaten()) {
-                    atLeastOneProcessingIsComboSequenceMustBeEaten = true;
+                if (processing.isPartOfComboSequence()) {
+                    atLeastOneProcessingIsPartOfComboSequence = true;
                     ComboSequenceMatch match = comboPreparation.match(combo.sequence());
                     if (match.hasMatch()) {
                         ResolvedComboMove currentMove = match.lastMatchedMove();
@@ -152,7 +152,7 @@ public class ComboWatcher implements ModeListener {
                     }
                 }
             }
-            if (atLeastOneProcessingIsComboSequenceMustBeEaten && !preparationIsStillPrefixOfAtLeastOneCombo) {
+            if (atLeastOneProcessingIsPartOfComboSequence && !preparationIsStillPrefixOfAtLeastOneCombo) {
                 preparationIsNotPrefixAnymore = true;
                 comboPreparation = ComboPreparation.empty();
                 lastProcessingSet = null;
