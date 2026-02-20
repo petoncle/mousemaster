@@ -42,6 +42,11 @@ public class ComboWatcher implements ModeListener {
     private Set<Key> currentlyPressedComboKeys = new HashSet<>();
     private KeyEvent lastKeyEvent;
     /**
+     * Last event time per key, used to find the last non-ignored event time
+     * when initializing a wait's begin time.
+     */
+    private final Map<Key, Instant> lastEventTimeByKey = new HashMap<>();
+    /**
      * Per combo with a leading wait, the time the wait began. Reset when a non-ignored key event occurs.
      */
     private Map<Combo, Instant> leadingWaitBeginTimeByCombo = new HashMap<>();
@@ -210,11 +215,11 @@ public class ComboWatcher implements ModeListener {
                 continue;
             if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys, noMatchedMoves))
                 continue;
-            // Begin time: per-combo non-ignored event time, or now.
+            // Begin time: last non-ignored key event time, or now if none.
             ComboMove.WaitComboMove waitMove = (ComboMove.WaitComboMove) comboSequence.moveSets().getFirst().requiredMoves().getFirst();
             Instant currentTime = clock.now();
             Instant waitBeginTime = leadingWaitBeginTimeByCombo.computeIfAbsent(
-                    combo, k -> currentTime);
+                    combo, k -> lastNonIgnoredEventTime(waitMove.ignoredKeySet(), currentTime));
             if (waitBeginTime.plus(waitMove.duration().min()).isAfter(currentTime))
                 continue;
             if (waitMove.duration().max() != null &&
@@ -255,6 +260,7 @@ public class ComboWatcher implements ModeListener {
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
         lastKeyEvent = event;
+        lastEventTimeByKey.put(event.key(), event.time());
         // Update wait begin times: only reset for non-ignored key events.
         for (Map.Entry<Combo, Instant> entry : leadingWaitBeginTimeByCombo.entrySet()) {
             Combo combo = entry.getKey();
@@ -435,7 +441,8 @@ public class ComboWatcher implements ModeListener {
                 ComboMove.WaitComboMove leadingWait = (ComboMove.WaitComboMove)
                         combo.sequence().moveSets().getFirst().requiredMoves().getFirst();
                 Instant now = clock.now();
-                Instant beginTime = leadingWaitBeginTimeByCombo.computeIfAbsent(combo, k -> now);
+                Instant beginTime = leadingWaitBeginTimeByCombo.computeIfAbsent(combo,
+                        k -> lastNonIgnoredEventTime(leadingWait.ignoredKeySet(), now));
                 if (beginTime.plus(leadingWait.duration().min()).isAfter(now))
                     continue;
                 if (leadingWait.duration().max() != null &&
@@ -842,11 +849,23 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
-        leadingWaitBeginTimeByCombo.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
             processKeyEventForCurrentMode(null, false);
         }
+    }
+
+    /**
+     * Returns the time of the last non-ignored key event, or fallback if none found.
+     */
+    private Instant lastNonIgnoredEventTime(IgnoredKeySet ignoredKeySet, Instant fallback) {
+        Instant latest = null;
+        for (Map.Entry<Key, Instant> entry : lastEventTimeByKey.entrySet()) {
+            if (!ignoredKeySet.isIgnored(entry.getKey()) &&
+                (latest == null || entry.getValue().isAfter(latest)))
+                latest = entry.getValue();
+        }
+        return latest != null ? latest : fallback;
     }
 
     @Override
