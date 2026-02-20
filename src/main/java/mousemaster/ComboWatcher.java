@@ -262,7 +262,7 @@ public class ComboWatcher implements ModeListener {
                     .allMatch(ms -> ms instanceof WaitMoveSet);
             if (allWait) {
                 // All-wait combos: always reset (they fire continuously from update()).
-                logger.debug("Leading wait reset (all-wait, non-ignored key " + event.key().name() +
+                logger.debug("Resetting leading wait (all-wait, non-ignored key " + event.key().name() +
                         "): " + combo);
                 entry.setValue(event.time());
             }
@@ -273,7 +273,7 @@ public class ComboWatcher implements ModeListener {
                 // subsequent move. Reset for all others (unrelated keys).
                 Instant beginTime = entry.getValue();
                 if (beginTime.plus(waitMove.duration().min()).isAfter(event.time())) {
-                    logger.debug("Leading wait reset (min not elapsed, non-ignored key " +
+                    logger.debug("Resetting leading wait (min not elapsed, non-ignored key " +
                             event.key().name() + "): " + combo);
                     entry.setValue(event.time());
                 }
@@ -292,7 +292,7 @@ public class ComboWatcher implements ModeListener {
                         break;
                     }
                     if (!couldMatchNextMove) {
-                        logger.debug("Leading wait reset (unrelated key " +
+                        logger.debug("Resetting leading wait (unrelated key " +
                                 event.key().name() + "): " + combo);
                         entry.setValue(event.time());
                     }
@@ -414,14 +414,14 @@ public class ComboWatcher implements ModeListener {
                             .anyMatch(g -> currentlyPressedKeys.containsAll(g.allKeys()));
                     if (!anySatisfied) {
                         if (leadingWaitBeginTimeByCombo.remove(combo) != null)
-                            logger.debug("Leading wait removed (pressed precondition unsatisfied): " + combo);
+                            logger.debug("Removing leading wait (pressed precondition unsatisfied): " + combo);
                         continue;
                     }
                 }
                 if (combo.precondition().keyPrecondition().unpressedKeySet().stream()
                         .anyMatch(currentlyPressedKeys::contains)) {
                     if (leadingWaitBeginTimeByCombo.remove(combo) != null)
-                        logger.debug("Leading wait removed (unpressed precondition unsatisfied): " + combo);
+                        logger.debug("Removing leading wait (unpressed precondition unsatisfied): " + combo);
                     continue;
                 }
                 WaitComboMove leadingWait =
@@ -434,7 +434,7 @@ public class ComboWatcher implements ModeListener {
                 if (leadingWait.duration().max() != null &&
                     beginTime.plus(leadingWait.duration().max()).isBefore(now)) {
                     leadingWaitBeginTimeByCombo.remove(combo);
-                    logger.debug("Leading wait removed (max expired): " + combo);
+                    logger.debug("Removing leading wait (max expired): " + combo);
                     continue;
                 }
             }
@@ -831,6 +831,7 @@ public class ComboWatcher implements ModeListener {
     @Override
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
+        leadingWaitBeginTimeByCombo.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
             processKeyEventForCurrentMode(null, false);
