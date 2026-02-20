@@ -36,7 +36,7 @@ public class ComboWatcher implements ModeListener {
      * Union of ignored keys across all partially-matching combos (they do not reset the preparation).
      * A key is ignored if it is ignored by the wait in any matching combo.
      */
-    private IgnoredKeySet ignoredKeys;
+    private IgnoredKeySet ignoredKeySet;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
     private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
 
@@ -342,8 +342,8 @@ public class ComboWatcher implements ModeListener {
             previousComboMoveDuration != null) {
             // If there are ignored keys (from a trailing wait),
             // and this key is ignored in all matching combos, don't reset the preparation.
-            boolean skipDurationCheck = ignoredKeys != null &&
-                    ignoredKeys.isIgnored(event.key());
+            boolean skipDurationCheck = ignoredKeySet != null &&
+                    ignoredKeySet.isIgnored(event.key());
             if (!skipDurationCheck &&
                 !previousComboMoveDuration.satisfied(previousEvent.time(), event.time()))
                 comboPreparation = ComboPreparation.empty();
@@ -394,7 +394,7 @@ public class ComboWatcher implements ModeListener {
             currentlyPressedKeys.add(event.key());
         ComboMoveDuration newComboDuration = null;
         // Union of ignored keys across all partially-matching combos.
-        IgnoredKeySet newIgnoredKeys = null;
+        IgnoredKeySet newIgnoredKeySet = null;
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
@@ -511,20 +511,20 @@ public class ComboWatcher implements ModeListener {
                 }
                 // Compute ignored keys from the last matched MoveSet.
                 // If it's an absorbing wait, its ignored keys should not reset the preparation.
-                IgnoredKeySet comboIgnoredKeys;
+                IgnoredKeySet comboIgnoredKeySet;
                 if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet2
                     && waitMoveSet2.canAbsorbEvents()) {
-                    comboIgnoredKeys = waitMoveSet2.waitMove().ignoredKeySet();
+                    comboIgnoredKeySet = waitMoveSet2.waitMove().ignoredKeySet();
                 }
                 else {
-                    comboIgnoredKeys = IgnoredKeySet.NONE;
+                    comboIgnoredKeySet = IgnoredKeySet.NONE;
                 }
                 // Union: a key is ignored if ignored in any matching combo.
-                if (newIgnoredKeys == null) {
-                    newIgnoredKeys = comboIgnoredKeys;
+                if (newIgnoredKeySet == null) {
+                    newIgnoredKeySet = comboIgnoredKeySet;
                 }
                 else {
-                    newIgnoredKeys = newIgnoredKeys.union(comboIgnoredKeys);
+                    newIgnoredKeySet = newIgnoredKeySet.union(comboIgnoredKeySet);
                 }
             }
             boolean preparationComplete = match.complete();
@@ -597,7 +597,7 @@ public class ComboWatcher implements ModeListener {
         }
         if (newComboDuration != null) {
             previousComboMoveDuration = newComboDuration;
-            ignoredKeys = newIgnoredKeys;
+            ignoredKeySet = newIgnoredKeySet;
         }
         List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
         commandsWaitingForAtomicCommandToComplete.clear();
