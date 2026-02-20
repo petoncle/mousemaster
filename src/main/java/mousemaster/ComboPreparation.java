@@ -107,7 +107,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                     // Check all absorbed events are ignored.
                     boolean allIgnored = true;
                     for (int i = 0; i < absorb; i++) {
-                        if (!waitMove.keyIsIgnored(events.get(eventIndex + i).key())) {
+                        if (!waitMove.ignoredKeySet().isIgnored(events.get(eventIndex + i).key())) {
                             allIgnored = false;
                             break;
                         }

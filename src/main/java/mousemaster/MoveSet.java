@@ -19,7 +19,7 @@ public record MoveSet(List<ComboMove> requiredMoves, List<ComboMove> optionalMov
         if (!isWaitMoveSet())
             return false;
         ComboMove.WaitComboMove wait = (ComboMove.WaitComboMove) requiredMoves.getFirst();
-        return !wait.noKeyIsIgnored();
+        return !wait.ignoredKeySet().equals(IgnoredKeySet.NONE);
     }
 
     int minMoveCount() {

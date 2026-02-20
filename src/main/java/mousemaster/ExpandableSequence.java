@@ -153,9 +153,11 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                         else
                             resolvedKeys.add(keyResolver.resolve(keyAliasOrKeyName));
                     }
+                    IgnoredKeySet ignoredKeySet = waitAliasMove.listedKeysAreIgnored() ?
+                            new IgnoredKeySet.Only(Set.copyOf(resolvedKeys)) :
+                            new IgnoredKeySet.AllExcept(Set.copyOf(resolvedKeys));
                     ComboMove waitMove = new ComboMove.WaitComboMove(
-                            Set.copyOf(resolvedKeys), waitAliasMove.listedKeysAreIgnored(),
-                            waitAliasMove.duration());
+                            ignoredKeySet, waitAliasMove.duration());
                     required.add(waitMove);
                     continue;
                 }

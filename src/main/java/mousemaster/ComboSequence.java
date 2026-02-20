@@ -16,7 +16,11 @@ public record ComboSequence(List<MoveSet> moveSets) {
         Set<Key> keys = new java.util.HashSet<>();
         for (MoveSet moveSet : moveSets) {
             if (moveSet.isWaitMoveSet()) {
-                keys.addAll(((ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst()).keys());
+                IgnoredKeySet ignoredKeySet = ((ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst()).ignoredKeySet();
+                switch (ignoredKeySet) {
+                    case IgnoredKeySet.Only only -> keys.addAll(only.keys());
+                    case IgnoredKeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
+                }
                 continue;
             }
             Stream.concat(moveSet.requiredMoves().stream(),
