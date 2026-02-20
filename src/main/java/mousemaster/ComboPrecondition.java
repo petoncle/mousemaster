@@ -11,6 +11,17 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
         return keyPrecondition.isEmpty() && appPrecondition.isEmpty();
     }
 
+    @Override
+    public String toString() {
+        if (keyPrecondition.isEmpty() && appPrecondition.isEmpty())
+            return "";
+        if (appPrecondition.isEmpty())
+            return keyPrecondition.toString();
+        if (keyPrecondition.isEmpty())
+            return appPrecondition.toString();
+        return keyPrecondition + " " + appPrecondition;
+    }
+
     public record ComboKeyPrecondition(Set<Key> unpressedKeySet,
                                        PressedKeyPrecondition pressedKeyPrecondition) {
 
@@ -21,9 +32,13 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
 
         @Override
         public String toString() {
-            return String.join(" ",
-                    "^{" + keySetToString(unpressedKeySet) + "}",
-                    "_{" + pressedKeyPrecondition + "}");
+            String unpressed = unpressedKeySet.isEmpty() ? "" : "^{" + keySetToString(unpressedKeySet) + "}";
+            String pressed = pressedKeyPrecondition.isEmpty() ? "" : "_{" + pressedKeyPrecondition + "}";
+            if (unpressed.isEmpty())
+                return pressed;
+            if (pressed.isEmpty())
+                return unpressed;
+            return unpressed + " " + pressed;
         }
 
     }
@@ -117,13 +132,19 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
 
         @Override
         public String toString() {
-            return String.join(" ",
+            String notActive = mustNotBeActiveApps.isEmpty() ? "" :
                     "^{" + mustNotBeActiveApps.stream()
                                               .map(App::executableName)
-                                              .collect(Collectors.joining(" ")) + "}",
+                                              .collect(Collectors.joining(" ")) + "}";
+            String active = mustBeActiveApps.isEmpty() ? "" :
                     "_{" + mustBeActiveApps.stream()
                                            .map(App::executableName)
-                                           .collect(Collectors.joining("|")) + "}");
+                                           .collect(Collectors.joining("|")) + "}";
+            if (notActive.isEmpty())
+                return active;
+            if (active.isEmpty())
+                return notActive;
+            return notActive + " " + active;
         }
     }
 
