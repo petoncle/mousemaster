@@ -1,7 +1,13 @@
 package mousemaster;
 
+import mousemaster.ComboMove.KeyComboMove;
+import mousemaster.ComboMove.PressComboMove;
+import mousemaster.ComboMove.ReleaseComboMove;
+import mousemaster.ComboMove.WaitComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
+import mousemaster.ResolvedKeyComboMove.ResolvedPressComboMove;
+import mousemaster.ResolvedKeyComboMove.ResolvedReleaseComboMove;
 
 import java.util.*;
 
@@ -100,7 +106,7 @@ public record ComboPreparation(List<KeyEvent> events) {
 
         // Wait MoveSets: absorb ignored events, then skip to next MoveSet.
         if (moveSet instanceof WaitMoveSet waitMoveSet) {
-            ComboMove.WaitComboMove waitMove = waitMoveSet.waitMove();
+            WaitComboMove waitMove = waitMoveSet.waitMove();
             if (waitMoveSet.canAbsorbEvents()) {
                 // Absorbing wait: try consuming 0..maxAbsorb events.
                 int minForRemaining = 0;
@@ -219,15 +225,15 @@ public record ComboPreparation(List<KeyEvent> events) {
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings) {
         if (eventCount == 0)
             return true;
-        List<ComboMove.KeyComboMove> required = keyMoveSet.requiredMoves();
-        List<ComboMove.KeyComboMove> optional = keyMoveSet.optionalMoves();
+        List<KeyComboMove> required = keyMoveSet.requiredMoves();
+        List<KeyComboMove> optional = keyMoveSet.optionalMoves();
         int optionalToUseCount = eventCount - required.size();
         if (optionalToUseCount < 0 || optionalToUseCount > optional.size())
             return false;
 
         // Fast path: singleton MoveSet (one required, no optionals).
         if (eventCount == 1 && required.size() == 1 && optional.isEmpty()) {
-            ComboMove.KeyComboMove move = required.getFirst();
+            KeyComboMove move = required.getFirst();
             KeyEvent event = events.get(eventBeginIndex);
             if (!moveMatchesEvent(move, event, aliasBindings))
                 return false;
@@ -255,9 +261,9 @@ public record ComboPreparation(List<KeyEvent> events) {
      */
     private boolean tryOptionalSubsets(
             int eventBeginIndex, int eventCount,
-            List<ComboMove.KeyComboMove> optional,
+            List<KeyComboMove> optional,
             int optionalToUseCount, int optionalIndex,
-            List<ComboMove.KeyComboMove> moves,
+            List<KeyComboMove> moves,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings) {
         if (optionalToUseCount == 0) {
@@ -288,7 +294,7 @@ public record ComboPreparation(List<KeyEvent> events) {
      * Each assignment must satisfy key/press-release matching and duration constraints.
      */
     private boolean tryBipartiteMatch(
-            int eventBeginIndex, int eventCount, List<ComboMove.KeyComboMove> moves,
+            int eventBeginIndex, int eventCount, List<KeyComboMove> moves,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings) {
         boolean[] moveUsed = new boolean[moves.size()];
@@ -313,7 +319,7 @@ public record ComboPreparation(List<KeyEvent> events) {
      */
     private boolean assignEvents(
             int eventBeginIndex, int eventOffset, int eventCount,
-            List<ComboMove.KeyComboMove> moves, boolean[] moveUsed,
+            List<KeyComboMove> moves, boolean[] moveUsed,
             ResolvedKeyComboMove[] assignedMoves,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             Map<String, Key> aliasBindings) {
@@ -337,7 +343,7 @@ public record ComboPreparation(List<KeyEvent> events) {
 
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
             if (moveUsed[moveIndex]) continue;
-            ComboMove.KeyComboMove move = moves.get(moveIndex);
+            KeyComboMove move = moves.get(moveIndex);
             if (moveMatchesEvent(move, event, aliasBindings)) {
                 moveUsed[moveIndex] = true;
                 Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
@@ -362,7 +368,7 @@ public record ComboPreparation(List<KeyEvent> events) {
      * the bound key. If unbound, the event key must be in the alias's key set.
      * For regular key moves: direct key equality.
      */
-    private static boolean moveMatchesEvent(ComboMove.KeyComboMove move, KeyEvent event,
+    private static boolean moveMatchesEvent(KeyComboMove move, KeyEvent event,
                                             Map<String, Key> aliasBindings) {
         if (event.isPress() != move.isPress())
             return false;
@@ -379,7 +385,7 @@ public record ComboPreparation(List<KeyEvent> events) {
     /**
      * Binds an alias to a key if the move is an alias move.
      */
-    private static void bindAlias(ComboMove.KeyComboMove move, Key key,
+    private static void bindAlias(KeyComboMove move, Key key,
                                   Map<String, Key> aliasBindings) {
         KeyOrAlias keyOrAlias = move.keyOrAlias();
         if (keyOrAlias.isAlias())
@@ -389,13 +395,13 @@ public record ComboPreparation(List<KeyEvent> events) {
     /**
      * Returns a ResolvedKeyComboMove with the concrete key from the matched event.
      */
-    private static ResolvedKeyComboMove resolvedMove(ComboMove.KeyComboMove move, Key matchedKey) {
+    private static ResolvedKeyComboMove resolvedMove(KeyComboMove move, Key matchedKey) {
         return switch (move) {
-            case ComboMove.PressComboMove p ->
-                    new ResolvedKeyComboMove.ResolvedPressComboMove(
+            case PressComboMove p ->
+                    new ResolvedPressComboMove(
                             matchedKey, p.eventMustBeEaten(), p.duration());
-            case ComboMove.ReleaseComboMove r ->
-                    new ResolvedKeyComboMove.ResolvedReleaseComboMove(
+            case ReleaseComboMove r ->
+                    new ResolvedReleaseComboMove(
                             matchedKey, r.duration());
         };
     }

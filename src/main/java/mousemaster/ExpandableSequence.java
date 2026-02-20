@@ -1,5 +1,9 @@
 package mousemaster;
 
+import mousemaster.ComboMove.KeyComboMove;
+import mousemaster.ComboMove.PressComboMove;
+import mousemaster.ComboMove.ReleaseComboMove;
+import mousemaster.ComboMove.WaitComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
 
@@ -160,14 +164,14 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 IgnoredKeySet ignoredKeySet = waitAliasMove.listedKeysAreIgnored() ?
                         new IgnoredKeySet.Only(Set.copyOf(resolvedKeys)) :
                         new IgnoredKeySet.AllExcept(Set.copyOf(resolvedKeys));
-                ComboMove.WaitComboMove waitMove = new ComboMove.WaitComboMove(
+                WaitComboMove waitMove = new WaitComboMove(
                         ignoredKeySet, waitAliasMove.ignoredKeysEatEvents(),
                         waitAliasMove.duration());
                 resolvedMoveSets.add(new WaitMoveSet(waitMove));
                 continue;
             }
-            List<ComboMove.KeyComboMove> required = new ArrayList<>();
-            List<ComboMove.KeyComboMove> optional = new ArrayList<>();
+            List<KeyComboMove> required = new ArrayList<>();
+            List<KeyComboMove> optional = new ArrayList<>();
             for (ComboAliasMove aliasMove : aliasMoveSet) {
                 KeyOrAlias keyOrAlias;
                 KeyAlias alias = aliases.get(aliasMove.aliasOrKeyName());
@@ -176,13 +180,13 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 else
                     keyOrAlias = KeyOrAlias.ofKey(
                             keyResolver.resolve(aliasMove.aliasOrKeyName()));
-                ComboMove.KeyComboMove comboMove = switch (aliasMove) {
+                KeyComboMove comboMove = switch (aliasMove) {
                     case ComboAliasMove.PressComboAliasMove pressMove ->
-                            new ComboMove.PressComboMove(keyOrAlias,
+                            new PressComboMove(keyOrAlias,
                                     pressMove.eventMustBeEaten(),
                                     aliasMove.duration());
                     case ComboAliasMove.ReleaseComboAliasMove releaseMove ->
-                            new ComboMove.ReleaseComboMove(keyOrAlias,
+                            new ReleaseComboMove(keyOrAlias,
                                     aliasMove.duration());
                     case ComboAliasMove.WaitComboAliasMove waitMove ->
                             throw new IllegalStateException();

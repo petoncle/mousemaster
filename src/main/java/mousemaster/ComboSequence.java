@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
 
@@ -48,9 +49,9 @@ public record ComboSequence(List<MoveSet> moveSets) {
                        .collect(Collectors.toSet());
     }
 
-    public static ComboSequence ofMoves(List<ComboMove.KeyComboMove> moves) {
+    public static ComboSequence ofMoves(List<KeyComboMove> moves) {
         List<MoveSet> moveSets = new ArrayList<>();
-        for (ComboMove.KeyComboMove move : moves) {
+        for (KeyComboMove move : moves) {
             moveSets.add(new KeyMoveSet(List.of(move), List.of()));
         }
         return new ComboSequence(moveSets);

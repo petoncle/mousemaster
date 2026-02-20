@@ -1,6 +1,8 @@
 package mousemaster;
 
 import io.qt.gui.QFontDatabase;
+import mousemaster.ComboMove.KeyComboMove;
+import mousemaster.ComboMove.PressComboMove;
 import mousemaster.GridArea.GridAreaType;
 import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
@@ -482,7 +484,7 @@ public class ConfigurationParser {
         return hintSelectionKeys.stream()
                                 .map(key -> new Combo(emptyComboPrecondition,
                                         ComboSequence.ofMoves(
-                                                List.<ComboMove.KeyComboMove>of(new ComboMove.PressComboMove(
+                                                List.<KeyComboMove>of(new PressComboMove(
                                                         KeyOrAlias.ofKey(key), true,
                                                         defaultComboMoveDuration)))))
                                 .toList();

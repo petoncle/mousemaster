@@ -1,5 +1,8 @@
 package mousemaster;
 
+import mousemaster.ComboMove.KeyComboMove;
+import mousemaster.ComboMove.PressComboMove;
+import mousemaster.ComboMove.ReleaseComboMove;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -36,27 +39,27 @@ class ComboPreparationTest {
     }
 
     /** Press move with eventMustBeEaten=true (the + prefix). */
-    static ComboMove.KeyComboMove pressMove(Key key) {
-        return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), true, defaultDuration);
+    static KeyComboMove pressMove(Key key) {
+        return new PressComboMove(KeyOrAlias.ofKey(key), true, defaultDuration);
     }
 
     /** Press move with eventMustBeEaten=true and custom duration. */
-    static ComboMove.KeyComboMove pressMove(Key key, ComboMoveDuration duration) {
-        return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), true, duration);
+    static KeyComboMove pressMove(Key key, ComboMoveDuration duration) {
+        return new PressComboMove(KeyOrAlias.ofKey(key), true, duration);
     }
 
     /** Press move with eventMustBeEaten=false (the # prefix). */
-    static ComboMove.KeyComboMove hashPressMove(Key key) {
-        return new ComboMove.PressComboMove(KeyOrAlias.ofKey(key), false, defaultDuration);
+    static KeyComboMove hashPressMove(Key key) {
+        return new PressComboMove(KeyOrAlias.ofKey(key), false, defaultDuration);
     }
 
     /** Release move (the - prefix). */
-    static ComboMove.KeyComboMove releaseMove(Key key) {
-        return new ComboMove.ReleaseComboMove(KeyOrAlias.ofKey(key), defaultDuration);
+    static KeyComboMove releaseMove(Key key) {
+        return new ReleaseComboMove(KeyOrAlias.ofKey(key), defaultDuration);
     }
 
-    static ComboMove.KeyComboMove releaseMove(Key key, ComboMoveDuration duration) {
-        return new ComboMove.ReleaseComboMove(KeyOrAlias.ofKey(key), duration);
+    static KeyComboMove releaseMove(Key key, ComboMoveDuration duration) {
+        return new ReleaseComboMove(KeyOrAlias.ofKey(key), duration);
     }
 
     static ComboPreparation prep(KeyEvent... events) {
@@ -67,12 +70,12 @@ class ComboPreparationTest {
         return new ComboSequence(List.of(moveSets));
     }
 
-    static MoveSet required(ComboMove.KeyComboMove... moves) {
+    static MoveSet required(KeyComboMove... moves) {
         return new KeyMoveSet(List.of(moves), List.of());
     }
 
-    static MoveSet withOptional(List<ComboMove.KeyComboMove> requiredMoves,
-                                List<ComboMove.KeyComboMove> optionalMoves) {
+    static MoveSet withOptional(List<KeyComboMove> requiredMoves,
+                                List<KeyComboMove> optionalMoves) {
         return new KeyMoveSet(requiredMoves, optionalMoves);
     }
 
