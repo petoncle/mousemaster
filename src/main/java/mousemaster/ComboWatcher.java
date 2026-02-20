@@ -672,6 +672,13 @@ public class ComboWatcher implements ModeListener {
         PressedKeyPrecondition precondition = combo.precondition()
                                                    .keyPrecondition()
                                                    .pressedKeyPrecondition();
+        // If the combo has a trailing wait, keys ignored by that wait
+        // could have been pressed during the wait period. Remove them
+        // from candidates since they are unrelated to this combo.
+        IgnoredKeySet trailingWaitIgnoredKeySet = null;
+        if (!combo.sequence().isEmpty() &&
+            combo.sequence().moveSets().getLast() instanceof WaitMoveSet waitMoveSet)
+            trailingWaitIgnoredKeySet = waitMoveSet.waitMove().ignoredKeySet();
         List<PressedKeyGroup> groups = precondition.groups();
         if (groups.isEmpty())
             groups = List.of(new PressedKeyGroup(List.of()));
@@ -681,6 +688,8 @@ public class ComboWatcher implements ModeListener {
             Set<Key> candidatePressedPreconditionKeys = new HashSet<>(currentlyPressedKeys);
             // Remove keys that were absorbed by a wait (pressed during the wait, not before).
             candidatePressedPreconditionKeys.removeAll(absorbedPressedKeys);
+            if (trailingWaitIgnoredKeySet != null)
+                candidatePressedPreconditionKeys.removeIf(trailingWaitIgnoredKeySet::isIgnored);
             // Remove completed combo keys that are NOT in allGroupKeys.
             for (Key completedKey : currentlyPressedCompletedComboKeys) {
                 if (!allGroupKeys.contains(completedKey))
