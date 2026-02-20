@@ -61,31 +61,31 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                             waitMatcher.group(8) == null ? null : Duration.ofMillis(
                                     Integer.parseUnsignedInt(waitMatcher.group(8))));
                     Set<String> keyNames;
-                    boolean keysAreExempt;
+                    boolean listedKeysAreIgnored;
                     if (waitMatcher.group(1) == null) {
-                        // Plain wait: all keys break.
+                        // Plain wait: no key is ignored.
                         keyNames = Set.of();
-                        keysAreExempt = true;
+                        listedKeysAreIgnored = true;
                     }
                     else if (waitMatcher.group(5) != null) {
-                        // wait-ignore{keys}: listed keys don't break.
+                        // wait-ignore{keys}: listed keys are ignored.
                         String[] keys = waitMatcher.group(5).strip().split("\\s+");
                         keyNames = Set.of(keys);
-                        keysAreExempt = true;
+                        listedKeysAreIgnored = true;
                     }
                     else if (waitMatcher.group(3) == null) {
-                        // wait-ignore-all: no keys break.
+                        // wait-ignore-all: all keys are ignored.
                         keyNames = Set.of();
-                        keysAreExempt = false;
+                        listedKeysAreIgnored = false;
                     }
                     else {
-                        // wait-ignore-all-except{keys}: only listed keys break.
+                        // wait-ignore-all-except{keys}: all keys except listed are ignored.
                         String[] keys = waitMatcher.group(4).strip().split("\\s+");
                         keyNames = Set.of(keys);
-                        keysAreExempt = false;
+                        listedKeysAreIgnored = false;
                     }
                     moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
-                            keyNames, keysAreExempt, waitDuration)));
+                            keyNames, listedKeysAreIgnored, waitDuration)));
                 }
                 else {
                     moveSets.add(Set.of(parseMove(token, defaultMoveDuration)));
@@ -154,7 +154,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                             resolvedKeys.add(keyResolver.resolve(keyAliasOrKeyName));
                     }
                     ComboMove waitMove = new ComboMove.WaitComboMove(
-                            Set.copyOf(resolvedKeys), waitAliasMove.keysAreExempt(),
+                            Set.copyOf(resolvedKeys), waitAliasMove.listedKeysAreIgnored(),
                             waitAliasMove.duration());
                     required.add(waitMove);
                     continue;

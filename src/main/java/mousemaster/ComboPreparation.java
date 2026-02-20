@@ -94,7 +94,7 @@ public record ComboPreparation(List<KeyEvent> events) {
 
         MoveSet moveSet = moveSets.get(moveSetIndex);
 
-        // Wait MoveSets: absorb non-breaking events, then skip to next MoveSet.
+        // Wait MoveSets: absorb ignored events, then skip to next MoveSet.
         if (moveSet.isWaitMoveSet()) {
             ComboMove.WaitComboMove waitMove = (ComboMove.WaitComboMove) moveSet.requiredMoves().getFirst();
             if (moveSet.canAbsorbEvents()) {
@@ -104,15 +104,15 @@ public record ComboPreparation(List<KeyEvent> events) {
                     minForRemaining += moveSets.get(later).minMoveCount();
                 int maxAbsorb = (eventEndIndex - eventIndex) - minForRemaining;
                 for (int absorb = maxAbsorb; absorb >= 0; absorb--) {
-                    // Check all absorbed events are non-breaking.
-                    boolean allNonBreaking = true;
+                    // Check all absorbed events are ignored.
+                    boolean allIgnored = true;
                     for (int i = 0; i < absorb; i++) {
-                        if (waitMove.keyBreaksWait(events.get(eventIndex + i).key())) {
-                            allNonBreaking = false;
+                        if (!waitMove.keyIsIgnored(events.get(eventIndex + i).key())) {
+                            allIgnored = false;
                             break;
                         }
                     }
-                    if (!allNonBreaking)
+                    if (!allIgnored)
                         continue;
                     int nextEventIndex = eventIndex + absorb;
                     // For mid-sequence wait: check time gap from pre-wait event
@@ -143,7 +143,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 return false;
             }
             else {
-                // Non-absorbing wait (plain wait: all keys break): consume 0 events.
+                // Non-absorbing wait (plain wait, no key is ignored): consume 0 events.
                 if (eventIndex > regionBeginIndex && eventIndex < eventEndIndex) {
                     KeyEvent previousEvent = events.get(eventIndex - 1);
                     KeyEvent nextEvent = events.get(eventIndex);

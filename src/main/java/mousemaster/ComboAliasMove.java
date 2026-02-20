@@ -36,13 +36,7 @@ public sealed interface ComboAliasMove {
 
     }
 
-    /**
-     * @param keysAreExempt true for wait-ignore{keys} (listed keys don't break the wait),
-     *                      false for wait-ignore-all-except{keys} (only listed keys break the wait).
-     *                      Empty keyAliasOrKeyNames + keysAreExempt=true means plain wait (all keys break).
-     *                      Empty keyAliasOrKeyNames + keysAreExempt=false means wait-ignore-all (no keys break).
-     */
-    record WaitComboAliasMove(Set<String> keyAliasOrKeyNames, boolean keysAreExempt,
+    record WaitComboAliasMove(Set<String> keyAliasOrKeyNames, boolean listedKeysAreIgnored,
                               ComboMoveDuration duration) implements ComboAliasMove {
         @Override
         public String aliasOrKeyName() {
@@ -58,9 +52,9 @@ public sealed interface ComboAliasMove {
         public String toString() {
             String ignorePart;
             if (keyAliasOrKeyNames.isEmpty()) {
-                ignorePart = keysAreExempt ? "" : "-ignore-all";
+                ignorePart = listedKeysAreIgnored ? "" : "-ignore-all";
             }
-            else if (keysAreExempt) {
+            else if (listedKeysAreIgnored) {
                 ignorePart = "-ignore{" + String.join(" ", keyAliasOrKeyNames) + "}";
             }
             else {
