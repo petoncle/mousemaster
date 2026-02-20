@@ -120,6 +120,19 @@ public record Macro(String name, MacroSequence output) {
         return new KeyMacroMove(keyOrAlias, press, destination);
     }
 
+    public Set<String> outputAliasNames() {
+        Set<String> names = new HashSet<>();
+        for (MacroParallel parallel : output.parallels()) {
+            for (MacroMove move : parallel.moves()) {
+                if (move instanceof KeyMacroMove(KeyOrAlias keyOrAlias, var __, var ___)) {
+                    if (keyOrAlias.isAlias())
+                        names.add(keyOrAlias.aliasName());
+                }
+            }
+        }
+        return names;
+    }
+
     public ResolvedMacro resolve(AliasResolution aliasResolution) {
         List<ResolvedMacroParallel> resolvedParallels = new ArrayList<>();
         for (MacroParallel parallel : output.parallels()) {

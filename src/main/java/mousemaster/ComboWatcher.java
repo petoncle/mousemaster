@@ -809,7 +809,18 @@ public class ComboWatcher implements ModeListener {
             boolean changed = false;
             for (Command command : cac.commands) {
                 if (command instanceof Command.MacroCommand(Macro macro, var __)) {
-                    resolvedCommands.add(new Command.MacroCommand(macro, resolution));
+                    // Filter resolution to only aliases used in the macro output,
+                    // so that combos with different input aliases but identical
+                    // resolved output are deduplicated.
+                    Set<String> usedAliases = macro.outputAliasNames();
+                    Map<String, Key> filteredMap = new HashMap<>();
+                    for (String aliasName : usedAliases) {
+                        Key key = resolution.keyByAliasName().get(aliasName);
+                        if (key != null)
+                            filteredMap.put(aliasName, key);
+                    }
+                    AliasResolution filteredResolution = new AliasResolution(filteredMap);
+                    resolvedCommands.add(new Command.MacroCommand(macro, filteredResolution));
                     changed = true;
                 }
                 else {
