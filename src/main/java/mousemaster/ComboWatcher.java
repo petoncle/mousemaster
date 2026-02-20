@@ -125,11 +125,10 @@ public class ComboWatcher implements ModeListener {
                     ComboSequenceMatch match = comboPreparation.match(combo.sequence());
                     if (match.hasMatch()) {
                         ResolvedKeyComboMove currentMove = match.lastMatchedKeyMove();
-                        KeyEvent lastMatchedEvent = comboPreparation.events().getLast();
+                        KeyEvent lastMatchedEvent = comboPreparation.events()
+                                .get(match.lastMatchedKeyMoveEventIndex());
                         // If the last matched MoveSet is an absorbing wait,
-                        // use the wait's max duration instead of the move's,
-                        // and find the actual event of the last matched key move
-                        // (not the last event, which may be absorbed).
+                        // use the wait's max duration instead of the move's.
                         ComboMoveDuration effectiveDuration = currentMove.duration();
                         if (match.matchedMoveSetCount() > 0) {
                             MoveSet lastMatchedMoveSet = combo.sequence().moveSets()
@@ -139,16 +138,6 @@ public class ComboWatcher implements ModeListener {
                                 WaitComboMove wm = waitMoveSet.waitMove();
                                 effectiveDuration = new ComboMoveDuration(
                                         effectiveDuration.min(), wm.duration().max());
-                                // Find the event corresponding to the last matched key
-                                // move (searching backwards, skipping absorbed events).
-                                for (int i = comboPreparation.events().size() - 1; i >= 0; i--) {
-                                    KeyEvent e = comboPreparation.events().get(i);
-                                    if (e.key().equals(currentMove.key()) &&
-                                        e.isPress() == currentMove.isPress()) {
-                                        lastMatchedEvent = e;
-                                        break;
-                                    }
-                                }
                             }
                         }
                         boolean tooMuch = effectiveDuration.tooMuchTimeHasPassed(
