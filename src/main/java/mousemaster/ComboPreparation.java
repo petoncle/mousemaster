@@ -117,17 +117,24 @@ public record ComboPreparation(List<KeyEvent> events) {
                 for (int later = moveSetIndex + 1; later < moveSets.size(); later++)
                     minForRemaining += moveSets.get(later).minMoveCount();
                 int maxAbsorb = (eventEndIndex - eventIndex) - minForRemaining;
-                for (int absorb = maxAbsorb; absorb >= 0; absorb--) {
-                    // Check all absorbed events are ignored.
-                    boolean allIgnored = true;
-                    for (int i = 0; i < absorb; i++) {
-                        if (!waitMove.ignoredKeySet().isIgnored(events.get(eventIndex + i).key())) {
-                            allIgnored = false;
-                            break;
-                        }
+                // Can't absorb past a non-ignored event.
+                int firstNonIgnoredOffset = maxAbsorb;
+                for (int i = 0; i < maxAbsorb; i++) {
+                    if (!waitMove.ignoredKeySet().isIgnored(events.get(eventIndex + i).key())) {
+                        firstNonIgnoredOffset = i;
+                        break;
                     }
-                    if (!allIgnored)
-                        continue;
+                }
+                // Find the next KeyMoveSet to skip absorbed events
+                // where the first event after the wait can't match the KeyMoveSet.
+                KeyMoveSet peekMoveSet = null;
+                for (int p = moveSetIndex + 1; p < moveSets.size(); p++) {
+                    if (moveSets.get(p) instanceof KeyMoveSet kms) {
+                        peekMoveSet = kms;
+                        break;
+                    }
+                }
+                for (int absorb = firstNonIgnoredOffset; absorb >= 0; absorb--) {
                     int nextEventIndex = eventIndex + absorb;
                     // For mid-sequence wait: check time gap from pre-wait event
                     // to first post-wait event.
@@ -135,6 +142,11 @@ public record ComboPreparation(List<KeyEvent> events) {
                         KeyEvent previousEvent = events.get(eventIndex - 1);
                         KeyEvent nextEvent = events.get(nextEventIndex);
                         if (!waitMove.duration().satisfied(previousEvent.time(), nextEvent.time()))
+                            continue;
+                    }
+                    if (peekMoveSet != null && nextEventIndex < eventEndIndex) {
+                        KeyEvent peekEvent = events.get(nextEventIndex);
+                        if (!anyMoveCouldMatchEvent(peekMoveSet, peekEvent, aliasBindings))
                             continue;
                     }
                     // Track whether the last event in the preparation is absorbed.
@@ -369,6 +381,17 @@ public record ComboPreparation(List<KeyEvent> events) {
                 aliasBindings.putAll(savedAliasBindings);
             }
         }
+        return false;
+    }
+
+    private static boolean anyMoveCouldMatchEvent(KeyMoveSet keyMoveSet, KeyEvent event,
+                                                  Map<String, Key> aliasBindings) {
+        for (KeyComboMove m : keyMoveSet.requiredMoves())
+            if (moveMatchesEvent(m, event, aliasBindings))
+                return true;
+        for (KeyComboMove m : keyMoveSet.optionalMoves())
+            if (moveMatchesEvent(m, event, aliasBindings))
+                return true;
         return false;
     }
 
