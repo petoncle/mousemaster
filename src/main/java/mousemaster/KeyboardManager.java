@@ -193,7 +193,7 @@ public class KeyboardManager {
             Combo combo = comboAndMatch.combo();
             ComboSequenceMatch match = comboAndMatch.match();
             Set<Key> pressedKeysInCompletedCombo =
-                    combo.keysPressedAfterMoves(Set.of(), match.matchedMoves());
+                    combo.keysPressedAfterMoves(Set.of(), match.matchedKeyMoves());
             completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();
 
             for (Key key : pressedKeysInCompletedCombo) {

@@ -14,7 +14,7 @@ public class KeyRegurgitator {
 
     public void regurgitate(Key keyToRegurgitate, boolean startRepeat,
                             boolean releaseRegurgitatedKey) {
-        logger.trace(
+        logger.debug(
                 "Regurgitating " + keyToRegurgitate + ", startRepeat = " + startRepeat +
                 ", releaseRegurgitatedKey = " + releaseRegurgitatedKey);
         // Note about releaseRegurgitatedKey:

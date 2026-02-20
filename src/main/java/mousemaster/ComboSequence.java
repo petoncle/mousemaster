@@ -25,6 +25,7 @@ public record ComboSequence(List<MoveSet> moveSets) {
             }
             Stream.concat(moveSet.requiredMoves().stream(),
                           moveSet.optionalMoves().stream())
+                  .map(move -> (ComboMove.KeyComboMove) move)
                   .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
                   .forEach(keys::add);
         }
@@ -37,6 +38,7 @@ public record ComboSequence(List<MoveSet> moveSets) {
                        .flatMap(moveSet -> Stream.concat(
                                moveSet.requiredMoves().stream(),
                                moveSet.optionalMoves().stream()))
+                       .map(move -> (ComboMove.KeyComboMove) move)
                        .filter(move -> move.keyOrAlias().isAlias())
                        .map(move -> move.keyOrAlias().aliasName())
                        .collect(Collectors.toSet());

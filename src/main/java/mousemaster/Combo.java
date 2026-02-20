@@ -246,9 +246,9 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
     }
 
     public Set<Key> keysPressedAfterMoves(Set<Key> preconditionPressedKeySet,
-                                           List<ResolvedComboMove> matchedMoves) {
+                                           List<ResolvedKeyComboMove> matchedKeyMoves) {
         Set<Key> pressedKeys = new HashSet<>(preconditionPressedKeySet);
-        for (ResolvedComboMove move : matchedMoves) {
+        for (ResolvedKeyComboMove move : matchedKeyMoves) {
             if (move.isPress())
                 pressedKeys.add(move.key());
             else

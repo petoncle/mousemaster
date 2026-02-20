@@ -1,20 +1,23 @@
 package mousemaster;
 
-public sealed interface ComboMove {
+public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.WaitComboMove {
 
-    KeyOrAlias keyOrAlias();
     ComboMoveDuration duration();
 
-    default boolean isPress() {
-        return this instanceof PressComboMove;
-    }
+    sealed interface KeyComboMove extends ComboMove permits PressComboMove, ReleaseComboMove {
+        KeyOrAlias keyOrAlias();
 
-    default boolean isRelease() {
-        return this instanceof ReleaseComboMove;
+        default boolean isPress() {
+            return this instanceof PressComboMove;
+        }
+
+        default boolean isRelease() {
+            return this instanceof ReleaseComboMove;
+        }
     }
 
     record PressComboMove(KeyOrAlias keyOrAlias, boolean eventMustBeEaten, ComboMoveDuration duration)
-            implements ComboMove {
+            implements KeyComboMove {
         @Override
         public String toString() {
             return (eventMustBeEaten ? "+" : "#") + keyOrAlias;
@@ -22,7 +25,7 @@ public sealed interface ComboMove {
 
     }
 
-    record ReleaseComboMove(KeyOrAlias keyOrAlias, ComboMoveDuration duration) implements ComboMove {
+    record ReleaseComboMove(KeyOrAlias keyOrAlias, ComboMoveDuration duration) implements KeyComboMove {
         @Override
         public String toString() {
             return "-" + keyOrAlias;
@@ -32,10 +35,6 @@ public sealed interface ComboMove {
 
     record WaitComboMove(IgnoredKeySet ignoredKeySet, boolean ignoredKeysEatEvents,
                          ComboMoveDuration duration) implements ComboMove {
-        @Override
-        public KeyOrAlias keyOrAlias() {
-            return null;
-        }
 
         @Override
         public String toString() {

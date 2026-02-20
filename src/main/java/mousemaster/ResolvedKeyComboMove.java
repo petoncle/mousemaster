@@ -1,6 +1,6 @@
 package mousemaster;
 
-public sealed interface ResolvedComboMove {
+public sealed interface ResolvedKeyComboMove {
 
     Key key();
     ComboMoveDuration duration();
@@ -14,11 +14,11 @@ public sealed interface ResolvedComboMove {
     }
 
     record ResolvedPressComboMove(Key key, boolean eventMustBeEaten, ComboMoveDuration duration)
-            implements ResolvedComboMove {
+            implements ResolvedKeyComboMove {
     }
 
     record ResolvedReleaseComboMove(Key key, ComboMoveDuration duration)
-            implements ResolvedComboMove {
+            implements ResolvedKeyComboMove {
     }
 
 }

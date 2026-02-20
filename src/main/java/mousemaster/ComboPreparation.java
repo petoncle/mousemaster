@@ -61,15 +61,15 @@ public record ComboPreparation(List<KeyEvent> events) {
             for (int totalEventCount = effectiveMaxEventCount;
                  totalEventCount >= minTotalEventCount; totalEventCount--) {
                 int regionBeginIndex = events.size() - totalEventCount;
-                List<ResolvedComboMove> matchedMoves = new ArrayList<>();
+                List<ResolvedKeyComboMove> matchedKeyMoves = new ArrayList<>();
                 Map<String, Key> aliasBindings = new HashMap<>();
                 boolean[] lastEventAbsorbed = {false};
                 Set<Key> absorbedPressedKeys = new HashSet<>();
                 if (tryAssignEventsToMoveSets(subMoveSets, 0, regionBeginIndex,
                         regionBeginIndex + totalEventCount, regionBeginIndex,
-                        matchedMoves, aliasBindings, lastEventAbsorbed, absorbedPressedKeys)) {
+                        matchedKeyMoves, aliasBindings, lastEventAbsorbed, absorbedPressedKeys)) {
                     boolean complete = (k == moveSets.size());
-                    return new ComboSequenceMatch(List.copyOf(matchedMoves), complete,
+                    return new ComboSequenceMatch(List.copyOf(matchedKeyMoves), complete,
                             k, lastEventAbsorbed[0], Set.copyOf(absorbedPressedKeys),
                             new AliasResolution(Map.copyOf(aliasBindings)));
                 }
@@ -88,7 +88,7 @@ public record ComboPreparation(List<KeyEvent> events) {
     private boolean tryAssignEventsToMoveSets(
             List<MoveSet> moveSets, int moveSetIndex, int eventIndex,
             int eventEndIndex, int regionBeginIndex,
-            List<ResolvedComboMove> matchedMoves, Map<String, Key> aliasBindings,
+            List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys) {
         if (moveSetIndex == moveSets.size())
             return eventIndex == eventEndIndex;
@@ -144,7 +144,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                     // already validated the time gap).
                     if (tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
                             nextEventIndex, eventEndIndex, nextEventIndex,
-                            matchedMoves, aliasBindings, lastEventAbsorbed, absorbedPressedKeys))
+                            matchedKeyMoves, aliasBindings, lastEventAbsorbed, absorbedPressedKeys))
                         return true;
                     lastEventAbsorbed[0] = savedLastEventAbsorbed;
                     absorbedPressedKeys.removeAll(addedAbsorbedKeys);
@@ -163,7 +163,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 // after the wait skips the per-move duration check.
                 return tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
                         eventIndex, eventEndIndex, eventIndex,
-                        matchedMoves, aliasBindings, lastEventAbsorbed, absorbedPressedKeys);
+                        matchedKeyMoves, aliasBindings, lastEventAbsorbed, absorbedPressedKeys);
             }
         }
 
@@ -178,19 +178,19 @@ public record ComboPreparation(List<KeyEvent> events) {
 
         for (int eventCount = maxEventCountForMoveSet;
              eventCount >= moveSet.minMoveCount(); eventCount--) {
-            List<ResolvedComboMove> moveSetMatchedMoves = new ArrayList<>();
+            List<ResolvedKeyComboMove> moveSetMatchedKeyMoves = new ArrayList<>();
             Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
             if (tryMatchMoveSetEvents(eventIndex, eventCount, moveSet,
-                    regionBeginIndex, matchedMoves, moveSetMatchedMoves, aliasBindings)) {
-                int savedSize = matchedMoves.size();
-                matchedMoves.addAll(moveSetMatchedMoves);
+                    regionBeginIndex, matchedKeyMoves, moveSetMatchedKeyMoves, aliasBindings)) {
+                int savedSize = matchedKeyMoves.size();
+                matchedKeyMoves.addAll(moveSetMatchedKeyMoves);
                 if (tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
                         eventIndex + eventCount, eventEndIndex,
-                        regionBeginIndex, matchedMoves, aliasBindings,
+                        regionBeginIndex, matchedKeyMoves, aliasBindings,
                         lastEventAbsorbed, absorbedPressedKeys))
                     return true;
-                while (matchedMoves.size() > savedSize)
-                    matchedMoves.removeLast();
+                while (matchedKeyMoves.size() > savedSize)
+                    matchedKeyMoves.removeLast();
             }
             // Restore aliasBindings on backtrack.
             aliasBindings.clear();
@@ -206,13 +206,13 @@ public record ComboPreparation(List<KeyEvent> events) {
      * optional moves.
      * <p>
      * Duration constraint: the time between consecutive events must satisfy the
-     * duration of the previous matched move. The first event in the matched region
+     * duration of the previous matched key move. The first event in the matched region
      * has no duration constraint.
      */
     private boolean tryMatchMoveSetEvents(
             int eventBeginIndex, int eventCount, MoveSet moveSet,
-            int regionBeginIndex, List<ResolvedComboMove> previousMatchedMoves,
-            List<ResolvedComboMove> matchedMoves, Map<String, Key> aliasBindings) {
+            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
+            List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings) {
         if (eventCount == 0)
             return true;
         List<ComboMove> required = moveSet.requiredMoves();
@@ -229,19 +229,20 @@ public record ComboPreparation(List<KeyEvent> events) {
                 return false;
             if (eventBeginIndex > regionBeginIndex) {
                 KeyEvent previousEvent = events.get(eventBeginIndex - 1);
-                ResolvedComboMove previousMove = previousMatchedMoves.getLast();
+                ResolvedKeyComboMove previousMove = previousMatchedKeyMoves.getLast();
                 if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
                     return false;
             }
-            bindAlias(move, event.key(), aliasBindings);
-            matchedMoves.add(resolvedMove(move, event.key()));
+            ComboMove.KeyComboMove keyMove = (ComboMove.KeyComboMove) move;
+            bindAlias(keyMove, event.key(), aliasBindings);
+            matchedKeyMoves.add(resolvedMove(keyMove, event.key()));
             return true;
         }
 
         // General path: try subsets of optional moves, then bipartite match.
         return tryOptionalSubsets(eventBeginIndex, eventCount, optional,
                 optionalToUseCount, 0, new ArrayList<>(required),
-                regionBeginIndex, previousMatchedMoves, matchedMoves, aliasBindings);
+                regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves, aliasBindings);
     }
 
     /**
@@ -254,11 +255,11 @@ public record ComboPreparation(List<KeyEvent> events) {
             List<ComboMove> optional,
             int optionalToUseCount, int optionalIndex,
             List<ComboMove> moves,
-            int regionBeginIndex, List<ResolvedComboMove> previousMatchedMoves,
-            List<ResolvedComboMove> matchedMoves, Map<String, Key> aliasBindings) {
+            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
+            List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings) {
         if (optionalToUseCount == 0) {
             return tryBipartiteMatch(eventBeginIndex, eventCount, moves,
-                    regionBeginIndex, previousMatchedMoves, matchedMoves, aliasBindings);
+                    regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves, aliasBindings);
         }
         int remainingOptionalCount = optional.size() - optionalIndex;
         if (remainingOptionalCount < optionalToUseCount)
@@ -268,14 +269,14 @@ public record ComboPreparation(List<KeyEvent> events) {
         moves.add(optional.get(optionalIndex));
         if (tryOptionalSubsets(eventBeginIndex, eventCount, optional,
                 optionalToUseCount - 1, optionalIndex + 1, moves,
-                regionBeginIndex, previousMatchedMoves, matchedMoves, aliasBindings))
+                regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves, aliasBindings))
             return true;
         moves.removeLast();
 
         // Skip optional[optionalIndex].
         return tryOptionalSubsets(eventBeginIndex, eventCount, optional,
                 optionalToUseCount, optionalIndex + 1, moves,
-                regionBeginIndex, previousMatchedMoves, matchedMoves, aliasBindings);
+                regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves, aliasBindings);
     }
 
     /**
@@ -285,15 +286,15 @@ public record ComboPreparation(List<KeyEvent> events) {
      */
     private boolean tryBipartiteMatch(
             int eventBeginIndex, int eventCount, List<ComboMove> moves,
-            int regionBeginIndex, List<ResolvedComboMove> previousMatchedMoves,
-            List<ResolvedComboMove> matchedMoves, Map<String, Key> aliasBindings) {
+            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
+            List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings) {
         boolean[] moveUsed = new boolean[moves.size()];
-        ResolvedComboMove[] assignedMoves = new ResolvedComboMove[eventCount];
+        ResolvedKeyComboMove[] assignedMoves = new ResolvedKeyComboMove[eventCount];
         Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
         if (assignEvents(eventBeginIndex, 0, eventCount, moves, moveUsed,
-                assignedMoves, regionBeginIndex, previousMatchedMoves, aliasBindings)) {
-            matchedMoves.clear();
-            Collections.addAll(matchedMoves, assignedMoves);
+                assignedMoves, regionBeginIndex, previousMatchedKeyMoves, aliasBindings)) {
+            matchedKeyMoves.clear();
+            Collections.addAll(matchedKeyMoves, assignedMoves);
             return true;
         }
         // Restore aliasBindings on failure.
@@ -310,8 +311,8 @@ public record ComboPreparation(List<KeyEvent> events) {
     private boolean assignEvents(
             int eventBeginIndex, int eventOffset, int eventCount,
             List<ComboMove> moves, boolean[] moveUsed,
-            ResolvedComboMove[] assignedMoves,
-            int regionBeginIndex, List<ResolvedComboMove> previousMatchedMoves,
+            ResolvedKeyComboMove[] assignedMoves,
+            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             Map<String, Key> aliasBindings) {
         if (eventOffset == eventCount)
             return true;
@@ -322,11 +323,11 @@ public record ComboPreparation(List<KeyEvent> events) {
         // Duration check: skip for the first event in the matched region.
         if (globalEventIndex > regionBeginIndex) {
             KeyEvent previousEvent = events.get(globalEventIndex - 1);
-            ResolvedComboMove previousMove;
+            ResolvedKeyComboMove previousMove;
             if (eventOffset > 0)
                 previousMove = assignedMoves[eventOffset - 1];
             else
-                previousMove = previousMatchedMoves.getLast();
+                previousMove = previousMatchedKeyMoves.getLast();
             if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
                 return false;
         }
@@ -337,11 +338,12 @@ public record ComboPreparation(List<KeyEvent> events) {
             if (moveMatchesEvent(move, event, aliasBindings)) {
                 moveUsed[moveIndex] = true;
                 Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
-                bindAlias(move, event.key(), aliasBindings);
-                assignedMoves[eventOffset] = resolvedMove(move, event.key());
+                ComboMove.KeyComboMove keyMove = (ComboMove.KeyComboMove) move;
+                bindAlias(keyMove, event.key(), aliasBindings);
+                assignedMoves[eventOffset] = resolvedMove(keyMove, event.key());
                 if (assignEvents(eventBeginIndex, eventOffset + 1, eventCount,
                         moves, moveUsed, assignedMoves, regionBeginIndex,
-                        previousMatchedMoves, aliasBindings))
+                        previousMatchedKeyMoves, aliasBindings))
                     return true;
                 moveUsed[moveIndex] = false;
                 // Restore aliasBindings on backtrack.
@@ -360,11 +362,11 @@ public record ComboPreparation(List<KeyEvent> events) {
      */
     private static boolean moveMatchesEvent(ComboMove move, KeyEvent event,
                                             Map<String, Key> aliasBindings) {
-        if (move instanceof ComboMove.WaitComboMove)
-            return false; // Wait moves don't match events.
-        if (event.isPress() != move.isPress())
+        if (!(move instanceof ComboMove.KeyComboMove keyMove))
+            return false; // Only key moves (press/release) match key events.
+        if (event.isPress() != keyMove.isPress())
             return false;
-        KeyOrAlias keyOrAlias = move.keyOrAlias();
+        KeyOrAlias keyOrAlias = keyMove.keyOrAlias();
         if (keyOrAlias.isAlias()) {
             Key bound = aliasBindings.get(keyOrAlias.aliasName());
             if (bound != null)
@@ -377,7 +379,7 @@ public record ComboPreparation(List<KeyEvent> events) {
     /**
      * Binds an alias to a key if the move is an alias move.
      */
-    private static void bindAlias(ComboMove move, Key key,
+    private static void bindAlias(ComboMove.KeyComboMove move, Key key,
                                   Map<String, Key> aliasBindings) {
         KeyOrAlias keyOrAlias = move.keyOrAlias();
         if (keyOrAlias.isAlias())
@@ -385,17 +387,16 @@ public record ComboPreparation(List<KeyEvent> events) {
     }
 
     /**
-     * Returns a ResolvedComboMove with the concrete key from the matched event.
+     * Returns a ResolvedKeyComboMove with the concrete key from the matched event.
      */
-    private static ResolvedComboMove resolvedMove(ComboMove move, Key matchedKey) {
+    private static ResolvedKeyComboMove resolvedMove(ComboMove.KeyComboMove move, Key matchedKey) {
         return switch (move) {
             case ComboMove.PressComboMove p ->
-                    new ResolvedComboMove.ResolvedPressComboMove(
+                    new ResolvedKeyComboMove.ResolvedPressComboMove(
                             matchedKey, p.eventMustBeEaten(), p.duration());
             case ComboMove.ReleaseComboMove r ->
-                    new ResolvedComboMove.ResolvedReleaseComboMove(
+                    new ResolvedKeyComboMove.ResolvedReleaseComboMove(
                             matchedKey, r.duration());
-            case ComboMove.WaitComboMove w -> throw new IllegalStateException();
         };
     }
 

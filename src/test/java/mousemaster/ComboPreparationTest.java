@@ -78,7 +78,7 @@ class ComboPreparationTest {
     void emptySequence_returnsComplete() {
         ComboSequenceMatch match = prep(press(a, t(0))).match(seq());
         assertTrue(match.complete());
-        assertTrue(match.matchedMoves().isEmpty());
+        assertTrue(match.matchedKeyMoves().isEmpty());
     }
 
     @Test
@@ -92,7 +92,7 @@ class ComboPreparationTest {
     void bothEmpty_returnsComplete() {
         ComboSequenceMatch match = prep().match(seq());
         assertTrue(match.complete());
-        assertTrue(match.matchedMoves().isEmpty());
+        assertTrue(match.matchedKeyMoves().isEmpty());
     }
 
     // 2. Single required move
@@ -102,9 +102,9 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(a, t(0)))
                 .match(seq(required(pressMove(a))));
         assertTrue(match.complete());
-        assertEquals(1, match.matchedMoves().size());
-        assertEquals(a, match.matchedMoves().getFirst().key());
-        assertTrue(match.matchedMoves().getFirst().isPress());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertEquals(a, match.matchedKeyMoves().getFirst().key());
+        assertTrue(match.matchedKeyMoves().getFirst().isPress());
     }
 
     @Test
@@ -129,7 +129,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
                 .match(seq(required(pressMove(a)), required(pressMove(b))));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -141,8 +141,8 @@ class ComboPreparationTest {
                 .match(seq(required(pressMove(a)), required(pressMove(b))));
         assertTrue(match.hasMatch());
         assertFalse(match.complete());
-        assertEquals(1, match.matchedMoves().size());
-        assertEquals(a, match.matchedMoves().getFirst().key());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertEquals(a, match.matchedKeyMoves().getFirst().key());
     }
 
     @Test
@@ -151,8 +151,8 @@ class ComboPreparationTest {
                 .match(seq(required(pressMove(a)), required(pressMove(b))));
         assertTrue(match.hasMatch());
         assertFalse(match.complete());
-        assertEquals(1, match.matchedMoves().size());
-        assertEquals(a, match.matchedMoves().getFirst().key());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertEquals(a, match.matchedKeyMoves().getFirst().key());
     }
 
     // 4. Suffix matching
@@ -164,7 +164,7 @@ class ComboPreparationTest {
                 press(x, t(0)), press(a, t(10)), press(b, t(20)))
                 .match(seq(required(pressMove(a)), required(pressMove(b))));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -174,7 +174,7 @@ class ComboPreparationTest {
                 press(x, t(0)), press(y, t(10)), press(a, t(20)))
                 .match(seq(required(pressMove(a))));
         assertTrue(match.complete());
-        assertEquals(1, match.matchedMoves().size());
+        assertEquals(1, match.matchedKeyMoves().size());
     }
 
     // 5. Any-order within MoveSet ({+a +b})
@@ -185,7 +185,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
                 .match(seq(required(pressMove(a), pressMove(b))));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -194,7 +194,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(b, t(0)), press(a, t(10)))
                 .match(seq(required(pressMove(a), pressMove(b))));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     // 6. Optional moves ({+a #b?})
@@ -206,7 +206,7 @@ class ComboPreparationTest {
                 List.of(pressMove(a)), List.of(hashPressMove(b)));
         ComboSequenceMatch match = prep(press(a, t(0))).match(seq(moveSet));
         assertTrue(match.complete());
-        assertEquals(1, match.matchedMoves().size());
+        assertEquals(1, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -217,7 +217,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
                 .match(seq(moveSet));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -228,7 +228,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(b, t(0)), press(a, t(10)))
                 .match(seq(moveSet));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -248,7 +248,7 @@ class ComboPreparationTest {
         MoveSet moveSet = withOptional(List.of(), List.of(hashPressMove(a)));
         ComboSequenceMatch match = prep(press(a, t(0))).match(seq(moveSet));
         assertTrue(match.complete());
-        assertEquals(1, match.matchedMoves().size());
+        assertEquals(1, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -257,7 +257,7 @@ class ComboPreparationTest {
         MoveSet moveSet = withOptional(List.of(), List.of(hashPressMove(a)));
         ComboSequenceMatch match = prep(press(x, t(0))).match(seq(moveSet));
         assertTrue(match.complete());
-        assertEquals(0, match.matchedMoves().size());
+        assertEquals(0, match.matchedKeyMoves().size());
     }
 
     // 8. Greedy matching
@@ -272,7 +272,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(a, t(0)), press(c, t(10)))
                 .match(seq(first, second));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -286,7 +286,7 @@ class ComboPreparationTest {
                 press(b, t(0)), press(a, t(10)), press(c, t(20)))
                 .match(seq(first, second));
         assertTrue(match.complete());
-        assertEquals(3, match.matchedMoves().size());
+        assertEquals(3, match.matchedKeyMoves().size());
     }
 
     // 9. Duration constraints
@@ -362,7 +362,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(a, t(0)), press(c, t(10)))
                 .match(seq(first, second));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -376,7 +376,7 @@ class ComboPreparationTest {
                 press(a, t(0)), press(b, t(10)), press(c, t(20)))
                 .match(seq(first, second));
         assertTrue(match.complete());
-        assertEquals(3, match.matchedMoves().size());
+        assertEquals(3, match.matchedKeyMoves().size());
     }
 
     // 11. Release moves
@@ -386,8 +386,8 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(release(a, t(0)))
                 .match(seq(required(releaseMove(a))));
         assertTrue(match.complete());
-        assertEquals(1, match.matchedMoves().size());
-        assertTrue(match.matchedMoves().getFirst().isRelease());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertTrue(match.matchedKeyMoves().getFirst().isRelease());
     }
 
     @Test
@@ -395,7 +395,7 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(a, t(0)), release(a, t(50)))
                 .match(seq(required(pressMove(a)), required(releaseMove(a))));
         assertTrue(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     // 12. Partial match preference
@@ -410,7 +410,7 @@ class ComboPreparationTest {
                         required(pressMove(c))));
         assertTrue(match.hasMatch());
         assertFalse(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -423,7 +423,7 @@ class ComboPreparationTest {
                         required(pressMove(c))));
         assertTrue(match.hasMatch());
         assertFalse(match.complete());
-        assertEquals(1, match.matchedMoves().size());
+        assertEquals(1, match.matchedKeyMoves().size());
     }
 
     @Test
@@ -453,6 +453,6 @@ class ComboPreparationTest {
                         required(pressMove(c))));
         assertTrue(match.hasMatch());
         assertFalse(match.complete());
-        assertEquals(2, match.matchedMoves().size());
+        assertEquals(2, match.matchedKeyMoves().size());
     }
 }

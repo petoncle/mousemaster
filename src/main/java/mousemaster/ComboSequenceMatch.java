@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public record ComboSequenceMatch(List<ResolvedComboMove> matchedMoves, boolean complete,
-                                 int matchedMoveSetCount,
+public record ComboSequenceMatch(List<ResolvedKeyComboMove> matchedKeyMoves, boolean complete,
+                                 int matchedMoveSetCount, // Includes wait moves.
                                  boolean lastEventAbsorbedByWait,
                                  Set<Key> absorbedPressedKeys,
                                  AliasResolution aliasResolution) {
@@ -18,11 +18,11 @@ public record ComboSequenceMatch(List<ResolvedComboMove> matchedMoves, boolean c
     }
 
     public boolean hasMatch() {
-        return !matchedMoves.isEmpty();
+        return !matchedKeyMoves.isEmpty();
     }
 
-    public ResolvedComboMove lastMatchedMove() {
-        return matchedMoves.isEmpty() ? null : matchedMoves.getLast();
+    public ResolvedKeyComboMove lastMatchedKeyMove() {
+        return matchedKeyMoves.isEmpty() ? null : matchedKeyMoves.getLast();
     }
 
 }
