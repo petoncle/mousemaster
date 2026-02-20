@@ -348,6 +348,16 @@ public class ComboWatcher implements ModeListener {
             processingSet.processingByCombo().putAll(secondPass.processingByCombo());
             processingSet.matchByCombo().putAll(secondPass.matchByCombo());
         }
+        // If the event was absorbed by a wait in every matching combo (never
+        // matched as a key move), remove it: it won't contribute to future
+        // key move matches and would bloat the preparation.
+        if (processingSet.isPartOfComboSequence() &&
+            !processingSet.matchByCombo().isEmpty() &&
+            processingSet.matchByCombo().values().stream()
+                    .filter(ComboSequenceMatch::hasMatch)
+                    .allMatch(ComboSequenceMatch::lastEventAbsorbedByWait)) {
+            comboPreparation.events().removeLast();
+        }
         if (!processingSet.isPartOfComboSequence()) {
             comboPreparation = ComboPreparation.empty();
             if (event.isPress() && isComboPreconditionKey) {
