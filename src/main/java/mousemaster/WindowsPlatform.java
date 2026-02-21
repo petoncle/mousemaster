@@ -336,9 +336,11 @@ public class WindowsPlatform implements Platform {
                                                 WindowsVirtualKey.VK_LCONTROL.virtualKeyCode &&
                                                 info.scanCode == 0x21d;
                         KeyEvent keyEvent = buildKeyEvent(info, wParam, altgrLeftctrl);
-                        logKeyEvent(info, wParamString, keyEvent, altgrLeftctrl);
-                        if ((info.flags & ExtendedUser32.LLKHF_INJECTED) ==
-                            ExtendedUser32.LLKHF_INJECTED) {
+                        boolean injected = (info.flags & ExtendedUser32.LLKHF_INJECTED) == ExtendedUser32.LLKHF_INJECTED;
+                        logKeyEvent(info, wParamString, keyEvent, injected, altgrLeftctrl);
+                        WindowsKeyboard.keyboardHookCallback(info, wParam, wParamString,
+                                keyEvent, injected, altgrLeftctrl);
+                        if (injected) {
                             // SendInput from another app (or from mousemaster).
                         }
                         else if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
@@ -435,11 +437,12 @@ public class WindowsPlatform implements Platform {
 
     private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,
                                     String wParamString, KeyEvent keyEvent,
-                                    boolean altgrLeftctrl) {
+                                    boolean injected, boolean altgrLeftctrl) {
         if (logger.isTraceEnabled())
             logger.trace(
                     "Received key event: " + keyEvent +
                     ", altgrLeftctrl = " + altgrLeftctrl +
+                    ", injected = " + injected +
                     ", vkCode = 0x" + Integer.toHexString(info.vkCode) +
                     " (" + WindowsVirtualKey.values.get(info.vkCode) +
                     "), scanCode = 0x" + Integer.toHexString(info.scanCode) +

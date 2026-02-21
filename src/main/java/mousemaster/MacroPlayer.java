@@ -6,7 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MacroPlayer {
 
@@ -14,12 +16,16 @@ public class MacroPlayer {
 
     private final PlatformClock clock;
     private final ComboWatcher comboWatcher;
+    private final KeyboardManager keyboardManager;
     private final List<ResolvedMacro> macrosToExecute = new ArrayList<>();
     private MacroInProgress macroInProgress;
+    private final Set<Key> keysPressedByMacro = new HashSet<>();
 
-    public MacroPlayer(PlatformClock clock, ComboWatcher comboWatcher) {
+    public MacroPlayer(PlatformClock clock, ComboWatcher comboWatcher,
+                       KeyboardManager keyboardManager) {
         this.clock = clock;
         this.comboWatcher = comboWatcher;
+        this.keyboardManager = keyboardManager;
     }
 
     private static class MacroInProgress {
@@ -43,6 +49,19 @@ public class MacroPlayer {
     public boolean macroInProgress() {
         return macroInProgress != null;
     }
+
+    public void reset() {
+        keysPressedByMacro.clear();
+    }
+
+    public void keyReleasedNotEaten(Key key) {
+        keysPressedByMacro.remove(key);
+    }
+
+    public boolean isKeyPressedByMacro(Key key) {
+        return keysPressedByMacro.contains(key);
+    }
+
 
     public void update(double delta) {
         if (macroInProgress == null && !macrosToExecute.isEmpty()) {
@@ -85,7 +104,44 @@ public class MacroPlayer {
                 }
                 case ResolvedKeyMacroMove keyMove -> {
                     if (keyMove.destination() == MacroMoveDestination.OS) {
-                        osKeyMoves.add(keyMove);
+                        // 10 scenarios for macro press/release vs user press/release:
+                        // 1. user-press-eaten, macro-press, user-release(not eat), macro-release(noop)
+                        // 2. user-press-eaten, macro-press, macro-release, user-release(eat)
+                        // 3. user-press-eaten, macro-release(noop), user-release(eat)
+                        // 4. user-press-noneaten, macro-press(noop), user-release(not eat), macro-release(noop)
+                        // 5. user-press-noneaten, macro-press(noop), macro-release, user-release(extra release)
+                        // 6. user-press-noneaten, macro-release, user-release(extra release)
+                        // 7. macro-press, user-press(eat), user-release(not eat), macro-release(noop)
+                        // 8. macro-press, user-press(eat), macro-release, user-release(extra release)
+                        // 9. macro-press, macro-release
+                        // 10. macro-release(noop)
+                        // 11. user-press-eaten, user-release(eat)
+                        // 12. user-press-noneaten, user-release(not eat)
+
+                        // To decide if user-press should be eaten:
+                        // processingSet.mustBeEaten || macroPressed
+                        // To decide if user-release should be eaten:
+                        // !macroPressed && processingSet.mustBeEaten
+                        // The macro loses ownership when user releases: this allows the user
+                        // to release a key the macro pressed (e.g. +leftalt +f -f, user releases alt).
+                        if (keyMove.press()) {
+                            // Macro-press is noop if user already has the key pressed at OS level.
+                            boolean macroPressIsNoop =
+                                    keyboardManager.isPressedKeyNotEaten(keyMove.key());
+                            keysPressedByMacro.add(keyMove.key());
+                            if (!macroPressIsNoop)
+                                osKeyMoves.add(keyMove);
+                        }
+                        else {
+                            // Macro-release is noop if key is not pressed at OS level.
+                            // keysPressedByMacro is kept in sync by keyReleasedNotEaten().
+                            boolean macroReleaseIsNoop =
+                                    !keysPressedByMacro.contains(keyMove.key()) &&
+                                    !keyboardManager.isPressedKeyNotEaten(keyMove.key());
+                            keysPressedByMacro.remove(keyMove.key());
+                            if (!macroReleaseIsNoop)
+                                osKeyMoves.add(keyMove);
+                        }
                     }
                     else {
                         // Flush any pending OS key moves before sending to ComboWatcher.

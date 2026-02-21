@@ -17,11 +17,16 @@ public class KeyboardManager {
     private final ComboWatcher comboWatcher;
     private final KeyRegurgitator keyRegurgitator;
     private final Map<Key, PressKeyEventProcessingSet> currentlyPressedKeys = new HashMap<>();
+    private MacroPlayer macroPlayer;
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager,
                            KeyRegurgitator keyRegurgitator) {
         this.comboWatcher = comboWatcher;
         this.keyRegurgitator = keyRegurgitator;
+    }
+
+    public void setMacroPlayer(MacroPlayer macroPlayer) {
+        this.macroPlayer = macroPlayer;
     }
 
     public void update(double delta) {
@@ -52,6 +57,7 @@ public class KeyboardManager {
         regurgitatePressedKeys();
         currentlyPressedKeys.clear();
         comboWatcher.reset();
+        macroPlayer.reset();
     }
 
     public void regurgitatePressedKeys() {
@@ -113,7 +119,9 @@ public class KeyboardManager {
                     comboWatcher.reset(key);
                 }
             }
-            return eatAndRegurgitates(processingSet.mustBeEaten(), keysToRegurgitate);
+            boolean mustBeEaten = processingSet.mustBeEaten() ||
+                                  macroPlayer.isKeyPressedByMacro(key);
+            return eatAndRegurgitates(mustBeEaten, keysToRegurgitate);
         }
         else { // Key release.
             if (processingSet != null) {
@@ -171,16 +179,22 @@ public class KeyboardManager {
                     }
                     PressKeyEventProcessingSet pressedProcessingSet = currentlyPressedKeys.remove(key);
 //                    logger.info("Removed key " + key, new Exception());
-                    // Only a released event corresponding to a pressed event that was eaten should be eaten.
-                    return eatAndRegurgitates(pressedProcessingSet.mustBeEaten(), keysToRegurgitate);
+                    boolean mustBeEaten =
+                            !macroPlayer.isKeyPressedByMacro(key) &&
+                            pressedProcessingSet.mustBeEaten();
+                    if (!mustBeEaten)
+                        macroPlayer.keyReleasedNotEaten(key);
+                    return eatAndRegurgitates(mustBeEaten, keysToRegurgitate);
                 }
                 else {
                     currentlyPressedKeys.remove(key);
 //                    logger.info("Removed key " + key, new Exception());
+                    macroPlayer.keyReleasedNotEaten(key);
                     return eatAndRegurgitates(false, regurgitatePressedKeys(null));
                 }
             }
             else {
+                macroPlayer.keyReleasedNotEaten(key);
                 return eatAndRegurgitates(false, Set.of());
             }
         }
@@ -274,6 +288,15 @@ public class KeyboardManager {
                 return true;
         }
         return false;
+    }
+
+    /**
+     * Returns true if the key is currently pressed by the user and the press was not eaten
+     * (i.e. the rest of the OS apps saw the press).
+     */
+    public boolean isPressedKeyNotEaten(Key key) {
+        PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
+        return processingSet != null && !processingSet.mustBeEaten();
     }
 
 }

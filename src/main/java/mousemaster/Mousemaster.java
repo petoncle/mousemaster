@@ -200,9 +200,10 @@ public class Mousemaster {
                         platform.clock(),
                         unpressedComboPreconditionKeys,
                         pressedComboPreconditionKeys, configuration.logRedactKeys());
-        macroPlayer = new MacroPlayer(platform.clock(), comboWatcher);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());
+        macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager);
+        keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
         ZoomManager zoomManager = new ZoomManager(screenManager, hintManager);

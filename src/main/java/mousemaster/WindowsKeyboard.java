@@ -36,15 +36,24 @@ public class WindowsKeyboard {
     );
 
     public static KeyboardLayout activeKeyboardLayout;
-
     /**
-     * For some reason, sending more than one input per SendInput call rarely work (?).
+     * When sending -leftalt +uparrow, leftalt is interleaved with uparrow,
+     * and that prevent leftalt from being properly released:
+     * 2026-02-21T23:30:38.338 [main] DEBUG mousemaster.MacroPlayer - Executing macro parallel: -leftalt +uparrow PT0S
+     * 2026-02-21T23:30:38.338 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0xa4 (VK_LMENU), scanCode = 0x0, flags = 0x90, wParam = WM_KEYUP
+     * 2026-02-21T23:30:38.339 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0x26 (VK_UP), scanCode = 0x0, flags = 0x11, wParam = WM_KEYDOWN
+     * 2026-02-21T23:30:38.341 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0xa4 (VK_LMENU), scanCode = 0x38, flags = 0x30, wParam = WM_SYSKEYDOWN
      */
+    private static final List<ResolvedKeyMacroMove> sendInputQueue = new LinkedList<>();
+    private static ResolvedKeyMacroMove moveWaitingForKeyboardHookCallbackAcknowledgment;
+
     public static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
         if (oneInputPerCall) {
-            for (ResolvedKeyMacroMove move : moves) {
-                sendInputKeys(List.of(move), startRepeat);
-            }
+            boolean sendInputQueueWasEmpty = sendInputQueue.isEmpty();
+            sendInputQueue.addAll(moves);
+            if (moveWaitingForKeyboardHookCallbackAcknowledgment == null &&
+                sendInputQueueWasEmpty)
+                processOneSendInputMove();
         }
         else
             sendInputKeys(moves, startRepeat);
@@ -64,7 +73,33 @@ public class WindowsKeyboard {
         pressedKeys.add(key);
     }
 
+    public static void keyboardHookCallback(WinUser.KBDLLHOOKSTRUCT info,
+                                            WinDef.WPARAM wParam, String wParamString, KeyEvent keyEvent,
+                                            boolean injected, boolean altgrLeftctrl) {
+        if (!injected)
+            return;
+        if (moveWaitingForKeyboardHookCallbackAcknowledgment == null)
+            return;
+        if (keyEvent == null)
+            return;
+        if (keyEvent.key()
+                    .equals(moveWaitingForKeyboardHookCallbackAcknowledgment.key()) &&
+            keyEvent.isPress() ==
+            moveWaitingForKeyboardHookCallbackAcknowledgment.press()) {
+            if (keyEvent.key() == Key.leftalt) {
+                if (keyEvent.isPress() && wParam.intValue() != WinUser.WM_SYSKEYDOWN)
+                    return;
+            }
+            moveWaitingForKeyboardHookCallbackAcknowledgment = null;
+            // TODO consume sendInputQueue's next element (but only if this hook is not being called from sendInputKeys())?
+        }
+    }
+
     public static void update(double delta) {
+        if (moveWaitingForKeyboardHookCallbackAcknowledgment != null)
+            return;
+        if (processOneSendInputMove())
+            return;
         if (pressedKeyToRepeat == null)
             return;
         durationUntilNextKeyPressRepeat -= delta;
@@ -72,6 +107,22 @@ public class WindowsKeyboard {
             sendInputKeys(List.of(new ResolvedKeyMacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
             durationUntilNextKeyPressRepeat = 0.025d;
         }
+    }
+
+    private static boolean processOneSendInputMove() {
+        if (!sendInputQueue.isEmpty()) {
+            ResolvedKeyMacroMove move = sendInputQueue.removeFirst();
+            logger.trace("Waiting for ackowledgment of " + move);
+            moveWaitingForKeyboardHookCallbackAcknowledgment = move;
+            // The following sendInput call will call keyboardHookCallback.
+            // That is why the moveWaitingForKeyboardHookCallbackAcknowledgment
+            // is set before calling sendInputKeys.
+            // Goal is to block any further processing until the keyboard hook receives the event for
+            // the move (and for leftalt, there are two events: WM_KEYDOWN then WM_SYSKEYDOWN).
+            sendInputKeys(List.of(move), true);
+            return true;
+        }
+        return false;
     }
 
     private static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean triggerKeyRepeating) {
@@ -115,7 +166,7 @@ public class WindowsKeyboard {
         }
         WinDef.DWORD sendInput =
                 User32.INSTANCE.SendInput(new WinDef.DWORD(moves.size()), pInputs,
-                        pInputs[0].size() * moves.size());
+                        pInputs[0].size());
     }
 
     public static void sendInputString(String string) {
