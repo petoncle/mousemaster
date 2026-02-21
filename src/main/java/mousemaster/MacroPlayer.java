@@ -20,6 +20,14 @@ public class MacroPlayer {
     private final List<ResolvedMacro> macrosToExecute = new ArrayList<>();
     private MacroInProgress macroInProgress;
     private final Set<Key> keysPressedByMacro = new HashSet<>();
+    /**
+     * Used to prevent keyReleasedNotEaten from removing a key that was just pressed
+     * by a macro during the same event processing (e.g. capsword: user's -leftshift
+     * completes combo which triggers macro +leftshift, then keyReleasedNotEaten is
+     * called for the same -leftshift event: we must not remove leftshift from
+     * keysPressedByMacro because the macro just pressed it).
+     */
+    private final Set<Key> keysPressedByMacroDuringCurrentTick = new HashSet<>();
 
     public MacroPlayer(PlatformClock clock, ComboWatcher comboWatcher,
                        KeyboardManager keyboardManager) {
@@ -83,7 +91,8 @@ public class MacroPlayer {
     }
 
     public void keyReleasedNotEaten(Key key) {
-        keysPressedByMacro.remove(key);
+        if (!keysPressedByMacroDuringCurrentTick.contains(key))
+            keysPressedByMacro.remove(key);
         // Scenario where user-press-eaten, then macro-press (uneats the key), then user-release (not eaten as per rule 1).
         // The macro-press is a repeating SendInput that should be stopped when user releases the key.
         WindowsKeyboard.keyReleasedNotEaten(key);
@@ -95,6 +104,7 @@ public class MacroPlayer {
 
 
     public void update(double delta) {
+        keysPressedByMacroDuringCurrentTick.clear();
         if (macroInProgress == null && !macrosToExecute.isEmpty()) {
             macroInProgress = new MacroInProgress(macrosToExecute.removeFirst());
             ResolvedMacroParallel firstParallel = macroInProgress.macro.output().parallels().getFirst();
@@ -155,6 +165,7 @@ public class MacroPlayer {
                             boolean macroPressIsNoop =
                                     keyboardManager.isPressedKeyNotEaten(keyMove.key());
                             keysPressedByMacro.add(keyMove.key());
+                            keysPressedByMacroDuringCurrentTick.add(keyMove.key());
                             if (!macroPressIsNoop)
                                 osMoves.add(keyMove);
                         }
