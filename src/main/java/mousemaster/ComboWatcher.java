@@ -124,12 +124,12 @@ public class ComboWatcher implements ModeListener {
                     atLeastOneProcessingIsPartOfComboSequence = true;
                     ComboSequenceMatch match = comboPreparation.match(combo.sequence());
                     if (match.hasMatch()) {
-                        ResolvedKeyComboMove currentMove = match.lastMatchedKeyMove();
+                        ResolvedKeyComboMove currentKeyMove = match.lastMatchedKeyMove();
                         KeyEvent lastMatchedEvent = comboPreparation.events()
                                 .get(match.lastMatchedKeyMoveEventIndex());
                         // If the last matched MoveSet is an absorbing wait,
                         // use the wait's max duration instead of the move's.
-                        ComboMoveDuration effectiveDuration = currentMove.duration();
+                        ComboMoveDuration effectiveDuration = currentKeyMove.duration();
                         if (match.matchedMoveSetCount() > 0) {
                             MoveSet lastMatchedMoveSet = combo.sequence().moveSets()
                                     .get(match.matchedMoveSetCount() - 1);
@@ -449,7 +449,7 @@ public class ComboWatcher implements ModeListener {
                 }
             }
             ComboSequenceMatch match = comboPreparation.match(combo.sequence());
-            ResolvedKeyComboMove currentMove = match.hasMatch() ?
+            ResolvedKeyComboMove currentKeyMove = match.hasMatch() ?
                     match.lastMatchedKeyMove() : null;
             // For release combos (like -up), we ignore the currently pressed keys:
             // even if there is a pressed key that is not in the combo precondition, we
@@ -471,26 +471,26 @@ public class ComboWatcher implements ModeListener {
             boolean mustBeEaten = false;
             boolean partOfComboSequence = false;
             if (match.hasMatch()) {
-                boolean currentMoveMustBeEaten =
-                        currentMove instanceof ResolvedPressComboMove pressMove &&
+                boolean currentKeyMoveMustBeEaten =
+                        currentKeyMove instanceof ResolvedPressComboMove pressMove &&
                         pressMove.eventMustBeEaten();
-                mustBeEaten = currentMoveMustBeEaten;
+                mustBeEaten = currentKeyMoveMustBeEaten;
                 partOfComboSequence = true;
                 if (newComboDuration == null) {
-                    newComboDuration = currentMove.duration();
+                    newComboDuration = currentKeyMove.duration();
                 }
                 else {
-                    if (newComboDuration.min().compareTo(currentMove.duration().min()) >
+                    if (newComboDuration.min().compareTo(currentKeyMove.duration().min()) >
                         0)
                         newComboDuration =
-                                new ComboMoveDuration(currentMove.duration().min(),
+                                new ComboMoveDuration(currentKeyMove.duration().min(),
                                         newComboDuration.max());
                     if (newComboDuration.max() != null &&
-                        (currentMove.duration().max() == null ||
-                         newComboDuration.max().compareTo(currentMove.duration().max()) <
+                        (currentKeyMove.duration().max() == null ||
+                         newComboDuration.max().compareTo(currentKeyMove.duration().max()) <
                          0))
                         newComboDuration = new ComboMoveDuration(newComboDuration.min(),
-                                currentMove.duration().max());
+                                currentKeyMove.duration().max());
                 }
                 // If the last matched MoveSet is an absorbing wait, extend the
                 // duration max to the wait's max so the preparation doesn't
