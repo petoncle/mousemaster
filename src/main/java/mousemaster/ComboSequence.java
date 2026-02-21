@@ -44,8 +44,26 @@ public record ComboSequence(List<MoveSet> moveSets) {
                        .flatMap(moveSet -> Stream.concat(
                                moveSet.requiredMoves().stream(),
                                moveSet.optionalMoves().stream()))
-                       .filter(move -> move.keyOrAlias().isAlias())
+                       .filter(move -> !move.negated() && move.keyOrAlias().isAlias())
                        .map(move -> move.keyOrAlias().aliasName())
+                       .collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns names used in negated moves (alias name or key name).
+     */
+    public Set<String> negatedNames() {
+        return moveSets.stream()
+                       .filter(moveSet -> moveSet instanceof KeyMoveSet)
+                       .map(moveSet -> (KeyMoveSet) moveSet)
+                       .flatMap(moveSet -> Stream.concat(
+                               moveSet.requiredMoves().stream(),
+                               moveSet.optionalMoves().stream()))
+                       .filter(KeyComboMove::negated)
+                       .map(move -> {
+                           KeyOrAlias koa = move.keyOrAlias();
+                           return koa.isAlias() ? koa.aliasName() : koa.key().name();
+                       })
                        .collect(Collectors.toSet());
     }
 

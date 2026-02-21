@@ -18,7 +18,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             Pattern.compile("\\{([^}]+)\\}|(\\+?wait-ignore(?:-all-except)?-\\{[^}]+\\}-\\S+)|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
-            Pattern.compile("([+\\-#])([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
+            Pattern.compile("([+\\-#])(!?)([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
 
     // [+]wait-MIN[-MAX],
     // [+]wait-ignore-{keys}-MIN[-MAX], [+]wait-ignore-all-MIN[-MAX],
@@ -42,7 +42,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         if (!trimmed.contains("{") && !trimmed.contains(" ") &&
                 !trimmed.matches("^[+\\-#].*") && !trimmed.startsWith("wait")) {
             ComboAliasMove.PressComboAliasMove move =
-                    new ComboAliasMove.PressComboAliasMove(trimmed, true,
+                    new ComboAliasMove.PressComboAliasMove(trimmed, false, true,
                             defaultMoveDuration, false);
             return new ExpandableSequence(List.of(Set.of(move)));
         }
@@ -110,25 +110,26 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         if (!matcher.matches())
             throw new IllegalArgumentException("Invalid move: " + moveString);
         boolean press = !moveString.startsWith("-");
+        boolean negated = !matcher.group(2).isEmpty();
         ComboMoveDuration moveDuration;
-        if (matcher.group(3) == null)
+        if (matcher.group(4) == null)
             moveDuration = defaultMoveDuration;
         else
             moveDuration = new ComboMoveDuration(
-                    Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(4))),
-                    matcher.group(6) == null ? null : Duration.ofMillis(
-                            Integer.parseUnsignedInt(matcher.group(6))));
-        String aliasName = matcher.group(2);
-        boolean optional = matcher.group(7) != null;
+                    Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(5))),
+                    matcher.group(7) == null ? null : Duration.ofMillis(
+                            Integer.parseUnsignedInt(matcher.group(7))));
+        String aliasName = matcher.group(3);
+        boolean optional = matcher.group(8) != null;
         ComboAliasMove move;
         if (press) {
             boolean eventMustBeEaten = moveString.startsWith("+");
-            move = new ComboAliasMove.PressComboAliasMove(aliasName, eventMustBeEaten,
-                    moveDuration, optional);
+            move = new ComboAliasMove.PressComboAliasMove(aliasName, negated,
+                    eventMustBeEaten, moveDuration, optional);
         }
         else
-            move = new ComboAliasMove.ReleaseComboAliasMove(aliasName, moveDuration,
-                    optional);
+            move = new ComboAliasMove.ReleaseComboAliasMove(aliasName, negated,
+                    moveDuration, optional);
         return move;
     }
 
@@ -170,10 +171,12 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 KeyComboMove comboMove = switch (aliasMove) {
                     case ComboAliasMove.PressComboAliasMove pressMove ->
                             new PressComboMove(keyOrAlias,
+                                    pressMove.negated(),
                                     pressMove.eventMustBeEaten(),
                                     aliasMove.duration());
                     case ComboAliasMove.ReleaseComboAliasMove releaseMove ->
                             new ReleaseComboMove(keyOrAlias,
+                                    releaseMove.negated(),
                                     aliasMove.duration());
                     case ComboAliasMove.WaitComboAliasMove waitMove ->
                             throw new IllegalStateException();

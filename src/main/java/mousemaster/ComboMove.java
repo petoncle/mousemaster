@@ -6,6 +6,7 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
 
     sealed interface KeyComboMove extends ComboMove permits PressComboMove, ReleaseComboMove {
         KeyOrAlias keyOrAlias();
+        boolean negated();
 
         default boolean isPress() {
             return this instanceof PressComboMove;
@@ -16,19 +17,21 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
         }
     }
 
-    record PressComboMove(KeyOrAlias keyOrAlias, boolean eventMustBeEaten, ComboMoveDuration duration)
+    record PressComboMove(KeyOrAlias keyOrAlias, boolean negated,
+                          boolean eventMustBeEaten, ComboMoveDuration duration)
             implements KeyComboMove {
         @Override
         public String toString() {
-            return (eventMustBeEaten ? "+" : "#") + keyOrAlias;
+            return (eventMustBeEaten ? "+" : "#") + (negated ? "!" : "") + keyOrAlias;
         }
 
     }
 
-    record ReleaseComboMove(KeyOrAlias keyOrAlias, ComboMoveDuration duration) implements KeyComboMove {
+    record ReleaseComboMove(KeyOrAlias keyOrAlias, boolean negated,
+                            ComboMoveDuration duration) implements KeyComboMove {
         @Override
         public String toString() {
-            return "-" + keyOrAlias;
+            return "-" + (negated ? "!" : "") + keyOrAlias;
         }
 
     }

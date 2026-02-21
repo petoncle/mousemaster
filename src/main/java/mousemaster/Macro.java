@@ -36,8 +36,8 @@ public record Macro(String name, MacroSequence output) {
                 continue;
             }
             if (!token.matches("[+\\-#~].*")) {
-                moves.add(parseKeyMacroMove(keyAliases, token, keyResolver, true, MacroMoveDestination.COMBO_WATCHER));
-                moves.add(parseKeyMacroMove(keyAliases, token, keyResolver, false, MacroMoveDestination.COMBO_WATCHER));
+                moves.add(parseKeyMacroMove(keyAliases, token, keyResolver, false, true, MacroMoveDestination.COMBO_WATCHER));
+                moves.add(parseKeyMacroMove(keyAliases, token, keyResolver, false, false, MacroMoveDestination.COMBO_WATCHER));
             }
             else {
                 moves.add(parseKeyMacroMove(name, keyAliases, keyResolver, token));
@@ -93,40 +93,59 @@ public record Macro(String name, MacroSequence output) {
 
     private static KeyMacroMove parseKeyMacroMove(String name, Map<String, KeyAlias> keyAliases,
                                             KeyResolver keyResolver, String word) {
-        Matcher moveMatcher = Pattern.compile("([+\\-#~])(.+)").matcher(word);
+        Matcher moveMatcher = Pattern.compile("([+\\-#~])(!?)(.+)").matcher(word);
         if (!moveMatcher.matches())
             throw new IllegalArgumentException(
                     "Invalid macro move for " + name + ": " + word);
-        String keyOrAliasName = moveMatcher.group(2);
+        boolean negated = !moveMatcher.group(2).isEmpty();
+        String keyOrAliasName = moveMatcher.group(3);
         String prefix = moveMatcher.group(1);
         boolean press = prefix.equals("+") || prefix.equals("#");
         MacroMoveDestination destination = (prefix.equals("+") || prefix.equals("-"))
                 ? MacroMoveDestination.OS
                 : MacroMoveDestination.COMBO_WATCHER;
-        return parseKeyMacroMove(keyAliases, keyOrAliasName, keyResolver, press,
-                destination);
+        return parseKeyMacroMove(keyAliases, keyOrAliasName, keyResolver, negated,
+                press, destination);
     }
 
     private static KeyMacroMove parseKeyMacroMove(
             Map<String, KeyAlias> keyAliases,
-            String keyOrAliasName, KeyResolver keyResolver, boolean press,
-            MacroMoveDestination destination) {
+            String keyOrAliasName, KeyResolver keyResolver, boolean negated,
+            boolean press, MacroMoveDestination destination) {
         KeyAlias alias = keyAliases.get(keyOrAliasName);
         KeyOrAlias keyOrAlias;
         if (alias != null)
             keyOrAlias = KeyOrAlias.ofAlias(alias);
         else
             keyOrAlias = KeyOrAlias.ofKey(keyResolver.resolve(keyOrAliasName));
-        return new KeyMacroMove(keyOrAlias, press, destination);
+        return new KeyMacroMove(keyOrAlias, negated, press, destination);
     }
 
     public Set<String> outputAliasNames() {
         Set<String> names = new HashSet<>();
         for (MacroParallel parallel : output.parallels()) {
             for (MacroMove move : parallel.moves()) {
-                if (move instanceof KeyMacroMove(KeyOrAlias keyOrAlias, var __, var ___)) {
-                    if (keyOrAlias.isAlias())
+                if (move instanceof KeyMacroMove(KeyOrAlias keyOrAlias, boolean negated,
+                        var __, var ___)) {
+                    if (!negated && keyOrAlias.isAlias())
                         names.add(keyOrAlias.aliasName());
+                }
+            }
+        }
+        return names;
+    }
+
+    public Set<String> outputNegatedNames() {
+        Set<String> names = new HashSet<>();
+        for (MacroParallel parallel : output.parallels()) {
+            for (MacroMove move : parallel.moves()) {
+                if (move instanceof KeyMacroMove(KeyOrAlias keyOrAlias, boolean negated,
+                        var __, var ___)) {
+                    if (negated) {
+                        String name = keyOrAlias.isAlias() ? keyOrAlias.aliasName()
+                                : keyOrAlias.key().name();
+                        names.add(name);
+                    }
                 }
             }
         }
@@ -139,12 +158,21 @@ public record Macro(String name, MacroSequence output) {
             List<ResolvedMacroMove> resolvedMoves = new ArrayList<>();
             for (MacroMove move : parallel.moves()) {
                 switch (move) {
-                    case KeyMacroMove(KeyOrAlias keyOrAlias, boolean press,
+                    case KeyMacroMove(KeyOrAlias keyOrAlias, boolean negated,
+                                      boolean press,
                                       MacroMoveDestination destination) -> {
-                        Key key = keyOrAlias.isAlias()
-                                ? aliasResolution.keyByAliasName()
-                                                 .get(keyOrAlias.aliasName())
-                                : keyOrAlias.key();
+                        Key key;
+                        if (negated) {
+                            String name = keyOrAlias.isAlias() ? keyOrAlias.aliasName()
+                                    : keyOrAlias.key().name();
+                            key = aliasResolution.negatedKeyByName().get(name);
+                        }
+                        else {
+                            key = keyOrAlias.isAlias()
+                                    ? aliasResolution.keyByAliasName()
+                                                     .get(keyOrAlias.aliasName())
+                                    : keyOrAlias.key();
+                        }
                         resolvedMoves.add(
                                 new ResolvedKeyMacroMove(key, press, destination));
                     }
@@ -163,9 +191,12 @@ public record Macro(String name, MacroSequence output) {
         for (String token : tokenize(string)) {
             if (token.startsWith("'") && token.endsWith("'"))
                 continue;
-            Matcher moveMatcher = Pattern.compile("([+\\-#~])(.+)").matcher(token);
+            Matcher moveMatcher = Pattern.compile("([+\\-#~])(!?)(.+)").matcher(token);
             if (moveMatcher.matches()) {
-                String keyOrAliasName = moveMatcher.group(2);
+                boolean negated = !moveMatcher.group(2).isEmpty();
+                if (negated)
+                    continue;
+                String keyOrAliasName = moveMatcher.group(3);
                 if (aliasNames.contains(keyOrAliasName))
                     aliasNamesUsedInOutput.add(keyOrAliasName);
             }
@@ -176,6 +207,19 @@ public record Macro(String name, MacroSequence output) {
             }
         }
         return aliasNamesUsedInOutput;
+    }
+
+    public static Set<String> negatedNamesUsedInOutput(String string) {
+        Set<String> names = new HashSet<>();
+        for (String token : tokenize(string)) {
+            if (token.startsWith("'") && token.endsWith("'"))
+                continue;
+            Matcher moveMatcher = Pattern.compile("([+\\-#~])(!?)(.+)").matcher(token);
+            if (moveMatcher.matches() && !moveMatcher.group(2).isEmpty()) {
+                names.add(moveMatcher.group(3));
+            }
+        }
+        return names;
     }
 
 }

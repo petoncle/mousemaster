@@ -823,12 +823,19 @@ public class ComboWatcher implements ModeListener {
                     // resolved output are deduplicated.
                     Set<String> usedAliases = macro.outputAliasNames();
                     Map<String, Key> filteredMap = new HashMap<>();
+                    Map<String, Key> filteredNegatedMap = new HashMap<>();
                     for (String aliasName : usedAliases) {
                         Key key = resolution.keyByAliasName().get(aliasName);
                         if (key != null)
                             filteredMap.put(aliasName, key);
                     }
-                    AliasResolution filteredResolution = new AliasResolution(filteredMap);
+                    for (String name : macro.outputNegatedNames()) {
+                        Key key = resolution.negatedKeyByName().get(name);
+                        if (key != null)
+                            filteredNegatedMap.put(name, key);
+                    }
+                    AliasResolution filteredResolution = new AliasResolution(
+                            filteredMap, filteredNegatedMap);
                     resolvedCommands.add(new Command.MacroCommand(macro, filteredResolution));
                     changed = true;
                 }

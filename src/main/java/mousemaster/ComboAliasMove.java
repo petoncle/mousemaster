@@ -16,22 +16,24 @@ public sealed interface ComboAliasMove {
         return this instanceof ReleaseComboAliasMove;
     }
 
-    record PressComboAliasMove(String aliasOrKeyName, boolean eventMustBeEaten,
+    record PressComboAliasMove(String aliasOrKeyName, boolean negated,
+                               boolean eventMustBeEaten,
                                ComboMoveDuration duration, boolean optional)
             implements ComboAliasMove {
         @Override
         public String toString() {
-            return (eventMustBeEaten ? "+" : "#") + aliasOrKeyName;
+            return (eventMustBeEaten ? "+" : "#") + (negated ? "!" : "") + aliasOrKeyName;
         }
 
     }
 
-    record ReleaseComboAliasMove(String aliasOrKeyName, ComboMoveDuration duration,
+    record ReleaseComboAliasMove(String aliasOrKeyName, boolean negated,
+                                 ComboMoveDuration duration,
                                  boolean optional) implements
             ComboAliasMove {
         @Override
         public String toString() {
-            return "-" + aliasOrKeyName;
+            return "-" + (negated ? "!" : "") + aliasOrKeyName;
         }
 
     }

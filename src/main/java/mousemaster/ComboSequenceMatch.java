@@ -12,7 +12,7 @@ public record ComboSequenceMatch(List<ResolvedKeyComboMove> matchedKeyMoves, boo
                                  AliasResolution aliasResolution) {
 
     private static final ComboSequenceMatch NO_MATCH =
-            new ComboSequenceMatch(List.of(), false, 0, -1, false, Set.of(), new AliasResolution(Map.of()));
+            new ComboSequenceMatch(List.of(), false, 0, -1, false, Set.of(), new AliasResolution(Map.of(), Map.of()));
 
     public static ComboSequenceMatch noMatch() {
         return NO_MATCH;

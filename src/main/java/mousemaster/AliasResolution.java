@@ -2,6 +2,7 @@ package mousemaster;
 
 import java.util.Map;
 
-public record AliasResolution(Map<String, Key> keyByAliasName) {
+public record AliasResolution(Map<String, Key> keyByAliasName,
+                              Map<String, Key> negatedKeyByName) {
 
 }

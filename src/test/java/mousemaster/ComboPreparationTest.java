@@ -40,26 +40,26 @@ class ComboPreparationTest {
 
     /** Press move with eventMustBeEaten=true (the + prefix). */
     static KeyComboMove pressMove(Key key) {
-        return new PressComboMove(KeyOrAlias.ofKey(key), true, defaultDuration);
+        return new PressComboMove(KeyOrAlias.ofKey(key), false, true, defaultDuration);
     }
 
     /** Press move with eventMustBeEaten=true and custom duration. */
     static KeyComboMove pressMove(Key key, ComboMoveDuration duration) {
-        return new PressComboMove(KeyOrAlias.ofKey(key), true, duration);
+        return new PressComboMove(KeyOrAlias.ofKey(key), false, true, duration);
     }
 
     /** Press move with eventMustBeEaten=false (the # prefix). */
     static KeyComboMove hashPressMove(Key key) {
-        return new PressComboMove(KeyOrAlias.ofKey(key), false, defaultDuration);
+        return new PressComboMove(KeyOrAlias.ofKey(key), false, false, defaultDuration);
     }
 
     /** Release move (the - prefix). */
     static KeyComboMove releaseMove(Key key) {
-        return new ReleaseComboMove(KeyOrAlias.ofKey(key), defaultDuration);
+        return new ReleaseComboMove(KeyOrAlias.ofKey(key), false, defaultDuration);
     }
 
     static KeyComboMove releaseMove(Key key, ComboMoveDuration duration) {
-        return new ReleaseComboMove(KeyOrAlias.ofKey(key), duration);
+        return new ReleaseComboMove(KeyOrAlias.ofKey(key), false, duration);
     }
 
     static ComboPreparation prep(KeyEvent... events) {

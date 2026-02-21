@@ -485,7 +485,7 @@ public class ConfigurationParser {
                                 .map(key -> new Combo(emptyComboPrecondition,
                                         ComboSequence.ofMoves(
                                                 List.<KeyComboMove>of(new PressComboMove(
-                                                        KeyOrAlias.ofKey(key), true,
+                                                        KeyOrAlias.ofKey(key), false, true,
                                                         defaultComboMoveDuration)))))
                                 .toList();
     }
@@ -577,6 +577,22 @@ public class ConfigurationParser {
             throw new IllegalArgumentException(
                     "Key aliases " + aliasesNotUsedInComboSequence +
                     " cannot be used in the " + propertyType + " output because they are not used in the combo sequence");
+        }
+        // Negated names used in the macro output must be negated in all combos.
+        Set<String> comboNegatedNameIntersection = new HashSet<>(
+                combos.getFirst().sequence().negatedNames());
+        for (Combo combo : combos) {
+            comboNegatedNameIntersection.retainAll(combo.sequence().negatedNames());
+        }
+        Set<String> negatedNamesUsedInOutput =
+                Macro.negatedNamesUsedInOutput(output);
+        if (!comboNegatedNameIntersection.containsAll(negatedNamesUsedInOutput)) {
+            Set<String> negatedNotInCombo =
+                    new HashSet<>(negatedNamesUsedInOutput);
+            negatedNotInCombo.removeAll(comboNegatedNameIntersection);
+            throw new IllegalArgumentException(
+                    "Negated names " + negatedNotInCombo +
+                    " cannot be used in the " + propertyType + " output because they are not used as negated in the combo sequence");
         }
         Macro macro = Macro.of(name, output, keyAliases, keyResolver);
         Command command = new MacroCommand(macro, null);
