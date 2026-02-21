@@ -5,7 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +17,9 @@ public class KeyboardManager {
 
     private final ComboWatcher comboWatcher;
     private final KeyRegurgitator keyRegurgitator;
-    private final Map<Key, PressKeyEventProcessingSet> currentlyPressedKeys = new HashMap<>();
+    // LinkedHashMap preserves insertion (press) order for correct regurgitation order
+    // (e.g. shift before a, not a before shift).
+    private final Map<Key, PressKeyEventProcessingSet> currentlyPressedKeys = new LinkedHashMap<>();
     private MacroPlayer macroPlayer;
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager,
@@ -103,7 +106,7 @@ public class KeyboardManager {
                     // Regurgitate pressed keys that are not in any of the combos
                     // associated to the key that triggered the current event.
                     Set<Combo> currentCombos = processingSet.processingByCombo().keySet();
-                    keysToRegurgitate = new HashSet<>();
+                    keysToRegurgitate = new LinkedHashSet<>();
                     for (Map.Entry<Key, PressKeyEventProcessingSet> entry : currentlyPressedKeys.entrySet()) {
                         if (entry.getValue().processingByCombo().keySet().stream().anyMatch(currentCombos::contains))
                             continue;
@@ -234,7 +237,7 @@ public class KeyboardManager {
     }
 
     private Set<Key> regurgitatePressedKeys(Key releasedKey) {
-        Set<Key> keysToRegurgitate = new HashSet<>();
+        Set<Key> keysToRegurgitate = new LinkedHashSet<>();
         for (Map.Entry<Key, PressKeyEventProcessingSet> setEntry : currentlyPressedKeys.entrySet()) {
             Key eatenKey = setEntry.getKey();
             if (releasedKey != null && !eatenKey.equals(releasedKey))
