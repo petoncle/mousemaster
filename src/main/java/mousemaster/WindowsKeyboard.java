@@ -196,31 +196,30 @@ public class WindowsKeyboard {
     }
 
     public static void sendInputString(String string) {
+        int inputCount = string.length() * 2; // down + up per character
+        WinUser.INPUT[] pInputs =
+                (WinUser.INPUT[]) new WinUser.INPUT().toArray(inputCount);
         for (int i = 0; i < string.length(); i++) {
             char c = string.charAt(i);
+            int downIndex = i * 2;
+            int upIndex = downIndex + 1;
             // Key down.
-            WinUser.INPUT[] pInputs =
-                    (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
-            pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
-            pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
-            pInputs[0].input.ki.wVk = new WinDef.WORD(0);
-            pInputs[0].input.ki.wScan = new WinDef.WORD(c);
-            pInputs[0].input.ki.dwFlags = new WinDef.DWORD(WinUser.KEYBDINPUT.KEYEVENTF_UNICODE);
-            User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs,
-                    pInputs[0].size());
+            pInputs[downIndex].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+            pInputs[downIndex].input.setType(WinUser.KEYBDINPUT.class);
+            pInputs[downIndex].input.ki.wVk = new WinDef.WORD(0);
+            pInputs[downIndex].input.ki.wScan = new WinDef.WORD(c);
+            pInputs[downIndex].input.ki.dwFlags = new WinDef.DWORD(WinUser.KEYBDINPUT.KEYEVENTF_UNICODE);
             // Key up.
-            pInputs =
-                    (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
-            pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
-            pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
-            pInputs[0].input.ki.wVk = new WinDef.WORD(0);
-            pInputs[0].input.ki.wScan = new WinDef.WORD(c);
-            pInputs[0].input.ki.dwFlags = new WinDef.DWORD(
+            pInputs[upIndex].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+            pInputs[upIndex].input.setType(WinUser.KEYBDINPUT.class);
+            pInputs[upIndex].input.ki.wVk = new WinDef.WORD(0);
+            pInputs[upIndex].input.ki.wScan = new WinDef.WORD(c);
+            pInputs[upIndex].input.ki.dwFlags = new WinDef.DWORD(
                     WinUser.KEYBDINPUT.KEYEVENTF_UNICODE |
                     WinUser.KEYBDINPUT.KEYEVENTF_KEYUP);
-            User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs,
-                    pInputs[0].size());
         }
+        User32.INSTANCE.SendInput(new WinDef.DWORD(inputCount), pInputs,
+                pInputs[0].size());
     }
 
 }
