@@ -128,6 +128,11 @@ public class WindowsPlatform implements Platform {
         this.mouseController = mouseController;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
+        if (WindowsKeyboard.activeKeyboardLayout != null &&
+            !WindowsKeyboard.activeKeyboardLayout.equals(activeKeyboardLayout)) {
+            keyboardManager.reset();
+            WindowsKeyboard.reset();
+        }
         WindowsKeyboard.activeKeyboardLayout = activeKeyboardLayout;
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {

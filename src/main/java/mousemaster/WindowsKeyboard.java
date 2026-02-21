@@ -39,6 +39,14 @@ public class WindowsKeyboard {
     );
 
     public static KeyboardLayout activeKeyboardLayout;
+
+    public static void reset() {
+        sendInputQueue.clear();
+        moveWaitingForKeyboardHookCallbackAcknowledgment = null;
+        pressedKeyToRepeat = null;
+        durationUntilNextKeyPressRepeat = 0;
+    }
+
     /**
      * When sending -leftalt +uparrow, leftalt is interleaved with uparrow,
      * and that prevent leftalt from being properly released:
