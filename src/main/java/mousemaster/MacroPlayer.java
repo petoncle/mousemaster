@@ -99,7 +99,8 @@ public class MacroPlayer {
     }
 
     public boolean isKeyPressedByMacro(Key key) {
-        return keysPressedByMacro.contains(key);
+        return keysPressedByMacro.contains(key) &&
+               !keysPressedByMacroDuringCurrentTick.contains(key);
     }
 
 
