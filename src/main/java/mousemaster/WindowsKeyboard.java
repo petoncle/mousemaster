@@ -44,13 +44,15 @@ public class WindowsKeyboard {
      * 2026-02-21T23:30:38.339 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0x26 (VK_UP), scanCode = 0x0, flags = 0x11, wParam = WM_KEYDOWN
      * 2026-02-21T23:30:38.341 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0xa4 (VK_LMENU), scanCode = 0x38, flags = 0x30, wParam = WM_SYSKEYDOWN
      */
-    private static final List<ResolvedKeyMacroMove> sendInputQueue = new LinkedList<>();
+    private record SendInputMove(ResolvedKeyMacroMove move, boolean startRepeat) {}
+    private static final List<SendInputMove> sendInputQueue = new LinkedList<>();
     private static ResolvedKeyMacroMove moveWaitingForKeyboardHookCallbackAcknowledgment;
 
     public static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
         if (oneInputPerCall) {
             boolean sendInputQueueWasEmpty = sendInputQueue.isEmpty();
-            sendInputQueue.addAll(moves);
+            for (ResolvedKeyMacroMove move : moves)
+                sendInputQueue.add(new SendInputMove(move, startRepeat));
             if (moveWaitingForKeyboardHookCallbackAcknowledgment == null &&
                 sendInputQueueWasEmpty)
                 processOneSendInputMove();
@@ -111,15 +113,15 @@ public class WindowsKeyboard {
 
     private static boolean processOneSendInputMove() {
         if (!sendInputQueue.isEmpty()) {
-            ResolvedKeyMacroMove move = sendInputQueue.removeFirst();
-            logger.trace("Waiting for ackowledgment of " + move);
-            moveWaitingForKeyboardHookCallbackAcknowledgment = move;
+            SendInputMove sendInputMove = sendInputQueue.removeFirst();
+            logger.trace("Waiting for ackowledgment of " + sendInputMove.move());
+            moveWaitingForKeyboardHookCallbackAcknowledgment = sendInputMove.move();
             // The following sendInput call will call keyboardHookCallback.
             // That is why the moveWaitingForKeyboardHookCallbackAcknowledgment
             // is set before calling sendInputKeys.
             // Goal is to block any further processing until the keyboard hook receives the event for
             // the move (and for leftalt, there are two events: WM_KEYDOWN then WM_SYSKEYDOWN).
-            sendInputKeys(List.of(move), true);
+            sendInputKeys(List.of(sendInputMove.move()), sendInputMove.startRepeat());
             return true;
         }
         return false;
