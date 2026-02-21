@@ -252,8 +252,9 @@ public class ConfigurationParser {
 
     private static class LayoutKeyAlias {
 
-        KeyAlias noLayoutAlias = null;
-        Map<KeyboardLayout, KeyAlias> aliasByLayout = new HashMap<>();
+        // Raw tokens from the property value, before alias reference expansion.
+        List<String> noLayoutTokens = null;
+        Map<KeyboardLayout, List<String>> tokensByLayout = new HashMap<>();
 
     }
 
@@ -279,7 +280,8 @@ public class ConfigurationParser {
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout);
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
-                configurationAliases.layoutKeyAliasByName, activeKeyboardLayout);
+                configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
+                configurationKeyboardLayout);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         String logLevel = null;
         boolean logRedactKeys = false;
@@ -1549,51 +1551,117 @@ public class ConfigurationParser {
         return fontName;
     }
 
+    private record ResolvedAliasWithRefs(KeyAlias alias, List<String> referencedAliasNames) {
+    }
+
     private static Map<String, KeyAlias> buildKeyAliasesForActiveKeyboardLayout(
             Map<String, LayoutKeyAlias> configurationLayoutKeyAliasByName,
-            KeyboardLayout activeKeyboardLayout) {
-        Map<String, KeyAlias> keyAliases = new HashMap<>();
+            KeyboardLayout activeKeyboardLayout,
+            KeyboardLayout configurationKeyboardLayout) {
+        // First pass: resolve each alias's key tokens to concrete keys for the active layout
+        // (without expanding alias references, those are collected as referencedAliasNames).
+        Set<String> allAliasNames = configurationLayoutKeyAliasByName.keySet();
+        Map<String, ResolvedAliasWithRefs> resolvedAliases = new HashMap<>();
         for (Map.Entry<String, LayoutKeyAlias> entry : configurationLayoutKeyAliasByName.entrySet()) {
             String aliasName = entry.getKey();
             LayoutKeyAlias layoutKeyAlias = entry.getValue();
-            KeyAlias alias = findKeyAliasForLayout(activeKeyboardLayout, layoutKeyAlias,
-                    aliasName);
-            keyAliases.put(aliasName, alias);
+            ResolvedAliasWithRefs resolved = resolveAliasForLayout(
+                    activeKeyboardLayout, configurationKeyboardLayout,
+                    layoutKeyAlias, aliasName, allAliasNames);
+            resolvedAliases.put(aliasName, resolved);
         }
-        return keyAliases;
+        // Second pass: recursively expand alias references with cycle detection.
+        Map<String, KeyAlias> expandedAliases = new HashMap<>();
+        Set<String> expanding = new LinkedHashSet<>(); // Tracks current DFS path for cycle detection.
+        for (String aliasName : resolvedAliases.keySet()) {
+            expandAlias(aliasName, resolvedAliases, expandedAliases, expanding);
+        }
+        return expandedAliases;
     }
 
-    private static KeyAlias findKeyAliasForLayout(KeyboardLayout activeKeyboardLayout,
-                                                  LayoutKeyAlias layoutKeyAlias, String aliasName) {
-        KeyAlias keyAlias = layoutKeyAlias.aliasByLayout.get(activeKeyboardLayout);
-        if (keyAlias == null) {
-            keyAlias = layoutKeyAlias.noLayoutAlias;
-            if (keyAlias == null) {
-                KeyboardLayout layoutForWhichAliasIsDefined =
-                        layoutKeyAlias.aliasByLayout.keySet()
-                                                    .stream()
-                                                    .sorted(Comparator.comparing(
-                                                            KeyboardLayout::displayName))
-                                                    .findFirst()
-                                                    .orElseThrow();
-                KeyAlias keyAliasForOtherLayout =
-                        layoutKeyAlias.aliasByLayout.get(layoutForWhichAliasIsDefined);
-                List<Key> keys = new ArrayList<>();
-                for (Key keyForOtherLayout : keyAliasForOtherLayout.keys()) {
-                    int scanCode = layoutForWhichAliasIsDefined.scanCode(
-                            keyForOtherLayout);
-                    Key key = activeKeyboardLayout.keyFromScanCode(scanCode);
-                    if (key == null)
+    private static KeyAlias expandAlias(
+            String aliasName,
+            Map<String, ResolvedAliasWithRefs> resolvedAliases,
+            Map<String, KeyAlias> expandedAliases,
+            Set<String> expanding) {
+        KeyAlias alreadyExpanded = expandedAliases.get(aliasName);
+        if (alreadyExpanded != null)
+            return alreadyExpanded;
+        if (!expanding.add(aliasName))
+            throw new IllegalArgumentException(
+                    "Cycle detected in key alias references: " + expanding);
+        ResolvedAliasWithRefs resolved = resolvedAliases.get(aliasName);
+        if (resolved.referencedAliasNames.isEmpty()) {
+            expandedAliases.put(aliasName, resolved.alias);
+            expanding.remove(aliasName);
+            return resolved.alias;
+        }
+        List<Key> expandedKeys = new ArrayList<>(resolved.alias.keys());
+        for (String referencedAliasName : resolved.referencedAliasNames) {
+            if (!resolvedAliases.containsKey(referencedAliasName))
+                throw new IllegalArgumentException(
+                        "Key alias " + aliasName + " references unknown alias " + referencedAliasName);
+            KeyAlias expandedReferencedAlias = expandAlias(referencedAliasName,
+                    resolvedAliases, expandedAliases, expanding);
+            expandedKeys.addAll(expandedReferencedAlias.keys());
+        }
+        KeyAlias expanded = new KeyAlias(aliasName, List.copyOf(expandedKeys));
+        expandedAliases.put(aliasName, expanded);
+        expanding.remove(aliasName);
+        return expanded;
+    }
+
+    private static ResolvedAliasWithRefs resolveAliasForLayout(
+            KeyboardLayout activeKeyboardLayout,
+            KeyboardLayout configurationKeyboardLayout,
+            LayoutKeyAlias layoutKeyAlias, String aliasName,
+            Set<String> allAliasNames) {
+        List<String> tokens;
+        // The layout the key tokens are named for.
+        KeyboardLayout tokenLayout;
+        if (layoutKeyAlias.tokensByLayout.containsKey(activeKeyboardLayout)) {
+            tokens = layoutKeyAlias.tokensByLayout.get(activeKeyboardLayout);
+            tokenLayout = activeKeyboardLayout;
+        }
+        else if (layoutKeyAlias.noLayoutTokens != null) {
+            tokens = layoutKeyAlias.noLayoutTokens;
+            tokenLayout = configurationKeyboardLayout;
+        }
+        else {
+            // Cross-layout fallback: pick another layout's tokens.
+            KeyboardLayout layoutForWhichAliasIsDefined =
+                    layoutKeyAlias.tokensByLayout.keySet()
+                                                 .stream()
+                                                 .sorted(Comparator.comparing(
+                                                         KeyboardLayout::displayName))
+                                                 .findFirst()
+                                                 .orElseThrow();
+            tokens = layoutKeyAlias.tokensByLayout.get(layoutForWhichAliasIsDefined);
+            tokenLayout = layoutForWhichAliasIsDefined;
+        }
+        List<Key> keys = new ArrayList<>();
+        List<String> referencedAliasNames = new ArrayList<>();
+        for (String token : tokens) {
+            if (allAliasNames.contains(token)) {
+                referencedAliasNames.add(token);
+            }
+            else {
+                Key key = Key.ofName(token);
+                if (!tokenLayout.equals(activeKeyboardLayout)) {
+                    int scanCode = tokenLayout.scanCode(key);
+                    Key activeKey = activeKeyboardLayout.keyFromScanCode(scanCode);
+                    if (activeKey == null)
                         // This key from the other layout does not have an equivalent in the active layout.
-                        throw new IllegalArgumentException("Key " + keyForOtherLayout + " in alias " + aliasName +
-                                                           " is not defined for the active keyboard layout " +
-                                                           activeKeyboardLayout);
-                    keys.add(key);
+                        throw new IllegalArgumentException(
+                                "Key " + key + " in alias " + aliasName +
+                                " is not defined for the active keyboard layout " +
+                                activeKeyboardLayout);
+                    key = activeKey;
                 }
-                keyAlias = new KeyAlias(keyAliasForOtherLayout.name(), keys);
+                keys.add(key);
             }
         }
-        return keyAlias;
+        return new ResolvedAliasWithRefs(new KeyAlias(aliasName, keys), referencedAliasNames);
     }
 
     private static Aliases parseAliases(List<String> properties) {
@@ -1637,22 +1705,17 @@ public class ConfigurationParser {
             if (!keyMatcher.matches())
                 throw new IllegalArgumentException(
                         "Invalid key-alias property key");
-            // List and not Set because hint.selection-keys=hintkeys needs ordering.
-            List<Key> keys = Arrays.stream(propertyValue.split("\\s+"))
-                                   .map(Key::ofName)
-                                   .toList();
+            List<String> tokens = List.of(propertyValue.split("\\s+"));
             String aliasName = keyMatcher.group(1);
+            LayoutKeyAlias layoutKeyAlias = layoutKeyAliasByName.computeIfAbsent(
+                    aliasName, name -> new LayoutKeyAlias());
             if (keyMatcher.group(2) == null) {
-                layoutKeyAliasByName.computeIfAbsent(aliasName,
-                        name -> new LayoutKeyAlias()).noLayoutAlias =
-                        new KeyAlias(aliasName, keys);
+                layoutKeyAlias.noLayoutTokens = tokens;
             }
             else {
                 String layoutName = keyMatcher.group(3);
                 KeyboardLayout layout = parseKeyboardLayout(layoutName);
-                layoutKeyAliasByName.computeIfAbsent(aliasName,
-                                            name -> new LayoutKeyAlias())
-                        .aliasByLayout.put(layout, new KeyAlias(aliasName, keys));
+                layoutKeyAlias.tokensByLayout.put(layout, tokens);
             }
         }
     }
