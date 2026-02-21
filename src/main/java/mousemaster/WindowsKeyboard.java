@@ -85,12 +85,26 @@ public class WindowsKeyboard {
                     .equals(moveWaitingForKeyboardHookCallbackAcknowledgment.key()) &&
             keyEvent.isPress() ==
             moveWaitingForKeyboardHookCallbackAcknowledgment.press()) {
-            if (keyEvent.key() == Key.leftalt) {
-                if (keyEvent.isPress() && wParam.intValue() != WinUser.WM_SYSKEYDOWN)
+            if (keyEvent.key().equals(Key.leftalt)) {
+                if (keyEvent.isPress() &&
+                    (
+                    wParam.intValue() != WinUser.WM_SYSKEYDOWN
+                    // Received key event: +leftalt, altgrLeftctrl = false, injected = true, vkCode = 0xa4 (VK_LMENU), scanCode = 0x0, flags = 0x30, wParam = WM_SYSKEYDOWN
+                    // Received key event: +leftalt, altgrLeftctrl = false, injected = true, vkCode = 0xa4 (VK_LMENU), scanCode = 0x38, flags = 0x30, wParam = WM_SYSKEYDOWN
+//                    || info.scanCode != 0x38
+                    )
+                )
+                    return;
+                if (keyEvent.isRelease() &&
+                    info.scanCode != 0x38)
                     return;
             }
+            if (logger.isTraceEnabled())
+                logger.trace("Received ackowledgment of " +
+                             moveWaitingForKeyboardHookCallbackAcknowledgment +
+                             ", scanCode = 0x" + Integer.toHexString(info.scanCode));
             moveWaitingForKeyboardHookCallbackAcknowledgment = null;
-            // TODO consume sendInputQueue's next element (but only if this hook is not being called from sendInputKeys())?
+            // TODO consume sendInputQueue's next element (but only if this hook is not being called from sendInputKeys(), but I think it is)?
         }
     }
 
@@ -111,8 +125,6 @@ public class WindowsKeyboard {
     private static boolean processOneSendInputMove() {
         if (!sendInputQueue.isEmpty()) {
             SendInputMove sendInputMove = sendInputQueue.removeFirst();
-            logger.trace("Waiting for ackowledgment of " + sendInputMove.move());
-            moveWaitingForKeyboardHookCallbackAcknowledgment = sendInputMove.move();
             // The following sendInput call will call keyboardHookCallback.
             // That is why the moveWaitingForKeyboardHookCallbackAcknowledgment
             // is set before calling sendInputKeys.
@@ -124,7 +136,11 @@ public class WindowsKeyboard {
         return false;
     }
 
+    /**
+     * Currently assumes that moves has one move.
+     */
     private static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean triggerKeyRepeating) {
+//        triggerKeyRepeating = false;
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
@@ -161,6 +177,11 @@ public class WindowsKeyboard {
             // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
             pInputs[moveIndex].input.ki.dwFlags = new WinDef.DWORD(flag);
         }
+        if (logger.isTraceEnabled()) {
+            logger.trace("Sending " + moves.getFirst() + ", triggerKeyRepeating = " + triggerKeyRepeating);
+            logger.trace("Waiting for ackowledgment of " + moves.getFirst());
+        }
+        moveWaitingForKeyboardHookCallbackAcknowledgment = moves.getFirst();
         WinDef.DWORD sendInput =
                 User32.INSTANCE.SendInput(new WinDef.DWORD(moves.size()), pInputs,
                         pInputs[0].size());
