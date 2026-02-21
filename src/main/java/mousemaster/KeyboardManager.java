@@ -42,12 +42,15 @@ public class KeyboardManager {
             if (!watcherUpdateResult.completedCombos().isEmpty())
                 markOtherKeysOfTheseCombosAsCompleted(
                         watcherUpdateResult.completedCombos(),
-                        watcherUpdateResult.comboPreparationBreakerKey() != null);
+                        watcherUpdateResult.hasComboPreparationBreaker());
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 regurgitatePressedKeys();
             }
-            if (watcherUpdateResult.comboPreparationBreakerKey() != null) {
-                comboWatcher.reset(watcherUpdateResult.comboPreparationBreakerKey());
+            if (watcherUpdateResult.hasComboPreparationBreaker()) {
+                if (watcherUpdateResult.comboPreparationBreakerKey() != null)
+                    comboWatcher.reset(watcherUpdateResult.comboPreparationBreakerKey());
+                else
+                    comboWatcher.breakComboPreparation();
             }
         }
     }

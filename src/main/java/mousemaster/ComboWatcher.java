@@ -78,6 +78,7 @@ public class ComboWatcher implements ModeListener {
 
     public record ComboWatcherUpdateResult(List<ComboAndMatch> completedCombos,
                                            boolean preparationIsNotPrefixAnymore,
+                                           boolean hasComboPreparationBreaker,
                                            Key comboPreparationBreakerKey) {
 
     }
@@ -238,15 +239,19 @@ public class ComboWatcher implements ModeListener {
                     completedCombos.stream().map(ComboAndMatch::combo).toList() +
                     ", commandsToRun = " + commandsToRun);
         }
+        boolean hasComboPreparationBreaker =
+                // Can be from a combo finishing with a wait move.
+                commandsToRun.stream()
+                             .anyMatch(Command.BreakComboPreparation.class::isInstance);
         Mode beforeMode = currentMode;
         runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completedCombosWaitingForLastMoveToComplete);
-        if (currentMode != beforeMode && comboPreparationBreakerKey == null) {
+        if (currentMode != beforeMode && !hasComboPreparationBreaker) {
             PressKeyEventProcessingSet processingSet =
                     processKeyEventForCurrentMode(null, true);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
-        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, comboPreparationBreakerKey);
+        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationBreakerKey);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
