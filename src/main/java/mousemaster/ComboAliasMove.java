@@ -52,17 +52,23 @@ public sealed interface ComboAliasMove {
 
         @Override
         public String toString() {
+            String prefix = ignoredKeysEatEvents ? "+" : "";
+            if (keyAliasOrKeyNames.isEmpty() && listedKeysAreIgnored) {
+                // Plain wait (no ignore).
+                return prefix + "wait-" + duration.min().toMillis() +
+                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+            }
             String ignorePart;
             if (keyAliasOrKeyNames.isEmpty()) {
-                ignorePart = listedKeysAreIgnored ? "" : "-ignore-all";
+                ignorePart = "ignore-all";
             }
             else if (listedKeysAreIgnored) {
-                ignorePart = "-ignore{" + String.join(" ", keyAliasOrKeyNames) + "}";
+                ignorePart = "ignore-{" + String.join(" ", keyAliasOrKeyNames) + "}";
             }
             else {
-                ignorePart = "-ignore-all-except{" + String.join(" ", keyAliasOrKeyNames) + "}";
+                ignorePart = "ignore-all-except-{" + String.join(" ", keyAliasOrKeyNames) + "}";
             }
-            return (ignoredKeysEatEvents ? "+" : "") + "wait" + ignorePart + "-" + duration.min().toMillis() +
+            return prefix + ignorePart + "-" + duration.min().toMillis() +
                    (duration.max() == null ? "" : "-" + duration.max().toMillis());
         }
     }

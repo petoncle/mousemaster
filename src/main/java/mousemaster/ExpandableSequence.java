@@ -15,25 +15,24 @@ import java.util.regex.Pattern;
 public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
 
     private static final Pattern MOVE_SET_OR_TOKEN_PATTERN =
-            Pattern.compile("\\{([^}]+)\\}|(\\+?wait-ignore(?:-all-except)?-\\{[^}]+\\}(?:-\\S+)?)|(\\S+)");
+            Pattern.compile("\\{([^}]+)\\}|(\\+?ignore(?:-all-except)?-\\{[^}]+\\}(?:-\\S+)?)|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
             Pattern.compile("([+\\-#])(!?)([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
 
     // [+]wait[-MIN[-MAX]],
-    // [+]wait-ignore-{keys}[-MIN[-MAX]], [+]wait-ignore-all[-MIN[-MAX]],
-    // [+]wait-ignore-all-except-{keys}[-MIN[-MAX]]
+    // [+]ignore-{keys}[-MIN[-MAX]], [+]ignore-all[-MIN[-MAX]],
+    // [+]ignore-all-except-{keys}[-MIN[-MAX]]
     // When MIN is omitted, it defaults to 0.
     // Group 1: optional "+" prefix (eat absorbed events)
-    // Group 2: full ignore block (e.g. "-ignore-{b c}" or "-ignore-all" or "-ignore-all-except-{b c}")
-    // Group 3: "-all..." or "-{keys}" part after -ignore
-    // Group 4: "-except-{keys}" part (null if just -all)
-    // Group 5: key names in except block
-    // Group 6: key names in ignore block (direct, without -all)
-    // Group 8: min duration (null if omitted, defaults to 0)
-    // Group 10: max duration
+    // Group 2: ignore specifier (e.g. "-all", "-all-except-{b c}", "-{b c}"); null for plain wait
+    // Group 3: "-except-{keys}" part (null if just -all)
+    // Group 4: key names in except block
+    // Group 5: key names in ignore block (direct, without -all)
+    // Group 7: min duration (null if omitted, defaults to 0)
+    // Group 9: max duration
     private static final Pattern WAIT_PATTERN =
-            Pattern.compile("(\\+)?wait(-ignore(-all(-except-\\{([^}]+)\\})?|-\\{([^}]+)\\}))?(-(\\d+)(-(\\d+))?)?");
+            Pattern.compile("(\\+)?(?:wait|ignore(-all(-except-\\{([^}]+)\\})?|-\\{([^}]+)\\}))(-(\\d+)(-(\\d+))?)?");
 
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
@@ -41,7 +40,8 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         // Single-key shorthand: "leftctrl" = "+leftctrl"
         String trimmed = movesString.strip();
         if (!trimmed.contains("{") && !trimmed.contains(" ") &&
-                !trimmed.matches("^[+\\-#].*") && !trimmed.startsWith("wait")) {
+                !trimmed.matches("^[+\\-#].*") && !trimmed.startsWith("wait") &&
+                !trimmed.startsWith("ignore")) {
             ComboAliasMove.PressComboAliasMove move =
                     new ComboAliasMove.PressComboAliasMove(trimmed, false, true,
                             defaultMoveDuration, false);
@@ -67,10 +67,10 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 if (waitMatcher.matches()) {
                     boolean ignoredKeysEatEvents = waitMatcher.group(1) != null;
                     ComboMoveDuration waitDuration = new ComboMoveDuration(
-                            Duration.ofMillis(waitMatcher.group(8) == null ? 0 :
-                                    Integer.parseUnsignedInt(waitMatcher.group(8))),
-                            waitMatcher.group(10) == null ? null : Duration.ofMillis(
-                                    Integer.parseUnsignedInt(waitMatcher.group(10))));
+                            Duration.ofMillis(waitMatcher.group(7) == null ? 0 :
+                                    Integer.parseUnsignedInt(waitMatcher.group(7))),
+                            waitMatcher.group(9) == null ? null : Duration.ofMillis(
+                                    Integer.parseUnsignedInt(waitMatcher.group(9))));
                     Set<String> keyNames;
                     boolean listedKeysAreIgnored;
                     if (waitMatcher.group(2) == null) {
@@ -78,20 +78,20 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                         keyNames = Set.of();
                         listedKeysAreIgnored = true;
                     }
-                    else if (waitMatcher.group(6) != null) {
-                        // wait-ignore-{keys}: listed keys are ignored.
-                        String[] keys = waitMatcher.group(6).strip().split("\\s+");
+                    else if (waitMatcher.group(5) != null) {
+                        // ignore-{keys}: listed keys are ignored.
+                        String[] keys = waitMatcher.group(5).strip().split("\\s+");
                         keyNames = Set.of(keys);
                         listedKeysAreIgnored = true;
                     }
-                    else if (waitMatcher.group(4) == null) {
-                        // wait-ignore-all: all keys are ignored.
+                    else if (waitMatcher.group(3) == null) {
+                        // ignore-all: all keys are ignored.
                         keyNames = Set.of();
                         listedKeysAreIgnored = false;
                     }
                     else {
-                        // wait-ignore-all-except-{keys}: all keys except listed are ignored.
-                        String[] keys = waitMatcher.group(5).strip().split("\\s+");
+                        // ignore-all-except-{keys}: all keys except listed are ignored.
+                        String[] keys = waitMatcher.group(4).strip().split("\\s+");
                         keyNames = Set.of(keys);
                         listedKeysAreIgnored = false;
                     }

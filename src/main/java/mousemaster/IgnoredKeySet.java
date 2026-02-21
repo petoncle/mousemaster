@@ -12,7 +12,7 @@ public sealed interface IgnoredKeySet {
     IgnoredKeySet union(IgnoredKeySet other);
 
     /**
-     * Only the listed keys are ignored (wait-ignore{keys}).
+     * Only the listed keys are ignored (ignore-{keys}).
      * Empty keys means no key is ignored (plain wait).
      */
     record Only(Set<Key> keys) implements IgnoredKeySet {
@@ -39,8 +39,8 @@ public sealed interface IgnoredKeySet {
     }
 
     /**
-     * All keys except the listed ones are ignored (wait-ignore-all-except{keys}).
-     * Empty keys means all keys are ignored (wait-ignore-all).
+     * All keys except the listed ones are ignored (ignore-all-except-{keys}).
+     * Empty keys means all keys are ignored (ignore-all).
      */
     record AllExcept(Set<Key> keys) implements IgnoredKeySet {
         @Override

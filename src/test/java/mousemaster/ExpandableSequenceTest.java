@@ -23,6 +23,8 @@ class ExpandableSequenceTest {
         return (WaitComboAliasMove) move;
     }
 
+    // --- wait (plain, no ignore) ---
+
     @Test
     void waitWithExplicitMinMax() {
         WaitComboAliasMove move = parseWait("wait-200-500");
@@ -51,9 +53,11 @@ class ExpandableSequenceTest {
         assertNull(move.duration().max());
     }
 
+    // --- ignore-all ---
+
     @Test
-    void waitIgnoreAllWithExplicitMinMax() {
-        WaitComboAliasMove move = parseWait("wait-ignore-all-200-500");
+    void ignoreAllWithExplicitMinMax() {
+        WaitComboAliasMove move = parseWait("ignore-all-200-500");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertEquals(Duration.ofMillis(500), move.duration().max());
         assertEquals(Set.of(), move.keyAliasOrKeyNames());
@@ -61,44 +65,48 @@ class ExpandableSequenceTest {
     }
 
     @Test
-    void waitIgnoreAllWithExplicitMin() {
-        WaitComboAliasMove move = parseWait("wait-ignore-all-200");
+    void ignoreAllWithExplicitMin() {
+        WaitComboAliasMove move = parseWait("ignore-all-200");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertNull(move.duration().max());
     }
 
     @Test
-    void waitIgnoreAllShorthandDefaultsToZero() {
-        WaitComboAliasMove move = parseWait("wait-ignore-all");
+    void ignoreAllShorthandDefaultsToZero() {
+        WaitComboAliasMove move = parseWait("ignore-all");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
         assertEquals(Set.of(), move.keyAliasOrKeyNames());
         assertFalse(move.listedKeysAreIgnored());
     }
 
+    // --- ignore-all-except-{keys} ---
+
     @Test
-    void waitIgnoreAllExceptWithExplicitMin() {
+    void ignoreAllExceptWithExplicitMinMax() {
         WaitComboAliasMove move =
-                parseWait("wait-ignore-all-except-{capslock}-200");
+                parseWait("ignore-all-except-{capslock}-200-500");
         assertEquals(Duration.ofMillis(200), move.duration().min());
-        assertNull(move.duration().max());
+        assertEquals(Duration.ofMillis(500), move.duration().max());
         assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
         assertFalse(move.listedKeysAreIgnored());
     }
 
     @Test
-    void waitIgnoreAllExceptShorthandDefaultsToZero() {
+    void ignoreAllExceptShorthandDefaultsToZero() {
         WaitComboAliasMove move =
-                parseWait("wait-ignore-all-except-{capslock}");
+                parseWait("ignore-all-except-{capslock}");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
         assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
         assertFalse(move.listedKeysAreIgnored());
     }
 
+    // --- ignore-{keys} ---
+
     @Test
-    void waitIgnoreKeysWithExplicitMinMax() {
-        WaitComboAliasMove move = parseWait("wait-ignore-{a b}-200-500");
+    void ignoreKeysWithExplicitMinMax() {
+        WaitComboAliasMove move = parseWait("ignore-{a b}-200-500");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertEquals(Duration.ofMillis(500), move.duration().max());
         assertEquals(Set.of("a", "b"), move.keyAliasOrKeyNames());
@@ -106,25 +114,36 @@ class ExpandableSequenceTest {
     }
 
     @Test
-    void waitIgnoreKeysShorthandDefaultsToZero() {
-        WaitComboAliasMove move = parseWait("wait-ignore-{a b}");
+    void ignoreKeysShorthandDefaultsToZero() {
+        WaitComboAliasMove move = parseWait("ignore-{a b}");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
         assertEquals(Set.of("a", "b"), move.keyAliasOrKeyNames());
         assertTrue(move.listedKeysAreIgnored());
     }
 
+    // --- + prefix ---
+
     @Test
-    void plusPrefixEatEvents() {
-        WaitComboAliasMove move = parseWait("+wait-ignore-all");
+    void plusPrefixEatsEvents() {
+        WaitComboAliasMove move = parseWait("+ignore-all");
         assertTrue(move.ignoredKeysEatEvents());
         assertEquals(Duration.ZERO, move.duration().min());
     }
 
     @Test
-    void noPlusPrefixDoesNotEatEvents() {
-        WaitComboAliasMove move = parseWait("wait-ignore-all");
+    void noPrefixDoesNotEatEvents() {
+        WaitComboAliasMove move = parseWait("ignore-all");
         assertFalse(move.ignoredKeysEatEvents());
+    }
+
+    @Test
+    void plusPrefixIgnoreAllExceptShorthand() {
+        WaitComboAliasMove move =
+                parseWait("+ignore-all-except-{capslock}");
+        assertTrue(move.ignoredKeysEatEvents());
+        assertEquals(Duration.ZERO, move.duration().min());
+        assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
     }
 
 }
