@@ -6,7 +6,10 @@ import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 public class WindowsKeyboard {
 
@@ -61,18 +64,12 @@ public class WindowsKeyboard {
             sendInputKeys(moves, startRepeat);
     }
 
-    private static final Set<Key> pressedKeys = new HashSet<>();
     private static Key pressedKeyToRepeat;
     private static double durationUntilNextKeyPressRepeat;
 
-    public static void keyReleasedByUser(Key key) {
-        if (key == pressedKeyToRepeat)
+    public static void keyReleasedNotEaten(Key key) {
+        if (key.equals(pressedKeyToRepeat))
             pressedKeyToRepeat = null;
-        pressedKeys.remove(key);
-    }
-
-    public static void keyPressedByUser(Key key) {
-        pressedKeys.add(key);
     }
 
     public static void keyboardHookCallback(WinUser.KBDLLHOOKSTRUCT info,
@@ -149,11 +146,9 @@ public class WindowsKeyboard {
                     pressedKeyToRepeat = move.key();
                     durationUntilNextKeyPressRepeat = 0.5d;
                 }
-                pressedKeys.add(move.key());
             }
             else if (pressedKeyToRepeat == move.key()) {
                 pressedKeyToRepeat = null;
-                pressedKeys.remove(move.key());
             }
             pInputs[moveIndex].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
             pInputs[moveIndex].input.setType(WinUser.KEYBDINPUT.class);

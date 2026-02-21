@@ -44,6 +44,33 @@ public class MacroPlayer {
 
     public void submit(ResolvedMacro macro) {
         macrosToExecute.add(macro);
+        // Execute the first parallel immediately (without waiting for the next update tick)
+        // if it contains only OS-destination key moves. ComboWatcher-destination moves are
+        // deferred because the combo watcher state may not be fully settled yet.
+        tryExecuteFirstParallelImmediately();
+    }
+
+    private void tryExecuteFirstParallelImmediately() {
+        if (macroInProgress != null)
+            return;
+        ResolvedMacro macro = macrosToExecute.getFirst();
+        ResolvedMacroParallel firstParallel = macro.output().parallels().getFirst();
+        if (firstParallel.moves().isEmpty())
+            return;
+        boolean allOsKeyMoves = firstParallel.moves().stream().allMatch(
+                move -> move instanceof ResolvedKeyMacroMove keyMove &&
+                        keyMove.destination() == MacroMoveDestination.OS);
+        if (!allOsKeyMoves)
+            return;
+        macroInProgress = new MacroInProgress(macrosToExecute.removeFirst());
+        macroInProgress.currentIndex = 0;
+        macroInProgress.remainingWait = firstParallel.duration().toNanos() / 1e9;
+        logger.debug("Executing macro parallel immediately: " + firstParallel);
+        executeParallel(firstParallel);
+        if (macroInProgress.currentIndex ==
+            macroInProgress.macro.output().parallels().size() - 1) {
+            macroInProgress = null;
+        }
     }
 
     public boolean macroInProgress() {
@@ -56,6 +83,9 @@ public class MacroPlayer {
 
     public void keyReleasedNotEaten(Key key) {
         keysPressedByMacro.remove(key);
+        // Scenario where user-press-eaten, then macro-press (uneats the key), then user-release (not eaten as per rule 1).
+        // The macro-press is a repeating SendInput that should be stopped when user releases the key.
+        WindowsKeyboard.keyReleasedNotEaten(key);
     }
 
     public boolean isKeyPressedByMacro(Key key) {

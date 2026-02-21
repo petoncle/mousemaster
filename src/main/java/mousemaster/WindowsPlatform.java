@@ -351,10 +351,6 @@ public class WindowsPlatform implements Platform {
                             if (keyEvent != null) {
                                 Key key = keyEvent.key();
                                 boolean release = keyEvent.isRelease();
-                                if (release)
-                                    WindowsKeyboard.keyReleasedByUser(key);
-                                else
-                                    WindowsKeyboard.keyPressedByUser(key);
                                 if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
                                     logger.info("Key event ignored because it is equal to the last event: " + keyEvent);
                                 }
