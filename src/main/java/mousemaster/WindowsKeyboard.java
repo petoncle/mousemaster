@@ -6,10 +6,7 @@ import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class WindowsKeyboard {
 
@@ -55,21 +52,17 @@ public class WindowsKeyboard {
      * 2026-02-21T23:30:38.339 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0x26 (VK_UP), scanCode = 0x0, flags = 0x11, wParam = WM_KEYDOWN
      * 2026-02-21T23:30:38.341 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0xa4 (VK_LMENU), scanCode = 0x38, flags = 0x30, wParam = WM_SYSKEYDOWN
      */
-    private record SendInputMove(ResolvedKeyMacroMove move, boolean startRepeat) {}
+    private record SendInputMove(ResolvedMacroMove move, boolean startRepeat) {}
     private static final List<SendInputMove> sendInputQueue = new LinkedList<>();
     private static ResolvedKeyMacroMove moveWaitingForKeyboardHookCallbackAcknowledgment;
 
-    public static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean startRepeat, boolean oneInputPerCall) {
-        if (oneInputPerCall) {
-            boolean sendInputQueueWasEmpty = sendInputQueue.isEmpty();
-            for (ResolvedKeyMacroMove move : moves)
-                sendInputQueue.add(new SendInputMove(move, startRepeat));
-            if (moveWaitingForKeyboardHookCallbackAcknowledgment == null &&
-                sendInputQueueWasEmpty)
-                processOneSendInputMove();
-        }
-        else
-            sendInputKeys(moves, startRepeat);
+    public static void sendInputMoves(List<ResolvedMacroMove> moves, boolean startRepeat) {
+        boolean sendInputQueueWasEmpty = sendInputQueue.isEmpty();
+        for (ResolvedMacroMove move : moves)
+            sendInputQueue.add(new SendInputMove(move, startRepeat));
+        if (moveWaitingForKeyboardHookCallbackAcknowledgment == null &&
+            sendInputQueueWasEmpty)
+            processOneSendInputMove();
     }
 
     private static Key pressedKeyToRepeat;
@@ -80,11 +73,18 @@ public class WindowsKeyboard {
             pressedKeyToRepeat = null;
     }
 
+    private static final Set<Key> userPressedKeys = new HashSet<>();
+
     public static void keyboardHookCallback(WinUser.KBDLLHOOKSTRUCT info,
                                             WinDef.WPARAM wParam, String wParamString, KeyEvent keyEvent,
                                             boolean injected, boolean altgrLeftctrl) {
-        if (!injected)
+        if (!injected) {
+            if (keyEvent.isRelease())
+                userPressedKeys.remove(keyEvent.key());
+            else
+                userPressedKeys.add(keyEvent.key());
             return;
+        }
         if (moveWaitingForKeyboardHookCallbackAcknowledgment == null)
             return;
         if (keyEvent == null)
@@ -104,7 +104,10 @@ public class WindowsKeyboard {
                 )
                     return;
                 if (keyEvent.isRelease() &&
+                    userPressedKeys.contains(keyEvent.key()) &&
                     info.scanCode != 0x38)
+                    // 0x38 is the phantom event that happens after the normal event (scanCode 0x0), only when the user is actually pressing leftalt.
+                    // We need to wait for this phantom event to be received, otherwise leftalt is still being pressed.
                     return;
             }
             if (logger.isTraceEnabled())
@@ -125,21 +128,30 @@ public class WindowsKeyboard {
             return;
         durationUntilNextKeyPressRepeat -= delta;
         if (durationUntilNextKeyPressRepeat <= 0) {
-            sendInputKeys(List.of(new ResolvedKeyMacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
+            sendInputMoves(List.of(new ResolvedKeyMacroMove(pressedKeyToRepeat, true, MacroMoveDestination.OS)), true);
             durationUntilNextKeyPressRepeat = 0.025d;
         }
     }
 
     private static boolean processOneSendInputMove() {
-        if (!sendInputQueue.isEmpty()) {
+        while (!sendInputQueue.isEmpty()) {
             SendInputMove sendInputMove = sendInputQueue.removeFirst();
-            // The following sendInput call will call keyboardHookCallback.
-            // That is why the moveWaitingForKeyboardHookCallbackAcknowledgment
-            // is set before calling sendInputKeys.
-            // Goal is to block any further processing until the keyboard hook receives the event for
-            // the move (and for leftalt, there are two events: WM_KEYDOWN then WM_SYSKEYDOWN).
-            sendInputKeys(List.of(sendInputMove.move()), sendInputMove.startRepeat());
-            return true;
+            switch (sendInputMove.move()) {
+                case ResolvedKeyMacroMove keyMove -> {
+                    // The following sendInput call will call keyboardHookCallback.
+                    // That is why the moveWaitingForKeyboardHookCallbackAcknowledgment
+                    // is set before calling sendInputKeys.
+                    // Goal is to block any further processing until the keyboard hook receives the event for
+                    // the move (and for leftalt, there are two events: WM_KEYDOWN then WM_SYSKEYDOWN).
+                    sendInputKeys(List.of(keyMove), sendInputMove.startRepeat());
+                    return true;
+                }
+                case StringMacroMove stringMove -> {
+                    // No acknowledgment needed for Unicode events.
+                    sendInputString(stringMove.string());
+                    // Continue processing the next queued move.
+                }
+            }
         }
         return false;
     }

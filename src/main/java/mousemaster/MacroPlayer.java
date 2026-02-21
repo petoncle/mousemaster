@@ -57,10 +57,11 @@ public class MacroPlayer {
         ResolvedMacroParallel firstParallel = macro.output().parallels().getFirst();
         if (firstParallel.moves().isEmpty())
             return;
-        boolean allOsKeyMoves = firstParallel.moves().stream().allMatch(
-                move -> move instanceof ResolvedKeyMacroMove keyMove &&
-                        keyMove.destination() == MacroMoveDestination.OS);
-        if (!allOsKeyMoves)
+        boolean allOsMoves = firstParallel.moves().stream().allMatch(
+                move -> move instanceof StringMacroMove ||
+                        (move instanceof ResolvedKeyMacroMove keyMove &&
+                         keyMove.destination() == MacroMoveDestination.OS));
+        if (!allOsMoves)
             return;
         macroInProgress = new MacroInProgress(macrosToExecute.removeFirst());
         macroInProgress.currentIndex = 0;
@@ -120,17 +121,12 @@ public class MacroPlayer {
     }
 
     private void executeParallel(ResolvedMacroParallel parallel) {
-        // Batch OS key moves.
-        List<ResolvedKeyMacroMove> osKeyMoves = new ArrayList<>();
+        // Batch OS moves (key moves and string moves).
+        List<ResolvedMacroMove> osMoves = new ArrayList<>();
         for (ResolvedMacroMove move : parallel.moves()) {
             switch (move) {
                 case StringMacroMove stringMove -> {
-                    // Flush any pending OS key moves before sending string.
-                    if (!osKeyMoves.isEmpty()) {
-                        WindowsKeyboard.sendInputKeys(osKeyMoves, true, true);
-                        osKeyMoves.clear();
-                    }
-                    WindowsKeyboard.sendInputString(stringMove.string());
+                    osMoves.add(stringMove);
                 }
                 case ResolvedKeyMacroMove keyMove -> {
                     if (keyMove.destination() == MacroMoveDestination.OS) {
@@ -160,7 +156,7 @@ public class MacroPlayer {
                                     keyboardManager.isPressedKeyNotEaten(keyMove.key());
                             keysPressedByMacro.add(keyMove.key());
                             if (!macroPressIsNoop)
-                                osKeyMoves.add(keyMove);
+                                osMoves.add(keyMove);
                         }
                         else {
                             // Macro-release is noop if key is not pressed at OS level.
@@ -170,14 +166,14 @@ public class MacroPlayer {
                                     !keyboardManager.isPressedKeyNotEaten(keyMove.key());
                             keysPressedByMacro.remove(keyMove.key());
                             if (!macroReleaseIsNoop)
-                                osKeyMoves.add(keyMove);
+                                osMoves.add(keyMove);
                         }
                     }
                     else {
-                        // Flush any pending OS key moves before sending to ComboWatcher.
-                        if (!osKeyMoves.isEmpty()) {
-                            WindowsKeyboard.sendInputKeys(osKeyMoves, true, true);
-                            osKeyMoves.clear();
+                        // Flush any pending OS moves before sending to ComboWatcher.
+                        if (!osMoves.isEmpty()) {
+                            WindowsKeyboard.sendInputMoves(osMoves, true);
+                            osMoves.clear();
                         }
                         KeyEvent event = keyMove.press()
                                 ? new PressKeyEvent(clock.now(), keyMove.key())
@@ -187,9 +183,9 @@ public class MacroPlayer {
                 }
             }
         }
-        // Flush remaining OS key moves.
-        if (!osKeyMoves.isEmpty()) {
-            WindowsKeyboard.sendInputKeys(osKeyMoves, true, true);
+        // Flush remaining OS moves.
+        if (!osMoves.isEmpty()) {
+            WindowsKeyboard.sendInputMoves(osMoves, true);
         }
     }
 

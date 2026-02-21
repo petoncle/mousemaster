@@ -24,10 +24,10 @@ public class KeyRegurgitator {
         // But, if leftwin is not released by mousemaster after being regurgitated,
         // then just pressing g again would open the Windows Game popup, as if leftwin
         // was still being pressed.
-        WindowsKeyboard.sendInputKeys(
+        WindowsKeyboard.sendInputMoves(
                 !releaseRegurgitatedKey ? List.of(new ResolvedKeyMacroMove(keyToRegurgitate, true, MacroMoveDestination.OS)) :
                 List.of(new ResolvedKeyMacroMove(keyToRegurgitate, true, MacroMoveDestination.OS), new ResolvedKeyMacroMove(keyToRegurgitate, false, MacroMoveDestination.OS)),
-                startRepeat, true);
+                startRepeat);
     }
 
 }
