@@ -9,6 +9,7 @@ public enum PressKeyEventProcessing {
     PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN,
     PART_OF_PRESSED_COMBO_PRECONDITION_ONLY, // "Only" means it is not part of a combo sequence (it is just part of a combo precondition).
     PART_OF_UNPRESSED_COMBO_PRECONDITION_ONLY,
+    IGNORED_BY_LEADING_WAIT,
     COMBO_PREPARATION_BREAKER_MUST_NOT_BE_EATEN,
     COMBO_PREPARATION_BREAKER_MUST_BE_EATEN,
     PART_OF_HINT_PREFIX_MUST_BE_EATEN,
@@ -36,7 +37,8 @@ public enum PressKeyEventProcessing {
                this == HINT_UNDO_MUST_BE_EATEN ||
                this == UNSWALLOWED_HINT_END_MUST_BE_EATEN ||
                this == UNUSED_HINT_SELECTION_KEY_MUST_BE_EATEN ||
-               this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY;
+               this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY ||
+               this == IGNORED_BY_LEADING_WAIT;
     }
 
     public boolean isPartOfComboSequence() {
@@ -132,6 +134,10 @@ public enum PressKeyEventProcessing {
 
     public static PressKeyEventProcessing unusedHintSelectionKey() {
         return UNUSED_HINT_SELECTION_KEY_MUST_BE_EATEN;
+    }
+
+    public static PressKeyEventProcessing ignoredByLeadingWait() {
+        return IGNORED_BY_LEADING_WAIT;
     }
 
     public static PressKeyEventProcessing partOfPressedComboPreconditionOnly() {

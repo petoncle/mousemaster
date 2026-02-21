@@ -360,16 +360,23 @@ public class ComboWatcher implements ModeListener {
         }
         if (!processingSet.isPartOfComboSequence()) {
             comboPreparation = ComboPreparation.empty();
-            if (event.isPress() && isComboPreconditionKey) {
+            boolean isIgnoredByLeadingWait = event.isPress() &&
+                    leadingWaitBeginTimeByCombo.keySet().stream().anyMatch(combo -> {
+                        WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
+                        return waitMove.ignoredKeySet().isIgnored(event.key());
+                    });
+            if (event.isPress() && (isComboPreconditionKey || isIgnoredByLeadingWait)) {
                 // We don't really need to know which combo(s) this is for, that is why
                 // we use dummyCombo instead. But it would be cleaner if we knew the combos.
-                // If we are here, it means the key is used as a precondition key,
-                // possibly for a mode different from the current mode.
+                PressKeyEventProcessing processing;
+                if (isComboPreconditionKey)
+                    processing = isPressedComboPreconditionKey ?
+                            PressKeyEventProcessing.partOfPressedComboPreconditionOnly() :
+                            PressKeyEventProcessing.partOfUnpressedComboPreconditionOnly();
+                else
+                    processing = PressKeyEventProcessing.ignoredByLeadingWait();
                 processingSet = new PressKeyEventProcessingSet(
-                        new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo,
-                                isPressedComboPreconditionKey ?
-                                        PressKeyEventProcessing.partOfPressedComboPreconditionOnly() :
-                                        PressKeyEventProcessing.partOfUnpressedComboPreconditionOnly())),
+                        new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo, processing)),
                         new HashMap<>());
             }
         }
