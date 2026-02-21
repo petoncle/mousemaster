@@ -682,13 +682,20 @@ public class ComboWatcher implements ModeListener {
         PressedKeyPrecondition precondition = combo.precondition()
                                                    .keyPrecondition()
                                                    .pressedKeyPrecondition();
+        // If the combo has a leading wait, keys ignored by that wait
+        // could have been pressed before the combo started. Remove them
+        // from candidates since they are unrelated to this combo.
+        IgnoredKeySet leadingWaitIgnoredKeySet = null;
+        if (!combo.sequence().isEmpty() &&
+            combo.sequence().moveSets().getFirst() instanceof WaitMoveSet leadingWaitMoveSet)
+            leadingWaitIgnoredKeySet = leadingWaitMoveSet.waitMove().ignoredKeySet();
         // If the combo has a trailing wait, keys ignored by that wait
         // could have been pressed during the wait period. Remove them
         // from candidates since they are unrelated to this combo.
         IgnoredKeySet trailingWaitIgnoredKeySet = null;
         if (!combo.sequence().isEmpty() &&
-            combo.sequence().moveSets().getLast() instanceof WaitMoveSet waitMoveSet)
-            trailingWaitIgnoredKeySet = waitMoveSet.waitMove().ignoredKeySet();
+            combo.sequence().moveSets().getLast() instanceof WaitMoveSet trailingWaitMoveSet)
+            trailingWaitIgnoredKeySet = trailingWaitMoveSet.waitMove().ignoredKeySet();
         List<PressedKeyGroup> groups = precondition.groups();
         if (groups.isEmpty())
             groups = List.of(new PressedKeyGroup(List.of()));
@@ -698,6 +705,8 @@ public class ComboWatcher implements ModeListener {
             Set<Key> candidatePressedPreconditionKeys = new HashSet<>(currentlyPressedKeys);
             // Remove keys that were absorbed by a wait (pressed during the wait, not before).
             candidatePressedPreconditionKeys.removeAll(absorbedPressedKeys);
+            if (leadingWaitIgnoredKeySet != null)
+                candidatePressedPreconditionKeys.removeIf(leadingWaitIgnoredKeySet::isIgnored);
             if (trailingWaitIgnoredKeySet != null)
                 candidatePressedPreconditionKeys.removeIf(trailingWaitIgnoredKeySet::isIgnored);
             // Remove completed combo keys that are NOT in allGroupKeys.
