@@ -107,15 +107,15 @@ public class WindowsKeyboard {
             keyEvent.isPress() ==
             moveWaitingForKeyboardHookCallbackAcknowledgment.press()) {
             if (keyEvent.key().equals(Key.leftalt)) {
-                if (keyEvent.isPress() &&
-                    (
-                    wParam.intValue() != WinUser.WM_SYSKEYDOWN
+//                if (keyEvent.isPress()
+//                    && (
+//                    wParam.intValue() != WinUser.WM_SYSKEYDOWN
                     // Received key event: +leftalt, altgrLeftctrl = false, injected = true, vkCode = 0xa4 (VK_LMENU), scanCode = 0x0, flags = 0x30, wParam = WM_SYSKEYDOWN
                     // Received key event: +leftalt, altgrLeftctrl = false, injected = true, vkCode = 0xa4 (VK_LMENU), scanCode = 0x38, flags = 0x30, wParam = WM_SYSKEYDOWN
 //                    || info.scanCode != 0x38
-                    )
-                )
-                    return;
+//                    )
+//                )
+//                    return;
                 if (keyEvent.isRelease() &&
                     userPressedKeys.contains(keyEvent.key()) &&
                     info.scanCode != 0x38)
