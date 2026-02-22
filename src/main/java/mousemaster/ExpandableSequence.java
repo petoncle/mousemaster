@@ -15,24 +15,26 @@ import java.util.regex.Pattern;
 public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
 
     private static final Pattern MOVE_SET_OR_TOKEN_PATTERN =
-            Pattern.compile("\\{([^}]+)\\}|(\\+?ignore(?:-all-except)?-\\{[^}]+\\}(?:-\\S+)?)|(\\S+)");
+            Pattern.compile("([#+]!?\\{[^}]+\\}(?:-\\d+(?:-\\d+)?)?)|\\{([^}]+)\\}|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
             Pattern.compile("([+\\-#])(!?)(\\*?)([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
 
-    // [+]wait[-MIN[-MAX]],
-    // [+]ignore-{keys}[-MIN[-MAX]], [+]ignore-all[-MIN[-MAX]],
-    // [+]ignore-all-except-{keys}[-MIN[-MAX]]
-    // When MIN is omitted, it defaults to 0.
-    // Group 1: optional "+" prefix (eat absorbed events)
-    // Group 2: ignore specifier (e.g. "-all", "-all-except-{b c}", "-{b c}"); null for plain wait
-    // Group 3: "-except-{keys}" part (null if just -all)
-    // Group 4: key names in except block
-    // Group 5: key names in ignore block (direct, without -all)
-    // Group 7: min duration (null if omitted, defaults to 0)
-    // Group 9: max duration
+    // [#+]!?{keys|*}[-MIN[-MAX]]
+    // Group 1: "#" or "+" prefix
+    // Group 2: "!" (all-except) or empty
+    // Group 3: key names or "*" (all)
+    // Group 4: min duration (null if omitted, defaults to 0)
+    // Group 6: max duration
+    private static final Pattern IGNORE_PATTERN =
+            Pattern.compile("([#+])(!?)\\{([^}]+)\\}(?:-(\\d+)(-(\\d+))?)?");
+
+    // [+]wait[-MIN[-MAX]]
+    // Group 1: optional "+" prefix
+    // Group 3: min duration (null if omitted, defaults to 0)
+    // Group 5: max duration
     private static final Pattern WAIT_PATTERN =
-            Pattern.compile("(\\+)?(?:wait|ignore(-all(-except-\\{([^}]+)\\})?|-\\{([^}]+)\\}))(-(\\d+)(-(\\d+))?)?");
+            Pattern.compile("(\\+)?wait(-(\\d+)(-(\\d+))?)?");
 
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
@@ -40,8 +42,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         // Single-key shorthand: "leftctrl" = "+leftctrl"
         String trimmed = movesString.strip();
         if (!trimmed.contains("{") && !trimmed.contains(" ") &&
-                !trimmed.matches("^[+\\-#].*") && !trimmed.startsWith("wait") &&
-                !trimmed.startsWith("ignore")) {
+                !trimmed.matches("^[+\\-#].*") && !trimmed.startsWith("wait")) {
             ComboAliasMove.PressComboAliasMove move =
                     new ComboAliasMove.PressComboAliasMove(trimmed, false, true,
                             defaultMoveDuration, false, false);
@@ -51,8 +52,44 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         Matcher matcher = MOVE_SET_OR_TOKEN_PATTERN.matcher(trimmed);
         while (matcher.find()) {
             if (matcher.group(1) != null) {
+                // Ignore/eat token: #{keys}, +{keys}, #!{keys}, +!{keys}, #{*}, +{*}
+                Matcher ignoreMatcher = IGNORE_PATTERN.matcher(matcher.group(1));
+                if (!ignoreMatcher.matches())
+                    throw new IllegalArgumentException(
+                            "Invalid ignore token: " + matcher.group(1));
+                boolean ignoredKeysEatEvents = ignoreMatcher.group(1).equals("+");
+                boolean allExcept = !ignoreMatcher.group(2).isEmpty();
+                String content = ignoreMatcher.group(3).strip();
+                ComboMoveDuration waitDuration = new ComboMoveDuration(
+                        Duration.ofMillis(ignoreMatcher.group(4) == null ? 0 :
+                                Integer.parseUnsignedInt(ignoreMatcher.group(4))),
+                        ignoreMatcher.group(6) == null ? null : Duration.ofMillis(
+                                Integer.parseUnsignedInt(ignoreMatcher.group(6))));
+                Set<String> keyNames;
+                boolean listedKeysAreIgnored;
+                if (content.equals("*")) {
+                    // #{*} = ignore all, +{*} = eat all
+                    keyNames = Set.of();
+                    listedKeysAreIgnored = false;
+                }
+                else if (allExcept) {
+                    // #!{keys} = ignore all except, +!{keys} = eat all except
+                    String[] keys = content.split("\\s+");
+                    keyNames = Set.of(keys);
+                    listedKeysAreIgnored = false;
+                }
+                else {
+                    // #{keys} = ignore listed, +{keys} = eat listed
+                    String[] keys = content.split("\\s+");
+                    keyNames = Set.of(keys);
+                    listedKeysAreIgnored = true;
+                }
+                moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
+                        keyNames, listedKeysAreIgnored, ignoredKeysEatEvents, waitDuration)));
+            }
+            else if (matcher.group(2) != null) {
                 // {+a -b +c}: set of moves (any-order within the set)
-                String content = matcher.group(1).strip();
+                String content = matcher.group(2).strip();
                 String[] moveTokens = content.split("\\s+");
                 Set<ComboAliasMove> moveSet = new LinkedHashSet<>();
                 for (String moveToken : moveTokens) {
@@ -69,42 +106,19 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 moveSets.add(moveSet);
             }
             else {
-                // Single token: singleton set (group 2 = wait token, group 3 = regular token)
-                String token = matcher.group(2) != null ? matcher.group(2) : matcher.group(3);
+                // Single token (group 3)
+                String token = matcher.group(3);
                 Matcher waitMatcher = WAIT_PATTERN.matcher(token);
                 if (waitMatcher.matches()) {
+                    // Plain wait: no key is ignored.
                     boolean ignoredKeysEatEvents = waitMatcher.group(1) != null;
                     ComboMoveDuration waitDuration = new ComboMoveDuration(
-                            Duration.ofMillis(waitMatcher.group(7) == null ? 0 :
-                                    Integer.parseUnsignedInt(waitMatcher.group(7))),
-                            waitMatcher.group(9) == null ? null : Duration.ofMillis(
-                                    Integer.parseUnsignedInt(waitMatcher.group(9))));
-                    Set<String> keyNames;
-                    boolean listedKeysAreIgnored;
-                    if (waitMatcher.group(2) == null) {
-                        // Plain wait: no key is ignored.
-                        keyNames = Set.of();
-                        listedKeysAreIgnored = true;
-                    }
-                    else if (waitMatcher.group(5) != null) {
-                        // ignore-{keys}: listed keys are ignored.
-                        String[] keys = waitMatcher.group(5).strip().split("\\s+");
-                        keyNames = Set.of(keys);
-                        listedKeysAreIgnored = true;
-                    }
-                    else if (waitMatcher.group(3) == null) {
-                        // ignore-all: all keys are ignored.
-                        keyNames = Set.of();
-                        listedKeysAreIgnored = false;
-                    }
-                    else {
-                        // ignore-all-except-{keys}: all keys except listed are ignored.
-                        String[] keys = waitMatcher.group(4).strip().split("\\s+");
-                        keyNames = Set.of(keys);
-                        listedKeysAreIgnored = false;
-                    }
+                            Duration.ofMillis(waitMatcher.group(3) == null ? 0 :
+                                    Integer.parseUnsignedInt(waitMatcher.group(3))),
+                            waitMatcher.group(5) == null ? null : Duration.ofMillis(
+                                    Integer.parseUnsignedInt(waitMatcher.group(5))));
                     moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
-                            keyNames, listedKeysAreIgnored, ignoredKeysEatEvents, waitDuration)));
+                            Set.of(), true, ignoredKeysEatEvents, waitDuration)));
                 }
                 else {
                     ComboAliasMove move = parseMove(token, defaultMoveDuration);

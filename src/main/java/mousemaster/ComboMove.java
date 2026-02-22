@@ -41,18 +41,32 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
 
         @Override
         public String toString() {
-            String ignorePart = switch (ignoredKeySet) {
-                case IgnoredKeySet.Only only ->
-                        only.keys().isEmpty() ? "" :
-                        "-ignore{" + only.keys().stream().map(Key::name)
-                                .reduce((a, b) -> a + " " + b).orElse("") + "}";
-                case IgnoredKeySet.AllExcept allExcept ->
-                        allExcept.keys().isEmpty() ? "-ignore-all" :
-                        "-ignore-all-except{" + allExcept.keys().stream().map(Key::name)
-                                .reduce((a, b) -> a + " " + b).orElse("") + "}";
-            };
-            return (ignoredKeysEatEvents ? "+" : "") + "wait" + ignorePart + "-" + duration.min().toMillis() +
+            String durationPart = "-" + duration.min().toMillis() +
                    (duration.max() == null ? "" : "-" + duration.max().toMillis());
+            return switch (ignoredKeySet) {
+                case IgnoredKeySet.Only only -> {
+                    if (only.keys().isEmpty()) {
+                        // Plain wait (no ignore).
+                        yield (ignoredKeysEatEvents ? "+" : "") + "wait" + durationPart;
+                    }
+                    // #{keys} or +{keys}
+                    String prefix = ignoredKeysEatEvents ? "+" : "#";
+                    String keys = only.keys().stream().map(Key::name)
+                            .reduce((a, b) -> a + " " + b).orElse("");
+                    yield prefix + "{" + keys + "}" + durationPart;
+                }
+                case IgnoredKeySet.AllExcept allExcept -> {
+                    String prefix = ignoredKeysEatEvents ? "+" : "#";
+                    if (allExcept.keys().isEmpty()) {
+                        // #{*} or +{*}
+                        yield prefix + "{*}" + durationPart;
+                    }
+                    // #!{keys} or +!{keys}
+                    String keys = allExcept.keys().stream().map(Key::name)
+                            .reduce((a, b) -> a + " " + b).orElse("");
+                    yield prefix + "!{" + keys + "}" + durationPart;
+                }
+            };
         }
     }
 

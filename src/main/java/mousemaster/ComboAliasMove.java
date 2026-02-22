@@ -61,24 +61,31 @@ public sealed interface ComboAliasMove {
 
         @Override
         public String toString() {
-            String prefix = ignoredKeysEatEvents ? "+" : "";
+            String durationPart = "-" + duration.min().toMillis() +
+                   (duration.max() == null ? "" : "-" + duration.max().toMillis());
             if (keyAliasOrKeyNames.isEmpty() && listedKeysAreIgnored) {
                 // Plain wait (no ignore).
-                return prefix + "wait-" + duration.min().toMillis() +
-                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+                return (ignoredKeysEatEvents ? "+" : "") + "wait" + durationPart;
             }
-            String ignorePart;
+            String prefix = ignoredKeysEatEvents ? "+" : "#";
+            String bang;
+            String content;
             if (keyAliasOrKeyNames.isEmpty()) {
-                ignorePart = "ignore-all";
+                // All keys: #{*} or +{*}
+                bang = "";
+                content = "*";
             }
             else if (listedKeysAreIgnored) {
-                ignorePart = "ignore-{" + String.join(" ", keyAliasOrKeyNames) + "}";
+                // Listed keys: #{keys} or +{keys}
+                bang = "";
+                content = String.join(" ", keyAliasOrKeyNames);
             }
             else {
-                ignorePart = "ignore-all-except-{" + String.join(" ", keyAliasOrKeyNames) + "}";
+                // All except listed: #!{keys} or +!{keys}
+                bang = "!";
+                content = String.join(" ", keyAliasOrKeyNames);
             }
-            return prefix + ignorePart + "-" + duration.min().toMillis() +
-                   (duration.max() == null ? "" : "-" + duration.max().toMillis());
+            return prefix + bang + "{" + content + "}" + durationPart;
         }
     }
 
