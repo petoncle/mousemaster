@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import mousemaster.MoveSet.KeyMoveSet;
 
@@ -459,5 +460,97 @@ class ComboPreparationTest {
         assertTrue(match.hasMatch());
         assertFalse(match.complete());
         assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    // --- Alias expansion tests ---
+
+    static final KeyResolver identityKeyResolver = new KeyResolver(
+            new KeyboardLayout("test", "test", "test", "test", List.of()),
+            new KeyboardLayout("test", "test", "test", "test", List.of()));
+
+    static ComboSequence parseCombo(String comboString,
+                                    Map<String, KeyAlias> aliases) {
+        ExpandableSequence expandable = ExpandableSequence.parseSequence(
+                comboString, defaultDuration, aliases);
+        return expandable.toComboSequence(aliases, identityKeyResolver);
+    }
+
+    static final Map<String, KeyAlias> testAliases = Map.of(
+            "testkeys", new KeyAlias("testkeys", List.of(a, b, c)));
+
+    @Test
+    void expandedAlias_inBraces_anyOrder_complete() {
+        // {+*testkeys} with testkeys=a b c → {+a +b +c} any-order
+        ComboSequence combo = parseCombo("{+*testkeys}", testAliases);
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(b, t(10)), press(c, t(20)))
+                .match(combo);
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void expandedAlias_inBraces_anyOrder_reversed_complete() {
+        ComboSequence combo = parseCombo("{+*testkeys}", testAliases);
+        ComboSequenceMatch match = prep(
+                press(c, t(0)), press(b, t(10)), press(a, t(20)))
+                .match(combo);
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void expandedAlias_inBraces_missingKey_noComplete() {
+        ComboSequence combo = parseCombo("{+*testkeys}", testAliases);
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(b, t(10)))
+                .match(combo);
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void expandedAlias_sequential_strictOrder_complete() {
+        // +*testkeys (no braces) → +a +b +c sequential
+        ComboSequence combo = parseCombo("+*testkeys", testAliases);
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(b, t(10)), press(c, t(20)))
+                .match(combo);
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void expandedAlias_sequential_wrongOrder_noComplete() {
+        ComboSequence combo = parseCombo("+*testkeys", testAliases);
+        ComboSequenceMatch match = prep(
+                press(c, t(0)), press(b, t(10)), press(a, t(20)))
+                .match(combo);
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void expandedAlias_optional_allSkipped_complete() {
+        // {+*testkeys?} → all optional, no events needed
+        ComboSequence combo = parseCombo("{+*testkeys?}", testAliases);
+        ComboSequenceMatch match = prep(press(x, t(0))).match(combo);
+        assertTrue(match.complete());
+        assertEquals(0, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void expandedAlias_optional_somePresent_complete() {
+        ComboSequence combo = parseCombo("{+*testkeys?}", testAliases);
+        ComboSequenceMatch match = prep(press(a, t(0))).match(combo);
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void nonExpandedAlias_matchesOneKey() {
+        // +testkeys (no *) with event [+a] → complete (alias matches any key)
+        ComboSequence combo = parseCombo("+testkeys", testAliases);
+        ComboSequenceMatch match = prep(press(a, t(0))).match(combo);
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
     }
 }

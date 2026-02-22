@@ -18,7 +18,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             Pattern.compile("\\{([^}]+)\\}|(\\+?ignore(?:-all-except)?-\\{[^}]+\\}(?:-\\S+)?)|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
-            Pattern.compile("([+\\-#])(!?)([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
+            Pattern.compile("([+\\-#])(!?)(\\*?)([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
 
     // [+]wait[-MIN[-MAX]],
     // [+]ignore-{keys}[-MIN[-MAX]], [+]ignore-all[-MIN[-MAX]],
@@ -44,19 +44,27 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 !trimmed.startsWith("ignore")) {
             ComboAliasMove.PressComboAliasMove move =
                     new ComboAliasMove.PressComboAliasMove(trimmed, false, true,
-                            defaultMoveDuration, false);
+                            defaultMoveDuration, false, false);
             return new ExpandableSequence(List.of(Set.of(move)));
         }
         List<Set<ComboAliasMove>> moveSets = new ArrayList<>();
         Matcher matcher = MOVE_SET_OR_TOKEN_PATTERN.matcher(trimmed);
         while (matcher.find()) {
             if (matcher.group(1) != null) {
-                // {+a -b +c}: set of moves
+                // {+a -b +c}: set of moves (any-order within the set)
                 String content = matcher.group(1).strip();
                 String[] moveTokens = content.split("\\s+");
                 Set<ComboAliasMove> moveSet = new LinkedHashSet<>();
                 for (String moveToken : moveTokens) {
-                    moveSet.add(parseMove(moveToken, defaultMoveDuration));
+                    ComboAliasMove move = parseMove(moveToken, defaultMoveDuration);
+                    if (move.expand()) {
+                        // Inside braces: expand alias into individual key
+                        // moves in the same MoveSet (any-order).
+                        expandAliasIntoMoves(move, aliases, moveSet);
+                    }
+                    else {
+                        moveSet.add(move);
+                    }
                 }
                 moveSets.add(moveSet);
             }
@@ -99,11 +107,56 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                             keyNames, listedKeysAreIgnored, ignoredKeysEatEvents, waitDuration)));
                 }
                 else {
-                    moveSets.add(Set.of(parseMove(token, defaultMoveDuration)));
+                    ComboAliasMove move = parseMove(token, defaultMoveDuration);
+                    if (move.expand()) {
+                        // Outside braces: expand alias into separate
+                        // singleton MoveSets (sequential order).
+                        KeyAlias alias = aliases.get(move.aliasOrKeyName());
+                        if (alias == null)
+                            throw new IllegalArgumentException(
+                                    "Cannot expand non-alias: " +
+                                    move.aliasOrKeyName());
+                        for (Key key : alias.keys()) {
+                            ComboAliasMove expanded = expandedMove(
+                                    move, key.name());
+                            moveSets.add(Set.of(expanded));
+                        }
+                    }
+                    else {
+                        moveSets.add(Set.of(move));
+                    }
                 }
             }
         }
         return new ExpandableSequence(moveSets);
+    }
+
+    private static void expandAliasIntoMoves(ComboAliasMove move,
+                                               Map<String, KeyAlias> aliases,
+                                               Set<ComboAliasMove> moveSet) {
+        KeyAlias alias = aliases.get(move.aliasOrKeyName());
+        if (alias == null)
+            throw new IllegalArgumentException(
+                    "Cannot expand non-alias: " + move.aliasOrKeyName());
+        for (Key key : alias.keys())
+            moveSet.add(expandedMove(move, key.name()));
+    }
+
+    private static ComboAliasMove expandedMove(ComboAliasMove move,
+                                                String keyName) {
+        return switch (move) {
+            case ComboAliasMove.PressComboAliasMove pm ->
+                    new ComboAliasMove.PressComboAliasMove(keyName,
+                            pm.negated(), pm.eventMustBeEaten(),
+                            pm.duration(), pm.optional(), false);
+            case ComboAliasMove.ReleaseComboAliasMove rm ->
+                    new ComboAliasMove.ReleaseComboAliasMove(keyName,
+                            rm.negated(), rm.duration(), rm.optional(),
+                            false);
+            case ComboAliasMove.WaitComboAliasMove wm ->
+                    throw new IllegalStateException(
+                            "Cannot expand wait move");
+        };
     }
 
     private static ComboAliasMove parseMove(String moveString,
@@ -113,25 +166,26 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             throw new IllegalArgumentException("Invalid move: " + moveString);
         boolean press = !moveString.startsWith("-");
         boolean negated = !matcher.group(2).isEmpty();
+        boolean expand = !matcher.group(3).isEmpty();
         ComboMoveDuration moveDuration;
-        if (matcher.group(4) == null)
+        if (matcher.group(5) == null)
             moveDuration = defaultMoveDuration;
         else
             moveDuration = new ComboMoveDuration(
-                    Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(5))),
-                    matcher.group(7) == null ? null : Duration.ofMillis(
-                            Integer.parseUnsignedInt(matcher.group(7))));
-        String aliasName = matcher.group(3);
-        boolean optional = matcher.group(8) != null;
+                    Duration.ofMillis(Integer.parseUnsignedInt(matcher.group(6))),
+                    matcher.group(8) == null ? null : Duration.ofMillis(
+                            Integer.parseUnsignedInt(matcher.group(8))));
+        String aliasName = matcher.group(4);
+        boolean optional = matcher.group(9) != null;
         ComboAliasMove move;
         if (press) {
             boolean eventMustBeEaten = moveString.startsWith("+");
             move = new ComboAliasMove.PressComboAliasMove(aliasName, negated,
-                    eventMustBeEaten, moveDuration, optional);
+                    eventMustBeEaten, moveDuration, optional, expand);
         }
         else
             move = new ComboAliasMove.ReleaseComboAliasMove(aliasName, negated,
-                    moveDuration, optional);
+                    moveDuration, optional, expand);
         return move;
     }
 
