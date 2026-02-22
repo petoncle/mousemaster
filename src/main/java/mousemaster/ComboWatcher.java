@@ -37,7 +37,7 @@ public class ComboWatcher implements ModeListener {
      * Union of ignored keys across all partially-matching combos (they do not reset the preparation).
      * A key is ignored if it is ignored by the wait in any matching combo.
      */
-    private IgnoredKeySet ignoredKeySet;
+    private KeySet ignoredKeySet;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
     private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
 
@@ -261,7 +261,7 @@ public class ComboWatcher implements ModeListener {
         for (Map.Entry<Combo, Instant> entry : leadingWaitBeginTimeByCombo.entrySet()) {
             Combo combo = entry.getKey();
             WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
-            if (waitMove.ignoredKeySet().isIgnored(event.key()))
+            if (waitMove.ignoredKeySet().contains(event.key()))
                 continue;
             boolean allWait = combo.sequence().moveSets().stream()
                     .allMatch(ms -> ms instanceof WaitMoveSet);
@@ -328,7 +328,7 @@ public class ComboWatcher implements ModeListener {
                 WaitComboMove waitMove = waiting.lastWaitMove();
                 if (waitMove == null)
                     return true; // Non-wait waiting combos: any key cancels.
-                return !waitMove.ignoredKeySet().isIgnored(event.key());
+                return !waitMove.ignoredKeySet().contains(event.key());
             });
         }
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
@@ -338,7 +338,7 @@ public class ComboWatcher implements ModeListener {
             // If there are ignored keys (from a trailing wait),
             // and this key is ignored in all matching combos, don't reset the preparation.
             boolean skipDurationCheck = ignoredKeySet != null &&
-                    ignoredKeySet.isIgnored(event.key());
+                    ignoredKeySet.contains(event.key());
             if (!skipDurationCheck &&
                 !previousComboMoveDuration.satisfied(previousEvent.time(), event.time()))
                 comboPreparation = ComboPreparation.empty();
@@ -372,7 +372,7 @@ public class ComboWatcher implements ModeListener {
             boolean isIgnoredByLeadingWait = event.isPress() &&
                     leadingWaitBeginTimeByCombo.keySet().stream().anyMatch(combo -> {
                         WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
-                        return waitMove.ignoredKeySet().isIgnored(event.key());
+                        return waitMove.ignoredKeySet().contains(event.key());
                     });
             if (event.isPress() && (isComboPreconditionKey || isIgnoredByLeadingWait)) {
                 // We don't really need to know which combo(s) this is for, that is why
@@ -410,7 +410,7 @@ public class ComboWatcher implements ModeListener {
             currentlyPressedKeys.add(event.key());
         ComboMoveDuration newComboDuration = null;
         // Union of ignored keys across all partially-matching combos.
-        IgnoredKeySet newIgnoredKeySet = null;
+        KeySet newIgnoredKeySet = null;
         for (Map.Entry<Combo, List<Command>> entry : currentMode.comboMap()
                                                                 .commandsByCombo()
                                                                 .entrySet()) {
@@ -527,13 +527,13 @@ public class ComboWatcher implements ModeListener {
                 }
                 // Compute ignored keys from the last matched MoveSet.
                 // If it's an absorbing wait, its ignored keys should not reset the preparation.
-                IgnoredKeySet comboIgnoredKeySet;
+                KeySet comboIgnoredKeySet;
                 if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet2
                     && waitMoveSet2.canAbsorbEvents()) {
                     comboIgnoredKeySet = waitMoveSet2.waitMove().ignoredKeySet();
                 }
                 else {
-                    comboIgnoredKeySet = IgnoredKeySet.NONE;
+                    comboIgnoredKeySet = KeySet.NONE;
                 }
                 // Union: a key is ignored if ignored in any matching combo.
                 if (newIgnoredKeySet == null) {
@@ -701,14 +701,14 @@ public class ComboWatcher implements ModeListener {
         // If the combo has a leading wait, keys ignored by that wait
         // could have been pressed before the combo started. Remove them
         // from candidates since they are unrelated to this combo.
-        IgnoredKeySet leadingWaitIgnoredKeySet = null;
+        KeySet leadingWaitIgnoredKeySet = null;
         if (!combo.sequence().isEmpty() &&
             combo.sequence().moveSets().getFirst() instanceof WaitMoveSet leadingWaitMoveSet)
             leadingWaitIgnoredKeySet = leadingWaitMoveSet.waitMove().ignoredKeySet();
         // If the combo has a trailing wait, keys ignored by that wait
         // could have been pressed during the wait period. Remove them
         // from candidates since they are unrelated to this combo.
-        IgnoredKeySet trailingWaitIgnoredKeySet = null;
+        KeySet trailingWaitIgnoredKeySet = null;
         if (!combo.sequence().isEmpty() &&
             combo.sequence().moveSets().getLast() instanceof WaitMoveSet trailingWaitMoveSet)
             trailingWaitIgnoredKeySet = trailingWaitMoveSet.waitMove().ignoredKeySet();
@@ -722,9 +722,9 @@ public class ComboWatcher implements ModeListener {
             // Remove keys that were absorbed by a wait (pressed during the wait, not before).
             candidatePressedPreconditionKeys.removeAll(absorbedPressedKeys);
             if (leadingWaitIgnoredKeySet != null)
-                candidatePressedPreconditionKeys.removeIf(leadingWaitIgnoredKeySet::isIgnored);
+                candidatePressedPreconditionKeys.removeIf(leadingWaitIgnoredKeySet::contains);
             if (trailingWaitIgnoredKeySet != null)
-                candidatePressedPreconditionKeys.removeIf(trailingWaitIgnoredKeySet::isIgnored);
+                candidatePressedPreconditionKeys.removeIf(trailingWaitIgnoredKeySet::contains);
             // Remove completed combo keys that are NOT in allGroupKeys.
             for (Key completedKey : currentlyPressedCompletedComboKeys) {
                 if (!allGroupKeys.contains(completedKey))
@@ -913,10 +913,10 @@ public class ComboWatcher implements ModeListener {
     /**
      * Returns the time of the last non-ignored key event, or fallback if none found.
      */
-    private Instant lastNonIgnoredEventTime(IgnoredKeySet ignoredKeySet, Instant fallback) {
+    private Instant lastNonIgnoredEventTime(KeySet ignoredKeySet, Instant fallback) {
         Instant latest = null;
         for (Map.Entry<Key, Instant> entry : lastEventTimeByKey.entrySet()) {
-            if (!ignoredKeySet.isIgnored(entry.getKey()) &&
+            if (!ignoredKeySet.contains(entry.getKey()) &&
                 (latest == null || entry.getValue().isAfter(latest)))
                 latest = entry.getValue();
         }

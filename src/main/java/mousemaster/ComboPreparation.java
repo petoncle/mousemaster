@@ -124,7 +124,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 // Can't absorb past a non-ignored event.
                 int firstNonIgnoredOffset = maxAbsorb;
                 for (int i = 0; i < maxAbsorb; i++) {
-                    if (!waitMove.ignoredKeySet().isIgnored(events.get(eventIndex + i).key())) {
+                    if (!waitMove.ignoredKeySet().contains(events.get(eventIndex + i).key())) {
                         firstNonIgnoredOffset = i;
                         break;
                     }

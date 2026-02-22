@@ -21,10 +21,10 @@ public record ComboSequence(List<MoveSet> moveSets) {
         for (MoveSet moveSet : moveSets) {
             switch (moveSet) {
                 case WaitMoveSet waitMoveSet -> {
-                    IgnoredKeySet ignoredKeySet = waitMoveSet.waitMove().ignoredKeySet();
+                    KeySet ignoredKeySet = waitMoveSet.waitMove().ignoredKeySet();
                     switch (ignoredKeySet) {
-                        case IgnoredKeySet.Only only -> keys.addAll(only.keys());
-                        case IgnoredKeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
+                        case KeySet.Only only -> keys.addAll(only.keys());
+                        case KeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
                     }
                 }
                 case KeyMoveSet keyMoveSet ->

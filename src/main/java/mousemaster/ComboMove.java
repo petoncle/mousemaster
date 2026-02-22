@@ -36,7 +36,7 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
 
     }
 
-    record WaitComboMove(IgnoredKeySet ignoredKeySet, boolean ignoredKeysEatEvents,
+    record WaitComboMove(KeySet ignoredKeySet, boolean ignoredKeysEatEvents,
                          ComboMoveDuration duration) implements ComboMove {
 
         @Override
@@ -44,7 +44,7 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
             String durationPart = "-" + duration.min().toMillis() +
                    (duration.max() == null ? "" : "-" + duration.max().toMillis());
             return switch (ignoredKeySet) {
-                case IgnoredKeySet.Only only -> {
+                case KeySet.Only only -> {
                     if (only.keys().isEmpty()) {
                         // Plain wait (no ignore).
                         yield (ignoredKeysEatEvents ? "+" : "") + "wait" + durationPart;
@@ -55,7 +55,7 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
                             .reduce((a, b) -> a + " " + b).orElse("");
                     yield prefix + "{" + keys + "}" + durationPart;
                 }
-                case IgnoredKeySet.AllExcept allExcept -> {
+                case KeySet.AllExcept allExcept -> {
                     String prefix = ignoredKeysEatEvents ? "+" : "#";
                     if (allExcept.keys().isEmpty()) {
                         // #{*} or +{*}
