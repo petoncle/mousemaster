@@ -364,7 +364,11 @@ public class ComboWatcher implements ModeListener {
             comboPreparation.events().removeLast();
         }
         if (!processingSet.isPartOfComboSequence()) {
-            comboPreparation = ComboPreparation.empty();
+            boolean couldMatchOptional = event != null && event.isPress() &&
+                    keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(event.key());
+            if (!couldMatchOptional) {
+                comboPreparation = ComboPreparation.empty();
+            }
             boolean isIgnoredByLeadingWait = event.isPress() &&
                     leadingWaitBeginTimeByCombo.keySet().stream().anyMatch(combo -> {
                         WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
@@ -736,6 +740,15 @@ public class ComboWatcher implements ModeListener {
                     // candidates with non-precondition keys.
                     candidatePressedPreconditionKeys.add(move.key());
             }
+            // Remove keys that could match optional press moves in the combo's sequence.
+            // These keys are "explained" by the combo even if not yet matched.
+            candidatePressedPreconditionKeys.removeIf(candidateKey ->
+                    combo.sequence().moveSets().stream()
+                            .filter(ms -> ms instanceof KeyMoveSet)
+                            .map(ms -> (KeyMoveSet) ms)
+                            .flatMap(kms -> kms.optionalMoves().stream())
+                            .anyMatch(optMove -> optMove.isPress() &&
+                                      optionalMoveMatchesKey(optMove, candidateKey)));
             if (group.satisfiedBy(candidatePressedPreconditionKeys))
                 return candidatePressedPreconditionKeys;
         }
@@ -914,6 +927,32 @@ public class ComboWatcher implements ModeListener {
     public void modeTimedOut() {
         modeJustTimedOut = true;
         breakComboPreparation();
+    }
+
+    /**
+     * Returns true if the given key press could match an optional press move in
+     * the first KeyMoveSet of any combo in the current mode. This is used to
+     * avoid clearing the preparation when a key is pressed that doesn't satisfy
+     * any required move but could be an optional part of an any-order MoveSet.
+     */
+    private boolean keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(Key key) {
+        for (Combo combo : currentMode.comboMap().commandsByCombo().keySet()) {
+            if (combo.sequence().isEmpty())
+                continue;
+            MoveSet firstMoveSet = combo.sequence().moveSets().getFirst();
+            if (!(firstMoveSet instanceof KeyMoveSet keyMoveSet))
+                continue;
+            for (ComboMove.KeyComboMove optMove : keyMoveSet.optionalMoves()) {
+                if (optMove.isPress() && optionalMoveMatchesKey(optMove, key))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean optionalMoveMatchesKey(ComboMove.KeyComboMove optMove, Key key) {
+        boolean matches = optMove.keyOrAlias().matchesKey(key);
+        return optMove.negated() ? !matches : matches;
     }
 
      private static final class ComboWaitingForLastMoveToComplete {
