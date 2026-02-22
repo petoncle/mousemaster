@@ -127,6 +127,8 @@ public class KeyboardManager {
             }
             boolean mustBeEaten = processingSet.mustBeEaten() ||
                                   macroPlayer.isKeyPressedByMacro(key);
+            if (!mustBeEaten)
+                macroPlayer.keyPressedNotEaten(key);
             return eatAndRegurgitates(mustBeEaten, keysToRegurgitate);
         }
         else { // Key release.

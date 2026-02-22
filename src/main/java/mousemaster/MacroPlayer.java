@@ -90,6 +90,10 @@ public class MacroPlayer {
         keysPressedByMacro.clear();
     }
 
+    public void keyPressedNotEaten(Key key) {
+        WindowsKeyboard.keyPressedNotEaten(key);
+    }
+
     public void keyReleasedNotEaten(Key key) {
         if (!keysPressedByMacroDuringCurrentTick.contains(key))
             keysPressedByMacro.remove(key);

@@ -42,6 +42,7 @@ public class WindowsKeyboard {
         moveWaitingForKeyboardHookCallbackAcknowledgment = null;
         pressedKeyToRepeat = null;
         durationUntilNextKeyPressRepeat = 0;
+        repeatStartedDuringCurrentTick = false;
     }
 
     /**
@@ -67,6 +68,18 @@ public class WindowsKeyboard {
 
     private static Key pressedKeyToRepeat;
     private static double durationUntilNextKeyPressRepeat;
+    /**
+     * Used to prevent keyPressedNotEaten from killing a repeat that was just
+     * started by a macro during the same event processing (e.g. combo triggers
+     * macro +a which starts repeating, then keyPressedNotEaten is called for
+     * the triggering key: we must not stop the repeat).
+     */
+    private static boolean repeatStartedDuringCurrentTick;
+
+    public static void keyPressedNotEaten(Key key) {
+        if (!repeatStartedDuringCurrentTick || !key.equals(pressedKeyToRepeat))
+            pressedKeyToRepeat = null;
+    }
 
     public static void keyReleasedNotEaten(Key key) {
         if (key.equals(pressedKeyToRepeat))
@@ -120,6 +133,7 @@ public class WindowsKeyboard {
     }
 
     public static void update(double delta) {
+        repeatStartedDuringCurrentTick = false;
         if (moveWaitingForKeyboardHookCallbackAcknowledgment != null)
             return;
         if (processOneSendInputMove())
@@ -181,6 +195,7 @@ public class WindowsKeyboard {
                 if (triggerKeyRepeating) {
                     pressedKeyToRepeat = move.key();
                     durationUntilNextKeyPressRepeat = 0.5d;
+                    repeatStartedDuringCurrentTick = true;
                 }
             }
             else if (pressedKeyToRepeat == move.key()) {
