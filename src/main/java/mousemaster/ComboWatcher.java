@@ -413,6 +413,8 @@ public class ComboWatcher implements ModeListener {
     private PressKeyEventProcessingSet processKeyEventForCurrentMode(
             KeyEvent event,
             boolean ignoreSwitchModeAndHintCommands) {
+        long before = System.nanoTime();
+        Mode beforeCommandsMode = currentMode;
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
         Map<Combo, ComboSequenceMatch> matchByCombo = new HashMap<>();
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
@@ -554,9 +556,12 @@ public class ComboWatcher implements ModeListener {
                     if (partialMoveSet instanceof KeyMoveSet partialKeyMoveSet
                         && partialKeyMoveSet.canAbsorbEvents()) {
                         mustBeEaten = partialKeyMoveSet.waitMove().ignoredKeysEatEvents();
+                        newComboDuration = new ComboMoveDuration(
+                                newComboDuration.min(),
+                                partialKeyMoveSet.waitMove().duration().max());
                     }
                 }
-                // Compute ignored keys from the last matched MoveSet.
+                // Compute ignored keys from the last matched or partially-matched MoveSet.
                 // If it's an absorbing MoveSet, its ignored keys should not reset the preparation.
                 KeySet comboIgnoredKeySet;
                 if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet2
@@ -566,6 +571,12 @@ public class ComboWatcher implements ModeListener {
                 else if (lastMatchedMoveSet instanceof KeyMoveSet keyMoveSet2
                          && keyMoveSet2.canAbsorbEvents()) {
                     comboIgnoredKeySet = keyMoveSet2.waitMove().ignoredKeySet();
+                }
+                else if (match.lastEventAbsorbedByWait()
+                         && match.matchedMoveSetCount() < moveSets.size()
+                         && moveSets.get(match.matchedMoveSetCount()) instanceof KeyMoveSet partialKms
+                         && partialKms.canAbsorbEvents()) {
+                    comboIgnoredKeySet = partialKms.waitMove().ignoredKeySet();
                 }
                 else {
                     comboIgnoredKeySet = KeySet.NONE;
@@ -658,15 +669,16 @@ public class ComboWatcher implements ModeListener {
         commandsToRun.addAll(completeCombosCommandsToRun);
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
-        logger.debug("processKeyEventForCurrentMode" +
-                ", mode = " + currentMode.name() +
+        long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
+        logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
+                "ms, mode = " + beforeCommandsMode.name() +
+                ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
                 ", event = " + (logRedactKeys ? "<redacted>" : event) +
                 ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
                 ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
                 ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
-                ", mustBeEaten = " + processingSet.mustBeEaten() +
-                (!completeCombosCommandsToRun.isEmpty() ?
-                        ", commandsToRun = " + completeCombosCommandsToRun : ""));
+                ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
+                completeCombosCommandsToRun);
         if (!comboAndCommandsToRun.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
@@ -773,15 +785,22 @@ public class ComboWatcher implements ModeListener {
                     // candidates with non-precondition keys.
                     candidatePressedPreconditionKeys.add(move.key());
             }
-            // Remove keys that could match optional press moves in the combo's sequence.
-            // These keys are "explained" by the combo even if not yet matched.
+            // Remove keys that could match press moves (required or optional)
+            // in the combo's sequence. These keys are "explained" by the combo
+            // even if not yet matched (e.g. partial match of a multi-move MoveSet).
+            // For fully matched moves, the reverse-apply step above already removed
+            // them, so this is redundant but harmless for those.
             candidatePressedPreconditionKeys.removeIf(candidateKey ->
                     combo.sequence().moveSets().stream()
                             .filter(ms -> ms instanceof KeyMoveSet)
                             .map(ms -> (KeyMoveSet) ms)
-                            .flatMap(kms -> kms.optionalMoves().stream())
-                            .anyMatch(optMove -> optMove.isPress() &&
-                                      optionalMoveMatchesKey(optMove, candidateKey)));
+                            .anyMatch(kms ->
+                                    kms.requiredMoves().stream()
+                                            .anyMatch(move -> move.isPress() &&
+                                                      optionalMoveMatchesKey(move, candidateKey)) ||
+                                    kms.optionalMoves().stream()
+                                            .anyMatch(move -> move.isPress() &&
+                                                      optionalMoveMatchesKey(move, candidateKey))));
             if (group.satisfiedBy(candidatePressedPreconditionKeys))
                 return candidatePressedPreconditionKeys;
         }
