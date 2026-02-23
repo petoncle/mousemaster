@@ -172,7 +172,8 @@ public class KeyboardManager {
                                                                              existingProcessing.mustBeEaten(),
                                                                              entry.getValue()
                                                                                   .isPartOfCompletedComboSequence(),
-                                                                             existingProcessing.isComboPreparationBreaker());
+                                                                             existingProcessing.isComboPreparationBreaker()
+                                                                             || entry.getValue().isComboPreparationBreaker());
                                                          });
                                 }
                                 markOtherKeysOfTheseCombosAsCompleted(
