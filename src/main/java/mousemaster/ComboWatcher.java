@@ -480,10 +480,10 @@ public class ComboWatcher implements ModeListener {
             ComboSequenceMatch match = comboPreparation.match(combo.sequence());
             ResolvedKeyComboMove currentKeyMove = match.hasMatch() ?
                     match.lastMatchedKeyMove() : null;
-            // For release combos (like -up), we ignore the currently pressed keys:
-            // even if there is a pressed key that is not in the combo precondition, we
-            // still consider the combo as completed.
-            if (!isReleaseCombo(combo, match.matchedKeyMoves()) &&
+            // If the combo has no explicit pressed precondition, we ignore the
+            // currently pressed keys: the combo fires regardless of what's held.
+            // Only combos with an explicit _{...} precondition check pressed keys.
+            if (!combo.precondition().keyPrecondition().pressedKeyPrecondition().isEmpty() &&
                 findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
                         currentlyPressedCompletedComboKeys, match.matchedKeyMoves(),
                         match.absorbedPressedKeys()) == null) {
@@ -693,14 +693,6 @@ public class ComboWatcher implements ModeListener {
         return processingSet;
     }
 
-    private static boolean isReleaseCombo(Combo combo, List<ResolvedKeyComboMove> matchedKeyMoves) {
-        return combo.precondition()
-                    .keyPrecondition()
-                    .pressedKeyPrecondition()
-                    .isEmpty() &&
-               (combo.sequence().isEmpty() ||
-                (!matchedKeyMoves.isEmpty() && matchedKeyMoves.stream().allMatch(ResolvedKeyComboMove::isRelease)));
-    }
 
     private void runCommands(List<Command> commandsToRun) {
         if (commandsToRun.isEmpty())
@@ -824,14 +816,18 @@ public class ComboWatcher implements ModeListener {
     private void addCurrentlyPressedCompletedComboKeys(Combo combo,
                                                        Set<Key> currentlyPressedKeys,
                                                        ComboSequenceMatch match) {
-        if (isReleaseCombo(combo, match.matchedKeyMoves()))
-            return;
-        Set<Key> satisfiedPressPreconditionKeys =
-                findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
-                        currentlyPressedCompletedComboKeys,
-                        match.matchedKeyMoves(), match.absorbedPressedKeys());
-        if (satisfiedPressPreconditionKeys == null)
-            throw new IllegalStateException();
+        Set<Key> satisfiedPressPreconditionKeys;
+        if (combo.precondition().keyPrecondition().pressedKeyPrecondition().isEmpty()) {
+            satisfiedPressPreconditionKeys = currentlyPressedKeys;
+        }
+        else {
+            satisfiedPressPreconditionKeys =
+                    findSatisfiedPressedPreconditionKeys(combo, currentlyPressedKeys,
+                            currentlyPressedCompletedComboKeys,
+                            match.matchedKeyMoves(), match.absorbedPressedKeys());
+            if (satisfiedPressPreconditionKeys == null)
+                throw new IllegalStateException();
+        }
         Set<Key> keys =
                 combo.keysPressedAfterMoves(
                         satisfiedPressPreconditionKeys,
