@@ -297,18 +297,6 @@ public record ComboPreparation(List<KeyEvent> events) {
         if (eventCount == 0)
             return true;
 
-        // If this KeyMoveSet can absorb events and eventCount > required + optional,
-        // use the ignored-key matching path.
-        if (keyMoveSet.canAbsorbEvents() &&
-            eventCount > keyMoveSet.maxMoveCount()) {
-            return tryMatchMoveSetEventsWithIgnoredKeys(
-                    eventBeginIndex, eventCount, keyMoveSet,
-                    keyMoveSet.requiredMoves().size(),
-                    regionBeginIndex, previousMatchedKeyMoves,
-                    matchedKeyMoves, aliasBindings, negatedBindings,
-                    lastEventAbsorbed, absorbedPressedKeys);
-        }
-
         List<KeyComboMove> required = keyMoveSet.requiredMoves();
         List<KeyComboMove> optional = keyMoveSet.optionalMoves();
         int optionalToUseCount = eventCount - required.size();
@@ -331,8 +319,18 @@ public record ComboPreparation(List<KeyEvent> events) {
                     regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
                     aliasBindings, negatedBindings);
         }
-        if (optionalToUseCount > optional.size())
+        if (optionalToUseCount > optional.size()) {
+            // More events than moves: if absorbing, try the absorbing path.
+            if (keyMoveSet.canAbsorbEvents()) {
+                return tryMatchMoveSetEventsWithIgnoredKeys(
+                        eventBeginIndex, eventCount, keyMoveSet,
+                        keyMoveSet.requiredMoves().size(),
+                        regionBeginIndex, previousMatchedKeyMoves,
+                        matchedKeyMoves, aliasBindings, negatedBindings,
+                        lastEventAbsorbed, absorbedPressedKeys);
+            }
             return false;
+        }
 
         // Fast path: singleton MoveSet (one required, no optionals).
         if (eventCount == 1 && required.size() == 1 && optional.isEmpty() &&
@@ -353,10 +351,24 @@ public record ComboPreparation(List<KeyEvent> events) {
         }
 
         // General path: try subsets of optional moves, then bipartite match.
-        return tryOptionalSubsets(eventBeginIndex, eventCount, optional,
+        if (tryOptionalSubsets(eventBeginIndex, eventCount, optional,
                 optionalToUseCount, 0, new ArrayList<>(required),
                 regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                aliasBindings, negatedBindings);
+                aliasBindings, negatedBindings))
+            return true;
+        // Normal matching failed. If this MoveSet can absorb events, some
+        // events may be absorbable rather than matching moves. Try the
+        // absorbing path (e.g. events [+a, -a, +d, +b] against
+        // {+a -a +b -b +{d}} where +d is absorbed, not a key move).
+        if (keyMoveSet.canAbsorbEvents()) {
+            return tryMatchMoveSetEventsWithIgnoredKeys(
+                    eventBeginIndex, eventCount, keyMoveSet,
+                    keyMoveSet.requiredMoves().size(),
+                    regionBeginIndex, previousMatchedKeyMoves,
+                    matchedKeyMoves, aliasBindings, negatedBindings,
+                    lastEventAbsorbed, absorbedPressedKeys);
+        }
+        return false;
     }
 
     /**
