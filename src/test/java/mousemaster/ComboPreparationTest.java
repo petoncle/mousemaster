@@ -742,4 +742,64 @@ class ComboPreparationTest {
         assertEquals(a, match.matchedKeyMoves().get(0).key());
         assertEquals(a, match.matchedKeyMoves().get(1).key());
     }
+
+    // --- Leading/trailing ignored keys ---
+
+    @Test
+    void ignoredKeys_leadingAbsorbed_complete() {
+        // {+a #{x}}: events [+x, +a] → +x is leading absorbed, +a matches.
+        // Leading ignored is always allowed.
+        ComboSequenceMatch match = prep(
+                press(x, t(0)), press(a, t(10)))
+                .match(parseCombo("{+a #{x}}", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertEquals(a, match.matchedKeyMoves().getFirst().key());
+    }
+
+    @Test
+    void ignoredKeys_trailingAbsorbedWithFollowingMoveSet_complete() {
+        // {+a #{x}} +b: events [+a, +x, +b] → +x is trailing absorbed in
+        // first MoveSet (allowed because there's a following MoveSet).
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(x, t(10)), press(b, t(20)))
+                .match(parseCombo("{+a #{x}} +b", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_trailingAbsorbedOnLastMoveSet_noMatch() {
+        // {+a #{x}} (last MoveSet): events [+a, +x] → +x is trailing absorbed
+        // but not allowed on last MoveSet. No match.
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(x, t(10)))
+                .match(parseCombo("{+a #{x}}", Map.of()));
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void ignoredKeys_adjacentMoveSetsUnion_complete() {
+        // {+a #{x}} {+b #{y}}: events [+a, +y, +b].
+        // +y between +a and +b is absorbed by second MoveSet's leading.
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(y, t(10)), press(b, t(20)))
+                .match(parseCombo("{+a #{x}} {+b #{y}}", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_trailingAbsorbedDuringPartialMatch_hasMatch() {
+        // {+a #{x}} +b: events [+a, +x] → partial match of just the first
+        // MoveSet. +x is trailing absorbed, allowed because the full sequence
+        // has a following MoveSet (+b).
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(x, t(10)))
+                .match(parseCombo("{+a #{x}} +b", Map.of()));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertEquals(a, match.matchedKeyMoves().getFirst().key());
+    }
 }

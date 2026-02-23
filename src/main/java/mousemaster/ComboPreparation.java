@@ -85,11 +85,12 @@ public record ComboPreparation(List<KeyEvent> events) {
                 boolean[] lastEventAbsorbed = {false};
                 int[] lastKeyMoveEventIndex = {-1};
                 Set<Key> absorbedPressedKeys = new HashSet<>();
+                boolean hasFollowingMoveSets = k < moveSets.size();
                 if (tryAssignEventsToMoveSets(subMoveSets, 0, regionBeginIndex,
                         regionBeginIndex + totalEventCount, regionBeginIndex,
                         matchedKeyMoves, aliasBindings, negatedBindings,
                         lastEventAbsorbed, lastKeyMoveEventIndex,
-                        absorbedPressedKeys, isPartial)) {
+                        absorbedPressedKeys, isPartial, hasFollowingMoveSets)) {
                     boolean complete = !isPartial && (k == moveSets.size());
                     int moveSetCount = isPartial ? k - 1 : k;
                     return new ComboSequenceMatch(List.copyOf(matchedKeyMoves), complete,
@@ -116,7 +117,8 @@ public record ComboPreparation(List<KeyEvent> events) {
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
             boolean[] lastEventAbsorbed, int[] lastKeyMoveEventIndex,
-            Set<Key> absorbedPressedKeys, boolean allowPartialLastMoveSet) {
+            Set<Key> absorbedPressedKeys, boolean allowPartialLastMoveSet,
+            boolean hasFollowingMoveSets) {
         if (moveSetIndex == moveSets.size())
             return eventIndex == eventEndIndex;
 
@@ -186,7 +188,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                             nextEventIndex, eventEndIndex, nextEventIndex,
                             matchedKeyMoves, aliasBindings, negatedBindings,
                             lastEventAbsorbed, lastKeyMoveEventIndex,
-                            absorbedPressedKeys, allowPartialLastMoveSet))
+                            absorbedPressedKeys, allowPartialLastMoveSet,
+                            hasFollowingMoveSets))
                         return true;
                     lastEventAbsorbed[0] = savedLastEventAbsorbed;
                     absorbedPressedKeys.removeAll(addedAbsorbedKeys);
@@ -207,7 +210,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                         eventIndex, eventEndIndex, eventIndex,
                         matchedKeyMoves, aliasBindings, negatedBindings,
                         lastEventAbsorbed, lastKeyMoveEventIndex,
-                        absorbedPressedKeys, allowPartialLastMoveSet);
+                        absorbedPressedKeys, allowPartialLastMoveSet,
+                        hasFollowingMoveSets);
             }
         }
 
@@ -242,10 +246,14 @@ public record ComboPreparation(List<KeyEvent> events) {
             Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
             boolean[] moveSetLastEventAbsorbed = {false};
             Set<Key> moveSetAbsorbedPressedKeys = new HashSet<>();
+            boolean allowLeadingIgnored = true;
+            boolean allowTrailingIgnored = moveSetIndex + 1 < moveSets.size()
+                    || hasFollowingMoveSets;
             if (tryMatchMoveSetEvents(eventIndex, eventCount, keyMoveSet,
                     regionBeginIndex, matchedKeyMoves, moveSetMatchedKeyMoves,
                     aliasBindings, negatedBindings,
-                    moveSetLastEventAbsorbed, moveSetAbsorbedPressedKeys)) {
+                    moveSetLastEventAbsorbed, moveSetAbsorbedPressedKeys,
+                    allowLeadingIgnored, allowTrailingIgnored)) {
                 int savedSize = matchedKeyMoves.size();
                 int savedLastKeyMoveEventIndex = lastKeyMoveEventIndex[0];
                 boolean savedLastEventAbsorbed = lastEventAbsorbed[0];
@@ -258,7 +266,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                         eventIndex + eventCount, eventEndIndex,
                         regionBeginIndex, matchedKeyMoves, aliasBindings,
                         negatedBindings, lastEventAbsorbed, lastKeyMoveEventIndex,
-                        absorbedPressedKeys, allowPartialLastMoveSet))
+                        absorbedPressedKeys, allowPartialLastMoveSet,
+                        hasFollowingMoveSets))
                     return true;
                 lastKeyMoveEventIndex[0] = savedLastKeyMoveEventIndex;
                 lastEventAbsorbed[0] = savedLastEventAbsorbed;
@@ -293,7 +302,8 @@ public record ComboPreparation(List<KeyEvent> events) {
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
-            boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys) {
+            boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys,
+            boolean allowLeadingIgnored, boolean allowTrailingIgnored) {
         if (eventCount == 0)
             return true;
 
@@ -309,7 +319,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                         eventBeginIndex, eventCount, keyMoveSet, 0,
                         regionBeginIndex, previousMatchedKeyMoves,
                         matchedKeyMoves, aliasBindings, negatedBindings,
-                        lastEventAbsorbed, absorbedPressedKeys);
+                        lastEventAbsorbed, absorbedPressedKeys,
+                        allowLeadingIgnored, allowTrailingIgnored);
             }
             // Partial matching: select eventCount moves from all moves.
             List<KeyComboMove> allMoves = new ArrayList<>(required);
@@ -327,7 +338,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                         keyMoveSet.requiredMoves().size(),
                         regionBeginIndex, previousMatchedKeyMoves,
                         matchedKeyMoves, aliasBindings, negatedBindings,
-                        lastEventAbsorbed, absorbedPressedKeys);
+                        lastEventAbsorbed, absorbedPressedKeys,
+                        allowLeadingIgnored, allowTrailingIgnored);
             }
             return false;
         }
@@ -366,7 +378,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                     keyMoveSet.requiredMoves().size(),
                     regionBeginIndex, previousMatchedKeyMoves,
                     matchedKeyMoves, aliasBindings, negatedBindings,
-                    lastEventAbsorbed, absorbedPressedKeys);
+                    lastEventAbsorbed, absorbedPressedKeys,
+                    allowLeadingIgnored, allowTrailingIgnored);
         }
         return false;
     }
@@ -385,7 +398,8 @@ public record ComboPreparation(List<KeyEvent> events) {
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
-            boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys) {
+            boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys,
+            boolean allowLeadingIgnored, boolean allowTrailingIgnored) {
         List<KeyComboMove> required = keyMoveSet.requiredMoves();
         List<KeyComboMove> optional = keyMoveSet.optionalMoves();
         List<KeyComboMove> allMoves = new ArrayList<>(required);
@@ -398,7 +412,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                 minimumRequiredCount, moveUsed, assignedMovesForEvents, eventIsIgnored,
                 wm.ignoredKeySet(), wm.duration(),
                 regionBeginIndex, previousMatchedKeyMoves,
-                aliasBindings, negatedBindings)) {
+                aliasBindings, negatedBindings,
+                allowLeadingIgnored, allowTrailingIgnored)) {
             // Collect matched key moves (non-ignored events).
             for (int i = 0; i < eventCount; i++) {
                 if (!eventIsIgnored[i]) {
@@ -436,17 +451,21 @@ public record ComboPreparation(List<KeyEvent> events) {
             boolean[] eventIsIgnored,
             KeySet ignoredKeySet, ComboMoveDuration ignoredKeysDuration,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
-            Map<String, Key> aliasBindings, Map<String, Key> negatedBindings) {
+            Map<String, Key> aliasBindings, Map<String, Key> negatedBindings,
+            boolean allowLeadingIgnored, boolean allowTrailingIgnored) {
         if (eventOffset == eventCount) {
             // All events processed. Check that all required moves are assigned.
             for (int i = 0; i < requiredCount; i++)
                 if (!moveUsed[i])
                     return false;
             // For non-partial matching (requiredCount > 0), absorbed events must
-            // be strictly interleaved between key moves: no leading or trailing.
-            if (requiredCount > 0 && eventCount > 0 &&
-                (eventIsIgnored[0] || eventIsIgnored[eventCount - 1]))
-                return false;
+            // be interleaved between key moves unless leading/trailing is allowed.
+            if (requiredCount > 0 && eventCount > 0) {
+                if (!allowLeadingIgnored && eventIsIgnored[0])
+                    return false;
+                if (!allowTrailingIgnored && eventIsIgnored[eventCount - 1])
+                    return false;
+            }
             return true;
         }
 
@@ -493,7 +512,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                         eventCount, allMoves, requiredCount, moveUsed,
                         assignedMoves, eventIsIgnored, ignoredKeySet,
                         ignoredKeysDuration, regionBeginIndex,
-                        previousMatchedKeyMoves, aliasBindings, negatedBindings))
+                        previousMatchedKeyMoves, aliasBindings, negatedBindings,
+                        allowLeadingIgnored, allowTrailingIgnored))
                     return true;
                 moveUsed[moveIndex] = false;
                 aliasBindings.clear();
@@ -511,7 +531,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                     eventCount, allMoves, requiredCount, moveUsed,
                     assignedMoves, eventIsIgnored, ignoredKeySet,
                     ignoredKeysDuration, regionBeginIndex,
-                    previousMatchedKeyMoves, aliasBindings, negatedBindings))
+                    previousMatchedKeyMoves, aliasBindings, negatedBindings,
+                    allowLeadingIgnored, allowTrailingIgnored))
                 return true;
         }
 
