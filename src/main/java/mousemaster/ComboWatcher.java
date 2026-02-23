@@ -346,8 +346,9 @@ public class ComboWatcher implements ModeListener {
             boolean skipDurationCheck = ignoredKeySet != null &&
                     ignoredKeySet.contains(event.key());
             if (!skipDurationCheck &&
-                !previousComboMoveDuration.satisfied(previousEvent.time(), event.time()))
+                !previousComboMoveDuration.satisfied(previousEvent.time(), event.time())) {
                 comboPreparation = ComboPreparation.empty();
+            }
         }
         comboPreparation.events().add(event);
         Mode beforeMode = currentMode;
@@ -505,43 +506,25 @@ public class ComboWatcher implements ModeListener {
                         pressMove.eventMustBeEaten();
                 mustBeEaten = currentKeyMoveMustBeEaten;
                 partOfComboSequence = true;
-                if (newComboDuration == null) {
-                    newComboDuration = currentKeyMove.duration();
-                }
-                else {
-                    if (newComboDuration.min().compareTo(currentKeyMove.duration().min()) >
-                        0)
-                        newComboDuration =
-                                new ComboMoveDuration(currentKeyMove.duration().min(),
-                                        newComboDuration.max());
-                    if (newComboDuration.max() != null &&
-                        (currentKeyMove.duration().max() == null ||
-                         newComboDuration.max().compareTo(currentKeyMove.duration().max()) <
-                         0))
-                        newComboDuration = new ComboMoveDuration(newComboDuration.min(),
-                                currentKeyMove.duration().max());
-                }
-                // If the last matched MoveSet is an absorbing wait, extend the
-                // duration max to the wait's max so the preparation doesn't
-                // time out prematurely, and use its ignored keys.
+                // Compute effective duration for this combo's match,
+                // including any absorbing wait override.
+                ComboMoveDuration effectiveDuration = currentKeyMove.duration();
                 List<MoveSet> moveSets = combo.sequence().moveSets();
                 MoveSet lastMatchedMoveSet = match.matchedMoveSetCount() > 0 ?
                         moveSets.get(match.matchedMoveSetCount() - 1) : null;
                 if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet
                     && waitMoveSet.canAbsorbEvents()) {
                     WaitComboMove wm = waitMoveSet.waitMove();
-                    newComboDuration = new ComboMoveDuration(
-                            newComboDuration.min(), wm.duration().max());
-                    // If the current event was absorbed by the wait, eat it only
-                    // if the wait has +wait (ignoredKeysEatEvents).
+                    effectiveDuration = new ComboMoveDuration(
+                            effectiveDuration.min(), wm.duration().max());
                     if (match.lastEventAbsorbedByWait()) {
                         mustBeEaten = wm.ignoredKeysEatEvents();
                     }
                 }
                 else if (lastMatchedMoveSet instanceof KeyMoveSet keyMoveSet
                          && keyMoveSet.canAbsorbEvents()) {
-                    newComboDuration = new ComboMoveDuration(
-                            newComboDuration.min(),
+                    effectiveDuration = new ComboMoveDuration(
+                            effectiveDuration.min(),
                             keyMoveSet.waitMove().duration().max());
                     if (match.lastEventAbsorbedByWait()) {
                         mustBeEaten = keyMoveSet.waitMove().ignoredKeysEatEvents();
@@ -556,10 +539,26 @@ public class ComboWatcher implements ModeListener {
                     if (partialMoveSet instanceof KeyMoveSet partialKeyMoveSet
                         && partialKeyMoveSet.canAbsorbEvents()) {
                         mustBeEaten = partialKeyMoveSet.waitMove().ignoredKeysEatEvents();
-                        newComboDuration = new ComboMoveDuration(
-                                newComboDuration.min(),
+                        effectiveDuration = new ComboMoveDuration(
+                                effectiveDuration.min(),
                                 partialKeyMoveSet.waitMove().duration().max());
                     }
+                }
+                // Merge this combo's effective duration into the accumulated
+                // duration using smallest min and largest max (null = no limit).
+                if (newComboDuration == null) {
+                    newComboDuration = effectiveDuration;
+                }
+                else {
+                    Duration min = newComboDuration.min().compareTo(effectiveDuration.min()) > 0 ?
+                            effectiveDuration.min() : newComboDuration.min();
+                    Duration max;
+                    if (newComboDuration.max() == null || effectiveDuration.max() == null)
+                        max = null;
+                    else
+                        max = newComboDuration.max().compareTo(effectiveDuration.max()) < 0 ?
+                                effectiveDuration.max() : newComboDuration.max();
+                    newComboDuration = new ComboMoveDuration(min, max);
                 }
                 // Compute ignored keys from the last matched or partially-matched MoveSet.
                 // If it's an absorbing MoveSet, its ignored keys should not reset the preparation.
