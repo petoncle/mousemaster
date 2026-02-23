@@ -385,17 +385,16 @@ public class ComboWatcher implements ModeListener {
                 // We don't really need to know which combo(s) this is for, that is why
                 // we use dummyCombo instead. But it would be cleaner if we knew the combos.
                 PressKeyEventProcessing processing;
-                // Leading wait eating takes priority: if the key is eaten by a
-                // leading wait (+{...}), it must be eaten even if it's also a
-                // precondition key.
-                if (isIgnoredByLeadingWait && leadingWaitEatsEvents)
-                    processing = PressKeyEventProcessing.ignoredByLeadingWait(true);
-                else if (isComboPreconditionKey)
+                // Leading wait always takes priority over precondition keys:
+                // the key is specifically part of a leading wait's ignored set,
+                // so it should be treated as handled (not as an unrelated
+                // precondition key from another combo).
+                if (isIgnoredByLeadingWait)
+                    processing = PressKeyEventProcessing.ignoredByLeadingWait(leadingWaitEatsEvents);
+                else // isComboPreconditionKey must be true
                     processing = isPressedComboPreconditionKey ?
                             PressKeyEventProcessing.partOfPressedComboPreconditionOnly() :
                             PressKeyEventProcessing.partOfUnpressedComboPreconditionOnly();
-                else
-                    processing = PressKeyEventProcessing.ignoredByLeadingWait(false);
                 processingSet = new PressKeyEventProcessingSet(
                         new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo, processing)),
                         new HashMap<>());

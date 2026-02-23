@@ -75,6 +75,11 @@ public enum PressKeyEventProcessing {
                isPartOfUnpressedComboPreconditionOnly();
     }
 
+    public boolean isIgnoredByLeadingWait() {
+        return this == IGNORED_BY_LEADING_WAIT_MUST_NOT_BE_EATEN ||
+               this == IGNORED_BY_LEADING_WAIT_MUST_BE_EATEN;
+    }
+
     public boolean isPartOfCompletedComboSequenceAndMustBeEaten() {
         return isPartOfCompletedComboSequence() && mustBeEaten();
     }

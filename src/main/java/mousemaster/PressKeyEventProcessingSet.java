@@ -79,6 +79,12 @@ public record PressKeyEventProcessingSet(
                                 .anyMatch(PressKeyEventProcessing::isPartOfCombo);
     }
 
+    public boolean isIgnoredByLeadingWait() {
+        return processingByCombo.values()
+                                .stream()
+                                .anyMatch(PressKeyEventProcessing::isIgnoredByLeadingWait);
+    }
+
     public boolean isComboPreparationBreaker() {
         return processingByCombo.values()
                                 .stream()

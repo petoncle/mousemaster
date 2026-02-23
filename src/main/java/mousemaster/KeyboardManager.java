@@ -142,7 +142,8 @@ public class KeyboardManager {
                     // the release of the combo preparation breaker key. But for now,
                     // we always ignore it.
                     if (!processingSet.isComboPreparationBreaker()) {
-                        if (processingSet.isPartOfCombo()) {
+                        if (processingSet.isPartOfCombo() ||
+                            processingSet.isIgnoredByLeadingWait()) {
                             PressKeyEventProcessingSet releaseProcessingSet =
                                     comboWatcher.keyEvent(keyEvent);
                             if (!currentlyPressedKeys.containsKey(key)) {
