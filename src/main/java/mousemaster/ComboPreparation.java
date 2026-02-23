@@ -71,6 +71,21 @@ public record ComboPreparation(List<KeyEvent> events) {
             int effectiveMaxEventCount = hasAbsorbingWait ?
                     events.size() : Math.min(maxTotalEventCount, events.size());
 
+            // Quick-reject for absorbing combos: check that the preparation
+            // contains at least one event matching a required move of each
+            // KeyMoveSet. Without such events, no suffix can produce a match.
+            if (hasAbsorbingWait && !preparationContainsRequiredKeyMoves(subMoveSets))
+                continue;
+
+            // For combos starting with a WaitMoveSet that absorbs all keys (#{*}),
+            // only the longest suffix needs to be tried. The wait's absorption
+            // loop already tries every position within the suffix, so shorter
+            // suffixes are redundant.
+            if (subMoveSets.getFirst() instanceof WaitMoveSet wms
+                    && wms.waitMove().ignoredKeySet().equals(KeySet.ALL)) {
+                partialMinTotalEventCount = effectiveMaxEventCount;
+            }
+
             // Try consuming totalEventCount events from the end of the preparation,
             // starting with the most events (greediest match) first.
             // Full matches (totalEventCount >= minTotalEventCount) are tried before
@@ -102,6 +117,32 @@ public record ComboPreparation(List<KeyEvent> events) {
             }
         }
         return ComboSequenceMatch.noMatch();
+    }
+
+    /**
+     * Checks that for each KeyMoveSet in the list, the preparation contains at
+     * least one event that could match one of its required moves. Uses empty
+     * alias/negated bindings (permissive: no false negatives for alias moves).
+     */
+    private boolean preparationContainsRequiredKeyMoves(List<MoveSet> moveSets) {
+        for (MoveSet ms : moveSets) {
+            if (ms instanceof KeyMoveSet kms && !kms.requiredMoves().isEmpty()) {
+                boolean found = false;
+                for (KeyEvent event : events) {
+                    for (KeyComboMove move : kms.requiredMoves()) {
+                        if (moveMatchesEvent(move, event, Map.of(), Map.of())) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        break;
+                }
+                if (!found)
+                    return false;
+            }
+        }
+        return true;
     }
 
     /**
