@@ -906,6 +906,7 @@ public class ComboWatcher implements ModeListener {
         combosWaitingForLastMoveToComplete.clear();
         leadingWaitBeginTimeByCombo.clear();
         lastEventTimeByKey.clear();
+        lastProcessingSet = null;
     }
 
     public void reset() {

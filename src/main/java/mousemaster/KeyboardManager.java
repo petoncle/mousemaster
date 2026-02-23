@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -215,8 +216,11 @@ public class KeyboardManager {
         for (ComboAndMatch comboAndMatch : completedCombos) {
             Combo combo = comboAndMatch.combo();
             ComboSequenceMatch match = comboAndMatch.match();
-            Set<Key> pressedKeysInCompletedCombo =
-                    combo.keysPressedAfterMoves(Set.of(), match.matchedKeyMoves());
+            Set<Key> pressedKeysInCompletedCombo = new HashSet<>(
+                    combo.keysPressedAfterMoves(Set.of(), match.matchedKeyMoves()));
+            // Absorbed pressed keys (e.g. +d in {+a -a +b -b +{d}}) are also
+            // part of the completed combo and should not be regurgitated.
+            pressedKeysInCompletedCombo.addAll(match.absorbedPressedKeys());
             completedCombosHavePressedKeys |= !pressedKeysInCompletedCombo.isEmpty();
 
             for (Key key : pressedKeysInCompletedCombo) {
