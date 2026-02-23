@@ -553,4 +553,113 @@ class ComboPreparationTest {
         assertTrue(match.complete());
         assertEquals(1, match.matchedKeyMoves().size());
     }
+
+    // --- KeyMoveSet with ignored keys ---
+
+    @Test
+    void ignoredKeys_interleavedIgnoredEvent_complete() {
+        // {-a -b #{*}}: events [-a, +x, -b] → +x is ignored, -a and -b match.
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(10)), release(b, t(20)))
+                .match(parseCombo("{-a -b #{*}}", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_noInterleavedEvents_complete() {
+        // {-a -b #{*}}: events [-a, -b] → no ignored events needed, still matches.
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), release(b, t(10)))
+                .match(parseCombo("{-a -b #{*}}", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_multipleInterleavedEvents_complete() {
+        // {-a -b #{*}}: events [-a, +x, +y, -b] → +x and +y are ignored.
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(10)), press(y, t(20)),
+                release(b, t(30)))
+                .match(parseCombo("{-a -b #{*}}", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_specificKeysOnly_nonIgnoredFails() {
+        // {-a -b #{x}}: events [-a, +y, -b] → +y is NOT in ignored set, no match.
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(y, t(10)), release(b, t(20)))
+                .match(parseCombo("{-a -b #{x}}", Map.of()));
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void ignoredKeys_specificKeysOnly_ignoredSucceeds() {
+        // {-a -b #{x}}: events [-a, +x, -b] → +x is in ignored set, match.
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(10)), release(b, t(20)))
+                .match(parseCombo("{-a -b #{x}}", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_withFollowingMoveSet_complete() {
+        // {-a -b #{*}} +c: events [-a, +x, -b, +c].
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(10)),
+                release(b, t(20)), press(c, t(30)))
+                .match(parseCombo("{-a -b #{*}} +c", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_absorbedEventsTracked() {
+        // {-a #{*}}: events [-a, +x] → -a matches, +x is ignored (last event).
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(10)))
+                .match(parseCombo("{-a #{*}}", Map.of()));
+        assertTrue(match.complete());
+        assertTrue(match.lastEventAbsorbedByWait());
+        assertEquals(1, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_aliasExpandedIntoMoves_complete() {
+        // {-*ab #{*}} with ab=a,b → {-a -b #{*}}: events [-a, +x, -b].
+        Map<String, KeyAlias> aliases =
+                Map.of("ab", new KeyAlias("ab", List.of(a, b)));
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(10)), release(b, t(20)))
+                .match(parseCombo("{-*ab #{*}}", aliases));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_aliasInIgnoredKeySet_complete() {
+        // {-a #{ab}} with ab=a,b: events [-a, +b] → +b is in ignored set.
+        Map<String, KeyAlias> aliases =
+                Map.of("ab", new KeyAlias("ab", List.of(a, b)));
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(b, t(10)))
+                .match(parseCombo("{-a #{ab}}", aliases));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void ignoredKeys_aliasInIgnoredKeySet_nonAliasKeyFails() {
+        // {-a #{ab}} with ab=a,b: events [-a, +x] → +x is NOT in ignored set.
+        Map<String, KeyAlias> aliases =
+                Map.of("ab", new KeyAlias("ab", List.of(a, b)));
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(10)))
+                .match(parseCombo("{-a #{ab}}", aliases));
+        assertFalse(match.complete());
+    }
 }

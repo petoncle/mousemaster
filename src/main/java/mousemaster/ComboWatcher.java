@@ -140,6 +140,12 @@ public class ComboWatcher implements ModeListener {
                                 effectiveDuration = new ComboMoveDuration(
                                         effectiveDuration.min(), wm.duration().max());
                             }
+                            else if (lastMatchedMoveSet instanceof KeyMoveSet keyMoveSet
+                                     && keyMoveSet.canAbsorbEvents()) {
+                                effectiveDuration = new ComboMoveDuration(
+                                        effectiveDuration.min(),
+                                        keyMoveSet.waitMove().duration().max());
+                            }
                         }
                         boolean tooMuch = effectiveDuration.tooMuchTimeHasPassed(
                                 lastMatchedEvent.time(), currentTime);
@@ -364,9 +370,11 @@ public class ComboWatcher implements ModeListener {
             comboPreparation.events().removeLast();
         }
         if (!processingSet.isPartOfComboSequence()) {
-            boolean couldMatchOptional = event != null && event.isPress() &&
-                    keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(event.key());
-            if (!couldMatchOptional) {
+            boolean couldMatchOptional = event.isPress() &&
+                                         keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(
+                                                 event.key());
+            boolean ignoredByKeyMoveSet = keyEventIgnoredByFirstKeyMoveSetInAnyCombo(event);
+            if (!couldMatchOptional && !ignoredByKeyMoveSet) {
                 comboPreparation = ComboPreparation.empty();
             }
             boolean isIgnoredByLeadingWait = event.isPress() &&
@@ -525,12 +533,25 @@ public class ComboWatcher implements ModeListener {
                         mustBeEaten = wm.ignoredKeysEatEvents();
                     }
                 }
+                else if (lastMatchedMoveSet instanceof KeyMoveSet keyMoveSet
+                         && keyMoveSet.canAbsorbEvents()) {
+                    newComboDuration = new ComboMoveDuration(
+                            newComboDuration.min(),
+                            keyMoveSet.waitMove().duration().max());
+                    if (match.lastEventAbsorbedByWait()) {
+                        mustBeEaten = keyMoveSet.waitMove().ignoredKeysEatEvents();
+                    }
+                }
                 // Compute ignored keys from the last matched MoveSet.
-                // If it's an absorbing wait, its ignored keys should not reset the preparation.
+                // If it's an absorbing MoveSet, its ignored keys should not reset the preparation.
                 KeySet comboIgnoredKeySet;
                 if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet2
                     && waitMoveSet2.canAbsorbEvents()) {
                     comboIgnoredKeySet = waitMoveSet2.waitMove().ignoredKeySet();
+                }
+                else if (lastMatchedMoveSet instanceof KeyMoveSet keyMoveSet2
+                         && keyMoveSet2.canAbsorbEvents()) {
+                    comboIgnoredKeySet = keyMoveSet2.waitMove().ignoredKeySet();
                 }
                 else {
                     comboIgnoredKeySet = KeySet.NONE;
@@ -946,6 +967,26 @@ public class ComboWatcher implements ModeListener {
                 if (optMove.isPress() && optionalMoveMatchesKey(optMove, key))
                     return true;
             }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if the given event is ignored by the first absorbing
+     * KeyMoveSet in any combo of the current mode, or could match one of
+     * its moves. This prevents the preparation from being cleared.
+     */
+    private boolean keyEventIgnoredByFirstKeyMoveSetInAnyCombo(KeyEvent event) {
+        for (Combo combo : currentMode.comboMap().commandsByCombo().keySet()) {
+            if (combo.sequence().isEmpty())
+                continue;
+            MoveSet first = combo.sequence().moveSets().getFirst();
+            if (!(first instanceof KeyMoveSet kms) || !kms.canAbsorbEvents())
+                continue;
+            if (kms.waitMove().ignoredKeySet().contains(event.key()))
+                return true;
+            if (ComboPreparation.anyMoveCouldMatchEvent(kms, event, Map.of(), Map.of()))
+                return true;
         }
         return false;
     }

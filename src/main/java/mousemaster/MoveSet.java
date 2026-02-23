@@ -12,8 +12,20 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
 
     boolean canAbsorbEvents();
 
+    /**
+     * @param waitMove If non-null, defines which interleaved key events are
+     *                 ignored (absorbed) within this MoveSet — reuses
+     *                 {@link ComboMove.WaitComboMove} for its ignoredKeySet,
+     *                 ignoredKeysEatEvents, and duration fields.
+     */
     record KeyMoveSet(List<ComboMove.KeyComboMove> requiredMoves,
-                      List<ComboMove.KeyComboMove> optionalMoves) implements MoveSet {
+                      List<ComboMove.KeyComboMove> optionalMoves,
+                      ComboMove.WaitComboMove waitMove) implements MoveSet {
+
+        public KeyMoveSet(List<ComboMove.KeyComboMove> requiredMoves,
+                          List<ComboMove.KeyComboMove> optionalMoves) {
+            this(requiredMoves, optionalMoves, null);
+        }
 
         @Override
         public int minMoveCount() {
@@ -27,12 +39,16 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
 
         @Override
         public boolean canAbsorbEvents() {
-            return false;
+            return waitMove != null;
         }
 
         @Override
         public String toString() {
-            if (requiredMoves.size() + optionalMoves.size() == 1) {
+            String ignoredSpec = "";
+            if (waitMove != null) {
+                ignoredSpec = " " + waitMove;
+            }
+            if (requiredMoves.size() + optionalMoves.size() == 1 && ignoredSpec.isEmpty()) {
                 ComboMove move = requiredMoves.isEmpty() ? optionalMoves.getFirst() :
                         requiredMoves.getFirst();
                 return move.toString() + (requiredMoves.isEmpty() ? "?" : "");
@@ -41,6 +57,7 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
                    + Stream.concat(requiredMoves.stream().map(Object::toString),
                                    optionalMoves.stream().map(m -> m.toString() + "?"))
                            .collect(Collectors.joining(" "))
+                   + ignoredSpec
                    + "}";
         }
     }

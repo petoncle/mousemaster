@@ -15,7 +15,13 @@ import java.util.regex.Pattern;
 public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
 
     private static final Pattern MOVE_SET_OR_TOKEN_PATTERN =
-            Pattern.compile("([#+]!?\\{[^}]+\\}(?:-\\d+(?:-\\d+)?)?)|\\{([^}]+)\\}|(\\S+)");
+            Pattern.compile("([#+]!?\\{[^}]+\\}(?:-\\d+(?:-\\d+)?)?)|(\\{(?:[^{}]|\\{[^}]*\\})+\\})|(\\S+)");
+
+    // Tokenizes inside braces: matches either an ignored-key spec or a regular move token.
+    // Group 1: ignored-key spec like #{a b}-0-500 or +{*}
+    // Group 2: regular move token
+    private static final Pattern BRACE_CONTENT_TOKEN_PATTERN =
+            Pattern.compile("([#+]!?\\{[^}]+\\}(?:-\\d+(?:-\\d+)?)?)|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
             Pattern.compile("([+\\-#])(!?)(\\*?)([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
@@ -89,18 +95,53 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             }
             else if (matcher.group(2) != null) {
                 // {+a -b +c}: set of moves (any-order within the set)
-                String content = matcher.group(2).strip();
-                String[] moveTokens = content.split("\\s+");
+                // Group 2 now includes the outer braces, strip them.
+                String raw = matcher.group(2);
+                String content = raw.substring(1, raw.length() - 1).strip();
                 Set<ComboAliasMove> moveSet = new LinkedHashSet<>();
-                for (String moveToken : moveTokens) {
-                    ComboAliasMove move = parseMove(moveToken, defaultMoveDuration);
-                    if (move.expand()) {
-                        // Inside braces: expand alias into individual key
-                        // moves in the same MoveSet (any-order).
-                        expandAliasIntoMoves(move, aliases, moveSet);
+                Matcher braceTokenMatcher = BRACE_CONTENT_TOKEN_PATTERN.matcher(content);
+                while (braceTokenMatcher.find()) {
+                    if (braceTokenMatcher.group(1) != null) {
+                        // Ignored-key spec inside braces: #{keys}, +{*}, etc.
+                        Matcher ignoreMatcher = IGNORE_PATTERN.matcher(braceTokenMatcher.group(1));
+                        if (!ignoreMatcher.matches())
+                            throw new IllegalArgumentException(
+                                    "Invalid ignore token inside braces: " + braceTokenMatcher.group(1));
+                        boolean ignoredKeysEatEvents = ignoreMatcher.group(1).equals("+");
+                        boolean allExcept = !ignoreMatcher.group(2).isEmpty();
+                        String ignoreContent = ignoreMatcher.group(3).strip();
+                        ComboMoveDuration waitDuration = new ComboMoveDuration(
+                                Duration.ofMillis(ignoreMatcher.group(4) == null ? 0 :
+                                        Integer.parseUnsignedInt(ignoreMatcher.group(4))),
+                                ignoreMatcher.group(6) == null ? null : Duration.ofMillis(
+                                        Integer.parseUnsignedInt(ignoreMatcher.group(6))));
+                        Set<String> keyNames;
+                        boolean listedKeysAreIgnored;
+                        if (ignoreContent.equals("*")) {
+                            keyNames = Set.of();
+                            listedKeysAreIgnored = false;
+                        }
+                        else if (allExcept) {
+                            keyNames = Set.of(ignoreContent.split("\\s+"));
+                            listedKeysAreIgnored = false;
+                        }
+                        else {
+                            keyNames = Set.of(ignoreContent.split("\\s+"));
+                            listedKeysAreIgnored = true;
+                        }
+                        moveSet.add(new ComboAliasMove.WaitComboAliasMove(
+                                keyNames, listedKeysAreIgnored, ignoredKeysEatEvents, waitDuration));
                     }
                     else {
-                        moveSet.add(move);
+                        // Regular move token
+                        String moveToken = braceTokenMatcher.group(2);
+                        ComboAliasMove move = parseMove(moveToken, defaultMoveDuration);
+                        if (move.expand()) {
+                            expandAliasIntoMoves(move, aliases, moveSet);
+                        }
+                        else {
+                            moveSet.add(move);
+                        }
                     }
                 }
                 moveSets.add(moveSet);
@@ -207,30 +248,37 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                          KeyResolver keyResolver) {
         List<MoveSet> resolvedMoveSets = new ArrayList<>();
         for (Set<ComboAliasMove> aliasMoveSet : moveSets) {
-            // A MoveSet is either a single wait move or a set of key moves.
-            ComboAliasMove first = aliasMoveSet.iterator().next();
-            if (first instanceof ComboAliasMove.WaitComboAliasMove waitAliasMove) {
-                // Resolve key names to Key objects.
-                Set<Key> resolvedKeys = new HashSet<>();
-                for (String keyAliasOrKeyName : waitAliasMove.keyAliasOrKeyNames()) {
-                    KeyAlias waitAlias = aliases.get(keyAliasOrKeyName);
-                    if (waitAlias != null)
-                        resolvedKeys.addAll(waitAlias.keys());
-                    else
-                        resolvedKeys.add(keyResolver.resolve(keyAliasOrKeyName));
-                }
-                KeySet ignoredKeySet = waitAliasMove.listedKeysAreIgnored() ?
-                        new KeySet.Only(Set.copyOf(resolvedKeys)) :
-                        new KeySet.AllExcept(Set.copyOf(resolvedKeys));
+            // Check if the MoveSet contains a WaitComboAliasMove (ignored-key spec).
+            ComboAliasMove.WaitComboAliasMove waitAliasMove = null;
+            boolean hasKeyMoves = false;
+            for (ComboAliasMove m : aliasMoveSet) {
+                if (m instanceof ComboAliasMove.WaitComboAliasMove wam)
+                    waitAliasMove = wam;
+                else
+                    hasKeyMoves = true;
+            }
+            // Pure wait MoveSet (standalone #{*}, wait, etc.)
+            if (waitAliasMove != null && !hasKeyMoves) {
+                KeySet ignoredKeySet = resolveIgnoredKeySet(waitAliasMove, aliases, keyResolver);
                 WaitComboMove waitMove = new WaitComboMove(
                         ignoredKeySet, waitAliasMove.ignoredKeysEatEvents(),
                         waitAliasMove.duration());
                 resolvedMoveSets.add(new WaitMoveSet(waitMove));
                 continue;
             }
+            // Resolve ignored-key spec if present alongside key moves.
+            WaitComboMove resolvedWaitMove = null;
+            if (waitAliasMove != null) {
+                KeySet ignoredKeySet = resolveIgnoredKeySet(waitAliasMove, aliases, keyResolver);
+                resolvedWaitMove = new WaitComboMove(
+                        ignoredKeySet, waitAliasMove.ignoredKeysEatEvents(),
+                        waitAliasMove.duration());
+            }
             List<KeyComboMove> required = new ArrayList<>();
             List<KeyComboMove> optional = new ArrayList<>();
             for (ComboAliasMove aliasMove : aliasMoveSet) {
+                if (aliasMove instanceof ComboAliasMove.WaitComboAliasMove)
+                    continue; // Already handled above.
                 KeyOrAlias keyOrAlias;
                 KeyAlias alias = aliases.get(aliasMove.aliasOrKeyName());
                 if (alias != null)
@@ -248,7 +296,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                             new ReleaseComboMove(keyOrAlias,
                                     releaseMove.negated(),
                                     aliasMove.duration());
-                    case ComboAliasMove.WaitComboAliasMove waitMove ->
+                    case ComboAliasMove.WaitComboAliasMove wm ->
                             throw new IllegalStateException();
                 };
                 if (aliasMove.optional())
@@ -257,9 +305,26 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     required.add(comboMove);
             }
             resolvedMoveSets.add(
-                    new KeyMoveSet(List.copyOf(required), List.copyOf(optional)));
+                    new KeyMoveSet(List.copyOf(required), List.copyOf(optional),
+                            resolvedWaitMove));
         }
         return new ComboSequence(List.copyOf(resolvedMoveSets));
+    }
+
+    private static KeySet resolveIgnoredKeySet(ComboAliasMove.WaitComboAliasMove waitAliasMove,
+                                                Map<String, KeyAlias> aliases,
+                                                KeyResolver keyResolver) {
+        Set<Key> resolvedKeys = new HashSet<>();
+        for (String keyAliasOrKeyName : waitAliasMove.keyAliasOrKeyNames()) {
+            KeyAlias waitAlias = aliases.get(keyAliasOrKeyName);
+            if (waitAlias != null)
+                resolvedKeys.addAll(waitAlias.keys());
+            else
+                resolvedKeys.add(keyResolver.resolve(keyAliasOrKeyName));
+        }
+        return waitAliasMove.listedKeysAreIgnored() ?
+                new KeySet.Only(Set.copyOf(resolvedKeys)) :
+                new KeySet.AllExcept(Set.copyOf(resolvedKeys));
     }
 
 }

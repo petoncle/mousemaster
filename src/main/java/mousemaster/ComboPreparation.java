@@ -208,21 +208,34 @@ public record ComboPreparation(List<KeyEvent> events) {
              laterMoveSetIndex < moveSets.size(); laterMoveSetIndex++)
             minEventCountForRemainingMoveSets +=
                     moveSets.get(laterMoveSetIndex).minMoveCount();
-        int maxEventCountForMoveSet = Math.min(keyMoveSet.maxMoveCount(),
-                remainingEventCount - minEventCountForRemainingMoveSets);
+        int maxEventCountForMoveSet;
+        if (keyMoveSet.canAbsorbEvents()) {
+            maxEventCountForMoveSet = remainingEventCount - minEventCountForRemainingMoveSets;
+        }
+        else {
+            maxEventCountForMoveSet = Math.min(keyMoveSet.maxMoveCount(),
+                    remainingEventCount - minEventCountForRemainingMoveSets);
+        }
 
         for (int eventCount = maxEventCountForMoveSet;
              eventCount >= keyMoveSet.minMoveCount(); eventCount--) {
             List<ResolvedKeyComboMove> moveSetMatchedKeyMoves = new ArrayList<>();
             Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
             Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
+            boolean[] moveSetLastEventAbsorbed = {false};
+            Set<Key> moveSetAbsorbedPressedKeys = new HashSet<>();
             if (tryMatchMoveSetEvents(eventIndex, eventCount, keyMoveSet,
                     regionBeginIndex, matchedKeyMoves, moveSetMatchedKeyMoves,
-                    aliasBindings, negatedBindings)) {
+                    aliasBindings, negatedBindings,
+                    moveSetLastEventAbsorbed, moveSetAbsorbedPressedKeys)) {
                 int savedSize = matchedKeyMoves.size();
                 int savedLastKeyMoveEventIndex = lastKeyMoveEventIndex[0];
+                boolean savedLastEventAbsorbed = lastEventAbsorbed[0];
                 matchedKeyMoves.addAll(moveSetMatchedKeyMoves);
                 lastKeyMoveEventIndex[0] = eventIndex + eventCount - 1;
+                if (moveSetLastEventAbsorbed[0])
+                    lastEventAbsorbed[0] = true;
+                absorbedPressedKeys.addAll(moveSetAbsorbedPressedKeys);
                 if (tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
                         eventIndex + eventCount, eventEndIndex,
                         regionBeginIndex, matchedKeyMoves, aliasBindings,
@@ -230,6 +243,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                         absorbedPressedKeys))
                     return true;
                 lastKeyMoveEventIndex[0] = savedLastKeyMoveEventIndex;
+                lastEventAbsorbed[0] = savedLastEventAbsorbed;
+                absorbedPressedKeys.removeAll(moveSetAbsorbedPressedKeys);
                 while (matchedKeyMoves.size() > savedSize)
                     matchedKeyMoves.removeLast();
             }
@@ -251,14 +266,30 @@ public record ComboPreparation(List<KeyEvent> events) {
      * Duration constraint: the time between consecutive events must satisfy the
      * duration of the previous matched key move. The first event in the matched region
      * has no duration constraint.
+     * <p>
+     * When the KeyMoveSet can absorb events (has ignored keys), events that don't match
+     * any move can be ignored if they match the ignoredKeySet.
      */
     private boolean tryMatchMoveSetEvents(
             int eventBeginIndex, int eventCount, KeyMoveSet keyMoveSet,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
-            Map<String, Key> negatedBindings) {
+            Map<String, Key> negatedBindings,
+            boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys) {
         if (eventCount == 0)
             return true;
+
+        // If this KeyMoveSet can absorb events and eventCount > required + optional,
+        // use the ignored-key matching path.
+        if (keyMoveSet.canAbsorbEvents() &&
+            eventCount > keyMoveSet.maxMoveCount()) {
+            return tryMatchMoveSetEventsWithIgnoredKeys(
+                    eventBeginIndex, eventCount, keyMoveSet,
+                    regionBeginIndex, previousMatchedKeyMoves,
+                    matchedKeyMoves, aliasBindings, negatedBindings,
+                    lastEventAbsorbed, absorbedPressedKeys);
+        }
+
         List<KeyComboMove> required = keyMoveSet.requiredMoves();
         List<KeyComboMove> optional = keyMoveSet.optionalMoves();
         int optionalToUseCount = eventCount - required.size();
@@ -266,7 +297,8 @@ public record ComboPreparation(List<KeyEvent> events) {
             return false;
 
         // Fast path: singleton MoveSet (one required, no optionals).
-        if (eventCount == 1 && required.size() == 1 && optional.isEmpty()) {
+        if (eventCount == 1 && required.size() == 1 && optional.isEmpty() &&
+            !keyMoveSet.canAbsorbEvents()) {
             KeyComboMove move = required.getFirst();
             KeyEvent event = events.get(eventBeginIndex);
             if (!moveMatchesEvent(move, event, aliasBindings, negatedBindings))
@@ -287,6 +319,145 @@ public record ComboPreparation(List<KeyEvent> events) {
                 optionalToUseCount, 0, new ArrayList<>(required),
                 regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
                 aliasBindings, negatedBindings);
+    }
+
+    /**
+     * Matches events against a KeyMoveSet that has ignored keys. Uses recursive
+     * backtracking: for each event, try to assign it to an unused move (if it
+     * matches), or ignore it (if the key is in the ignoredKeySet). All required
+     * moves must be assigned and all events must be processed.
+     */
+    private boolean tryMatchMoveSetEventsWithIgnoredKeys(
+            int eventBeginIndex, int eventCount, KeyMoveSet keyMoveSet,
+            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
+            List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
+            Map<String, Key> negatedBindings,
+            boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys) {
+        List<KeyComboMove> required = keyMoveSet.requiredMoves();
+        List<KeyComboMove> optional = keyMoveSet.optionalMoves();
+        List<KeyComboMove> allMoves = new ArrayList<>(required);
+        allMoves.addAll(optional);
+        boolean[] moveUsed = new boolean[allMoves.size()];
+        ResolvedKeyComboMove[] assignedMovesForEvents = new ResolvedKeyComboMove[eventCount];
+        boolean[] eventIsIgnored = new boolean[eventCount];
+        ComboMove.WaitComboMove wm = keyMoveSet.waitMove();
+        if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, allMoves,
+                required.size(), moveUsed, assignedMovesForEvents, eventIsIgnored,
+                wm.ignoredKeySet(), wm.duration(),
+                regionBeginIndex, previousMatchedKeyMoves,
+                aliasBindings, negatedBindings)) {
+            // Collect matched key moves (non-ignored events).
+            for (int i = 0; i < eventCount; i++) {
+                if (!eventIsIgnored[i]) {
+                    matchedKeyMoves.add(assignedMovesForEvents[i]);
+                }
+            }
+            // Track absorbed (ignored) events.
+            int lastEventIndex = events.size() - 1;
+            for (int i = 0; i < eventCount; i++) {
+                if (eventIsIgnored[i]) {
+                    int globalIdx = eventBeginIndex + i;
+                    if (globalIdx == lastEventIndex)
+                        lastEventAbsorbed[0] = true;
+                    KeyEvent absorbed = events.get(globalIdx);
+                    if (absorbed.isPress())
+                        absorbedPressedKeys.add(absorbed.key());
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Recursive backtracking for matching events against a KeyMoveSet with ignored keys.
+     * For each event, tries:
+     * 1. Assigning to an unused move (if it matches).
+     * 2. Ignoring the event (if the key is in the ignoredKeySet).
+     * Terminates when all events are processed and all required moves are assigned.
+     */
+    private boolean assignEventsWithIgnoredKeys(
+            int eventBeginIndex, int eventOffset, int eventCount,
+            List<KeyComboMove> allMoves, int requiredCount,
+            boolean[] moveUsed, ResolvedKeyComboMove[] assignedMoves,
+            boolean[] eventIsIgnored,
+            KeySet ignoredKeySet, ComboMoveDuration ignoredKeysDuration,
+            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
+            Map<String, Key> aliasBindings, Map<String, Key> negatedBindings) {
+        if (eventOffset == eventCount) {
+            // All events processed. Check that all required moves are assigned.
+            for (int i = 0; i < requiredCount; i++)
+                if (!moveUsed[i])
+                    return false;
+            return true;
+        }
+
+        int globalEventIndex = eventBeginIndex + eventOffset;
+        KeyEvent event = events.get(globalEventIndex);
+
+        // Duration check between consecutive events.
+        if (globalEventIndex > regionBeginIndex && eventOffset > 0) {
+            KeyEvent previousEvent = events.get(globalEventIndex - 1);
+            if (eventIsIgnored[eventOffset - 1]) {
+                // Previous event was ignored: check ignoredKeysDuration if set.
+                if (ignoredKeysDuration != null &&
+                    !ignoredKeysDuration.satisfied(previousEvent.time(), event.time()))
+                    return false;
+            }
+            else {
+                // Previous event was a matched move: check its move duration.
+                ResolvedKeyComboMove previousMove = assignedMoves[eventOffset - 1];
+                if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
+                    return false;
+            }
+        }
+        else if (globalEventIndex > regionBeginIndex && eventOffset == 0) {
+            // First event of this MoveSet but not first in region:
+            // check duration from previous region event.
+            KeyEvent previousEvent = events.get(globalEventIndex - 1);
+            ResolvedKeyComboMove previousMove = previousMatchedKeyMoves.getLast();
+            if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
+                return false;
+        }
+
+        // Try assigning to an unused move.
+        for (int moveIndex = 0; moveIndex < allMoves.size(); moveIndex++) {
+            if (moveUsed[moveIndex]) continue;
+            KeyComboMove move = allMoves.get(moveIndex);
+            if (moveMatchesEvent(move, event, aliasBindings, negatedBindings)) {
+                moveUsed[moveIndex] = true;
+                eventIsIgnored[eventOffset] = false;
+                Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
+                Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
+                bindAlias(move, event.key(), aliasBindings, negatedBindings);
+                assignedMoves[eventOffset] = resolvedMove(move, event.key());
+                if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
+                        eventCount, allMoves, requiredCount, moveUsed,
+                        assignedMoves, eventIsIgnored, ignoredKeySet,
+                        ignoredKeysDuration, regionBeginIndex,
+                        previousMatchedKeyMoves, aliasBindings, negatedBindings))
+                    return true;
+                moveUsed[moveIndex] = false;
+                aliasBindings.clear();
+                aliasBindings.putAll(savedAliasBindings);
+                negatedBindings.clear();
+                negatedBindings.putAll(savedNegatedBindings);
+            }
+        }
+
+        // Try ignoring this event.
+        if (ignoredKeySet.contains(event.key())) {
+            eventIsIgnored[eventOffset] = true;
+            assignedMoves[eventOffset] = null;
+            if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
+                    eventCount, allMoves, requiredCount, moveUsed,
+                    assignedMoves, eventIsIgnored, ignoredKeySet,
+                    ignoredKeysDuration, regionBeginIndex,
+                    previousMatchedKeyMoves, aliasBindings, negatedBindings))
+                return true;
+        }
+
+        return false;
     }
 
     /**
@@ -409,7 +580,7 @@ public record ComboPreparation(List<KeyEvent> events) {
         return false;
     }
 
-    private static boolean anyMoveCouldMatchEvent(KeyMoveSet keyMoveSet, KeyEvent event,
+    static boolean anyMoveCouldMatchEvent(KeyMoveSet keyMoveSet, KeyEvent event,
                                                   Map<String, Key> aliasBindings,
                                                   Map<String, Key> negatedBindings) {
         for (KeyComboMove m : keyMoveSet.requiredMoves())

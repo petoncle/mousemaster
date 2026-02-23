@@ -1,9 +1,11 @@
 package mousemaster;
 
 import mousemaster.ComboAliasMove.WaitComboAliasMove;
+import mousemaster.MoveSet.KeyMoveSet;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -144,6 +146,71 @@ class ExpandableSequenceTest {
         assertTrue(move.ignoredKeysEatEvents());
         assertEquals(Duration.ZERO, move.duration().min());
         assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
+    }
+
+    // --- #{}/+{} inside braces (ignored keys in KeyMoveSet) ---
+
+    static final KeyResolver identityKeyResolver = new KeyResolver(
+            new KeyboardLayout("test", "test", "test", "test", List.of()),
+            new KeyboardLayout("test", "test", "test", "test", List.of()));
+
+    private static KeyMoveSet parseMoveSetWithIgnoredKeys(String input) {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence(input, defaultDuration, Map.of());
+        assertEquals(1, seq.moveSets().size());
+        Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
+        // Should have at least a key move and a wait alias move.
+        assertTrue(moveSet.size() >= 2);
+        // Resolve to ComboSequence to get a KeyMoveSet with ignored key fields.
+        ComboSequence comboSeq = seq.toComboSequence(Map.of(), identityKeyResolver);
+        assertEquals(1, comboSeq.moveSets().size());
+        assertInstanceOf(KeyMoveSet.class, comboSeq.moveSets().getFirst());
+        return (KeyMoveSet) comboSeq.moveSets().getFirst();
+    }
+
+    @Test
+    void moveSetIgnoreAll() {
+        KeyMoveSet kms = parseMoveSetWithIgnoredKeys("{-a -b #{*}}");
+        assertEquals(2, kms.requiredMoves().size());
+        assertTrue(kms.canAbsorbEvents());
+        assertNotNull(kms.waitMove());
+        assertEquals(KeySet.ALL, kms.waitMove().ignoredKeySet());
+        assertFalse(kms.waitMove().ignoredKeysEatEvents());
+    }
+
+    @Test
+    void moveSetIgnoreAllEat() {
+        KeyMoveSet kms = parseMoveSetWithIgnoredKeys("{+x +{*}}");
+        assertEquals(1, kms.requiredMoves().size());
+        assertTrue(kms.canAbsorbEvents());
+        assertNotNull(kms.waitMove());
+        assertEquals(KeySet.ALL, kms.waitMove().ignoredKeySet());
+        assertTrue(kms.waitMove().ignoredKeysEatEvents());
+    }
+
+    @Test
+    void moveSetIgnoreKeysWithDuration() {
+        KeyMoveSet kms = parseMoveSetWithIgnoredKeys("{+x #{a b}-0-500}");
+        assertEquals(1, kms.requiredMoves().size());
+        assertTrue(kms.canAbsorbEvents());
+        assertNotNull(kms.waitMove());
+        assertInstanceOf(KeySet.Only.class, kms.waitMove().ignoredKeySet());
+        Set<Key> ignoredKeys = ((KeySet.Only) kms.waitMove().ignoredKeySet()).keys();
+        assertEquals(Set.of(Key.ofName("a"), Key.ofName("b")), ignoredKeys);
+        assertEquals(Duration.ZERO, kms.waitMove().duration().min());
+        assertEquals(Duration.ofMillis(500), kms.waitMove().duration().max());
+    }
+
+    @Test
+    void moveSetIgnoredKeysDoNotInterfereWithStandaloneIgnore() {
+        // Standalone #{*} should still parse as a WaitMoveSet.
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("+a #{*} +b", defaultDuration, Map.of());
+        assertEquals(3, seq.moveSets().size());
+        ComboSequence comboSeq = seq.toComboSequence(Map.of(), identityKeyResolver);
+        assertInstanceOf(KeyMoveSet.class, comboSeq.moveSets().get(0));
+        assertInstanceOf(MoveSet.WaitMoveSet.class, comboSeq.moveSets().get(1));
+        assertInstanceOf(KeyMoveSet.class, comboSeq.moveSets().get(2));
     }
 
 }

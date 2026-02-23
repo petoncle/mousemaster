@@ -5,6 +5,7 @@ import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,7 +18,7 @@ public record ComboSequence(List<MoveSet> moveSets) {
     }
 
     public Set<Key> allKeys() {
-        Set<Key> keys = new java.util.HashSet<>();
+        Set<Key> keys = new HashSet<>();
         for (MoveSet moveSet : moveSets) {
             switch (moveSet) {
                 case WaitMoveSet waitMoveSet -> {
@@ -27,11 +28,19 @@ public record ComboSequence(List<MoveSet> moveSets) {
                         case KeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
                     }
                 }
-                case KeyMoveSet keyMoveSet ->
+                case KeyMoveSet keyMoveSet -> {
                     Stream.concat(keyMoveSet.requiredMoves().stream(),
                                   keyMoveSet.optionalMoves().stream())
                           .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
                           .forEach(keys::add);
+                    if (keyMoveSet.waitMove() != null) {
+                        KeySet ignoredKeySet = keyMoveSet.waitMove().ignoredKeySet();
+                        switch (ignoredKeySet) {
+                            case KeySet.Only only -> keys.addAll(only.keys());
+                            case KeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
+                        }
+                    }
+                }
             }
         }
         return keys;
