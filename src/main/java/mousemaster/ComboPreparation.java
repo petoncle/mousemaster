@@ -59,7 +59,13 @@ public record ComboPreparation(List<KeyEvent> events) {
                 if (moveSet.canAbsorbEvents())
                     hasAbsorbingWait = true;
             }
-            if (minTotalEventCount > events.size())
+            // Compute partial minimum: allow the last KeyMoveSet to match with
+            // fewer events (down to 1) so that partial matches are detected.
+            int partialMinTotalEventCount = minTotalEventCount;
+            MoveSet lastSubMoveSet = subMoveSets.getLast();
+            if (lastSubMoveSet instanceof KeyMoveSet lastKms && lastKms.minMoveCount() > 1)
+                partialMinTotalEventCount = minTotalEventCount - lastKms.minMoveCount() + 1;
+            if (partialMinTotalEventCount > events.size())
                 continue;
             // Absorbing waits can consume arbitrary events, so max is events.size().
             int effectiveMaxEventCount = hasAbsorbingWait ?
@@ -67,8 +73,11 @@ public record ComboPreparation(List<KeyEvent> events) {
 
             // Try consuming totalEventCount events from the end of the preparation,
             // starting with the most events (greediest match) first.
+            // Full matches (totalEventCount >= minTotalEventCount) are tried before
+            // partial matches (totalEventCount < minTotalEventCount).
             for (int totalEventCount = effectiveMaxEventCount;
-                 totalEventCount >= minTotalEventCount; totalEventCount--) {
+                 totalEventCount >= partialMinTotalEventCount; totalEventCount--) {
+                boolean isPartial = totalEventCount < minTotalEventCount;
                 int regionBeginIndex = events.size() - totalEventCount;
                 List<ResolvedKeyComboMove> matchedKeyMoves = new ArrayList<>();
                 Map<String, Key> aliasBindings = new HashMap<>();
@@ -80,10 +89,11 @@ public record ComboPreparation(List<KeyEvent> events) {
                         regionBeginIndex + totalEventCount, regionBeginIndex,
                         matchedKeyMoves, aliasBindings, negatedBindings,
                         lastEventAbsorbed, lastKeyMoveEventIndex,
-                        absorbedPressedKeys)) {
-                    boolean complete = (k == moveSets.size());
+                        absorbedPressedKeys, isPartial)) {
+                    boolean complete = !isPartial && (k == moveSets.size());
+                    int moveSetCount = isPartial ? k - 1 : k;
                     return new ComboSequenceMatch(List.copyOf(matchedKeyMoves), complete,
-                            k, lastKeyMoveEventIndex[0], lastEventAbsorbed[0],
+                            moveSetCount, lastKeyMoveEventIndex[0], lastEventAbsorbed[0],
                             Set.copyOf(absorbedPressedKeys),
                             new AliasResolution(Map.copyOf(aliasBindings),
                                     Map.copyOf(negatedBindings)));
@@ -106,7 +116,7 @@ public record ComboPreparation(List<KeyEvent> events) {
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
             boolean[] lastEventAbsorbed, int[] lastKeyMoveEventIndex,
-            Set<Key> absorbedPressedKeys) {
+            Set<Key> absorbedPressedKeys, boolean allowPartialLastMoveSet) {
         if (moveSetIndex == moveSets.size())
             return eventIndex == eventEndIndex;
 
@@ -176,7 +186,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                             nextEventIndex, eventEndIndex, nextEventIndex,
                             matchedKeyMoves, aliasBindings, negatedBindings,
                             lastEventAbsorbed, lastKeyMoveEventIndex,
-                            absorbedPressedKeys))
+                            absorbedPressedKeys, allowPartialLastMoveSet))
                         return true;
                     lastEventAbsorbed[0] = savedLastEventAbsorbed;
                     absorbedPressedKeys.removeAll(addedAbsorbedKeys);
@@ -197,17 +207,21 @@ public record ComboPreparation(List<KeyEvent> events) {
                         eventIndex, eventEndIndex, eventIndex,
                         matchedKeyMoves, aliasBindings, negatedBindings,
                         lastEventAbsorbed, lastKeyMoveEventIndex,
-                        absorbedPressedKeys);
+                        absorbedPressedKeys, allowPartialLastMoveSet);
             }
         }
 
         KeyMoveSet keyMoveSet = (KeyMoveSet) moveSet;
         int remainingEventCount = eventEndIndex - eventIndex;
         int minEventCountForRemainingMoveSets = 0;
-        for (int laterMoveSetIndex = moveSetIndex + 1;
-             laterMoveSetIndex < moveSets.size(); laterMoveSetIndex++)
-            minEventCountForRemainingMoveSets +=
-                    moveSets.get(laterMoveSetIndex).minMoveCount();
+        for (int later = moveSetIndex + 1; later < moveSets.size(); later++) {
+            MoveSet laterMoveSet = moveSets.get(later);
+            if (allowPartialLastMoveSet && later == moveSets.size() - 1
+                && laterMoveSet instanceof KeyMoveSet kms && kms.minMoveCount() > 1)
+                minEventCountForRemainingMoveSets += 1;
+            else
+                minEventCountForRemainingMoveSets += laterMoveSet.minMoveCount();
+        }
         int maxEventCountForMoveSet;
         if (keyMoveSet.canAbsorbEvents()) {
             maxEventCountForMoveSet = remainingEventCount - minEventCountForRemainingMoveSets;
@@ -217,8 +231,12 @@ public record ComboPreparation(List<KeyEvent> events) {
                     remainingEventCount - minEventCountForRemainingMoveSets);
         }
 
+        // For the last MoveSet, allow eventCount down to 1 if partial is allowed.
+        int minEventCount = (allowPartialLastMoveSet
+            && moveSetIndex == moveSets.size() - 1
+            && keyMoveSet.minMoveCount() > 1) ? 1 : keyMoveSet.minMoveCount();
         for (int eventCount = maxEventCountForMoveSet;
-             eventCount >= keyMoveSet.minMoveCount(); eventCount--) {
+             eventCount >= minEventCount; eventCount--) {
             List<ResolvedKeyComboMove> moveSetMatchedKeyMoves = new ArrayList<>();
             Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
             Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
@@ -240,7 +258,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                         eventIndex + eventCount, eventEndIndex,
                         regionBeginIndex, matchedKeyMoves, aliasBindings,
                         negatedBindings, lastEventAbsorbed, lastKeyMoveEventIndex,
-                        absorbedPressedKeys))
+                        absorbedPressedKeys, allowPartialLastMoveSet))
                     return true;
                 lastKeyMoveEventIndex[0] = savedLastKeyMoveEventIndex;
                 lastEventAbsorbed[0] = savedLastEventAbsorbed;
@@ -285,6 +303,7 @@ public record ComboPreparation(List<KeyEvent> events) {
             eventCount > keyMoveSet.maxMoveCount()) {
             return tryMatchMoveSetEventsWithIgnoredKeys(
                     eventBeginIndex, eventCount, keyMoveSet,
+                    keyMoveSet.requiredMoves().size(),
                     regionBeginIndex, previousMatchedKeyMoves,
                     matchedKeyMoves, aliasBindings, negatedBindings,
                     lastEventAbsorbed, absorbedPressedKeys);
@@ -293,7 +312,26 @@ public record ComboPreparation(List<KeyEvent> events) {
         List<KeyComboMove> required = keyMoveSet.requiredMoves();
         List<KeyComboMove> optional = keyMoveSet.optionalMoves();
         int optionalToUseCount = eventCount - required.size();
-        if (optionalToUseCount < 0 || optionalToUseCount > optional.size())
+        if (optionalToUseCount < 0) {
+            if (keyMoveSet.canAbsorbEvents()) {
+                // Partial matching with absorbed events: some events match key
+                // moves, others are absorbed. Not all required moves need to
+                // be assigned (requiredCount=0).
+                return tryMatchMoveSetEventsWithIgnoredKeys(
+                        eventBeginIndex, eventCount, keyMoveSet, 0,
+                        regionBeginIndex, previousMatchedKeyMoves,
+                        matchedKeyMoves, aliasBindings, negatedBindings,
+                        lastEventAbsorbed, absorbedPressedKeys);
+            }
+            // Partial matching: select eventCount moves from all moves.
+            List<KeyComboMove> allMoves = new ArrayList<>(required);
+            allMoves.addAll(optional);
+            return tryOptionalSubsets(eventBeginIndex, eventCount,
+                    allMoves, eventCount, 0, new ArrayList<>(),
+                    regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
+                    aliasBindings, negatedBindings);
+        }
+        if (optionalToUseCount > optional.size())
             return false;
 
         // Fast path: singleton MoveSet (one required, no optionals).
@@ -324,11 +362,14 @@ public record ComboPreparation(List<KeyEvent> events) {
     /**
      * Matches events against a KeyMoveSet that has ignored keys. Uses recursive
      * backtracking: for each event, try to assign it to an unused move (if it
-     * matches), or ignore it (if the key is in the ignoredKeySet). All required
-     * moves must be assigned and all events must be processed.
+     * matches), or ignore it (if the key is in the ignoredKeySet).
+     * When minimumRequiredCount == required.size(), all required moves must be
+     * assigned. When minimumRequiredCount == 0 (partial matching), no minimum
+     * is enforced on the number of assigned required moves.
      */
     private boolean tryMatchMoveSetEventsWithIgnoredKeys(
             int eventBeginIndex, int eventCount, KeyMoveSet keyMoveSet,
+            int minimumRequiredCount,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
@@ -342,7 +383,7 @@ public record ComboPreparation(List<KeyEvent> events) {
         boolean[] eventIsIgnored = new boolean[eventCount];
         ComboMove.WaitComboMove wm = keyMoveSet.waitMove();
         if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, allMoves,
-                required.size(), moveUsed, assignedMovesForEvents, eventIsIgnored,
+                minimumRequiredCount, moveUsed, assignedMovesForEvents, eventIsIgnored,
                 wm.ignoredKeySet(), wm.duration(),
                 regionBeginIndex, previousMatchedKeyMoves,
                 aliasBindings, negatedBindings)) {
@@ -389,6 +430,11 @@ public record ComboPreparation(List<KeyEvent> events) {
             for (int i = 0; i < requiredCount; i++)
                 if (!moveUsed[i])
                     return false;
+            // For non-partial matching (requiredCount > 0), absorbed events must
+            // be strictly interleaved between key moves: no leading or trailing.
+            if (requiredCount > 0 && eventCount > 0 &&
+                (eventIsIgnored[0] || eventIsIgnored[eventCount - 1]))
+                return false;
             return true;
         }
 

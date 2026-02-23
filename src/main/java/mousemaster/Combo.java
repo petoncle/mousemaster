@@ -212,23 +212,20 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         // Combo with mustBeActiveApps: _{firefox.exe|chrome.exe} ^{key|...} _{key|...} move1 move2 ...
         // Combo with mustNotBeActiveApps: ^{firefox.exe chrome.exe} ^{key|...} _{key|...} move1 move2 ...
         int comboBeginIndex = 0;
-        boolean rightBraceExpected = false;
+        int braceDepth = 0;
         List<Combo> combos = new ArrayList<>();
         for (int charIndex = 0; charIndex < multiComboString.length(); charIndex++) {
             char character = multiComboString.charAt(charIndex);
             if (character == '{') {
-                if (rightBraceExpected)
-                    throw new IllegalArgumentException(
-                            "Invalid multi-combo: " + multiComboString);
-                rightBraceExpected = true;
+                braceDepth++;
             }
             else if (character == '}') {
-                if (!rightBraceExpected)
+                if (braceDepth == 0)
                     throw new IllegalArgumentException(
                             "Invalid multi-combo: " + multiComboString);
-                rightBraceExpected = false;
+                braceDepth--;
             }
-            else if (character == '|' && !rightBraceExpected) {
+            else if (character == '|' && braceDepth == 0) {
                 combos.addAll(
                         of(multiComboString.substring(comboBeginIndex, charIndex).strip(),
                                 defaultMoveDuration, keyAliases, appAliases, keyResolver));

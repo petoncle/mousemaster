@@ -618,14 +618,15 @@ class ComboPreparationTest {
     }
 
     @Test
-    void ignoredKeys_absorbedEventsTracked() {
-        // {-a #{*}}: events [-a, +x] → -a matches, +x is ignored (last event).
+    void ignoredKeys_trailingAbsorbedEvent_noMatch() {
+        // {-a #{*}}: events [-a, +x] → -a matches, but +x is trailing absorbed
+        // (not interleaved). Absorbed events must be strictly between key moves.
+        // Suffix matching can only try [-a, +x] (rejected) or [+x] (doesn't
+        // match -a), so no match.
         ComboSequenceMatch match = prep(
                 release(a, t(0)), press(x, t(10)))
                 .match(parseCombo("{-a #{*}}", Map.of()));
-        assertTrue(match.complete());
-        assertTrue(match.lastEventAbsorbedByWait());
-        assertEquals(1, match.matchedKeyMoves().size());
+        assertFalse(match.hasMatch());
     }
 
     @Test
@@ -641,15 +642,15 @@ class ComboPreparationTest {
     }
 
     @Test
-    void ignoredKeys_aliasInIgnoredKeySet_complete() {
-        // {-a #{ab}} with ab=a,b: events [-a, +b] → +b is in ignored set.
+    void ignoredKeys_aliasInIgnoredKeySet_trailingAbsorbed_noMatch() {
+        // {-a #{ab}} with ab=a,b: events [-a, +b] → +b is in ignored set but
+        // trailing (not interleaved). No match.
         Map<String, KeyAlias> aliases =
                 Map.of("ab", new KeyAlias("ab", List.of(a, b)));
         ComboSequenceMatch match = prep(
                 release(a, t(0)), press(b, t(10)))
                 .match(parseCombo("{-a #{ab}}", aliases));
-        assertTrue(match.complete());
-        assertEquals(1, match.matchedKeyMoves().size());
+        assertFalse(match.hasMatch());
     }
 
     @Test
@@ -661,5 +662,84 @@ class ComboPreparationTest {
                 release(a, t(0)), press(x, t(10)))
                 .match(parseCombo("{-a #{ab}}", aliases));
         assertFalse(match.complete());
+    }
+
+    // --- Partial matching within a MoveSet ---
+
+    @Test
+    void partialMoveSet_basicPartial_hasMatch() {
+        // {+a +b} with events [+a] → partial match (hasMatch=true, complete=false).
+        ComboSequenceMatch match = prep(press(a, t(0)))
+                .match(parseCombo("{+a +b}", Map.of()));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertEquals(a, match.matchedKeyMoves().getFirst().key());
+        assertEquals(0, match.matchedMoveSetCount());
+    }
+
+    @Test
+    void partialMoveSet_fullMatchPriority() {
+        // {+a +b} with events [+a, +b] → full match (complete=true).
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
+                .match(parseCombo("{+a +b}", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+        assertEquals(1, match.matchedMoveSetCount());
+    }
+
+    @Test
+    void partialMoveSet_partialSecondMoveSet() {
+        // +a {+b +c} with events [+a, +b] → first MoveSet fully matched,
+        // second partially matched (hasMatch=true, complete=false, matchedMoveSetCount=1).
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(10)))
+                .match(parseCombo("+a {+b +c}", Map.of()));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+        assertEquals(1, match.matchedMoveSetCount());
+    }
+
+    @Test
+    void partialMoveSet_noFalseMatch() {
+        // {+a +b} with events [+c] → no match (neither a nor b).
+        ComboSequenceMatch match = prep(press(c, t(0)))
+                .match(parseCombo("{+a +b}", Map.of()));
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void partialMoveSet_withAbsorbing() {
+        // {+a +b #{*}} with events [+a] → partial match.
+        ComboSequenceMatch match = prep(press(a, t(0)))
+                .match(parseCombo("{+a +b #{*}}", Map.of()));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void partialMoveSet_withOptionalMatched() {
+        // {+a +b #c?} with events [+c] → partial match (optional matched).
+        ComboSequenceMatch match = prep(press(c, t(0)))
+                .match(parseCombo("{+a +b #c?}", Map.of()));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertEquals(c, match.matchedKeyMoves().getFirst().key());
+    }
+
+    @Test
+    void partialMoveSet_withAbsorbedEvent() {
+        // {+a -a +b -b +{d}} with events [+a, -a, +d]:
+        // +a and -a match key moves, +d is absorbed by +{d}.
+        // Partial match (hasMatch=true, complete=false).
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(a, t(10)), press(d, t(20)))
+                .match(parseCombo("{+a -a +b -b +{d}}", Map.of()));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+        assertEquals(a, match.matchedKeyMoves().get(0).key());
+        assertEquals(a, match.matchedKeyMoves().get(1).key());
     }
 }

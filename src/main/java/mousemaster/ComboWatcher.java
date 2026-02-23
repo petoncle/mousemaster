@@ -542,6 +542,17 @@ public class ComboWatcher implements ModeListener {
                         mustBeEaten = keyMoveSet.waitMove().ignoredKeysEatEvents();
                     }
                 }
+                // Partially-matched MoveSet: the event was absorbed by the
+                // MoveSet currently being partially matched (at index
+                // matchedMoveSetCount, not matchedMoveSetCount - 1).
+                else if (match.lastEventAbsorbedByWait()
+                         && match.matchedMoveSetCount() < moveSets.size()) {
+                    MoveSet partialMoveSet = moveSets.get(match.matchedMoveSetCount());
+                    if (partialMoveSet instanceof KeyMoveSet partialKeyMoveSet
+                        && partialKeyMoveSet.canAbsorbEvents()) {
+                        mustBeEaten = partialKeyMoveSet.waitMove().ignoredKeysEatEvents();
+                    }
+                }
                 // Compute ignored keys from the last matched MoveSet.
                 // If it's an absorbing MoveSet, its ignored keys should not reset the preparation.
                 KeySet comboIgnoredKeySet;
