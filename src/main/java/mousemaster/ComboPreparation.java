@@ -68,7 +68,28 @@ public record ComboPreparation(List<KeyEvent> events) {
             if (partialMinTotalEventCount > events.size())
                 continue;
             // Absorbing waits can consume arbitrary events, so max is events.size().
-            int effectiveMaxEventCount = hasAbsorbingWait ?
+            // But only if the preparation actually contains events that could be
+            // absorbed (i.e. keys in the ignored key set). If no event can be
+            // absorbed, the absorption is a no-op and max stays at maxTotalEventCount.
+            boolean canAbsorbPreparationEvents = false;
+            if (hasAbsorbingWait) {
+                for (MoveSet moveSet : subMoveSets) {
+                    if (!moveSet.canAbsorbEvents())
+                        continue;
+                    KeySet ignoredKeySet = moveSet instanceof WaitMoveSet wms ?
+                            wms.waitMove().ignoredKeySet() :
+                            ((KeyMoveSet) moveSet).waitMove().ignoredKeySet();
+                    for (KeyEvent event : events) {
+                        if (ignoredKeySet.contains(event.key())) {
+                            canAbsorbPreparationEvents = true;
+                            break;
+                        }
+                    }
+                    if (canAbsorbPreparationEvents)
+                        break;
+                }
+            }
+            int effectiveMaxEventCount = canAbsorbPreparationEvents ?
                     events.size() : Math.min(maxTotalEventCount, events.size());
 
             // Quick-reject for absorbing combos: check that the preparation
