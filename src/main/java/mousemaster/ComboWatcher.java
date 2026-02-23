@@ -367,24 +367,40 @@ public class ComboWatcher implements ModeListener {
             if (!couldMatchOptional && !ignoredByKeyMoveSet) {
                 comboPreparation = ComboPreparation.empty();
             }
-            boolean isIgnoredByLeadingWait = event.isPress() &&
-                    leadingWaitBeginTimeByCombo.keySet().stream().anyMatch(combo -> {
-                        WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
-                        return waitMove.ignoredKeySet().contains(event.key());
-                    });
+            // Check if the event is ignored by a leading wait in any combo.
+            // Track whether at least one such wait eats events (+{...}).
+            boolean isIgnoredByLeadingWait = false;
+            boolean leadingWaitEatsEvents = false;
+            if (event.isPress()) {
+                for (Combo combo : leadingWaitBeginTimeByCombo.keySet()) {
+                    WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
+                    if (waitMove.ignoredKeySet().contains(event.key())) {
+                        isIgnoredByLeadingWait = true;
+                        if (waitMove.ignoredKeysEatEvents())
+                            leadingWaitEatsEvents = true;
+                    }
+                }
+            }
             if (event.isPress() && (isComboPreconditionKey || isIgnoredByLeadingWait)) {
                 // We don't really need to know which combo(s) this is for, that is why
                 // we use dummyCombo instead. But it would be cleaner if we knew the combos.
                 PressKeyEventProcessing processing;
-                if (isComboPreconditionKey)
+                // Leading wait eating takes priority: if the key is eaten by a
+                // leading wait (+{...}), it must be eaten even if it's also a
+                // precondition key.
+                if (isIgnoredByLeadingWait && leadingWaitEatsEvents)
+                    processing = PressKeyEventProcessing.ignoredByLeadingWait(true);
+                else if (isComboPreconditionKey)
                     processing = isPressedComboPreconditionKey ?
                             PressKeyEventProcessing.partOfPressedComboPreconditionOnly() :
                             PressKeyEventProcessing.partOfUnpressedComboPreconditionOnly();
                 else
-                    processing = PressKeyEventProcessing.ignoredByLeadingWait();
+                    processing = PressKeyEventProcessing.ignoredByLeadingWait(false);
                 processingSet = new PressKeyEventProcessingSet(
                         new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo, processing)),
                         new HashMap<>());
+                logger.debug("keyEvent override: mustBeEaten = " + processingSet.mustBeEaten() +
+                        " (ignoredByLeadingWait)");
             }
         }
         else {
@@ -398,8 +414,6 @@ public class ComboWatcher implements ModeListener {
     private PressKeyEventProcessingSet processKeyEventForCurrentMode(
             KeyEvent event,
             boolean ignoreSwitchModeAndHintCommands) {
-//        logger.info("currentMode = " + currentMode.name() + ", processKeyEventForCurrentMode event " + event + ", ignoreSwitchModeCommands = " + ignoreSwitchModeCommands, new Throwable());
-        long before = System.nanoTime();
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
         Map<Combo, ComboSequenceMatch> matchByCombo = new HashMap<>();
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
@@ -645,10 +659,18 @@ public class ComboWatcher implements ModeListener {
         commandsToRun.addAll(completeCombosCommandsToRun);
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
+        logger.debug("processKeyEventForCurrentMode" +
+                ", mode = " + currentMode.name() +
+                ", event = " + (logRedactKeys ? "<redacted>" : event) +
+                ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
+                ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
+                ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
+                ", mustBeEaten = " + processingSet.mustBeEaten() +
+                (!completeCombosCommandsToRun.isEmpty() ?
+                        ", commandsToRun = " + completeCombosCommandsToRun : ""));
         if (!comboAndCommandsToRun.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
-        Mode beforeCommandsMode = currentMode;
         runCommands(commandsToRun);
         boolean atLeastOneComboCompleted = !comboAndCommandsToRun.isEmpty();
         if (atLeastOneComboCompleted) {
@@ -657,16 +679,6 @@ public class ComboWatcher implements ModeListener {
                         currentlyPressedKeys, comboAndCommands.match);
             }
         }
-        long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
-        logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
-                "ms, mode = " + beforeCommandsMode.name() +
-                ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
-                ", event = " + (logRedactKeys ? "<redacted>" : event) +
-                ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
-                ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
-                ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
-                ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
-                completeCombosCommandsToRun);
         return processingSet;
     }
 
