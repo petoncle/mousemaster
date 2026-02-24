@@ -16,6 +16,7 @@ public class ActiveAppFinder {
     private byte[] executableNameBytes = new byte[1024];
     String lastExecutableName;
     private String lastIgnoredExecutableName;
+    private boolean lastAttemptFailed;
 
     public App activeApp() {
         WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
@@ -24,17 +25,22 @@ public class ActiveAppFinder {
                 Kernel32.PROCESS_QUERY_INFORMATION | Kernel32.PROCESS_VM_READ,
                 false, processId.getValue());
         if (processHandle == null) {
-            logger.info("Unable to find the name of the active app");
+            if (!lastAttemptFailed)
+                logger.info("Unable to find the name of the active app");
+            lastAttemptFailed = true;
             lastExecutableName = null;
             return null;
         }
         if (ExtendedPsapi.INSTANCE.GetModuleBaseNameA(processHandle, null,
                 executableNameBytes,
                 executableNameBytes.length) == 0) {
-            logger.info("Unable to find the name of the active app");
+            if (!lastAttemptFailed)
+                logger.info("Unable to find the name of the active app");
+            lastAttemptFailed = true;
             lastExecutableName = null;
             return null;
         }
+        lastAttemptFailed = false;
         String executableName = Native.toString(executableNameBytes).replaceAll(" ", "");
         Kernel32.INSTANCE.CloseHandle(processHandle);
         WinDef.RECT windowRect = WindowsOverlay.windowRectExcludingShadow(hwnd);

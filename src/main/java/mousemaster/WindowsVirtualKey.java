@@ -358,6 +358,7 @@ public enum WindowsVirtualKey {
 
     private static KeyboardLayout lastPolledActiveKeyboardLayout;
     private static int keyboardLayoutSeenCount;
+    private static boolean lastActiveKeyboardLayoutFailed;
 
     /**
      * When changing the layout with win + space:
@@ -380,20 +381,25 @@ public enum WindowsVirtualKey {
                             foregroundWindowKeyboardLayout);
             }
             lastPolledActiveKeyboardLayout = foregroundWindowKeyboardLayout;
+            lastActiveKeyboardLayoutFailed = false;
             return foregroundWindowKeyboardLayout;
         }
         // When changing the active window, the foreground window may be null for a short period of time (?).
         if (lastPolledActiveKeyboardLayout != null) {
-            logger.trace(
-                    "Unable to find the foreground window's keyboard layout, using last known keyboard layout " +
-                    lastPolledActiveKeyboardLayout);
+            if (!lastActiveKeyboardLayoutFailed)
+                logger.trace(
+                        "Unable to find the foreground window's keyboard layout, using last known keyboard layout " +
+                        lastPolledActiveKeyboardLayout);
+            lastActiveKeyboardLayoutFailed = true;
             return lastPolledActiveKeyboardLayout;
         }
         KeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
-        logger.trace(
-                "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
-                startupKeyboardLayout);
+        if (!lastActiveKeyboardLayoutFailed)
+            logger.trace(
+                    "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
+                    startupKeyboardLayout);
         lastPolledActiveKeyboardLayout = startupKeyboardLayout;
+        lastActiveKeyboardLayoutFailed = true;
         return startupKeyboardLayout;
     }
 
