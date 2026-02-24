@@ -158,6 +158,7 @@ public class ComboWatcher implements ModeListener {
             if (atLeastOneProcessingIsPartOfComboSequence && !preparationIsStillPrefixOfAtLeastOneCombo) {
                 preparationIsNotPrefixAnymore = true;
                 comboPreparation = ComboPreparation.empty();
+                leadingWaitBeginTimeByCombo.clear();
                 lastProcessingSet = null;
             }
         }
@@ -262,7 +263,6 @@ public class ComboWatcher implements ModeListener {
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
         lastKeyEvent = event;
-        lastEventTimeByKey.put(event.key(), event.time());
         // Update wait begin times: only reset for non-ignored key events.
         for (Map.Entry<Combo, Instant> entry : leadingWaitBeginTimeByCombo.entrySet()) {
             Combo combo = entry.getKey();
@@ -348,6 +348,7 @@ public class ComboWatcher implements ModeListener {
             if (!skipDurationCheck &&
                 !previousComboMoveDuration.satisfied(previousEvent.time(), event.time())) {
                 comboPreparation = ComboPreparation.empty();
+                leadingWaitBeginTimeByCombo.clear();
             }
         }
         comboPreparation.events().add(event);
@@ -367,6 +368,7 @@ public class ComboWatcher implements ModeListener {
             boolean ignoredByKeyMoveSet = keyEventIgnoredByFirstKeyMoveSetInAnyCombo(event);
             if (!couldMatchOptional && !ignoredByKeyMoveSet) {
                 comboPreparation = ComboPreparation.empty();
+                leadingWaitBeginTimeByCombo.clear();
             }
             // Check if the event is ignored by a leading wait in any combo.
             // Track whether at least one such wait eats events (+{...}).
@@ -407,6 +409,10 @@ public class ComboWatcher implements ModeListener {
             if (event.isPress())
                 currentlyPressedComboKeys.add(event.key());
         }
+        // Update lastEventTimeByKey after all processing, so that
+        // lastNonIgnoredEventTime() during processKeyEventForCurrentMode
+        // reflects the state before the current event arrived.
+        lastEventTimeByKey.put(event.key(), event.time());
         lastProcessingSet = processingSet;
         return processingSet;
     }
@@ -467,8 +473,12 @@ public class ComboWatcher implements ModeListener {
                 WaitComboMove leadingWait =
                         ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
                 Instant now = clock.now();
+                // Fallback: no prior non-ignored events means the wait is
+                // trivially satisfied (no interrupting keys ever occurred).
+                // Use now minus min duration so beginTime + min <= now.
+                Instant noEventsFallback = now.minus(leadingWait.duration().min());
                 Instant beginTime = leadingWaitBeginTimeByCombo.computeIfAbsent(combo,
-                        k -> lastNonIgnoredEventTime(leadingWait.ignoredKeySet(), now));
+                        k -> lastNonIgnoredEventTime(leadingWait.ignoredKeySet(), noEventsFallback));
                 if (beginTime.plus(leadingWait.duration().min()).isAfter(now))
                     continue;
                 if (leadingWait.duration().max() != null &&
