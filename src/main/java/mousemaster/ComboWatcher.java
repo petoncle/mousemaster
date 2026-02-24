@@ -39,6 +39,12 @@ public class ComboWatcher implements ModeListener {
      */
     private KeySet ignoredKeySet;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
+    /**
+     * Combos that have fired from combosWaitingForLastMoveToComplete and should
+     * not re-fire until a non-absorbed key event arrives (for the combo's
+     * trailing wait). Prevents absorbing trailing waits from causing re-firing.
+     */
+    private Set<Combo> combosBlockedFromRerunningCommand = new HashSet<>();
     private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
 
     private Set<Key> currentlyPressedCompletedComboKeys = new HashSet<>();
@@ -159,6 +165,7 @@ public class ComboWatcher implements ModeListener {
                 preparationIsNotPrefixAnymore = true;
                 comboPreparation = ComboPreparation.empty();
                 leadingWaitBeginTimeByCombo.clear();
+                combosBlockedFromRerunningCommand.clear();
                 lastProcessingSet = null;
             }
         }
@@ -189,6 +196,7 @@ public class ComboWatcher implements ModeListener {
                 // and they should not be regurgitated.
 
                 completedComboAndCommands.add(comboWaitingForLastMoveToComplete.comboAndCommands);
+                combosBlockedFromRerunningCommand.add(combo);
             }
         }
         // Handle bare/first wait-X combos (no preceding key-event moves).
@@ -337,6 +345,16 @@ public class ComboWatcher implements ModeListener {
                 return !waitMove.ignoredKeySet().contains(event.key());
             });
         }
+        // Clear combos blocked from rerunning whose trailing wait does not absorb this key.
+        // idle-mode.macro.tap1=#!{f1}-250 +f1 #!{f1}-0-250 -f1 #!{f1}-250 -> +b -b
+        if (!combosBlockedFromRerunningCommand.isEmpty()) {
+            combosBlockedFromRerunningCommand.removeIf(combo -> {
+                MoveSet lastMoveSet = combo.sequence().moveSets().getLast();
+                if (!(lastMoveSet instanceof WaitMoveSet waitMoveSet))
+                    return true;
+                return !waitMoveSet.waitMove().ignoredKeySet().contains(event.key());
+            });
+        }
         KeyEvent previousEvent = comboPreparation.events().isEmpty() ? null :
                 comboPreparation.events().getLast();
         if (previousEvent != null &&
@@ -349,6 +367,7 @@ public class ComboWatcher implements ModeListener {
                 !previousComboMoveDuration.satisfied(previousEvent.time(), event.time())) {
                 comboPreparation = ComboPreparation.empty();
                 leadingWaitBeginTimeByCombo.clear();
+                combosBlockedFromRerunningCommand.clear();
             }
         }
         comboPreparation.events().add(event);
@@ -369,6 +388,7 @@ public class ComboWatcher implements ModeListener {
             if (!couldMatchOptional && !ignoredByKeyMoveSet) {
                 comboPreparation = ComboPreparation.empty();
                 leadingWaitBeginTimeByCombo.clear();
+                combosBlockedFromRerunningCommand.clear();
             }
             // Check if the event is ignored by a leading wait in any combo.
             // Track whether at least one such wait eats events (+{...}).
@@ -624,6 +644,8 @@ public class ComboWatcher implements ModeListener {
                 }
             }
             if (!preparationComplete)
+                continue;
+            if (combosBlockedFromRerunningCommand.contains(combo))
                 continue;
             if (lastMoveSetIsWait &&
                 combo.sequence().moveSets().getLast() instanceof WaitMoveSet lastWaitMoveSet) {
@@ -940,6 +962,7 @@ public class ComboWatcher implements ModeListener {
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
         leadingWaitBeginTimeByCombo.clear();
+        combosBlockedFromRerunningCommand.clear();
         lastEventTimeByKey.clear();
         lastProcessingSet = null;
     }
@@ -962,6 +985,7 @@ public class ComboWatcher implements ModeListener {
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
         leadingWaitBeginTimeByCombo.clear();
+        combosBlockedFromRerunningCommand.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
             processKeyEventForCurrentMode(null, false);
