@@ -87,11 +87,11 @@ public class KeyboardManager {
         }
     }
 
-    record Regurgitate(Key key, boolean alsoRelease) {
+    public record Regurgitate(Key key, boolean alsoRelease) {
 
     }
 
-    record EatAndRegurgitates(boolean mustBeEaten, List<Regurgitate> regurgitates) {
+    public record EatAndRegurgitates(boolean mustBeEaten, List<Regurgitate> regurgitates) {
 
     }
 

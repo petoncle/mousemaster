@@ -135,7 +135,8 @@ public class WindowsKeyboard {
             // If user presses g, i, then a, the regurgitation of g then i will happen on
             // the +a event (and before WindowsPlatform#keyboardHookCallback returns, i.e. before 'a' will be typed)
             // User will see 'gia' (and not 'gai').
-            processOneSendInputMove();
+            if (!keyEvent.key().equals(Key.leftalt))
+                processOneSendInputMove();
         }
     }
 
@@ -168,12 +169,25 @@ public class WindowsKeyboard {
             SendInputMove sendInputMove = sendInputQueue.removeFirst();
             switch (sendInputMove.move()) {
                 case ResolvedKeyMacroMove keyMove -> {
-                    // The following sendInput call will call keyboardHookCallback.
-                    // That is why the moveWaitingForKeyboardHookCallbackAcknowledgment
-                    // is set before calling sendInputKeys.
-                    // Goal is to block any further processing until the keyboard hook receives the event for
-                    // the move (and for leftalt, there are two events: WM_KEYDOWN then WM_SYSKEYDOWN).
-                    sendInputKeys(List.of(keyMove), sendInputMove.startRepeat());
+                    // Batch consecutive key moves into a single SendInput call. A single
+                    // SendInput guarantees atomic, in-order insertion (no interleaving
+                    // with user events). This also avoids nested hook callbacks: without
+                    // batching, regurgitating +leftwin, +leftwin's ack handler would
+                    // send -leftwin from inside +leftwin's hook callback, and Windows
+                    // would not fully commit the press before seeing the release, leaving
+                    // leftwin stuck.
+                    List<ResolvedKeyMacroMove> batch = new ArrayList<>();
+                    batch.add(keyMove);
+                    // Batching leftalt does not work because we need to wait for the phantom events to be acknowledged.
+                    while (!keyMove.key().equals(Key.leftalt) &&
+                           !sendInputQueue.isEmpty() &&
+                           sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next) {
+                        batch.add(next);
+                        sendInputQueue.removeFirst();
+                        if (next.key().equals(Key.leftalt))
+                            break;
+                    }
+                    sendInputKeys(batch, sendInputMove.startRepeat());
                     return true;
                 }
                 case StringMacroMove stringMove -> {
@@ -186,9 +200,6 @@ public class WindowsKeyboard {
         return false;
     }
 
-    /**
-     * Currently assumes that moves has one move.
-     */
     private static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean triggerKeyRepeating) {
 //        triggerKeyRepeating = false;
         // Send a press event for the key to regurgitate.
@@ -229,10 +240,10 @@ public class WindowsKeyboard {
             pInputs[moveIndex].input.ki.dwFlags = new WinDef.DWORD(flag);
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("Sending " + moves.getFirst() + ", triggerKeyRepeating = " + triggerKeyRepeating);
-            logger.trace("Waiting for ackowledgment of " + moves.getFirst());
+            logger.trace("Sending " + moves + ", triggerKeyRepeating = " + triggerKeyRepeating);
+            logger.trace("Waiting for ackowledgment of " + moves.getLast());
         }
-        moveWaitingForKeyboardHookCallbackAcknowledgment = moves.getFirst();
+        moveWaitingForKeyboardHookCallbackAcknowledgment = moves.getLast();
         ticksWaitingForAcknowledgment = 0;
         WinDef.DWORD sendInput =
                 User32.INSTANCE.SendInput(new WinDef.DWORD(moves.size()), pInputs,
