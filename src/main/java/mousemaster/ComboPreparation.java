@@ -9,6 +9,7 @@ import mousemaster.MoveSet.WaitMoveSet;
 import mousemaster.ResolvedKeyComboMove.ResolvedPressComboMove;
 import mousemaster.ResolvedKeyComboMove.ResolvedReleaseComboMove;
 
+import java.time.Duration;
 import java.util.*;
 
 public record ComboPreparation(List<KeyEvent> events) {
@@ -214,13 +215,19 @@ public record ComboPreparation(List<KeyEvent> events) {
                 }
                 for (int absorb = firstNonIgnoredOffset; absorb >= 0; absorb--) {
                     int nextEventIndex = eventIndex + absorb;
-                    // For mid-sequence wait: check time gap from pre-wait event
-                    // to first post-wait event.
-                    if (eventIndex > regionBeginIndex && nextEventIndex < eventEndIndex) {
-                        KeyEvent previousEvent = events.get(eventIndex - 1);
-                        KeyEvent nextEvent = events.get(nextEventIndex);
-                        if (!waitMove.duration().satisfied(previousEvent.time(), nextEvent.time()))
-                            continue;
+                    // Check time gap from pre-wait event to first post-wait event.
+                    // For mid-sequence waits, the pre-wait event is the one before
+                    // this MoveSet. For leading waits, use the event just before the
+                    // matched suffix (if any) to enforce the wait's min duration.
+                    if (nextEventIndex < eventEndIndex) {
+                        int previousEventIndex = eventIndex > regionBeginIndex ?
+                                eventIndex - 1 : regionBeginIndex - 1;
+                        if (previousEventIndex >= 0) {
+                            KeyEvent previousEvent = events.get(previousEventIndex);
+                            KeyEvent nextEvent = events.get(nextEventIndex);
+                            if (!waitMove.duration().satisfied(previousEvent.time(), nextEvent.time()))
+                                continue;
+                        }
                     }
                     if (peekMoveSet != null && nextEventIndex < eventEndIndex) {
                         KeyEvent peekEvent = events.get(nextEventIndex);
@@ -794,6 +801,18 @@ public record ComboPreparation(List<KeyEvent> events) {
 
     @Override
     public String toString() {
-        return events.toString();
+        if (events.isEmpty())
+            return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < events.size(); i++) {
+            if (i > 0) {
+                long ms = Duration.between(events.get(i - 1).time(),
+                        events.get(i).time()).toMillis();
+                sb.append("-").append(ms).append(" ");
+            }
+            sb.append(events.get(i));
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }
