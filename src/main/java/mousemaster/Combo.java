@@ -166,9 +166,6 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                                       .map(groupString -> parsePressedKeyGroup(
                                               groupString, aliases, keyResolver))
                                       .collect(Collectors.toList());
-        // _{none} alone is equivalent to no precondition constraint.
-        if (groups.size() == 1 && groups.getFirst().keySets().isEmpty())
-            groups = List.of();
         return new PressedKeyPrecondition(groups);
     }
 
