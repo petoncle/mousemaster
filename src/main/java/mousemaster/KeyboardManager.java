@@ -4,10 +4,10 @@ import mousemaster.ComboWatcher.ComboWatcherUpdateResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,10 +18,21 @@ public class KeyboardManager {
 
     private final ComboWatcher comboWatcher;
     private final KeyRegurgitator keyRegurgitator;
-    // LinkedHashMap preserves insertion (press) order for correct regurgitation order
-    // (e.g. shift before a, not a before shift).
+    /**
+     * LinkedHashMap preserves insertion (press) order for correct regurgitation order
+     * (e.g. shift before a, not a before shift).
+     */
     private final Map<Key, PressKeyEventProcessingSet> currentlyPressedKeys = new LinkedHashMap<>();
+    /**
+     * All eaten keys in press order.
+     * If the combo later fails, these keys are regurgitated in press order.
+     * If the combo completes, they are cleared.
+     */
+    private final Map<Key, Eat> eatenKeys = new LinkedHashMap<>();
     private MacroPlayer macroPlayer;
+
+    private record Eat(boolean released, PressKeyEventProcessingSet processingSet) {
+    }
 
     public KeyboardManager(ComboWatcher comboWatcher, HintManager hintManager,
                            KeyRegurgitator keyRegurgitator) {
@@ -40,10 +51,12 @@ public class KeyboardManager {
         }
         else {
             ComboWatcherUpdateResult watcherUpdateResult = comboWatcher.update(delta);
-            if (!watcherUpdateResult.completedCombos().isEmpty())
+            if (!watcherUpdateResult.completedCombos().isEmpty()) {
                 markOtherKeysOfTheseCombosAsCompleted(
                         watcherUpdateResult.completedCombos(),
                         watcherUpdateResult.hasComboPreparationBreaker());
+                eatenKeys.clear();
+            }
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 regurgitatePressedKeys();
             }
@@ -63,24 +76,29 @@ public class KeyboardManager {
     public void reset() {
         regurgitatePressedKeys();
         currentlyPressedKeys.clear();
+        eatenKeys.clear();
         comboWatcher.reset();
         macroPlayer.reset();
     }
 
     public void regurgitatePressedKeys() {
-        for (Key keyToRegurgitate : regurgitatePressedKeys(null)) {
-            keyRegurgitator.regurgitate(keyToRegurgitate, true, false);
+        for (Regurgitate regurgitate : buildRegurgitates(null, null, Set.of())) {
+            keyRegurgitator.regurgitate(regurgitate, !regurgitate.alsoRelease());
         }
     }
 
-    record EatAndRegurgitates(boolean mustBeEaten, Set<Key> keysToRegurgitate) {
+    record Regurgitate(Key key, boolean alsoRelease) {
+
+    }
+
+    record EatAndRegurgitates(boolean mustBeEaten, List<Regurgitate> regurgitates) {
 
     }
 
     private static final EatAndRegurgitates
-            mustNotBeEatenOnly = new EatAndRegurgitates(false, Set.of());
+            mustNotBeEatenOnly = new EatAndRegurgitates(false, List.of());
     private static final EatAndRegurgitates
-            mustBeEatenOnly = new EatAndRegurgitates(true, Set.of());
+            mustBeEatenOnly = new EatAndRegurgitates(true, List.of());
 
     public EatAndRegurgitates keyEvent(KeyEvent keyEvent) {
         return singleKeyEvent(keyEvent);
@@ -90,7 +108,7 @@ public class KeyboardManager {
         Key key = keyEvent.key();
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
         if (keyEvent.isPress()) {
-            Set<Key> keysToRegurgitate = Set.of();
+            List<Regurgitate> regurgitates = List.of();
             if (processingSet == null) {
                 if (!pressingUnhandledKey()) {
                     PressKeyEventProcessingSet comboWatcherProcessingSet =
@@ -104,23 +122,22 @@ public class KeyboardManager {
                     processingSet = new PressKeyEventProcessingSet(Map.of(), Map.of());
                 }
                 if (!processingSet.isPartOfComboSequence()) {
-                    keysToRegurgitate = regurgitatePressedKeys(null);
+                    regurgitates = buildRegurgitates(null, null, Set.of());
                 }
                 else if (processingSet.isPartOfComboSequence()) {
-                    // Regurgitate pressed keys that are not in any of the combos
+                    // Regurgitate keys that are not in any of the combos
                     // associated to the key that triggered the current event.
                     Set<Combo> currentCombos = processingSet.processingByCombo().keySet();
-                    keysToRegurgitate = new LinkedHashSet<>();
-                    for (Map.Entry<Key, PressKeyEventProcessingSet> entry : currentlyPressedKeys.entrySet()) {
-                        if (entry.getValue().processingByCombo().keySet().stream().anyMatch(currentCombos::contains))
-                            continue;
-                        regurgitate(entry.getValue(), keysToRegurgitate, entry.getKey(), false);
-                    }
+                    regurgitates = buildRegurgitates(null, null, currentCombos);
                 }
                 currentlyPressedKeys.put(key, processingSet);
+                if (processingSet.mustBeEaten()) {
+                    eatenKeys.put(key, new Eat(false, processingSet));
+                }
                 if (processingSet.isPartOfCompletedComboSequence()) {
                     markOtherKeysOfTheseCombosAsCompleted(
                             processingSet.partOfCompletedComboSequenceCombosWithMatches(), false);
+                    eatenKeys.clear();
                 }
                 if (processingSet.isComboPreparationBreaker()) {
                     comboWatcher.reset(key);
@@ -130,13 +147,13 @@ public class KeyboardManager {
                                   macroPlayer.isKeyPressedByMacro(key);
             if (!mustBeEaten)
                 macroPlayer.keyPressedNotEaten(key);
-            return eatAndRegurgitates(mustBeEaten, keysToRegurgitate);
+            return eatAndRegurgitates(mustBeEaten, regurgitates);
         }
         else { // Key release.
             if (processingSet != null) {
                 if (processingSet.handled() ||
                     processingSet.isPartOfUnpressedComboPreconditionOnly()) {
-                    Set<Key> keysToRegurgitate = Set.of();
+                    List<Regurgitate> regurgitates = List.of();
                     // Avoid passing release event to comboWatcher if the key was a combo preparation breaker.
                     // We could add a property for choosing whether we want to ignore
                     // the release of the combo preparation breaker key. But for now,
@@ -155,10 +172,10 @@ public class KeyboardManager {
                                 // we are already in the callback. Also, the second callback does not
                                 // execute everything: a log line placed in WindowsPlatform#keyEvent would be
                                 // displayed only by the first callback.
-                                return eatAndRegurgitates(processingSet.mustBeEaten(), Set.of());
+                                return eatAndRegurgitates(processingSet.mustBeEaten(), List.of());
                             }
                             if (!releaseProcessingSet.handled()) {
-                                keysToRegurgitate = regurgitatePressedKeys(null);
+                                regurgitates = buildRegurgitates(null, key, Set.of());
                             }
                             else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
                                 for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
@@ -181,7 +198,8 @@ public class KeyboardManager {
                                 markOtherKeysOfTheseCombosAsCompleted(
                                         releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatches(),
                                         false);
-                                keysToRegurgitate = regurgitatePressedKeys(key);
+                                eatenKeys.clear();
+                                regurgitates = buildRegurgitates(key, key, Set.of());
                             }
                         }
                         if (processingSet.isComboPreparationBreaker()) {
@@ -193,20 +211,27 @@ public class KeyboardManager {
                     boolean mustBeEaten =
                             !macroPlayer.isKeyPressedByMacro(key) &&
                             pressedProcessingSet.mustBeEaten();
+                    // Track released eaten keys that are part of a partial combo
+                    // for future regurgitation if the combo fails.
+                    if (mustBeEaten &&
+                        !pressedProcessingSet.isPartOfCompletedComboSequence() &&
+                        regurgitates.stream().noneMatch(r -> r.key().equals(key))) {
+                        eatenKeys.put(key, new Eat(true, pressedProcessingSet));
+                    }
                     if (!mustBeEaten)
                         macroPlayer.keyReleasedNotEaten(key);
-                    return eatAndRegurgitates(mustBeEaten, keysToRegurgitate);
+                    return eatAndRegurgitates(mustBeEaten, regurgitates);
                 }
                 else {
                     currentlyPressedKeys.remove(key);
 //                    logger.info("Removed key " + key, new Exception());
                     macroPlayer.keyReleasedNotEaten(key);
-                    return eatAndRegurgitates(false, regurgitatePressedKeys(null));
+                    return eatAndRegurgitates(false, buildRegurgitates(null, null, Set.of()));
                 }
             }
             else {
                 macroPlayer.keyReleasedNotEaten(key);
-                return eatAndRegurgitates(false, Set.of());
+                return eatAndRegurgitates(false, List.of());
             }
         }
     }
@@ -247,20 +272,49 @@ public class KeyboardManager {
         return completedCombosHavePressedKeys;
     }
 
-    private Set<Key> regurgitatePressedKeys(Key releasedKey) {
-        Set<Key> keysToRegurgitate = new LinkedHashSet<>();
-        for (Map.Entry<Key, PressKeyEventProcessingSet> setEntry : currentlyPressedKeys.entrySet()) {
-            Key eatenKey = setEntry.getKey();
-            if (releasedKey != null && !eatenKey.equals(releasedKey))
+    /**
+     * Builds a regurgitation list in press order from eatenKeys.
+     * @param filterKey if non-null, only process this specific key
+     * @param releasingKey if non-null, this key is being released (gets release=true)
+     * @param retainCombos skip keys associated with these combos (pass empty set for all)
+     */
+    private List<Regurgitate> buildRegurgitates(Key filterKey, Key releasingKey,
+                                                Set<Combo> retainCombos) {
+        if (eatenKeys.isEmpty())
+            return List.of();
+        List<Regurgitate> regurgitates = new ArrayList<>();
+        Set<Key> keysToRemove = new HashSet<>();
+        for (Map.Entry<Key, Eat> entry : eatenKeys.entrySet()) {
+            Key eatenKey = entry.getKey();
+            if (filterKey != null && !eatenKey.equals(filterKey))
                 continue;
-            PressKeyEventProcessingSet processingSet = setEntry.getValue();
-            regurgitate(processingSet, keysToRegurgitate, eatenKey, releasedKey != null);
+            Eat eat = entry.getValue();
+            PressKeyEventProcessingSet processingSet = eat.processingSet();
+            boolean alsoRelease;
+            if (eat.released()) {
+                alsoRelease = true;
+                if (!retainCombos.isEmpty() &&
+                    processingSet.processingByCombo().keySet().stream()
+                       .anyMatch(retainCombos::contains))
+                    continue;
+                keysToRemove.add(eatenKey);
+            }
+            else {
+                if (!retainCombos.isEmpty() &&
+                    processingSet.processingByCombo().keySet().stream()
+                       .anyMatch(retainCombos::contains))
+                    continue;
+                alsoRelease = releasingKey != null && releasingKey.equals(eatenKey);
+            }
+            addRegurgitate(processingSet, regurgitates, eatenKey, alsoRelease);
         }
-        return keysToRegurgitate;
+        keysToRemove.forEach(eatenKeys::remove);
+        return regurgitates;
     }
 
-    private void regurgitate(PressKeyEventProcessingSet processingSet,
-                           Set<Key> keysToRegurgitate, Key eatenKey, boolean isRelease) {
+    private void addRegurgitate(PressKeyEventProcessingSet processingSet,
+                                List<Regurgitate> regurgitates, Key eatenKey,
+                                boolean alsoRelease) {
         // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
         if (processingSet.mustBeEaten() &&
             !processingSet.isPartOfCompletedComboSequenceAndMustBeEaten() &&
@@ -269,9 +323,9 @@ public class KeyboardManager {
             // And if a key is released and it is part of a completed combo sequence (and
             // if we're here it means this key release was the last move of the combo),
             // then it should not be regurgitated.
-            !(isRelease && processingSet.isPartOfCompletedComboSequence())
+            !(alsoRelease && processingSet.isPartOfCompletedComboSequence())
         ) {
-            keysToRegurgitate.add(eatenKey);
+            regurgitates.add(new Regurgitate(eatenKey, alsoRelease));
             // Change the key's processing to must not be eaten
             // so that it cannot be regurgitated a second time.
             for (Map.Entry<Combo, PressKeyEventProcessing> entry : Set.copyOf(
@@ -290,10 +344,10 @@ public class KeyboardManager {
     }
 
     private static EatAndRegurgitates eatAndRegurgitates(boolean mustBeEaten,
-                                                         Set<Key> keysToRegurgitate) {
-        if (keysToRegurgitate.isEmpty())
+                                                         List<Regurgitate> regurgitates) {
+        if (regurgitates.isEmpty())
             return mustBeEaten ? mustBeEatenOnly : mustNotBeEatenOnly;
-        return new EatAndRegurgitates(mustBeEaten, keysToRegurgitate);
+        return new EatAndRegurgitates(mustBeEaten, regurgitates);
     }
 
     public boolean pressingUnhandledKey() {

@@ -423,8 +423,6 @@ public class ComboWatcher implements ModeListener {
                 processingSet = new PressKeyEventProcessingSet(
                         new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo, processing)),
                         new HashMap<>());
-                logger.debug("keyEvent override: mustBeEaten = " + processingSet.mustBeEaten() +
-                        " (ignoredByLeadingWait)");
             }
         }
         else {
