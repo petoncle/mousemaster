@@ -90,6 +90,10 @@ public class WindowsKeyboard {
 
     private static final Set<Key> userPressedKeys = new HashSet<>();
 
+    private static final Set<Key> modifierKeys =
+            Set.of(Key.leftshift, Key.rightshift, Key.leftctrl, Key.rightctrl,
+                    Key.leftalt, Key.rightalt, Key.leftwin, Key.rightwin);
+
     public static void keyboardHookCallback(WinUser.KBDLLHOOKSTRUCT info,
                                             WinDef.WPARAM wParam, String wParamString, KeyEvent keyEvent,
                                             boolean injected, boolean altgrLeftctrl) {
@@ -135,7 +139,7 @@ public class WindowsKeyboard {
             // If user presses g, i, then a, the regurgitation of g then i will happen on
             // the +a event (and before WindowsPlatform#keyboardHookCallback returns, i.e. before 'a' will be typed)
             // User will see 'gia' (and not 'gai').
-            if (!keyEvent.key().equals(Key.leftalt))
+            if (!modifierKeys.contains(keyEvent.key()))
                 processOneSendInputMove();
         }
     }
@@ -181,11 +185,13 @@ public class WindowsKeyboard {
                     // Batching leftalt does not work because we need to wait for the phantom events to be acknowledged.
                     while (!keyMove.key().equals(Key.leftalt) &&
                            !sendInputQueue.isEmpty() &&
-                           sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next) {
+                           sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next &&
+                           next.key().equals(keyMove.key())) {
                         batch.add(next);
                         sendInputQueue.removeFirst();
                         if (next.key().equals(Key.leftalt))
                             break;
+                        break;
                     }
                     sendInputKeys(batch, sendInputMove.startRepeat());
                     return true;
@@ -251,6 +257,7 @@ public class WindowsKeyboard {
     }
 
     public static void sendInputString(String string) {
+        logger.trace("Sending input string: " + string);
         int inputCount = string.length() * 2; // down + up per character
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(inputCount);
