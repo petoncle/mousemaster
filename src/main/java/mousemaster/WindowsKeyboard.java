@@ -128,7 +128,12 @@ public class WindowsKeyboard {
                              moveWaitingForKeyboardHookCallbackAcknowledgment +
                              ", scanCode = 0x" + Integer.toHexString(info.scanCode));
             moveWaitingForKeyboardHookCallbackAcknowledgment = null;
-            // TODO consume sendInputQueue's next element (but only if this hook is not being called from sendInputKeys(), but I think it is)?
+            // Continue processing next move (this is done synchronously before WindowsPlatform#keyboardHookCallback returns)
+            // idle-mode.macro.gitc={+g +i -g -i} +c -> 'git checkout'
+            // If user presses g, i, then a, the regurgitation of g then i will happen on
+            // the +a event (and before WindowsPlatform#keyboardHookCallback returns, i.e. before 'a' will be typed)
+            // User will see 'gia' (and not 'gai').
+            processOneSendInputMove();
         }
     }
 
