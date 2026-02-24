@@ -40,6 +40,7 @@ public class WindowsKeyboard {
     public static void reset() {
         sendInputQueue.clear();
         moveWaitingForKeyboardHookCallbackAcknowledgment = null;
+        ticksWaitingForAcknowledgment = 0;
         pressedKeyToRepeat = null;
         durationUntilNextKeyPressRepeat = 0;
         repeatStartedDuringCurrentTick = false;
@@ -56,6 +57,7 @@ public class WindowsKeyboard {
     private record SendInputMove(ResolvedMacroMove move, boolean startRepeat) {}
     private static final List<SendInputMove> sendInputQueue = new LinkedList<>();
     private static ResolvedKeyMacroMove moveWaitingForKeyboardHookCallbackAcknowledgment;
+    private static int ticksWaitingForAcknowledgment;
 
     public static void sendInputMoves(List<ResolvedMacroMove> moves, boolean startRepeat) {
         boolean sendInputQueueWasEmpty = sendInputQueue.isEmpty();
@@ -139,8 +141,17 @@ public class WindowsKeyboard {
 
     public static void update(double delta) {
         repeatStartedDuringCurrentTick = false;
-        if (moveWaitingForKeyboardHookCallbackAcknowledgment != null)
-            return;
+        if (moveWaitingForKeyboardHookCallbackAcknowledgment != null) {
+            ticksWaitingForAcknowledgment++;
+            if (ticksWaitingForAcknowledgment >= 5) {
+                logger.info("Acknowledgment timeout for " +
+                            moveWaitingForKeyboardHookCallbackAcknowledgment +
+                            " after " + ticksWaitingForAcknowledgment + " ticks");
+                moveWaitingForKeyboardHookCallbackAcknowledgment = null;
+            }
+            else
+                return;
+        }
         if (processOneSendInputMove())
             return;
         if (pressedKeyToRepeat == null)
@@ -222,6 +233,7 @@ public class WindowsKeyboard {
             logger.trace("Waiting for ackowledgment of " + moves.getFirst());
         }
         moveWaitingForKeyboardHookCallbackAcknowledgment = moves.getFirst();
+        ticksWaitingForAcknowledgment = 0;
         WinDef.DWORD sendInput =
                 User32.INSTANCE.SendInput(new WinDef.DWORD(moves.size()), pInputs,
                         pInputs[0].size());
