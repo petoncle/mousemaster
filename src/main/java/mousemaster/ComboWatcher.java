@@ -232,9 +232,11 @@ public class ComboWatcher implements ModeListener {
             if (waitMove.duration().max() != null &&
                 waitBeginTime.plus(waitMove.duration().max()).isBefore(currentTime))
                 continue;
-            // Fire the combo's commands. Keep firing every tick.
+            if (combosBlockedFromRerunningCommand.contains(combo))
+                continue;
             completedComboAndCommands.add(
                     new ComboAndCommands(combo, entry.getValue(), ComboSequenceMatch.noMatch()));
+            combosBlockedFromRerunningCommand.add(combo);
         }
         if (!completedComboAndCommands.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
