@@ -904,6 +904,15 @@ public class ComboWatcher implements ModeListener {
         // Resolve macro aliases before deduplication: each macro command's
         // aliases are resolved using the alias bindings from its combo match.
         attachMacroAliasResolutions(commandsToRun);
+        // Suppress combos whose matched key moves are a strict subset of
+        // another completing combo's matched key moves.
+        commandsToRun.removeIf(candidate -> {
+            List<ResolvedKeyComboMove> candidateMoves = candidate.match.matchedKeyMoves();
+            return commandsToRun.stream().anyMatch(other ->
+                    other != candidate &&
+                    other.match.matchedKeyMoves().size() > candidateMoves.size() &&
+                    other.match.matchedKeyMoves().containsAll(candidateMoves));
+        });
         return commandsToRun.stream()
                             .sorted(Comparator.comparingInt(
                                     cac -> cac.match.matchedKeyMoves().size()))
