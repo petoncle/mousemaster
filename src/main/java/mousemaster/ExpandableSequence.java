@@ -252,7 +252,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             case ComboAliasMove.TapComboAliasMove tm ->
                     new ComboAliasMove.TapComboAliasMove(keyName,
                             tm.duration(), tm.optional(),
-                            tm.sourceAlias());
+                            tm.expandedFromAlias());
             case ComboAliasMove.WaitComboAliasMove wm ->
                     throw new IllegalStateException(
                             "Cannot expand wait move");
@@ -343,7 +343,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                     aliasMove.duration());
                     case ComboAliasMove.TapComboAliasMove tapMove ->
                             new TapComboMove(keyOrAlias,
-                                    tapMove.sourceAlias(),
+                                    tapMove.expandedFromAlias(),
                                     aliasMove.duration());
                     case ComboAliasMove.WaitComboAliasMove wm ->
                             throw new IllegalStateException();

@@ -57,15 +57,15 @@ public record ComboSequence(List<MoveSet> moveSets) {
                        .filter(move -> !move.negated() && move.keyOrAlias().isAlias())
                        .map(move -> move.keyOrAlias().aliasName())
                        .collect(Collectors.toCollection(HashSet::new));
-        // Include sourceAlias names from tap moves (expanded aliases).
+        // Include aliases that tap moves were expanded from.
         for (MoveSet moveSet : moveSets) {
             if (moveSet instanceof KeyMoveSet kms) {
                 for (KeyComboMove move : kms.requiredMoves())
-                    if (move instanceof TapComboMove tap && tap.sourceAlias() != null)
-                        names.add(tap.sourceAlias());
+                    if (move instanceof TapComboMove tap && tap.expandedFromAlias() != null)
+                        names.add(tap.expandedFromAlias());
                 for (KeyComboMove move : kms.optionalMoves())
-                    if (move instanceof TapComboMove tap && tap.sourceAlias() != null)
-                        names.add(tap.sourceAlias());
+                    if (move instanceof TapComboMove tap && tap.expandedFromAlias() != null)
+                        names.add(tap.expandedFromAlias());
             }
         }
         return names;

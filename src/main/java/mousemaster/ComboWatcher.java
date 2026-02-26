@@ -946,7 +946,7 @@ public class ComboWatcher implements ModeListener {
                         Key key = resolution.keyByAliasName().get(aliasName);
                         if (key != null)
                             filteredMap.put(aliasName, key);
-                        List<Key> tapKeys = resolution.keysBySourceAlias().get(aliasName);
+                        List<Key> tapKeys = resolution.keysByTapExpandedFromAlias().get(aliasName);
                         if (tapKeys != null)
                             filteredTapMap.put(aliasName, tapKeys);
                     }

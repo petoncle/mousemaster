@@ -41,7 +41,7 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
     }
 
     record TapComboMove(KeyOrAlias keyOrAlias,
-                         String sourceAlias,
+                         String expandedFromAlias,
                          ComboMoveDuration duration) implements KeyComboMove {
         @Override
         public boolean negated() {

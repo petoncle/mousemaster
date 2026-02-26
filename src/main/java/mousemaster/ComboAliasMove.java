@@ -44,7 +44,7 @@ public sealed interface ComboAliasMove {
 
     record TapComboAliasMove(String aliasOrKeyName, ComboMoveDuration duration,
                               boolean optional,
-                              String sourceAlias) implements ComboAliasMove {
+                              String expandedFromAlias) implements ComboAliasMove {
         @Override
         public boolean expand() {
             return false;

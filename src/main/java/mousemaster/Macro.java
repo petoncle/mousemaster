@@ -170,8 +170,8 @@ public record Macro(String name, MacroSequence output) {
                         }
                         else if (keyOrAlias.isAlias()) {
                             String aliasName = keyOrAlias.aliasName();
-                            // Check tap sourceAlias bindings first (multi-key).
-                            List<Key> tapKeys = aliasResolution.keysBySourceAlias()
+                            // Check tap expandedFromAlias bindings first (multi-key).
+                            List<Key> tapKeys = aliasResolution.keysByTapExpandedFromAlias()
                                                                .get(aliasName);
                             if (tapKeys != null && !tapKeys.isEmpty()) {
                                 for (Key key : tapKeys)
