@@ -45,14 +45,13 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
                                             Map<String, KeyAlias> aliases) {
-        // Single-key shorthand: "leftctrl" = "+leftctrl"
+        // Single-key shorthand: "leftctrl" = "+leftctrl -leftctrl"
         String trimmed = movesString.strip();
         if (!trimmed.contains("{") && !trimmed.contains(" ") &&
-                !trimmed.matches("^[+\\-#].*") && !trimmed.startsWith("wait")) {
-            ComboAliasMove.PressComboAliasMove move =
-                    new ComboAliasMove.PressComboAliasMove(trimmed, false, true,
-                            defaultMoveDuration, false, false);
-            return new ExpandableSequence(List.of(Set.of(move)));
+                !trimmed.matches("^[+\\-#*].*") && !trimmed.startsWith("wait")) {
+            return new ExpandableSequence(
+                    bareTokenMoves(trimmed, defaultMoveDuration, aliases)
+                            .stream().map(Set::of).toList());
         }
         List<Set<ComboAliasMove>> moveSets = new ArrayList<>();
         Matcher matcher = MOVE_SET_OR_TOKEN_PATTERN.matcher(trimmed);
@@ -135,12 +134,18 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     else {
                         // Regular move token
                         String moveToken = braceTokenMatcher.group(2);
-                        ComboAliasMove move = parseMove(moveToken, defaultMoveDuration);
-                        if (move.expand()) {
-                            expandAliasIntoMoves(move, aliases, moveSet);
+                        if (isBareToken(moveToken)) {
+                            moveSet.addAll(bareTokenMoves(
+                                    moveToken, defaultMoveDuration, aliases));
                         }
                         else {
-                            moveSet.add(move);
+                            ComboAliasMove move = parseMove(moveToken, defaultMoveDuration);
+                            if (move.expand()) {
+                                expandAliasIntoMoves(move, aliases, moveSet);
+                            }
+                            else {
+                                moveSet.add(move);
+                            }
                         }
                     }
                 }
@@ -160,6 +165,11 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                     Integer.parseUnsignedInt(waitMatcher.group(5))));
                     moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
                             Set.of(), true, ignoredKeysEatEvents, waitDuration)));
+                }
+                else if (isBareToken(token)) {
+                    for (ComboAliasMove move : bareTokenMoves(
+                            token, defaultMoveDuration, aliases))
+                        moveSets.add(Set.of(move));
                 }
                 else {
                     ComboAliasMove move = parseMove(token, defaultMoveDuration);
@@ -184,6 +194,37 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             }
         }
         return new ExpandableSequence(moveSets);
+    }
+
+    private static boolean isBareToken(String token) {
+        return !token.startsWith("+") && !token.startsWith("-") && !token.startsWith("#");
+    }
+
+    private static List<ComboAliasMove> bareTokenMoves(String token,
+                                                        ComboMoveDuration duration,
+                                                        Map<String, KeyAlias> aliases) {
+        boolean expand = token.startsWith("*");
+        String keyName = expand ? token.substring(1) : token;
+        List<ComboAliasMove> moves = new ArrayList<>();
+        if (expand) {
+            KeyAlias alias = aliases.get(keyName);
+            if (alias == null)
+                throw new IllegalArgumentException(
+                        "Cannot expand non-alias: " + keyName);
+            for (Key key : alias.keys()) {
+                moves.add(new ComboAliasMove.PressComboAliasMove(
+                        key.name(), false, true, duration, false, false));
+                moves.add(new ComboAliasMove.ReleaseComboAliasMove(
+                        key.name(), false, duration, false, false));
+            }
+        }
+        else {
+            moves.add(new ComboAliasMove.PressComboAliasMove(
+                    keyName, false, true, duration, false, false));
+            moves.add(new ComboAliasMove.ReleaseComboAliasMove(
+                    keyName, false, duration, false, false));
+        }
+        return moves;
     }
 
     private static void expandAliasIntoMoves(ComboAliasMove move,

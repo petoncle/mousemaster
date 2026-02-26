@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -146,6 +147,124 @@ class ExpandableSequenceTest {
         assertTrue(move.ignoredKeysEatEvents());
         assertEquals(Duration.ZERO, move.duration().min());
         assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
+    }
+
+    // --- bare key shorthand (press + release) ---
+
+    @Test
+    void singleBareKey() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("leftctrl", defaultDuration, Map.of());
+        assertEquals(2, seq.moveSets().size());
+        ComboAliasMove first = seq.moveSets().get(0).iterator().next();
+        ComboAliasMove second = seq.moveSets().get(1).iterator().next();
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class, first);
+        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class, second);
+        assertEquals("leftctrl", first.aliasOrKeyName());
+        assertEquals("leftctrl", second.aliasOrKeyName());
+    }
+
+    @Test
+    void multipleBareKeysOutsideBraces() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("a b", defaultDuration, Map.of());
+        assertEquals(4, seq.moveSets().size());
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+                seq.moveSets().get(0).iterator().next());
+        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+                seq.moveSets().get(1).iterator().next());
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+                seq.moveSets().get(2).iterator().next());
+        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+                seq.moveSets().get(3).iterator().next());
+        assertEquals("a", seq.moveSets().get(0).iterator().next().aliasOrKeyName());
+        assertEquals("b", seq.moveSets().get(2).iterator().next().aliasOrKeyName());
+    }
+
+    @Test
+    void bareKeysInsideBraces() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("{a b}", defaultDuration, Map.of());
+        assertEquals(1, seq.moveSets().size());
+        Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
+        // Should contain press+release for each key: 4 moves total
+        assertEquals(4, moveSet.size());
+        long pressCount = moveSet.stream()
+                .filter(m -> m instanceof ComboAliasMove.PressComboAliasMove).count();
+        long releaseCount = moveSet.stream()
+                .filter(m -> m instanceof ComboAliasMove.ReleaseComboAliasMove).count();
+        assertEquals(2, pressCount);
+        assertEquals(2, releaseCount);
+    }
+
+    @Test
+    void bareExpandAliasOutsideBraces() {
+        Map<String, KeyAlias> aliases = Map.of("alias1",
+                new KeyAlias("alias1", List.of(Key.ofName("a"), Key.ofName("b"))));
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("*alias1", defaultDuration, aliases);
+        // *alias1 with alias1=a b → +a -a +b -b (4 sequential MoveSets)
+        assertEquals(4, seq.moveSets().size());
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+                seq.moveSets().get(0).iterator().next());
+        assertEquals("a", seq.moveSets().get(0).iterator().next().aliasOrKeyName());
+        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+                seq.moveSets().get(1).iterator().next());
+        assertEquals("a", seq.moveSets().get(1).iterator().next().aliasOrKeyName());
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+                seq.moveSets().get(2).iterator().next());
+        assertEquals("b", seq.moveSets().get(2).iterator().next().aliasOrKeyName());
+        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+                seq.moveSets().get(3).iterator().next());
+        assertEquals("b", seq.moveSets().get(3).iterator().next().aliasOrKeyName());
+    }
+
+    @Test
+    void bareExpandAliasInsideBraces() {
+        Map<String, KeyAlias> aliases = Map.of("alias1",
+                new KeyAlias("alias1", List.of(Key.ofName("a"), Key.ofName("b"))));
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("{*alias1}", defaultDuration, aliases);
+        // {*alias1} with alias1=a b → {+a -a +b -b} (single MoveSet, 4 moves)
+        assertEquals(1, seq.moveSets().size());
+        Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
+        assertEquals(4, moveSet.size());
+        Set<String> pressKeys = moveSet.stream()
+                .filter(m -> m instanceof ComboAliasMove.PressComboAliasMove)
+                .map(ComboAliasMove::aliasOrKeyName).collect(Collectors.toSet());
+        Set<String> releaseKeys = moveSet.stream()
+                .filter(m -> m instanceof ComboAliasMove.ReleaseComboAliasMove)
+                .map(ComboAliasMove::aliasOrKeyName).collect(Collectors.toSet());
+        assertEquals(Set.of("a", "b"), pressKeys);
+        assertEquals(Set.of("a", "b"), releaseKeys);
+    }
+
+    @Test
+    void mixedBareAndPrefixedTokens() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("+a b", defaultDuration, Map.of());
+        // +a → 1 MoveSet (press only), b → 2 MoveSets (press + release)
+        assertEquals(3, seq.moveSets().size());
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+                seq.moveSets().get(0).iterator().next());
+        assertEquals("a", seq.moveSets().get(0).iterator().next().aliasOrKeyName());
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+                seq.moveSets().get(1).iterator().next());
+        assertEquals("b", seq.moveSets().get(1).iterator().next().aliasOrKeyName());
+        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+                seq.moveSets().get(2).iterator().next());
+        assertEquals("b", seq.moveSets().get(2).iterator().next().aliasOrKeyName());
+    }
+
+    @Test
+    void prefixedTokensUnchanged() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("+a -a", defaultDuration, Map.of());
+        assertEquals(2, seq.moveSets().size());
+        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+                seq.moveSets().get(0).iterator().next());
+        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+                seq.moveSets().get(1).iterator().next());
     }
 
     // --- #{}/+{} inside braces (ignored keys in KeyMoveSet) ---
