@@ -185,13 +185,14 @@ public class WindowsKeyboard {
                     // Batching leftalt does not work because we need to wait for the phantom events to be acknowledged.
                     while (!keyMove.key().equals(Key.leftalt) &&
                            !sendInputQueue.isEmpty() &&
-                           sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next &&
-                           next.key().equals(keyMove.key())) {
+                           sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next
+//                           && next.key().equals(keyMove.key())
+                    ) {
                         batch.add(next);
                         sendInputQueue.removeFirst();
                         if (next.key().equals(Key.leftalt))
                             break;
-                        break;
+//                        break;
                     }
                     sendInputKeys(batch, sendInputMove.startRepeat());
                     return true;
