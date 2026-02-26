@@ -102,6 +102,10 @@ public class MacroPlayer {
         WindowsKeyboard.keyReleasedNotEaten(key);
     }
 
+    public void newKeyEvent() {
+        keysPressedByMacroDuringCurrentTick.clear();
+    }
+
     public boolean isKeyPressedByMacro(Key key) {
         return keysPressedByMacro.contains(key) &&
                !keysPressedByMacroDuringCurrentTick.contains(key);
@@ -109,7 +113,6 @@ public class MacroPlayer {
 
 
     public void update(double delta) {
-        keysPressedByMacroDuringCurrentTick.clear();
         if (macroInProgress == null && !macrosToExecute.isEmpty()) {
             macroInProgress = new MacroInProgress(macrosToExecute.removeFirst());
             ResolvedMacroParallel firstParallel = macroInProgress.macro.output().parallels().getFirst();

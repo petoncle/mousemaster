@@ -105,6 +105,7 @@ public class KeyboardManager {
     }
 
     private EatAndRegurgitates singleKeyEvent(KeyEvent keyEvent) {
+        macroPlayer.newKeyEvent();
         Key key = keyEvent.key();
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
         if (keyEvent.isPress()) {
