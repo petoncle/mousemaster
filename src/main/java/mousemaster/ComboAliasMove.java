@@ -42,6 +42,20 @@ public sealed interface ComboAliasMove {
 
     }
 
+    record TapComboAliasMove(String aliasOrKeyName, ComboMoveDuration duration,
+                              boolean optional,
+                              String sourceAlias) implements ComboAliasMove {
+        @Override
+        public boolean expand() {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return aliasOrKeyName + (optional ? "?" : "");
+        }
+    }
+
     record WaitComboAliasMove(Set<String> keyAliasOrKeyNames, boolean listedKeysAreIgnored,
                               boolean ignoredKeysEatEvents, ComboMoveDuration duration) implements ComboAliasMove {
         @Override

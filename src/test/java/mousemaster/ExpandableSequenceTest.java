@@ -155,30 +155,23 @@ class ExpandableSequenceTest {
     void singleBareKey() {
         ExpandableSequence seq =
                 ExpandableSequence.parseSequence("leftctrl", defaultDuration, Map.of());
-        assertEquals(2, seq.moveSets().size());
+        assertEquals(1, seq.moveSets().size());
         ComboAliasMove first = seq.moveSets().get(0).iterator().next();
-        ComboAliasMove second = seq.moveSets().get(1).iterator().next();
-        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class, first);
-        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class, second);
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class, first);
         assertEquals("leftctrl", first.aliasOrKeyName());
-        assertEquals("leftctrl", second.aliasOrKeyName());
     }
 
     @Test
     void multipleBareKeysOutsideBraces() {
         ExpandableSequence seq =
                 ExpandableSequence.parseSequence("a b", defaultDuration, Map.of());
-        assertEquals(4, seq.moveSets().size());
-        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+        assertEquals(2, seq.moveSets().size());
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class,
                 seq.moveSets().get(0).iterator().next());
-        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class,
                 seq.moveSets().get(1).iterator().next());
-        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
-                seq.moveSets().get(2).iterator().next());
-        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
-                seq.moveSets().get(3).iterator().next());
         assertEquals("a", seq.moveSets().get(0).iterator().next().aliasOrKeyName());
-        assertEquals("b", seq.moveSets().get(2).iterator().next().aliasOrKeyName());
+        assertEquals("b", seq.moveSets().get(1).iterator().next().aliasOrKeyName());
     }
 
     @Test
@@ -187,14 +180,11 @@ class ExpandableSequenceTest {
                 ExpandableSequence.parseSequence("{a b}", defaultDuration, Map.of());
         assertEquals(1, seq.moveSets().size());
         Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
-        // Should contain press+release for each key: 4 moves total
-        assertEquals(4, moveSet.size());
-        long pressCount = moveSet.stream()
-                .filter(m -> m instanceof ComboAliasMove.PressComboAliasMove).count();
-        long releaseCount = moveSet.stream()
-                .filter(m -> m instanceof ComboAliasMove.ReleaseComboAliasMove).count();
-        assertEquals(2, pressCount);
-        assertEquals(2, releaseCount);
+        // Should contain 2 tap moves (one per key)
+        assertEquals(2, moveSet.size());
+        long tapCount = moveSet.stream()
+                .filter(m -> m instanceof ComboAliasMove.TapComboAliasMove).count();
+        assertEquals(2, tapCount);
     }
 
     @Test
@@ -203,20 +193,14 @@ class ExpandableSequenceTest {
                 new KeyAlias("alias1", List.of(Key.ofName("a"), Key.ofName("b"))));
         ExpandableSequence seq =
                 ExpandableSequence.parseSequence("*alias1", defaultDuration, aliases);
-        // *alias1 with alias1=a b → +a -a +b -b (4 sequential MoveSets)
-        assertEquals(4, seq.moveSets().size());
-        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+        // *alias1 with alias1=a b → tap(a) tap(b) (2 sequential MoveSets)
+        assertEquals(2, seq.moveSets().size());
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class,
                 seq.moveSets().get(0).iterator().next());
         assertEquals("a", seq.moveSets().get(0).iterator().next().aliasOrKeyName());
-        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class,
                 seq.moveSets().get(1).iterator().next());
-        assertEquals("a", seq.moveSets().get(1).iterator().next().aliasOrKeyName());
-        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
-                seq.moveSets().get(2).iterator().next());
-        assertEquals("b", seq.moveSets().get(2).iterator().next().aliasOrKeyName());
-        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
-                seq.moveSets().get(3).iterator().next());
-        assertEquals("b", seq.moveSets().get(3).iterator().next().aliasOrKeyName());
+        assertEquals("b", seq.moveSets().get(1).iterator().next().aliasOrKeyName());
     }
 
     @Test
@@ -225,35 +209,28 @@ class ExpandableSequenceTest {
                 new KeyAlias("alias1", List.of(Key.ofName("a"), Key.ofName("b"))));
         ExpandableSequence seq =
                 ExpandableSequence.parseSequence("{*alias1}", defaultDuration, aliases);
-        // {*alias1} with alias1=a b → {+a -a +b -b} (single MoveSet, 4 moves)
+        // {*alias1} with alias1=a b → {tap(a) tap(b)} (single MoveSet, 2 taps)
         assertEquals(1, seq.moveSets().size());
         Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
-        assertEquals(4, moveSet.size());
-        Set<String> pressKeys = moveSet.stream()
-                .filter(m -> m instanceof ComboAliasMove.PressComboAliasMove)
+        assertEquals(2, moveSet.size());
+        Set<String> tapKeys = moveSet.stream()
+                .filter(m -> m instanceof ComboAliasMove.TapComboAliasMove)
                 .map(ComboAliasMove::aliasOrKeyName).collect(Collectors.toSet());
-        Set<String> releaseKeys = moveSet.stream()
-                .filter(m -> m instanceof ComboAliasMove.ReleaseComboAliasMove)
-                .map(ComboAliasMove::aliasOrKeyName).collect(Collectors.toSet());
-        assertEquals(Set.of("a", "b"), pressKeys);
-        assertEquals(Set.of("a", "b"), releaseKeys);
+        assertEquals(Set.of("a", "b"), tapKeys);
     }
 
     @Test
     void mixedBareAndPrefixedTokens() {
         ExpandableSequence seq =
                 ExpandableSequence.parseSequence("+a b", defaultDuration, Map.of());
-        // +a → 1 MoveSet (press only), b → 2 MoveSets (press + release)
-        assertEquals(3, seq.moveSets().size());
+        // +a → 1 MoveSet (press only), b → 1 MoveSet (tap)
+        assertEquals(2, seq.moveSets().size());
         assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
                 seq.moveSets().get(0).iterator().next());
         assertEquals("a", seq.moveSets().get(0).iterator().next().aliasOrKeyName());
-        assertInstanceOf(ComboAliasMove.PressComboAliasMove.class,
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class,
                 seq.moveSets().get(1).iterator().next());
         assertEquals("b", seq.moveSets().get(1).iterator().next().aliasOrKeyName());
-        assertInstanceOf(ComboAliasMove.ReleaseComboAliasMove.class,
-                seq.moveSets().get(2).iterator().next());
-        assertEquals("b", seq.moveSets().get(2).iterator().next().aliasOrKeyName());
     }
 
     @Test

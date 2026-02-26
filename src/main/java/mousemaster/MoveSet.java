@@ -1,5 +1,7 @@
 package mousemaster;
 
+import mousemaster.ComboMove.TapComboMove;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,12 +31,20 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
 
         @Override
         public int minMoveCount() {
-            return requiredMoves.size();
+            int count = 0;
+            for (ComboMove.KeyComboMove m : requiredMoves)
+                count += (m instanceof TapComboMove) ? 2 : 1;
+            return count;
         }
 
         @Override
         public int maxMoveCount() {
-            return requiredMoves.size() + optionalMoves.size();
+            int count = 0;
+            for (ComboMove.KeyComboMove m : requiredMoves)
+                count += (m instanceof TapComboMove) ? 2 : 1;
+            for (ComboMove.KeyComboMove m : optionalMoves)
+                count += (m instanceof TapComboMove) ? 2 : 1;
+            return count;
         }
 
         @Override

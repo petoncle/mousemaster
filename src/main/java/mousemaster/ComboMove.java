@@ -4,7 +4,7 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
 
     ComboMoveDuration duration();
 
-    sealed interface KeyComboMove extends ComboMove permits PressComboMove, ReleaseComboMove {
+    sealed interface KeyComboMove extends ComboMove permits PressComboMove, ReleaseComboMove, TapComboMove {
         KeyOrAlias keyOrAlias();
         boolean negated();
 
@@ -14,6 +14,10 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
 
         default boolean isRelease() {
             return this instanceof ReleaseComboMove;
+        }
+
+        default boolean isTap() {
+            return this instanceof TapComboMove;
         }
     }
 
@@ -34,6 +38,20 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
             return "-" + (negated ? "!" : "") + keyOrAlias;
         }
 
+    }
+
+    record TapComboMove(KeyOrAlias keyOrAlias,
+                         String sourceAlias,
+                         ComboMoveDuration duration) implements KeyComboMove {
+        @Override
+        public boolean negated() {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return keyOrAlias.toString();
+        }
     }
 
     record WaitComboMove(KeySet ignoredKeySet, boolean ignoredKeysEatEvents,

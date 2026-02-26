@@ -161,20 +161,34 @@ public record Macro(String name, MacroSequence output) {
                     case KeyMacroMove(KeyOrAlias keyOrAlias, boolean negated,
                                       boolean press,
                                       MacroMoveDestination destination) -> {
-                        Key key;
                         if (negated) {
                             String name = keyOrAlias.isAlias() ? keyOrAlias.aliasName()
                                     : keyOrAlias.key().name();
-                            key = aliasResolution.negatedKeyByName().get(name);
+                            Key key = aliasResolution.negatedKeyByName().get(name);
+                            resolvedMoves.add(
+                                    new ResolvedKeyMacroMove(key, press, destination));
+                        }
+                        else if (keyOrAlias.isAlias()) {
+                            String aliasName = keyOrAlias.aliasName();
+                            // Check tap sourceAlias bindings first (multi-key).
+                            List<Key> tapKeys = aliasResolution.keysBySourceAlias()
+                                                               .get(aliasName);
+                            if (tapKeys != null && !tapKeys.isEmpty()) {
+                                for (Key key : tapKeys)
+                                    resolvedMoves.add(
+                                            new ResolvedKeyMacroMove(key, press, destination));
+                            }
+                            else {
+                                // Single-key alias binding.
+                                Key key = aliasResolution.keyByAliasName().get(aliasName);
+                                resolvedMoves.add(
+                                        new ResolvedKeyMacroMove(key, press, destination));
+                            }
                         }
                         else {
-                            key = keyOrAlias.isAlias()
-                                    ? aliasResolution.keyByAliasName()
-                                                     .get(keyOrAlias.aliasName())
-                                    : keyOrAlias.key();
+                            resolvedMoves.add(
+                                    new ResolvedKeyMacroMove(keyOrAlias.key(), press, destination));
                         }
-                        resolvedMoves.add(
-                                new ResolvedKeyMacroMove(key, press, destination));
                     }
                     case StringMacroMove stringMove -> resolvedMoves.add(stringMove);
                 }

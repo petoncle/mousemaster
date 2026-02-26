@@ -1,6 +1,7 @@
 package mousemaster;
 
 import mousemaster.ComboMove.KeyComboMove;
+import mousemaster.ComboMove.TapComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
 
@@ -47,7 +48,7 @@ public record ComboSequence(List<MoveSet> moveSets) {
     }
 
     public Set<String> aliasNames() {
-        return moveSets.stream()
+        Set<String> names = moveSets.stream()
                        .filter(moveSet -> moveSet instanceof KeyMoveSet)
                        .map(moveSet -> (KeyMoveSet) moveSet)
                        .flatMap(moveSet -> Stream.concat(
@@ -55,7 +56,19 @@ public record ComboSequence(List<MoveSet> moveSets) {
                                moveSet.optionalMoves().stream()))
                        .filter(move -> !move.negated() && move.keyOrAlias().isAlias())
                        .map(move -> move.keyOrAlias().aliasName())
-                       .collect(Collectors.toSet());
+                       .collect(Collectors.toCollection(HashSet::new));
+        // Include sourceAlias names from tap moves (expanded aliases).
+        for (MoveSet moveSet : moveSets) {
+            if (moveSet instanceof KeyMoveSet kms) {
+                for (KeyComboMove move : kms.requiredMoves())
+                    if (move instanceof TapComboMove tap && tap.sourceAlias() != null)
+                        names.add(tap.sourceAlias());
+                for (KeyComboMove move : kms.optionalMoves())
+                    if (move instanceof TapComboMove tap && tap.sourceAlias() != null)
+                        names.add(tap.sourceAlias());
+            }
+        }
+        return names;
     }
 
     /**

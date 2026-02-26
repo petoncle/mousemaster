@@ -386,8 +386,10 @@ public class ComboWatcher implements ModeListener {
             boolean couldMatchOptional = event.isPress() &&
                                          keyPressCouldMatchOptionalMoveInFirstKeyMoveSet(
                                                  event.key());
+            boolean couldBePartOfOptionalTap =
+                    keyCouldBePartOfOptionalTapInAnyCombo(event.key());
             boolean ignoredByKeyMoveSet = keyEventIgnoredByFirstKeyMoveSetInAnyCombo(event);
-            if (!couldMatchOptional && !ignoredByKeyMoveSet) {
+            if (!couldMatchOptional && !couldBePartOfOptionalTap && !ignoredByKeyMoveSet) {
                 comboPreparation = ComboPreparation.empty();
                 leadingWaitBeginTimeByCombo.clear();
                 combosBlockedFromRerunningCommand.clear();
@@ -819,10 +821,10 @@ public class ComboWatcher implements ModeListener {
                             .map(ms -> (KeyMoveSet) ms)
                             .anyMatch(kms ->
                                     kms.requiredMoves().stream()
-                                            .anyMatch(move -> move.isPress() &&
+                                            .anyMatch(move -> (move.isPress() || move.isTap()) &&
                                                       optionalMoveMatchesKey(move, candidateKey)) ||
                                     kms.optionalMoves().stream()
-                                            .anyMatch(move -> move.isPress() &&
+                                            .anyMatch(move -> (move.isPress() || move.isTap()) &&
                                                       optionalMoveMatchesKey(move, candidateKey))));
             if (group.satisfiedBy(candidatePressedPreconditionKeys))
                 return candidatePressedPreconditionKeys;
@@ -939,10 +941,14 @@ public class ComboWatcher implements ModeListener {
                     Set<String> usedAliases = macro.outputAliasNames();
                     Map<String, Key> filteredMap = new HashMap<>();
                     Map<String, Key> filteredNegatedMap = new HashMap<>();
+                    Map<String, List<Key>> filteredTapMap = new HashMap<>();
                     for (String aliasName : usedAliases) {
                         Key key = resolution.keyByAliasName().get(aliasName);
                         if (key != null)
                             filteredMap.put(aliasName, key);
+                        List<Key> tapKeys = resolution.keysBySourceAlias().get(aliasName);
+                        if (tapKeys != null)
+                            filteredTapMap.put(aliasName, tapKeys);
                     }
                     for (String name : macro.outputNegatedNames()) {
                         Key key = resolution.negatedKeyByName().get(name);
@@ -950,7 +956,7 @@ public class ComboWatcher implements ModeListener {
                             filteredNegatedMap.put(name, key);
                     }
                     AliasResolution filteredResolution = new AliasResolution(
-                            filteredMap, filteredNegatedMap);
+                            filteredMap, filteredNegatedMap, filteredTapMap);
                     resolvedCommands.add(new Command.MacroCommand(macro, filteredResolution));
                     changed = true;
                 }
@@ -1036,8 +1042,31 @@ public class ComboWatcher implements ModeListener {
             if (!(firstMoveSet instanceof KeyMoveSet keyMoveSet))
                 continue;
             for (ComboMove.KeyComboMove optMove : keyMoveSet.optionalMoves()) {
-                if (optMove.isPress() && optionalMoveMatchesKey(optMove, key))
+                if ((optMove.isPress() || optMove.isTap()) && optionalMoveMatchesKey(optMove, key))
                     return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if the given key could match an optional tap move in the
+     * first KeyMoveSet of any combo (skipping leading WaitMoveSets).
+     */
+    private boolean keyCouldBePartOfOptionalTapInAnyCombo(Key key) {
+        for (Combo combo : currentMode.comboMap().commandsByCombo().keySet()) {
+            if (combo.sequence().isEmpty())
+                continue;
+            for (MoveSet moveSet : combo.sequence().moveSets()) {
+                if (moveSet instanceof WaitMoveSet)
+                    continue;
+                if (moveSet instanceof KeyMoveSet keyMoveSet) {
+                    for (ComboMove.KeyComboMove optMove : keyMoveSet.optionalMoves()) {
+                        if (optMove.isTap() && optionalMoveMatchesKey(optMove, key))
+                            return true;
+                    }
+                    break; // Only check the first KeyMoveSet.
+                }
             }
         }
         return false;

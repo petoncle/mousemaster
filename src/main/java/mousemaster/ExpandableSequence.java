@@ -3,6 +3,7 @@ package mousemaster;
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
 import mousemaster.ComboMove.ReleaseComboMove;
+import mousemaster.ComboMove.TapComboMove;
 import mousemaster.ComboMove.WaitComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
@@ -205,6 +206,9 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                                         Map<String, KeyAlias> aliases) {
         boolean expand = token.startsWith("*");
         String keyName = expand ? token.substring(1) : token;
+        boolean optional = keyName.endsWith("?");
+        if (optional)
+            keyName = keyName.substring(0, keyName.length() - 1);
         List<ComboAliasMove> moves = new ArrayList<>();
         if (expand) {
             KeyAlias alias = aliases.get(keyName);
@@ -212,17 +216,13 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 throw new IllegalArgumentException(
                         "Cannot expand non-alias: " + keyName);
             for (Key key : alias.keys()) {
-                moves.add(new ComboAliasMove.PressComboAliasMove(
-                        key.name(), false, true, duration, false, false));
-                moves.add(new ComboAliasMove.ReleaseComboAliasMove(
-                        key.name(), false, duration, false, false));
+                moves.add(new ComboAliasMove.TapComboAliasMove(
+                        key.name(), duration, optional, keyName));
             }
         }
         else {
-            moves.add(new ComboAliasMove.PressComboAliasMove(
-                    keyName, false, true, duration, false, false));
-            moves.add(new ComboAliasMove.ReleaseComboAliasMove(
-                    keyName, false, duration, false, false));
+            moves.add(new ComboAliasMove.TapComboAliasMove(
+                    keyName, duration, optional, null));
         }
         return moves;
     }
@@ -249,6 +249,10 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     new ComboAliasMove.ReleaseComboAliasMove(keyName,
                             rm.negated(), rm.duration(), rm.optional(),
                             false);
+            case ComboAliasMove.TapComboAliasMove tm ->
+                    new ComboAliasMove.TapComboAliasMove(keyName,
+                            tm.duration(), tm.optional(),
+                            tm.sourceAlias());
             case ComboAliasMove.WaitComboAliasMove wm ->
                     throw new IllegalStateException(
                             "Cannot expand wait move");
@@ -336,6 +340,10 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     case ComboAliasMove.ReleaseComboAliasMove releaseMove ->
                             new ReleaseComboMove(keyOrAlias,
                                     releaseMove.negated(),
+                                    aliasMove.duration());
+                    case ComboAliasMove.TapComboAliasMove tapMove ->
+                            new TapComboMove(keyOrAlias,
+                                    tapMove.sourceAlias(),
                                     aliasMove.duration());
                     case ComboAliasMove.WaitComboAliasMove wm ->
                             throw new IllegalStateException();

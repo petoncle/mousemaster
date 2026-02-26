@@ -3,6 +3,7 @@ package mousemaster;
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
 import mousemaster.ComboMove.ReleaseComboMove;
+import mousemaster.ComboMove.TapComboMove;
 import mousemaster.ComboMove.WaitComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
@@ -119,6 +120,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 List<ResolvedKeyComboMove> matchedKeyMoves = new ArrayList<>();
                 Map<String, Key> aliasBindings = new HashMap<>();
                 Map<String, Key> negatedBindings = new HashMap<>();
+                Map<String, List<Key>> tapSourceAliasBindings = new HashMap<>();
                 boolean[] lastEventAbsorbed = {false};
                 int[] lastKeyMoveEventIndex = {-1};
                 Set<Key> absorbedPressedKeys = new HashSet<>();
@@ -126,6 +128,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 if (tryAssignEventsToMoveSets(subMoveSets, 0, regionBeginIndex,
                         regionBeginIndex + totalEventCount, regionBeginIndex,
                         matchedKeyMoves, aliasBindings, negatedBindings,
+                        tapSourceAliasBindings,
                         lastEventAbsorbed, lastKeyMoveEventIndex,
                         absorbedPressedKeys, isPartial, hasFollowingMoveSets)) {
                     boolean complete = !isPartial && (k == moveSets.size());
@@ -134,7 +137,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                             moveSetCount, lastKeyMoveEventIndex[0], lastEventAbsorbed[0],
                             Set.copyOf(absorbedPressedKeys),
                             new AliasResolution(Map.copyOf(aliasBindings),
-                                    Map.copyOf(negatedBindings)));
+                                    Map.copyOf(negatedBindings),
+                                    deepCopyOf(tapSourceAliasBindings)));
                 }
             }
         }
@@ -152,7 +156,13 @@ public record ComboPreparation(List<KeyEvent> events) {
                 boolean found = false;
                 for (KeyEvent event : events) {
                     for (KeyComboMove move : kms.requiredMoves()) {
-                        if (moveMatchesEvent(move, event, Map.of(), Map.of())) {
+                        if (move instanceof TapComboMove tap) {
+                            if (tap.keyOrAlias().matchesKey(event.key())) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        else if (pressOrReleaseMoveMatchesEvent(move, event, Map.of(), Map.of())) {
                             found = true;
                             break;
                         }
@@ -179,6 +189,7 @@ public record ComboPreparation(List<KeyEvent> events) {
             int eventEndIndex, int regionBeginIndex,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
+            Map<String, List<Key>> tapSourceAliasBindings,
             boolean[] lastEventAbsorbed, int[] lastKeyMoveEventIndex,
             Set<Key> absorbedPressedKeys, boolean allowPartialLastMoveSet,
             boolean hasFollowingMoveSets) {
@@ -256,6 +267,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                     if (tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
                             nextEventIndex, eventEndIndex, nextEventIndex,
                             matchedKeyMoves, aliasBindings, negatedBindings,
+                            tapSourceAliasBindings,
                             lastEventAbsorbed, lastKeyMoveEventIndex,
                             absorbedPressedKeys, allowPartialLastMoveSet,
                             hasFollowingMoveSets))
@@ -278,6 +290,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 return tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
                         eventIndex, eventEndIndex, eventIndex,
                         matchedKeyMoves, aliasBindings, negatedBindings,
+                        tapSourceAliasBindings,
                         lastEventAbsorbed, lastKeyMoveEventIndex,
                         absorbedPressedKeys, allowPartialLastMoveSet,
                         hasFollowingMoveSets);
@@ -320,7 +333,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                     || hasFollowingMoveSets;
             if (tryMatchMoveSetEvents(eventIndex, eventCount, keyMoveSet,
                     regionBeginIndex, matchedKeyMoves, moveSetMatchedKeyMoves,
-                    aliasBindings, negatedBindings,
+                    aliasBindings, negatedBindings, tapSourceAliasBindings,
                     moveSetLastEventAbsorbed, moveSetAbsorbedPressedKeys,
                     allowLeadingIgnored, allowTrailingIgnored)) {
                 int savedSize = matchedKeyMoves.size();
@@ -334,7 +347,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                 if (tryAssignEventsToMoveSets(moveSets, moveSetIndex + 1,
                         eventIndex + eventCount, eventEndIndex,
                         regionBeginIndex, matchedKeyMoves, aliasBindings,
-                        negatedBindings, lastEventAbsorbed, lastKeyMoveEventIndex,
+                        negatedBindings, tapSourceAliasBindings,
+                        lastEventAbsorbed, lastKeyMoveEventIndex,
                         absorbedPressedKeys, allowPartialLastMoveSet,
                         hasFollowingMoveSets))
                     return true;
@@ -366,11 +380,13 @@ public record ComboPreparation(List<KeyEvent> events) {
      * When the KeyMoveSet can absorb events (has ignored keys), events that don't match
      * any move can be ignored if they match the ignoredKeySet.
      */
+
     private boolean tryMatchMoveSetEvents(
             int eventBeginIndex, int eventCount, KeyMoveSet keyMoveSet,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
+            Map<String, List<Key>> tapSourceAliasBindings,
             boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys,
             boolean allowLeadingIgnored, boolean allowTrailingIgnored) {
         if (eventCount == 0)
@@ -378,47 +394,48 @@ public record ComboPreparation(List<KeyEvent> events) {
 
         List<KeyComboMove> required = keyMoveSet.requiredMoves();
         List<KeyComboMove> optional = keyMoveSet.optionalMoves();
-        int optionalToUseCount = eventCount - required.size();
-        if (optionalToUseCount < 0) {
+        int requiredSlots = keyMoveSet.minMoveCount();
+        int optionalSlotsToFill = eventCount - requiredSlots;
+        if (optionalSlotsToFill < 0) {
             if (keyMoveSet.canAbsorbEvents()) {
-                // Partial matching with absorbed events: some events match key
-                // moves, others are absorbed. Not all required moves need to
-                // be assigned (requiredCount=0).
                 return tryMatchMoveSetEventsWithIgnoredKeys(
                         eventBeginIndex, eventCount, keyMoveSet, 0,
                         regionBeginIndex, previousMatchedKeyMoves,
                         matchedKeyMoves, aliasBindings, negatedBindings,
+                        tapSourceAliasBindings,
                         lastEventAbsorbed, absorbedPressedKeys,
                         allowLeadingIgnored, allowTrailingIgnored);
             }
-            // Partial matching: select eventCount moves from all moves.
+            // Partial matching: select eventCount slots from all moves.
             List<KeyComboMove> allMoves = new ArrayList<>(required);
             allMoves.addAll(optional);
             return tryOptionalSubsets(eventBeginIndex, eventCount,
                     allMoves, eventCount, 0, new ArrayList<>(),
                     regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                    aliasBindings, negatedBindings);
+                    aliasBindings, negatedBindings, tapSourceAliasBindings);
         }
-        if (optionalToUseCount > optional.size()) {
-            // More events than moves: if absorbing, try the absorbing path.
+        int maxOptionalSlots = keyMoveSet.maxMoveCount() - requiredSlots;
+        if (optionalSlotsToFill > maxOptionalSlots) {
             if (keyMoveSet.canAbsorbEvents()) {
                 return tryMatchMoveSetEventsWithIgnoredKeys(
                         eventBeginIndex, eventCount, keyMoveSet,
-                        keyMoveSet.requiredMoves().size(),
+                        required.size(),
                         regionBeginIndex, previousMatchedKeyMoves,
                         matchedKeyMoves, aliasBindings, negatedBindings,
+                        tapSourceAliasBindings,
                         lastEventAbsorbed, absorbedPressedKeys,
                         allowLeadingIgnored, allowTrailingIgnored);
             }
             return false;
         }
 
-        // Fast path: singleton MoveSet (one required, no optionals).
+        // Fast path: singleton MoveSet (one required non-tap, no optionals).
         if (eventCount == 1 && required.size() == 1 && optional.isEmpty() &&
+            !(required.getFirst() instanceof TapComboMove) &&
             !keyMoveSet.canAbsorbEvents()) {
             KeyComboMove move = required.getFirst();
             KeyEvent event = events.get(eventBeginIndex);
-            if (!moveMatchesEvent(move, event, aliasBindings, negatedBindings))
+            if (!pressOrReleaseMoveMatchesEvent(move, event, aliasBindings, negatedBindings))
                 return false;
             if (eventBeginIndex > regionBeginIndex) {
                 KeyEvent previousEvent = events.get(eventBeginIndex - 1);
@@ -427,26 +444,23 @@ public record ComboPreparation(List<KeyEvent> events) {
                     return false;
             }
             bindAlias(move, event.key(), aliasBindings, negatedBindings);
-            matchedKeyMoves.add(resolvedMove(move, event.key()));
+            matchedKeyMoves.add(resolvedPressOrReleaseMove(move, event.key()));
             return true;
         }
 
         // General path: try subsets of optional moves, then bipartite match.
         if (tryOptionalSubsets(eventBeginIndex, eventCount, optional,
-                optionalToUseCount, 0, new ArrayList<>(required),
+                optionalSlotsToFill, 0, new ArrayList<>(required),
                 regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                aliasBindings, negatedBindings))
+                aliasBindings, negatedBindings, tapSourceAliasBindings))
             return true;
-        // Normal matching failed. If this MoveSet can absorb events, some
-        // events may be absorbable rather than matching moves. Try the
-        // absorbing path (e.g. events [+a, -a, +d, +b] against
-        // {+a -a +b -b +{d}} where +d is absorbed, not a key move).
         if (keyMoveSet.canAbsorbEvents()) {
             return tryMatchMoveSetEventsWithIgnoredKeys(
                     eventBeginIndex, eventCount, keyMoveSet,
-                    keyMoveSet.requiredMoves().size(),
+                    required.size(),
                     regionBeginIndex, previousMatchedKeyMoves,
                     matchedKeyMoves, aliasBindings, negatedBindings,
+                    tapSourceAliasBindings,
                     lastEventAbsorbed, absorbedPressedKeys,
                     allowLeadingIgnored, allowTrailingIgnored);
         }
@@ -467,22 +481,34 @@ public record ComboPreparation(List<KeyEvent> events) {
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
             Map<String, Key> negatedBindings,
+            Map<String, List<Key>> tapSourceAliasBindings,
             boolean[] lastEventAbsorbed, Set<Key> absorbedPressedKeys,
             boolean allowLeadingIgnored, boolean allowTrailingIgnored) {
         List<KeyComboMove> required = keyMoveSet.requiredMoves();
         List<KeyComboMove> optional = keyMoveSet.optionalMoves();
         List<KeyComboMove> allMoves = new ArrayList<>(required);
         allMoves.addAll(optional);
-        boolean[] moveUsed = new boolean[allMoves.size()];
+        int[] moveStates = new int[allMoves.size()];
+        Key[] tapPressedKeys = new Key[allMoves.size()];
         ResolvedKeyComboMove[] assignedMovesForEvents = new ResolvedKeyComboMove[eventCount];
         boolean[] eventIsIgnored = new boolean[eventCount];
         ComboMove.WaitComboMove wm = keyMoveSet.waitMove();
         if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, allMoves,
-                minimumRequiredCount, moveUsed, assignedMovesForEvents, eventIsIgnored,
+                minimumRequiredCount, moveStates, tapPressedKeys,
+                assignedMovesForEvents, eventIsIgnored,
                 wm.ignoredKeySet(), wm.duration(),
                 regionBeginIndex, previousMatchedKeyMoves,
-                aliasBindings, negatedBindings,
+                aliasBindings, negatedBindings, tapSourceAliasBindings,
                 allowLeadingIgnored, allowTrailingIgnored)) {
+            // Collect tap sourceAlias bindings.
+            for (int i = 0; i < allMoves.size(); i++) {
+                if (allMoves.get(i) instanceof TapComboMove tap
+                        && moveStates[i] == FULLY_MATCHED && tap.sourceAlias() != null) {
+                    tapSourceAliasBindings
+                            .computeIfAbsent(tap.sourceAlias(), k -> new ArrayList<>())
+                            .add(tapPressedKeys[i]);
+                }
+            }
             // Collect matched key moves (non-ignored events).
             for (int i = 0; i < eventCount; i++) {
                 if (!eventIsIgnored[i]) {
@@ -509,24 +535,32 @@ public record ComboPreparation(List<KeyEvent> events) {
     /**
      * Recursive backtracking for matching events against a KeyMoveSet with ignored keys.
      * For each event, tries:
-     * 1. Assigning to an unused move (if it matches).
+     * 1. Assigning to an unused move (if it matches), including tap press/release.
      * 2. Ignoring the event (if the key is in the ignoredKeySet).
      * Terminates when all events are processed and all required moves are assigned.
      */
     private boolean assignEventsWithIgnoredKeys(
             int eventBeginIndex, int eventOffset, int eventCount,
             List<KeyComboMove> allMoves, int requiredCount,
-            boolean[] moveUsed, ResolvedKeyComboMove[] assignedMoves,
+            int[] moveStates, Key[] tapPressedKeys,
+            ResolvedKeyComboMove[] assignedMoves,
             boolean[] eventIsIgnored,
             KeySet ignoredKeySet, ComboMoveDuration ignoredKeysDuration,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             Map<String, Key> aliasBindings, Map<String, Key> negatedBindings,
+            Map<String, List<Key>> tapSourceAliasBindings,
             boolean allowLeadingIgnored, boolean allowTrailingIgnored) {
         if (eventOffset == eventCount) {
-            // All events processed. Check that all required moves are assigned.
-            for (int i = 0; i < requiredCount; i++)
-                if (!moveUsed[i])
+            // All events processed. Check that all required moves are assigned
+            // and no tap has a dangling press.
+            for (int i = 0; i < requiredCount; i++) {
+                if (moveStates[i] != FULLY_MATCHED)
                     return false;
+            }
+            for (int i = requiredCount; i < allMoves.size(); i++) {
+                if (allMoves.get(i) instanceof TapComboMove && moveStates[i] == PRESS_MATCHED)
+                    return false;
+            }
             // For non-partial matching (requiredCount > 0), absorbed events must
             // be interleaved between key moves unless leading/trailing is allowed.
             if (requiredCount > 0 && eventCount > 0) {
@@ -566,29 +600,75 @@ public record ComboPreparation(List<KeyEvent> events) {
                 return false;
         }
 
-        // Try assigning to an unused move.
+        // Try assigning to a move.
         for (int moveIndex = 0; moveIndex < allMoves.size(); moveIndex++) {
-            if (moveUsed[moveIndex]) continue;
             KeyComboMove move = allMoves.get(moveIndex);
-            if (moveMatchesEvent(move, event, aliasBindings, negatedBindings)) {
-                moveUsed[moveIndex] = true;
-                eventIsIgnored[eventOffset] = false;
-                Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
-                Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
-                bindAlias(move, event.key(), aliasBindings, negatedBindings);
-                assignedMoves[eventOffset] = resolvedMove(move, event.key());
-                if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
-                        eventCount, allMoves, requiredCount, moveUsed,
-                        assignedMoves, eventIsIgnored, ignoredKeySet,
-                        ignoredKeysDuration, regionBeginIndex,
-                        previousMatchedKeyMoves, aliasBindings, negatedBindings,
-                        allowLeadingIgnored, allowTrailingIgnored))
-                    return true;
-                moveUsed[moveIndex] = false;
-                aliasBindings.clear();
-                aliasBindings.putAll(savedAliasBindings);
-                negatedBindings.clear();
-                negatedBindings.putAll(savedNegatedBindings);
+            if (move instanceof TapComboMove tap) {
+                // Try matching as tap press.
+                if (moveStates[moveIndex] == UNUSED && event.isPress()
+                        && tapMatchesKey(tap, event.key(), aliasBindings)) {
+                    moveStates[moveIndex] = PRESS_MATCHED;
+                    tapPressedKeys[moveIndex] = event.key();
+                    eventIsIgnored[eventOffset] = false;
+                    Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
+                    Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
+                    bindAlias(tap, event.key(), aliasBindings, negatedBindings);
+                    assignedMoves[eventOffset] = resolvedTapPress(tap, event.key());
+                    if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
+                            eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
+                            assignedMoves, eventIsIgnored, ignoredKeySet,
+                            ignoredKeysDuration, regionBeginIndex,
+                            previousMatchedKeyMoves, aliasBindings, negatedBindings,
+                            tapSourceAliasBindings,
+                            allowLeadingIgnored, allowTrailingIgnored))
+                        return true;
+                    moveStates[moveIndex] = UNUSED;
+                    tapPressedKeys[moveIndex] = null;
+                    aliasBindings.clear();
+                    aliasBindings.putAll(savedAliasBindings);
+                    negatedBindings.clear();
+                    negatedBindings.putAll(savedNegatedBindings);
+                }
+                // Try matching as tap release.
+                if (moveStates[moveIndex] == PRESS_MATCHED && event.isRelease()
+                        && event.key().equals(tapPressedKeys[moveIndex])) {
+                    moveStates[moveIndex] = FULLY_MATCHED;
+                    eventIsIgnored[eventOffset] = false;
+                    assignedMoves[eventOffset] = resolvedTapRelease(tap, event.key());
+                    if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
+                            eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
+                            assignedMoves, eventIsIgnored, ignoredKeySet,
+                            ignoredKeysDuration, regionBeginIndex,
+                            previousMatchedKeyMoves, aliasBindings, negatedBindings,
+                            tapSourceAliasBindings,
+                            allowLeadingIgnored, allowTrailingIgnored))
+                        return true;
+                    moveStates[moveIndex] = PRESS_MATCHED;
+                }
+            }
+            else {
+                if (moveStates[moveIndex] != UNUSED) continue;
+                if (pressOrReleaseMoveMatchesEvent(move, event, aliasBindings, negatedBindings)) {
+                    moveStates[moveIndex] = FULLY_MATCHED;
+                    eventIsIgnored[eventOffset] = false;
+                    Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
+                    Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
+                    bindAlias(move, event.key(), aliasBindings, negatedBindings);
+                    assignedMoves[eventOffset] = resolvedPressOrReleaseMove(move, event.key());
+                    if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
+                            eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
+                            assignedMoves, eventIsIgnored, ignoredKeySet,
+                            ignoredKeysDuration, regionBeginIndex,
+                            previousMatchedKeyMoves, aliasBindings, negatedBindings,
+                            tapSourceAliasBindings,
+                            allowLeadingIgnored, allowTrailingIgnored))
+                        return true;
+                    moveStates[moveIndex] = UNUSED;
+                    aliasBindings.clear();
+                    aliasBindings.putAll(savedAliasBindings);
+                    negatedBindings.clear();
+                    negatedBindings.putAll(savedNegatedBindings);
+                }
             }
         }
 
@@ -597,10 +677,11 @@ public record ComboPreparation(List<KeyEvent> events) {
             eventIsIgnored[eventOffset] = true;
             assignedMoves[eventOffset] = null;
             if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
-                    eventCount, allMoves, requiredCount, moveUsed,
+                    eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
                     assignedMoves, eventIsIgnored, ignoredKeySet,
                     ignoredKeysDuration, regionBeginIndex,
                     previousMatchedKeyMoves, aliasBindings, negatedBindings,
+                    tapSourceAliasBindings,
                     allowLeadingIgnored, allowTrailingIgnored))
                 return true;
         }
@@ -609,42 +690,56 @@ public record ComboPreparation(List<KeyEvent> events) {
     }
 
     /**
-     * Recursively selects optionalToUseCount optional moves to include alongside
-     * the required moves. Once enough optionals are selected, attempts a bipartite
-     * match of the combined moves against the events.
+     * Recursively selects optional moves to include alongside the required moves.
+     * Uses remainingSlots (event slots, not move count) to account for taps needing
+     * 2 slots each. Once enough slots are filled, attempts a bipartite match.
      */
     private boolean tryOptionalSubsets(
             int eventBeginIndex, int eventCount,
             List<KeyComboMove> optional,
-            int optionalToUseCount, int optionalIndex,
+            int remainingSlots, int optionalIndex,
             List<KeyComboMove> moves,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
-            Map<String, Key> negatedBindings) {
-        if (optionalToUseCount == 0) {
+            Map<String, Key> negatedBindings,
+            Map<String, List<Key>> tapSourceAliasBindings) {
+        if (remainingSlots == 0) {
             return tryBipartiteMatch(eventBeginIndex, eventCount, moves,
                     regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                    aliasBindings, negatedBindings);
+                    aliasBindings, negatedBindings, tapSourceAliasBindings);
         }
-        int remainingOptionalCount = optional.size() - optionalIndex;
-        if (remainingOptionalCount < optionalToUseCount)
+        if (optionalIndex >= optional.size())
+            return false;
+        // Prune: check if remaining optionals can contribute enough slots.
+        int availableSlots = 0;
+        for (int i = optionalIndex; i < optional.size(); i++)
+            availableSlots += (optional.get(i) instanceof TapComboMove) ? 2 : 1;
+        if (availableSlots < remainingSlots)
             return false;
 
         // Include optional[optionalIndex].
-        moves.add(optional.get(optionalIndex));
-        if (tryOptionalSubsets(eventBeginIndex, eventCount, optional,
-                optionalToUseCount - 1, optionalIndex + 1, moves,
-                regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                aliasBindings, negatedBindings))
-            return true;
-        moves.removeLast();
+        int slots = (optional.get(optionalIndex) instanceof TapComboMove) ? 2 : 1;
+        if (slots <= remainingSlots) {
+            moves.add(optional.get(optionalIndex));
+            if (tryOptionalSubsets(eventBeginIndex, eventCount, optional,
+                    remainingSlots - slots, optionalIndex + 1, moves,
+                    regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
+                    aliasBindings, negatedBindings, tapSourceAliasBindings))
+                return true;
+            moves.removeLast();
+        }
 
         // Skip optional[optionalIndex].
         return tryOptionalSubsets(eventBeginIndex, eventCount, optional,
-                optionalToUseCount, optionalIndex + 1, moves,
+                remainingSlots, optionalIndex + 1, moves,
                 regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                aliasBindings, negatedBindings);
+                aliasBindings, negatedBindings, tapSourceAliasBindings);
     }
+
+    // Tap move states.
+    private static final int UNUSED = 0;
+    private static final int PRESS_MATCHED = 1;
+    private static final int FULLY_MATCHED = 2;
 
     /**
      * Tries to find a one-to-one assignment between moves and events.
@@ -655,16 +750,31 @@ public record ComboPreparation(List<KeyEvent> events) {
             int eventBeginIndex, int eventCount, List<KeyComboMove> moves,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves, Map<String, Key> aliasBindings,
-            Map<String, Key> negatedBindings) {
-        boolean[] moveUsed = new boolean[moves.size()];
+            Map<String, Key> negatedBindings,
+            Map<String, List<Key>> tapSourceAliasBindings) {
+        int[] moveStates = new int[moves.size()];
+        Key[] tapPressedKeys = new Key[moves.size()];
         ResolvedKeyComboMove[] assignedMoves = new ResolvedKeyComboMove[eventCount];
+        boolean[] eventIsIgnored = new boolean[eventCount];
         Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
         Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
-        if (assignEvents(eventBeginIndex, 0, eventCount, moves, moveUsed,
-                assignedMoves, regionBeginIndex, previousMatchedKeyMoves,
-                aliasBindings, negatedBindings)) {
+        if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, moves,
+                moves.size(), moveStates, tapPressedKeys, assignedMoves, eventIsIgnored,
+                KeySet.NONE, null,
+                regionBeginIndex, previousMatchedKeyMoves,
+                aliasBindings, negatedBindings, tapSourceAliasBindings,
+                true, true)) {
             matchedKeyMoves.clear();
             Collections.addAll(matchedKeyMoves, assignedMoves);
+            // Collect tap sourceAlias bindings.
+            for (int i = 0; i < moves.size(); i++) {
+                if (moves.get(i) instanceof TapComboMove tap
+                        && moveStates[i] == FULLY_MATCHED && tap.sourceAlias() != null) {
+                    tapSourceAliasBindings
+                            .computeIfAbsent(tap.sourceAlias(), k -> new ArrayList<>())
+                            .add(tapPressedKeys[i]);
+                }
+            }
             return true;
         }
         // Restore aliasBindings and negatedBindings on failure.
@@ -676,67 +786,39 @@ public record ComboPreparation(List<KeyEvent> events) {
     }
 
     /**
-     * Recursively assigns moves to events one at a time. For each event, tries
-     * every unused move that matches the event's key and press/release. Backtracks
-     * if no valid assignment is found for subsequent events.
+     * Checks if a tap move's key/alias matches the given key, considering alias bindings.
      */
-    private boolean assignEvents(
-            int eventBeginIndex, int eventOffset, int eventCount,
-            List<KeyComboMove> moves, boolean[] moveUsed,
-            ResolvedKeyComboMove[] assignedMoves,
-            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
-            Map<String, Key> aliasBindings, Map<String, Key> negatedBindings) {
-        if (eventOffset == eventCount)
-            return true;
-
-        int globalEventIndex = eventBeginIndex + eventOffset;
-        KeyEvent event = events.get(globalEventIndex);
-
-        // Duration check: skip for the first event in the matched region.
-        if (globalEventIndex > regionBeginIndex) {
-            KeyEvent previousEvent = events.get(globalEventIndex - 1);
-            ResolvedKeyComboMove previousMove;
-            if (eventOffset > 0)
-                previousMove = assignedMoves[eventOffset - 1];
-            else
-                previousMove = previousMatchedKeyMoves.getLast();
-            if (!previousMove.duration().satisfied(previousEvent.time(), event.time()))
-                return false;
+    private static boolean tapMatchesKey(TapComboMove tap, Key key,
+                                          Map<String, Key> aliasBindings) {
+        KeyOrAlias keyOrAlias = tap.keyOrAlias();
+        if (keyOrAlias.isAlias()) {
+            Key bound = aliasBindings.get(keyOrAlias.aliasName());
+            if (bound != null)
+                return key.equals(bound);
+            return keyOrAlias.matchesKey(key);
         }
-
-        for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
-            if (moveUsed[moveIndex]) continue;
-            KeyComboMove move = moves.get(moveIndex);
-            if (moveMatchesEvent(move, event, aliasBindings, negatedBindings)) {
-                moveUsed[moveIndex] = true;
-                Map<String, Key> savedAliasBindings = new HashMap<>(aliasBindings);
-                Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
-                bindAlias(move, event.key(), aliasBindings, negatedBindings);
-                assignedMoves[eventOffset] = resolvedMove(move, event.key());
-                if (assignEvents(eventBeginIndex, eventOffset + 1, eventCount,
-                        moves, moveUsed, assignedMoves, regionBeginIndex,
-                        previousMatchedKeyMoves, aliasBindings, negatedBindings))
-                    return true;
-                moveUsed[moveIndex] = false;
-                // Restore aliasBindings and negatedBindings on backtrack.
-                aliasBindings.clear();
-                aliasBindings.putAll(savedAliasBindings);
-                negatedBindings.clear();
-                negatedBindings.putAll(savedNegatedBindings);
-            }
-        }
-        return false;
+        return key.equals(keyOrAlias.key());
     }
 
     static boolean anyMoveCouldMatchEvent(KeyMoveSet keyMoveSet, KeyEvent event,
-                                                  Map<String, Key> aliasBindings,
-                                                  Map<String, Key> negatedBindings) {
-        for (KeyComboMove m : keyMoveSet.requiredMoves())
-            if (moveMatchesEvent(m, event, aliasBindings, negatedBindings))
+                                          Map<String, Key> aliasBindings,
+                                          Map<String, Key> negatedBindings) {
+        for (KeyComboMove m : keyMoveSet.requiredMoves()) {
+            if (m instanceof TapComboMove tap) {
+                if (tap.keyOrAlias().matchesKey(event.key()))
+                    return true;
+            }
+            else if (pressOrReleaseMoveMatchesEvent(m, event, aliasBindings, negatedBindings))
                 return true;
-        for (KeyComboMove m : keyMoveSet.optionalMoves())
-            if (moveMatchesEvent(m, event, aliasBindings, negatedBindings))
+        }
+        for (KeyComboMove m : keyMoveSet.optionalMoves()) {
+            if (m instanceof TapComboMove tap) {
+                if (tap.keyOrAlias().matchesKey(event.key()))
+                    return true;
+            }
+            else if (pressOrReleaseMoveMatchesEvent(m, event, aliasBindings, negatedBindings))
                 return true;
+        }
         return false;
     }
 
@@ -748,7 +830,7 @@ public record ComboPreparation(List<KeyEvent> events) {
      * the bound key. If unbound, the event key must be in the alias's key set.
      * For regular key moves: direct key equality.
      */
-    private static boolean moveMatchesEvent(KeyComboMove move, KeyEvent event,
+    private static boolean pressOrReleaseMoveMatchesEvent(KeyComboMove move, KeyEvent event,
                                             Map<String, Key> aliasBindings,
                                             Map<String, Key> negatedBindings) {
         if (event.isPress() != move.isPress())
@@ -788,7 +870,7 @@ public record ComboPreparation(List<KeyEvent> events) {
     /**
      * Returns a ResolvedKeyComboMove with the concrete key from the matched event.
      */
-    private static ResolvedKeyComboMove resolvedMove(KeyComboMove move, Key matchedKey) {
+    private static ResolvedKeyComboMove resolvedPressOrReleaseMove(KeyComboMove move, Key matchedKey) {
         return switch (move) {
             case PressComboMove p ->
                     new ResolvedPressComboMove(
@@ -796,7 +878,24 @@ public record ComboPreparation(List<KeyEvent> events) {
             case ReleaseComboMove r ->
                     new ResolvedReleaseComboMove(
                             matchedKey, r.duration());
+            case TapComboMove t ->
+                    throw new IllegalStateException();
         };
+    }
+
+    private static ResolvedKeyComboMove resolvedTapPress(TapComboMove tap, Key matchedKey) {
+        return new ResolvedPressComboMove(matchedKey, true, tap.duration());
+    }
+
+    private static ResolvedKeyComboMove resolvedTapRelease(TapComboMove tap, Key matchedKey) {
+        return new ResolvedReleaseComboMove(matchedKey, tap.duration());
+    }
+
+    private static Map<String, List<Key>> deepCopyOf(Map<String, List<Key>> map) {
+        Map<String, List<Key>> copy = new HashMap<>();
+        for (var entry : map.entrySet())
+            copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+        return Map.copyOf(copy);
     }
 
     @Override

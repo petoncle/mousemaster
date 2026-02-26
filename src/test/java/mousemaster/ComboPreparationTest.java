@@ -802,4 +802,138 @@ class ComboPreparationTest {
         assertEquals(1, match.matchedKeyMoves().size());
         assertEquals(a, match.matchedKeyMoves().getFirst().key());
     }
+
+    // --- Tap move tests ---
+
+    static ComboMove.TapComboMove tapMove(Key key) {
+        return new ComboMove.TapComboMove(KeyOrAlias.ofKey(key), null, defaultDuration);
+    }
+
+    @Test
+    void tap_singleKey_complete() {
+        // {a} (tap) with events [+a, -a] → complete.
+        ComboSequenceMatch match = prep(press(a, t(0)), release(a, t(50)))
+                .match(seq(required(tapMove(a))));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+        assertTrue(match.matchedKeyMoves().get(0).isPress());
+        assertTrue(match.matchedKeyMoves().get(1).isRelease());
+        assertEquals(a, match.matchedKeyMoves().get(0).key());
+        assertEquals(a, match.matchedKeyMoves().get(1).key());
+    }
+
+    @Test
+    void tap_releaseBeforePress_noMatch() {
+        // {a} (tap) with events [-a, +a] → no match (release before press).
+        ComboSequenceMatch match = prep(release(a, t(0)), press(a, t(50)))
+                .match(seq(required(tapMove(a))));
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void tap_danglingPress_noMatch() {
+        // {a} (tap) with events [+a] → no match (tap incomplete).
+        ComboSequenceMatch match = prep(press(a, t(0)))
+                .match(seq(required(tapMove(a))));
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void tap_multiTapInterleaved_complete() {
+        // {a b} (two taps, any-order) with events [+a, +b, -b, -a] → complete.
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(b, t(10)),
+                release(b, t(20)), release(a, t(30)))
+                .match(seq(required(tapMove(a), tapMove(b))));
+        assertTrue(match.complete());
+        assertEquals(4, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_plusPress_mixed_complete() {
+        // {a +c} (tap(a) + press(c)) with events [+a, +c, -a] → complete.
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(c, t(10)), release(a, t(20)))
+                .match(seq(required(tapMove(a), pressMove(c))));
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_optional_skipped_complete() {
+        // {a? +c} with events [+c] → tap(a) skipped, press(c) matches.
+        MoveSet moveSet = withOptional(
+                List.of(pressMove(c)), List.of(tapMove(a)));
+        ComboSequenceMatch match = prep(press(c, t(0))).match(seq(moveSet));
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_optional_included_complete() {
+        // {a? +c} with events [+a, +c, -a] → tap(a) included, press(c) matches.
+        MoveSet moveSet = withOptional(
+                List.of(pressMove(c)), List.of(tapMove(a)));
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(c, t(10)), release(a, t(20)))
+                .match(seq(moveSet));
+        assertTrue(match.complete());
+        assertEquals(3, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_parsedFromBareKey_complete() {
+        // "a" parses as tap(a). Events [+a, -a] → complete.
+        ComboSequence combo = parseCombo("a", Map.of());
+        ComboSequenceMatch match = prep(press(a, t(0)), release(a, t(50)))
+                .match(combo);
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_parsedFromBareKey_pressOnly_noComplete() {
+        // "a" parses as tap(a). Events [+a] → not complete (dangling press).
+        ComboSequence combo = parseCombo("a", Map.of());
+        ComboSequenceMatch match = prep(press(a, t(0))).match(combo);
+        // Partial match (press matched) but not complete.
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void tap_sequential_twoTaps_complete() {
+        // "a b" → tap(a) tap(b) sequential. Events [+a, -a, +b, -b] → complete.
+        ComboSequence combo = parseCombo("a b", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(a, t(10)),
+                press(b, t(20)), release(b, t(30)))
+                .match(combo);
+        assertTrue(match.complete());
+        assertEquals(4, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_expandedAlias_optional_complete() {
+        // {*alias1? +c} with alias1={a,b}: events [+a, +b, +c, -b, -a] → complete.
+        Map<String, KeyAlias> aliases = Map.of("alias1",
+                new KeyAlias("alias1", List.of(a, b)));
+        ComboSequence combo = parseCombo("{*alias1? +c}", aliases);
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(b, t(10)), press(c, t(20)),
+                release(b, t(30)), release(a, t(40)))
+                .match(combo);
+        assertTrue(match.complete());
+        assertEquals(5, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_expandedAlias_optional_noneMatched_complete() {
+        // {*alias1? +c} with alias1={a,b}: events [+c] → all taps skipped, +c matches.
+        Map<String, KeyAlias> aliases = Map.of("alias1",
+                new KeyAlias("alias1", List.of(a, b)));
+        ComboSequence combo = parseCombo("{*alias1? +c}", aliases);
+        ComboSequenceMatch match = prep(press(c, t(0))).match(combo);
+        assertTrue(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+    }
 }
