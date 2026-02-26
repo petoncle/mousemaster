@@ -908,6 +908,8 @@ public class ComboWatcher implements ModeListener {
         // another completing combo's matched key moves.
         commandsToRun.removeIf(candidate -> {
             List<ResolvedKeyComboMove> candidateMoves = candidate.match.matchedKeyMoves();
+            if (candidateMoves.isEmpty())
+                return false;
             return commandsToRun.stream().anyMatch(other ->
                     other != candidate &&
                     other.match.matchedKeyMoves().size() > candidateMoves.size() &&
