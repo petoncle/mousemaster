@@ -428,8 +428,9 @@ public record ComboPreparation(List<KeyEvent> events) {
                     regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
                     aliasBindings, negatedBindings, tapExpandedFromAliasBindings))
                 return true;
-            // Tap-press partial match fallback.
+            // Tap-press partial match fallback (partial path: all moves optional).
             if (tryTapPressPartialMatch(eventBeginIndex, eventCount, allMoves,
+                    0, regionBeginIndex, previousMatchedKeyMoves,
                     matchedKeyMoves, aliasBindings, negatedBindings,
                     tapExpandedFromAliasBindings)) {
                 hasDanglingTapPress[0] = true;
@@ -487,18 +488,15 @@ public record ComboPreparation(List<KeyEvent> events) {
                     lastEventAbsorbed, absorbedPressedKeys,
                     allowLeadingIgnored, allowTrailingIgnored);
         }
-        // Tap-press partial match fallback: only when no subset of optional
-        // move slots can achieve optionalSlotsToFill (e.g. all-tap optionals
-        // with odd remaining slots).
-        if (!canFillEventSlots(optional, optionalSlotsToFill)) {
+        // Tap-press partial match fallback: bipartite match that allows taps
+        // to remain as dangling presses. Handles cases like [+a, +b] matching
+        // tap(a) dangling + tap(b) dangling, or [+a, -a, +b] matching tap(a)
+        // complete + tap(b) dangling.
+        {
             List<KeyComboMove> allMoves = new ArrayList<>(required);
             allMoves.addAll(optional);
-            if (tryOptionalSubsets(eventBeginIndex, eventCount,
-                    allMoves, eventCount, 0, new ArrayList<>(),
-                    regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                    aliasBindings, negatedBindings, tapExpandedFromAliasBindings))
-                return true;
             if (tryTapPressPartialMatch(eventBeginIndex, eventCount, allMoves,
+                    required.size(), regionBeginIndex, previousMatchedKeyMoves,
                     matchedKeyMoves, aliasBindings, negatedBindings,
                     tapExpandedFromAliasBindings)) {
                 hasDanglingTapPress[0] = true;
@@ -511,35 +509,46 @@ public record ComboPreparation(List<KeyEvent> events) {
     /**
      * Fallback for partial matching when tryOptionalSubsets fails because tap
      * moves need 2 slots but only an odd number of event slots are available.
-     * Scans events from last to first, looking for a press event that matches
-     * any tap move's key. One match is sufficient for partOfComboSequence.
+     * Uses a bipartite match that allows taps to remain in PRESS_MATCHED state
+     * (dangling press). Every event must be assigned to a move.
      */
     private boolean tryTapPressPartialMatch(
             int eventBeginIndex, int eventCount, List<KeyComboMove> allMoves,
+            int requiredMoveCount,
+            int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             List<ResolvedKeyComboMove> matchedKeyMoves,
             Map<String, Key> aliasBindings, Map<String, Key> negatedBindings,
             Map<String, List<Key>> tapExpandedFromAliasBindings) {
-        // Only allow single-event regions: the dangling press consumes exactly
-        // 1 event. With more events, the others would be unaccounted for.
-        if (eventCount != 1)
-            return false;
-        KeyEvent event = events.get(eventBeginIndex);
-        if (!event.isPress())
-            return false;
-        for (KeyComboMove move : allMoves) {
-            if (!(move instanceof TapComboMove tap))
-                continue;
-            if (!tapMatchesKey(tap, event.key(), aliasBindings))
-                continue;
-            bindAlias(tap, event.key(), aliasBindings, negatedBindings);
-            matchedKeyMoves.add(resolvedTapPress(tap, event.key()));
-            if (tap.expandedFromAlias() != null) {
-                tapExpandedFromAliasBindings
-                        .computeIfAbsent(tap.expandedFromAlias(), k -> new ArrayList<>())
-                        .add(event.key());
+        int[] moveStates = new int[allMoves.size()];
+        Key[] tapPressedKeys = new Key[allMoves.size()];
+        ResolvedKeyComboMove[] assignedMoves = new ResolvedKeyComboMove[eventCount];
+        boolean[] eventIsIgnored = new boolean[eventCount];
+        Map<String, Key> savedAlias = new HashMap<>(aliasBindings);
+        Map<String, Key> savedNegated = new HashMap<>(negatedBindings);
+        if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, allMoves,
+                requiredMoveCount, moveStates, tapPressedKeys, assignedMoves, eventIsIgnored,
+                KeySet.NONE, null,
+                regionBeginIndex, previousMatchedKeyMoves,
+                aliasBindings, negatedBindings, tapExpandedFromAliasBindings,
+                true, true, true)) {
+            // Collect matched key moves.
+            for (ResolvedKeyComboMove m : assignedMoves)
+                matchedKeyMoves.add(m);
+            // Collect tap expandedFromAlias bindings.
+            for (int i = 0; i < allMoves.size(); i++) {
+                if (allMoves.get(i) instanceof TapComboMove tap && tap.expandedFromAlias() != null
+                        && (moveStates[i] == FULLY_MATCHED || moveStates[i] == PRESS_MATCHED)) {
+                    tapExpandedFromAliasBindings
+                            .computeIfAbsent(tap.expandedFromAlias(), k -> new ArrayList<>())
+                            .add(tapPressedKeys[i]);
+                }
             }
             return true;
         }
+        aliasBindings.clear();
+        aliasBindings.putAll(savedAlias);
+        negatedBindings.clear();
+        negatedBindings.putAll(savedNegated);
         return false;
     }
 
@@ -575,7 +584,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 wm.ignoredKeySet(), wm.duration(),
                 regionBeginIndex, previousMatchedKeyMoves,
                 aliasBindings, negatedBindings, tapExpandedFromAliasBindings,
-                allowLeadingIgnored, allowTrailingIgnored)) {
+                allowLeadingIgnored, allowTrailingIgnored, false)) {
             // Collect tap expandedFromAlias bindings.
             for (int i = 0; i < allMoves.size(); i++) {
                 if (allMoves.get(i) instanceof TapComboMove tap
@@ -625,17 +634,20 @@ public record ComboPreparation(List<KeyEvent> events) {
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             Map<String, Key> aliasBindings, Map<String, Key> negatedBindings,
             Map<String, List<Key>> tapExpandedFromAliasBindings,
-            boolean allowLeadingIgnored, boolean allowTrailingIgnored) {
+            boolean allowLeadingIgnored, boolean allowTrailingIgnored,
+            boolean allowDanglingTaps) {
         if (eventOffset == eventCount) {
             // All events processed. Check that all required moves are assigned
-            // and no tap has a dangling press.
+            // and no tap has a dangling press (unless dangling taps are allowed).
             for (int i = 0; i < requiredCount; i++) {
                 if (moveStates[i] != FULLY_MATCHED)
                     return false;
             }
-            for (int i = requiredCount; i < allMoves.size(); i++) {
-                if (allMoves.get(i) instanceof TapComboMove && moveStates[i] == PRESS_MATCHED)
-                    return false;
+            if (!allowDanglingTaps) {
+                for (int i = requiredCount; i < allMoves.size(); i++) {
+                    if (allMoves.get(i) instanceof TapComboMove && moveStates[i] == PRESS_MATCHED)
+                        return false;
+                }
             }
             // For non-partial matching (requiredCount > 0), absorbed events must
             // be interleaved between key moves unless leading/trailing is allowed.
@@ -696,7 +708,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                             ignoredKeysDuration, regionBeginIndex,
                             previousMatchedKeyMoves, aliasBindings, negatedBindings,
                             tapExpandedFromAliasBindings,
-                            allowLeadingIgnored, allowTrailingIgnored))
+                            allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
                         return true;
                     moveStates[moveIndex] = UNUSED;
                     tapPressedKeys[moveIndex] = null;
@@ -717,7 +729,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                             ignoredKeysDuration, regionBeginIndex,
                             previousMatchedKeyMoves, aliasBindings, negatedBindings,
                             tapExpandedFromAliasBindings,
-                            allowLeadingIgnored, allowTrailingIgnored))
+                            allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
                         return true;
                     moveStates[moveIndex] = PRESS_MATCHED;
                 }
@@ -737,7 +749,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                             ignoredKeysDuration, regionBeginIndex,
                             previousMatchedKeyMoves, aliasBindings, negatedBindings,
                             tapExpandedFromAliasBindings,
-                            allowLeadingIgnored, allowTrailingIgnored))
+                            allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
                         return true;
                     moveStates[moveIndex] = UNUSED;
                     aliasBindings.clear();
@@ -758,7 +770,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                     ignoredKeysDuration, regionBeginIndex,
                     previousMatchedKeyMoves, aliasBindings, negatedBindings,
                     tapExpandedFromAliasBindings,
-                    allowLeadingIgnored, allowTrailingIgnored))
+                    allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
                 return true;
         }
 
@@ -839,7 +851,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 KeySet.NONE, null,
                 regionBeginIndex, previousMatchedKeyMoves,
                 aliasBindings, negatedBindings, tapExpandedFromAliasBindings,
-                true, true)) {
+                true, true, false)) {
             matchedKeyMoves.clear();
             Collections.addAll(matchedKeyMoves, assignedMoves);
             // Collect tap expandedFromAlias bindings.

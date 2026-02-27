@@ -999,6 +999,40 @@ class ComboPreparationTest {
     }
 
     @Test
+    void tap_optional_multipleDanglingPresses_partialMatch() {
+        // +1 -1 {*keys?} +4 with keys=a,b,c, events [+1, -1, +a, +b].
+        // {*keys?} gets [+a, +b]: both are dangling tap presses.
+        // Should be a partial match (waiting for releases then +4).
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b, c)));
+        ComboSequence combo = parseCombo("+1 -1 {*keys?} +4", aliases);
+        Key one = Key.ofName("1");
+        ComboSequenceMatch match = prep(
+                press(one, t(0)), release(one, t(50)),
+                press(a, t(200)), press(b, t(300)))
+                .match(combo);
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void tap_optional_completeTapPlusDanglingPress_partialMatch() {
+        // +1 -1 {*keys?} +4 with keys=a,b,c, events [+1, -1, +a, -a, +b].
+        // {*keys?} gets [+a, -a, +b]: tap(a) complete + tap(b) dangling.
+        // Should be a partial match (waiting for -b then +4).
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b, c)));
+        ComboSequence combo = parseCombo("+1 -1 {*keys?} +4", aliases);
+        Key one = Key.ofName("1");
+        ComboSequenceMatch match = prep(
+                press(one, t(0)), release(one, t(50)),
+                press(a, t(200)), release(a, t(250)), press(b, t(300)))
+                .match(combo);
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+    }
+
+    @Test
     void tap_expandedAlias_optional_complete() {
         // {*alias1? +c} with alias1={a,b}: events [+a, +b, +c, -b, -a] → complete.
         Map<String, KeyAlias> aliases = Map.of("alias1",
