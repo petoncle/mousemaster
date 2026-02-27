@@ -1092,4 +1092,50 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(d, t(0))).match(combo);
         assertFalse(match.hasMatch());
     }
+
+    // --- atLeastOne (+ suffix) tests ---
+
+    @Test
+    void expandedAlias_zeroOrMore_noMatchingEvents_complete() {
+        // {*alias?} with alias={a,b}: events [+x] → all optional skipped, complete.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("{+*keys?}", aliases);
+        ComboSequenceMatch match = prep(press(x, t(0))).match(combo);
+        assertTrue(match.complete());
+        assertEquals(0, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void expandedAlias_atLeastOne_oneComplete_complete() {
+        // {*alias+} with alias={a,b}: events [+a, -a] → tap(a) complete, at least one satisfied.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("{*keys+}", aliases);
+        ComboSequenceMatch match = prep(press(a, t(0)), release(a, t(50)))
+                .match(combo);
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void expandedAlias_atLeastOne_noMatchingEvents_noMatch() {
+        // {*alias+} with alias={a,b}: events [+x] → no tap matched, at least one required.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("{*keys+}", aliases);
+        ComboSequenceMatch match = prep(press(x, t(0))).match(combo);
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void expandedAlias_atLeastOne_withRequired_missingAlias_noMatch() {
+        // {*alias+ +c} with alias={a,b}: events [+c] → +c matches but no
+        // alias key matched, at least one required.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("{*keys+ +c}", aliases);
+        ComboSequenceMatch match = prep(press(c, t(0))).match(combo);
+        assertFalse(match.complete());
+    }
 }

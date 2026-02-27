@@ -1,5 +1,6 @@
 package mousemaster;
 
+import mousemaster.ComboAliasMove.Optionality;
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
 import mousemaster.ComboMove.ReleaseComboMove;
@@ -25,7 +26,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             Pattern.compile("([#+]!?\\{[^}]+\\}(?:-\\d+(?:-\\d+)?)?)|(\\S+)");
 
     private static final Pattern MOVE_PATTERN =
-            Pattern.compile("([+\\-#])(!?)(\\*?)([^-]+?)(-(\\d+)(-(\\d+))?)?(\\?)?");
+            Pattern.compile("([+\\-#])(!?)(\\*?)([^-?+]+?)(-(\\d+)(-(\\d+))?)?([?+])?");
 
     // [#+]!?{keys|*}[-MIN[-MAX]]
     // Group 1: "#" or "+" prefix
@@ -206,9 +207,18 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                                         Map<String, KeyAlias> aliases) {
         boolean expand = token.startsWith("*");
         String keyName = expand ? token.substring(1) : token;
-        boolean optional = keyName.endsWith("?");
-        if (optional)
+        Optionality optionality;
+        if (keyName.endsWith("+")) {
+            optionality = Optionality.AT_LEAST_ONE;
             keyName = keyName.substring(0, keyName.length() - 1);
+        }
+        else if (keyName.endsWith("?")) {
+            optionality = Optionality.OPTIONAL;
+            keyName = keyName.substring(0, keyName.length() - 1);
+        }
+        else {
+            optionality = Optionality.REQUIRED;
+        }
         List<ComboAliasMove> moves = new ArrayList<>();
         if (expand) {
             KeyAlias alias = aliases.get(keyName);
@@ -217,12 +227,12 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                         "Cannot expand non-alias: " + keyName);
             for (Key key : alias.keys()) {
                 moves.add(new ComboAliasMove.TapComboAliasMove(
-                        key.name(), duration, optional, keyName));
+                        key.name(), duration, optionality, keyName));
             }
         }
         else {
             moves.add(new ComboAliasMove.TapComboAliasMove(
-                    keyName, duration, optional, null));
+                    keyName, duration, optionality, null));
         }
         return moves;
     }
@@ -244,15 +254,15 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             case ComboAliasMove.PressComboAliasMove pm ->
                     new ComboAliasMove.PressComboAliasMove(keyName,
                             pm.negated(), pm.eventMustBeEaten(),
-                            pm.duration(), pm.optional(), false,
+                            pm.duration(), pm.optionality(), false,
                             move.aliasOrKeyName());
             case ComboAliasMove.ReleaseComboAliasMove rm ->
                     new ComboAliasMove.ReleaseComboAliasMove(keyName,
-                            rm.negated(), rm.duration(), rm.optional(),
+                            rm.negated(), rm.duration(), rm.optionality(),
                             false, move.aliasOrKeyName());
             case ComboAliasMove.TapComboAliasMove tm ->
                     new ComboAliasMove.TapComboAliasMove(keyName,
-                            tm.duration(), tm.optional(),
+                            tm.duration(), tm.optionality(),
                             tm.expandedFromAlias());
             case ComboAliasMove.WaitComboAliasMove wm ->
                     throw new IllegalStateException(
@@ -277,16 +287,19 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     matcher.group(8) == null ? null : Duration.ofMillis(
                             Integer.parseUnsignedInt(matcher.group(8))));
         String aliasName = matcher.group(4);
-        boolean optional = matcher.group(9) != null;
+        String suffix = matcher.group(9);
+        Optionality optionality = "+".equals(suffix) ? Optionality.AT_LEAST_ONE
+                : "?".equals(suffix) ? Optionality.OPTIONAL
+                : Optionality.REQUIRED;
         ComboAliasMove move;
         if (press) {
             boolean eventMustBeEaten = moveString.startsWith("+");
             move = new ComboAliasMove.PressComboAliasMove(aliasName, negated,
-                    eventMustBeEaten, moveDuration, optional, expand, null);
+                    eventMustBeEaten, moveDuration, optionality, expand, null);
         }
         else
             move = new ComboAliasMove.ReleaseComboAliasMove(aliasName, negated,
-                    moveDuration, optional, expand, null);
+                    moveDuration, optionality, expand, null);
         return move;
     }
 
@@ -322,6 +335,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             }
             List<KeyComboMove> required = new ArrayList<>();
             List<KeyComboMove> optional = new ArrayList<>();
+            boolean atLeastOneOptional = false;
             for (ComboAliasMove aliasMove : aliasMoveSet) {
                 if (aliasMove instanceof ComboAliasMove.WaitComboAliasMove)
                     continue; // Already handled above.
@@ -353,14 +367,17 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     case ComboAliasMove.WaitComboAliasMove wm ->
                             throw new IllegalStateException();
                 };
-                if (aliasMove.optional())
+                if (aliasMove.optionality().isOptional()) {
                     optional.add(comboMove);
+                    if (aliasMove.optionality() == Optionality.AT_LEAST_ONE)
+                        atLeastOneOptional = true;
+                }
                 else
                     required.add(comboMove);
             }
             resolvedMoveSets.add(
                     new KeyMoveSet(List.copyOf(required), List.copyOf(optional),
-                            resolvedWaitMove));
+                            resolvedWaitMove, atLeastOneOptional));
         }
         return new ComboSequence(List.copyOf(resolvedMoveSets));
     }

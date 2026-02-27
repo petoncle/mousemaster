@@ -4,9 +4,25 @@ import java.util.Set;
 
 public sealed interface ComboAliasMove {
 
+    enum Optionality {
+        REQUIRED, OPTIONAL, AT_LEAST_ONE;
+
+        public boolean isOptional() {
+            return this != REQUIRED;
+        }
+
+        public String suffix() {
+            return switch (this) {
+                case REQUIRED -> "";
+                case OPTIONAL -> "?";
+                case AT_LEAST_ONE -> "+";
+            };
+        }
+    }
+
     String aliasOrKeyName();
     ComboMoveDuration duration();
-    boolean optional();
+    Optionality optionality();
     boolean expand();
     default String expandedFromAlias() { return null; }
 
@@ -20,33 +36,39 @@ public sealed interface ComboAliasMove {
 
     record PressComboAliasMove(String aliasOrKeyName, boolean negated,
                                boolean eventMustBeEaten,
-                               ComboMoveDuration duration, boolean optional,
-                               boolean expand, String expandedFromAlias)
+                               ComboMoveDuration duration,
+                               Optionality optionality,
+                               boolean expand,
+                               String expandedFromAlias)
             implements ComboAliasMove {
+
         @Override
         public String toString() {
             return (eventMustBeEaten ? "+" : "#") + (negated ? "!" : "") +
-                   (expand ? "*" : "") + aliasOrKeyName;
+                   (expand ? "*" : "") + aliasOrKeyName +
+                   optionality.suffix();
         }
 
     }
 
     record ReleaseComboAliasMove(String aliasOrKeyName, boolean negated,
                                  ComboMoveDuration duration,
-                                 boolean optional, boolean expand,
+                                 Optionality optionality, boolean expand,
                                  String expandedFromAlias)
             implements ComboAliasMove {
+
         @Override
         public String toString() {
             return "-" + (negated ? "!" : "") + (expand ? "*" : "") +
-                   aliasOrKeyName;
+                   aliasOrKeyName + optionality.suffix();
         }
 
     }
 
     record TapComboAliasMove(String aliasOrKeyName, ComboMoveDuration duration,
-                              boolean optional,
+                              Optionality optionality,
                               String expandedFromAlias) implements ComboAliasMove {
+
         @Override
         public boolean expand() {
             return false;
@@ -54,7 +76,7 @@ public sealed interface ComboAliasMove {
 
         @Override
         public String toString() {
-            return aliasOrKeyName + (optional ? "?" : "");
+            return aliasOrKeyName + optionality.suffix();
         }
     }
 
@@ -66,8 +88,8 @@ public sealed interface ComboAliasMove {
         }
 
         @Override
-        public boolean optional() {
-            return false;
+        public Optionality optionality() {
+            return Optionality.REQUIRED;
         }
 
         @Override

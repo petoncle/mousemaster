@@ -405,11 +405,11 @@ public record ComboPreparation(List<KeyEvent> events) {
             boolean allowLeadingIgnored, boolean allowTrailingIgnored,
             boolean[] hasDanglingTapPress) {
         if (eventCount == 0)
-            return true;
+            return keyMoveSet.minMoveCount() == 0;
 
         List<KeyComboMove> required = keyMoveSet.requiredMoves();
         List<KeyComboMove> optional = keyMoveSet.optionalMoves();
-        int requiredSlots = keyMoveSet.minMoveCount();
+        int requiredSlots = keyMoveSet.requiredMoveSlotCount();
         int optionalSlotsToFill = eventCount - requiredSlots;
         if (optionalSlotsToFill < 0) {
             if (keyMoveSet.canAbsorbEvents()) {

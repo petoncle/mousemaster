@@ -22,15 +22,41 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
      */
     record KeyMoveSet(List<ComboMove.KeyComboMove> requiredMoves,
                       List<ComboMove.KeyComboMove> optionalMoves,
-                      ComboMove.WaitComboMove waitMove) implements MoveSet {
+                      ComboMove.WaitComboMove waitMove,
+                      boolean atLeastOneOptional) implements MoveSet {
 
         public KeyMoveSet(List<ComboMove.KeyComboMove> requiredMoves,
                           List<ComboMove.KeyComboMove> optionalMoves) {
-            this(requiredMoves, optionalMoves, null);
+            this(requiredMoves, optionalMoves, null, false);
+        }
+
+        public KeyMoveSet(List<ComboMove.KeyComboMove> requiredMoves,
+                          List<ComboMove.KeyComboMove> optionalMoves,
+                          ComboMove.WaitComboMove waitMove) {
+            this(requiredMoves, optionalMoves, waitMove, false);
         }
 
         @Override
         public int minMoveCount() {
+            int count = 0;
+            for (ComboMove.KeyComboMove m : requiredMoves)
+                count += (m instanceof TapComboMove) ? 2 : 1;
+            if (atLeastOneOptional && !optionalMoves.isEmpty()) {
+                // At least one optional move must match.
+                // Minimum cost is 1 for press/release, 2 for tap.
+                int minOptionalSlots = Integer.MAX_VALUE;
+                for (ComboMove.KeyComboMove m : optionalMoves)
+                    minOptionalSlots = Math.min(minOptionalSlots,
+                            (m instanceof TapComboMove) ? 2 : 1);
+                count += minOptionalSlots;
+            }
+            return count;
+        }
+
+        /**
+         * Slot count from required moves only (excludes atLeastOne minimum).
+         */
+        public int requiredMoveSlotCount() {
             int count = 0;
             for (ComboMove.KeyComboMove m : requiredMoves)
                 count += (m instanceof TapComboMove) ? 2 : 1;
@@ -54,6 +80,7 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
 
         @Override
         public String toString() {
+            String optSuffix = atLeastOneOptional ? "+" : "?";
             String ignoredSpec = "";
             if (waitMove != null) {
                 ignoredSpec = " " + waitMove;
@@ -61,11 +88,11 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
             if (requiredMoves.size() + optionalMoves.size() == 1 && ignoredSpec.isEmpty()) {
                 ComboMove move = requiredMoves.isEmpty() ? optionalMoves.getFirst() :
                         requiredMoves.getFirst();
-                return move.toString() + (requiredMoves.isEmpty() ? "?" : "");
+                return move.toString() + (requiredMoves.isEmpty() ? optSuffix : "");
             }
             return "{"
                    + Stream.concat(requiredMoves.stream().map(Object::toString),
-                                   optionalMoves.stream().map(m -> m.toString() + "?"))
+                                   optionalMoves.stream().map(m -> m.toString() + optSuffix))
                            .collect(Collectors.joining(" "))
                    + ignoredSpec
                    + "}";
