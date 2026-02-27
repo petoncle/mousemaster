@@ -8,6 +8,7 @@ public sealed interface ComboAliasMove {
     ComboMoveDuration duration();
     boolean optional();
     boolean expand();
+    default String expandedFromAlias() { return null; }
 
     default boolean isPress() {
         return this instanceof PressComboAliasMove;
@@ -20,7 +21,7 @@ public sealed interface ComboAliasMove {
     record PressComboAliasMove(String aliasOrKeyName, boolean negated,
                                boolean eventMustBeEaten,
                                ComboMoveDuration duration, boolean optional,
-                               boolean expand)
+                               boolean expand, String expandedFromAlias)
             implements ComboAliasMove {
         @Override
         public String toString() {
@@ -32,7 +33,8 @@ public sealed interface ComboAliasMove {
 
     record ReleaseComboAliasMove(String aliasOrKeyName, boolean negated,
                                  ComboMoveDuration duration,
-                                 boolean optional, boolean expand)
+                                 boolean optional, boolean expand,
+                                 String expandedFromAlias)
             implements ComboAliasMove {
         @Override
         public String toString() {

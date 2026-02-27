@@ -244,11 +244,12 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             case ComboAliasMove.PressComboAliasMove pm ->
                     new ComboAliasMove.PressComboAliasMove(keyName,
                             pm.negated(), pm.eventMustBeEaten(),
-                            pm.duration(), pm.optional(), false);
+                            pm.duration(), pm.optional(), false,
+                            move.aliasOrKeyName());
             case ComboAliasMove.ReleaseComboAliasMove rm ->
                     new ComboAliasMove.ReleaseComboAliasMove(keyName,
                             rm.negated(), rm.duration(), rm.optional(),
-                            false);
+                            false, move.aliasOrKeyName());
             case ComboAliasMove.TapComboAliasMove tm ->
                     new ComboAliasMove.TapComboAliasMove(keyName,
                             tm.duration(), tm.optional(),
@@ -281,11 +282,11 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         if (press) {
             boolean eventMustBeEaten = moveString.startsWith("+");
             move = new ComboAliasMove.PressComboAliasMove(aliasName, negated,
-                    eventMustBeEaten, moveDuration, optional, expand);
+                    eventMustBeEaten, moveDuration, optional, expand, null);
         }
         else
             move = new ComboAliasMove.ReleaseComboAliasMove(aliasName, negated,
-                    moveDuration, optional, expand);
+                    moveDuration, optional, expand, null);
         return move;
     }
 
@@ -328,6 +329,10 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                 KeyAlias alias = aliases.get(aliasMove.aliasOrKeyName());
                 if (alias != null)
                     keyOrAlias = KeyOrAlias.ofAlias(alias);
+                else if (aliasMove.expandedFromAlias() != null)
+                    // Expanded alias key: already resolved to active layout.
+                    keyOrAlias = KeyOrAlias.ofKey(
+                            Key.ofName(aliasMove.aliasOrKeyName()));
                 else
                     keyOrAlias = KeyOrAlias.ofKey(
                             keyResolver.resolve(aliasMove.aliasOrKeyName()));
