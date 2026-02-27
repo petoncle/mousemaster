@@ -409,10 +409,15 @@ public record ComboPreparation(List<KeyEvent> events) {
             // Partial matching: select eventCount slots from all moves.
             List<KeyComboMove> allMoves = new ArrayList<>(required);
             allMoves.addAll(optional);
-            return tryOptionalSubsets(eventBeginIndex, eventCount,
+            if (tryOptionalSubsets(eventBeginIndex, eventCount,
                     allMoves, eventCount, 0, new ArrayList<>(),
                     regionBeginIndex, previousMatchedKeyMoves, matchedKeyMoves,
-                    aliasBindings, negatedBindings, tapExpandedFromAliasBindings);
+                    aliasBindings, negatedBindings, tapExpandedFromAliasBindings))
+                return true;
+            // Tap-press partial match fallback.
+            return tryTapPressPartialMatch(eventBeginIndex, eventCount, allMoves,
+                    matchedKeyMoves, aliasBindings, negatedBindings,
+                    tapExpandedFromAliasBindings);
         }
         int maxOptionalSlots = keyMoveSet.maxMoveCount() - requiredSlots;
         if (optionalSlotsToFill > maxOptionalSlots) {
@@ -463,6 +468,39 @@ public record ComboPreparation(List<KeyEvent> events) {
                     tapExpandedFromAliasBindings,
                     lastEventAbsorbed, absorbedPressedKeys,
                     allowLeadingIgnored, allowTrailingIgnored);
+        }
+        return false;
+    }
+
+    /**
+     * Fallback for partial matching when tryOptionalSubsets fails because tap
+     * moves need 2 slots but only an odd number of event slots are available.
+     * Scans events from last to first, looking for a press event that matches
+     * any tap move's key. One match is sufficient for partOfComboSequence.
+     */
+    private boolean tryTapPressPartialMatch(
+            int eventBeginIndex, int eventCount, List<KeyComboMove> allMoves,
+            List<ResolvedKeyComboMove> matchedKeyMoves,
+            Map<String, Key> aliasBindings, Map<String, Key> negatedBindings,
+            Map<String, List<Key>> tapExpandedFromAliasBindings) {
+        for (int i = eventCount - 1; i >= 0; i--) {
+            KeyEvent event = events.get(eventBeginIndex + i);
+            if (!event.isPress())
+                continue;
+            for (KeyComboMove move : allMoves) {
+                if (!(move instanceof TapComboMove tap))
+                    continue;
+                if (!tapMatchesKey(tap, event.key(), aliasBindings))
+                    continue;
+                bindAlias(tap, event.key(), aliasBindings, negatedBindings);
+                matchedKeyMoves.add(resolvedTapPress(tap, event.key()));
+                if (tap.expandedFromAlias() != null) {
+                    tapExpandedFromAliasBindings
+                            .computeIfAbsent(tap.expandedFromAlias(), k -> new ArrayList<>())
+                            .add(event.key());
+                }
+                return true;
+            }
         }
         return false;
     }

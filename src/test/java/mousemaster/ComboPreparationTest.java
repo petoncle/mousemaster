@@ -831,11 +831,43 @@ class ComboPreparationTest {
     }
 
     @Test
-    void tap_danglingPress_noMatch() {
-        // {a} (tap) with events [+a] → no match (tap incomplete).
+    void tap_danglingPress_hasPartialMatch() {
+        // {a} (tap) with events [+a] → partial match (press matched, tap incomplete).
         ComboSequenceMatch match = prep(press(a, t(0)))
                 .match(seq(required(tapMove(a))));
+        assertTrue(match.hasMatch());
         assertFalse(match.complete());
+        assertEquals(1, match.matchedKeyMoves().size());
+        assertTrue(match.matchedKeyMoves().getFirst().isPress());
+        assertEquals(a, match.matchedKeyMoves().getFirst().key());
+    }
+
+    @Test
+    void tap_multiTap_danglingPress_hasPartialMatch() {
+        // {a b} (two required taps) with events [+a] → partial match.
+        ComboSequenceMatch match = prep(press(a, t(0)))
+                .match(seq(required(tapMove(a), tapMove(b))));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void tap_multiTap_completePlusDangling_hasPartialMatch() {
+        // {a b} (two required taps) with events [+a, -a, +b] → partial match
+        // (one complete tap + one dangling press).
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(a, t(10)), press(b, t(20)))
+                .match(seq(required(tapMove(a), tapMove(b))));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void tap_danglingPress_wrongKey_noMatch() {
+        // {a} (tap) with events [+b] → no match (wrong key).
+        ComboSequenceMatch match = prep(press(b, t(0)))
+                .match(seq(required(tapMove(a))));
+        assertFalse(match.hasMatch());
     }
 
     @Test
