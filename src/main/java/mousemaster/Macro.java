@@ -210,8 +210,9 @@ public record Macro(String name, MacroSequence output,
                             else {
                                 // Single-key alias binding.
                                 Key key = remappedAliasResolution.keyByAliasName().get(aliasName);
-                                resolvedMoves.add(
-                                        new ResolvedKeyMacroMove(key, press, destination));
+                                if (key != null) // Skip if alias was unbound (optional, not matched).
+                                    resolvedMoves.add(
+                                            new ResolvedKeyMacroMove(key, press, destination));
                             }
                         }
                         else {
