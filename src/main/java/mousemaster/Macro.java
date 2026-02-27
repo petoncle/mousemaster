@@ -5,7 +5,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public record Macro(String name, MacroSequence output) {
+public record Macro(String name, MacroSequence output,
+                    Map<String, MacroAliasRemap> aliasRemapByAliasName) {
 
     /**
      * - +key = press key, send to OS
@@ -17,7 +18,8 @@ public record Macro(String name, MacroSequence output) {
      * - 'text' = send string to OS
      */
     public static Macro of(String name, String string,
-                           Map<String, KeyAlias> keyAliases, KeyResolver keyResolver) {
+                           Map<String, KeyAlias> keyAliases, KeyResolver keyResolver,
+                           Map<String, MacroAliasRemap> aliasRemapByAliasName) {
         List<MacroParallel> parallels = new ArrayList<>();
         Duration parallelDuration;
         List<MacroMove> moves = new ArrayList<>();
@@ -45,7 +47,7 @@ public record Macro(String name, MacroSequence output) {
         }
         if (!moves.isEmpty())
             parallels.add(new MacroParallel(moves, Duration.ZERO));
-        return new Macro(name, new MacroSequence(parallels));
+        return new Macro(name, new MacroSequence(parallels), aliasRemapByAliasName);
     }
 
     private static List<String> tokenize(String string) {
@@ -152,7 +154,34 @@ public record Macro(String name, MacroSequence output) {
         return names;
     }
 
+    private AliasResolution applyAliasRemaps(AliasResolution original) {
+        if (aliasRemapByAliasName.isEmpty())
+            return original;
+        Map<String, Key> remappedKeyByAliasName = new HashMap<>(original.keyByAliasName());
+        Map<String, List<Key>> remappedKeysByTapExpandedFromAlias =
+                new HashMap<>(original.keysByTapExpandedFromAlias());
+        for (Map.Entry<String, MacroAliasRemap> entry : aliasRemapByAliasName.entrySet()) {
+            String aliasName = entry.getKey();
+            Map<Key, Key> keyRemap = entry.getValue().keyRemap();
+            Key singleKey = remappedKeyByAliasName.get(aliasName);
+            if (singleKey != null) {
+                Key remapped = keyRemap.getOrDefault(singleKey, singleKey);
+                remappedKeyByAliasName.put(aliasName, remapped);
+            }
+            List<Key> tapKeys = remappedKeysByTapExpandedFromAlias.get(aliasName);
+            if (tapKeys != null) {
+                List<Key> remappedTapKeys = new ArrayList<>();
+                for (Key key : tapKeys)
+                    remappedTapKeys.add(keyRemap.getOrDefault(key, key));
+                remappedKeysByTapExpandedFromAlias.put(aliasName, remappedTapKeys);
+            }
+        }
+        return new AliasResolution(remappedKeyByAliasName,
+                original.negatedKeyByName(), remappedKeysByTapExpandedFromAlias);
+    }
+
     public ResolvedMacro resolve(AliasResolution aliasResolution) {
+        AliasResolution remappedAliasResolution = applyAliasRemaps(aliasResolution);
         List<ResolvedMacroParallel> resolvedParallels = new ArrayList<>();
         for (MacroParallel parallel : output.parallels()) {
             List<ResolvedMacroMove> resolvedMoves = new ArrayList<>();
@@ -164,14 +193,14 @@ public record Macro(String name, MacroSequence output) {
                         if (negated) {
                             String name = keyOrAlias.isAlias() ? keyOrAlias.aliasName()
                                     : keyOrAlias.key().name();
-                            Key key = aliasResolution.negatedKeyByName().get(name);
+                            Key key = remappedAliasResolution.negatedKeyByName().get(name);
                             resolvedMoves.add(
                                     new ResolvedKeyMacroMove(key, press, destination));
                         }
                         else if (keyOrAlias.isAlias()) {
                             String aliasName = keyOrAlias.aliasName();
                             // Check tap expandedFromAlias bindings first (multi-key).
-                            List<Key> tapKeys = aliasResolution.keysByTapExpandedFromAlias()
+                            List<Key> tapKeys = remappedAliasResolution.keysByTapExpandedFromAlias()
                                                                .get(aliasName);
                             if (tapKeys != null && !tapKeys.isEmpty()) {
                                 for (Key key : tapKeys)
@@ -180,7 +209,7 @@ public record Macro(String name, MacroSequence output) {
                             }
                             else {
                                 // Single-key alias binding.
-                                Key key = aliasResolution.keyByAliasName().get(aliasName);
+                                Key key = remappedAliasResolution.keyByAliasName().get(aliasName);
                                 resolvedMoves.add(
                                         new ResolvedKeyMacroMove(key, press, destination));
                             }

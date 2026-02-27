@@ -283,6 +283,11 @@ public class ConfigurationParser {
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
                 configurationKeyboardLayout);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
+        Set<String> layoutDependentAliasNames = new HashSet<>();
+        for (Map.Entry<String, LayoutKeyAlias> entry : configurationAliases.layoutKeyAliasByName.entrySet()) {
+            if (!entry.getValue().tokensByLayout.isEmpty())
+                layoutDependentAliasNames.add(entry.getKey());
+        }
         String logLevel = null;
         boolean logRedactKeys = false;
         boolean logToFile = false;
@@ -364,7 +369,8 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys,
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases, keyResolver,
                         modeReferences, defaultComboMoveDuration, appAliases,
-                        finalDefaultComboMoveDuration, QFontDatabase::hasFamily);
+                        finalDefaultComboMoveDuration, QFontDatabase::hasFamily,
+                        layoutDependentAliasNames);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
                         new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
@@ -553,13 +559,17 @@ public class ConfigurationParser {
             ComboMoveDuration defaultComboMoveDuration,
             Map<String, KeyAlias> keyAliases,
             Map<String, AppAlias> appAliases,
-            Map<Combo, List<Command>> builder, KeyResolver keyResolver) {
+            Map<Combo, List<Command>> builder, KeyResolver keyResolver,
+            Set<String> layoutDependentAliasNames) {
         String[] split = propertyValue.split("\\s*->\\s*");
-        if (split.length != 2)
+        if (split.length < 2 || split.length > 3)
             throw new IllegalArgumentException(
                     "Invalid " + propertyType + ": " + propertyValue);
+        String comboString = split[0];
+        String remapString = split.length == 3 ? split[1] : null;
+        String outputString = split.length == 3 ? split[2] : split[1];
         List<Combo> combos =
-                Combo.multiCombo(split[0], defaultComboMoveDuration,
+                Combo.multiCombo(comboString, defaultComboMoveDuration,
                         keyAliases,
                         appAliases, keyResolver);
         // Aliases used in the macro output must be used in all of the
@@ -569,9 +579,8 @@ public class ConfigurationParser {
         for (Combo combo : combos) {
             comboAliasNameIntersection.retainAll(combo.sequence().aliasNames());
         }
-        String output = split[1];
         Set<String> aliasNamesUsedInOutput =
-                Macro.aliasNamesUsedInOutput(output, keyAliases.keySet());
+                Macro.aliasNamesUsedInOutput(outputString, keyAliases.keySet());
         if (!comboAliasNameIntersection.containsAll(aliasNamesUsedInOutput)) {
             Set<String> aliasesNotUsedInComboSequence =
                     new HashSet<>(aliasNamesUsedInOutput);
@@ -587,7 +596,7 @@ public class ConfigurationParser {
             comboNegatedNameIntersection.retainAll(combo.sequence().negatedNames());
         }
         Set<String> negatedNamesUsedInOutput =
-                Macro.negatedNamesUsedInOutput(output);
+                Macro.negatedNamesUsedInOutput(outputString);
         if (!comboNegatedNameIntersection.containsAll(negatedNamesUsedInOutput)) {
             Set<String> negatedNotInCombo =
                     new HashSet<>(negatedNamesUsedInOutput);
@@ -596,7 +605,32 @@ public class ConfigurationParser {
                     "Negated names " + negatedNotInCombo +
                     " cannot be used in the " + propertyType + " output because they are not used as negated in the combo sequence");
         }
-        Macro macro = Macro.of(name, output, keyAliases, keyResolver);
+        Map<String, MacroAliasRemap> aliasRemapByAliasName;
+        if (remapString != null) {
+            aliasRemapByAliasName = MacroAliasRemap.of(
+                    remapString, keyAliases, keyResolver, layoutDependentAliasNames,
+                    propertyType);
+            // Remap aliases must be used in the combo.
+            for (String remapAliasName : aliasRemapByAliasName.keySet()) {
+                if (!comboAliasNameIntersection.contains(remapAliasName))
+                    throw new IllegalArgumentException(
+                            "Remap alias " + remapAliasName +
+                            " must be used in the " + propertyType +
+                            " combo sequence");
+            }
+            // Remap aliases must be used in the output.
+            for (String remapAliasName : aliasRemapByAliasName.keySet()) {
+                if (!aliasNamesUsedInOutput.contains(remapAliasName))
+                    throw new IllegalArgumentException(
+                            "Remap alias " + remapAliasName +
+                            " must be used in the " + propertyType + " output");
+            }
+        }
+        else {
+            aliasRemapByAliasName = Map.of();
+        }
+        Macro macro = Macro.of(name, outputString, keyAliases, keyResolver,
+                aliasRemapByAliasName);
         Command command = new MacroCommand(macro, null);
         for (Combo combo : combos)
             builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
@@ -616,7 +650,8 @@ public class ConfigurationParser {
                                   ComboMoveDuration defaultComboMoveDuration,
                                   Map<String, AppAlias> appAliases,
                                   ComboMoveDuration finalDefaultComboMoveDuration,
-                                  Predicate<String> fontAvailability) {
+                                  Predicate<String> fontAvailability,
+                                  Set<String> layoutDependentAliasNames) {
         if (group2 == null) {
             // Mode reference.
             parseModeReference(propertyKey, propertyValue, childModesByParentMode,
@@ -1092,7 +1127,8 @@ public class ConfigurationParser {
                     parseMacroMapping("remapping", keyMatcher.group(group4),
                             propertyValue, defaultComboMoveDuration,
                             keyAliases, appAliases,
-                            mode.comboMap.macro.builder, keyResolver);
+                            mode.comboMap.macro.builder, keyResolver,
+                            layoutDependentAliasNames);
                 }
             }
             case "macro" -> {
@@ -1108,7 +1144,8 @@ public class ConfigurationParser {
                     parseMacroMapping("macro", keyMatcher.group(group4),
                             propertyValue, defaultComboMoveDuration,
                             keyAliases, appAliases,
-                            mode.comboMap.macro.builder, keyResolver);
+                            mode.comboMap.macro.builder, keyResolver,
+                            layoutDependentAliasNames);
                 }
             }
             case "timeout" -> {
