@@ -823,10 +823,11 @@ class ComboPreparationTest {
     }
 
     @Test
-    void tap_releaseBeforePress_noMatch() {
-        // {a} (tap) with events [-a, +a] → no match (release before press).
+    void tap_releaseBeforePress_partialMatch() {
+        // {a} (tap) with events [-a, +a] → partial match (suffix [+a] is dangling press).
         ComboSequenceMatch match = prep(release(a, t(0)), press(a, t(50)))
                 .match(seq(required(tapMove(a))));
+        assertTrue(match.hasMatch());
         assertFalse(match.complete());
     }
 
@@ -942,6 +943,59 @@ class ComboPreparationTest {
                 .match(combo);
         assertTrue(match.complete());
         assertEquals(4, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void tap_optional_danglingPress_hasPartialMatch() {
+        // {a?} (all-optional tap) with events [+a] → partial match (dangling press).
+        MoveSet moveSet = withOptional(List.of(), List.of(tapMove(a)));
+        ComboSequenceMatch match = prep(press(a, t(0))).match(seq(moveSet));
+        assertTrue(match.hasMatch());
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void tap_optional_danglingPress_thenUnrelatedEvent_absorbedByWait_noMatch() {
+        // {a?} #{*} +c with events [+a, +b]: +a starts optional tap(a), but +b
+        // arrives before -a. The wait #{*} should NOT absorb +b because the
+        // tap in the previous move set is incomplete (dangling press).
+        ComboSequence combo = parseCombo("{a?} #{*} +c", Map.of());
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(50)))
+                .match(combo);
+        assertFalse(match.hasMatch());
+    }
+
+    @Test
+    void tap_optional_danglingPress_unmatchedEventsInRegion_shouldNotConsume() {
+        // {a? b?} with events [-a, +b, +c]: the tap-press fallback matches +b
+        // as dangling tap(b), but -a and +c don't match any move. These unmatched
+        // events should not be consumed by the dangling tap press.
+        // All-optional move set: should complete with 0 moves (skip all optionals).
+        MoveSet moveSet = withOptional(List.of(), List.of(tapMove(a), tapMove(b)));
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(b, t(50)), press(c, t(100)))
+                .match(seq(moveSet));
+        assertTrue(match.complete());
+    }
+
+    @Test
+    void tap_optional_danglingPress_withNegatedWait_unmatchedEventNotConsumed() {
+        // Simplified oneshot: #!{keys}-0 {*keys?} +c
+        // keys=a,b, events [-a, +b, +d].
+        // Wait #!{keys} ignores all EXCEPT keys. -a (key in set) can't be
+        // absorbed, so all 3 events go to {*keys?}. The fallback must not
+        // consume +d as part of a dangling tap press for +b.
+        // If a match exists (wait absorbs +d at a smaller suffix), +d must
+        // not appear in matchedKeyMoves (i.e. mustBeEaten would be false).
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("#!{keys}-0 {*keys?} +c", aliases);
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(b, t(50)), press(d, t(100)))
+                .match(combo);
+        for (var m : match.matchedKeyMoves()) {
+            assertNotEquals(d, m.key());
+        }
     }
 
     @Test
