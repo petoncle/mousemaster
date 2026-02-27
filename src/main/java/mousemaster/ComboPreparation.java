@@ -243,7 +243,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                                 continue;
                         }
                     }
-                    if (peekMoveSet != null && nextEventIndex < eventEndIndex) {
+                    if (peekMoveSet != null && peekMoveSet.minMoveCount() > 0 &&
+                            nextEventIndex < eventEndIndex) {
                         KeyEvent peekEvent = events.get(nextEventIndex);
                         if (!anyMoveCouldMatchEvent(peekMoveSet, peekEvent, aliasBindings,
                                 negatedBindings))

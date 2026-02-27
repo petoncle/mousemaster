@@ -1056,4 +1056,40 @@ class ComboPreparationTest {
         assertTrue(match.complete());
         assertEquals(1, match.matchedKeyMoves().size());
     }
+
+    @Test
+    void wait_peek_skipsAllOptionalMoveSet() {
+        // #!{keys}-0 {*keys?} +c with keys=a,b: event [+c].
+        // The wait peek should not reject +c just because it doesn't match {*keys?}.
+        // {*keys?} is all-optional and can match 0 events.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("#!{keys}-0 {*keys?} +c", aliases);
+        ComboSequenceMatch match = prep(press(c, t(0))).match(combo);
+        assertTrue(match.complete());
+    }
+
+    @Test
+    void wait_peek_skipsAllOptionalMoveSet_withPrecedingEvents() {
+        // #!{keys}-0 {*keys?} +c with keys=a,b: events [+a, -a, +c].
+        // Wait absorbs +a -a, {*keys?} matches 0, +c matches.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("#!{keys}-0 {*keys?} +c", aliases);
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(a, t(50)), press(c, t(100)))
+                .match(combo);
+        assertTrue(match.complete());
+    }
+
+    @Test
+    void wait_peek_stillRejectsNonMatchingRequiredMoveSet() {
+        // #!{keys}-0 +c with keys=a,b: event [+d].
+        // The wait peek should still reject +d since +c is a required move set.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("#!{keys}-0 +c", aliases);
+        ComboSequenceMatch match = prep(press(d, t(0))).match(combo);
+        assertFalse(match.hasMatch());
+    }
 }
