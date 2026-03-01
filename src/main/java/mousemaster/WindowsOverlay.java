@@ -3872,6 +3872,13 @@ public class WindowsOverlay {
         setUncachedHintMeshWindowRunnable = null;
         cacheQtHintWindowIntoPixmapRunnable = null;
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
+            // Stop running animations and clear callbacks before hiding children.
+            // Otherwise animation callbacks (HintContainerAnimationChanged) can fire
+            // container.setMask() on a widget whose C++ object has been destroyed.
+            for (QVariantAnimation animation : hintMeshWindow.animations)
+                animation.stop();
+            hintMeshWindow.animations.clear();
+            hintMeshWindow.animationCallbacks.clear();
             hintMeshWindow.window.setBackground(null, null);
             hintMeshWindow.window.hideChildren();
             hintMeshWindow.window.repaint();
