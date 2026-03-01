@@ -10,8 +10,7 @@ public record MacroAliasRemap(Map<Key, Key> keyRemap) {
 
     static Map<String, MacroAliasRemap> of(
             String remapString, Map<String, KeyAlias> keyAliases,
-            KeyResolver keyResolver, Set<String> layoutDependentAliasNames,
-            String propertyType) {
+            KeyResolver keyResolver, String propertyType) {
         Map<String, Map<Key, Key>> remapsByAlias = new LinkedHashMap<>();
         String[] tokens = remapString.split("\\s+");
         int i = 0;
@@ -33,15 +32,11 @@ public record MacroAliasRemap(Map<Key, Key> keyRemap) {
                     throw new IllegalArgumentException(
                             "Remap alias " + aliasName +
                             " does not exist");
-                if (layoutDependentAliasNames.contains(aliasName))
-                    throw new IllegalArgumentException(
-                            "Layout-dependent alias " + aliasName +
-                            " cannot be used in remap");
                 Key sourceKey = keyResolver.resolve(sourceKeyName);
                 if (!alias.keys().contains(sourceKey))
                     throw new IllegalArgumentException(
-                            "Source key " + sourceKeyName +
-                            " is not in alias " + aliasName);
+                            "Remap source key " + sourceKeyName +
+                            " is not in " + alias);
                 remapsByAlias.computeIfAbsent(aliasName, k -> new LinkedHashMap<>())
                              .put(sourceKey, firstTargetKey);
                 i++;
@@ -54,10 +49,6 @@ public record MacroAliasRemap(Map<Key, Key> keyRemap) {
                     throw new IllegalArgumentException(
                             "Remap alias " + aliasName +
                             " does not exist");
-                if (layoutDependentAliasNames.contains(aliasName))
-                    throw new IllegalArgumentException(
-                            "Layout-dependent alias " + aliasName +
-                            " cannot be used in remap");
                 // Collect additional target keys (tokens without '=').
                 List<Key> targetKeys = new ArrayList<>();
                 targetKeys.add(firstTargetKey);
