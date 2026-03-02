@@ -20,6 +20,8 @@ public class TransparentWindow extends QWidget {
     }
 
     public void setBackground(QColor color, QRect rect) {
+        if (this.backgroundRect != null)
+            this.backgroundRect.dispose();
         this.backgroundColor = color;
         this.backgroundRect = rect;
     }

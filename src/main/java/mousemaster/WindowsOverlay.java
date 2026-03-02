@@ -1291,20 +1291,26 @@ public class WindowsOverlay {
             veryOldContainer.setParent(null);
             oldContainer.setParent(null);
             QWidget mergedContainer = new QWidget(window);
-            int mergedContainerX = Math.min(veryOldContainer.geometry().x(), oldContainer.geometry().x());
-            int mergedContainerY = Math.min(veryOldContainer.geometry().y(), oldContainer.geometry().y());
+            QRect veryOldGeom = veryOldContainer.geometry();
+            QRect oldGeom = oldContainer.geometry();
+            int mergedContainerX = Math.min(veryOldGeom.x(), oldGeom.x());
+            int mergedContainerY = Math.min(veryOldGeom.y(), oldGeom.y());
             mergedContainer.setGeometry(
                     mergedContainerX,
                     mergedContainerY,
-                    Math.max(veryOldContainer.geometry().right(), oldContainer.geometry().right()) - mergedContainerX,
-                    Math.max(veryOldContainer.geometry().bottom(), oldContainer.geometry().bottom()) - mergedContainerY
+                    Math.max(veryOldGeom.right(), oldGeom.right()) - mergedContainerX,
+                    Math.max(veryOldGeom.bottom(), oldGeom.bottom()) - mergedContainerY
             );
+            veryOldGeom.dispose();
+            oldGeom.dispose();
             veryOldContainer.move(veryOldContainer.x() - mergedContainerX, veryOldContainer.y() - mergedContainerY);
             oldContainer.move(oldContainer.x() - mergedContainerX, oldContainer.y() - mergedContainerY);
             veryOldContainer.setParent(mergedContainer);
             oldContainer.setParent(mergedContainer);
             mergedContainer.show();
         }
+        for (QVariantAnimation animation : hintMeshWindow.animations)
+            animation.dispose();
         hintMeshWindow.animations.clear();
         hintMeshWindow.animationCallbacks.clear();
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
@@ -1329,11 +1335,13 @@ public class WindowsOverlay {
             int right = Math.min(window.width(), backgroundX + backgroundArea.width());
             int bottom = Math.min(window.height(), backgroundY + backgroundArea.height());
             if (right > left && bottom > top) {
-                window.setBackground(backgroundColor,
-                        new QRect(left, top, right - left, bottom - top));
+                QRect backgroundRect = new QRect(left, top, right - left, bottom - top);
+                window.setBackground(backgroundColor, backgroundRect);
                 // Without this, Qt only repaints the container's area,
                 // missing the background outside of it.
-                window.update(new QRect(left, top, right - left, bottom - top));
+                QRect updateRect = new QRect(left, top, right - left, bottom - top);
+                window.update(updateRect);
+                updateRect.dispose();
             }
             else {
                 window.setBackground(null, null);
@@ -1435,8 +1443,18 @@ public class WindowsOverlay {
         // TODO Should use .geometry() instead of .rect() which is relative to the widget
         //  itself, where geometry() is relative to the parent.
         if (oldContainer != null) {
-            boolean containersEqual = oldContainer.rect().equals(newContainer.rect());
-            if (animateTransition && paddedRect(oldContainer.rect()).contains(newContainer.rect())) {
+            QRect oldRect = oldContainer.rect();
+            QRect newRect = newContainer.rect();
+            boolean containersEqual = oldRect.equals(newRect);
+            QRect paddedOld = paddedRect(oldRect);
+            boolean oldContainsNew = paddedOld.contains(newRect);
+            paddedOld.dispose();
+            QRect paddedNew = paddedRect(newRect);
+            boolean newContainsOld = paddedNew.contains(oldRect);
+            paddedNew.dispose();
+            oldRect.dispose();
+            newRect.dispose();
+            if (animateTransition && oldContainsNew) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
                 oldContainer.show();
@@ -1453,6 +1471,7 @@ public class WindowsOverlay {
                                 newContainer.height());
                 QVariantAnimation animation =
                         hintContainerAnimation(beginRect, endRect, animationDuration);
+                beginRect.dispose();
                 HintContainerAnimationChanged animationChanged = new HintContainerAnimationChanged(
                         oldContainer);
                 animation.valueChanged.connect(animationChanged);
@@ -1474,7 +1493,7 @@ public class WindowsOverlay {
                     animation.setCurrentTime(animationCurrentTime);
                 }
             }
-            else if (animateTransition && paddedRect(newContainer.rect()).contains(oldContainer.rect())) {
+            else if (animateTransition && newContainsOld) {
                 // Initially show new container with the position and size of old.
                 // Then grow new container until it reaches its final position and size.
                 newContainer.setParent(window);
@@ -1487,9 +1506,12 @@ public class WindowsOverlay {
                 QRect endRect =
                         new QRect(0, 0,
                                 newContainer.width(), newContainer.height());
-                newContainer.setMask(new QRegion(beginRect));
+                QRegion beginRegion = new QRegion(beginRect);
+                newContainer.setMask(beginRegion);
+                beginRegion.dispose();
                 QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
                         animationDuration);
+                beginRect.dispose();
                 HintContainerAnimationChanged animationChanged =
                         new HintContainerAnimationChanged(newContainer);
                 animation.valueChanged.connect(animationChanged);
@@ -1542,7 +1564,9 @@ public class WindowsOverlay {
         @Override
         public void invoke(Object arg) {
             QRect r = (QRect) arg;
-            container.setMask(new QRegion(r));
+            QRegion region = new QRegion(r);
+            container.setMask(region);
+            region.dispose();
         }
     }
 
@@ -1561,7 +1585,10 @@ public class WindowsOverlay {
 
         @Override
         public void invoke() {
-            animatedContainer.setMask(new QRegion(endRect)); // animatedContainer can be the oldContainer.
+            QRegion region = new QRegion(endRect);
+            animatedContainer.setMask(region); // animatedContainer can be the oldContainer.
+            region.dispose();
+            endRect.dispose();
             if (oldContainer != null) {
                 oldContainer.setParent(null);
                 oldContainer.disposeLater();
@@ -3047,8 +3074,10 @@ public class WindowsOverlay {
                                        int containerWidth,
                                        int containerHeight) {
         QColor shadowColor = shadowColor(boxShadow);
-        if (shadowColor.alpha() == 0)
+        if (shadowColor.alpha() == 0) {
+            shadowColor.dispose();
             return;
+        }
         boolean opaqueBox = boxColor.alpha() == 255 &&
                             (boxBorderThickness == 0 || boxBorderColor.alpha() == 255);
         if (opaqueBox && boxShadow.stackCount() == 1) {
@@ -3059,6 +3088,7 @@ public class WindowsOverlay {
             effect.setColor(shadowColor);
             effect.setStackCount(1);
             boxLayer.setGraphicsEffect(effect);
+            shadowColor.dispose();
         }
         else {
             if (boxShadow.stackCount() != 1)
@@ -3069,18 +3099,23 @@ public class WindowsOverlay {
                 logger.debug("Box shadow: transparent box, pre-rendering off-screen");
             QImage sourceImage = new QImage(containerWidth, containerHeight,
                     QImage.Format.Format_ARGB32_Premultiplied);
-            sourceImage.fill(new QColor(0, 0, 0, 0));
+            QColor fillColor = new QColor(0, 0, 0, 0);
+            sourceImage.fill(fillColor);
+            fillColor.dispose();
             QPainter srcPainter = new QPainter(sourceImage);
             for (HintBox box : hintBoxes) {
                 box.paintOpaque(srcPainter);
             }
             srcPainter.end();
+            srcPainter.dispose();
             ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
                     boxShadow.blurRadius(), boxShadow.horizontalOffset(),
                     boxShadow.verticalOffset(), containerWidth, containerHeight);
+            shadowColor.dispose();
             QImage shadowImage = StackedShadowEffect.bakeStacking(
                     shadow.image(), boxShadow.stackCount());
-            boxShadowLayer.setShadowPixmap(QPixmap.fromImage(shadowImage),
+            QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
+            boxShadowLayer.setShadowPixmap(shadowPixmap,
                     shadow.x(), shadow.y());
             shadowImage.dispose();
         }
@@ -3148,17 +3183,21 @@ public class WindowsOverlay {
         QImage sourceImage = new QImage(containerWidth, containerHeight,
                 QImage.Format.Format_ARGB32_Premultiplied);
         setQImageDpiForScreen(sourceImage, screenScale);
-        sourceImage.fill(new QColor(0, 0, 0, 0));
+        QColor fillColor = new QColor(0, 0, 0, 0);
+        sourceImage.fill(fillColor);
+        fillColor.dispose();
         QPainter srcPainter = new QPainter(sourceImage);
         for (HintLabel label : labels) {
             label.paintOpaque(srcPainter);
         }
         srcPainter.end();
+        srcPainter.dispose();
         ShadowImage shadow = renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
                 shadowStyle.shadowBlurRadius(), shadowStyle.shadowHorizontalOffset(),
                 shadowStyle.shadowVerticalOffset(), containerWidth, containerHeight);
         QImage shadowImage = StackedShadowEffect.bakeStacking(shadow.image(), shadowStyle.shadowStackCount());
-        layer.setShadowPixmap(QPixmap.fromImage(shadowImage),
+        QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
+        layer.setShadowPixmap(shadowPixmap,
                 shadow.x(), shadow.y());
         shadowImage.dispose();
     }
@@ -3175,8 +3214,8 @@ public class WindowsOverlay {
             double horizontalOffset, double verticalOffset,
             int containerWidth, int containerHeight) {
         QGraphicsScene scene = new QGraphicsScene();
-        QGraphicsPixmapItem item =
-                scene.addPixmap(QPixmap.fromImage(sourceImage));
+        QPixmap sourcePixmap = QPixmap.fromImage(sourceImage);
+        QGraphicsPixmapItem item = scene.addPixmap(sourcePixmap);
         StackedShadowEffect effect = new StackedShadowEffect();
         effect.setBlurRadius(blurRadius);
         effect.setOffset(horizontalOffset, verticalOffset);
@@ -3188,14 +3227,24 @@ public class WindowsOverlay {
         int boundsY = (int) Math.floor(bounds.y());
         int boundsW = (int) Math.ceil(bounds.x() + bounds.width()) - boundsX;
         int boundsH = (int) Math.ceil(bounds.y() + bounds.height()) - boundsY;
+        bounds.dispose();
         QRectF intBounds = new QRectF(boundsX, boundsY, boundsW, boundsH);
         QImage resultImage = new QImage(boundsW, boundsH,
                 QImage.Format.Format_ARGB32_Premultiplied);
-        resultImage.fill(new QColor(0, 0, 0, 0));
+        QColor fillColor = new QColor(0, 0, 0, 0);
+        resultImage.fill(fillColor);
+        fillColor.dispose();
         QPainter resultPainter = new QPainter(resultImage);
-        scene.render(resultPainter, new QRectF(resultImage.rect()), intBounds);
+        QRect resultRect = resultImage.rect();
+        QRectF targetRect = new QRectF(resultRect);
+        scene.render(resultPainter, targetRect, intBounds);
+        resultRect.dispose();
+        targetRect.dispose();
+        intBounds.dispose();
         resultPainter.end();
+        resultPainter.dispose();
         scene.dispose();
+        sourcePixmap.dispose();
         ByteBuffer combinedBuf = resultImage.bits();
         ByteBuffer sourceBuf = sourceImage.bits();
         int resultBytesPerLine = boundsW * 4;
@@ -3251,17 +3300,21 @@ public class WindowsOverlay {
             QImage sourceImage = new QImage(containerWidth, containerHeight,
                     QImage.Format.Format_ARGB32_Premultiplied);
             setQImageDpiForScreen(sourceImage, screenScale);
-            sourceImage.fill(new QColor(0, 0, 0, 0));
+            QColor srcFillColor = new QColor(0, 0, 0, 0);
+            sourceImage.fill(srcFillColor);
+            srcFillColor.dispose();
             QPainter srcPainter = new QPainter(sourceImage);
             for (HintLabel label : labels) {
                 label.paintOpaqueFiltered(srcPainter,
                         keyText -> label.shadowGroupKey(keyText).equals(group));
             }
             srcPainter.end();
+            srcPainter.dispose();
             QColor shadowColor = new QColor(group.r(), group.g(), group.b(), group.a());
             ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
                     group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
                     containerWidth, containerHeight);
+            shadowColor.dispose();
             QImage stackedShadow = StackedShadowEffect.bakeStacking(shadow.image(), group.stackCount());
             int boundsX = shadow.x();
             int boundsY = shadow.y();
@@ -3282,13 +3335,16 @@ public class WindowsOverlay {
                 int newH = newBottom - newY;
                 QImage newCombined = new QImage(newW, newH,
                         QImage.Format.Format_ARGB32_Premultiplied);
-                newCombined.fill(new QColor(0, 0, 0, 0));
+                QColor combineFillColor = new QColor(0, 0, 0, 0);
+                newCombined.fill(combineFillColor);
+                combineFillColor.dispose();
                 QPainter combinePainter = new QPainter(newCombined);
                 combinePainter.drawImage(combinedX - newX, combinedY - newY,
                         combinedShadow);
                 combinePainter.drawImage(boundsX - newX, boundsY - newY,
                         stackedShadow);
                 combinePainter.end();
+                combinePainter.dispose();
                 combinedShadow.dispose();
                 stackedShadow.dispose();
                 combinedShadow = newCombined;
@@ -3297,7 +3353,8 @@ public class WindowsOverlay {
             }
         }
         if (combinedShadow != null) {
-            layer.setShadowPixmap(QPixmap.fromImage(combinedShadow),
+            QPixmap combinedPixmap = QPixmap.fromImage(combinedShadow);
+            layer.setShadowPixmap(combinedPixmap,
                     combinedX, combinedY);
             combinedShadow.dispose();
         }
@@ -3318,6 +3375,8 @@ public class WindowsOverlay {
         }
 
         void setShadowPixmap(QPixmap shadowPixmap, int x, int y) {
+            if (this.shadowPixmap != null)
+                this.shadowPixmap.dispose();
             this.shadowPixmap = shadowPixmap;
             this.shadowPixmapX = x;
             this.shadowPixmapY = y;
@@ -3871,11 +3930,13 @@ public class WindowsOverlay {
         HintMesh hintMesh =
                 new HintMesh.HintMeshBuilder(lastHintMeshKey).hints(List.of(hint))
                                                              .build();
+        QRect containerGeom = container.geometry();
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap,
-                        container.geometry().x() + hintBoxGeometry.x(),
-                        container.geometry().y() + hintBoxGeometry.y(), hintMesh,
+                        containerGeom.x() + hintBoxGeometry.x(),
+                        containerGeom.y() + hintBoxGeometry.y(), hintMesh,
                         hintMeshWindow.window.x(), hintMeshWindow.window.y());
+        containerGeom.dispose();
         setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, false, pixmapAndPosition);
     }
 
@@ -3948,8 +4009,10 @@ public class WindowsOverlay {
             // Stop running animations and clear callbacks before hiding children.
             // Otherwise animation callbacks (HintContainerAnimationChanged) can fire
             // container.setMask() on a widget whose C++ object has been destroyed.
-            for (QVariantAnimation animation : hintMeshWindow.animations)
+            for (QVariantAnimation animation : hintMeshWindow.animations) {
                 animation.stop();
+                animation.dispose();
+            }
             hintMeshWindow.animations.clear();
             hintMeshWindow.animationCallbacks.clear();
             hintMeshWindow.window.setBackground(null, null);
