@@ -229,6 +229,8 @@ public class WindowsOverlay {
         }
 
         void setColor(QColor color) {
+            if (this.color != null)
+                this.color.dispose();
             this.color = color;
         }
 
@@ -244,6 +246,10 @@ public class WindowsOverlay {
                          double innerOutlineFillPercent,
                          double innerOutlineFillStartAngle,
                          FillDirection innerOutlineFillDirection) {
+            if (this.outerOutlineColor != null)
+                this.outerOutlineColor.dispose();
+            if (this.innerOutlineColor != null)
+                this.innerOutlineColor.dispose();
             this.outerOutlineThickness = outerOutlineThickness;
             this.outerOutlineColor = outerOutlineColor;
             this.outerOutlineFillPercent = outerOutlineFillPercent;
@@ -795,6 +801,12 @@ public class WindowsOverlay {
 
         void setColors(QColor fillColor, QColor outerOutlineColor,
                        QColor innerOutlineColor) {
+            if (this.fillColor != null)
+                this.fillColor.dispose();
+            if (this.outerOutlineColor != null)
+                this.outerOutlineColor.dispose();
+            if (this.innerOutlineColor != null)
+                this.innerOutlineColor.dispose();
             this.fillColor = fillColor;
             this.outerOutlineColor = outerOutlineColor;
             this.innerOutlineColor = innerOutlineColor;
@@ -850,6 +862,12 @@ public class WindowsOverlay {
                       QColor labelColor,
                       int outlineThickness, QColor outlineColor,
                       int edgeCount) {
+            if (this.labelFont != null)
+                this.labelFont.dispose();
+            if (this.labelColor != null)
+                this.labelColor.dispose();
+            if (this.outlineColor != null)
+                this.outlineColor.dispose();
             this.labelText = labelText;
             this.labelFont = labelFont;
             this.labelFontSize = fontSize;
@@ -1093,8 +1111,10 @@ public class WindowsOverlay {
             effect.setOffset(shadow.horizontalOffset() * scale,
                     shadow.verticalOffset() * scale);
             int alpha = (int) Math.round(shadow.opacity() * 255);
-            effect.setColor(new QColor(baseColor.red(), baseColor.green(),
-                    baseColor.blue(), alpha));
+            QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
+                    baseColor.blue(), alpha);
+            effect.setColor(shadowColor);
+            shadowColor.dispose();
             effect.setStackCount(shadow.stackCount());
             setIndicatorEffectColors(effect);
             indicatorWindow.widget.customGraphicsEffect = effect;
@@ -1111,6 +1131,7 @@ public class WindowsOverlay {
             indicatorWindow.widget.customGraphicsEffect = null;
             indicatorWindow.widget.setGraphicsEffect(null);
         }
+        baseColor.dispose();
     }
 
     private static void createIndicatorWindow() {
@@ -1249,6 +1270,8 @@ public class WindowsOverlay {
         private QColor clearColor = new QColor(0, 0, 0, 0);
 
         void setClearColor(QColor clearColor) {
+            if (this.clearColor != null)
+                this.clearColor.dispose();
             this.clearColor = clearColor;
         }
 
@@ -2062,14 +2085,23 @@ public class WindowsOverlay {
         }
         for (HintFontStyle hintFontStyle : fontStyles) {
             QFont font = qFont(hintFontStyle.defaultFontStyle().name(), hintFontStyle.defaultFontStyle().size(), hintFontStyle.defaultFontStyle().weight());
-            new QFontMetrics(font).horizontalAdvance("x");
+            QFontMetrics fontMetrics = new QFontMetrics(font);
+            fontMetrics.horizontalAdvance("x");
+            fontMetrics.dispose();
+            font.dispose();
             if (!fontShapeEquals(hintFontStyle.defaultFontStyle(), hintFontStyle.selectedFontStyle())) {
                 QFont selectedFont = qFont(hintFontStyle.selectedFontStyle().name(), hintFontStyle.selectedFontStyle().size(), hintFontStyle.selectedFontStyle().weight());
-                new QFontMetrics(selectedFont).horizontalAdvance("x");
+                QFontMetrics selectedFontMetrics = new QFontMetrics(selectedFont);
+                selectedFontMetrics.horizontalAdvance("x");
+                selectedFontMetrics.dispose();
+                selectedFont.dispose();
             }
             if (!fontShapeEquals(hintFontStyle.defaultFontStyle(), hintFontStyle.focusedFontStyle())) {
                 QFont focusedFont = qFont(hintFontStyle.focusedFontStyle().name(), hintFontStyle.focusedFontStyle().size(), hintFontStyle.focusedFontStyle().weight());
-                new QFontMetrics(focusedFont).horizontalAdvance("x");
+                QFontMetrics focusedFontMetrics = new QFontMetrics(focusedFont);
+                focusedFontMetrics.horizontalAdvance("x");
+                focusedFontMetrics.dispose();
+                focusedFont.dispose();
             }
         }
         logger.debug("Pre-warmed " + fontStyles.size() + " hint font styles in " +
@@ -2111,7 +2143,9 @@ public class WindowsOverlay {
         metricsFont.setWeight(renderFont.weight());
         metricsFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
         metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
-        return new QFontMetrics(metricsFont);
+        QFontMetrics metrics = new QFontMetrics(metricsFont);
+        metricsFont.dispose();
+        return metrics;
     }
 
     /**
@@ -3730,6 +3764,7 @@ public class WindowsOverlay {
             else {
                 indicatorWindow.labelWidget.setGraphicsEffect(null);
             }
+            labelShadowColor.dispose();
             indicatorWindow.labelWidget.show();
         }
         else {
