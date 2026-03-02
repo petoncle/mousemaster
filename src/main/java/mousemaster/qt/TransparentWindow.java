@@ -30,6 +30,7 @@ public class TransparentWindow extends QWidget {
             QPainter painter = new QPainter(this);
             painter.fillRect(backgroundRect, backgroundColor);
             painter.end();
+            painter.dispose();
         }
     }
 

@@ -391,6 +391,8 @@ public class WindowsOverlay {
                         vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, false);
                 QPainterPath combined = ccwPath.toReversed();
                 combined.connectPath(cwPath);
+                cwPath.dispose();
+                ccwPath.dispose();
                 return combined;
             }
             else {
@@ -508,9 +510,11 @@ public class WindowsOverlay {
                                   double fillRadius, double thickness, double fillPercent,
                                   double fillStartAngle, FillDirection fillDirection) {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+            QColor clearColor = new QColor(0, 0, 0);
             drawOutline(painter, centerX, centerY, fillRadius,
-                    thickness, new QColor(0, 0, 0), fillPercent,
+                    thickness, clearColor, fillPercent,
                     fillStartAngle, fillDirection, 1.0);
+            clearColor.dispose();
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
         }
 
@@ -535,6 +539,7 @@ public class WindowsOverlay {
                 painter.setPen(pen);
                 QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
                 painter.drawPath(outlinePath);
+                outlinePath.dispose();
             }
             else {
                 pen.setCapStyle(Qt.PenCapStyle.FlatCap);
@@ -543,7 +548,9 @@ public class WindowsOverlay {
                         centerX, centerY, outlineRadius, edgeCount, fillPercent,
                         fillStartAngle, fillDirection);
                 painter.drawPath(outlinePath);
+                outlinePath.dispose();
             }
+            pen.dispose();
         }
 
         void drawContent(QPainter painter, QColor fillColor,
@@ -573,8 +580,13 @@ public class WindowsOverlay {
                             fillRadius + radialPad, edgeCount);
                     painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
                     painter.setPen(Qt.PenStyle.NoPen);
-                    painter.setBrush(new QBrush(new QColor(0, 0, 0)));
+                    QColor clearBlack = new QColor(0, 0, 0);
+                    QBrush clearBrush = new QBrush(clearBlack);
+                    painter.setBrush(clearBrush);
                     painter.drawPath(outerBoundary);
+                    clearBrush.dispose();
+                    clearBlack.dispose();
+                    outerBoundary.dispose();
                     painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
                 }
              }
@@ -588,15 +600,19 @@ public class WindowsOverlay {
                     painter.setCompositionMode(
                             QPainter.CompositionMode.CompositionMode_Source);
                     painter.setPen(Qt.PenStyle.NoPen);
-                    painter.setBrush(new QBrush(fillColor));
+                    QBrush fillBrush = new QBrush(fillColor);
+                    painter.setBrush(fillBrush);
                     painter.drawPath(fillPath);
+                    fillBrush.dispose();
                     painter.setCompositionMode(
                             QPainter.CompositionMode.CompositionMode_SourceOver);
                 }
                 else {
                     painter.setPen(Qt.PenStyle.NoPen);
-                    painter.setBrush(new QBrush(fillColor));
+                    QBrush fillBrush = new QBrush(fillColor);
+                    painter.setBrush(fillBrush);
                     painter.drawPath(fillPath);
+                    fillBrush.dispose();
                 }
             }
             // Draw outer outline on top of fill.
@@ -642,6 +658,7 @@ public class WindowsOverlay {
             drawOutline(painter, centerX, centerY, fillRadius,
                     correctedInner, innerOutlineColor, innerOutlineFillPercent,
                     innerOutlineFillStartAngle, innerOutlineFillDirection, innerInwardOverlap);
+            fillPath.dispose();
         }
 
         @Override
@@ -651,13 +668,19 @@ public class WindowsOverlay {
                 // Paint fully transparent so DWM's cached surface is blank.
                 painter.setCompositionMode(
                         QPainter.CompositionMode.CompositionMode_Clear);
-                painter.fillRect(rect(), new QColor(0, 0, 0, 0));
+                QRect r = rect();
+                QColor c = new QColor(0, 0, 0, 0);
+                painter.fillRect(r, c);
+                r.dispose();
+                c.dispose();
                 painter.end();
+                painter.dispose();
                 return;
             }
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             drawContent(painter, color, outerOutlineColor, innerOutlineColor, true);
             painter.end();
+            painter.dispose();
         }
     }
 
@@ -694,15 +717,23 @@ public class WindowsOverlay {
             QImage sourceImage = sourcePixmap.toImage();
             int w = sourceImage.width();
             int h = sourceImage.height();
-            ShadowImage shadow = renderShadowOnly(sourceImage, color(),
+            QColor shadowColor = color();
+            ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
                     blurRadius(), xOffset(), yOffset(), w, h);
+            shadowColor.dispose();
             QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
             QTransform savedTransform = painter.worldTransform();
-            painter.setWorldTransform(new QTransform());
+            QTransform identity = new QTransform();
+            painter.setWorldTransform(identity);
             painter.drawImage(sourceOffset.x() + shadow.x(),
                     sourceOffset.y() + shadow.y(), stackedShadow);
             stackedShadow.dispose();
             painter.setWorldTransform(savedTransform);
+            savedTransform.dispose();
+            identity.dispose();
+            sourceImage.dispose();
+            sourcePixmap.dispose();
+            sourceOffset.dispose();
             drawSource(painter);
             redrawSourceOverShadow(painter);
         }
@@ -846,6 +877,7 @@ public class WindowsOverlay {
             int textX = (int) Math.round(centerX - fm.horizontalAdvance(labelText) / 2.0);
             QRect tightRect = fm.tightBoundingRect(labelText);
             int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
+            tightRect.dispose();
             // Outline: draw text path with outline pen.
             if (outlineThickness != 0 && outlineColor != null && outlineColor.alpha() != 0) {
                 QPen outlinePen = new QPen(outlineColor);
@@ -856,13 +888,17 @@ public class WindowsOverlay {
                 QPainterPath textPath = new QPainterPath();
                 textPath.addText(textX, textY, labelFont, labelText);
                 painter.drawPath(textPath);
+                textPath.dispose();
+                outlinePen.dispose();
             }
             // Fill: draw text on top of outline.
             if (labelColor.alpha() != 0) {
                 painter.setPen(labelColor);
                 painter.drawText(textX, textY, labelText);
             }
+            fm.dispose();
             painter.end();
+            painter.dispose();
         }
     }
 
@@ -1221,8 +1257,11 @@ public class WindowsOverlay {
             QPainter painter = new QPainter(this);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             // Clear what's behind (when we're drawing the old container behind).
-            painter.fillRect(rect(), clearColor);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            QRect r = rect();
+            painter.fillRect(r, clearColor);
+            r.dispose();
+            painter.end();
+            painter.dispose();
             super.paintEvent(event);
         }
     }
@@ -2229,7 +2268,8 @@ public class WindowsOverlay {
                 // the background does not bleed outside the border at corners.
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
                 if (borderThickness != 0) {
-                    painter.setBrush(color.alpha() != 0 ? new QBrush(color) : new QBrush(Qt.BrushStyle.NoBrush));
+                    QBrush brush = color.alpha() != 0 ? new QBrush(color) : new QBrush(Qt.BrushStyle.NoBrush);
+                    painter.setBrush(brush);
                     QPen pen = createPen(borderColor, borderThickness);
                     painter.setPen(pen);
                     int offset = borderThickness / 2;
@@ -2237,19 +2277,25 @@ public class WindowsOverlay {
                             width - borderThickness, height - borderThickness,
                             borderRadius, borderRadius);
                     pen.dispose();
-                } else if (color.alpha() != 0) {
-                    painter.setBrush(new QBrush(color));
+                    brush.dispose();
+                }
+                else if (color.alpha() != 0) {
+                    QBrush brush = new QBrush(color);
+                    painter.setBrush(brush);
                     painter.setPen(Qt.PenStyle.NoPen);
                     painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
+                    brush.dispose();
                 }
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             else {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
                 if (color.alpha() != 0) {
-                    painter.setBrush(new QBrush(color));
+                    QBrush brush = new QBrush(color);
+                    painter.setBrush(brush);
                     painter.setPen(Qt.PenStyle.NoPen);
                     painter.drawRoundedRect(0, 0, width, height, 0, 0);
+                    brush.dispose();
                 }
                 if (borderThickness != 0)
                     drawBorders(painter);
@@ -2269,7 +2315,8 @@ public class WindowsOverlay {
             painter.save();
             painter.translate(x, y);
             QColor opaque = new QColor(255, 255, 255, 255);
-            painter.setBrush(new QBrush(opaque));
+            QBrush opaqueBrush = new QBrush(opaque);
+            painter.setBrush(opaqueBrush);
             painter.setPen(Qt.PenStyle.NoPen);
             if (borderRadius > 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
@@ -2279,6 +2326,8 @@ public class WindowsOverlay {
             else {
                 painter.drawRect(0, 0, width, height);
             }
+            opaqueBrush.dispose();
+            opaque.dispose();
             painter.restore();
         }
 
@@ -2514,8 +2563,12 @@ public class WindowsOverlay {
             if (y1 > y2)
                 return;
             painter.setPen(isEdge ? edgePen : insidePen);
-            if (painter.pen().width() == 0)
+            QPen currentPen = painter.pen();
+            if (currentPen.width() == 0) {
+                currentPen.dispose();
                 return;
+            }
+            currentPen.dispose();
             int x = xBase + (isEdge ? edgeOffset : insideOffset);
             painter.drawLine(x, y1, x, y2);
         }
@@ -2537,8 +2590,12 @@ public class WindowsOverlay {
             if (x1 > x2)
                 return;
             painter.setPen(isEdge ? edgePen : insidePen);
-            if (painter.pen().width() == 0)
+            QPen currentPen = painter.pen();
+            if (currentPen.width() == 0) {
+                currentPen.dispose();
                 return;
+            }
+            currentPen.dispose();
             int y = yBase + (isEdge ? edgeOffset : insideOffset);
             painter.drawLine(x1, y, x2, y);
         }
@@ -2864,7 +2921,15 @@ public class WindowsOverlay {
                     continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
-                painter.setPen(forceOpaque ? opaqueColor(color) : color);
+                if (forceOpaque) {
+                    QColor opaque = opaqueColor(color);
+                    painter.setPen(opaque);
+                    if (opaque != color)
+                        opaque.dispose();
+                }
+                else {
+                    painter.setPen(color);
+                }
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.restore();
@@ -2899,6 +2964,10 @@ public class WindowsOverlay {
                         qtFontStyle.font(), keyText.text());
             }
             painter.drawPath(outlinePath);
+            outlinePath.dispose();
+            outlinePen.dispose();
+            if (forceOpaque && outlineColor != qtFontStyle.outlineColor())
+                outlineColor.dispose();
         }
 
         ShadowGroupKey shadowGroupKey(HintKeyText keyText) {
@@ -2942,7 +3011,10 @@ public class WindowsOverlay {
                     continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
-                painter.setPen(opaqueColor(color));
+                QColor opaque = opaqueColor(color);
+                painter.setPen(opaque);
+                if (opaque != color)
+                    opaque.dispose();
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.restore();
@@ -3264,6 +3336,7 @@ public class WindowsOverlay {
                 label.paint(painter);
             }
             painter.end();
+            painter.dispose();
         }
     }
 
