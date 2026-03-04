@@ -98,10 +98,12 @@ public class WindowsKeyboard {
                                             WinDef.WPARAM wParam, String wParamString, KeyEvent keyEvent,
                                             boolean injected, boolean altgrLeftctrl) {
         if (!injected) {
-            if (keyEvent.isRelease())
-                userPressedKeys.remove(keyEvent.key());
-            else
-                userPressedKeys.add(keyEvent.key());
+            if (keyEvent != null) {
+                if (keyEvent.isRelease())
+                    userPressedKeys.remove(keyEvent.key());
+                else
+                    userPressedKeys.add(keyEvent.key());
+            }
             return;
         }
         if (moveWaitingForKeyboardHookCallbackAcknowledgment == null)
