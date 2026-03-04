@@ -289,6 +289,45 @@ class ExpandableSequenceTest {
     }
 
     @Test
+    void braceLevelDurationAppliedToBareTaps() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("{g i a}-0-2000", defaultDuration,
+                        Map.of());
+        assertEquals(1, seq.moveSets().size());
+        Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
+        assertEquals(3, moveSet.size());
+        for (ComboAliasMove move : moveSet) {
+            assertInstanceOf(ComboAliasMove.TapComboAliasMove.class, move);
+            assertEquals(Duration.ZERO, move.duration().min());
+            assertEquals(Duration.ofMillis(2000), move.duration().max());
+        }
+    }
+
+    @Test
+    void braceLevelDurationOverriddenByTokenDuration() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("{g i-0-200 a}-0-2000", defaultDuration,
+                        Map.of());
+        assertEquals(1, seq.moveSets().size());
+        Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
+        assertEquals(3, moveSet.size());
+        for (ComboAliasMove move : moveSet) {
+            assertInstanceOf(ComboAliasMove.TapComboAliasMove.class, move);
+            if (move.aliasOrKeyName().equals("i")) {
+                assertEquals(Duration.ZERO, move.duration().min());
+                assertEquals(Duration.ofMillis(200), move.duration().max());
+            }
+            else {
+                assertEquals(Duration.ZERO, move.duration().min());
+                assertEquals(Duration.ofMillis(2000), move.duration().max());
+            }
+        }
+        Set<String> keyNames = moveSet.stream()
+                .map(ComboAliasMove::aliasOrKeyName).collect(Collectors.toSet());
+        assertEquals(Set.of("g", "i", "a"), keyNames);
+    }
+
+    @Test
     void bareTapWithoutDurationUsesDefault() {
         ComboMoveDuration custom =
                 new ComboMoveDuration(Duration.ofMillis(100), Duration.ofMillis(500));
@@ -329,6 +368,20 @@ class ExpandableSequenceTest {
         assertNotNull(kms.waitMove());
         assertEquals(KeySet.ALL, kms.waitMove().ignoredKeySet());
         assertFalse(kms.waitMove().ignoredKeysEatEvents());
+    }
+
+    @Test
+    void moveSetIgnoreAllWithBraceDuration() {
+        KeyMoveSet kms = parseMoveSetWithIgnoredKeys("{g i #{*}}-0-2000");
+        assertEquals(2, kms.requiredMoves().size());
+        for (var move : kms.requiredMoves()) {
+            assertEquals(Duration.ZERO, move.duration().min());
+            assertEquals(Duration.ofMillis(2000), move.duration().max());
+        }
+        assertNotNull(kms.waitMove());
+        assertEquals(KeySet.ALL, kms.waitMove().ignoredKeySet());
+        assertEquals(Duration.ZERO, kms.waitMove().duration().min());
+        assertEquals(Duration.ofMillis(2000), kms.waitMove().duration().max());
     }
 
     @Test

@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
 
     private static final Pattern MOVE_SET_OR_TOKEN_PATTERN =
-            Pattern.compile("([#+]!?\\{[^}]+\\}(?:-\\d+(?:-\\d+)?)?)|(\\{(?:[^{}]|\\{[^}]*\\})+\\})|(\\S+)");
+            Pattern.compile("([#+]!?\\{[^}]+\\}(?:-\\d+(?:-\\d+)?)?)|(\\{(?:[^{}]|\\{[^}]*\\})+\\}(?:-\\d+(?:-\\d+)?)?)|(\\S+)");
 
     // Tokenizes inside braces: matches either an ignored-key spec or a regular move token.
     // Group 1: ignored-key spec like #{a b}-0-500 or +{*}
@@ -50,6 +50,9 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
     // Group 3: max duration
     private static final Pattern BARE_DURATION_SUFFIX_PATTERN =
             Pattern.compile("^(.*?)(?:-(\\d+)(?:-(\\d+))?)?$");
+
+    private static final Pattern DURATION_SUFFIX_PATTERN =
+            Pattern.compile("-(\\d+)(?:-(\\d+))?");
 
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
@@ -103,9 +106,20 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             }
             else if (matcher.group(2) != null) {
                 // {+a -b +c}: set of moves (any-order within the set)
-                // Group 2 now includes the outer braces, strip them.
+                // Group 2 now includes the outer braces + optional duration suffix.
                 String raw = matcher.group(2);
-                String content = raw.substring(1, raw.length() - 1).strip();
+                int closingBrace = raw.lastIndexOf('}');
+                String content = raw.substring(1, closingBrace).strip();
+                String durationSuffix = raw.substring(closingBrace + 1);
+                ComboMoveDuration braceDuration = defaultMoveDuration;
+                if (!durationSuffix.isEmpty()) {
+                    Matcher dm = DURATION_SUFFIX_PATTERN.matcher(durationSuffix);
+                    if (dm.matches())
+                        braceDuration = new ComboMoveDuration(
+                                Duration.ofMillis(Integer.parseUnsignedInt(dm.group(1))),
+                                dm.group(2) == null ? null : Duration.ofMillis(
+                                        Integer.parseUnsignedInt(dm.group(2))));
+                }
                 Set<ComboAliasMove> moveSet = new LinkedHashSet<>();
                 Matcher braceTokenMatcher = BRACE_CONTENT_TOKEN_PATTERN.matcher(content);
                 while (braceTokenMatcher.find()) {
@@ -118,11 +132,14 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                         boolean ignoredKeysEatEvents = ignoreMatcher.group(1).equals("+");
                         boolean allExcept = !ignoreMatcher.group(2).isEmpty();
                         String ignoreContent = ignoreMatcher.group(3).strip();
-                        ComboMoveDuration waitDuration = new ComboMoveDuration(
-                                Duration.ofMillis(ignoreMatcher.group(4) == null ? 0 :
-                                        Integer.parseUnsignedInt(ignoreMatcher.group(4))),
-                                ignoreMatcher.group(6) == null ? null : Duration.ofMillis(
-                                        Integer.parseUnsignedInt(ignoreMatcher.group(6))));
+                        ComboMoveDuration waitDuration;
+                        if (ignoreMatcher.group(4) != null)
+                            waitDuration = new ComboMoveDuration(
+                                    Duration.ofMillis(Integer.parseUnsignedInt(ignoreMatcher.group(4))),
+                                    ignoreMatcher.group(6) == null ? null : Duration.ofMillis(
+                                            Integer.parseUnsignedInt(ignoreMatcher.group(6))));
+                        else
+                            waitDuration = braceDuration;
                         Set<String> keyNames;
                         boolean listedKeysAreIgnored;
                         if (ignoreContent.equals("*")) {
@@ -145,10 +162,10 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                         String moveToken = braceTokenMatcher.group(2);
                         if (isBareToken(moveToken)) {
                             moveSet.addAll(bareTokenMoves(
-                                    moveToken, defaultMoveDuration, aliases));
+                                    moveToken, braceDuration, aliases));
                         }
                         else {
-                            ComboAliasMove move = parseMove(moveToken, defaultMoveDuration);
+                            ComboAliasMove move = parseMove(moveToken, braceDuration);
                             if (move.expand()) {
                                 expandAliasIntoMoves(move, aliases, moveSet);
                             }
