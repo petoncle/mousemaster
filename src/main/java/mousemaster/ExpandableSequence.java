@@ -44,6 +44,13 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
     private static final Pattern WAIT_PATTERN =
             Pattern.compile("(\\+)?wait(-(\\d+)(-(\\d+))?)?");
 
+    // Bare token duration suffix: keyName[-MIN[-MAX]]
+    // Group 1: key name (non-greedy)
+    // Group 2: min duration
+    // Group 3: max duration
+    private static final Pattern BARE_DURATION_SUFFIX_PATTERN =
+            Pattern.compile("^(.*?)(?:-(\\d+)(?:-(\\d+))?)?$");
+
     static ExpandableSequence parseSequence(String movesString,
                                             ComboMoveDuration defaultMoveDuration,
                                             Map<String, KeyAlias> aliases) {
@@ -218,6 +225,14 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         }
         else {
             optionality = Optionality.REQUIRED;
+        }
+        Matcher durationMatcher = BARE_DURATION_SUFFIX_PATTERN.matcher(keyName);
+        if (durationMatcher.matches() && durationMatcher.group(2) != null) {
+            keyName = durationMatcher.group(1);
+            duration = new ComboMoveDuration(
+                    Duration.ofMillis(Integer.parseUnsignedInt(durationMatcher.group(2))),
+                    durationMatcher.group(3) == null ? null : Duration.ofMillis(
+                            Integer.parseUnsignedInt(durationMatcher.group(3))));
         }
         List<ComboAliasMove> moves = new ArrayList<>();
         if (expand) {

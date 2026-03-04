@@ -244,6 +244,63 @@ class ExpandableSequenceTest {
                 seq.moveSets().get(1).iterator().next());
     }
 
+    // --- bare key with duration suffix ---
+
+    @Test
+    void bareTapWithMinMaxDuration() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("g-0-2000", defaultDuration, Map.of());
+        assertEquals(1, seq.moveSets().size());
+        ComboAliasMove move = seq.moveSets().getFirst().iterator().next();
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class, move);
+        assertEquals("g", move.aliasOrKeyName());
+        assertEquals(Duration.ZERO, move.duration().min());
+        assertEquals(Duration.ofMillis(2000), move.duration().max());
+    }
+
+    @Test
+    void bareTapWithMinOnlyDuration() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("g-200", defaultDuration, Map.of());
+        assertEquals(1, seq.moveSets().size());
+        ComboAliasMove move = seq.moveSets().getFirst().iterator().next();
+        assertInstanceOf(ComboAliasMove.TapComboAliasMove.class, move);
+        assertEquals("g", move.aliasOrKeyName());
+        assertEquals(Duration.ofMillis(200), move.duration().min());
+        assertNull(move.duration().max());
+    }
+
+    @Test
+    void bareTapsWithDurationInsideBraces() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("{g-0-2000 i-0-2000}", defaultDuration,
+                        Map.of());
+        assertEquals(1, seq.moveSets().size());
+        Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
+        assertEquals(2, moveSet.size());
+        for (ComboAliasMove move : moveSet) {
+            assertInstanceOf(ComboAliasMove.TapComboAliasMove.class, move);
+            assertEquals(Duration.ZERO, move.duration().min());
+            assertEquals(Duration.ofMillis(2000), move.duration().max());
+        }
+        Set<String> keyNames = moveSet.stream()
+                .map(ComboAliasMove::aliasOrKeyName).collect(Collectors.toSet());
+        assertEquals(Set.of("g", "i"), keyNames);
+    }
+
+    @Test
+    void bareTapWithoutDurationUsesDefault() {
+        ComboMoveDuration custom =
+                new ComboMoveDuration(Duration.ofMillis(100), Duration.ofMillis(500));
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("g", custom, Map.of());
+        assertEquals(1, seq.moveSets().size());
+        ComboAliasMove move = seq.moveSets().getFirst().iterator().next();
+        assertEquals("g", move.aliasOrKeyName());
+        assertEquals(Duration.ofMillis(100), move.duration().min());
+        assertEquals(Duration.ofMillis(500), move.duration().max());
+    }
+
     // --- #{}/+{} inside braces (ignored keys in KeyMoveSet) ---
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
