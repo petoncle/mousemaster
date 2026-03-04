@@ -1093,6 +1093,49 @@ class ComboPreparationTest {
         assertFalse(match.hasMatch());
     }
 
+    // --- Leading/mid-sequence WaitMoveSet + partial tap matching ---
+
+    @Test
+    void leadingWait_tapMoveSet_singlePress_partialMatch() {
+        // #{*}-0 a: wait absorbing all keys, then tap a.
+        // Events [+a]: wait absorbs 0, +a should partially match as dangling tap press.
+        // Bug: WaitMoveSet computed minForRemaining using full minMoveCount()
+        // of subsequent moveSets (2 for tap), not accounting for
+        // allowPartialLastMoveSet, making maxAbsorb negative.
+        ComboSequence combo = parseCombo("#{*}-0 a", Map.of());
+        ComboSequenceMatch match = prep(press(a, t(0))).match(combo);
+        assertTrue(match.hasMatch(),
+                "single press after leading wait should partially match tap");
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void leadingNegatedWait_tapMoveSet_singlePress_partialMatch() {
+        // #!{keys}-0 {*keys+} with keys=a,b: events [+a].
+        // Same bug as above but with negated wait and alias-expanded taps.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("#!{keys}-0 {*keys+}", aliases);
+        ComboSequenceMatch match = prep(press(a, t(0))).match(combo);
+        assertTrue(match.hasMatch(),
+                "single press after negated wait should partially match tap");
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void midSequenceWait_tapMoveSet_singlePress_partialMatch() {
+        // +c #!{keys}-0 {*keys+}: press c, negated wait, then tap(s) from keys.
+        // Events [+c, +a]: +c matches, wait absorbs 0, +a partial match.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("+c #!{keys}-0 {*keys+}", aliases);
+        ComboSequenceMatch match = prep(press(c, t(0)), press(a, t(50)))
+                .match(combo);
+        assertTrue(match.hasMatch(),
+                "press after mid-sequence wait should partially match tap");
+        assertFalse(match.complete());
+    }
+
     // --- atLeastOne (+ suffix) tests ---
 
     @Test

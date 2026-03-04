@@ -126,13 +126,14 @@ public record ComboPreparation(List<KeyEvent> events) {
                 Set<Key> absorbedPressedKeys = new HashSet<>();
                 boolean hasFollowingMoveSets = k < moveSets.size();
                 boolean[] hasDanglingTapPress = {false};
-                if (tryAssignEventsToMoveSets(subMoveSets, 0, regionBeginIndex,
+                boolean assigned = tryAssignEventsToMoveSets(subMoveSets, 0, regionBeginIndex,
                         regionBeginIndex + totalEventCount, regionBeginIndex,
                         matchedKeyMoves, aliasBindings, negatedBindings,
                         tapExpandedFromAliasBindings,
                         lastEventAbsorbed, lastKeyMoveEventIndex,
                         absorbedPressedKeys, isPartial, hasFollowingMoveSets,
-                        hasDanglingTapPress)) {
+                        hasDanglingTapPress);
+                if (assigned) {
                     boolean complete = !isPartial && (k == moveSets.size())
                                        && !hasDanglingTapPress[0];
                     int moveSetCount = isPartial ? k - 1 : k;
@@ -207,8 +208,14 @@ public record ComboPreparation(List<KeyEvent> events) {
             if (waitMoveSet.canAbsorbEvents()) {
                 // Absorbing wait: try consuming 0..maxAbsorb events.
                 int minForRemaining = 0;
-                for (int later = moveSetIndex + 1; later < moveSets.size(); later++)
-                    minForRemaining += moveSets.get(later).minMoveCount();
+                for (int later = moveSetIndex + 1; later < moveSets.size(); later++) {
+                    MoveSet laterMoveSet = moveSets.get(later);
+                    if (allowPartialLastMoveSet && later == moveSets.size() - 1
+                        && laterMoveSet instanceof KeyMoveSet kms && kms.minMoveCount() > 1)
+                        minForRemaining += 1;
+                    else
+                        minForRemaining += laterMoveSet.minMoveCount();
+                }
                 int maxAbsorb = (eventEndIndex - eventIndex) - minForRemaining;
                 // Can't absorb past a non-ignored event.
                 int firstNonIgnoredOffset = maxAbsorb;
