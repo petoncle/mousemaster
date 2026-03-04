@@ -13,7 +13,7 @@ public record PressKeyEventProcessingSet(
     /**
      * Used for hints and unknown combo (combo of another mode, for which the key is a precondition key).
      */
-    public static final Combo dummyCombo = new Combo(new ComboPrecondition(
+    public static final Combo dummyCombo = new Combo("dummy", new ComboPrecondition(
             new ComboPrecondition.ComboKeyPrecondition(Set.of(),
                     new PressedKeyPrecondition(List.of())),
             new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of())),

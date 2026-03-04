@@ -10,9 +10,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
+public record Combo(String label, ComboPrecondition precondition, ComboSequence sequence) {
 
-    public static List<Combo> of(String string,
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Combo combo)) return false;
+        return precondition.equals(combo.precondition) && sequence.equals(combo.sequence);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(precondition, sequence);
+    }
+
+    public static List<Combo> of(String label, String string,
                                  ComboMoveDuration defaultMoveDuration,
                                  Map<String, KeyAlias> keyAliases,
                                  Map<String, AppAlias> appAliases,
@@ -83,7 +95,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                             keyAliases);
             sequence = expandableSequence.toComboSequence(keyAliases, keyResolver);
         }
-        return List.of(buildCombo(string, sequence,
+        return List.of(buildCombo(label, string, sequence,
                 unpressedKeySet, unpressedKeySetString, sequenceString,
                 pressedKeyPrecondition, pressedKeyPreconditionString,
                 mustNotBeActiveApps, mustBeActiveApps));
@@ -107,7 +119,8 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                      .collect(Collectors.toSet());
     }
 
-    private static Combo buildCombo(String string, ComboSequence sequence,
+    private static Combo buildCombo(String label, String string,
+                                    ComboSequence sequence,
                                     Set<Key> unpressedKeySet,
                                     String unpressedKeySetString,
                                     String sequenceString,
@@ -121,7 +134,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
                 new ComboAppPrecondition(mustNotBeActiveApps, mustBeActiveApps));
         if (precondition.isEmpty() && sequence.isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
-        return new Combo(precondition, sequence);
+        return new Combo(label, precondition, sequence);
     }
 
     private static Set<Key> parseUnpressedKeySet(String keySetString,
@@ -199,7 +212,7 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
         return new PressedKeyGroup(keySets);
     }
 
-    public static List<Combo> multiCombo(String multiComboString,
+    public static List<Combo> multiCombo(String label, String multiComboString,
                                          ComboMoveDuration defaultMoveDuration,
                                          Map<String, KeyAlias> keyAliases,
                                          Map<String, AppAlias> appAliases,
@@ -224,19 +237,19 @@ public record Combo(ComboPrecondition precondition, ComboSequence sequence) {
             }
             else if (character == '|' && braceDepth == 0) {
                 combos.addAll(
-                        of(multiComboString.substring(comboBeginIndex, charIndex).strip(),
+                        of(label, multiComboString.substring(comboBeginIndex, charIndex).strip(),
                                 defaultMoveDuration, keyAliases, appAliases, keyResolver));
                 comboBeginIndex = charIndex + 1;
             }
         }
-        combos.addAll(of(multiComboString.substring(comboBeginIndex).strip(),
+        combos.addAll(of(label, multiComboString.substring(comboBeginIndex).strip(),
                 defaultMoveDuration, keyAliases, appAliases, keyResolver));
         return List.copyOf(combos);
     }
 
     @Override
     public String toString() {
-        return (precondition.isEmpty() ? "" : precondition + " ") + sequence;
+        return label + ": " + (precondition.isEmpty() ? "" : precondition + " ") + sequence;
     }
 
     public Set<Key> keysPressedAfterMoves(Set<Key> preconditionPressedKeySet,

@@ -703,15 +703,21 @@ public class ComboWatcher implements ModeListener {
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
         long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
+        List<String> comboLabels = processingByCombo.entrySet().stream()
+                                                    .filter(e -> e.getValue()
+                                                                  .isPartOfComboSequence())
+                                                    .map(e -> e.getKey().label())
+                                                    .toList();
         logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
-                "ms, mode = " + beforeCommandsMode.name() +
-                ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
-                ", event = " + (logRedactKeys ? "<redacted>" : event) +
-                ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
-                ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
-                ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
-                ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
-                completeCombosCommandsToRun);
+                     "ms, mode = " + beforeCommandsMode.name() +
+                     ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
+                     ", event = " + (logRedactKeys ? "<redacted>" : event) +
+                     ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
+                     ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
+                     ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
+                     ", combos = " + comboLabels +
+                     ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
+                     completeCombosCommandsToRun);
         if (!comboAndCommandsToRun.isEmpty()) {
             listeners.forEach(ComboListener::completedCombo);
         }
