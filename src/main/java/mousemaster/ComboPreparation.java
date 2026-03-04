@@ -136,6 +136,14 @@ public record ComboPreparation(List<KeyEvent> events) {
                 if (assigned) {
                     boolean complete = !isPartial && (k == moveSets.size())
                                        && !hasDanglingTapPress[0];
+                    if (matchedKeyMoves.isEmpty() && !complete) {
+                        // Pure absorption: all events absorbed, no key moves
+                        // matched, and the match is incomplete. Try smaller
+                        // suffixes that might produce actual key moves (e.g.
+                        // a suffix containing just the press of a
+                        // tap-matching key).
+                        continue;
+                    }
                     int moveSetCount = isPartial ? k - 1 : k;
                     return new ComboSequenceMatch(List.copyOf(matchedKeyMoves), complete,
                             moveSetCount, lastKeyMoveEventIndex[0], lastEventAbsorbed[0],
@@ -419,15 +427,6 @@ public record ComboPreparation(List<KeyEvent> events) {
         int requiredSlots = keyMoveSet.requiredMoveSlotCount();
         int optionalSlotsToFill = eventCount - requiredSlots;
         if (optionalSlotsToFill < 0) {
-            if (keyMoveSet.canAbsorbEvents()) {
-                return tryMatchMoveSetEventsWithIgnoredKeys(
-                        eventBeginIndex, eventCount, keyMoveSet, 0,
-                        regionBeginIndex, previousMatchedKeyMoves,
-                        matchedKeyMoves, aliasBindings, negatedBindings,
-                        tapExpandedFromAliasBindings,
-                        lastEventAbsorbed, absorbedPressedKeys,
-                        allowLeadingIgnored, allowTrailingIgnored);
-            }
             // Partial matching: select eventCount slots from all moves.
             List<KeyComboMove> allMoves = new ArrayList<>(required);
             allMoves.addAll(optional);
@@ -443,6 +442,18 @@ public record ComboPreparation(List<KeyEvent> events) {
                     tapExpandedFromAliasBindings)) {
                 hasDanglingTapPress[0] = true;
                 return true;
+            }
+            // Absorbing wait fallback: events that don't match any move can
+            // be absorbed. Tried last so that key-move matches (including
+            // dangling tap presses) are preferred over pure absorption.
+            if (keyMoveSet.canAbsorbEvents()) {
+                return tryMatchMoveSetEventsWithIgnoredKeys(
+                        eventBeginIndex, eventCount, keyMoveSet, 0,
+                        regionBeginIndex, previousMatchedKeyMoves,
+                        matchedKeyMoves, aliasBindings, negatedBindings,
+                        tapExpandedFromAliasBindings,
+                        lastEventAbsorbed, absorbedPressedKeys,
+                        allowLeadingIgnored, allowTrailingIgnored);
             }
             return false;
         }
@@ -487,14 +498,15 @@ public record ComboPreparation(List<KeyEvent> events) {
                 aliasBindings, negatedBindings, tapExpandedFromAliasBindings))
             return true;
         if (keyMoveSet.canAbsorbEvents()) {
-            return tryMatchMoveSetEventsWithIgnoredKeys(
+            if (tryMatchMoveSetEventsWithIgnoredKeys(
                     eventBeginIndex, eventCount, keyMoveSet,
                     required.size(),
                     regionBeginIndex, previousMatchedKeyMoves,
                     matchedKeyMoves, aliasBindings, negatedBindings,
                     tapExpandedFromAliasBindings,
                     lastEventAbsorbed, absorbedPressedKeys,
-                    allowLeadingIgnored, allowTrailingIgnored);
+                    allowLeadingIgnored, allowTrailingIgnored))
+                return true;
         }
         // Tap-press partial match fallback: bipartite match that allows taps
         // to remain as dangling presses. Handles cases like [+a, +b] matching
@@ -507,6 +519,23 @@ public record ComboPreparation(List<KeyEvent> events) {
                     required.size(), regionBeginIndex, previousMatchedKeyMoves,
                     matchedKeyMoves, aliasBindings, negatedBindings,
                     tapExpandedFromAliasBindings)) {
+                hasDanglingTapPress[0] = true;
+                return true;
+            }
+        }
+        // Partial absorption fallback: when absorbed events prevent all
+        // required moves from matching, accept a partial match where at
+        // least some required moves are fully matched.
+        if (keyMoveSet.canAbsorbEvents()) {
+            int prevSize = matchedKeyMoves.size();
+            if (tryMatchMoveSetEventsWithIgnoredKeys(
+                    eventBeginIndex, eventCount, keyMoveSet, 0,
+                    regionBeginIndex, previousMatchedKeyMoves,
+                    matchedKeyMoves, aliasBindings, negatedBindings,
+                    tapExpandedFromAliasBindings,
+                    lastEventAbsorbed, absorbedPressedKeys,
+                    allowLeadingIgnored, allowTrailingIgnored)
+                && matchedKeyMoves.size() > prevSize) {
                 hasDanglingTapPress[0] = true;
                 return true;
             }

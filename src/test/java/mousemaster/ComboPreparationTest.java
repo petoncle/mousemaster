@@ -1181,4 +1181,87 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep(press(c, t(0))).match(combo);
         assertFalse(match.complete());
     }
+
+    // --- Absorbing wait inside MoveSet should not suppress dangling tap press ---
+
+    @Test
+    void absorbingWait_tapMoveSet_singlePress_partialMatch() {
+        // {a b #{*}-0-200}: tap a and tap b in any order, ignoring all keys.
+        // Events [+a]: +a should partially match as dangling tap(a) press,
+        // not be absorbed by #{*}.
+        ComboSequence combo = parseCombo("{a b #{*}-0-200}", Map.of());
+        ComboSequenceMatch match = prep(press(a, t(0))).match(combo);
+        assertTrue(match.hasMatch(),
+                "press should partially match tap in MoveSet with absorbing wait");
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void absorbingWait_tapMoveSet_twoPressesDifferentKeys_partialMatch() {
+        // {a b #{*}-0-200}: events [+a, +b] → both should partially match
+        // as dangling tap presses, not be absorbed.
+        ComboSequence combo = parseCombo("{a b #{*}-0-200}", Map.of());
+        ComboSequenceMatch match = prep(press(a, t(0)), press(b, t(50)))
+                .match(combo);
+        assertTrue(match.hasMatch(),
+                "two presses should partially match taps in MoveSet with absorbing wait");
+        assertFalse(match.complete());
+    }
+
+    @Test
+    void absorbingWait_tapMoveSet_fullTap_complete() {
+        // {a b #{*}-0-200}: events [+a, -a, +b, -b] → full match.
+        ComboSequence combo = parseCombo("{a b #{*}-0-200}", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(a, t(50)),
+                press(b, t(100)), release(b, t(150)))
+                .match(combo);
+        assertTrue(match.complete(),
+                "full tap sequence should complete with absorbing wait");
+    }
+
+    @Test
+    void absorbingWait_tapMoveSet_fullTapWithAbsorbedEvent_complete() {
+        // {a b #{*}-0-200}: events [+a, +x, -a, +b, -b] → +x absorbed,
+        // tap(a) and tap(b) fully matched.
+        ComboSequence combo = parseCombo("{a b #{*}-0-200}", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(x, t(50)), release(a, t(100)),
+                press(b, t(150)), release(b, t(200)))
+                .match(combo);
+        assertTrue(match.complete(),
+                "full tap sequence with absorbed event should complete");
+    }
+
+    @Test
+    void absorbingWait_tapMoveSet_oneTapPlusAbsorbedTap_partialMatch() {
+        // {a b #{*}-0-200}: events [+a, -a, +x, -x] → tap(a) fully matched,
+        // +x/-x absorbed by #{*}. Partial match (tap(b) not matched).
+        // This tests the general-path partial absorption fallback:
+        // eventCount(4) == requiredSlots(4), so the non-partial path runs.
+        // Full match fails (x != b). Partial absorption should succeed with
+        // tap(a) matched and +x/-x absorbed.
+        ComboSequence combo = parseCombo("{a b #{*}-0-200}", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(a, t(50)),
+                press(x, t(100)), release(x, t(150)))
+                .match(combo);
+        assertTrue(match.hasMatch(),
+                "tap(a) should match with non-matching events absorbed");
+        assertFalse(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void absorbingWait_tapMoveSet_nonMatchingPressThenMatchingPress_partialMatch() {
+        // {a b #{*}-0-2000}: events [+x, +a] → larger suffix [+x, +a] produces
+        // pure absorption (0 key moves); smaller suffix [+a] should be tried
+        // and match as dangling tap(a) press.
+        ComboSequence combo = parseCombo("{a b #{*}-0-2000}", Map.of());
+        ComboSequenceMatch match = prep(press(x, t(0)), press(a, t(100)))
+                .match(combo);
+        assertTrue(match.hasMatch(),
+                "should skip pure-absorption suffix and find tap press in smaller suffix");
+        assertFalse(match.complete());
+    }
 }
