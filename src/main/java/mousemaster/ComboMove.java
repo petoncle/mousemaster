@@ -54,37 +54,100 @@ public sealed interface ComboMove permits ComboMove.KeyComboMove, ComboMove.Wait
         }
     }
 
-    record WaitComboMove(KeySet ignoredKeySet, boolean ignoredKeysEatEvents,
-                         ComboMoveDuration duration) implements ComboMove {
+    sealed interface WaitComboMove extends ComboMove
+            permits WaitComboMove.KeyWaitComboMove,
+                    WaitComboMove.PressWaitComboMove,
+                    WaitComboMove.ReleaseWaitComboMove {
 
-        @Override
-        public String toString() {
-            String durationPart = "-" + duration.min().toMillis() +
-                   (duration.max() == null ? "" : "-" + duration.max().toMillis());
-            return switch (ignoredKeySet) {
-                case KeySet.Only only -> {
-                    if (only.keys().isEmpty()) {
-                        // Plain wait (no ignore).
-                        yield (ignoredKeysEatEvents ? "+" : "") + "wait" + durationPart;
+        boolean ignoredKeysEatEvents();
+
+        boolean matchesEvent(KeyEvent event);
+
+        boolean canAbsorbEvents();
+
+        record KeyWaitComboMove(KeySet ignoredKeySet, boolean ignoredKeysEatEvents,
+                                ComboMoveDuration duration) implements WaitComboMove {
+            @Override
+            public boolean matchesEvent(KeyEvent event) {
+                return ignoredKeySet.contains(event.key());
+            }
+
+            @Override
+            public boolean canAbsorbEvents() {
+                return !ignoredKeySet.equals(KeySet.NONE);
+            }
+
+            @Override
+            public String toString() {
+                String durationPart = "-" + duration.min().toMillis() +
+                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+                return switch (ignoredKeySet) {
+                    case KeySet.Only only -> {
+                        if (only.keys().isEmpty()) {
+                            // Plain wait (no ignore).
+                            yield (ignoredKeysEatEvents ? "+" : "") + "wait" + durationPart;
+                        }
+                        // #{keys} or +{keys}
+                        String prefix = ignoredKeysEatEvents ? "+" : "#";
+                        String keys = only.keys().stream().map(Key::name)
+                                .reduce((a, b) -> a + " " + b).orElse("");
+                        yield prefix + "{" + keys + "}" + durationPart;
                     }
-                    // #{keys} or +{keys}
-                    String prefix = ignoredKeysEatEvents ? "+" : "#";
-                    String keys = only.keys().stream().map(Key::name)
-                            .reduce((a, b) -> a + " " + b).orElse("");
-                    yield prefix + "{" + keys + "}" + durationPart;
-                }
-                case KeySet.AllExcept allExcept -> {
-                    String prefix = ignoredKeysEatEvents ? "+" : "#";
-                    if (allExcept.keys().isEmpty()) {
-                        // #{*} or +{*}
-                        yield prefix + "{*}" + durationPart;
+                    case KeySet.AllExcept allExcept -> {
+                        String prefix = ignoredKeysEatEvents ? "+" : "#";
+                        if (allExcept.keys().isEmpty()) {
+                            // #{*} or +{*}
+                            yield prefix + "{*}" + durationPart;
+                        }
+                        // #!{keys} or +!{keys}
+                        String keys = allExcept.keys().stream().map(Key::name)
+                                .reduce((a, b) -> a + " " + b).orElse("");
+                        yield prefix + "!{" + keys + "}" + durationPart;
                     }
-                    // #!{keys} or +!{keys}
-                    String keys = allExcept.keys().stream().map(Key::name)
-                            .reduce((a, b) -> a + " " + b).orElse("");
-                    yield prefix + "!{" + keys + "}" + durationPart;
-                }
-            };
+                };
+            }
+        }
+
+        record PressWaitComboMove(boolean ignoredKeysEatEvents,
+                                  ComboMoveDuration duration) implements WaitComboMove {
+            @Override
+            public boolean matchesEvent(KeyEvent event) {
+                return event.isPress();
+            }
+
+            @Override
+            public boolean canAbsorbEvents() {
+                return true;
+            }
+
+            @Override
+            public String toString() {
+                String prefix = ignoredKeysEatEvents ? "+" : "#";
+                String durationPart = "-" + duration.min().toMillis() +
+                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+                return prefix + "{+}" + durationPart;
+            }
+        }
+
+        record ReleaseWaitComboMove(boolean ignoredKeysEatEvents,
+                                    ComboMoveDuration duration) implements WaitComboMove {
+            @Override
+            public boolean matchesEvent(KeyEvent event) {
+                return event.isRelease();
+            }
+
+            @Override
+            public boolean canAbsorbEvents() {
+                return true;
+            }
+
+            @Override
+            public String toString() {
+                String prefix = ignoredKeysEatEvents ? "+" : "#";
+                String durationPart = "-" + duration.min().toMillis() +
+                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+                return prefix + "{-}" + durationPart;
+            }
         }
     }
 

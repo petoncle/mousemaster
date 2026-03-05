@@ -113,7 +113,7 @@ public sealed interface MoveSet permits MoveSet.KeyMoveSet, MoveSet.WaitMoveSet 
 
         @Override
         public boolean canAbsorbEvents() {
-            return !waitMove.ignoredKeySet().equals(KeySet.NONE);
+            return waitMove.canAbsorbEvents();
         }
 
         @Override

@@ -1,6 +1,10 @@
 package mousemaster;
 
 import mousemaster.ComboAliasMove.WaitComboAliasMove;
+import mousemaster.ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove;
+import mousemaster.ComboAliasMove.WaitComboAliasMove.PressWaitComboAliasMove;
+import mousemaster.ComboAliasMove.WaitComboAliasMove.ReleaseWaitComboAliasMove;
+import mousemaster.ComboMove.WaitComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import org.junit.jupiter.api.Test;
 
@@ -26,32 +30,38 @@ class ExpandableSequenceTest {
         return (WaitComboAliasMove) move;
     }
 
+    private static KeyWaitComboAliasMove parseKeyWait(String input) {
+        WaitComboAliasMove wait = parseWait(input);
+        assertInstanceOf(KeyWaitComboAliasMove.class, wait);
+        return (KeyWaitComboAliasMove) wait;
+    }
+
     // --- wait (plain, no ignore) ---
 
     @Test
     void waitWithExplicitMinMax() {
-        WaitComboAliasMove move = parseWait("wait-200-500");
+        KeyWaitComboAliasMove move = parseKeyWait("wait-200-500");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertEquals(Duration.ofMillis(500), move.duration().max());
     }
 
     @Test
     void waitWithExplicitMin() {
-        WaitComboAliasMove move = parseWait("wait-200");
+        KeyWaitComboAliasMove move = parseKeyWait("wait-200");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertNull(move.duration().max());
     }
 
     @Test
     void waitWithExplicitZero() {
-        WaitComboAliasMove move = parseWait("wait-0");
+        KeyWaitComboAliasMove move = parseKeyWait("wait-0");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
     }
 
     @Test
     void waitShorthandDefaultsToZero() {
-        WaitComboAliasMove move = parseWait("wait");
+        KeyWaitComboAliasMove move = parseKeyWait("wait");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
     }
@@ -60,7 +70,7 @@ class ExpandableSequenceTest {
 
     @Test
     void ignoreAllWithExplicitMinMax() {
-        WaitComboAliasMove move = parseWait("#{*}-200-500");
+        KeyWaitComboAliasMove move = parseKeyWait("#{*}-200-500");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertEquals(Duration.ofMillis(500), move.duration().max());
         assertEquals(Set.of(), move.keyAliasOrKeyNames());
@@ -69,14 +79,14 @@ class ExpandableSequenceTest {
 
     @Test
     void ignoreAllWithExplicitMin() {
-        WaitComboAliasMove move = parseWait("#{*}-200");
+        KeyWaitComboAliasMove move = parseKeyWait("#{*}-200");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertNull(move.duration().max());
     }
 
     @Test
     void ignoreAllShorthandDefaultsToZero() {
-        WaitComboAliasMove move = parseWait("#{*}");
+        KeyWaitComboAliasMove move = parseKeyWait("#{*}");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
         assertEquals(Set.of(), move.keyAliasOrKeyNames());
@@ -87,8 +97,7 @@ class ExpandableSequenceTest {
 
     @Test
     void ignoreAllExceptWithExplicitMinMax() {
-        WaitComboAliasMove move =
-                parseWait("#!{capslock}-200-500");
+        KeyWaitComboAliasMove move = parseKeyWait("#!{capslock}-200-500");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertEquals(Duration.ofMillis(500), move.duration().max());
         assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
@@ -97,8 +106,7 @@ class ExpandableSequenceTest {
 
     @Test
     void ignoreAllExceptShorthandDefaultsToZero() {
-        WaitComboAliasMove move =
-                parseWait("#!{capslock}");
+        KeyWaitComboAliasMove move = parseKeyWait("#!{capslock}");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
         assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
@@ -109,7 +117,7 @@ class ExpandableSequenceTest {
 
     @Test
     void ignoreKeysWithExplicitMinMax() {
-        WaitComboAliasMove move = parseWait("#{a b}-200-500");
+        KeyWaitComboAliasMove move = parseKeyWait("#{a b}-200-500");
         assertEquals(Duration.ofMillis(200), move.duration().min());
         assertEquals(Duration.ofMillis(500), move.duration().max());
         assertEquals(Set.of("a", "b"), move.keyAliasOrKeyNames());
@@ -118,7 +126,7 @@ class ExpandableSequenceTest {
 
     @Test
     void ignoreKeysShorthandDefaultsToZero() {
-        WaitComboAliasMove move = parseWait("#{a b}");
+        KeyWaitComboAliasMove move = parseKeyWait("#{a b}");
         assertEquals(Duration.ZERO, move.duration().min());
         assertNull(move.duration().max());
         assertEquals(Set.of("a", "b"), move.keyAliasOrKeyNames());
@@ -142,8 +150,7 @@ class ExpandableSequenceTest {
 
     @Test
     void plusPrefixIgnoreAllExceptShorthand() {
-        WaitComboAliasMove move =
-                parseWait("+!{capslock}");
+        KeyWaitComboAliasMove move = parseKeyWait("+!{capslock}");
         assertTrue(move.ignoredKeysEatEvents());
         assertEquals(Duration.ZERO, move.duration().min());
         assertEquals(Set.of("capslock"), move.keyAliasOrKeyNames());
@@ -366,7 +373,9 @@ class ExpandableSequenceTest {
         assertEquals(2, kms.requiredMoves().size());
         assertTrue(kms.canAbsorbEvents());
         assertNotNull(kms.waitMove());
-        assertEquals(KeySet.ALL, kms.waitMove().ignoredKeySet());
+        assertInstanceOf(WaitComboMove.KeyWaitComboMove.class, kms.waitMove());
+        WaitComboMove.KeyWaitComboMove kwm = (WaitComboMove.KeyWaitComboMove) kms.waitMove();
+        assertEquals(KeySet.ALL, kwm.ignoredKeySet());
         assertFalse(kms.waitMove().ignoredKeysEatEvents());
     }
 
@@ -379,7 +388,9 @@ class ExpandableSequenceTest {
             assertEquals(Duration.ofMillis(2000), move.duration().max());
         }
         assertNotNull(kms.waitMove());
-        assertEquals(KeySet.ALL, kms.waitMove().ignoredKeySet());
+        assertInstanceOf(WaitComboMove.KeyWaitComboMove.class, kms.waitMove());
+        WaitComboMove.KeyWaitComboMove kwm = (WaitComboMove.KeyWaitComboMove) kms.waitMove();
+        assertEquals(KeySet.ALL, kwm.ignoredKeySet());
         assertEquals(Duration.ZERO, kms.waitMove().duration().min());
         assertEquals(Duration.ofMillis(2000), kms.waitMove().duration().max());
     }
@@ -390,7 +401,9 @@ class ExpandableSequenceTest {
         assertEquals(1, kms.requiredMoves().size());
         assertTrue(kms.canAbsorbEvents());
         assertNotNull(kms.waitMove());
-        assertEquals(KeySet.ALL, kms.waitMove().ignoredKeySet());
+        assertInstanceOf(WaitComboMove.KeyWaitComboMove.class, kms.waitMove());
+        WaitComboMove.KeyWaitComboMove kwm = (WaitComboMove.KeyWaitComboMove) kms.waitMove();
+        assertEquals(KeySet.ALL, kwm.ignoredKeySet());
         assertTrue(kms.waitMove().ignoredKeysEatEvents());
     }
 
@@ -400,8 +413,10 @@ class ExpandableSequenceTest {
         assertEquals(1, kms.requiredMoves().size());
         assertTrue(kms.canAbsorbEvents());
         assertNotNull(kms.waitMove());
-        assertInstanceOf(KeySet.Only.class, kms.waitMove().ignoredKeySet());
-        Set<Key> ignoredKeys = ((KeySet.Only) kms.waitMove().ignoredKeySet()).keys();
+        assertInstanceOf(WaitComboMove.KeyWaitComboMove.class, kms.waitMove());
+        WaitComboMove.KeyWaitComboMove kwm = (WaitComboMove.KeyWaitComboMove) kms.waitMove();
+        assertInstanceOf(KeySet.Only.class, kwm.ignoredKeySet());
+        Set<Key> ignoredKeys = ((KeySet.Only) kwm.ignoredKeySet()).keys();
         assertEquals(Set.of(Key.ofName("a"), Key.ofName("b")), ignoredKeys);
         assertEquals(Duration.ZERO, kms.waitMove().duration().min());
         assertEquals(Duration.ofMillis(500), kms.waitMove().duration().max());
@@ -417,6 +432,82 @@ class ExpandableSequenceTest {
         assertInstanceOf(KeyMoveSet.class, comboSeq.moveSets().get(0));
         assertInstanceOf(MoveSet.WaitMoveSet.class, comboSeq.moveSets().get(1));
         assertInstanceOf(KeyMoveSet.class, comboSeq.moveSets().get(2));
+    }
+
+    // --- #{-} (ignore all releases) ---
+
+    @Test
+    void ignoreAllReleases_standalone() {
+        WaitComboAliasMove move = parseWait("#{-}-0-200");
+        assertInstanceOf(ReleaseWaitComboAliasMove.class, move);
+        assertFalse(move.ignoredKeysEatEvents());
+        assertEquals(Duration.ZERO, move.duration().min());
+        assertEquals(Duration.ofMillis(200), move.duration().max());
+    }
+
+    @Test
+    void ignoreAllReleases_resolved() {
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("#{-}-0-200", defaultDuration, Map.of());
+        ComboSequence comboSeq = seq.toComboSequence(Map.of(), identityKeyResolver);
+        assertEquals(1, comboSeq.moveSets().size());
+        assertInstanceOf(MoveSet.WaitMoveSet.class, comboSeq.moveSets().getFirst());
+        MoveSet.WaitMoveSet wms = (MoveSet.WaitMoveSet) comboSeq.moveSets().getFirst();
+        assertInstanceOf(WaitComboMove.ReleaseWaitComboMove.class, wms.waitMove());
+        assertTrue(wms.canAbsorbEvents());
+    }
+
+    // --- #{+} (ignore all presses) ---
+
+    @Test
+    void ignoreAllPresses_standalone() {
+        WaitComboAliasMove move = parseWait("#{+}-0-200");
+        assertInstanceOf(PressWaitComboAliasMove.class, move);
+        assertFalse(move.ignoredKeysEatEvents());
+        assertEquals(Duration.ZERO, move.duration().min());
+        assertEquals(Duration.ofMillis(200), move.duration().max());
+    }
+
+    // --- +{+} (eat all presses) ---
+
+    @Test
+    void eatAllPresses_standalone() {
+        WaitComboAliasMove move = parseWait("+{+}");
+        assertInstanceOf(PressWaitComboAliasMove.class, move);
+        assertTrue(move.ignoredKeysEatEvents());
+    }
+
+    // --- #{-} / #{+} inside braces ---
+
+    @Test
+    void ignoreAllReleases_insideBraces() {
+        KeyMoveSet kms = parseMoveSetWithIgnoredKeys("{+a +b #{-}-0-200}");
+        assertEquals(2, kms.requiredMoves().size());
+        assertTrue(kms.canAbsorbEvents());
+        assertNotNull(kms.waitMove());
+        assertInstanceOf(WaitComboMove.ReleaseWaitComboMove.class, kms.waitMove());
+        assertEquals(Duration.ZERO, kms.waitMove().duration().min());
+        assertEquals(Duration.ofMillis(200), kms.waitMove().duration().max());
+    }
+
+    @Test
+    void ignoreAllPresses_insideBraces() {
+        KeyMoveSet kms = parseMoveSetWithIgnoredKeys("{-a -b #{+}-0-200}");
+        assertEquals(2, kms.requiredMoves().size());
+        assertTrue(kms.canAbsorbEvents());
+        assertNotNull(kms.waitMove());
+        assertInstanceOf(WaitComboMove.PressWaitComboMove.class, kms.waitMove());
+    }
+
+    @Test
+    void ignoreAllReleases_insideBraces_braceDuration() {
+        // {g i #{-}}-0-2000: brace duration applies to both taps and the release wait.
+        KeyMoveSet kms = parseMoveSetWithIgnoredKeys("{g i #{-}}-0-2000");
+        assertEquals(2, kms.requiredMoves().size());
+        assertNotNull(kms.waitMove());
+        assertInstanceOf(WaitComboMove.ReleaseWaitComboMove.class, kms.waitMove());
+        assertEquals(Duration.ZERO, kms.waitMove().duration().min());
+        assertEquals(Duration.ofMillis(2000), kms.waitMove().duration().max());
     }
 
 }

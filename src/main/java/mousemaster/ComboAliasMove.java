@@ -80,50 +80,76 @@ public sealed interface ComboAliasMove {
         }
     }
 
-    record WaitComboAliasMove(Set<String> keyAliasOrKeyNames, boolean listedKeysAreIgnored,
-                              boolean ignoredKeysEatEvents, ComboMoveDuration duration) implements ComboAliasMove {
-        @Override
-        public String aliasOrKeyName() {
-            return null;
-        }
+    sealed interface WaitComboAliasMove extends ComboAliasMove
+            permits WaitComboAliasMove.KeyWaitComboAliasMove,
+                    WaitComboAliasMove.PressWaitComboAliasMove,
+                    WaitComboAliasMove.ReleaseWaitComboAliasMove {
+
+        boolean ignoredKeysEatEvents();
 
         @Override
-        public Optionality optionality() {
-            return Optionality.REQUIRED;
-        }
+        default String aliasOrKeyName() { return null; }
 
         @Override
-        public boolean expand() {
-            return false;
-        }
+        default Optionality optionality() { return Optionality.REQUIRED; }
 
         @Override
-        public String toString() {
-            String durationPart = "-" + duration.min().toMillis() +
-                   (duration.max() == null ? "" : "-" + duration.max().toMillis());
-            if (keyAliasOrKeyNames.isEmpty() && listedKeysAreIgnored) {
-                // Plain wait (no ignore).
-                return (ignoredKeysEatEvents ? "+" : "") + "wait" + durationPart;
+        default boolean expand() { return false; }
+
+        record KeyWaitComboAliasMove(Set<String> keyAliasOrKeyNames,
+                                     boolean listedKeysAreIgnored,
+                                     boolean ignoredKeysEatEvents,
+                                     ComboMoveDuration duration) implements WaitComboAliasMove {
+            @Override
+            public String toString() {
+                String durationPart = "-" + duration.min().toMillis() +
+                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+                if (keyAliasOrKeyNames.isEmpty() && listedKeysAreIgnored) {
+                    // Plain wait (no ignore).
+                    return (ignoredKeysEatEvents ? "+" : "") + "wait" + durationPart;
+                }
+                String prefix = ignoredKeysEatEvents ? "+" : "#";
+                String bang;
+                String content;
+                if (keyAliasOrKeyNames.isEmpty()) {
+                    // All keys: #{*} or +{*}
+                    bang = "";
+                    content = "*";
+                }
+                else if (listedKeysAreIgnored) {
+                    // Listed keys: #{keys} or +{keys}
+                    bang = "";
+                    content = String.join(" ", keyAliasOrKeyNames);
+                }
+                else {
+                    // All except listed: #!{keys} or +!{keys}
+                    bang = "!";
+                    content = String.join(" ", keyAliasOrKeyNames);
+                }
+                return prefix + bang + "{" + content + "}" + durationPart;
             }
-            String prefix = ignoredKeysEatEvents ? "+" : "#";
-            String bang;
-            String content;
-            if (keyAliasOrKeyNames.isEmpty()) {
-                // All keys: #{*} or +{*}
-                bang = "";
-                content = "*";
+        }
+
+        record PressWaitComboAliasMove(boolean ignoredKeysEatEvents,
+                                       ComboMoveDuration duration) implements WaitComboAliasMove {
+            @Override
+            public String toString() {
+                String prefix = ignoredKeysEatEvents ? "+" : "#";
+                String durationPart = "-" + duration.min().toMillis() +
+                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+                return prefix + "{+}" + durationPart;
             }
-            else if (listedKeysAreIgnored) {
-                // Listed keys: #{keys} or +{keys}
-                bang = "";
-                content = String.join(" ", keyAliasOrKeyNames);
+        }
+
+        record ReleaseWaitComboAliasMove(boolean ignoredKeysEatEvents,
+                                         ComboMoveDuration duration) implements WaitComboAliasMove {
+            @Override
+            public String toString() {
+                String prefix = ignoredKeysEatEvents ? "+" : "#";
+                String durationPart = "-" + duration.min().toMillis() +
+                       (duration.max() == null ? "" : "-" + duration.max().toMillis());
+                return prefix + "{-}" + durationPart;
             }
-            else {
-                // All except listed: #!{keys} or +!{keys}
-                bang = "!";
-                content = String.join(" ", keyAliasOrKeyNames);
-            }
-            return prefix + bang + "{" + content + "}" + durationPart;
         }
     }
 

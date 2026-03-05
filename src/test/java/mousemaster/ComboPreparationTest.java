@@ -1264,4 +1264,102 @@ class ComboPreparationTest {
                 "should skip pure-absorption suffix and find tap press in smaller suffix");
         assertFalse(match.complete());
     }
+
+    // --- #{-} (ignore all releases) and #{+} (ignore all presses) ---
+
+    @Test
+    void releaseWait_absorbsReleases_notPresses() {
+        // #{-}-0-200: absorbs release events, not press events.
+        // Sequence: +a #{-}-0-200 +b
+        // Events: [+a, -x, +b] → -x absorbed by #{-}, complete.
+        ComboSequence combo = parseCombo("+a #{-}-0-200 +b", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(x, t(50)), press(b, t(100)))
+                .match(combo);
+        assertTrue(match.complete(),
+                "#{-} should absorb release events");
+    }
+
+    @Test
+    void releaseWait_doesNotAbsorbPresses() {
+        // #{-}-0-200: does NOT absorb press events.
+        // Sequence: +a #{-}-0-200 +b
+        // Events: [+a, +x, +b] → +x is a press, NOT absorbed by #{-}.
+        // The wait should not be able to absorb +x.
+        ComboSequence combo = parseCombo("+a #{-}-0-200 +b", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), press(x, t(50)), press(b, t(100)))
+                .match(combo);
+        assertFalse(match.complete(),
+                "#{-} should not absorb press events");
+    }
+
+    @Test
+    void pressWait_absorbsPresses_notReleases() {
+        // #{+}-0-200: absorbs press events, not release events.
+        // Sequence: -a #{+}-0-200 -b
+        // Events: [-a, +x, -b] → +x absorbed by #{+}, complete.
+        ComboSequence combo = parseCombo("-a #{+}-0-200 -b", Map.of());
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), press(x, t(50)), release(b, t(100)))
+                .match(combo);
+        assertTrue(match.complete(),
+                "#{+} should absorb press events");
+    }
+
+    @Test
+    void pressWait_doesNotAbsorbReleases() {
+        // #{+}-0-200: does NOT absorb release events.
+        // Sequence: -a #{+}-0-200 -b
+        // Events: [-a, -x, -b] → -x is a release, NOT absorbed by #{+}.
+        ComboSequence combo = parseCombo("-a #{+}-0-200 -b", Map.of());
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), release(x, t(50)), release(b, t(100)))
+                .match(combo);
+        assertFalse(match.complete(),
+                "#{+} should not absorb release events");
+    }
+
+    @Test
+    void releaseWait_multipleReleases_absorbed() {
+        // #{-}-0-500: absorbs multiple release events.
+        // Sequence: +a #{-}-0-500 +b
+        // Events: [+a, -x, -y, +b] → -x and -y absorbed, complete.
+        ComboSequence combo = parseCombo("+a #{-}-0-500 +b", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(x, t(50)), release(y, t(100)),
+                press(b, t(150)))
+                .match(combo);
+        assertTrue(match.complete(),
+                "#{-} should absorb multiple releases");
+    }
+
+    @Test
+    void releaseWait_insideMoveSet_absorbsReleases() {
+        // {+a +b #{-}-0-200}: absorbs releases interleaved with presses.
+        // Events: [+a, -x, +b] → -x absorbed, +a and +b match.
+        ComboSequence combo = parseCombo("{+a +b #{-}-0-200}", Map.of());
+        ComboSequenceMatch match = prep(
+                press(a, t(0)), release(x, t(50)), press(b, t(100)))
+                .match(combo);
+        assertTrue(match.complete(),
+                "#{-} inside MoveSet should absorb releases");
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void releaseWait_insideMoveSet_doesNotAbsorbPresses() {
+        // {-a -b #{-}-0-200}: #{-} only absorbs releases but -a and -b are
+        // also releases (which are the key moves). The wait should absorb
+        // unrelated releases, not the key-move releases.
+        // Actually: {-a -b #{-}}: events [-a, -x, -b] → -x is an unrelated
+        // release absorbed by #{-}, -a and -b are key moves.
+        ComboSequence combo = parseCombo("{-a -b #{-}-0-200}", Map.of());
+        ComboSequenceMatch match = prep(
+                release(a, t(0)), release(x, t(50)), release(b, t(100)))
+                .match(combo);
+        assertTrue(match.complete(),
+                "#{-} should absorb unrelated releases interleaved with release moves");
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
 }

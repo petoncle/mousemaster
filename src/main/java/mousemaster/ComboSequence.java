@@ -22,29 +22,29 @@ public record ComboSequence(List<MoveSet> moveSets) {
         Set<Key> keys = new HashSet<>();
         for (MoveSet moveSet : moveSets) {
             switch (moveSet) {
-                case WaitMoveSet waitMoveSet -> {
-                    KeySet ignoredKeySet = waitMoveSet.waitMove().ignoredKeySet();
-                    switch (ignoredKeySet) {
-                        case KeySet.Only only -> keys.addAll(only.keys());
-                        case KeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
-                    }
-                }
+                case WaitMoveSet waitMoveSet ->
+                    addWaitMoveKeys(waitMoveSet.waitMove(), keys);
                 case KeyMoveSet keyMoveSet -> {
                     Stream.concat(keyMoveSet.requiredMoves().stream(),
                                   keyMoveSet.optionalMoves().stream())
                           .flatMap(move -> move.keyOrAlias().possibleKeys().stream())
                           .forEach(keys::add);
-                    if (keyMoveSet.waitMove() != null) {
-                        KeySet ignoredKeySet = keyMoveSet.waitMove().ignoredKeySet();
-                        switch (ignoredKeySet) {
-                            case KeySet.Only only -> keys.addAll(only.keys());
-                            case KeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
-                        }
-                    }
+                    if (keyMoveSet.waitMove() != null)
+                        addWaitMoveKeys(keyMoveSet.waitMove(), keys);
                 }
             }
         }
         return keys;
+    }
+
+    private static void addWaitMoveKeys(ComboMove.WaitComboMove waitMove, Set<Key> keys) {
+        if (waitMove instanceof ComboMove.WaitComboMove.KeyWaitComboMove kwm) {
+            switch (kwm.ignoredKeySet()) {
+                case KeySet.Only only -> keys.addAll(only.keys());
+                case KeySet.AllExcept allExcept -> keys.addAll(allExcept.keys());
+            }
+        }
+        // PressWaitComboMove / ReleaseWaitComboMove: no specific keys to add.
     }
 
     public Set<String> aliasNames() {

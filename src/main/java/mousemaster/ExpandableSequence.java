@@ -82,27 +82,35 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                 Integer.parseUnsignedInt(ignoreMatcher.group(4))),
                         ignoreMatcher.group(6) == null ? null : Duration.ofMillis(
                                 Integer.parseUnsignedInt(ignoreMatcher.group(6))));
-                Set<String> keyNames;
-                boolean listedKeysAreIgnored;
+                ComboAliasMove.WaitComboAliasMove waitAliasMove;
                 if (content.equals("*")) {
                     // #{*} = ignore all, +{*} = eat all
-                    keyNames = Set.of();
-                    listedKeysAreIgnored = false;
+                    waitAliasMove = new ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove(
+                            Set.of(), false, ignoredKeysEatEvents, waitDuration);
+                }
+                else if (content.equals("-")) {
+                    // #{-} = ignore all releases, +{-} = eat all releases
+                    waitAliasMove = new ComboAliasMove.WaitComboAliasMove.ReleaseWaitComboAliasMove(
+                            ignoredKeysEatEvents, waitDuration);
+                }
+                else if (content.equals("+")) {
+                    // #{+} = ignore all presses, +{+} = eat all presses
+                    waitAliasMove = new ComboAliasMove.WaitComboAliasMove.PressWaitComboAliasMove(
+                            ignoredKeysEatEvents, waitDuration);
                 }
                 else if (allExcept) {
                     // #!{keys} = ignore all except, +!{keys} = eat all except
                     String[] keys = content.split("\\s+");
-                    keyNames = Set.of(keys);
-                    listedKeysAreIgnored = false;
+                    waitAliasMove = new ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove(
+                            Set.of(keys), false, ignoredKeysEatEvents, waitDuration);
                 }
                 else {
                     // #{keys} = ignore listed, +{keys} = eat listed
                     String[] keys = content.split("\\s+");
-                    keyNames = Set.of(keys);
-                    listedKeysAreIgnored = true;
+                    waitAliasMove = new ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove(
+                            Set.of(keys), true, ignoredKeysEatEvents, waitDuration);
                 }
-                moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
-                        keyNames, listedKeysAreIgnored, ignoredKeysEatEvents, waitDuration)));
+                moveSets.add(Set.of(waitAliasMove));
             }
             else if (matcher.group(2) != null) {
                 // {+a -b +c}: set of moves (any-order within the set)
@@ -140,22 +148,30 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                             Integer.parseUnsignedInt(ignoreMatcher.group(6))));
                         else
                             waitDuration = braceDuration;
-                        Set<String> keyNames;
-                        boolean listedKeysAreIgnored;
+                        ComboAliasMove.WaitComboAliasMove waitAliasMove;
                         if (ignoreContent.equals("*")) {
-                            keyNames = Set.of();
-                            listedKeysAreIgnored = false;
+                            waitAliasMove = new ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove(
+                                    Set.of(), false, ignoredKeysEatEvents, waitDuration);
+                        }
+                        else if (ignoreContent.equals("-")) {
+                            waitAliasMove = new ComboAliasMove.WaitComboAliasMove.ReleaseWaitComboAliasMove(
+                                    ignoredKeysEatEvents, waitDuration);
+                        }
+                        else if (ignoreContent.equals("+")) {
+                            waitAliasMove = new ComboAliasMove.WaitComboAliasMove.PressWaitComboAliasMove(
+                                    ignoredKeysEatEvents, waitDuration);
                         }
                         else if (allExcept) {
-                            keyNames = Set.of(ignoreContent.split("\\s+"));
-                            listedKeysAreIgnored = false;
+                            waitAliasMove = new ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove(
+                                    Set.of(ignoreContent.split("\\s+")), false,
+                                    ignoredKeysEatEvents, waitDuration);
                         }
                         else {
-                            keyNames = Set.of(ignoreContent.split("\\s+"));
-                            listedKeysAreIgnored = true;
+                            waitAliasMove = new ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove(
+                                    Set.of(ignoreContent.split("\\s+")), true,
+                                    ignoredKeysEatEvents, waitDuration);
                         }
-                        moveSet.add(new ComboAliasMove.WaitComboAliasMove(
-                                keyNames, listedKeysAreIgnored, ignoredKeysEatEvents, waitDuration));
+                        moveSet.add(waitAliasMove);
                     }
                     else {
                         // Regular move token
@@ -189,7 +205,7 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                     Integer.parseUnsignedInt(waitMatcher.group(3))),
                             waitMatcher.group(5) == null ? null : Duration.ofMillis(
                                     Integer.parseUnsignedInt(waitMatcher.group(5))));
-                    moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove(
+                    moveSets.add(Set.of(new ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove(
                             Set.of(), true, ignoredKeysEatEvents, waitDuration)));
                 }
                 else if (isBareToken(token)) {
@@ -350,20 +366,14 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
             }
             // Pure wait MoveSet (standalone #{*}, wait, etc.)
             if (waitAliasMove != null && !hasKeyMoves) {
-                KeySet ignoredKeySet = resolveIgnoredKeySet(waitAliasMove, aliases, keyResolver);
-                WaitComboMove waitMove = new WaitComboMove(
-                        ignoredKeySet, waitAliasMove.ignoredKeysEatEvents(),
-                        waitAliasMove.duration());
+                WaitComboMove waitMove = resolveWaitComboMove(waitAliasMove, aliases, keyResolver);
                 resolvedMoveSets.add(new WaitMoveSet(waitMove));
                 continue;
             }
             // Resolve ignored-key spec if present alongside key moves.
             WaitComboMove resolvedWaitMove = null;
             if (waitAliasMove != null) {
-                KeySet ignoredKeySet = resolveIgnoredKeySet(waitAliasMove, aliases, keyResolver);
-                resolvedWaitMove = new WaitComboMove(
-                        ignoredKeySet, waitAliasMove.ignoredKeysEatEvents(),
-                        waitAliasMove.duration());
+                resolvedWaitMove = resolveWaitComboMove(waitAliasMove, aliases, keyResolver);
             }
             List<KeyComboMove> required = new ArrayList<>();
             List<KeyComboMove> optional = new ArrayList<>();
@@ -414,9 +424,27 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
         return new ComboSequence(List.copyOf(resolvedMoveSets));
     }
 
-    private static KeySet resolveIgnoredKeySet(ComboAliasMove.WaitComboAliasMove waitAliasMove,
-                                                Map<String, KeyAlias> aliases,
-                                                KeyResolver keyResolver) {
+    private static ComboMove.WaitComboMove resolveWaitComboMove(
+            ComboAliasMove.WaitComboAliasMove waitAliasMove,
+            Map<String, KeyAlias> aliases, KeyResolver keyResolver) {
+        return switch (waitAliasMove) {
+            case ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove kwam -> {
+                KeySet ignoredKeySet = resolveIgnoredKeySet(kwam, aliases, keyResolver);
+                yield new ComboMove.WaitComboMove.KeyWaitComboMove(
+                        ignoredKeySet, kwam.ignoredKeysEatEvents(), kwam.duration());
+            }
+            case ComboAliasMove.WaitComboAliasMove.PressWaitComboAliasMove pwam ->
+                new ComboMove.WaitComboMove.PressWaitComboMove(
+                        pwam.ignoredKeysEatEvents(), pwam.duration());
+            case ComboAliasMove.WaitComboAliasMove.ReleaseWaitComboAliasMove rwam ->
+                new ComboMove.WaitComboMove.ReleaseWaitComboMove(
+                        rwam.ignoredKeysEatEvents(), rwam.duration());
+        };
+    }
+
+    private static KeySet resolveIgnoredKeySet(
+            ComboAliasMove.WaitComboAliasMove.KeyWaitComboAliasMove waitAliasMove,
+            Map<String, KeyAlias> aliases, KeyResolver keyResolver) {
         Set<Key> resolvedKeys = new HashSet<>();
         for (String keyAliasOrKeyName : waitAliasMove.keyAliasOrKeyNames()) {
             KeyAlias waitAlias = aliases.get(keyAliasOrKeyName);

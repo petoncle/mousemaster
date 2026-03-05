@@ -78,11 +78,11 @@ public record ComboPreparation(List<KeyEvent> events) {
                 for (MoveSet moveSet : subMoveSets) {
                     if (!moveSet.canAbsorbEvents())
                         continue;
-                    KeySet ignoredKeySet = moveSet instanceof WaitMoveSet wms ?
-                            wms.waitMove().ignoredKeySet() :
-                            ((KeyMoveSet) moveSet).waitMove().ignoredKeySet();
+                    WaitComboMove waitMove = moveSet instanceof WaitMoveSet wms ?
+                            wms.waitMove() :
+                            ((KeyMoveSet) moveSet).waitMove();
                     for (KeyEvent event : events) {
-                        if (ignoredKeySet.contains(event.key())) {
+                        if (waitMove.matchesEvent(event)) {
                             canAbsorbPreparationEvents = true;
                             break;
                         }
@@ -105,7 +105,8 @@ public record ComboPreparation(List<KeyEvent> events) {
             // loop already tries every position within the suffix, so shorter
             // suffixes are redundant.
             if (subMoveSets.getFirst() instanceof WaitMoveSet wms
-                    && wms.waitMove().ignoredKeySet().equals(KeySet.ALL)) {
+                    && wms.waitMove() instanceof WaitComboMove.KeyWaitComboMove kwm
+                    && kwm.ignoredKeySet().equals(KeySet.ALL)) {
                 partialMinTotalEventCount = effectiveMaxEventCount;
             }
 
@@ -228,7 +229,7 @@ public record ComboPreparation(List<KeyEvent> events) {
                 // Can't absorb past a non-ignored event.
                 int firstNonIgnoredOffset = maxAbsorb;
                 for (int i = 0; i < maxAbsorb; i++) {
-                    if (!waitMove.ignoredKeySet().contains(events.get(eventIndex + i).key())) {
+                    if (!waitMove.matchesEvent(events.get(eventIndex + i))) {
                         firstNonIgnoredOffset = i;
                         break;
                     }
@@ -564,7 +565,7 @@ public record ComboPreparation(List<KeyEvent> events) {
         Map<String, Key> savedNegated = new HashMap<>(negatedBindings);
         if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, allMoves,
                 requiredMoveCount, moveStates, tapPressedKeys, assignedMoves, eventIsIgnored,
-                KeySet.NONE, null,
+                null,
                 regionBeginIndex, previousMatchedKeyMoves,
                 aliasBindings, negatedBindings, tapExpandedFromAliasBindings,
                 true, true, true)) {
@@ -618,7 +619,7 @@ public record ComboPreparation(List<KeyEvent> events) {
         if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, allMoves,
                 minimumRequiredCount, moveStates, tapPressedKeys,
                 assignedMovesForEvents, eventIsIgnored,
-                wm.ignoredKeySet(), wm.duration(),
+                wm,
                 regionBeginIndex, previousMatchedKeyMoves,
                 aliasBindings, negatedBindings, tapExpandedFromAliasBindings,
                 allowLeadingIgnored, allowTrailingIgnored, false)) {
@@ -667,7 +668,7 @@ public record ComboPreparation(List<KeyEvent> events) {
             int[] moveStates, Key[] tapPressedKeys,
             ResolvedKeyComboMove[] assignedMoves,
             boolean[] eventIsIgnored,
-            KeySet ignoredKeySet, ComboMoveDuration ignoredKeysDuration,
+            WaitComboMove waitMove,
             int regionBeginIndex, List<ResolvedKeyComboMove> previousMatchedKeyMoves,
             Map<String, Key> aliasBindings, Map<String, Key> negatedBindings,
             Map<String, List<Key>> tapExpandedFromAliasBindings,
@@ -704,9 +705,9 @@ public record ComboPreparation(List<KeyEvent> events) {
         if (globalEventIndex > regionBeginIndex && eventOffset > 0) {
             KeyEvent previousEvent = events.get(globalEventIndex - 1);
             if (eventIsIgnored[eventOffset - 1]) {
-                // Previous event was ignored: check ignoredKeysDuration if set.
-                if (ignoredKeysDuration != null &&
-                    !ignoredKeysDuration.satisfied(previousEvent.time(), event.time()))
+                // Previous event was ignored: check wait move's duration if set.
+                if (waitMove != null &&
+                    !waitMove.duration().satisfied(previousEvent.time(), event.time()))
                     return false;
             }
             else {
@@ -741,8 +742,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                     assignedMoves[eventOffset] = resolvedTapPress(tap, event.key());
                     if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
                             eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
-                            assignedMoves, eventIsIgnored, ignoredKeySet,
-                            ignoredKeysDuration, regionBeginIndex,
+                            assignedMoves, eventIsIgnored, waitMove,
+                            regionBeginIndex,
                             previousMatchedKeyMoves, aliasBindings, negatedBindings,
                             tapExpandedFromAliasBindings,
                             allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
@@ -762,8 +763,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                     assignedMoves[eventOffset] = resolvedTapRelease(tap, event.key());
                     if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
                             eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
-                            assignedMoves, eventIsIgnored, ignoredKeySet,
-                            ignoredKeysDuration, regionBeginIndex,
+                            assignedMoves, eventIsIgnored, waitMove,
+                            regionBeginIndex,
                             previousMatchedKeyMoves, aliasBindings, negatedBindings,
                             tapExpandedFromAliasBindings,
                             allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
@@ -782,8 +783,8 @@ public record ComboPreparation(List<KeyEvent> events) {
                     assignedMoves[eventOffset] = resolvedPressOrReleaseMove(move, event.key());
                     if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
                             eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
-                            assignedMoves, eventIsIgnored, ignoredKeySet,
-                            ignoredKeysDuration, regionBeginIndex,
+                            assignedMoves, eventIsIgnored, waitMove,
+                            regionBeginIndex,
                             previousMatchedKeyMoves, aliasBindings, negatedBindings,
                             tapExpandedFromAliasBindings,
                             allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
@@ -798,13 +799,13 @@ public record ComboPreparation(List<KeyEvent> events) {
         }
 
         // Try ignoring this event.
-        if (ignoredKeySet.contains(event.key())) {
+        if (waitMove != null && waitMove.matchesEvent(event)) {
             eventIsIgnored[eventOffset] = true;
             assignedMoves[eventOffset] = null;
             if (assignEventsWithIgnoredKeys(eventBeginIndex, eventOffset + 1,
                     eventCount, allMoves, requiredCount, moveStates, tapPressedKeys,
-                    assignedMoves, eventIsIgnored, ignoredKeySet,
-                    ignoredKeysDuration, regionBeginIndex,
+                    assignedMoves, eventIsIgnored, waitMove,
+                    regionBeginIndex,
                     previousMatchedKeyMoves, aliasBindings, negatedBindings,
                     tapExpandedFromAliasBindings,
                     allowLeadingIgnored, allowTrailingIgnored, allowDanglingTaps))
@@ -885,7 +886,7 @@ public record ComboPreparation(List<KeyEvent> events) {
         Map<String, Key> savedNegatedBindings = new HashMap<>(negatedBindings);
         if (assignEventsWithIgnoredKeys(eventBeginIndex, 0, eventCount, moves,
                 moves.size(), moveStates, tapPressedKeys, assignedMoves, eventIsIgnored,
-                KeySet.NONE, null,
+                null,
                 regionBeginIndex, previousMatchedKeyMoves,
                 aliasBindings, negatedBindings, tapExpandedFromAliasBindings,
                 true, true, false)) {
