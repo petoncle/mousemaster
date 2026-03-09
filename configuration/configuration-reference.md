@@ -5,7 +5,6 @@ This document provides a comprehensive reference for all configuration options a
 ## Contents
 - [Key aliases](#key-aliases)
 - [Combos](#combos)
-- [Multi-combos](#multi-combo)
 - [Modes](#modes)
 - [Mode switching](#switching-modes)
 - [Mode history](#mode-history)
@@ -51,80 +50,22 @@ The complete available key list can be found in [key-list.md](key-list.md).
 
 ## Combos
 
-Combos are sequences of key presses and releases that trigger commands in mousemaster. Understanding combo syntax is essential for creating effective configurations.
+Combos are sequences of key presses and releases that trigger commands in mousemaster. For the full syntax reference (duration, wait moves, aliases, optionality, negated moves, macros, etc.), see [combo-reference.md](combo-reference.md).
 
 ### Basic combo syntax
 
-1. Key press: `+key` indicates a key press. For example, `+leftctrl +e` means leftctrl must be pressed, then e must be pressed.
-   ```properties
-   normal-mode.to.hint-mode=+f
-   ```
+| Syntax             | Meaning                                       |
+|--------------------|-----------------------------------------------|
+| `+key`             | Key press (eaten — not passed to the OS)      |
+| `#key`             | Key press (not eaten — passed to the OS)      |
+| `-key`             | Key release                                   |
+| `key`              | Tap (press then release)                      |
+| `{+a +b}`          | Any-order move set                            |
+| `_{keys}`          | Precondition: listed keys must be pressed     |
+| `^{keys}`          | Precondition: listed keys must not be pressed |
+| `combo1 \| combo2` | Multiple alternative combos                   |
 
-2. Key release: `-key` indicates a key release. For example, `-leftctrl` corresponds to releasing the leftctrl key.
-   ```properties
-   normal-mode.release.left=-leftbutton
-   ```
-
-3. Non-eaten key press: `#key` is similar to `+key` but the key press event is not "eaten" by mousemaster - other applications will also receive the event.
-   ```properties
-   normal-mode.press.left=#leftbutton
-   ```
-
-### Combo duration
-
-1. Default duration: `+leftctrl` is equivalent to `+leftctrl-0`, meaning leftctrl must be pressed for at least 0ms, with no upper limit.
-
-2. Custom duration: you can specify custom durations:
-   - `+leftctrl-0-500`: Press leftctrl for 0-500ms. mousemaster won't consider the combo successful if you press leftctrl for longer than 500ms.
-   - `+leftctrl-1000`: Press leftctrl for at least 1000ms, with no upper limit
-
-3. Default duration configuration: change the default combo move duration with:
-   ```properties
-   default-combo-move-duration-millis=150
-   ```
-
-### Combo preconditions
-
-1. Pressed key precondition: `_{leftctrl} +e` has two parts:
-   - Precondition (`_{leftctrl}`): leftctrl must be pressed before the combo sequence
-   - Sequence (`+e`): press e
-
-   The precondition key (leftctrl) will not be eaten by mousemaster.
-
-   ```properties
-   normal-mode.press.left=_{leftctrl} +leftbutton
-   ```
-
-2. Not-pressed key precondition: `^{leftctrl} +e` means leftctrl must *not* be pressed when the combo sequence is performed.
-   ```properties
-   normal-mode.to.idle-mode=^{leftctrl} +q
-   ```
-
-3. Multiple keys in precondition: you can specify multiple keys in a precondition using the pipe symbol:
-   ```properties
-   normal-mode.press.left=_{none | leftctrl | leftshift leftalt} +leftbutton
-   ```
-   This means either no modifier key is pressed, or leftctrl is pressed, or leftshift and leftalt are pressed.
-
-4. Keys from previous combos: keys that are part of a previous combo don't need to be specified again in subsequent combos.
-
-   ```properties
-   # This combo eats leftctrl, leftalt, and space when pressed
-   normal-mode.to.normal-mode=#leftshift | +leftctrl | +leftalt | +space
-
-   # This combo requires space to be held, then hint key to be pressed
-   # It works even if leftctrl, leftalt, or leftshift are also being held
-   normal-mode.to.hint-mode=_{space} +hint
-   ```
-
-   In this example:
-   - The first combo doesn't change the mode but "eats" leftctrl, leftalt and space.
-   - Any key press that is part of a previous combo doesn't need to be specified again in subsequent combos
-   - As long as those keys remain pressed, they don't need to be specified in combos that don't care whether they are pressed
-
-   This behavior allows for complex key combinations where modifier keys can be pressed in any order without breaking the combo sequence.
-
-### Complex combo examples
+### Examples
 
 ```properties
 # Press e while holding leftctrl
@@ -133,28 +74,11 @@ normal-mode.to.hint-mode=_{leftctrl} +e
 # Press and release leftshift
 normal-mode.move-to-grid-center=+leftshift -leftshift
 
-# Press a, then press b while still holding a, then release a
-normal-mode.to.idle-mode=+a +b -b -a
-```
+# Multiple combos for one command
+normal-mode.to.idle-mode=+q | +leftctrl +e
 
-### Multi-combo
-One command can be assigned multiple combo. As soon as one of the combos is completed, then the command is executed. The combos must be separated by `|`:
-```properties
-normal-mode.to.idle-mode=+exit | -clickthendisable
-```
-
-### Any-order move set
-
-An any-order move set `{...}` groups moves that can occur in any order. It is expanded into all possible orderings at parse time.
-
-```properties
-# Release leftctrl and f in any order
-normal-mode.to.idle-mode=+leftctrl +f {-f -leftctrl}
-```
-
-This is equivalent to:
-```properties
-normal-mode.to.idle-mode=+leftctrl +f -f -leftctrl | +leftctrl +f -leftctrl -f
+# Press a and b in any order (chord)
+normal-mode.to.idle-mode={+a +b}
 ```
 
 ## Modes
