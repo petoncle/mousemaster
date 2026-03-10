@@ -240,6 +240,7 @@ public class ConfigurationParser {
                 new Property<>("cycle-next", Map.of()),
                 new Property<>("cycle-previous", Map.of()),
                 new Property<>("break-combo-preparation", Map.of()),
+                new Property<>("break-macro", Map.of()),
                 new Property<>("macro", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
@@ -1514,6 +1515,9 @@ public class ConfigurationParser {
             case "break-combo-preparation" -> mode.comboMap.breakComboPreparation.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "break-macro" -> mode.comboMap.breakMacro.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.breakMacro.builder, propertyValue, new BreakMacro(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
             // @formatter:on
             default -> throw new IllegalArgumentException(
                     "Invalid mode property key");
@@ -2746,6 +2750,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> cycleNextPosition;
         Property<Map<Combo, List<Command>>> cyclePreviousPosition;
         Property<Map<Combo, List<Command>>> breakComboPreparation;
+        Property<Map<Combo, List<Command>>> breakMacro;
         Property<Map<Combo, List<Command>>> macro;
 
         List<Combo> hintSelectCombos;
@@ -2772,6 +2777,7 @@ public class ConfigurationParser {
             cycleNextPosition = new ComboMapProperty("cycle-next", modeName, propertyByKey);
             cyclePreviousPosition = new ComboMapProperty("cycle-previous", modeName, propertyByKey);
             breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
+            breakMacro = new ComboMapProperty("break-macro", modeName, propertyByKey);
             macro = new ComboMapProperty("macro", modeName, propertyByKey);
         }
 
@@ -2829,6 +2835,7 @@ public class ConfigurationParser {
             add(commandsByCombo, cycleNextPosition.builder);
             add(commandsByCombo, cyclePreviousPosition.builder);
             add(commandsByCombo, breakComboPreparation.builder);
+            add(commandsByCombo, breakMacro.builder);
             add(commandsByCombo, macro.builder);
             return commandsByCombo;
         }

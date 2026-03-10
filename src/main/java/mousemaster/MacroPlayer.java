@@ -86,8 +86,21 @@ public class MacroPlayer {
         return macroInProgress != null;
     }
 
+    public void breakMacro() {
+        if (!keysPressedByMacro.isEmpty()) {
+            List<ResolvedMacroMove> releases = new ArrayList<>();
+            for (Key key : keysPressedByMacro)
+                releases.add(new ResolvedKeyMacroMove(key, false, MacroMoveDestination.OS));
+            WindowsKeyboard.sendInputMoves(releases, false);
+        }
+        reset();
+    }
+
     public void reset() {
+        macrosToExecute.clear();
+        macroInProgress = null;
         keysPressedByMacro.clear();
+        keysPressedByMacroDuringCurrentTick.clear();
     }
 
     public void keyPressedNotEaten(Key key) {

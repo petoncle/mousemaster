@@ -97,6 +97,8 @@ public class CommandRunner {
             // Complex command that is manually handled by ComboWatcher and KeyManager.
             case BreakComboPreparation breakComboPreparation -> {}
 
+            case BreakMacro breakMacro -> macroPlayer.breakMacro();
+
             case SelectHintKey selectHintKey -> hintManager.selectHintKey(eventKey);
             case UnselectHintKey unselectHintKey -> hintManager.unselectHintKey();
             // @formatter:on
