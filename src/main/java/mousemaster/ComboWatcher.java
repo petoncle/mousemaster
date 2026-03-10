@@ -265,7 +265,10 @@ public class ComboWatcher implements ModeListener {
         Mode beforeMode = currentMode;
         runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completedCombosWaitingForLastMoveToComplete);
-        if (currentMode != beforeMode && !hasComboPreparationBreaker) {
+        if (hasComboPreparationBreaker) {
+            processKeyEventForCurrentMode(null, false);
+        }
+        else if (currentMode != beforeMode) {
             PressKeyEventProcessingSet processingSet =
                     processKeyEventForCurrentMode(null, true);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
