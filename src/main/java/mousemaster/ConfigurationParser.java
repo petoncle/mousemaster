@@ -160,21 +160,21 @@ public class ConfigurationParser {
         indicator.enabled(false);
         // Defaults are set on idle indicator; other states inherit during build.
         IndicatorBuilder idleIndicator = indicator.idleIndicator();
-        idleIndicator.size(6)
-                     .edgeCount(30)
+        idleIndicator.size(26)
+                     .edgeCount(300)
                      .hexColor("#FF0000")
-                     .opacity(1.0)
-                     .position(IndicatorPosition.BOTTOM_RIGHT);
+                     .opacity(0.2)
+                     .position(IndicatorPosition.CENTER);
         idleIndicator.outerOutline()
-                     .thickness(3)
-                     .hexColor("#FFFFFF")
+                     .thickness(0)
+                     .hexColor("#FF0000")
                      .opacity(1.0)
                      .fillPercent(1.0)
                      .fillStartAngle(180)
                      .fillDirection(FillDirection.COUNTERCLOCKWISE);
         idleIndicator.innerOutline()
-                     .thickness(1)
-                     .hexColor("#CC0000")
+                     .thickness(0.5)
+                     .hexColor("#FF0000")
                      .opacity(1.0)
                      .fillPercent(1.0)
                      .fillStartAngle(180)
@@ -182,10 +182,30 @@ public class ConfigurationParser {
         idleIndicator.shadow()
                      .blurRadius(10d)
                      .hexColor("#000000")
-                     .opacity(0.5d)
-                     .horizontalOffset(2d)
-                     .verticalOffset(2d)
+                     .opacity(0d)
+                     .horizontalOffset(0d)
+                     .verticalOffset(0d)
                      .stackCount(1);
+        indicator.wheelIndicator()
+                 .hexColor("#FFFF00")
+                 .innerOutline().hexColor("#FFFF00");
+        indicator.wheelIndicator()
+                 .shadow().opacity(1d).hexColor("#FFFF00");
+        indicator.leftMousePressIndicator()
+                 .hexColor("#00FF00")
+                 .innerOutline().hexColor("#00FF00");
+        indicator.leftMousePressIndicator()
+                 .shadow().opacity(1d).hexColor("#00FF00");
+        indicator.middleMousePressIndicator()
+                 .hexColor("#FF00FF")
+                 .innerOutline().hexColor("#FF00FF");
+        indicator.middleMousePressIndicator()
+                 .shadow().opacity(1d).hexColor("#FF00FF");
+        indicator.rightMousePressIndicator()
+                 .hexColor("#00FFFF")
+                 .innerOutline().hexColor("#00FFFF");
+        indicator.rightMousePressIndicator()
+                 .shadow().opacity(1d).hexColor("#00FFFF");
         idleIndicator.labelEnabled(false);
         idleIndicator.labelFontStyle()
                      .name("Arial")
