@@ -195,12 +195,18 @@ hint2-2-mode.to.previous-mode-from-history-stack=+rightalt -rightalt
   history as soon as the current mode is switched to that mode.
 - The last mode added to the history stack can be referred to in a mode switch (`to`) command with `previous-mode-from-history-stack`.
 
-### Mode timeout
+### Mode timeout (deprecated)
+
+**Deprecated**: use wait moves instead. See [combo reference](combo-reference.md#wait-moves) for details.
 
 ```properties
+# Old (deprecated):
 normal-mode.timeout.duration-millis=5000
 normal-mode.timeout.mode=idle-mode
 normal-mode.timeout.only-if-idle=true
+
+# New (equivalent):
+normal-mode.to.idle-mode=wait-5000
 ```
 - The current mode can be automatically changed to another mode after a certain duration.
 - If `only-if-idle` is true, then the timeout will be triggered only if the mouse is not being used.
