@@ -137,3 +137,45 @@
     7. font-size (child viewport)
     8. font-size (child no-viewport)
     9. Same as 1-8 but for parent
+
+++ Move for any key other than {a b c} ? Like an anti-alias that gets binded
+ + !key or !alias ? (like boolean inversion)
+ + Maybe could replace wait-ignore-all-except-{a b} with wait-ignore-all{!a !b} (or !{a b} ??)
+ + +!a mean press any key other than a. Gets binded: +!a -!a is press-then-release-of-the-same-key-X
+ + {!a !b} any-order subset or !{a b} (because I think we will never need {a !b} ??). None will be needed. Too complex
+
+-- Only the last pressed key should be repeated: when user presses key, WindowsKeyboard should stop repeating?
+- Missing a concept for saying, mid-combo, all of these keys get released (but not necessarily consecutively)?
+- _{x} and leading ignore- are redundant?
+- should {-alias} mean release all?
+ - {+alias} would expand to {+a +b} = press all (in any order).
+ - We do lose the alias binding (can't use alias in macro output) which is problematic. Maybe {+*alias} for expansion?
+- Leading ignore applies everywhere? ~{a b c} +d +f means press d then f, and a b c can be pressed/released anytime in between d and f. No
+- ignore-{arrowkeymodifier} +middlebutton ignore-{arrowkeymodifier} +anyarrowbasekey does not work because it should not match this (; is released):
+ processKeyEventForCurrentMode ran in 4ms, mode = normal-mode, comboCount = 35, event = +i, currentlyPressedComboKeys = [i], comboPreparation = [+rightalt, -rightalt, +k, +l, -l, -k, +k, -k, +l, -l, +j, -j, +j, -j, +;, -;, +i], partOfComboSequence = true, mustBeEaten = true, commandsToRun = [StartMoveUp[], SwitchMode[modeName=arrowbasekey-mode]]
+- Why ignore- is a word but _{} or ^{} (preconditions) are not?
+   ~{*}-2000           # = ignore-all-2000
+   ~{keys}-2000        # = ignore-{keys}-2000
+   ~{!keys}-2000       # = ignore-all-except-{keys}-2000
+ - mid-combo _{} and ^{}? No
+ - What if #{*} (or #{keys}) applied to a group of moves made them noise-tolerant
+   -  #{*} {-a -b}      # the ambient tolerance makes the MoveSet noise-tolerant
+   - {-a -b #{*}} +c #{*} +d
+   Or should #{*} before a {} group implicitly apply within it too? That feels inconsistent with the positional model though.
+   I think keeping it strict — #{*} is always between MoveSets, and #{*} inside {} means noise-tolerant within the group — is the cleanest.
+   {-a -b #{*}-0-500} = release a and b, any order, noise tolerated between them, but each noise gap must be within 500ms.
+ - syntax: #{a b} = ignore a and b, #!{a b} = ignore all except a and b
+ - opti: ignored events e.g. in {-a -b -c #{*}} should be removed from the growing preparation if they are not useful
+- combo -key does not look at pressed keys: it will match even if there are pressed keys while releasing -key. What if combo starting with +key did not need _{any} either?
++ a should be a shorthand for +a -a, even in moveset groups: {a b} = {+a -a +b -b} ??
+++ leftalt is treated specially in WindowsKeyboard. What about other keys? Maybe rightalt needs special treatment?
+- Timeout for WindowsKeyboard.moveWaitingForKeyboardHookCallbackAcknowledgment: maybe 1 second? 5 ticks
+
++ I think the KeyMoveSet should be changed to allow not only +key -key #key but also "key" which would be "+key -key" (in order). so, "key'
+ + would be a required TapComboMove and key? would be an optional TapComboMove. KeyMoveSet should be renamed to something else to reflect that.
+ + and with alias1=a b, {*alias1? +c} should also accept +a +b +c -b -a (-a is after +a so it's fine).
+
+++ shutdown hook: unpress keys pressed by macro?
+
++++ hint1-mode.hint.undo=backspace is not valid anymore as it expands to +backspace -backspace
+++ Log which combos a preparation is part of e.g. normal-mode.start-move.down
