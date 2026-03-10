@@ -1,7 +1,5 @@
 # mousemaster configuration reference
 
-This document provides a comprehensive reference for all configuration options available in mousemaster.
-
 ## Contents
 - [Key aliases](#key-aliases)
 - [Combos](#combos)

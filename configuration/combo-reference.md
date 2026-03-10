@@ -1,5 +1,21 @@
 # mousemaster combo reference
 
+## Contents
+- [Overview](#overview)
+- [Key moves](#key-moves)
+- [Move sets and ordering](#move-sets-and-ordering)
+- [Duration constraints](#duration-constraints)
+- [Wait moves](#wait-moves)
+- [Aliases](#aliases)
+- [Negated moves](#negated-moves)
+- [Optionality](#optionality)
+- [Preconditions](#preconditions)
+- [Combo preparation](#combo-preparation)
+- [Multi-combo](#multi-combo)
+- [Macro output syntax](#macro-output-syntax)
+- [Examples](#examples)
+- [Quick reference](#quick-reference)
+
 ## Overview
 
 A **combo** is a pattern of keyboard events (presses and releases) that triggers an action. Combos are defined as property values in mode configuration:
@@ -38,7 +54,7 @@ Matches a key press. The event is **not eaten** (still passed to the OS).
 
 ### Release: `-key`
 
-Matches a key release. Release events are never eaten.
+Matches a key release. The release event is **eaten** if the corresponding press was eaten.
 
 ```
 -leftctrl       release leftctrl
@@ -112,9 +128,27 @@ The next event must arrive between `min` and `max` ms after this one.
 +a-100-500 +b   press a, then press b between 100ms and 500ms later
 ```
 
+### Any-order move set duration: `{...}-min-max`
+
+A duration suffix on an any-order move set applies to all moves inside. Each move in the set must arrive within the specified time window of the previous event.
+
+```
+{+a +b}-0-200       press a and b in any order, all within 200ms
+{+a +b}-0-500 +c    press a and b within 500ms, then press c
+```
+
+This is equivalent to giving each move inside the set the same duration suffix. `wait` or ignored-key moves with a duration inside the set also set the move set duration:
+
+```
+{+a +b wait-0-200}      equivalent to: {+a +b}-0-200
+{+a +b #{*}-0-200}      same duration as {+a +b}-0-200, and also ignores interleaved keys
+```
+
 ### Default duration
 
-A global default can be set:
+Moves without an explicit duration suffix use the default: `0` (minimum 0ms, no maximum). This means the next event can arrive at any time.
+
+A global default can be set to override this:
 
 ```properties
 default-combo-move-duration-millis=0-250
@@ -126,7 +160,7 @@ This applies to all moves that don't have an explicit duration suffix.
 
 ## Wait moves
 
-Wait moves insert a time window between other moves in a combo. Some wait moves (`#{...}`, `+{...}`) can **ignore** interleaved events during that window, while plain `wait` enforces a time gap without ignoring any events.
+Wait moves insert a time window between other moves in a combo. The `#{...}` and `+{...}` wait moves can **ignore** interleaved events during that window, while plain `wait` enforces a time gap without ignoring any events.
 
 A standalone wait (outside braces) is its own move set, placed between the preceding and following move sets.
 
@@ -518,10 +552,10 @@ mode.macro.x=+myalias -> myalias=uparrow leftarrow downarrow rightarrow -> +myal
 
 ```properties
 key-alias.myalias=a b c
-mode.macro.x=+myalias -> myalias.a=x -> +myalias
+mode.macro.x=+myalias -> myalias.a=x myalias.b=y -> +myalias
 ```
 
-Only `a` from the alias is remapped to `x`.
+`a` is remapped to `x`, `b` is remapped to `y`, `c` is not remapped.
 
 ---
 
@@ -535,9 +569,19 @@ idle-mode.to.normal-mode=_{none | modifierkey} +rightalt -rightalt
 
 When no keys are pressed (or a modifier is held), tap right-alt to enter normal mode.
 
+### Quick-tap detection with duration
+
+```properties
+normal-mode.press.left=+leftbutton
+normal-mode.release.left=+leftbutton-0-250 -leftbutton
+```
+
+Press left mouse button to trigger press-left. Release within 250ms to trigger release-left.
+
 ### Ctrl+C macro
 
 ```properties
+key-alias.copy=c
 normal-mode.macro.copy=_{none} +copy -> +leftctrl +copy -copy -leftctrl
 ```
 
@@ -563,14 +607,139 @@ Breakdown:
 - `+letterkey`: press a letter.
 - `-> +oneshotkey +letterkey -oneshotkey`: output: press the matched modifier, press the matched letter, release the modifier.
 
-### Quick-tap detection with duration
+### Tap-dance
+
+Single tap F1 → b, double tap → c, triple tap → d. Each tap must happen within 200ms of the previous one.
 
 ```properties
-normal-mode.press.left=+leftbutton
-normal-mode.release.left=+leftbutton-0-250 -leftbutton
+idle-mode.macro.singletapf1=#!{f1}-200 +f1 -f1-200 -> +b -b
+idle-mode.macro.doubletapf1=#!{f1}-200 +f1 -f1-0-200 +f1 -f1-200 -> +c -c
+idle-mode.macro.tripletapf1=+f1 -f1-0-200 +f1 -f1-0-200 +f1 -f1 -> +d -d
+idle-mode.break-combo-preparation=+f1 -f1-0-200 +f1 -f1-0-200 +f1 -f1
 ```
 
-Press left mouse button to trigger press-left. Release within 250ms to trigger release-left.
+Breakdown:
+- `#!{f1}-200`: leading wait, requires 200ms since the last F1 event. Prevents rapid re-triggering.
+- `-f1-0-200`: release F1 within 200ms (quick tap).
+- `-f1-200`: release F1, then wait at least 200ms. This is what makes the single and double tap combos wait before firing, giving the longer combos a chance to match.
+- `break-combo-preparation` on the triple tap resets the preparation so subsequent taps start fresh.
+
+### Tap-dance (eager)
+
+Fires on each tap immediately without waiting. Double tap deletes the output of the single tap first.
+
+```properties
+idle-mode.macro.eagersingletapf1=#!{f1}-200 +f1 -f1 -> +b -b
+idle-mode.macro.eagerdoubletapf1=#!{f1}-200 +f1 -f1-0-200 +f1 -f1 -> +backspace -backspace +c -c
+idle-mode.break-combo-preparation=+f1 -f1-0-200 +f1 -f1
+```
+
+The single tap fires immediately on release. If a second tap follows within 200ms, the double tap fires and sends backspace to delete the single tap's output before sending `c`.
+
+### Tap-hold (press variant)
+
+Capslock: tap → Escape, hold → Ctrl. The hold threshold is 200ms.
+
+```properties
+idle-mode.macro.caps-hold=+capslock #!{capslock}-200 -> +leftctrl
+idle-mode.macro.caps-tap=+capslock #!{capslock}-0-200 -capslock -> +esc -esc
+idle-mode.macro.caps-release=-capslock -> -leftctrl
+```
+
+Breakdown:
+- `caps-hold`: press capslock, wait 200ms (ignoring non-capslock events) → send Ctrl press.
+- `caps-tap`: press capslock, release within 200ms → send Escape tap.
+- `caps-release`: release capslock → release Ctrl (cleans up after hold).
+
+### Tap-hold (release variant)
+
+Same as above, but `caps-hold` fires on the next key press/release while capslock is held, rather than after a fixed timeout.
+
+```properties
+idle-mode.macro.caps-hold=+capslock +!capslock -!capslock -> +leftctrl +!capslock -!capslock
+idle-mode.macro.caps-tap=+capslock #!capslock? -capslock -> +esc -esc
+idle-mode.macro.caps-release=-capslock -> -leftctrl
+```
+
+Breakdown:
+- `caps-hold`: press capslock, then tap any other key → send Ctrl press and forward the tapped key.
+- `caps-tap`: press capslock, optionally ignore non-capslock events, release capslock → send Escape.
+- `caps-release`: same as press variant.
+
+### Repeatable sequence
+
+Hold `a` to type 'abc', then repeat every 1 second while still held.
+
+```properties
+normal-mode.to.abc-mode=+a
+abc-mode.to.normal-mode=-a
+abc-mode.macro.abc=_{a} -> 'abc'
+abc-mode.to.abc-mode=wait-1000
+```
+
+Pressing `a` switches to abc-mode, which immediately runs the macro (since `a` is held, the `_{a}` precondition is satisfied). The self-switch `abc-mode.to.abc-mode=wait-1000` waits 1 second then re-enters the mode, re-triggering the macro.
+
+### Caps-word
+
+Typing letters while caps-word is active sends them shifted. Exits on space, punctuation, or 2 seconds of inactivity.
+
+```properties
+key-alias.letter=a b c d e f g h i j k l m n o p q r s t u v w x y z
+idle-mode.to.capsword-mode=+capslock -capslock
+capsword-mode.macro.capsword=+letter -> +leftshift +letter -letter -leftshift
+capsword-mode.to.capsword-mode=+letter | +capslock
+capsword-mode.to.idle-mode=#space | #. | #, | #; | wait-2000
+```
+
+Breakdown:
+- Tap capslock to enter capsword-mode.
+- Each letter press sends Shift+letter.
+- Pressing a letter or capslock re-enters the mode, keeping it active.
+- Space, period, comma, semicolon, or 2 seconds of inactivity exits back to idle.
+
+### Chord
+
+Press `a` and `b` together (within 200ms) to hold Tab. Release both to release Tab.
+
+```properties
+idle-mode.macro.presstab={+a +b wait-0-200} -> +tab
+idle-mode.macro.releasetab={+a +b wait-0-200} wait-0 {-a -b} -> -tab
+```
+
+Breakdown:
+- `{+a +b wait-0-200}`: press `a` and `b` in any order within 200ms.
+- `wait-0` between the press and release sets decouples the duration, allowing the keys to be held for any length of time before releasing.
+- `{-a -b}`: release both keys in any order.
+
+### Sequence
+
+Press capslock then type `g`, `s`, `t` (each within 1 second of the previous) to output 'git status'.
+
+```properties
+idle-mode.macro.gitstatus=+capslock #{-}-0-1000 +g #{-}-0-1000 +s #{-}-0-1000 +t -> 'git status'
+```
+
+`#{-}-0-1000` between each key ignores release events (so releasing capslock or previous keys doesn't break the sequence) and allows up to 1 second between presses.
+
+### Zippy chord
+
+Press `g` and `i` together to output 'git '. Follow with `c` for 'git checkout ', or punctuation for 'git.'.
+
+```properties
+key-alias.punctuation=. , ;
+idle-mode.macro.git={+g +i}-0-500 -> 'git '
+idle-mode.macro.git-punctuation={+g +i}-0-500 #{-} +punctuation -> +backspace -backspace +punctuation
+idle-mode.macro.gitcheckout={+g +i}-0-500 #{-} +c -> 'checkout '
+idle-mode.macro.gitcheckout-punctuation={+g +i}-0-500 #{-} +c -c +punctuation -> +backspace -backspace +punctuation
+idle-mode.macro.gitcheckoutb={+g +i}-0-500 #{-} +c -c +b -> '-b'
+```
+
+Breakdown:
+- `{+g +i}-0-500`: chord g+i pressed within 500ms.
+- `git-punctuation`: if punctuation follows the chord, delete the trailing space and output the punctuation directly (e.g., 'git.').
+- `gitcheckout`: if `c` follows, append 'checkout '.
+- `gitcheckoutb`: if `b` follows `c`, append '-b'.
+- `#{-}` between moves ignores release events so releasing `g`/`i` doesn't break the sequence.
 
 ---
 
