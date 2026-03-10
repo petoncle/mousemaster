@@ -1231,4 +1231,33 @@ class ComboPreparationTest {
                 "#{-} should absorb unrelated releases interleaved with release moves");
         assertEquals(2, match.matchedKeyMoves().size());
     }
+
+    // --- Plain wait inside braces (sets brace duration, equivalent to suffix) ---
+
+    @Test
+    void waitInsideBraces_completesWithinDuration() {
+        // {+a +b wait-0-200}: press a and b within 200ms.
+        ComboSequence combo = parseCombo("{+a +b wait-0-200}", Map.of());
+        ComboSequenceMatch match = prep("+a@0 +b@100").match(combo);
+        assertTrue(match.complete(),
+                "wait-0-200 inside braces should complete when both presses happen within 200ms");
+    }
+
+    @Test
+    void waitInsideBraces_failsWhenExceedsDuration() {
+        // {+a +b wait-0-200}: press b after 300ms should fail.
+        ComboSequence combo = parseCombo("{+a +b wait-0-200}", Map.of());
+        ComboSequenceMatch match = prep("+a@0 +b@300").match(combo);
+        assertFalse(match.complete(),
+                "wait-0-200 inside braces should fail when presses exceed 200ms");
+    }
+
+    @Test
+    void waitInsideBraces_vs_ignoreAll() {
+        // {+a +b #{*}-0-200}: unrelated key should be absorbed.
+        ComboSequence combo = parseCombo("{+a +b #{*}-0-200}", Map.of());
+        ComboSequenceMatch match = prep("+a +c +b").match(combo);
+        assertTrue(match.complete(),
+                "#{*} inside braces should absorb unrelated keys");
+    }
 }

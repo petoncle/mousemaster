@@ -510,4 +510,22 @@ class ExpandableSequenceTest {
         assertEquals(Duration.ofMillis(2000), kms.waitMove().duration().max());
     }
 
+    // --- wait inside braces (sets brace duration, equivalent to suffix) ---
+
+    @Test
+    void waitInsideBraces_setsBraceDuration() {
+        // {+a +b wait-0-200} is equivalent to {+a +b}-0-200:
+        // wait duration is applied to key moves, no wait move is created.
+        ExpandableSequence seq =
+                ExpandableSequence.parseSequence("{+a +b wait-0-200}", defaultDuration, Map.of());
+        assertEquals(1, seq.moveSets().size());
+        Set<ComboAliasMove> moveSet = seq.moveSets().getFirst();
+        assertEquals(2, moveSet.size()); // only key moves, no wait move
+        for (ComboAliasMove move : moveSet) {
+            assertInstanceOf(ComboAliasMove.PressComboAliasMove.class, move);
+            assertEquals(Duration.ZERO, move.duration().min());
+            assertEquals(Duration.ofMillis(200), move.duration().max());
+        }
+    }
+
 }

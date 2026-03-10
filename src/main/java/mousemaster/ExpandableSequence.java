@@ -128,6 +128,34 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                                 dm.group(2) == null ? null : Duration.ofMillis(
                                         Integer.parseUnsignedInt(dm.group(2))));
                 }
+                // First pass: scan for wait/ignore token with explicit duration
+                // to use as braceDuration for key moves.
+                Matcher firstPass = BRACE_CONTENT_TOKEN_PATTERN.matcher(content);
+                while (firstPass.find()) {
+                    if (firstPass.group(1) != null) {
+                        // Ignored-key spec: #{*}-0-200, #{a b}-0-500, etc.
+                        Matcher ignoreMatcher = IGNORE_PATTERN.matcher(firstPass.group(1));
+                        if (ignoreMatcher.matches() && ignoreMatcher.group(4) != null) {
+                            braceDuration = new ComboMoveDuration(
+                                    Duration.ofMillis(Integer.parseUnsignedInt(ignoreMatcher.group(4))),
+                                    ignoreMatcher.group(6) == null ? null : Duration.ofMillis(
+                                            Integer.parseUnsignedInt(ignoreMatcher.group(6))));
+                            break;
+                        }
+                    }
+                    else if (firstPass.group(2) != null) {
+                        // Plain wait: wait-0-200
+                        Matcher waitMatcher = WAIT_PATTERN.matcher(firstPass.group(2));
+                        if (waitMatcher.matches()) {
+                            braceDuration = new ComboMoveDuration(
+                                    Duration.ofMillis(waitMatcher.group(3) == null ? 0 :
+                                            Integer.parseUnsignedInt(waitMatcher.group(3))),
+                                    waitMatcher.group(5) == null ? null : Duration.ofMillis(
+                                            Integer.parseUnsignedInt(waitMatcher.group(5))));
+                            break;
+                        }
+                    }
+                }
                 Set<ComboAliasMove> moveSet = new LinkedHashSet<>();
                 Matcher braceTokenMatcher = BRACE_CONTENT_TOKEN_PATTERN.matcher(content);
                 while (braceTokenMatcher.find()) {
@@ -176,6 +204,9 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                     else {
                         // Regular move token
                         String moveToken = braceTokenMatcher.group(2);
+                        // Skip plain wait tokens (already processed in first pass).
+                        if (WAIT_PATTERN.matcher(moveToken).matches())
+                            continue;
                         if (isBareToken(moveToken)) {
                             moveSet.addAll(bareTokenMoves(
                                     moveToken, braceDuration, aliases));
