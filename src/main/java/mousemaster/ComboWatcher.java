@@ -142,8 +142,7 @@ public class ComboWatcher implements ModeListener {
                         if (match.matchedMoveSetCount() > 0) {
                             MoveSet lastMatchedMoveSet = combo.sequence().moveSets()
                                     .get(match.matchedMoveSetCount() - 1);
-                            if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet
-                                && waitMoveSet.canAbsorbEvents()) {
+                            if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet) {
                                 WaitComboMove wm = waitMoveSet.waitMove();
                                 effectiveDuration = new ComboMoveDuration(
                                         effectiveDuration.min(), wm.duration().max());
@@ -563,8 +562,7 @@ public class ComboWatcher implements ModeListener {
                 List<MoveSet> moveSets = combo.sequence().moveSets();
                 MoveSet lastMatchedMoveSet = match.matchedMoveSetCount() > 0 ?
                         moveSets.get(match.matchedMoveSetCount() - 1) : null;
-                if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet
-                    && waitMoveSet.canAbsorbEvents()) {
+                if (lastMatchedMoveSet instanceof WaitMoveSet waitMoveSet) {
                     WaitComboMove wm = waitMoveSet.waitMove();
                     effectiveDuration = new ComboMoveDuration(
                             effectiveDuration.min(), wm.duration().max());
