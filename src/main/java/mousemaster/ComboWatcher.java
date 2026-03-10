@@ -262,16 +262,26 @@ public class ComboWatcher implements ModeListener {
                 // Can be from a combo finishing with a wait move.
                 commandsToRun.stream()
                              .anyMatch(Command.BreakComboPreparation.class::isInstance);
+        boolean hasAsyncSelfSwitch =
+                commandsToRun.stream()
+                             .anyMatch(command -> command instanceof Command.SwitchMode switchMode &&
+                                                  switchMode.modeName().equals(currentMode.name()));
         Mode beforeMode = currentMode;
         runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completedCombosWaitingForLastMoveToComplete);
-        if (hasComboPreparationBreaker) {
+        if (hasAsyncSelfSwitch) {
+            breakComboPreparation();
             processKeyEventForCurrentMode(null, false);
         }
         else if (currentMode != beforeMode) {
-            PressKeyEventProcessingSet processingSet =
-                    processKeyEventForCurrentMode(null, true);
-            completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
+            if (hasComboPreparationBreaker) {
+                processKeyEventForCurrentMode(null, false);
+            }
+            else {
+                PressKeyEventProcessingSet processingSet =
+                        processKeyEventForCurrentMode(null, true);
+                completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
+            }
         }
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationBreakerKey);
     }
