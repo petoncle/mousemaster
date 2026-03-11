@@ -51,6 +51,8 @@ public class ConfigurationParser {
         MouseBuilder mouse = new MouseBuilder().initialVelocity(1600)
                                                .maxVelocity(2200)
                                                .acceleration(1500)
+                                               .accelerationCurve(1)
+                                               .deceleration(0)
                                                .smoothJumpEnabled(true)
                                                .smoothJumpVelocity(30000);
         WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
@@ -714,6 +716,10 @@ public class ConfigurationParser {
                         case "max-velocity" -> mode.mouse.builder.maxVelocity(
                                 Double.parseDouble(propertyValue));
                         case "acceleration" -> mode.mouse.builder.acceleration(
+                                Double.parseDouble(propertyValue));
+                        case "acceleration-curve" -> mode.mouse.builder.accelerationCurve(
+                                Double.parseDouble(propertyValue));
+                        case "deceleration" -> mode.mouse.builder.deceleration(
                                 Double.parseDouble(propertyValue));
                         case "smooth-jump-enabled" -> mode.mouse.builder.smoothJumpEnabled(
                                 Boolean.parseBoolean(propertyValue));
@@ -2249,6 +2255,10 @@ public class ConfigurationParser {
                         builder.maxVelocity(parent.maxVelocity());
                     if (builder.acceleration() == null)
                         builder.acceleration(parent.acceleration());
+                    if (builder.accelerationCurve() == null)
+                        builder.accelerationCurve(parent.accelerationCurve());
+                    if (builder.deceleration() == null)
+                        builder.deceleration(parent.deceleration());
                     if (builder.smoothJumpEnabled() == null)
                         builder.smoothJumpEnabled(parent.smoothJumpEnabled());
                     if (builder.smoothJumpVelocity() == null)

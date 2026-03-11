@@ -1,6 +1,7 @@
 package mousemaster;
 
 public record Mouse(double initialVelocity, double maxVelocity, double acceleration,
+                    double accelerationCurve, double deceleration,
                     boolean smoothJumpEnabled, double smoothJumpVelocity) {
 
 
@@ -9,6 +10,8 @@ public record Mouse(double initialVelocity, double maxVelocity, double accelerat
         private Double initialVelocity;
         private Double maxVelocity;
         private Double acceleration;
+        private Double accelerationCurve;
+        private Double deceleration;
         private Boolean smoothJumpEnabled;
         private Double smoothJumpVelocity;
 
@@ -24,6 +27,16 @@ public record Mouse(double initialVelocity, double maxVelocity, double accelerat
 
         public MouseBuilder acceleration(double acceleration) {
             this.acceleration = acceleration;
+            return this;
+        }
+
+        public MouseBuilder accelerationCurve(double accelerationCurve) {
+            this.accelerationCurve = accelerationCurve;
+            return this;
+        }
+
+        public MouseBuilder deceleration(double deceleration) {
+            this.deceleration = deceleration;
             return this;
         }
 
@@ -49,6 +62,14 @@ public record Mouse(double initialVelocity, double maxVelocity, double accelerat
             return acceleration;
         }
 
+        public Double accelerationCurve() {
+            return accelerationCurve;
+        }
+
+        public Double deceleration() {
+            return deceleration;
+        }
+
         public Double smoothJumpVelocity() {
             return smoothJumpVelocity;
         }
@@ -59,6 +80,7 @@ public record Mouse(double initialVelocity, double maxVelocity, double accelerat
 
         public Mouse build() {
             return new Mouse(initialVelocity, maxVelocity, acceleration,
+                    accelerationCurve, deceleration,
                     smoothJumpEnabled, smoothJumpVelocity);
         }
     }

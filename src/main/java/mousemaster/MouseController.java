@@ -19,6 +19,15 @@ public class MouseController implements ModeListener, MousePositionListener {
     private final Deque<Boolean> xWheelForwardStack = new ArrayDeque<>();
     private final Deque<Boolean> yWheelForwardStack = new ArrayDeque<>();
 
+    private boolean decelerating;
+    private double decelerationDuration;
+    private double velocityAtDecelerationStart;
+    private boolean decelerateXActive, decelerateXForward;
+    private boolean decelerateYActive, decelerateYForward;
+    // Saved direction from last update frame (used when starting deceleration).
+    private boolean lastMoveXActive, lastMoveXForward;
+    private boolean lastMoveYActive, lastMoveYForward;
+
     private int mouseX, mouseY;
     private boolean jumping;
     private double jumpDuration;
@@ -39,6 +48,8 @@ public class MouseController implements ModeListener, MousePositionListener {
         wheelDuration = 0;
         xWheelForwardStack.clear();
         yWheelForwardStack.clear();
+        decelerating = false;
+        decelerationDuration = 0;
         jumping = false;
         jumpDuration = 0;
     }
@@ -52,7 +63,8 @@ public class MouseController implements ModeListener, MousePositionListener {
     }
 
     boolean moving() {
-        return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty();
+        return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty() ||
+               decelerating;
     }
 
     public boolean leftPressing() {
@@ -71,11 +83,22 @@ public class MouseController implements ModeListener, MousePositionListener {
         return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty();
     }
 
+    private boolean activelyMoving() {
+        return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty();
+    }
+
     public void update(double delta) {
-        if (moving()) {
+        if (activelyMoving()) {
             WindowsMouse.beginMove();
             moveDuration += delta;
             double moveVelocity = moveVelocity();
+            // Save direction for potential deceleration.
+            lastMoveXActive = !xMoveForwardStack.isEmpty();
+            if (lastMoveXActive)
+                lastMoveXForward = xMoveForwardStack.peek();
+            lastMoveYActive = !yMoveForwardStack.isEmpty();
+            if (lastMoveYActive)
+                lastMoveYForward = yMoveForwardStack.peek();
             boolean deltaBigEnough;
             if (!xMoveForwardStack.isEmpty() && !yMoveForwardStack.isEmpty()) {
                 deltaDistanceX += moveVelocity * delta / Math.sqrt(2);
@@ -99,6 +122,41 @@ public class MouseController implements ModeListener, MousePositionListener {
                         !yMoveForwardStack.isEmpty() && yMoveForwardStack.peek(),
                         deltaDistanceY);
                 deltaDistanceX = deltaDistanceY = 0;
+            }
+        }
+        else if (decelerating) {
+            WindowsMouse.beginMove();
+            decelerationDuration += delta;
+            double velocity = decelerationVelocity();
+            if (velocity < 1) {
+                decelerating = false;
+                deltaDistanceX = deltaDistanceY = 0;
+            }
+            else {
+                boolean deltaBigEnough;
+                if (decelerateXActive && decelerateYActive) {
+                    deltaDistanceX += velocity * delta / Math.sqrt(2);
+                    deltaDistanceY += velocity * delta / Math.sqrt(2);
+                    deltaBigEnough = deltaDistanceX >= 1 && deltaDistanceY >= 1;
+                }
+                else if (decelerateXActive) {
+                    deltaDistanceX += velocity * delta;
+                    deltaDistanceY = 0;
+                    deltaBigEnough = deltaDistanceX >= 1;
+                }
+                else {
+                    deltaDistanceX = 0;
+                    deltaDistanceY += velocity * delta;
+                    deltaBigEnough = deltaDistanceY >= 1;
+                }
+                if (deltaBigEnough && !jumping) {
+                    WindowsMouse.moveBy(
+                            decelerateXActive && decelerateXForward,
+                            deltaDistanceX,
+                            decelerateYActive && decelerateYForward,
+                            deltaDistanceY);
+                    deltaDistanceX = deltaDistanceY = 0;
+                }
             }
         }
         else if (!jumping)
@@ -154,7 +212,14 @@ public class MouseController implements ModeListener, MousePositionListener {
         double maxVelocity = mouse.maxVelocity();
         double initialVelocity = mouse.initialVelocity();
         double acceleration = mouse.acceleration();
-        return Math.min(maxVelocity, initialVelocity + acceleration * Math.pow(moveDuration, 1));
+        double curve = mouse.accelerationCurve();
+        return Math.min(maxVelocity,
+                initialVelocity + acceleration * Math.pow(moveDuration, curve));
+    }
+
+    private double decelerationVelocity() {
+        return velocityAtDecelerationStart *
+               Math.exp(-mouse.deceleration() * decelerationDuration);
     }
 
     private double wheelVelocity() {
@@ -162,25 +227,71 @@ public class MouseController implements ModeListener, MousePositionListener {
                 wheel.initialVelocity() + wheel.acceleration() * wheelDuration);
     }
 
+    private void startDeceleration() {
+        if (moveDuration == 0)
+            return;
+        if (mouse.deceleration() <= 0) {
+            moveDuration = 0;
+            return;
+        }
+        double velocity = moveVelocity();
+        if (velocity <= 0)
+            return;
+        decelerating = true;
+        decelerationDuration = 0;
+        velocityAtDecelerationStart = velocity;
+        decelerateXActive = lastMoveXActive;
+        decelerateXForward = lastMoveXForward;
+        decelerateYActive = lastMoveYActive;
+        decelerateYForward = lastMoveYForward;
+        moveDuration = 0;
+    }
+
+    private void cancelDeceleration() {
+        double currentVelocity = decelerationVelocity();
+        decelerating = false;
+        decelerationDuration = 0;
+        if (currentVelocity > mouse.initialVelocity() && mouse.acceleration() > 0) {
+            // velocity = initialVelocity + acceleration * t^curve
+            // t = ((velocity - initialVelocity) / acceleration) ^ (1/curve)
+            double curve = mouse.accelerationCurve();
+            moveDuration = Math.pow(
+                    (currentVelocity - mouse.initialVelocity()) /
+                    mouse.acceleration(), 1.0 / curve);
+        }
+        else {
+            moveDuration = 0;
+        }
+        deltaDistanceX = deltaDistanceY = 0;
+    }
+
     public void startMoveUp() {
+        if (decelerating)
+            cancelDeceleration();
         if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.contains(false))
             return;
         yMoveForwardStack.push(false);
     }
 
     public void startMoveDown() {
+        if (decelerating)
+            cancelDeceleration();
         if (!yMoveForwardStack.isEmpty() && yMoveForwardStack.contains(true))
             return;
         yMoveForwardStack.push(true);
     }
 
     public void startMoveLeft() {
+        if (decelerating)
+            cancelDeceleration();
         if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.contains(false))
             return;
         xMoveForwardStack.push(false);
     }
 
     public void startMoveRight() {
+        if (decelerating)
+            cancelDeceleration();
         if (!xMoveForwardStack.isEmpty() && xMoveForwardStack.contains(true))
             return;
         xMoveForwardStack.push(true);
@@ -191,7 +302,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (yMoveForwardStack.isEmpty() || yMoveForwardStack.peek() != false)
             deltaDistanceY = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveDuration = 0;
+            startDeceleration();
     }
 
     private static void removeFirst(Deque<Boolean> moveForward, boolean forward) {
@@ -209,7 +320,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (yMoveForwardStack.isEmpty() || yMoveForwardStack.peek() != true)
             deltaDistanceY = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveDuration = 0;
+            startDeceleration();
     }
 
     public void stopMoveLeft() {
@@ -217,7 +328,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (xMoveForwardStack.isEmpty() || xMoveForwardStack.peek() != false)
             deltaDistanceX = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveDuration = 0;
+            startDeceleration();
     }
 
     public void stopMoveRight() {
@@ -225,7 +336,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (xMoveForwardStack.isEmpty() || xMoveForwardStack.peek() != true)
             deltaDistanceX = 0;
         if (xMoveForwardStack.isEmpty() && yMoveForwardStack.isEmpty())
-            moveDuration = 0;
+            startDeceleration();
     }
 
     public void clickLeft() {
@@ -423,15 +534,32 @@ public class MouseController implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
-        if (mouse != null && moveDuration != 0) {
+        if (mouse != null && moveDuration != 0 && activelyMoving()) {
             double moveVelocity = moveVelocity();
             Mouse newMouse = newMode.mouse();
             double newInitialVelocity = newMouse.initialVelocity();
             double newAcceleration = newMouse.acceleration();
-            // moveVelocity = min(maxVelocity, initialVelocity + acceleration * moveDuration)
-            // We want to find moveDuration such that any change to moveVelocity feels continuous.
-            moveDuration = Math.max(0, (moveVelocity - newInitialVelocity) / newAcceleration);
+            double newCurve = newMouse.accelerationCurve();
+            // velocity = initialVelocity + acceleration * t^curve
+            // t = ((velocity - initialVelocity) / acceleration) ^ (1/curve)
+            if (moveVelocity <= newInitialVelocity || newAcceleration <= 0)
+                moveDuration = 0;
+            else
+                moveDuration = Math.pow(
+                        (moveVelocity - newInitialVelocity) / newAcceleration,
+                        1.0 / newCurve);
             deltaDistanceX = deltaDistanceY = 0;
+        }
+        if (decelerating) {
+            double currentVelocity = decelerationVelocity();
+            if (currentVelocity <= 0) {
+                decelerating = false;
+            }
+            else {
+                // Restart deceleration from current velocity with new mode's rate.
+                velocityAtDecelerationStart = currentVelocity;
+                decelerationDuration = 0;
+            }
         }
         if (wheel != null && wheelDuration != 0) {
             Wheel newWheel = newMode.wheel();
@@ -450,6 +578,7 @@ public class MouseController implements ModeListener, MousePositionListener {
             stopMoveUp();
             stopMoveLeft();
             stopMoveRight();
+            decelerating = false; // Force instant stop when mode stops commands.
             stopWheelDown();
             stopWheelUp();
             stopWheelLeft();

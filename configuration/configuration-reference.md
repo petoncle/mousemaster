@@ -230,9 +230,13 @@ normal-mode.mode-after-unhandled-key-press=idle-mode
 normal-mode.mouse.initial-velocity=1600
 normal-mode.mouse.max-velocity=2200
 normal-mode.mouse.acceleration=1500
+normal-mode.mouse.acceleration-curve=1
+normal-mode.mouse.deceleration=0
 normal-mode.mouse.smooth-jump-enabled=true
 normal-mode.mouse.smooth-jump-velocity=30000
 ```
+- `acceleration-curve` controls the acceleration curve exponent: 1 = linear (default), 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp).
+- When movement keys are released, the cursor coasts to a stop. Higher deceleration = shorter coast. Set to 0 for instant stop (no coast).
 - The velocity and acceleration are defined in pixel per second and pixel per square second.
 - Whenever mousemaster sets the position of the mouse, the mouse will be teleported to the
   target position. Smooth jumping is for avoiding the instantaneous teleportation and move
