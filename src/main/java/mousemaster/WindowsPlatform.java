@@ -52,6 +52,10 @@ public class WindowsPlatform implements Platform {
         if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
         setDpiAwareness();
+        // Set timer resolution to 1ms so Thread.sleep(1) actually sleeps ~1ms
+        // instead of the default ~15.6ms. The JVM does this internally, but
+        // GraalVM native image does not.
+        Winmm.INSTANCE.timeBeginPeriod(1);
     }
 
     @Override

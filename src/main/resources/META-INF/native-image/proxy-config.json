@@ -42,6 +42,9 @@
     "interfaces":["mousemaster.Shcore"]
   },
   {
+    "interfaces":["mousemaster.Winmm"]
+  },
+  {
     "interfaces":["sun.nio.ch.Interruptible"]
   }
 ]
