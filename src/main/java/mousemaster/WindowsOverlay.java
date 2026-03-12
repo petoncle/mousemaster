@@ -106,11 +106,9 @@ public class WindowsOverlay {
             }
         }
         User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_SHOWNORMAL);
-        User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
         if (standByZoomWindow != null)
             User32.INSTANCE.ShowWindow(standByZoomWindow.hostHwnd(), WinUser.SW_HIDE);
-        // Without a setTopmost() call here, the Zoom window would be displayed on top
-        // of the indicator window for a single frame.
+        User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
         setTopmost();
     }
 
@@ -166,11 +164,20 @@ public class WindowsOverlay {
         }
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
-        if (zoomWindow != null) {
+        if (zoomWindow != null)
             hwnds.add(zoomWindow.hostHwnd);
-        }
         if (hwnds.isEmpty())
             return;
+        if (currentZoom != null) {
+            // During zoom, use relative positioning to maintain z-order.
+            // Avoid SetWindowPos(hwnd, HWND_TOPMOST) which causes a DWM
+            // recomposition glitch visible as a brief indicator flicker.
+            for (int i = 1; i < hwnds.size(); i++)
+                User32.INSTANCE.SetWindowPos(hwnds.get(i), hwnds.get(i - 1),
+                        0, 0, 0, 0,
+                        WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
+            return;
+        }
         setWindowTopmost(hwnds.getFirst(), ExtendedUser32.HWND_TOPMOST);
         boolean allOtherWindowsAreBelowInOrder = true;
         for (int windowIndex = 0; windowIndex < hwnds.size() - 1; windowIndex++) {
