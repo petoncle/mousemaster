@@ -4071,6 +4071,12 @@ public class WindowsOverlay {
     static void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
              return;
+        // During zoom, currentZoom still has the previous frame's zoom center
+        // (it will be updated right after by ZoomManager in WindowsPlatform.sleep).
+        // Positioning here would use that stale center, causing a brief
+        // mispositioning until setZoom() corrects it.
+        if (currentZoom != null)
+            return;
         moveAndResizeIndicatorWindow(mousePosition);
     }
 
