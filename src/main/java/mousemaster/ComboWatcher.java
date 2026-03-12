@@ -273,14 +273,9 @@ public class ComboWatcher implements ModeListener {
             processKeyEventForCurrentMode(null, false);
         }
         else if (currentMode != beforeMode) {
-            if (hasComboPreparationBreaker) {
-                processKeyEventForCurrentMode(null, false);
-            }
-            else {
-                PressKeyEventProcessingSet processingSet =
-                        processKeyEventForCurrentMode(null, true);
-                completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
-            }
+            PressKeyEventProcessingSet processingSet =
+                    processKeyEventForCurrentMode(null, false);
+            completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationBreakerKey);
     }
