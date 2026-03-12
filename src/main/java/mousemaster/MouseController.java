@@ -209,12 +209,85 @@ public class MouseController implements ModeListener, MousePositionListener {
     }
 
     private double moveVelocity() {
+        return moveVelocity(mouse, moveDuration);
+    }
+
+    private static double moveVelocity(Mouse mouse, double moveDuration) {
         double maxVelocity = mouse.maxVelocity();
         double initialVelocity = mouse.initialVelocity();
+        if (initialVelocity >= maxVelocity)
+            return maxVelocity;
         double acceleration = mouse.acceleration();
-        double curve = mouse.accelerationCurve();
-        return Math.min(maxVelocity,
-                initialVelocity + acceleration * Math.pow(moveDuration, curve));
+        double range = maxVelocity - initialVelocity;
+        return switch (mouse.accelerationEasing()) {
+            case Easing.Polynomial p ->
+                    Math.min(maxVelocity,
+                            initialVelocity + acceleration * Math.pow(moveDuration, p.exponent()));
+            case Easing.Logarithmic l ->
+                    Math.min(maxVelocity,
+                            initialVelocity + acceleration * Math.log(1 + moveDuration));
+            case Easing.Exponential e ->
+                    Math.min(maxVelocity,
+                            initialVelocity + acceleration * (Math.exp(moveDuration) - 1));
+            case Easing.Smoothstep s -> {
+                double T = range / acceleration;
+                double u = Math.min(1, moveDuration / T);
+                yield initialVelocity + range * (3 * u * u - 2 * u * u * u);
+            }
+            case Easing.Smootherstep s -> {
+                double T = range / acceleration;
+                double u = Math.min(1, moveDuration / T);
+                yield initialVelocity + range * (6 * u * u * u * u * u - 15 * u * u * u * u + 10 * u * u * u);
+            }
+        };
+    }
+
+    /**
+     * Find the moveDuration that would produce the given velocity with the given mouse settings.
+     */
+    private static double inverseMoveVelocityDuration(Mouse mouse, double velocity) {
+        double initialVelocity = mouse.initialVelocity();
+        double maxVelocity = mouse.maxVelocity();
+        double acceleration = mouse.acceleration();
+        if (velocity <= initialVelocity || acceleration <= 0)
+            return 0;
+        double x = (velocity - initialVelocity) / acceleration;
+        return switch (mouse.accelerationEasing()) {
+            case Easing.Polynomial p -> Math.pow(x, 1.0 / p.exponent());
+            case Easing.Logarithmic l -> Math.exp(x) - 1;
+            case Easing.Exponential e -> Math.log(1 + x);
+            case Easing.Smoothstep s -> {
+                double range = maxVelocity - initialVelocity;
+                double T = range / acceleration;
+                double normalizedV = Math.min(1, (velocity - initialVelocity) / range);
+                // Newton's method to invert smoothstep: solve 3u² - 2u³ = normalizedV
+                double u = 0.5;
+                for (int i = 0; i < 10; i++) {
+                    double g = 3 * u * u - 2 * u * u * u - normalizedV;
+                    double gPrime = 6 * u - 6 * u * u;
+                    if (Math.abs(gPrime) < 1e-10) break;
+                    u -= g / gPrime;
+                    u = Math.max(0, Math.min(1, u));
+                }
+                yield u * T;
+            }
+            case Easing.Smootherstep s -> {
+                double range = maxVelocity - initialVelocity;
+                double T = range / acceleration;
+                double normalizedV = Math.min(1, (velocity - initialVelocity) / range);
+                // Newton's method to invert smootherstep: solve 6u⁵ - 15u⁴ + 10u³ = normalizedV
+                double u = 0.5;
+                for (int i = 0; i < 10; i++) {
+                    double u2 = u * u, u3 = u2 * u, u4 = u3 * u, u5 = u4 * u;
+                    double g = 6 * u5 - 15 * u4 + 10 * u3 - normalizedV;
+                    double gPrime = 30 * u4 - 60 * u3 + 30 * u2;
+                    if (Math.abs(gPrime) < 1e-10) break;
+                    u -= g / gPrime;
+                    u = Math.max(0, Math.min(1, u));
+                }
+                yield u * T;
+            }
+        };
     }
 
     private double decelerationVelocity() {
@@ -251,17 +324,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         double currentVelocity = decelerationVelocity();
         decelerating = false;
         decelerationDuration = 0;
-        if (currentVelocity > mouse.initialVelocity() && mouse.acceleration() > 0) {
-            // velocity = initialVelocity + acceleration * t^curve
-            // t = ((velocity - initialVelocity) / acceleration) ^ (1/curve)
-            double curve = mouse.accelerationCurve();
-            moveDuration = Math.pow(
-                    (currentVelocity - mouse.initialVelocity()) /
-                    mouse.acceleration(), 1.0 / curve);
-        }
-        else {
-            moveDuration = 0;
-        }
+        moveDuration = inverseMoveVelocityDuration(mouse, currentVelocity);
         deltaDistanceX = deltaDistanceY = 0;
     }
 
@@ -536,18 +599,7 @@ public class MouseController implements ModeListener, MousePositionListener {
     public void modeChanged(Mode newMode) {
         if (mouse != null && moveDuration != 0 && activelyMoving()) {
             double moveVelocity = moveVelocity();
-            Mouse newMouse = newMode.mouse();
-            double newInitialVelocity = newMouse.initialVelocity();
-            double newAcceleration = newMouse.acceleration();
-            double newCurve = newMouse.accelerationCurve();
-            // velocity = initialVelocity + acceleration * t^curve
-            // t = ((velocity - initialVelocity) / acceleration) ^ (1/curve)
-            if (moveVelocity <= newInitialVelocity || newAcceleration <= 0)
-                moveDuration = 0;
-            else
-                moveDuration = Math.pow(
-                        (moveVelocity - newInitialVelocity) / newAcceleration,
-                        1.0 / newCurve);
+            moveDuration = inverseMoveVelocityDuration(newMode.mouse(), moveVelocity);
             deltaDistanceX = deltaDistanceY = 0;
         }
         if (decelerating) {

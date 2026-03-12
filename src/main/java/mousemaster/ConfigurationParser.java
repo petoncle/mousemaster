@@ -51,7 +51,7 @@ public class ConfigurationParser {
         MouseBuilder mouse = new MouseBuilder().initialVelocity(1600)
                                                .maxVelocity(2200)
                                                .acceleration(1500)
-                                               .accelerationCurve(1)
+                                               .accelerationEasing(new Easing.Polynomial(1))
                                                .deceleration(0)
                                                .smoothJumpEnabled(true)
                                                .smoothJumpVelocity(30000);
@@ -717,8 +717,8 @@ public class ConfigurationParser {
                                 Double.parseDouble(propertyValue));
                         case "acceleration" -> mode.mouse.builder.acceleration(
                                 Double.parseDouble(propertyValue));
-                        case "acceleration-curve" -> mode.mouse.builder.accelerationCurve(
-                                Double.parseDouble(propertyValue));
+                        case "acceleration-easing" -> mode.mouse.builder.accelerationEasing(
+                                parseEasing(propertyValue));
                         case "deceleration" -> mode.mouse.builder.deceleration(
                                 Double.parseDouble(propertyValue));
                         case "smooth-jump-enabled" -> mode.mouse.builder.smoothJumpEnabled(
@@ -2148,6 +2148,16 @@ public class ConfigurationParser {
         };
     }
 
+    private static Easing parseEasing(String propertyValue) {
+        return switch (propertyValue.trim()) {
+            case "smoothstep" -> new Easing.Smoothstep();
+            case "smootherstep" -> new Easing.Smootherstep();
+            case "logarithmic" -> new Easing.Logarithmic();
+            case "exponential" -> new Easing.Exponential();
+            default -> new Easing.Polynomial(Double.parseDouble(propertyValue));
+        };
+    }
+
     private static ComboMoveDuration parseComboMoveDuration(String propertyKey, String propertyValue) {
         String[] split = propertyValue.split("-");
         if (split.length != 2)
@@ -2255,8 +2265,8 @@ public class ConfigurationParser {
                         builder.maxVelocity(parent.maxVelocity());
                     if (builder.acceleration() == null)
                         builder.acceleration(parent.acceleration());
-                    if (builder.accelerationCurve() == null)
-                        builder.accelerationCurve(parent.accelerationCurve());
+                    if (builder.accelerationEasing() == null)
+                        builder.accelerationEasing(parent.accelerationEasing());
                     if (builder.deceleration() == null)
                         builder.deceleration(parent.deceleration());
                     if (builder.smoothJumpEnabled() == null)

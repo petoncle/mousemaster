@@ -230,12 +230,12 @@ normal-mode.mode-after-unhandled-key-press=idle-mode
 normal-mode.mouse.initial-velocity=1600
 normal-mode.mouse.max-velocity=2200
 normal-mode.mouse.acceleration=1500
-normal-mode.mouse.acceleration-curve=1
+normal-mode.mouse.acceleration-easing=1
 normal-mode.mouse.deceleration=0
 normal-mode.mouse.smooth-jump-enabled=true
 normal-mode.mouse.smooth-jump-velocity=30000
 ```
-- `acceleration-curve` controls the acceleration curve exponent: 1 = linear (default), 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp).
+- `acceleration-easing` controls the shape of the acceleration curve. Numeric values set the exponent: 1 = linear (default), 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp). Named curves: `smoothstep` (S-curve), `smootherstep` (S-curve with longer precision zone), `logarithmic` (fast start, aggressive flatten), `exponential` (very slow start, explosive ramp).
 - When movement keys are released, the cursor coasts to a stop. Higher deceleration = shorter coast. Set to 0 for instant stop (no coast).
 - The velocity and acceleration are defined in pixel per second and pixel per square second.
 - Whenever mousemaster sets the position of the mouse, the mouse will be teleported to the
