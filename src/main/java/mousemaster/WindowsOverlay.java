@@ -2251,7 +2251,7 @@ public class WindowsOverlay {
             return 1;
         double left = hints.getFirst().centerX();
         for (int i = 1; i < hints.size(); i++) {
-            if (left == hints.get(i).centerX())
+            if (Math.abs(left - hints.get(i).centerX()) < 0.01)
                 return i;
         }
         throw new IllegalStateException();

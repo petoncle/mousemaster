@@ -79,6 +79,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.modeController = modeController;
     }
 
+    public HintMesh hintMesh() {
+        return hintMesh;
+    }
+
     public Point lastSelectedHintPoint() {
         logger.trace("Zoom " + lastSelectedHintPoint);
         return lastSelectedHintPoint;

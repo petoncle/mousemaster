@@ -1,5 +1,9 @@
 package mousemaster;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class ZoomManager implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
@@ -17,6 +21,10 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     private ZoomCenter endCenter;
     private Easing animationEasing;
     private double animationTotalDuration;
+    // Hint mesh to interpolate during animation (null if no hints).
+    private HintMesh endHintMesh;
+    // The zoom center used to build endHintMesh.
+    private Point endHintZoomCenter;
 
     public ZoomManager(ScreenManager screenManager, HintManager hintManager) {
         this.screenManager = screenManager;
@@ -65,6 +73,28 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             endCenter = endIsNoZoom
                     ? ZoomCenter.SCREEN_CENTER
                     : newMode.zoom().center();
+            // Capture hint mesh for interpolation during animation,
+            // only if the new mode has hints enabled.
+            HintMesh hintMesh = hintManager.hintMesh();
+            if (newMode.hintMesh().enabled() && hintMesh != null && hintMesh.visible()) {
+                endHintMesh = hintMesh;
+                endHintZoomCenter = newMode.zoom().center().centerPoint(
+                        screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                        hintManager.lastSelectedHintPoint());
+                // Override the final hint mesh that HintManager just displayed
+                // with the t=0 interpolated mesh.
+                Screen screen = screenManager.nearestScreenContaining(
+                        beginCenterPoint.x(), beginCenterPoint.y());
+                HintMesh interpolatedMesh = interpolateHintMesh(endHintMesh,
+                        endHintZoomCenter, beginCenterPoint,
+                        screen.rectangle().center(), endPercent, beginPercent);
+                WindowsOverlay.setHintMesh(interpolatedMesh,
+                        new Zoom(beginPercent, beginCenterPoint, screen.rectangle()));
+            }
+            else {
+                endHintMesh = null;
+                endHintZoomCenter = null;
+            }
         }
     }
 
@@ -86,14 +116,106 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         currentCenterPoint = centerPoint;
         Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                 centerPoint.y());
-        WindowsOverlay.setZoom(new Zoom(currentPercent, centerPoint, screen.rectangle()));
+        Zoom currentZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
+        WindowsOverlay.setZoom(currentZoom);
+        if (endHintMesh != null) {
+            HintMesh interpolatedMesh = interpolateHintMesh(endHintMesh,
+                    endHintZoomCenter, centerPoint,
+                    screen.rectangle().center(), endPercent, currentPercent);
+            WindowsOverlay.setHintMesh(interpolatedMesh, currentZoom);
+        }
         if (t >= 1.0) {
             animating = false;
+            if (endHintMesh != null) {
+                // Restore the final hint mesh.
+                Zoom endZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
+                WindowsOverlay.setHintMesh(endHintMesh, endZoom);
+                endHintMesh = null;
+                endHintZoomCenter = null;
+            }
             if (currentPercent == 1.0) {
                 currentCenterPoint = null;
                 WindowsOverlay.setZoom(null);
             }
         }
+    }
+
+    private static HintMesh interpolateHintMesh(HintMesh mesh,
+            Point endCenter, Point currentCenter,
+            Point screenCenter, double endPercent, double currentPercent) {
+        // unzoomedX = (h.centerX - screenCenter) / endPercent + endCenter
+        // interpolatedX = screenCenter + (unzoomedX - currentCenter) * currentPercent
+        double scale = currentPercent / endPercent;
+        List<Hint> interpolatedHints = mesh.hints().stream()
+                .map(h -> {
+                    double unzoomedX = (h.centerX() - screenCenter.x()) / endPercent + endCenter.x();
+                    double unzoomedY = (h.centerY() - screenCenter.y()) / endPercent + endCenter.y();
+                    return new Hint(
+                            screenCenter.x() + (unzoomedX - currentCenter.x()) * currentPercent,
+                            screenCenter.y() + (unzoomedY - currentCenter.y()) * currentPercent,
+                            h.cellWidth() * scale, h.cellHeight() * scale,
+                            h.keySequence());
+                })
+                .toList();
+        Rectangle backgroundArea = mesh.backgroundArea();
+        Rectangle interpolatedBackgroundArea = null;
+        if (backgroundArea != null) {
+            double backgroundUnzoomedX = (backgroundArea.x() - screenCenter.x()) / endPercent + endCenter.x();
+            double backgroundUnzoomedY = (backgroundArea.y() - screenCenter.y()) / endPercent + endCenter.y();
+            interpolatedBackgroundArea = new Rectangle(
+                    (int) (screenCenter.x() + (backgroundUnzoomedX - currentCenter.x()) * currentPercent),
+                    (int) (screenCenter.y() + (backgroundUnzoomedY - currentCenter.y()) * currentPercent),
+                    (int) (backgroundArea.width() * scale), (int) (backgroundArea.height() * scale));
+        }
+        ViewportFilterMap<HintMeshStyle> scaledStyleByFilter = scaleFontSize(
+                mesh.styleByFilter(), scale);
+        return new HintMesh(mesh.visible(), interpolatedHints, mesh.prefixLength(),
+                mesh.selectedKeySequence(), scaledStyleByFilter, interpolatedBackgroundArea);
+    }
+
+    private static ViewportFilterMap<HintMeshStyle> scaleFontSize(
+            ViewportFilterMap<HintMeshStyle> styleByFilter, double scale) {
+        Map<ViewportFilter, HintMeshStyle> scaledMap = new HashMap<>();
+        for (Map.Entry<ViewportFilter, HintMeshStyle> entry : styleByFilter.map().entrySet()) {
+            scaledMap.put(entry.getKey(), scaleFontSize(entry.getValue(), scale));
+        }
+        return new ViewportFilterMap<>(scaledMap);
+    }
+
+    private static HintMeshStyle scaleFontSize(HintMeshStyle style, double scale) {
+        return new HintMeshStyle(
+                scaleFontSize(style.fontStyle(), scale),
+                style.prefixInBackground(),
+                scaleFontSize(style.prefixFontStyle(), scale),
+                style.boxHexColor(), style.boxOpacity(),
+                style.boxBorderThickness(), style.boxBorderLength(),
+                style.boxBorderHexColor(), style.boxBorderOpacity(),
+                style.boxBorderRadius(), style.boxShadow(),
+                style.prefixBoxEnabled(),
+                style.prefixBoxBorderThickness(), style.prefixBoxBorderLength(),
+                style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity(),
+                style.boxWidthPercent(), style.boxHeightPercent(),
+                style.cellHorizontalPadding(), style.cellVerticalPadding(),
+                style.subgridRowCount(), style.subgridColumnCount(),
+                style.subgridBorderThickness(), style.subgridBorderLength(),
+                style.subgridBorderHexColor(), style.subgridBorderOpacity(),
+                style.transitionAnimationEnabled(), style.transitionAnimationDuration(),
+                style.backgroundHexColor(), style.backgroundOpacity());
+    }
+
+    private static HintFontStyle scaleFontSize(HintFontStyle style, double scale) {
+        return new HintFontStyle(
+                scaleFontSize(style.defaultFontStyle(), scale),
+                style.spacingPercent(),
+                scaleFontSize(style.selectedFontStyle(), scale),
+                scaleFontSize(style.focusedFontStyle(), scale));
+    }
+
+    private static FontStyle scaleFontSize(FontStyle style, double scale) {
+        return new FontStyle(style.name(), style.weight(),
+                style.size() * scale, style.hexColor(), style.opacity(),
+                style.outlineThickness(), style.outlineHexColor(),
+                style.outlineOpacity(), style.shadow());
     }
 
     @Override
