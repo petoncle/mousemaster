@@ -49,11 +49,11 @@ public class ConfigurationParser {
         AtomicReference<Boolean> stopCommandsFromPreviousMode = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
         MouseBuilder mouse = new MouseBuilder();
-        mouse.velocity().initialVelocity(1600)
+        mouse.velocity().initialVelocity(1000)
                         .maxVelocity(2200)
-                        .acceleration(1500)
-                        .accelerationEasing(new Easing.Polynomial(1))
-                        .deceleration(0);
+                        .acceleration(3000)
+                        .accelerationEasing(new Easing.Smootherstep())
+                        .deceleration(20);
         mouse.smoothJumpEnabled(true)
              .smoothJumpVelocity(30000);
         WheelBuilder wheel = new WheelBuilder();
