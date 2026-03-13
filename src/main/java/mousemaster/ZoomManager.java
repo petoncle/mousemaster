@@ -7,6 +7,17 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     private Mode currentMode;
     private int mouseX, mouseY;
 
+    private boolean animating;
+    private double animationDuration;
+    private double beginPercent;
+    private double endPercent;
+    private double currentPercent = 1.0;
+    private Point beginCenterPoint;
+    private Point currentCenterPoint;
+    private ZoomCenter endCenter;
+    private Easing animationEasing;
+    private double animationTotalDuration;
+
     public ZoomManager(ScreenManager screenManager, HintManager hintManager) {
         this.screenManager = screenManager;
         this.hintManager = hintManager;
@@ -14,20 +25,74 @@ public class ZoomManager implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
-        Mode currentMode = this.currentMode;
+        Mode previousMode = this.currentMode;
         this.currentMode = newMode;
-        if (currentMode != null && currentMode.zoom().equals(newMode.zoom()))
+        if (previousMode != null && previousMode.zoom().equals(newMode.zoom()))
             return;
-        if (newMode.zoom().percent() == 1 && newMode.zoom().center() == ZoomCenter.SCREEN_CENTER)
-            WindowsOverlay.setZoom(null);
+        boolean endIsNoZoom = newMode.zoom().percent() == 1
+                && newMode.zoom().center() == ZoomCenter.SCREEN_CENTER;
+        beginPercent = currentPercent;
+        endPercent = endIsNoZoom ? 1.0 : newMode.zoom().percent();
+        // When transitioning to no-zoom, use previous mode's animation configuration.
+        ZoomConfiguration animationConfig =
+                (endIsNoZoom && previousMode != null) ? previousMode.zoom() : newMode.zoom();
+        if (!animationConfig.animationEnabled()) {
+            // Apply immediately, no animation.
+            currentPercent = endPercent;
+            if (endIsNoZoom) {
+                currentCenterPoint = null;
+                WindowsOverlay.setZoom(null);
+            }
+            else {
+                Point centerPoint = newMode.zoom().center().centerPoint(
+                        screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                        hintManager.lastSelectedHintPoint());
+                currentCenterPoint = centerPoint;
+                Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
+                        centerPoint.y());
+                WindowsOverlay.setZoom(new Zoom(endPercent,
+                        centerPoint, screen.rectangle()));
+            }
+        }
         else {
-            Point centerPoint = newMode.zoom().center().centerPoint(
-                    screenManager.activeScreen().rectangle(), mouseX, mouseY,
-                    hintManager.lastSelectedHintPoint());
-            Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
-                    centerPoint.y());
-            WindowsOverlay.setZoom(new Zoom(newMode.zoom().percent(),
-                    centerPoint, screen.rectangle()));
+            animating = true;
+            animationDuration = 0;
+            animationEasing = animationConfig.animationEasing();
+            animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0;
+            beginCenterPoint = currentCenterPoint != null
+                    ? currentCenterPoint
+                    : screenManager.activeScreen().rectangle().center();
+            endCenter = endIsNoZoom
+                    ? ZoomCenter.SCREEN_CENTER
+                    : newMode.zoom().center();
+        }
+    }
+
+    public void update(double delta) {
+        if (!animating)
+            return;
+        animationDuration += delta;
+        double t = Math.min(1.0, animationDuration / animationTotalDuration);
+        double easedT = animationEasing.apply(t);
+        currentPercent = beginPercent + (endPercent - beginPercent) * easedT;
+        Point endCenterPoint = endCenter.centerPoint(
+                screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                hintManager.lastSelectedHintPoint());
+        int centerX = (int) Math.round(
+                beginCenterPoint.x() + (endCenterPoint.x() - beginCenterPoint.x()) * easedT);
+        int centerY = (int) Math.round(
+                beginCenterPoint.y() + (endCenterPoint.y() - beginCenterPoint.y()) * easedT);
+        Point centerPoint = new Point(centerX, centerY);
+        currentCenterPoint = centerPoint;
+        Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
+                centerPoint.y());
+        WindowsOverlay.setZoom(new Zoom(currentPercent, centerPoint, screen.rectangle()));
+        if (t >= 1.0) {
+            animating = false;
+            if (currentPercent == 1.0) {
+                currentCenterPoint = null;
+                WindowsOverlay.setZoom(null);
+            }
         }
     }
 
@@ -40,10 +105,11 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     public void mouseMoved(int x, int y) {
         mouseX = x;
         mouseY = y;
-        if (currentMode.zoom().center().equals(ZoomCenter.MOUSE)) {
+        if (!animating && currentMode.zoom().center().equals(ZoomCenter.MOUSE)) {
             Point centerPoint = currentMode.zoom().center().centerPoint(
                     screenManager.activeScreen().rectangle(), mouseX, mouseY,
                     hintManager.lastSelectedHintPoint());
+            currentCenterPoint = centerPoint;
             Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                     centerPoint.y());
             WindowsOverlay.setZoom(new Zoom(currentMode.zoom().percent(),

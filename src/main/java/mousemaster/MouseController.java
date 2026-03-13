@@ -184,10 +184,7 @@ public class MouseController implements ModeListener, MousePositionListener {
                     Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY) /
                     jumpVelocity;
             double percent = Math.min(1, jumpDuration / jumpTotalDuration);
-            // Smooth.
-            // percent = percent * percent * (3 - 2 * percent);
-            // Smoother (Ken Perlin).
-            percent = percent * percent * percent * (percent * (percent * 6 - 15) + 10);
+            percent = new Easing.Smootherstep().apply(percent);
             int nextJumpX = (int) (jumpBeginX + (jumpEndX - jumpBeginX) * percent);
             int nextJumpY = (int) (jumpBeginY + (jumpEndY - jumpBeginY) * percent);
             // Merge the user movement in.
@@ -270,12 +267,12 @@ public class MouseController implements ModeListener, MousePositionListener {
             case Easing.Smoothstep s -> {
                 double T = range / acceleration;
                 double u = Math.min(1, duration / T);
-                yield initialVelocity + range * (3 * u * u - 2 * u * u * u);
+                yield initialVelocity + range * s.apply(u);
             }
             case Easing.Smootherstep s -> {
                 double T = range / acceleration;
                 double u = Math.min(1, duration / T);
-                yield initialVelocity + range * (6 * u * u * u * u * u - 15 * u * u * u * u + 10 * u * u * u);
+                yield initialVelocity + range * s.apply(u);
             }
         };
     }

@@ -22,6 +22,7 @@ public class Mousemaster {
     private MacroPlayer macroPlayer;
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
+    private ZoomManager zoomManager;
     private ModeController modeController;
     private List<String> configurationProperties;
     private KeyboardLayout activeKeyboardLayout;
@@ -81,6 +82,10 @@ public class Mousemaster {
             indicatorManager.update(delta);
             timeAfterOp = System.nanoTime();
             long indicatorManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            platform.windowsMessagePump();
+            timeBeforeOp = timeAfterOp;
+            zoomManager.update(delta);
+            timeAfterOp = System.nanoTime();
             platform.windowsMessagePump();
             timeBeforeOp = timeAfterOp;
             macroPlayer.update(delta);
@@ -206,7 +211,7 @@ public class Mousemaster {
         keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
-        ZoomManager zoomManager = new ZoomManager(screenManager, hintManager);
+        zoomManager = new ZoomManager(screenManager, hintManager);
         modeController =
                 new ModeController(configuration.modeMap(), mouseController, mouseState,
                         keyboardState,

@@ -235,7 +235,10 @@ public class ConfigurationParser {
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
         zoom.percent(1.0)
-            .center(ZoomCenter.SCREEN_CENTER);
+            .center(ZoomCenter.SCREEN_CENTER)
+            .animationEnabled(false)
+            .animationEasing(new Easing.Smootherstep())
+            .animationDurationMillis(200);
         // @formatter:off
         return Stream.of( //
                 new Property<>("stop-commands-from-previous-mode", stopCommandsFromPreviousMode),
@@ -1307,6 +1310,12 @@ public class ConfigurationParser {
                         case "center" ->
                                 mode.zoom.builder.center(
                                         parseZoomCenter(propertyKey, propertyValue));
+                        case "animation-enabled" -> mode.zoom.builder.animationEnabled(
+                                Boolean.parseBoolean(propertyValue));
+                        case "animation-easing" -> mode.zoom.builder.animationEasing(
+                                parseEasing(propertyValue));
+                        case "animation-duration-millis" -> mode.zoom.builder.animationDurationMillis(
+                                parseDouble(propertyValue, true, 0, 10000));
                         default -> throw new IllegalArgumentException(
                                 "Invalid zoom property key");
                     }
@@ -2376,6 +2385,12 @@ public class ConfigurationParser {
                         builder.percent(parent.percent());
                     if (builder.center() == null)
                         builder.center(parent.center());
+                    if (builder.animationEnabled() == null)
+                        builder.animationEnabled(parent.animationEnabled());
+                    if (builder.animationEasing() == null)
+                        builder.animationEasing(parent.animationEasing());
+                    if (builder.animationDurationMillis() == null)
+                        builder.animationDurationMillis(parent.animationDurationMillis());
                 }
             };
         }
