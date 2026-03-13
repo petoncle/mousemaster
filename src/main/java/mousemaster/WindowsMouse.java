@@ -344,8 +344,13 @@ public class WindowsMouse {
             cursorInfo.hCursor == null)
             return new Point(0, 0);
         Pointer cursorHandle = cursorInfo.hCursor.getPointer();
-        return centerByCursorHandle.computeIfAbsent(cursorHandle,
-                handle -> computeCursorVisualCenter(cursorInfo));
+        Point cached = centerByCursorHandle.get(cursorHandle);
+        if (cached != null)
+            return cached;
+        Point center = computeCursorVisualCenter(cursorInfo);
+        if (center != null)
+            centerByCursorHandle.put(cursorHandle, center);
+        return center != null ? center : new Point(0, 0);
     }
 
     private static Point computeCursorVisualCenter(
@@ -353,7 +358,7 @@ public class WindowsMouse {
         WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
         if (!User32.INSTANCE.GetIconInfo(
                 new WinDef.HICON(cursorInfo.hCursor), iconInfo))
-            return new Point(0, 0);
+            return null;
         try {
             int hotspotX = iconInfo.xHotspot;
             int hotspotY = iconInfo.yHotspot;
@@ -374,7 +379,7 @@ public class WindowsMouse {
                     method = hasColorBitmap ? "mask-and" : "mask-andxor";
             }
             if (bounds == null)
-                return new Point(0, 0);
+                return null;
             double centerX = bounds.x() + bounds.width() / 2.0 - hotspotX;
             double centerY = bounds.y() + bounds.height() / 2.0 - hotspotY;
             logger.info("Cursor visual center: method={}, bounds={}x{} at ({},{}), hotspot=({},{}), center=({},{})",
