@@ -1,43 +1,18 @@
 package mousemaster;
 
-public record Mouse(double initialVelocity, double maxVelocity, double acceleration,
-                    Easing accelerationEasing, double deceleration,
-                    boolean smoothJumpEnabled, double smoothJumpVelocity) {
+import mousemaster.VelocityConfiguration.VelocityConfigurationBuilder;
 
+public record Mouse(VelocityConfiguration velocity,
+                    boolean smoothJumpEnabled, double smoothJumpVelocity) {
 
     public static class MouseBuilder {
 
-        private Double initialVelocity;
-        private Double maxVelocity;
-        private Double acceleration;
-        private Easing accelerationEasing;
-        private Double deceleration;
+        private final VelocityConfigurationBuilder velocity = new VelocityConfigurationBuilder();
         private Boolean smoothJumpEnabled;
         private Double smoothJumpVelocity;
 
-        public MouseBuilder initialVelocity(double initialVelocity) {
-            this.initialVelocity = initialVelocity;
-            return this;
-        }
-
-        public MouseBuilder maxVelocity(double maxVelocity) {
-            this.maxVelocity = maxVelocity;
-            return this;
-        }
-
-        public MouseBuilder acceleration(double acceleration) {
-            this.acceleration = acceleration;
-            return this;
-        }
-
-        public MouseBuilder accelerationEasing(Easing accelerationEasing) {
-            this.accelerationEasing = accelerationEasing;
-            return this;
-        }
-
-        public MouseBuilder deceleration(double deceleration) {
-            this.deceleration = deceleration;
-            return this;
+        public VelocityConfigurationBuilder velocity() {
+            return velocity;
         }
 
         public MouseBuilder smoothJumpEnabled(boolean smoothJumpEnabled) {
@@ -50,26 +25,6 @@ public record Mouse(double initialVelocity, double maxVelocity, double accelerat
             return this;
         }
 
-        public Double initialVelocity() {
-            return initialVelocity;
-        }
-
-        public Double maxVelocity() {
-            return maxVelocity;
-        }
-
-        public Double acceleration() {
-            return acceleration;
-        }
-
-        public Easing accelerationEasing() {
-            return accelerationEasing;
-        }
-
-        public Double deceleration() {
-            return deceleration;
-        }
-
         public Double smoothJumpVelocity() {
             return smoothJumpVelocity;
         }
@@ -79,9 +34,7 @@ public record Mouse(double initialVelocity, double maxVelocity, double accelerat
         }
 
         public Mouse build() {
-            return new Mouse(initialVelocity, maxVelocity, acceleration,
-                    accelerationEasing, deceleration,
-                    smoothJumpEnabled, smoothJumpVelocity);
+            return new Mouse(velocity.build(), smoothJumpEnabled, smoothJumpVelocity);
         }
     }
 }

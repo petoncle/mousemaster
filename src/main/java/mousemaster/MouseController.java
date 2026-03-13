@@ -28,6 +28,14 @@ public class MouseController implements ModeListener, MousePositionListener {
     private boolean lastMoveXActive, lastMoveXForward;
     private boolean lastMoveYActive, lastMoveYForward;
 
+    private boolean wheelDecelerating;
+    private double wheelDecelerationDuration;
+    private double wheelVelocityAtDecelerationStart;
+    private boolean wheelDecelerateXActive, wheelDecelerateXForward;
+    private boolean wheelDecelerateYActive, wheelDecelerateYForward;
+    private boolean lastWheelXActive, lastWheelXForward;
+    private boolean lastWheelYActive, lastWheelYForward;
+
     private int mouseX, mouseY;
     private boolean jumping;
     private double jumpDuration;
@@ -50,6 +58,8 @@ public class MouseController implements ModeListener, MousePositionListener {
         yWheelForwardStack.clear();
         decelerating = false;
         decelerationDuration = 0;
+        wheelDecelerating = false;
+        wheelDecelerationDuration = 0;
         jumping = false;
         jumpDuration = 0;
     }
@@ -80,11 +90,16 @@ public class MouseController implements ModeListener, MousePositionListener {
     }
 
     boolean wheeling() {
-        return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty();
+        return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty() ||
+               wheelDecelerating;
     }
 
     private boolean activelyMoving() {
         return !xMoveForwardStack.isEmpty() || !yMoveForwardStack.isEmpty();
+    }
+
+    private boolean activelyWheeling() {
+        return !xWheelForwardStack.isEmpty() || !yWheelForwardStack.isEmpty();
     }
 
     public void update(double delta) {
@@ -127,7 +142,8 @@ public class MouseController implements ModeListener, MousePositionListener {
         else if (decelerating) {
             WindowsMouse.beginMove();
             decelerationDuration += delta;
-            double velocity = decelerationVelocity();
+            double velocity = decelerationVelocity(mouse.velocity(),
+                    velocityAtDecelerationStart, decelerationDuration);
             if (velocity < 1) {
                 decelerating = false;
                 deltaDistanceX = deltaDistanceY = 0;
@@ -197,62 +213,84 @@ public class MouseController implements ModeListener, MousePositionListener {
                 jumpY = nextJumpY;
             }
         }
-        if (wheeling()) {
+        if (activelyWheeling()) {
             wheelDuration += delta;
-            double wheelVelocity = wheelVelocity();
+            double wheelVelocity = velocity(wheel.velocity(), wheelDuration);
             double deltaDistance = wheelVelocity * delta;
+            // Save direction for potential deceleration.
+            lastWheelXActive = !xWheelForwardStack.isEmpty();
+            if (lastWheelXActive)
+                lastWheelXForward = xWheelForwardStack.peek();
+            lastWheelYActive = !yWheelForwardStack.isEmpty();
+            if (lastWheelYActive)
+                lastWheelYForward = yWheelForwardStack.peek();
             if (!xWheelForwardStack.isEmpty())
                 WindowsMouse.wheelHorizontallyBy(xWheelForwardStack.peek(), deltaDistance);
             if (!yWheelForwardStack.isEmpty())
                 WindowsMouse.wheelVerticallyBy(yWheelForwardStack.peek(), deltaDistance);
         }
+        else if (wheelDecelerating) {
+            wheelDecelerationDuration += delta;
+            double velocity = decelerationVelocity(wheel.velocity(),
+                    wheelVelocityAtDecelerationStart, wheelDecelerationDuration);
+            double deltaDistance = velocity * delta;
+            if (deltaDistance < 1) {
+                wheelDecelerating = false;
+            }
+            else {
+                if (wheelDecelerateXActive)
+                    WindowsMouse.wheelHorizontallyBy(wheelDecelerateXForward, deltaDistance);
+                if (wheelDecelerateYActive)
+                    WindowsMouse.wheelVerticallyBy(wheelDecelerateYForward, deltaDistance);
+            }
+        }
     }
 
     private double moveVelocity() {
-        return moveVelocity(mouse, moveDuration);
+        return velocity(mouse.velocity(), moveDuration);
     }
 
-    private static double moveVelocity(Mouse mouse, double moveDuration) {
-        double maxVelocity = mouse.maxVelocity();
-        double initialVelocity = mouse.initialVelocity();
+    static double velocity(VelocityConfiguration config, double duration) {
+        double maxVelocity = config.maxVelocity();
+        double initialVelocity = config.initialVelocity();
         if (initialVelocity >= maxVelocity)
             return maxVelocity;
-        double acceleration = mouse.acceleration();
+        double acceleration = config.acceleration();
         double range = maxVelocity - initialVelocity;
-        return switch (mouse.accelerationEasing()) {
+        return switch (config.accelerationEasing()) {
             case Easing.Polynomial p ->
                     Math.min(maxVelocity,
-                            initialVelocity + acceleration * Math.pow(moveDuration, p.exponent()));
+                            initialVelocity + acceleration * Math.pow(duration, p.exponent()));
             case Easing.Logarithmic l ->
                     Math.min(maxVelocity,
-                            initialVelocity + acceleration * Math.log(1 + moveDuration));
+                            initialVelocity + acceleration * Math.log(1 + duration));
             case Easing.Exponential e ->
                     Math.min(maxVelocity,
-                            initialVelocity + acceleration * (Math.exp(moveDuration) - 1));
+                            initialVelocity + acceleration * (Math.exp(duration) - 1));
             case Easing.Smoothstep s -> {
                 double T = range / acceleration;
-                double u = Math.min(1, moveDuration / T);
+                double u = Math.min(1, duration / T);
                 yield initialVelocity + range * (3 * u * u - 2 * u * u * u);
             }
             case Easing.Smootherstep s -> {
                 double T = range / acceleration;
-                double u = Math.min(1, moveDuration / T);
+                double u = Math.min(1, duration / T);
                 yield initialVelocity + range * (6 * u * u * u * u * u - 15 * u * u * u * u + 10 * u * u * u);
             }
         };
     }
 
     /**
-     * Find the moveDuration that would produce the given velocity with the given mouse settings.
+     * Find the duration that would produce the given velocity with the given velocityConfiguration.
      */
-    private static double inverseMoveVelocityDuration(Mouse mouse, double velocity) {
-        double initialVelocity = mouse.initialVelocity();
-        double maxVelocity = mouse.maxVelocity();
-        double acceleration = mouse.acceleration();
+    static double inverseVelocityDuration(VelocityConfiguration velocityConfiguration, double velocity) {
+        double initialVelocity = velocityConfiguration.initialVelocity();
+        double maxVelocity = velocityConfiguration.maxVelocity();
+        double acceleration = velocityConfiguration.acceleration();
         if (velocity <= initialVelocity || acceleration <= 0)
             return 0;
         double x = (velocity - initialVelocity) / acceleration;
-        return switch (mouse.accelerationEasing()) {
+        return switch (velocityConfiguration.accelerationEasing()) {
             case Easing.Polynomial p -> Math.pow(x, 1.0 / p.exponent());
             case Easing.Logarithmic l -> Math.exp(x) - 1;
             case Easing.Exponential e -> Math.log(1 + x);
@@ -290,20 +328,16 @@ public class MouseController implements ModeListener, MousePositionListener {
         };
     }
 
-    private double decelerationVelocity() {
-        return velocityAtDecelerationStart *
-               Math.exp(-mouse.deceleration() * decelerationDuration);
-    }
-
-    private double wheelVelocity() {
-        return Math.min(wheel.maxVelocity(),
-                wheel.initialVelocity() + wheel.acceleration() * wheelDuration);
+    private static double decelerationVelocity(VelocityConfiguration velocityConfiguration,
+            double velocityAtStart, double duration) {
+        return velocityAtStart *
+               Math.exp(-velocityConfiguration.deceleration() * duration);
     }
 
     private void startDeceleration() {
         if (moveDuration == 0)
             return;
-        if (mouse.deceleration() <= 0) {
+        if (mouse.velocity().deceleration() <= 0) {
             moveDuration = 0;
             return;
         }
@@ -321,11 +355,40 @@ public class MouseController implements ModeListener, MousePositionListener {
     }
 
     private void cancelDeceleration() {
-        double currentVelocity = decelerationVelocity();
+        double currentVelocity = decelerationVelocity(mouse.velocity(),
+                velocityAtDecelerationStart, decelerationDuration);
         decelerating = false;
         decelerationDuration = 0;
-        moveDuration = inverseMoveVelocityDuration(mouse, currentVelocity);
+        moveDuration = inverseVelocityDuration(mouse.velocity(), currentVelocity);
         deltaDistanceX = deltaDistanceY = 0;
+    }
+
+    private void startWheelDeceleration() {
+        if (wheelDuration == 0)
+            return;
+        if (wheel.velocity().deceleration() <= 0) {
+            wheelDuration = 0;
+            return;
+        }
+        double velocity = velocity(wheel.velocity(), wheelDuration);
+        if (velocity <= 0)
+            return;
+        wheelDecelerating = true;
+        wheelDecelerationDuration = 0;
+        wheelVelocityAtDecelerationStart = velocity;
+        wheelDecelerateXActive = lastWheelXActive;
+        wheelDecelerateXForward = lastWheelXForward;
+        wheelDecelerateYActive = lastWheelYActive;
+        wheelDecelerateYForward = lastWheelYForward;
+        wheelDuration = 0;
+    }
+
+    private void cancelWheelDeceleration() {
+        double currentVelocity = decelerationVelocity(wheel.velocity(),
+                wheelVelocityAtDecelerationStart, wheelDecelerationDuration);
+        wheelDecelerating = false;
+        wheelDecelerationDuration = 0;
+        wheelDuration = inverseVelocityDuration(wheel.velocity(), currentVelocity);
     }
 
     public void startMoveUp() {
@@ -490,24 +553,32 @@ public class MouseController implements ModeListener, MousePositionListener {
     }
 
     public void startWheelUp() {
+        if (wheelDecelerating)
+            cancelWheelDeceleration();
         if (!yWheelForwardStack.isEmpty() && yWheelForwardStack.peek() == false)
             return;
         yWheelForwardStack.push(false);
     }
 
     public void startWheelDown() {
+        if (wheelDecelerating)
+            cancelWheelDeceleration();
         if (!yWheelForwardStack.isEmpty() && yWheelForwardStack.peek() == true)
             return;
         yWheelForwardStack.push(true);
     }
 
     public void startWheelLeft() {
+        if (wheelDecelerating)
+            cancelWheelDeceleration();
         if (!xWheelForwardStack.isEmpty() && xWheelForwardStack.peek() == false)
             return;
         xWheelForwardStack.push(false);
     }
 
     public void startWheelRight() {
+        if (wheelDecelerating)
+            cancelWheelDeceleration();
         if (!xWheelForwardStack.isEmpty() && xWheelForwardStack.peek() == true)
             return;
         xWheelForwardStack.push(true);
@@ -516,25 +587,25 @@ public class MouseController implements ModeListener, MousePositionListener {
     public void stopWheelUp() {
         removeFirst(yWheelForwardStack, false);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelDuration = 0;
+            startWheelDeceleration();
     }
 
     public void stopWheelDown() {
         removeFirst(yWheelForwardStack, true);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelDuration = 0;
+            startWheelDeceleration();
     }
 
     public void stopWheelLeft() {
         removeFirst(xWheelForwardStack, false);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelDuration = 0;
+            startWheelDeceleration();
     }
 
     public void stopWheelRight() {
         removeFirst(xWheelForwardStack, true);
         if (xWheelForwardStack.isEmpty() && yWheelForwardStack.isEmpty())
-            wheelDuration = 0;
+            startWheelDeceleration();
     }
 
     public void showCursor() {
@@ -599,23 +670,34 @@ public class MouseController implements ModeListener, MousePositionListener {
     public void modeChanged(Mode newMode) {
         if (mouse != null && moveDuration != 0 && activelyMoving()) {
             double moveVelocity = moveVelocity();
-            moveDuration = inverseMoveVelocityDuration(newMode.mouse(), moveVelocity);
+            moveDuration = inverseVelocityDuration(newMode.mouse().velocity(), moveVelocity);
             deltaDistanceX = deltaDistanceY = 0;
         }
         if (decelerating) {
-            double currentVelocity = decelerationVelocity();
+            double currentVelocity = decelerationVelocity(mouse.velocity(),
+                    velocityAtDecelerationStart, decelerationDuration);
             if (currentVelocity <= 0) {
                 decelerating = false;
             }
             else {
-                // Restart deceleration from current velocity with new mode's rate.
                 velocityAtDecelerationStart = currentVelocity;
                 decelerationDuration = 0;
             }
         }
-        if (wheel != null && wheelDuration != 0) {
-            Wheel newWheel = newMode.wheel();
-            wheelDuration = Math.max(0, (wheelVelocity() - newWheel.initialVelocity()) / newWheel.acceleration());
+        if (wheel != null && wheelDuration != 0 && activelyWheeling()) {
+            double wheelVelocity = velocity(wheel.velocity(), wheelDuration);
+            wheelDuration = inverseVelocityDuration(newMode.wheel().velocity(), wheelVelocity);
+        }
+        if (wheelDecelerating) {
+            double currentVelocity = decelerationVelocity(wheel.velocity(),
+                    wheelVelocityAtDecelerationStart, wheelDecelerationDuration);
+            if (currentVelocity <= 0) {
+                wheelDecelerating = false;
+            }
+            else {
+                wheelVelocityAtDecelerationStart = currentVelocity;
+                wheelDecelerationDuration = 0;
+            }
         }
         setMouse(newMode.mouse());
         setWheel(newMode.wheel());
@@ -635,6 +717,7 @@ public class MouseController implements ModeListener, MousePositionListener {
             stopWheelUp();
             stopWheelLeft();
             stopWheelRight();
+            wheelDecelerating = false;
             releaseAll();
         }
     }

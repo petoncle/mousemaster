@@ -1,41 +1,18 @@
 package mousemaster;
 
-public record Wheel(double initialVelocity, double maxVelocity, double acceleration) {
+public record Wheel(VelocityConfiguration velocity) {
 
     public static class WheelBuilder {
-        private Double initialVelocity;
-        private Double maxVelocity;
-        private Double acceleration;
 
-        public WheelBuilder initialVelocity(double initialVelocity) {
-            this.initialVelocity = initialVelocity;
-            return this;
-        }
+        private final VelocityConfiguration.VelocityConfigurationBuilder velocity =
+                new VelocityConfiguration.VelocityConfigurationBuilder();
 
-        public WheelBuilder maxVelocity(double maxVelocity) {
-            this.maxVelocity = maxVelocity;
-            return this;
-        }
-
-        public WheelBuilder acceleration(double acceleration) {
-            this.acceleration = acceleration;
-            return this;
-        }
-
-        public Double initialVelocity() {
-            return initialVelocity;
-        }
-
-        public Double maxVelocity() {
-            return maxVelocity;
-        }
-
-        public Double acceleration() {
-            return acceleration;
+        public VelocityConfiguration.VelocityConfigurationBuilder velocity() {
+            return velocity;
         }
 
         public Wheel build() {
-            return new Wheel(initialVelocity, maxVelocity, acceleration);
+            return new Wheel(velocity.build());
         }
     }
 

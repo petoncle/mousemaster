@@ -48,14 +48,20 @@ public class ConfigurationParser {
         AtomicReference<Boolean> pushModeToHistoryStack = new AtomicReference<>(false);
         AtomicReference<Boolean> stopCommandsFromPreviousMode = new AtomicReference<>(false);
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
-        MouseBuilder mouse = new MouseBuilder().initialVelocity(1600)
-                                               .maxVelocity(2200)
-                                               .acceleration(1500)
-                                               .accelerationEasing(new Easing.Polynomial(1))
-                                               .deceleration(0)
-                                               .smoothJumpEnabled(true)
-                                               .smoothJumpVelocity(30000);
-        WheelBuilder wheel = new WheelBuilder().initialVelocity(1000).maxVelocity(1000).acceleration(500);
+        MouseBuilder mouse = new MouseBuilder();
+        mouse.velocity().initialVelocity(1600)
+                        .maxVelocity(2200)
+                        .acceleration(1500)
+                        .accelerationEasing(new Easing.Polynomial(1))
+                        .deceleration(0);
+        mouse.smoothJumpEnabled(true)
+             .smoothJumpVelocity(30000);
+        WheelBuilder wheel = new WheelBuilder();
+        wheel.velocity().initialVelocity(1000)
+                        .maxVelocity(1000)
+                        .acceleration(500)
+                        .accelerationEasing(new Easing.Polynomial(1))
+                        .deceleration(0);
         GridConfigurationBuilder grid =
                 new GridConfigurationBuilder();
         grid.synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
@@ -711,15 +717,15 @@ public class ConfigurationParser {
                             "Invalid mouse property key");
                 else {
                     switch (keyMatcher.group(group4)) {
-                        case "initial-velocity" -> mode.mouse.builder.initialVelocity(
+                        case "initial-velocity" -> mode.mouse.builder.velocity().initialVelocity(
                                 Double.parseDouble(propertyValue));
-                        case "max-velocity" -> mode.mouse.builder.maxVelocity(
+                        case "max-velocity" -> mode.mouse.builder.velocity().maxVelocity(
                                 Double.parseDouble(propertyValue));
-                        case "acceleration" -> mode.mouse.builder.acceleration(
+                        case "acceleration" -> mode.mouse.builder.velocity().acceleration(
                                 Double.parseDouble(propertyValue));
-                        case "acceleration-easing" -> mode.mouse.builder.accelerationEasing(
+                        case "acceleration-easing" -> mode.mouse.builder.velocity().accelerationEasing(
                                 parseEasing(propertyValue));
-                        case "deceleration" -> mode.mouse.builder.deceleration(
+                        case "deceleration" -> mode.mouse.builder.velocity().deceleration(
                                 Double.parseDouble(propertyValue));
                         case "smooth-jump-enabled" -> mode.mouse.builder.smoothJumpEnabled(
                                 Boolean.parseBoolean(propertyValue));
@@ -740,11 +746,15 @@ public class ConfigurationParser {
                             "Invalid wheel property key");
                 else {
                     switch (keyMatcher.group(group4)) {
-                        case "acceleration" -> mode.wheel.builder.acceleration(
+                        case "acceleration" -> mode.wheel.builder.velocity().acceleration(
                                 Double.parseDouble(propertyValue));
-                        case "initial-velocity" -> mode.wheel.builder.initialVelocity(
+                        case "initial-velocity" -> mode.wheel.builder.velocity().initialVelocity(
                                 Double.parseDouble(propertyValue));
-                        case "max-velocity" -> mode.wheel.builder.maxVelocity(
+                        case "max-velocity" -> mode.wheel.builder.velocity().maxVelocity(
+                                Double.parseDouble(propertyValue));
+                        case "acceleration-easing" -> mode.wheel.builder.velocity().accelerationEasing(
+                                parseEasing(propertyValue));
+                        case "deceleration" -> mode.wheel.builder.velocity().deceleration(
                                 Double.parseDouble(propertyValue));
                         default -> throw new IllegalArgumentException(
                                 "Invalid wheel property key");
@@ -2148,6 +2158,21 @@ public class ConfigurationParser {
         };
     }
 
+    private static void extendVelocity(
+            VelocityConfiguration.VelocityConfigurationBuilder builder,
+            VelocityConfiguration.VelocityConfigurationBuilder parent) {
+        if (builder.initialVelocity() == null)
+            builder.initialVelocity(parent.initialVelocity());
+        if (builder.maxVelocity() == null)
+            builder.maxVelocity(parent.maxVelocity());
+        if (builder.acceleration() == null)
+            builder.acceleration(parent.acceleration());
+        if (builder.accelerationEasing() == null)
+            builder.accelerationEasing(parent.accelerationEasing());
+        if (builder.deceleration() == null)
+            builder.deceleration(parent.deceleration());
+    }
+
     private static Easing parseEasing(String propertyValue) {
         return switch (propertyValue.trim()) {
             case "smoothstep" -> new Easing.Smoothstep();
@@ -2259,16 +2284,7 @@ public class ConfigurationParser {
                 @Override
                 void extend(Object parent_) {
                     MouseBuilder parent = (MouseBuilder) parent_;
-                    if (builder.initialVelocity() == null)
-                        builder.initialVelocity(parent.initialVelocity());
-                    if (builder.maxVelocity() == null)
-                        builder.maxVelocity(parent.maxVelocity());
-                    if (builder.acceleration() == null)
-                        builder.acceleration(parent.acceleration());
-                    if (builder.accelerationEasing() == null)
-                        builder.accelerationEasing(parent.accelerationEasing());
-                    if (builder.deceleration() == null)
-                        builder.deceleration(parent.deceleration());
+                    extendVelocity(builder.velocity(), parent.velocity());
                     if (builder.smoothJumpEnabled() == null)
                         builder.smoothJumpEnabled(parent.smoothJumpEnabled());
                     if (builder.smoothJumpVelocity() == null)
@@ -2279,12 +2295,7 @@ public class ConfigurationParser {
                 @Override
                 void extend(Object parent_) {
                     WheelBuilder parent = (WheelBuilder) parent_;
-                    if (builder.initialVelocity() == null)
-                        builder.initialVelocity(parent.initialVelocity());
-                    if (builder.maxVelocity() == null)
-                        builder.maxVelocity(parent.maxVelocity());
-                    if (builder.acceleration() == null)
-                        builder.acceleration(parent.acceleration());
+                    extendVelocity(builder.velocity(), parent.velocity());
                 }
             };
             grid = new Property<>("grid", modeName, propertyByKey,
