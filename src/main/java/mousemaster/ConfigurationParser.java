@@ -2840,12 +2840,18 @@ public class ConfigurationParser {
             void extend(Object parent_) {
                 Map<Combo, List<Command>> parent =
                         (Map<Combo, List<Command>>) parent_;
+                Set<Command> childCommands = new HashSet<>();
+                for (List<Command> commands : builder.values())
+                    childCommands.addAll(commands);
                 for (Map.Entry<Combo, List<Command>> parentEntry : parent.entrySet()) {
                     // mode1.start-move.up=x
                     // mode2.start-move=mode1.start-move
                     // mode2.start-move.up=y
-                    if (!builder.containsKey(parentEntry.getKey()))
-                        builder.put(parentEntry.getKey(), parentEntry.getValue());
+                    if (builder.containsKey(parentEntry.getKey()))
+                        continue;
+                    if (parentEntry.getValue().stream().anyMatch(childCommands::contains))
+                        continue;
+                    builder.put(parentEntry.getKey(), parentEntry.getValue());
                 }
             }
         }
