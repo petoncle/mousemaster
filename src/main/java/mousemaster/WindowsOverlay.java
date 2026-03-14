@@ -49,6 +49,12 @@ public class WindowsOverlay {
     private static ZoomWindow zoomWindow, standByZoomWindow;
     private static Zoom currentZoom;
     private static boolean mustUpdateMagnifierSource;
+    // Screenshot-based zoom animation fields.
+    private static ScreenshotWidget screenshotWidget;
+    private static WinDef.HWND screenshotHwnd;
+    private static QPixmap screenshotPixmap;
+    private static boolean screenshotAnimating;
+    private static boolean screenshotPendingHide;
     /**
      * Building the hint window is expensive and when it is done from the keyboard hook,
      * Windows will cancel the hook and the key press will go through to the other apps.
@@ -83,9 +89,23 @@ public class WindowsOverlay {
             cacheQtHintWindowIntoPixmapRunnable = null;
         }
         updateZoomWindow();
+        // Deferred screenshot hide: the magnifier was shown by updateZoomWindow
+        // on the previous frame (or by setZoom inside endScreenshotZoomAnimation).
+        // Wait one frame so DWM composites the magnifier before removing
+        // the screenshot that covers it.
+        if (screenshotPendingHide) {
+            screenshotPendingHide = false;
+            screenshotWidget.hide();
+            if (screenshotPixmap != null) {
+                screenshotWidget.setScreenshot(null, null);
+                screenshotPixmap = null;
+            }
+        }
     }
 
     private static void updateZoomWindow() {
+        if (screenshotAnimating)
+            return;
         if (currentZoom == null)
             return;
         if (mustUpdateMagnifierSource) {
@@ -164,11 +184,21 @@ public class WindowsOverlay {
         }
         if (indicatorWindow != null)
             hwnds.add(indicatorWindow.hwnd);
-        if (zoomWindow != null)
-            hwnds.add(zoomWindow.hostHwnd);
+        if (screenshotAnimating) {
+            if (screenshotHwnd != null)
+                hwnds.add(screenshotHwnd);
+        }
+        else {
+            // During pending hide, keep screenshot above magnifier so it covers
+            // the magnifier while it renders its first frame.
+            if (screenshotPendingHide && screenshotHwnd != null)
+                hwnds.add(screenshotHwnd);
+            if (zoomWindow != null)
+                hwnds.add(zoomWindow.hostHwnd);
+        }
         if (hwnds.isEmpty())
             return;
-        if (currentZoom != null) {
+        if (currentZoom != null || screenshotAnimating) {
             // During zoom, use relative positioning to maintain z-order.
             // Avoid SetWindowPos(hwnd, HWND_TOPMOST) which causes a DWM
             // recomposition glitch visible as a brief indicator flicker.
@@ -944,6 +974,47 @@ public class WindowsOverlay {
 
     }
 
+    private static class ScreenshotWidget extends QWidget {
+        private QPixmap pixmap;
+        private Zoom zoom;
+        private Rectangle screenRect;
+
+        ScreenshotWidget() {
+            setWindowFlags(Qt.WindowType.FramelessWindowHint);
+        }
+
+        void setScreenshot(QPixmap pixmap, Rectangle screenRect) {
+            this.pixmap = pixmap;
+            this.screenRect = screenRect;
+        }
+
+        void setZoom(Zoom zoom) {
+            this.zoom = zoom;
+        }
+
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            if (pixmap == null || zoom == null)
+                return;
+            double zoomPercent = zoom.percent();
+            double localCenterX = zoom.center().x() - screenRect.x();
+            double localCenterY = zoom.center().y() - screenRect.y();
+            double sourceWidth = screenRect.width() / zoomPercent;
+            double sourceHeight = screenRect.height() / zoomPercent;
+            double sourceX = localCenterX - sourceWidth / 2;
+            double sourceY = localCenterY - sourceHeight / 2;
+            QPainter painter = new QPainter(this);
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
+            QRectF sourceRect = new QRectF(sourceX, sourceY, sourceWidth, sourceHeight);
+            QRectF targetRect = new QRectF(0, 0, width(), height());
+            painter.drawPixmap(targetRect, pixmap, sourceRect);
+            sourceRect.dispose();
+            targetRect.dispose();
+            painter.end();
+            painter.dispose();
+        }
+    }
+
     private static int indicatorSize(double screenScale) {
         return scaledPixels(currentIndicator.size(), screenScale);
     }
@@ -975,8 +1046,10 @@ public class WindowsOverlay {
             Point cursorCenter = WindowsMouse.cursorVisualCenter();
             double centerX = mousePosition.x + cursorCenter.x();
             double centerY = mousePosition.y + cursorCenter.y();
-            centerX = Math.max(screen.x(), Math.min(centerX, screen.x() + screen.width()));
-            centerY = Math.max(screen.y(), Math.min(centerY, screen.y() + screen.height()));
+            centerX = Math.max(screen.x(), Math.min(centerX,
+                    screen.x() + screen.width()));
+            centerY = Math.max(screen.y(), Math.min(centerY,
+                    screen.y() + screen.height()));
             return new Point(zoomedX(centerX) - visualSize / 2.0,
                     zoomedY(centerY) - visualSize / 2.0);
         }
@@ -3783,6 +3856,112 @@ public class WindowsOverlay {
         indicatorWindow.widget.repaint();
     }
 
+    private static void createScreenshotWindow() {
+        screenshotWidget = new ScreenshotWidget();
+        screenshotHwnd = new WinDef.HWND(new Pointer(screenshotWidget.winId()));
+        long currentStyle =
+                User32.INSTANCE.GetWindowLongPtr(screenshotHwnd, WinUser.GWL_EXSTYLE)
+                               .longValue();
+        long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
+                        ExtendedUser32.WS_EX_TOOLWINDOW |
+                        ExtendedUser32.WS_EX_TRANSPARENT;
+        User32.INSTANCE.SetWindowLongPtr(screenshotHwnd, WinUser.GWL_EXSTYLE,
+                new Pointer(newStyle));
+        // Make topmost so it's in the same z-band as the magnifier.
+        User32.INSTANCE.SetWindowPos(screenshotHwnd, ExtendedUser32.HWND_TOPMOST,
+                0, 0, 0, 0,
+                WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
+    }
+
+    public static void startScreenshotZoomAnimation(Rectangle screenRect) {
+        if (screenshotAnimating || screenshotPendingHide) {
+            // Interruption: reset flags without hiding (avoids unzoomed flash).
+            screenshotAnimating = false;
+            screenshotPendingHide = false;
+        }
+        if (screenshotWidget == null)
+            createScreenshotWindow();
+        screenshotAnimating = true;
+        screenshotWidget.move(screenRect.x(), screenRect.y());
+        screenshotWidget.resize(screenRect.width(), screenRect.height());
+        // Exclude all our windows from capture via WDA so grabWindow
+        // sees only the desktop content underneath.
+        boolean magnifierVisible = zoomWindow != null && currentZoom != null;
+        if (magnifierVisible) {
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    zoomWindow.hostHwnd(),
+                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+            if (standByZoomWindow != null)
+                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                        standByZoomWindow.hostHwnd(),
+                        ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+        }
+        if (showingIndicator)
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    indicatorWindow.hwnd(),
+                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    hintMeshWindow.hwnd(),
+                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+        QPixmap capture = QApplication.primaryScreen().grabWindow(
+                0, screenRect.x(), screenRect.y(),
+                screenRect.width(), screenRect.height());
+        // Restore WDA on all windows.
+        if (magnifierVisible) {
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    zoomWindow.hostHwnd(), ExtendedUser32.WDA_NONE);
+            if (standByZoomWindow != null)
+                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                        standByZoomWindow.hostHwnd(), ExtendedUser32.WDA_NONE);
+        }
+        if (showingIndicator)
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    indicatorWindow.hwnd(), ExtendedUser32.WDA_NONE);
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    hintMeshWindow.hwnd(), ExtendedUser32.WDA_NONE);
+        screenshotPixmap = capture;
+        screenshotWidget.setScreenshot(capture, screenRect);
+        if (magnifierVisible)
+            screenshotWidget.setZoom(currentZoom);
+        screenshotWidget.show();
+        screenshotWidget.repaint();
+        setTopmost();
+    }
+
+    public static void updateScreenshotZoom(Zoom zoom) {
+        if (!screenshotAnimating)
+            return;
+        currentZoom = zoom;
+        screenshotWidget.setZoom(zoom);
+        screenshotWidget.repaint();
+        if (indicatorWindow != null)
+            moveAndResizeIndicatorWindow();
+        setTopmost();
+    }
+
+    public static void endScreenshotZoomAnimation(Zoom finalZoom) {
+        if (!screenshotAnimating)
+            return;
+        screenshotAnimating = false;
+        // Reset so setZoom(null) doesn't early-return with stale currentZoom.
+        currentZoom = null;
+        if (finalZoom != null) {
+            // Defer screenshot hide by one frame so magnifier renders first.
+            screenshotPendingHide = true;
+            setZoom(finalZoom);
+        }
+        else {
+            setZoom(null);
+            screenshotWidget.hide();
+            if (screenshotPixmap != null) {
+                screenshotWidget.setScreenshot(null, null);
+                screenshotPixmap = null;
+            }
+        }
+    }
+
     public static void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
@@ -3867,6 +4046,8 @@ public class WindowsOverlay {
             hwnds.add(indicatorWindow.hwnd);
         if (standByZoomWindow != null)
             hwnds.add(standByZoomWindow.hwnd);
+        if (screenshotHwnd != null)
+            hwnds.add(screenshotHwnd);
         if (hwnds.isEmpty())
             return;
         if (!Magnification.INSTANCE.MagSetWindowFilterList(zoomWindow.hwnd(),

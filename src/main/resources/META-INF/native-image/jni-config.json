@@ -799,6 +799,10 @@
   "methods":[{"name":"clearOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","double"] }, {"name":"clearOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","double","double","mousemaster.FillDirection"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor","boolean"] }, {"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double"] }, {"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double","mousemaster.FillDirection","double"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","mousemaster.FillDirection","double","io.qt.gui.QColor","double","double","mousemaster.FillDirection"] }]
 },
 {
+  "name":"mousemaster.WindowsOverlay$ScreenshotWidget",
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setScreenshot","parameterTypes":["io.qt.gui.QPixmap","mousemaster.Rectangle"] }, {"name":"setZoom","parameterTypes":["mousemaster.Zoom"] }]
+},
+{
   "name":"mousemaster.WindowsOverlay$StackedShadowEffect",
   "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"redrawSourceOverShadow","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setStackCount","parameterTypes":["int"] }, {"name":"setStackedOpacity","parameterTypes":["double"] }, {"name":"setTransparencyOnly","parameterTypes":["boolean"] }]
 },

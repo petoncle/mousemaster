@@ -116,4 +116,8 @@ public interface ExtendedUser32 extends User32 {
 
     boolean EnumThreadWindows(int dwThreadId, WinUser.WNDENUMPROC lpfn, Pointer lParam);
 
+    boolean SetWindowDisplayAffinity(WinDef.HWND hWnd, int dwAffinity);
+    int WDA_NONE = 0x00000000;
+    int WDA_EXCLUDEFROMCAPTURE = 0x00000011;
+
 }

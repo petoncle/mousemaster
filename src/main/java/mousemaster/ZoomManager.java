@@ -63,10 +63,19 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             }
         }
         else {
+            // startScreenshotZoomAnimation handles the interruption if
+            // screenshotAnimating is still true — no need to end here.
             animating = true;
             animationDuration = 0;
             animationEasing = animationConfig.animationEasing();
-            animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0;
+            // Scale duration proportionally to the actual zoom change.
+            // E.g. if the configured duration covers 1x→3x but we only need
+            // 1.2x→1x (interrupted at 10%), use 10% of the configured duration.
+            double fullRange = Math.abs(animationConfig.percent() - 1.0);
+            double actualRange = Math.abs(beginPercent - endPercent);
+            double durationScale = fullRange > 0 ? actualRange / fullRange : 1.0;
+            animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0
+                    * durationScale;
             beginCenterPoint = currentCenterPoint != null
                     ? currentCenterPoint
                     : screenManager.activeScreen().rectangle().center();
@@ -95,6 +104,13 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 endHintMesh = null;
                 endHintZoomCenter = null;
             }
+            // Start screenshot-based zoom animation.
+            Screen screen = screenManager.nearestScreenContaining(
+                    beginCenterPoint.x(), beginCenterPoint.y());
+            WindowsOverlay.startScreenshotZoomAnimation(screen.rectangle());
+            // Paint the t=0 frame immediately.
+            Zoom beginZoom = new Zoom(beginPercent, beginCenterPoint, screen.rectangle());
+            WindowsOverlay.updateScreenshotZoom(beginZoom);
         }
     }
 
@@ -117,7 +133,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                 centerPoint.y());
         Zoom currentZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
-        WindowsOverlay.setZoom(currentZoom);
+        WindowsOverlay.updateScreenshotZoom(currentZoom);
         if (endHintMesh != null) {
             HintMesh interpolatedMesh = interpolateHintMesh(endHintMesh,
                     endHintZoomCenter, centerPoint,
@@ -126,17 +142,19 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         }
         if (t >= 1.0) {
             animating = false;
+            Zoom endZoom = currentPercent == 1.0 ? null :
+                    new Zoom(currentPercent, centerPoint, screen.rectangle());
+            WindowsOverlay.endScreenshotZoomAnimation(endZoom);
             if (endHintMesh != null) {
                 // Restore the final hint mesh.
-                Zoom endZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
+                if (endZoom == null)
+                    endZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
                 WindowsOverlay.setHintMesh(endHintMesh, endZoom);
                 endHintMesh = null;
                 endHintZoomCenter = null;
             }
-            if (currentPercent == 1.0) {
+            if (currentPercent == 1.0)
                 currentCenterPoint = null;
-                WindowsOverlay.setZoom(null);
-            }
         }
     }
 
