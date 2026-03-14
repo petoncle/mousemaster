@@ -1007,6 +1007,7 @@ public class WindowsOverlay {
             double sourceX = localCenterX - sourceWidth / 2;
             double sourceY = localCenterY - sourceHeight / 2;
             QPainter painter = new QPainter(this);
+            painter.fillRect(0, 0, width(), height(), new QColor(0, 0, 0));
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
             QRectF sourceRect = new QRectF(sourceX, sourceY, sourceWidth, sourceHeight);
             QRectF targetRect = new QRectF(0, 0, width(), height());
