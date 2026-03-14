@@ -981,6 +981,7 @@ public class WindowsOverlay {
 
         ScreenshotWidget() {
             setWindowFlags(Qt.WindowType.FramelessWindowHint);
+            setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
         }
 
         void setScreenshot(QPixmap pixmap, Rectangle screenRect) {
@@ -3864,6 +3865,7 @@ public class WindowsOverlay {
                                .longValue();
         long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
                         ExtendedUser32.WS_EX_TOOLWINDOW |
+                        ExtendedUser32.WS_EX_LAYERED |
                         ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(screenshotHwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
