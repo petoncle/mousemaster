@@ -1,8 +1,10 @@
 package mousemaster;
 
+import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.ptr.PointerByReference;
 import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.QApplication;
@@ -3929,6 +3931,7 @@ public class WindowsOverlay {
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
                     hintMeshWindow.hwnd(), ExtendedUser32.WDA_NONE);
+        drawCursorOnto(capture, screenRect);
         screenshotPixmap = capture;
         screenshotWidget.setScreenshot(capture, screenRect);
         if (magnifierVisible)
@@ -3936,6 +3939,141 @@ public class WindowsOverlay {
         screenshotWidget.show();
         screenshotWidget.repaint();
         setTopmost();
+    }
+
+    private static void drawCursorOnto(QPixmap pixmap, Rectangle screenRect) {
+        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
+        if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) ||
+            cursorInfo.hCursor == null)
+            return;
+        WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+        if (!User32.INSTANCE.GetIconInfo(
+                new WinDef.HICON(cursorInfo.hCursor), iconInfo))
+            return;
+        try {
+            WinGDI.BITMAP bmpInfo = new WinGDI.BITMAP();
+            WinDef.HBITMAP sizeBmp = iconInfo.hbmColor != null
+                    ? iconInfo.hbmColor : iconInfo.hbmMask;
+            GDI32.INSTANCE.GetObject(sizeBmp, bmpInfo.size(),
+                    bmpInfo.getPointer());
+            bmpInfo.read();
+            int width = bmpInfo.bmWidth.intValue();
+            int height = bmpInfo.bmHeight.intValue();
+            if (iconInfo.hbmColor == null)
+                height /= 2; // Monochrome: double-height (AND + XOR).
+            if (width <= 0 || height <= 0)
+                return;
+            int drawX = cursorInfo.ptScreenPos.x - iconInfo.xHotspot
+                    - screenRect.x();
+            int drawY = cursorInfo.ptScreenPos.y - iconInfo.yHotspot
+                    - screenRect.y();
+            if (iconInfo.hbmColor != null) {
+                // Read color bitmap as 32-bit BGRA.
+                byte[] colorData = readBitmap32(iconInfo.hbmColor, width, height);
+                if (colorData == null)
+                    return;
+                // Check if this is a standard alpha cursor or an XOR cursor.
+                boolean hasAlpha = false;
+                for (int i = 3; i < colorData.length; i += 4) {
+                    if (colorData[i] != 0) {
+                        hasAlpha = true;
+                        break;
+                    }
+                }
+                if (hasAlpha) {
+                    // Standard alpha cursor — draw directly.
+                    QImage cursorImage = new QImage(colorData, width, height,
+                            QImage.Format.Format_ARGB32);
+                    QPainter painter = new QPainter(pixmap);
+                    painter.drawImage(drawX, drawY, cursorImage);
+                    painter.end();
+                    painter.dispose();
+                    cursorImage.dispose();
+                }
+                else {
+                    // XOR cursor (e.g. I-beam): alpha=0, non-black RGB is XOR mask.
+                    // Read AND mask to determine opaque vs XOR pixels.
+                    byte[] maskData = iconInfo.hbmMask != null
+                            ? readBitmap32(iconInfo.hbmMask, width, height)
+                            : null;
+                    // Read background from pixmap for XOR blending.
+                    QImage bgImage = pixmap.toImage();
+                    byte[] resultData = new byte[width * height * 4];
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            int idx = (y * width + x) * 4;
+                            int cB = colorData[idx] & 0xFF;
+                            int cG = colorData[idx + 1] & 0xFF;
+                            int cR = colorData[idx + 2] & 0xFF;
+                            // AND mask: 0x000000=opaque, 0xFFFFFF=transparent/XOR.
+                            boolean andTransparent = true;
+                            if (maskData != null) {
+                                andTransparent =
+                                        (maskData[idx] & 0xFF) != 0 ||
+                                        (maskData[idx + 1] & 0xFF) != 0 ||
+                                        (maskData[idx + 2] & 0xFF) != 0;
+                            }
+                            if (!andTransparent) {
+                                // AND=0: opaque pixel, use color directly.
+                                resultData[idx] = (byte) cB;
+                                resultData[idx + 1] = (byte) cG;
+                                resultData[idx + 2] = (byte) cR;
+                                resultData[idx + 3] = (byte) 0xFF;
+                            }
+                            else if (cB != 0 || cG != 0 || cR != 0) {
+                                // AND=1, color!=0: XOR with background.
+                                int px = drawX + x;
+                                int py = drawY + y;
+                                if (px >= 0 && px < bgImage.width() &&
+                                    py >= 0 && py < bgImage.height()) {
+                                    int bgPixel = bgImage.pixel(px, py);
+                                    int bgR = (bgPixel >> 16) & 0xFF;
+                                    int bgG = (bgPixel >> 8) & 0xFF;
+                                    int bgB = bgPixel & 0xFF;
+                                    resultData[idx] = (byte) (bgB ^ cB);
+                                    resultData[idx + 1] = (byte) (bgG ^ cG);
+                                    resultData[idx + 2] = (byte) (bgR ^ cR);
+                                    resultData[idx + 3] = (byte) 0xFF;
+                                }
+                            }
+                            // else AND=1, color=0: transparent, leave as zero.
+                        }
+                    }
+                    QImage resultImage = new QImage(resultData, width, height,
+                            QImage.Format.Format_ARGB32);
+                    QPainter painter = new QPainter(pixmap);
+                    painter.drawImage(drawX, drawY, resultImage);
+                    painter.end();
+                    painter.dispose();
+                    resultImage.dispose();
+                    bgImage.dispose();
+                }
+            }
+            // else: mask-only (monochrome) cursor — skip for now.
+        }
+        finally {
+            if (iconInfo.hbmColor != null)
+                GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
+            if (iconInfo.hbmMask != null)
+                GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
+        }
+    }
+
+    private static byte[] readBitmap32(WinDef.HBITMAP bitmap, int width,
+                                       int height) {
+        WinGDI.BITMAPINFO bi = new WinGDI.BITMAPINFO();
+        bi.bmiHeader.biWidth = width;
+        bi.bmiHeader.biHeight = -height; // Top-down.
+        bi.bmiHeader.biPlanes = 1;
+        bi.bmiHeader.biBitCount = 32;
+        Memory pixels = new Memory((long) width * height * 4);
+        WinDef.HDC hdc = GDI32.INSTANCE.CreateCompatibleDC(null);
+        int result = GDI32.INSTANCE.GetDIBits(hdc, bitmap, 0, height,
+                pixels, bi, WinGDI.DIB_RGB_COLORS);
+        GDI32.INSTANCE.DeleteDC(hdc);
+        if (result == 0)
+            return null;
+        return pixels.getByteArray(0, width * height * 4);
     }
 
     public static void updateScreenshotZoom(Zoom zoom) {

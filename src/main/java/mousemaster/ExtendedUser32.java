@@ -120,4 +120,9 @@ public interface ExtendedUser32 extends User32 {
     int WDA_NONE = 0x00000000;
     int WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
+    boolean DrawIconEx(HDC hdc, int xLeft, int yTop, HICON hIcon,
+                       int cxWidth, int cyWidth, int istepIfAniCur,
+                       WinDef.HBRUSH hbrFlickerFreeDraw, int diFlags);
+    int DI_NORMAL = 0x0003;
+
 }
