@@ -342,7 +342,8 @@
   "fields":[{"name":"applicationDisplayNameChanged"}, {"name":"applicationStateChanged"}, {"name":"commitDataRequest"}, {"name":"focusObjectChanged"}, {"name":"focusWindowChanged"}, {"name":"fontChanged"}, {"name":"fontDatabaseChanged"}, {"name":"lastWindowClosed"}, {"name":"layoutDirectionChanged"}, {"name":"paletteChanged"}, {"name":"primaryScreenChanged"}, {"name":"saveStateRequest"}, {"name":"screenAdded"}, {"name":"screenRemoved"}]
 },
 {
-  "name":"io.qt.gui.QImage"
+  "name":"io.qt.gui.QImage",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
 },
 {
   "name":"io.qt.gui.QImage$Format",

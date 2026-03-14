@@ -107,10 +107,8 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             // Start screenshot-based zoom animation.
             Screen screen = screenManager.nearestScreenContaining(
                     beginCenterPoint.x(), beginCenterPoint.y());
-            WindowsOverlay.startScreenshotZoomAnimation(screen.rectangle());
-            // Paint the t=0 frame immediately.
             Zoom beginZoom = new Zoom(beginPercent, beginCenterPoint, screen.rectangle());
-            WindowsOverlay.updateScreenshotZoom(beginZoom);
+            WindowsOverlay.startScreenshotZoomAnimation(screen.rectangle(), beginZoom);
         }
     }
 

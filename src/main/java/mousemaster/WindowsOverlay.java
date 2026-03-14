@@ -97,7 +97,11 @@ public class WindowsOverlay {
         // the screenshot that covers it.
         if (screenshotPendingHide) {
             screenshotPendingHide = false;
-            screenshotWidget.hide();
+            // Don't hide() the widget: showing a hidden layered window
+            // briefly exposes its stale surface. Instead, clear its content
+            // so it becomes transparent (WA_TranslucentBackground).
+            screenshotWidget.setZoom(null);
+            screenshotWidget.repaint();
             if (screenshotPixmap != null) {
                 screenshotWidget.setScreenshot(null, null);
                 screenshotPixmap = null;
@@ -3878,10 +3882,10 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
     }
 
-    public static void startScreenshotZoomAnimation(Rectangle screenRect) {
-        boolean interruptingAnimation = screenshotAnimating || screenshotPendingHide;
-        if (interruptingAnimation) {
-            // Interruption: reset flags without hiding (avoids unzoomed flash).
+    public static void startScreenshotZoomAnimation(Rectangle screenRect,
+                                                      Zoom beginZoom) {
+        boolean interruptingMidAnimation = screenshotAnimating;
+        if (screenshotAnimating || screenshotPendingHide) {
             screenshotAnimating = false;
             screenshotPendingHide = false;
         }
@@ -3890,9 +3894,10 @@ public class WindowsOverlay {
         screenshotAnimating = true;
         screenshotWidget.move(screenRect.x(), screenRect.y());
         screenshotWidget.resize(screenRect.width(), screenRect.height());
-        if (interruptingAnimation && screenshotPixmap != null) {
-            // Reuse existing pixmap: the screenshot widget is already visible
-            // with the correct 1x desktop content.
+        if (interruptingMidAnimation && screenshotPixmap != null) {
+            // Reuse existing pixmap only during mid-animation interruption:
+            // the screenshot widget is already visible with the correct
+            // 1x desktop content.
             return;
         }
         // Exclude all our windows from capture via WDA so grabWindow
@@ -3915,6 +3920,9 @@ public class WindowsOverlay {
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
                     hintMeshWindow.hwnd(),
                     ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+        if (screenshotHwnd != null)
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    screenshotHwnd, ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         QPixmap capture = QApplication.primaryScreen().grabWindow(
                 0, screenRect.x(), screenRect.y(),
                 screenRect.width(), screenRect.height());
@@ -3932,12 +3940,16 @@ public class WindowsOverlay {
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
                     hintMeshWindow.hwnd(), ExtendedUser32.WDA_NONE);
+        if (screenshotHwnd != null)
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
+                    screenshotHwnd, ExtendedUser32.WDA_NONE);
         drawCursorOnto(capture, screenRect);
         screenshotPixmap = capture;
         screenshotWidget.setScreenshot(capture, screenRect);
-        if (magnifierVisible)
-            screenshotWidget.setZoom(currentZoom);
-        screenshotWidget.show();
+        currentZoom = beginZoom;
+        screenshotWidget.setZoom(beginZoom);
+        if (!screenshotWidget.isVisible())
+            screenshotWidget.show();
         screenshotWidget.repaint();
         setTopmost();
     }
@@ -4101,7 +4113,11 @@ public class WindowsOverlay {
         }
         else {
             setZoom(null);
-            screenshotWidget.hide();
+            // Don't hide() the widget: showing a hidden layered window
+            // briefly exposes its stale surface. Instead, clear its content
+            // so it becomes transparent (WA_TranslucentBackground).
+            screenshotWidget.setZoom(null);
+            screenshotWidget.repaint();
             if (screenshotPixmap != null) {
                 screenshotWidget.setScreenshot(null, null);
                 screenshotPixmap = null;
