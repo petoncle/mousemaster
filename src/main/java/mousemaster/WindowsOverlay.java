@@ -3876,7 +3876,8 @@ public class WindowsOverlay {
     }
 
     public static void startScreenshotZoomAnimation(Rectangle screenRect) {
-        if (screenshotAnimating || screenshotPendingHide) {
+        boolean interruptingAnimation = screenshotAnimating || screenshotPendingHide;
+        if (interruptingAnimation) {
             // Interruption: reset flags without hiding (avoids unzoomed flash).
             screenshotAnimating = false;
             screenshotPendingHide = false;
@@ -3886,6 +3887,11 @@ public class WindowsOverlay {
         screenshotAnimating = true;
         screenshotWidget.move(screenRect.x(), screenRect.y());
         screenshotWidget.resize(screenRect.width(), screenRect.height());
+        if (interruptingAnimation && screenshotPixmap != null) {
+            // Reuse existing pixmap: the screenshot widget is already visible
+            // with the correct 1x desktop content.
+            return;
+        }
         // Exclude all our windows from capture via WDA so grabWindow
         // sees only the desktop content underneath.
         boolean magnifierVisible = zoomWindow != null && currentZoom != null;
