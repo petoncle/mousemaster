@@ -164,17 +164,6 @@ public class KeyboardManager {
                             processingSet.isIgnoredByLeadingWait()) {
                             PressKeyEventProcessingSet releaseProcessingSet =
                                     comboWatcher.keyEvent(keyEvent);
-                            if (!currentlyPressedKeys.containsKey(key)) {
-                                // comboWatcher runs a command which can show the hint which calls
-                                // window.show() from WindowsOverlay#transitionHintContainers.
-                                // When doing that, control goes back to JNA which can call the Windows callback,
-                                // which calls WindowsPlatform#keyEvent.
-                                // This second callback should not happen because
-                                // we are already in the callback. Also, the second callback does not
-                                // execute everything: a log line placed in WindowsPlatform#keyEvent would be
-                                // displayed only by the first callback.
-                                return eatAndRegurgitates(processingSet.mustBeEaten(), List.of());
-                            }
                             if (!releaseProcessingSet.handled()) {
                                 regurgitates = buildRegurgitates(null, key, Set.of());
                             }
