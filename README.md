@@ -2,9 +2,8 @@
 
 <a href="https://discord.gg/GSB6MaKb2R"><img src="https://img.shields.io/discord/854326924402622474?color=%235865F2&label=discord" alt="Join Discord Chat"></a>
 
-- A keyboard driven interface for mouseless mouse manipulation
-- Heavily inspired by [warpd](https://github.com/rvaiya/warpd)
-  and [mouseable](https://github.com/wirekang/mouseable/)
+- Keyboard driven mouseless mouse control and advanced keyboard customization
+- Heavily inspired by [warpd](https://github.com/rvaiya/warpd), [mouseable](https://github.com/wirekang/mouseable/) and [kanata](https://github.com/jtroo/kanata)
 
 <p align="center">
 <a href="#demo">Demo</a> •
@@ -12,8 +11,6 @@
 <a href="#installation">Installation</a> •
 <a href="#usage">Usage</a> •
 <a href="#features">Features</a> •
-<a href="#configuration">Configuration</a> •
-<a href="#troubleshooting">Troubleshooting</a> •
 <a href="#contributing">Contributing</a>
 </p>
 
@@ -38,21 +35,15 @@ https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-
 ### Mouse Movements Demo
 https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
 
-### Indicator Customization
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/85b8b0c7-fa5e-429c-bbe6-1eabf55c4c20" style="width: 100%; height: 100%;" />
-</p>
-
 ## Overview
 
-mousemaster allows you to control your mouse cursor using only your keyboard. It provides multiple navigation methods:
+mousemaster lets you control your mouse from the keyboard and remap your keys.
 
-- **Normal mode**: Move the mouse cursor with keyboard keys (IJKL by default)
-- **Hint mode**: Display labeled hints (letters/numbers) across the screen that you can select with keystrokes to instantly move the cursor to that location
-- **Grid mode**: Divide the screen into a grid that you can progressively refine to narrow down to a specific area
-- **Screen selection mode**: Quickly move between multiple monitors
-
-All modes and key bindings are fully customizable through a configuration file.
+- **Continuous mouse movement**: Move the cursor with keyboard keys (IJKL by default), click, scroll, and drag
+- **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there
+- **UI hint navigation**: Label buttons, links, and text fields in the active window
+- **Grid navigation**: Divide the screen into a grid that you progressively refine to narrow down to a specific area
+- **Key remapping**: Define combos to remap keys, send key sequences, or type text
 
 ## Installation
 
@@ -84,6 +75,7 @@ The recommended configuration uses the following key bindings:
 - **Mouse buttons**: _;_ (left), _rightshift_ (middle), _'_ (right)
 - **Grid mode**: Press _g_
 - **Hint mode**: Press _f_
+- **UI Hint mode**: Press _leftalt + f_
 - **Screen selection**: Press _c_
 
 ![neo-mousekeys-ijkl layout](https://github.com/user-attachments/assets/5e0aa96d-96f2-4349-9b2f-26dcca4933c0)
@@ -92,62 +84,18 @@ For a complete reference, see the [neo-mousekeys-ijkl documentation](configurati
 
 ## Features
 
-1. **Key combination system**: Supports complex key combinations including timed holds (e.g., "hold alt for 1 second"), sequential presses (e.g., "press then release alt, twice in a row"), and nested combinations (e.g., "hold alt while pressing A then B").
+1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands or remap keys. See the [combo reference](configuration/combo-reference.md).
+2. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
+3. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.
+4. **UI hint navigation**: Labels buttons, links, and text fields in the active window.
+5. **Grid navigation**: Divide the screen into 2x2 sections, shrink with each key press to reach a precise position.
+6. **Zoom**.
+7. **App-specific modes**: Auto-switch modes based on the focused app.
+8. **Cursor indicator**: Custom shape, color, outline, shadow, text label, changes per mouse state.
+9. **Position history**: Save cursor positions, jump back to them later.
+10. **Live configuration**: All configuration lives in a single file that is automatically reloaded when saved.
 
-2. **Mode-based architecture**: Implements a mode system where each mode has its own key-to-command mappings and mouse settings. The default "idle-mode" represents the disabled state with no active key mappings.
-
-3. **Many-to-many command mapping**: Supports multiple key combinations triggering the same command and single key combinations triggering multiple commands.
-
-4. **Multi-monitor support**.
-
-5. **Grid navigation**: Divides the screen into 2x2 sections that shrink with each key press, progressively narrowing down to a precise cursor position.
-
-6. **Hint navigation**: Displays hints (letters) across the screen. Type the letters to instantly move the cursor to that location.
-
-7. **UI hint navigation**: Detects interactive elements (buttons, links, text fields, etc.) in the active window and displays a label on each one.
-
-8. **Key remapping**: Remap keys in specific modes. For example, pressing a single key can send _Ctrl+V_ or _⊞ Win + down arrow_.
-
-9. **Macros**: Macros can chain key presses, launch apps, type text, or automate mousemaster commands like selecting a specific screen in one key press.
-
-10. **Zoom functionality**: Supports configurable zoom behavior per mode.
-
-11. **Application-specific configurations**: Provides context-aware mode switching based on the focused application, allowing for application-specific behavior (e.g., disabling mousemaster shortcuts in games).
-
-12. **Live configuration**: Implements automatic configuration reloading when the configuration file is modified.
-
-13. **Customizable indicator**: The cursor indicator supports custom shapes (triangle, square, circle, etc.), inner/outer outlines, drop shadow, opacity, text labels, and per-mouse-state styling.
-
-14. **Position history hints**: Absolute positions can be saved on the fly to make it possible to move the mouse to them later.
-
-## Configuration
-
-mousemaster is highly configurable through its configuration file. The configuration file is automatically reloaded when saved.
-For a complete reference of all configuration concepts and options, see the [configuration reference](configuration/configuration-reference.md). The reference document covers key aliases, combos, modes, mouse properties, hint properties, grid properties, app aliases, position history, logging, keyboard layout, and more.
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Overlay not visible in some applications**:
-   - Run mousemaster.exe as administrator to ensure the overlay appears on top of all windows
-
-2. **Keyboard layout issues**:
-   - If your keyboard layout isn't automatically detected, specify it in the configuration:
-     ```properties
-     forced-active-keyboard-layout=us-dvorak
-     ```
-     See [Keyboard layout](configuration/configuration-reference.md#keyboard-layout)
-     for more details.
-
-4. **Conflicts with other applications**:
-   - Create app-specific modes to disable mousemaster in certain applications:
-     ```properties
-     app-alias.gameapp=valorant.exe GTA5.exe
-     idle-mode.to.game-mode=_{gameapp}
-     game-mode.to.idle-mode=^{gameapp}
-     ``` 
-     See [App aliases](configuration/configuration-reference.md#app-aliases) for more details.
+mousemaster provides low-level primitives (modes, combos, commands, macros, key aliases) that you compose to build the exact behavior you want. See the [configuration reference](configuration/configuration-reference.md).
 
 ## Contributing
 
@@ -155,8 +103,7 @@ Contributions to mousemaster are welcome!
 
 - **Share a configuration**: If you have ideas for a new or improved configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
 
-
-- **Cross-platform support:** mousemaster currently supports Windows only. However, most of the overlay has been reimplemented using Qt, making it cross-platform-ready. The remaining work includes integrating support for global keyboard and mouse input handling and input simulation on macOS and Linux.
+- **Cross-platform support:** mousemaster currently supports Windows only. That said, most of the overlay has been reimplemented to be cross-platform. The remaining work is keyboard/mouse input handling and sending inputs on macOS and Linux.
 
   If you're interested in helping extend mousemaster to these platforms, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
