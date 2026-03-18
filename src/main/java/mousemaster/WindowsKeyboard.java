@@ -243,6 +243,10 @@ public class WindowsKeyboard {
             // https://stackoverflow.com/questions/44924962/sendinput-on-c-doesnt-take-ctrl-and-shift-in-account
             pInputs[moveIndex].input.ki.wVk =
                     new WinDef.WORD(windowsVirtualKey.virtualKeyCode);
+            int scanCode = activeKeyboardLayout.scanCode(move.key());
+            if (scanCode != -1)
+                pInputs[moveIndex].input.ki.wScan =
+                        new WinDef.WORD(scanCode & 0xFF);
             int flag = (extendedKeys.contains(move.key()) ? 1 : 0) | (!move.press() ? 2 : 0);
             // If KEYEVENTF_EXTENDEDKEY dwFlag is not set,
             // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
