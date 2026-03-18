@@ -21,7 +21,10 @@
 A **combo** is a pattern of keyboard events (presses and releases) that triggers an action. Combos are defined as property values in mode configuration:
 
 ```properties
-mode-name.property-type.name=combo-expression
+idle-mode.to.normal-mode=combo              mode switch
+normal-mode.press.left=combo                mouse press
+normal-mode.release.left=combo              mouse release
+normal-mode.macro.copy=combo -> output      macro
 ```
 
 A combo expression has two parts: optional **preconditions** followed by a **move sequence**:
@@ -63,7 +66,7 @@ Matches a key release. The release event is **eaten** if the corresponding press
 
 ### Tap: `key`
 
-Shorthand for press then release of the same key. Requires two events: a press followed by its matching release.
+Shorthand for press then release of the same key. Requires two events: a press followed by its matching release. The press and release events are **eaten**.
 
 ```
 a               press a, then release a
@@ -317,8 +320,6 @@ The `!` modifier matches any key **except** the specified one from an alias.
 +!modifierkey        press any key that is NOT in the modifierkey alias
 -!directionkey       release any key that is NOT in the directionkey alias
 ```
-
-This is used for matching "the other key" in advanced combo patterns.
 
 ---
 
