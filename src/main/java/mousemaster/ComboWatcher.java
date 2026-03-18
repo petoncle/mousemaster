@@ -832,16 +832,20 @@ public class ComboWatcher implements ModeListener {
             // even if not yet matched (e.g. partial match of a multi-move MoveSet).
             // For fully matched moves, the reverse-apply step above already removed
             // them, so this is redundant but harmless for those.
+            // Skip negated moves: a negated move like #!alias matches any key NOT
+            // in the alias. Its actual resolved key is already handled by
+            // reverse-apply above. Checking the unresolved negated pattern here
+            // would incorrectly remove unrelated precondition keys.
             candidatePressedPreconditionKeys.removeIf(candidateKey ->
                     combo.sequence().moveSets().stream()
                             .filter(ms -> ms instanceof KeyMoveSet)
                             .map(ms -> (KeyMoveSet) ms)
                             .anyMatch(kms ->
                                     kms.requiredMoves().stream()
-                                            .anyMatch(move -> (move.isPress() || move.isTap()) &&
+                                            .anyMatch(move -> !move.negated() && (move.isPress() || move.isTap()) &&
                                                       optionalMoveMatchesKey(move, candidateKey)) ||
                                     kms.optionalMoves().stream()
-                                            .anyMatch(move -> (move.isPress() || move.isTap()) &&
+                                            .anyMatch(move -> !move.negated() && (move.isPress() || move.isTap()) &&
                                                       optionalMoveMatchesKey(move, candidateKey))));
             if (group.satisfiedBy(candidatePressedPreconditionKeys))
                 return candidatePressedPreconditionKeys;

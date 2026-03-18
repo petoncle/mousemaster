@@ -1260,4 +1260,67 @@ class ComboPreparationTest {
         assertTrue(match.complete(),
                 "#{*} inside braces should absorb unrelated keys");
     }
+
+    // --- Negated press move tests ---
+
+    @Test
+    void negatedPress_nonMatchingKey_complete() {
+        // #!alias: press a key that is NOT in the alias → should match.
+        Key i = Key.ofName("i");
+        Key j = Key.ofName("j");
+        Key k = Key.ofName("k");
+        Key l = Key.ofName("l");
+        Key leftshift = Key.ofName("leftshift");
+        Key leftctrl = Key.ofName("leftctrl");
+        Key leftwin = Key.ofName("leftwin");
+        Key f = Key.ofName("f");
+        Map<String, KeyAlias> aliases = Map.of(
+                "arrowbaseormodifier", new KeyAlias("arrowbaseormodifier",
+                        List.of(i, j, k, l, leftshift, leftctrl, leftwin)));
+        ComboSequence combo = parseCombo("#!arrowbaseormodifier", aliases);
+        ComboSequenceMatch match = prep("+f").match(combo);
+        assertTrue(match.complete(),
+                "#!arrowbaseormodifier should match +f since f is not in the alias");
+    }
+
+    @Test
+    void negatedPress_matchingKey_noMatch() {
+        // #!alias: press a key that IS in the alias → should not match.
+        Key i = Key.ofName("i");
+        Key j = Key.ofName("j");
+        Key k = Key.ofName("k");
+        Key l = Key.ofName("l");
+        Key leftshift = Key.ofName("leftshift");
+        Key leftctrl = Key.ofName("leftctrl");
+        Key leftwin = Key.ofName("leftwin");
+        Map<String, KeyAlias> aliases = Map.of(
+                "arrowbaseormodifier", new KeyAlias("arrowbaseormodifier",
+                        List.of(i, j, k, l, leftshift, leftctrl, leftwin)));
+        ComboSequence combo = parseCombo("#!arrowbaseormodifier", aliases);
+        ComboSequenceMatch match = prep("+j").match(combo);
+        assertFalse(match.complete(),
+                "#!arrowbaseormodifier should not match +j since j is in the alias");
+    }
+
+    @Test
+    void negatedPress_afterPriorEvents_complete() {
+        // Simulates the repressalt scenario: preparation has prior arrow key events,
+        // then +f is pressed. The combo #!arrowbaseormodifier should match the +f suffix.
+        Key leftalt = Key.ofName("leftalt");
+        Key i = Key.ofName("i");
+        Key j = Key.ofName("j");
+        Key k = Key.ofName("k");
+        Key l = Key.ofName("l");
+        Key leftshift = Key.ofName("leftshift");
+        Key leftctrl = Key.ofName("leftctrl");
+        Key leftwin = Key.ofName("leftwin");
+        Key f = Key.ofName("f");
+        Map<String, KeyAlias> aliases = Map.of(
+                "arrowbaseormodifier", new KeyAlias("arrowbaseormodifier",
+                        List.of(i, j, k, l, leftshift, leftctrl, leftwin)));
+        ComboSequence combo = parseCombo("#!arrowbaseormodifier", aliases);
+        ComboSequenceMatch match = prep("+leftalt +j -j +j -j +j -j +f").match(combo);
+        assertTrue(match.complete(),
+                "#!arrowbaseormodifier should match +f suffix even with prior events in preparation");
+    }
 }
