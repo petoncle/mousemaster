@@ -273,6 +273,10 @@ public class ComboWatcher implements ModeListener {
             processKeyEventForCurrentMode(null, false);
         }
         else if (currentMode != beforeMode) {
+            if (hasComboPreparationBreaker) {
+                breakComboPreparation();
+                hasComboPreparationBreaker = false;
+            }
             PressKeyEventProcessingSet processingSet =
                     processKeyEventForCurrentMode(null, false);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
@@ -1025,6 +1029,9 @@ public class ComboWatcher implements ModeListener {
     public void modeChanged(Mode newMode) {
         currentMode = newMode;
         leadingWaitBeginTimeByCombo.clear();
+        lastEventTimeByKey.clear();
+        lastPressEventTime = null;
+        lastReleaseEventTime = null;
         combosBlockedFromRerunningCommand.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
