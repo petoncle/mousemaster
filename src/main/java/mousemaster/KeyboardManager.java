@@ -26,7 +26,7 @@ public class KeyboardManager {
     /**
      * All eaten keys in press order.
      * If the combo later fails, these keys are regurgitated in press order.
-     * If the combo completes, they are cleared.
+     * If a combo completes, only eaten keys whose combos are all completed are removed.
      */
     private final Map<Key, Eat> eatenKeys = new LinkedHashMap<>();
     private MacroPlayer macroPlayer;
@@ -55,7 +55,7 @@ public class KeyboardManager {
                 markOtherKeysOfTheseCombosAsCompleted(
                         watcherUpdateResult.completedCombos(),
                         watcherUpdateResult.hasComboPreparationBreaker());
-                eatenKeys.clear();
+                clearFullyCompletedEatenKeys();
             }
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 regurgitatePressedKeys();
@@ -138,7 +138,7 @@ public class KeyboardManager {
                 if (processingSet.isPartOfCompletedComboSequence()) {
                     markOtherKeysOfTheseCombosAsCompleted(
                             processingSet.partOfCompletedComboSequenceCombosWithMatches(), false);
-                    eatenKeys.clear();
+                    clearFullyCompletedEatenKeys();
                 }
                 if (processingSet.isComboPreparationBreaker()) {
                     comboWatcher.reset(key);
@@ -188,7 +188,7 @@ public class KeyboardManager {
                                 markOtherKeysOfTheseCombosAsCompleted(
                                         releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatches(),
                                         false);
-                                eatenKeys.clear();
+                                clearFullyCompletedEatenKeys();
                                 regurgitates = buildRegurgitates(key, key, Set.of());
                             }
                         }
@@ -204,7 +204,7 @@ public class KeyboardManager {
                     // Track released eaten keys that are part of a partial combo
                     // for future regurgitation if the combo fails.
                     if (mustBeEaten &&
-                        !pressedProcessingSet.isPartOfCompletedComboSequence() &&
+                        !pressedProcessingSet.isPartOfCompletedComboSequenceAndMustBeEaten() &&
                         regurgitates.stream().noneMatch(r -> r.key().equals(key))) {
                         eatenKeys.put(key, new Eat(true, pressedProcessingSet));
                     }
@@ -284,15 +284,17 @@ public class KeyboardManager {
             if (eat.released()) {
                 alsoRelease = true;
                 if (!retainCombos.isEmpty() &&
-                    processingSet.processingByCombo().keySet().stream()
-                       .anyMatch(retainCombos::contains))
+                    processingSet.processingByCombo().entrySet().stream()
+                       .anyMatch(e -> retainCombos.contains(e.getKey()) &&
+                                      e.getValue().mustBeEaten()))
                     continue;
                 keysToRemove.add(eatenKey);
             }
             else {
                 if (!retainCombos.isEmpty() &&
-                    processingSet.processingByCombo().keySet().stream()
-                       .anyMatch(retainCombos::contains))
+                    processingSet.processingByCombo().entrySet().stream()
+                       .anyMatch(e -> retainCombos.contains(e.getKey()) &&
+                                      e.getValue().mustBeEaten()))
                     continue;
                 alsoRelease = releasingKey != null && releasingKey.equals(eatenKey);
             }
@@ -355,6 +357,19 @@ public class KeyboardManager {
     public boolean isPressedKeyNotEaten(Key key) {
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
         return processingSet != null && !processingSet.mustBeEaten();
+    }
+
+    /**
+     * Remove eaten keys only when all their eating combos are completed.
+     * Keys with any in-progress eating combo remain for potential regurgitation.
+     * Non-eating combos do not prevent removal.
+     */
+    private void clearFullyCompletedEatenKeys() {
+        eatenKeys.entrySet().removeIf(entry ->
+                entry.getValue().processingSet().processingByCombo().values().stream()
+                     .allMatch(p -> !p.isPartOfComboSequence() ||
+                                    p.isPartOfCompletedComboSequence() ||
+                                    !p.mustBeEaten()));
     }
 
 }
