@@ -232,8 +232,15 @@ public class KeyboardManager {
         for (ComboAndMatch comboAndMatch : completedCombos) {
             Combo combo = comboAndMatch.combo();
             ComboSequenceMatch match = comboAndMatch.match();
-            Set<Key> pressedKeysInCompletedCombo = new HashSet<>(
-                    combo.keysPressedAfterMoves(Set.of(), match.matchedKeyMoves()));
+            // Collect all keys that were pressed at any point during the combo
+            // (not just keys still pressed at the end), so that keys pressed
+            // and released during the combo (e.g. +space +n -space -n) are also
+            // marked as completed and not regurgitated.
+            Set<Key> pressedKeysInCompletedCombo = new HashSet<>();
+            for (ResolvedKeyComboMove move : match.matchedKeyMoves()) {
+                if (move.isPress())
+                    pressedKeysInCompletedCombo.add(move.key());
+            }
             // Absorbed pressed keys (e.g. +d in {+a -a +b -b +{d}}) are also
             // part of the completed combo and should not be regurgitated.
             pressedKeysInCompletedCombo.addAll(match.absorbedPressedKeys());
@@ -241,6 +248,11 @@ public class KeyboardManager {
 
             for (Key key : pressedKeysInCompletedCombo) {
                 PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
+                if (processingSet == null) {
+                    Eat eat = eatenKeys.get(key);
+                    if (eat != null)
+                        processingSet = eat.processingSet();
+                }
                 if (processingSet == null)
                     continue;
                 Map<Combo, PressKeyEventProcessing> processingByCombo =
