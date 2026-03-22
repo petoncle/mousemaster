@@ -381,7 +381,7 @@ public class ComboWatcher implements ModeListener {
             if (!skipDurationCheck &&
                 !previousComboMoveDuration.satisfied(previousEvent.time(), event.time())) {
                 comboPreparation = ComboPreparation.empty();
-                leadingWaitBeginTimeByCombo.clear();
+                clearLeadingWaitBeginTimesExceptIgnored(event);
                 combosBlockedFromRerunningCommand.clear();
             }
         }
@@ -404,7 +404,7 @@ public class ComboWatcher implements ModeListener {
             boolean ignoredByKeyMoveSet = keyEventIgnoredByFirstKeyMoveSetInAnyCombo(event);
             if (!couldMatchOptional && !couldBePartOfOptionalTap && !ignoredByKeyMoveSet) {
                 comboPreparation = ComboPreparation.empty();
-                leadingWaitBeginTimeByCombo.clear();
+                clearLeadingWaitBeginTimesExceptIgnored(event);
                 combosBlockedFromRerunningCommand.clear();
             }
             // Check if the event is ignored by a leading wait in any combo.
@@ -994,6 +994,19 @@ public class ComboWatcher implements ModeListener {
                         new ComboAndCommands(cac.combo, resolvedCommands, cac.match));
             }
         }
+    }
+
+    /**
+     * Remove leading wait entries except those whose wait move ignores this event.
+     * Bare wait combos like #{*}-2000 should not have their timer reset by
+     * events they explicitly ignore.
+     */
+    private void clearLeadingWaitBeginTimesExceptIgnored(KeyEvent event) {
+        leadingWaitBeginTimeByCombo.entrySet().removeIf(e -> {
+            WaitComboMove waitMove =
+                    ((WaitMoveSet) e.getKey().sequence().moveSets().getFirst()).waitMove();
+            return !waitMove.matchesEvent(event);
+        });
     }
 
     public void breakComboPreparation() {
