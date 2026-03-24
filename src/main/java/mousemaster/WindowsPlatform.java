@@ -375,6 +375,7 @@ public class WindowsPlatform implements Platform {
                 }
                 inKeyboardHookCallback = true;
                 try {
+                    boolean eaten = false;
                     switch (wParam.intValue()) {
                         case WinUser.WM_KEYUP:
                         case WinUser.WM_KEYDOWN:
@@ -415,7 +416,7 @@ public class WindowsPlatform implements Platform {
                                         if (!altgrLeftctrl && keyEvent.isPress() &&
                                             keyEvent.key().equals(Key.rightalt))
                                             altgrRightaltPressEaten = true;
-                                        return new WinDef.LRESULT(1);
+                                        eaten = true;
                                     }
                                 }
                             }
@@ -432,6 +433,18 @@ public class WindowsPlatform implements Platform {
                         if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl))
                             logger.warn("Reentrant event would have been eaten but already passed through: " + reentrantKeyEvent.keyEvent);
                     }
+                    if (eaten)
+                        return new WinDef.LRESULT(1);
+                    WinDef.LRESULT result =
+                            ExtendedUser32.INSTANCE.CallNextHookEx(
+                                    keyboardHook, nCode, wParam, info);
+                    // Process reentrant events that arrived during CallNextHookEx.
+                    while (!reentrantKeyEvents.isEmpty()) {
+                        ReentrantKeyEvent reentrantKeyEvent = reentrantKeyEvents.remove(0);
+                        if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl))
+                            logger.warn("Reentrant event would have been eaten but already passed through: " + reentrantKeyEvent.keyEvent);
+                    }
+                    return result;
                 }
                 finally {
                     inKeyboardHookCallback = false;
