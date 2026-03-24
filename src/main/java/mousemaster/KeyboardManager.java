@@ -320,15 +320,7 @@ public class KeyboardManager {
                                 List<Regurgitate> regurgitates, Key eatenKey,
                                 boolean alsoRelease) {
         // One of the combo is mustBeEaten, and there is no mustBeEaten combo that is completed.
-        if (processingSet.mustBeEaten() &&
-            !processingSet.isPartOfCompletedComboSequenceAndMustBeEaten() &&
-            // Releases are always PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_NOT_BE_EATEN
-            // (instead of PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN).
-            // And if a key is released and it is part of a completed combo sequence (and
-            // if we're here it means this key release was the last move of the combo),
-            // then it should not be regurgitated.
-            !(alsoRelease && processingSet.isPartOfCompletedComboSequence())
-        ) {
+        if (processingSet.mustBeEaten() && !processingSet.isPartOfCompletedComboSequenceAndMustBeEaten()) {
             regurgitates.add(new Regurgitate(eatenKey, alsoRelease));
             // Change the key's processing to must not be eaten
             // so that it cannot be regurgitated a second time.
