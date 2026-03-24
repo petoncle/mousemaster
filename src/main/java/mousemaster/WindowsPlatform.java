@@ -43,6 +43,7 @@ public class WindowsPlatform implements Platform {
     private double enforceWindowsTopmostTimer;
     private boolean mustEatNextReleaseOfRightalt;
     private boolean altgrLeftctrlPressEaten;
+    private boolean altgrRightaltPressEaten;
     private boolean inKeyboardHookCallback = false;
     private record ReentrantKeyEvent(KeyEvent keyEvent, int infoFlags, boolean altgrLeftctrl) {}
     private final List<ReentrantKeyEvent> reentrantKeyEvents = new ArrayList<>();
@@ -407,8 +408,15 @@ public class WindowsPlatform implements Platform {
                             }
                             else {
                                 if (keyEvent != null) {
-                                    if (processKeyEvent(keyEvent, info.flags, altgrLeftctrl))
+                                    if (processKeyEvent(keyEvent, info.flags, altgrLeftctrl)) {
+                                        // Track if the real VK_RMENU press was eaten by the hook.
+                                        // If it wasn't (hook timeout from slow rendering),
+                                        // we must not eat the VK_RMENU release later.
+                                        if (!altgrLeftctrl && keyEvent.isPress() &&
+                                            keyEvent.key().equals(Key.rightalt))
+                                            altgrRightaltPressEaten = true;
                                         return new WinDef.LRESULT(1);
+                                    }
                                 }
                             }
                             break;
@@ -545,8 +553,15 @@ public class WindowsPlatform implements Platform {
         }
         else if (release && key.equals(Key.rightalt) &&
                  mustEatNextReleaseOfRightalt) {
-            eventMustBeEaten = true;
+            if (altgrRightaltPressEaten) {
+                eventMustBeEaten = true;
+            }
+            else {
+                logger.warn("VK_RMENU release would be eaten but the real " +
+                            "VK_RMENU press was not eaten, passing through");
+            }
             mustEatNextReleaseOfRightalt = false;
+            altgrRightaltPressEaten = false;
         }
         if (!eventMustBeEaten)
             lastKeyEvent = keyEvent;
