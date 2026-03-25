@@ -87,7 +87,7 @@ For a complete reference, see the [neo-mousekeys-ijkl documentation](configurati
 1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands or remap keys. See the [combo reference](configuration/combo-reference.md).
 2. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
 3. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.
-4. **UI hint navigation**: Labels buttons, links, and text fields in the active window.
+4. **UI hint navigation**: Label buttons, links, and text fields in the active window.
 5. **Grid navigation**: Divide the screen into 2x2 sections, shrink with each key press to reach a precise position.
 6. **Zoom**.
 7. **App-specific modes**: Auto-switch modes based on the focused app.
@@ -103,8 +103,7 @@ Contributions to mousemaster are welcome!
 
 - **Share a configuration**: If you have ideas for a new or improved configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
 
-- **Cross-platform support:** mousemaster currently supports Windows only. That said, most of the overlay has been reimplemented to be cross-platform. The remaining work is keyboard/mouse input handling and sending inputs on macOS and Linux.
-
+- **Cross-platform support:** mousemaster currently supports Windows only. That said, most of the overlay has been reimplemented to be cross-platform. The remaining work is keyboard/mouse input handling and sending inputs on macOS and Linux.  
   If you're interested in helping extend mousemaster to these platforms, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
 If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!
