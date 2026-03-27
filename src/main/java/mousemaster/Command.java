@@ -70,4 +70,6 @@ public sealed interface Command {
     record SelectHintKey() implements Command {}
     record UnselectHintKey() implements Command {}
 
+    record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {}
+
 }

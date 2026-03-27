@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
 
 public class ModeController implements ComboListener {
 
@@ -16,8 +15,8 @@ public class ModeController implements ComboListener {
     private final MouseController mouseController;
     private final MouseState mouseState;
     private final KeyboardState keyboardState;
-     private final HintManager hintManager;
-    private final List<ModeListener> listeners;
+    private final HintManager hintManager;
+    private final ComboWatcher comboWatcher;
     private boolean currentModeCursorHidden;
     private Mode currentMode;
     private final Deque<Mode> modeHistoryStack = new ArrayDeque<>();
@@ -28,13 +27,13 @@ public class ModeController implements ComboListener {
     public ModeController(ModeMap modeMap, MouseController mouseController,
                           MouseState mouseState, KeyboardState keyboardState,
                           HintManager hintManager,
-                          List<ModeListener> listeners) {
+                          ComboWatcher comboWatcher) {
         this.modeMap = modeMap;
         this.mouseController = mouseController;
         this.mouseState = mouseState;
         this.keyboardState = keyboardState;
         this.hintManager = hintManager;
-        this.listeners = listeners;
+        this.comboWatcher = comboWatcher;
     }
 
     public void update(double delta) {
@@ -79,7 +78,7 @@ public class ModeController implements ComboListener {
                     logger.debug("Current " + currentMode.name() +
                                  " has timed out, switching to " +
                                  currentMode.timeout().modeName());
-                    listeners.forEach(ModeListener::modeTimedOut);
+                    comboWatcher.modeTimedOut();
                     switchMode(currentMode.timeout().modeName());
                 }
             }
@@ -109,7 +108,7 @@ public class ModeController implements ComboListener {
         resetCurrentModeCursorHidden();
         resetHideCursorTimer();
         resetModeTimeoutTimer();
-        listeners.forEach(listener -> listener.modeChanged(newMode));
+        comboWatcher.modeChanged(newMode);
     }
 
     private void resetCurrentModeCursorHidden() {

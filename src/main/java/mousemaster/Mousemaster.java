@@ -212,20 +212,22 @@ public class Mousemaster {
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(mouseState, keyboardState);
         zoomManager = new ZoomManager(screenManager, hintManager);
+        // ComboWatcher is the sole broadcaster to ModeListeners: it broadcasts
+        // on mode switch (delegated from ModeController) and on mode mutation.
+        // ZoomManager must be notified after HintManager because it calls
+        // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
+        comboWatcher.setModeListeners(
+                List.of(platform, mouseController, indicatorManager, gridManager,
+                        hintManager, zoomManager));
         modeController =
                 new ModeController(configuration.modeMap(), mouseController, mouseState,
                         keyboardState,
                         hintManager,
-                        // ZoomManager must be notified after HintManager because it calls
-                        // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
-                        // ComboWatcher must be notified last because it can trigger
-                        // another mode switch (^{uihintkey}).
-                        List.of(platform, mouseController, indicatorManager, gridManager,
-                                hintManager, zoomManager, comboWatcher));
+                        comboWatcher);
         commandRunner.setModeController(modeController);
         commandRunner.setMacroPlayer(macroPlayer);
         hintManager.setModeController(modeController);
-        comboWatcher.setListeners(List.of(modeController));
+        comboWatcher.setComboListeners(List.of(modeController));
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseController, keyboardManager,
                 configuration.modeMap(),

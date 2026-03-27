@@ -11,4 +11,8 @@ public record Mode(String name, boolean stopCommandsFromPreviousMode,
     public static final String PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER =
             "previous-mode-from-history-stack";
 
+    public Mode mutate(ModePropertyPath propertyPath, Object newPropertyValue) {
+        return ModePropertyMutator.mutateModeProperty(this, propertyPath, newPropertyValue);
+    }
+
 }

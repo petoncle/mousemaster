@@ -843,11 +843,22 @@ public class ConfigurationParser {
                     ViewportFilter viewportFilter = keyMatcher.group(group5) == null ?
                             AnyViewportFilter.ANY_VIEWPORT_FILTER :
                             parseViewportFilter(keyMatcher.group(group5));
-                    switch (keyMatcher.group(group4)) {
-                        case "enabled" -> mode.hintMesh.builder.enabled(
-                                Boolean.parseBoolean(propertyValue));
-                        case "visible" -> mode.hintMesh.builder.visible(
-                                Boolean.parseBoolean(propertyValue));
+                    String hintKey = keyMatcher.group(group4);
+                    ModePropertyHandler handler = hintHandler(
+                            new ModePropertyPath(List.of("hintMesh")),
+                            mode.hintMesh.builder, viewportFilter, hintKey,
+                            fontAvailability, keyAliases, keyResolver);
+                    if (handler != null) {
+                        if (!tryParseComboProperty(propertyValue, modeName,
+                                handler.propertyPath(), handler.valueParser(),
+                                handler.modeBuilderSetter(),
+                                mode.comboMap.mutateModeCommands,
+                                defaultComboMoveDuration, keyAliases, appAliases,
+                                keyResolver))
+                            handler.modeBuilderSetter().accept(propertyValue);
+                        return;
+                    }
+                    switch (hintKey) {
                         case "move-mouse" -> {
                             boolean moveMouse = Boolean.parseBoolean(propertyValue);
                             logger.warn(
@@ -863,241 +874,6 @@ public class ConfigurationParser {
                                                 HintMouseMovement.NO_MOVEMENT);
                             }
                         }
-                        case "mouse-movement" -> mode.hintMesh.builder.mouseMovement(
-                                parseHintMouseMovement(propertyKey, propertyValue));
-                        case "type" -> mode.hintMesh.builder.type()
-                                                            .type(parseHintMeshTypeType(
-                                                                    propertyKey,
-                                                                    propertyValue));
-                        case "grid-area" -> mode.hintMesh.builder.type()
-                                                                 .gridArea()
-                                                                 .type(parseHintGridAreaType(
-                                                                         propertyKey,
-                                                                         propertyValue));
-                        case "active-screen-grid-area-center" ->
-                                mode.hintMesh.builder.type()
-                                                     .gridArea()
-                                                     .activeScreenHintGridAreaCenter(
-                                                             parseActiveScreenHintGridAreaCenter(
-                                                                     propertyKey,
-                                                                     propertyValue));
-                        case "grid-max-row-count" -> mode.hintMesh.builder.type()
-                                                                          .gridLayout(viewportFilter)
-                                                                          .maxRowCount(
-                                                                                       parseUnsignedInteger(
-                                                                                               propertyValue, 1, 200));
-                        case "grid-max-column-count" -> mode.hintMesh.builder.type()
-                                                                             .gridLayout(viewportFilter)
-                                                                             .maxColumnCount(
-                                                                                     parseUnsignedInteger(
-                                                                                             propertyValue,
-                                                                                             1,
-                                                                                             200));
-                        case "grid-cell-width" -> mode.hintMesh.builder.type()
-                                                                       .gridLayout(viewportFilter)
-                                                                       .cellWidth(
-                                                                               parseDouble(
-                                                                                       propertyValue,
-                                                                                       false,
-                                                                                       0,
-                                                                                       10_000
-                                                                               ));
-                        case "grid-cell-height" -> mode.hintMesh.builder.type()
-                                                                        .gridLayout(viewportFilter)
-                                                                        .cellHeight(
-                                                                                 parseDouble(
-                                                                                         propertyValue,
-                                                                                         false,
-                                                                                         0,
-                                                                                         10_000
-                                                                                 ));
-                        case "layout-row-count" -> mode.hintMesh.builder.type()
-                                                                        .gridLayout(viewportFilter)
-                                                                        .layoutRowCount(parseUnsignedInteger(propertyValue, 1, 1_000_000_000));
-                        case "layout-column-count" -> mode.hintMesh.builder.type()
-                                                                           .gridLayout(viewportFilter)
-                                                                           .layoutColumnCount(parseUnsignedInteger(propertyValue, 1, 1_000_000_000));
-                        case "layout-row-oriented" -> mode.hintMesh.builder.type()
-                                                                           .gridLayout(viewportFilter)
-                                                                           .layoutRowOriented(Boolean.parseBoolean(propertyValue));
-                        case "selection-keys" -> mode.hintMesh.builder.keys(viewportFilter).selectionKeys(parseHintKeys(propertyValue, keyAliases, keyResolver));
-                        case "row-key-offset" -> mode.hintMesh.builder.keys(viewportFilter).rowKeyOffset(parseUnsignedInteger(propertyValue, 0, 1_000));
-                        case "font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().weight(FontWeight.of(propertyValue));
-                        case "font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-                        case "font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().spacingPercent(parseDouble(propertyValue, true, 0, 1));
-                        case "font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "selected-font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "selected-font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().weight(FontWeight.of(propertyValue));
-                        case "selected-font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-                        case "selected-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "selected-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "selected-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "selected-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "selected-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "selected-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "selected-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-                        case "selected-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "selected-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "focused-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "focused-font-name" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "focused-font-weight" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().weight(FontWeight.of(propertyValue));
-                        case "focused-font-size" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-                        case "focused-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "focused-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "focused-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "focused-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "focused-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "focused-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "focused-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-                        case "focused-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "focused-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-                        case "font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-in-background" ->
-                                mode.hintMesh.builder.style(viewportFilter)
-                                                     .prefixInBackground(Boolean.parseBoolean(propertyValue));
-                        case "prefix-font-weight" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().weight(FontWeight.of(propertyValue));
-                        case "prefix-font-name" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "prefix-font-size" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-                        case "prefix-font-spacing-percent" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().spacingPercent(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-selected-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-selected-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-selected-font-name" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "prefix-selected-font-weight" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().weight(FontWeight.of(propertyValue));
-                        case "prefix-selected-font-size" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-                        case "prefix-selected-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-selected-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "prefix-selected-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-selected-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-selected-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-selected-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-selected-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-                        case "prefix-selected-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-selected-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-focused-font-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-focused-font-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-focused-font-name" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().name(parseFontName(propertyValue, fontAvailability));
-                        case "prefix-focused-font-weight" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().weight(FontWeight.of(propertyValue));
-                        case "prefix-focused-font-size" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-                        case "prefix-focused-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-focused-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "prefix-focused-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-focused-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-focused-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-focused-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-focused-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-                        case "prefix-focused-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-focused-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-font-outline-thickness" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-font-outline-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-outline-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-                        case "prefix-font-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-                        case "prefix-font-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-                        case "prefix-font-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-                        case "prefix-font-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-font-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-                        case "box-color" -> mode.hintMesh.builder.style(viewportFilter).boxHexColor(
-                                checkColorFormat(propertyValue));
-                        case "box-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxOpacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        // Allow for box grow percent > 1: even with 1, I would get empty pixels
-                        // between the cells due to the way we distribute spare pixels.
-                        // See HintManager#distributeTrueUniformly.
-                        case "box-border-thickness" -> mode.hintMesh.builder.style(viewportFilter).boxBorderThickness(
-                                parseDouble(propertyValue, true, 0, 10_000));
-                        case "box-border-length" -> mode.hintMesh.builder.style(viewportFilter).boxBorderLength(
-                                parseDouble(propertyValue, true, 0, 10_000));
-                        case "box-border-color" -> mode.hintMesh.builder.style(viewportFilter).boxBorderHexColor(
-                                checkColorFormat(propertyValue));
-                        case "box-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxBorderOpacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "box-border-radius" -> mode.hintMesh.builder.style(viewportFilter).boxBorderRadius(
-                                parseDouble(propertyValue, true, 0, 1000));
-                        case "box-shadow-blur-radius" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().blurRadius(
-                                parseDouble(propertyValue, true, 0, 1000));
-                        case "box-shadow-color" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().hexColor(
-                                checkColorFormat(propertyValue));
-                        case "box-shadow-opacity" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().opacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "box-shadow-stack-count" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().stackCount(
-                                parseUnsignedInteger(propertyValue, 1, 100));
-                        case "box-shadow-horizontal-offset" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().horizontalOffset(
-                                parseDouble(propertyValue, true, -100, 100));
-                        case "box-shadow-vertical-offset" -> mode.hintMesh.builder.style(viewportFilter).boxShadow().verticalOffset(
-                                parseDouble(propertyValue, true, -100, 100));
-                        case "prefix-box-enabled" -> mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(Boolean.parseBoolean(propertyValue));
-                        case "prefix-box-border-thickness" -> {
-                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
-                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
-                            mode.hintMesh.builder.style(viewportFilter)
-                                                 .prefixBoxBorderThickness(
-                                                         parseDouble(propertyValue, true,
-                                                                 0, 10_000));
-                        }
-                        case "prefix-box-border-length" -> {
-                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
-                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
-                            mode.hintMesh.builder.style(viewportFilter)
-                                                 .prefixBoxBorderLength(
-                                                         parseDouble(propertyValue, true,
-                                                                 0, 10_000));
-                        }
-                        case "prefix-box-border-color" -> {
-                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
-                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
-                            mode.hintMesh.builder.style(viewportFilter)
-                                                 .prefixBoxBorderHexColor(
-                                                         checkColorFormat(propertyValue));
-                        }
-                        case "prefix-box-border-opacity" -> {
-                            if (mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled() == null)
-                                mode.hintMesh.builder.style(viewportFilter).prefixBoxEnabled(true);
-                            mode.hintMesh.builder.style(viewportFilter)
-                                                 .prefixBoxBorderOpacity(
-                                                         parseDouble(propertyValue, true,
-                                                                 0, 1));
-                        }
-                        case "box-width-percent" -> mode.hintMesh.builder.style(viewportFilter).boxWidthPercent(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "box-height-percent" -> mode.hintMesh.builder.style(viewportFilter).boxHeightPercent(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "cell-horizontal-padding", "box-horizontal-padding" -> mode.hintMesh.builder.style(viewportFilter).cellHorizontalPadding(
-                                parseDouble(propertyValue, true, 0, 1000));
-                        case "cell-vertical-padding", "box-vertical-padding" -> mode.hintMesh.builder.style(viewportFilter).cellVerticalPadding(
-                                parseDouble(propertyValue, true, 0, 1000));
-                        case "subgrid-row-count" -> mode.hintMesh.builder.style(viewportFilter).subgridRowCount(parseUnsignedInteger(
-                                propertyValue, 1, 1_000));
-                        case "subgrid-column-count" -> mode.hintMesh.builder.style(viewportFilter).subgridColumnCount(parseUnsignedInteger(
-                                propertyValue, 1, 1_000));
-                        case "subgrid-border-thickness" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderThickness(
-                                parseDouble(propertyValue, true, 0, 10_000));
-                        case "subgrid-border-length" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderLength(
-                                parseDouble(propertyValue, true, 0, 10_000));
-                        case "subgrid-border-color" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderHexColor(
-                                checkColorFormat(propertyValue));
-                        case "subgrid-border-opacity" -> mode.hintMesh.builder.style(viewportFilter).subgridBorderOpacity(
-                                parseDouble(propertyValue, true, 0, 1));
-                        case "transition-animation-enabled" -> mode.hintMesh.builder.style(viewportFilter).transitionAnimationEnabled(Boolean.parseBoolean(propertyValue));
-                        case "transition-animation-duration-millis" -> mode.hintMesh.builder.style(viewportFilter).transitionAnimationDuration(parseDuration(propertyValue));
-                        case "background-color" -> mode.hintMesh.builder.style(viewportFilter).backgroundHexColor(
-                                checkColorFormat(propertyValue));
-                        case "background-opacity" -> mode.hintMesh.builder.style(viewportFilter).backgroundOpacity(
-                                parseDouble(propertyValue, true, 0, 1));
                         case "mode-after-selection" -> {
                             String modeAfterSelection = propertyValue;
                             modeReferences.add(
@@ -1117,7 +893,6 @@ public class ConfigurationParser {
                             throw new IllegalArgumentException(
                                     "hint.save-position-after-selection has been deprecated and removed: use position-history.save-position instead");
                         }
-                        case "eat-unused-selection-keys" -> mode.hintMesh.builder.eatUnusedSelectionKeys(Boolean.parseBoolean(propertyValue));
                         case "select" -> {
                             mode.hintMesh.builder.selectCombos(
                                     parseCombos(propertyValue, propertyKey,
@@ -1268,8 +1043,25 @@ public class ConfigurationParser {
                         if (subKey.startsWith("label-") &&
                             targetIndicator.labelEnabled() == null)
                             targetIndicator.labelEnabled(true);
+                        String indicatorFieldName = switch (stateOrKey) {
+                            case "idle" -> "idleIndicator";
+                            case "move" -> "moveIndicator";
+                            case "wheel" -> "wheelIndicator";
+                            case "mouse-press" -> "mousePressIndicator";
+                            case "left-mouse-press" -> "leftMousePressIndicator";
+                            case "middle-mouse-press" -> "middleMousePressIndicator";
+                            case "right-mouse-press" -> "rightMousePressIndicator";
+                            case "unhandled-key-press" -> "unhandledKeyPressIndicator";
+                            default -> throw new IllegalStateException();
+                        };
+                        ModePropertyPath indicatorPropertyPathPrefix =
+                                new ModePropertyPath(List.of("indicator", indicatorFieldName));
                         parseIndicatorProperty(targetIndicator, subKey,
-                                propertyValue, fontAvailability);
+                                propertyValue, fontAvailability,
+                                indicatorPropertyPathPrefix,
+                                mode.comboMap.mutateModeCommands,
+                                modeName, defaultComboMoveDuration,
+                                keyAliases, appAliases, keyResolver);
                     }
                 }
             }
@@ -1990,50 +1782,252 @@ public class ConfigurationParser {
 
     private static void parseIndicatorProperty(IndicatorBuilder indicator,
                                                 String key, String propertyValue,
-                                                Predicate<String> fontAvailability) {
-        switch (key) {
-            case "size" -> indicator.size(parseUnsignedInteger(propertyValue, 1, 100));
-            case "edge-count" -> indicator.edgeCount(parseUnsignedInteger(propertyValue, 3, 1000));
-            case "color" -> indicator.hexColor(checkColorFormat(propertyValue));
-            case "opacity" -> indicator.opacity(parseDouble(propertyValue, true, 0, 1));
-            // "outer-" is optional in "outer-outline".
-            case "outer-outline-thickness", "outline-thickness" -> indicator.outerOutline().thickness(parseDouble(propertyValue, true, 0, 100));
-            case "outer-outline-color", "outline-color" -> indicator.outerOutline().hexColor(checkColorFormat(propertyValue));
-            case "outer-outline-opacity", "outline-opacity" -> indicator.outerOutline().opacity(parseDouble(propertyValue, true, 0, 1));
-            case "outer-outline-fill-percent", "outline-fill-percent" -> indicator.outerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
-            case "outer-outline-fill-start-angle", "outline-fill-start-angle" -> indicator.outerOutline().fillStartAngle(parseDouble(propertyValue, true, 0, 360));
-            case "outer-outline-fill-direction", "outline-fill-direction" -> indicator.outerOutline().fillDirection(FillDirection.fromString(propertyValue));
-            case "inner-outline-thickness" -> indicator.innerOutline().thickness(parseDouble(propertyValue, true, 0, 100));
-            case "inner-outline-color" -> indicator.innerOutline().hexColor(checkColorFormat(propertyValue));
-            case "inner-outline-opacity" -> indicator.innerOutline().opacity(parseDouble(propertyValue, true, 0, 1));
-            case "inner-outline-fill-percent" -> indicator.innerOutline().fillPercent(parseDouble(propertyValue, true, 0, 1));
-            case "inner-outline-fill-start-angle" -> indicator.innerOutline().fillStartAngle(parseDouble(propertyValue, true, 0, 360));
-            case "inner-outline-fill-direction" -> indicator.innerOutline().fillDirection(FillDirection.fromString(propertyValue));
-            case "shadow-blur-radius" -> indicator.shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-            case "shadow-color" -> indicator.shadow().hexColor(checkColorFormat(propertyValue));
-            case "shadow-opacity" -> indicator.shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-            case "shadow-stack-count" -> indicator.shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-            case "shadow-horizontal-offset" -> indicator.shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-            case "shadow-vertical-offset" -> indicator.shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-            case "label-enabled" -> indicator.labelEnabled(Boolean.parseBoolean(propertyValue));
-            case "label-text" -> indicator.labelText(propertyValue);
-            case "label-font-name" -> indicator.labelFontStyle().name(parseFontName(propertyValue, fontAvailability));
-            case "label-font-size" -> indicator.labelFontStyle().size(parseDouble(propertyValue, false, 0, 1000));
-            case "label-font-color" -> indicator.labelFontStyle().hexColor(checkColorFormat(propertyValue));
-            case "label-font-weight" -> indicator.labelFontStyle().weight(FontWeight.of(propertyValue));
-            case "label-font-opacity" -> indicator.labelFontStyle().opacity(parseDouble(propertyValue, true, 0, 1));
-            case "label-font-outline-thickness" -> indicator.labelFontStyle().outlineThickness(parseDouble(propertyValue, true, 0, 1000));
-            case "label-font-outline-color" -> indicator.labelFontStyle().outlineHexColor(checkColorFormat(propertyValue));
-            case "label-font-outline-opacity" -> indicator.labelFontStyle().outlineOpacity(parseDouble(propertyValue, true, 0, 1));
-            case "label-font-shadow-blur-radius" -> indicator.labelFontStyle().shadow().blurRadius(parseDouble(propertyValue, true, 0, 1000));
-            case "label-font-shadow-color" -> indicator.labelFontStyle().shadow().hexColor(checkColorFormat(propertyValue));
-            case "label-font-shadow-opacity" -> indicator.labelFontStyle().shadow().opacity(parseDouble(propertyValue, true, 0, 1));
-            case "label-font-shadow-stack-count" -> indicator.labelFontStyle().shadow().stackCount(parseUnsignedInteger(propertyValue, 1, 100));
-            case "label-font-shadow-horizontal-offset" -> indicator.labelFontStyle().shadow().horizontalOffset(parseDouble(propertyValue, true, -100, 100));
-            case "label-font-shadow-vertical-offset" -> indicator.labelFontStyle().shadow().verticalOffset(parseDouble(propertyValue, true, -100, 100));
-            case "position" -> indicator.position(IndicatorPosition.fromString(propertyValue));
-            default -> throw new IllegalArgumentException("Invalid indicator property key: " + key);
+                                                Predicate<String> fontAvailability,
+                                                ModePropertyPath propertyPathPrefix,
+                                                Map<Combo, List<Command>> mutateModeCommands,
+                                                String modeName,
+                                                ComboMoveDuration defaultComboMoveDuration,
+                                                Map<String, KeyAlias> keyAliases,
+                                                Map<String, AppAlias> appAliases,
+                                                KeyResolver keyResolver) {
+        ModePropertyHandler handler =
+                indicatorHandler(propertyPathPrefix, indicator, key, fontAvailability);
+        if (handler == null)
+            throw new IllegalArgumentException("Invalid indicator property key: " + key);
+        if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
+                handler.valueParser(), handler.modeBuilderSetter(), mutateModeCommands,
+                defaultComboMoveDuration, keyAliases, appAliases, keyResolver))
+            handler.modeBuilderSetter().accept(propertyValue);
+    }
+
+    private record ModePropertyHandler(
+            ModePropertyPath propertyPath,
+            Function<String, Object> valueParser,
+            Consumer<String> modeBuilderSetter
+    ) {
+        static <T> ModePropertyHandler of(
+                ModePropertyPath path,
+                Function<String, T> parser,
+                Consumer<T> setter) {
+            return new ModePropertyHandler(
+                    path,
+                    parser::apply,
+                    s -> setter.accept(parser.apply(s)));
         }
+    }
+
+    private static ModePropertyHandler indicatorHandler(
+            ModePropertyPath prefix, IndicatorBuilder indicator,
+            String key, Predicate<String> fontAvailability) {
+        return switch (key) {
+            // @formatter:off
+            case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.size(v));
+            case "edge-count" -> ModePropertyHandler.of(prefix.append("edgeCount"), v -> parseUnsignedInteger(v, 3, 1000), v -> indicator.edgeCount(v));
+            case "color" -> ModePropertyHandler.of(prefix.append("hexColor"), v -> checkColorFormat(v), v -> indicator.hexColor(v));
+            case "opacity" -> ModePropertyHandler.of(prefix.append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.opacity(v));
+            case "outer-outline-thickness", "outline-thickness" -> ModePropertyHandler.of(prefix.append("outerOutline").append("thickness"), v -> parseDouble(v, true, 0, 100), v -> indicator.outerOutline().thickness(v));
+            case "outer-outline-color", "outline-color" -> ModePropertyHandler.of(prefix.append("outerOutline").append("hexColor"), v -> checkColorFormat(v), v -> indicator.outerOutline().hexColor(v));
+            case "outer-outline-opacity", "outline-opacity" -> ModePropertyHandler.of(prefix.append("outerOutline").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.outerOutline().opacity(v));
+            case "outer-outline-fill-percent", "outline-fill-percent" -> ModePropertyHandler.of(prefix.append("outerOutline").append("fillPercent"), v -> parseDouble(v, true, 0, 1), v -> indicator.outerOutline().fillPercent(v));
+            case "outer-outline-fill-start-angle", "outline-fill-start-angle" -> ModePropertyHandler.of(prefix.append("outerOutline").append("fillStartAngle"), v -> parseDouble(v, true, 0, 360), v -> indicator.outerOutline().fillStartAngle(v));
+            case "outer-outline-fill-direction", "outline-fill-direction" -> ModePropertyHandler.of(prefix.append("outerOutline").append("fillDirection"), v -> FillDirection.fromString(v), v -> indicator.outerOutline().fillDirection(v));
+            case "inner-outline-thickness" -> ModePropertyHandler.of(prefix.append("innerOutline").append("thickness"), v -> parseDouble(v, true, 0, 100), v -> indicator.innerOutline().thickness(v));
+            case "inner-outline-color" -> ModePropertyHandler.of(prefix.append("innerOutline").append("hexColor"), v -> checkColorFormat(v), v -> indicator.innerOutline().hexColor(v));
+            case "inner-outline-opacity" -> ModePropertyHandler.of(prefix.append("innerOutline").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.innerOutline().opacity(v));
+            case "inner-outline-fill-percent" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillPercent"), v -> parseDouble(v, true, 0, 1), v -> indicator.innerOutline().fillPercent(v));
+            case "inner-outline-fill-start-angle" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillStartAngle"), v -> parseDouble(v, true, 0, 360), v -> indicator.innerOutline().fillStartAngle(v));
+            case "inner-outline-fill-direction" -> ModePropertyHandler.of(prefix.append("innerOutline").append("fillDirection"), v -> FillDirection.fromString(v), v -> indicator.innerOutline().fillDirection(v));
+            case "shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("shadow").append("blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> indicator.shadow().blurRadius(v));
+            case "shadow-color" -> ModePropertyHandler.of(prefix.append("shadow").append("hexColor"), v -> checkColorFormat(v), v -> indicator.shadow().hexColor(v));
+            case "shadow-opacity" -> ModePropertyHandler.of(prefix.append("shadow").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.shadow().opacity(v));
+            case "shadow-stack-count" -> ModePropertyHandler.of(prefix.append("shadow").append("stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.shadow().stackCount(v));
+            case "shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> indicator.shadow().horizontalOffset(v));
+            case "shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> indicator.shadow().verticalOffset(v));
+            case "label-enabled" -> ModePropertyHandler.of(prefix.append("labelEnabled"), v -> Boolean.parseBoolean(v), v -> indicator.labelEnabled(v));
+            case "label-text" -> ModePropertyHandler.of(prefix.append("labelText"), v -> v, v -> indicator.labelText(v));
+            case "label-font-name" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("name"), v -> parseFontName(v, fontAvailability), v -> indicator.labelFontStyle().name(v));
+            case "label-font-size" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("size"), v -> parseDouble(v, false, 0, 1000), v -> indicator.labelFontStyle().size(v));
+            case "label-font-color" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("hexColor"), v -> checkColorFormat(v), v -> indicator.labelFontStyle().hexColor(v));
+            case "label-font-weight" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("weight"), v -> FontWeight.of(v), v -> indicator.labelFontStyle().weight(v));
+            case "label-font-opacity" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.labelFontStyle().opacity(v));
+            case "label-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> indicator.labelFontStyle().outlineThickness(v));
+            case "label-font-outline-color" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("outlineHexColor"), v -> checkColorFormat(v), v -> indicator.labelFontStyle().outlineHexColor(v));
+            case "label-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.labelFontStyle().outlineOpacity(v));
+            case "label-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> indicator.labelFontStyle().shadow().blurRadius(v));
+            case "label-font-shadow-color" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("hexColor"), v -> checkColorFormat(v), v -> indicator.labelFontStyle().shadow().hexColor(v));
+            case "label-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("opacity"), v -> parseDouble(v, true, 0, 1), v -> indicator.labelFontStyle().shadow().opacity(v));
+            case "label-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.labelFontStyle().shadow().stackCount(v));
+            case "label-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> indicator.labelFontStyle().shadow().horizontalOffset(v));
+            case "label-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("shadow").append("verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> indicator.labelFontStyle().shadow().verticalOffset(v));
+            case "position" -> ModePropertyHandler.of(prefix.append("position"), v -> IndicatorPosition.fromString(v), v -> indicator.position(v));
+            // @formatter:on
+            default -> null;
+        };
+    }
+
+
+    private static ModePropertyHandler hintHandler(
+            ModePropertyPath prefix,
+            HintMeshConfigurationBuilder hintMeshBuilder,
+            ViewportFilter viewportFilter,
+            String key, Predicate<String> fontAvailability,
+            Map<String, KeyAlias> keyAliases, KeyResolver keyResolver) {
+        return switch (key) {
+            // @formatter:off
+            // Top-level properties
+            case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.enabled(v));
+            case "visible" -> ModePropertyHandler.of(prefix.append("visible"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.visible(v));
+            case "mouse-movement" -> ModePropertyHandler.of(prefix.append("mouseMovement"), v -> parseHintMouseMovement("hint.mouse-movement", v), v -> hintMeshBuilder.mouseMovement(v));
+            case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
+            // Type property (sealed variant)
+            case "type" -> new ModePropertyHandler(prefix.append("type"), v -> { return switch (parseHintMeshTypeType("hint.type", v)) { case GRID -> new HintMeshType.HintGrid(hintMeshBuilder.type().gridArea().build(), hintMeshBuilder.type().gridLayoutByFilter().build(HintGridLayoutBuilder::build)); case POSITION_HISTORY -> new HintMeshType.HintPositionHistory(); case UI -> new HintMeshType.UiHintMesh(); }; }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
+            // Grid area properties
+            case "grid-area" -> new ModePropertyHandler(prefix.append("type", "area"), v -> { return switch (parseHintGridAreaType("hint.grid-area", v)) { case ACTIVE_SCREEN -> new HintGridArea.ActiveScreenHintGridArea(hintMeshBuilder.type().gridArea().activeScreenHintGridAreaCenter()); case ACTIVE_WINDOW -> new HintGridArea.ActiveWindowHintGridArea(); case ALL_SCREENS -> new HintGridArea.AllScreensHintGridArea(); }; }, v -> hintMeshBuilder.type().gridArea().type(parseHintGridAreaType("hint.grid-area", v)));
+            case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseActiveScreenHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().activeScreenHintGridAreaCenter(v));
+            // Grid layout properties (viewport-filtered)
+            case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxRowCount(v));
+            case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxColumnCount(v));
+            case "grid-cell-width" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellWidth"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellWidth(v));
+            case "grid-cell-height" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellHeight"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellHeight(v));
+            case "layout-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutRowCount(v));
+            case "layout-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutColumnCount(v));
+            case "layout-row-oriented" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowOriented"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutRowOriented(v));
+            // Key properties (viewport-filtered)
+            case "selection-keys" -> ModePropertyHandler.of(prefix.append("keysByFilter", "selectionKeys"), v -> parseHintKeys(v, keyAliases, keyResolver), v -> hintMeshBuilder.keys(viewportFilter).selectionKeys(v));
+            case "row-key-offset" -> ModePropertyHandler.of(prefix.append("keysByFilter", "rowKeyOffset"), v -> parseUnsignedInteger(v, 0, 1_000), v -> hintMeshBuilder.keys(viewportFilter).rowKeyOffset(v));
+            // Style: main font
+            case "font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().name(v));
+            case "font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().weight(v));
+            case "font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().size(v));
+            case "font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().hexColor(v));
+            case "font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().opacity(v));
+            case "font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().spacingPercent(v));
+            case "font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().outlineThickness(v));
+            case "font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().outlineHexColor(v));
+            case "font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().outlineOpacity(v));
+            case "font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "shadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().blurRadius(v));
+            case "font-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "shadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().hexColor(v));
+            case "font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "shadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().opacity(v));
+            case "font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().stackCount(v));
+            case "font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().horizontalOffset(v));
+            case "font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().shadow().verticalOffset(v));
+            // Style: selected font
+            case "selected-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().hexColor(v));
+            case "selected-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().opacity(v));
+            case "selected-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().name(v));
+            case "selected-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().weight(v));
+            case "selected-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().size(v));
+            case "selected-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().outlineThickness(v));
+            case "selected-font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().outlineHexColor(v));
+            case "selected-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().outlineOpacity(v));
+            case "selected-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "shadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().blurRadius(v));
+            case "selected-font-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "shadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().hexColor(v));
+            case "selected-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "shadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().opacity(v));
+            case "selected-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().stackCount(v));
+            case "selected-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().horizontalOffset(v));
+            case "selected-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().shadow().verticalOffset(v));
+            // Style: focused font
+            case "focused-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().hexColor(v));
+            case "focused-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().opacity(v));
+            case "focused-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().name(v));
+            case "focused-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().weight(v));
+            case "focused-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().size(v));
+            case "focused-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().outlineThickness(v));
+            case "focused-font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().outlineHexColor(v));
+            case "focused-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().outlineOpacity(v));
+            case "focused-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().blurRadius(v));
+            case "focused-font-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().hexColor(v));
+            case "focused-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().opacity(v));
+            case "focused-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().stackCount(v));
+            case "focused-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().horizontalOffset(v));
+            case "focused-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().verticalOffset(v));
+            // Style: prefix font
+            case "prefix-in-background" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixInBackground"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).prefixInBackground(v));
+            case "prefix-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().name(v));
+            case "prefix-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().weight(v));
+            case "prefix-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().size(v));
+            case "prefix-font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().spacingPercent(v));
+            case "prefix-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().hexColor(v));
+            case "prefix-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().opacity(v));
+            case "prefix-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineThickness(v));
+            case "prefix-font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineHexColor(v));
+            case "prefix-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineOpacity(v));
+            case "prefix-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "shadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().blurRadius(v));
+            case "prefix-font-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "shadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().hexColor(v));
+            case "prefix-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "shadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().opacity(v));
+            case "prefix-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().stackCount(v));
+            case "prefix-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().horizontalOffset(v));
+            case "prefix-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().shadow().verticalOffset(v));
+            // Style: prefix selected font
+            case "prefix-selected-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().hexColor(v));
+            case "prefix-selected-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().opacity(v));
+            case "prefix-selected-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().name(v));
+            case "prefix-selected-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().weight(v));
+            case "prefix-selected-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().size(v));
+            case "prefix-selected-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineThickness(v));
+            case "prefix-selected-font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineHexColor(v));
+            case "prefix-selected-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineOpacity(v));
+            case "prefix-selected-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "shadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().blurRadius(v));
+            case "prefix-selected-font-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "shadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().hexColor(v));
+            case "prefix-selected-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "shadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().opacity(v));
+            case "prefix-selected-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().stackCount(v));
+            case "prefix-selected-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().horizontalOffset(v));
+            case "prefix-selected-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().shadow().verticalOffset(v));
+            // Style: prefix focused font
+            case "prefix-focused-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().hexColor(v));
+            case "prefix-focused-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().opacity(v));
+            case "prefix-focused-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().name(v));
+            case "prefix-focused-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().weight(v));
+            case "prefix-focused-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().size(v));
+            case "prefix-focused-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineThickness(v));
+            case "prefix-focused-font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineHexColor(v));
+            case "prefix-focused-font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineOpacity(v));
+            case "prefix-focused-font-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().blurRadius(v));
+            case "prefix-focused-font-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().hexColor(v));
+            case "prefix-focused-font-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().opacity(v));
+            case "prefix-focused-font-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().stackCount(v));
+            case "prefix-focused-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().horizontalOffset(v));
+            case "prefix-focused-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().shadow().verticalOffset(v));
+            // Style: box
+            case "box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).boxHexColor(v));
+            case "box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxOpacity(v));
+            case "box-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).boxBorderThickness(v));
+            case "box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).boxBorderLength(v));
+            case "box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).boxBorderHexColor(v));
+            case "box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxBorderOpacity(v));
+            case "box-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).boxBorderRadius(v));
+            case "box-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).boxShadow().blurRadius(v));
+            case "box-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).boxShadow().hexColor(v));
+            case "box-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxShadow().opacity(v));
+            case "box-shadow-stack-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "stackCount"), v -> parseUnsignedInteger(v, 1, 100), v -> hintMeshBuilder.style(viewportFilter).boxShadow().stackCount(v));
+            case "box-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).boxShadow().horizontalOffset(v));
+            case "box-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).boxShadow().verticalOffset(v));
+            // Style: prefix box
+            case "prefix-box-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(v));
+            case "prefix-box-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxBorderThickness(v); });
+            case "prefix-box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxBorderLength(v); });
+            case "prefix-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderHexColor"), v -> checkColorFormat(v), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxBorderHexColor(v); });
+            case "prefix-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxBorderOpacity(v); });
+            // Style: box dimensions
+            case "box-width-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxWidthPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxWidthPercent(v));
+            case "box-height-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHeightPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxHeightPercent(v));
+            case "cell-horizontal-padding", "box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "cellHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).cellHorizontalPadding(v));
+            case "cell-vertical-padding", "box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "cellVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).cellVerticalPadding(v));
+            // Style: subgrid
+            case "subgrid-row-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridRowCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridRowCount(v));
+            case "subgrid-column-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridColumnCount(v));
+            case "subgrid-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subgridBorderThickness(v));
+            case "subgrid-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subgridBorderLength(v));
+            case "subgrid-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subgridBorderHexColor(v));
+            case "subgrid-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subgridBorderOpacity(v));
+            // Style: animation & background
+            case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationEnabled(v));
+            case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationDuration(v));
+            case "background-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).backgroundHexColor(v));
+            case "background-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).backgroundOpacity(v));
+            // @formatter:on
+            default -> null;
+        };
     }
 
     private static String checkColorFormat(String propertyValue) {
@@ -2043,6 +2037,100 @@ public class ConfigurationParser {
                     ": a color should be in the #FFFFFF format");
         return propertyValue;
     }
+
+
+    private record SplitComboProperty(String defaultValue,
+                                         List<ComboPropertyValue> comboValues) {
+        record ComboPropertyValue(String comboString, String valueString) {}
+    }
+
+    /**
+     * Splits a property value on top-level {@code |} (brace-depth-aware), then
+     * classifies each segment as either a default value or a combo-triggered
+     * value (contains {@code ->}).
+     *
+     * @return {@code null} if the value has no combo syntax.
+     */
+    private static SplitComboProperty splitComboProperties(String value) {
+        int segmentBeginIndex = 0;
+        int braceDepth = 0;
+        List<String> segments = new ArrayList<>();
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '{')
+                braceDepth++;
+            else if (c == '}')
+                braceDepth--;
+            else if (c == '|' && braceDepth == 0) {
+                segments.add(value.substring(segmentBeginIndex, i).strip());
+                segmentBeginIndex = i + 1;
+            }
+        }
+        segments.add(value.substring(segmentBeginIndex).strip());
+        boolean hasComboProperty = segments.stream().anyMatch(s -> s.contains("->"));
+        if (!hasComboProperty)
+            return null;
+        String defaultValue = null;
+        List<SplitComboProperty.ComboPropertyValue> comboValues = new ArrayList<>();
+        for (String segment : segments) {
+            if (segment.contains("->")) {
+                String[] parts = segment.split("\\s*->\\s*", 2);
+                comboValues.add(new SplitComboProperty.ComboPropertyValue(
+                        parts[0].strip(), parts[1].strip()));
+            }
+            else {
+                if (defaultValue != null)
+                    throw new IllegalArgumentException(
+                            "Multiple default values in combo property: " + value);
+                defaultValue = segment;
+            }
+        }
+        return new SplitComboProperty(defaultValue, comboValues);
+    }
+
+    /**
+     * Tries to parse {@code propertyValue} as a combo-triggered property.
+     * If it contains top-level {@code | ... -> ...} syntax, the default
+     * value is passed to {@code modeBuilderSetter}, each combo segment produces
+     * a {@link Command.MutateMode} in {@code mutateModeCommands}, and
+     * {@code true} is returned. Otherwise returns {@code false} and the
+     * caller should parse normally.
+     *
+     * @param valueParser converts the raw value string to the typed object
+     *                    stored in MutateMode (also validates it)
+     */
+    private static boolean tryParseComboProperty(
+            String propertyValue,
+            String modeName,
+            ModePropertyPath propertyPath,
+            Function<String, Object> valueParser,
+            Consumer<String> modeBuilderSetter,
+            Map<Combo, List<Command>> mutateModeCommands,
+            ComboMoveDuration defaultComboMoveDuration,
+            Map<String, KeyAlias> keyAliases,
+            Map<String, AppAlias> appAliases,
+            KeyResolver keyResolver) {
+        SplitComboProperty splitComboProperty = splitComboProperties(propertyValue);
+        if (splitComboProperty == null)
+            return false;
+        if (splitComboProperty.defaultValue() != null)
+            modeBuilderSetter.accept(splitComboProperty.defaultValue());
+        String label = modeName + "." + String.join(".", propertyPath.fieldNames());
+        for (SplitComboProperty.ComboPropertyValue cpv : splitComboProperty.comboValues()) {
+            Object parsedValue = valueParser.apply(cpv.valueString());
+            List<Combo> combos = parseCombos(cpv.comboString(), label,
+                    defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+            for (Combo combo : combos) {
+                Command command = new Command.MutateMode(modeName, propertyPath,
+                        parsedValue, combo);
+                mutateModeCommands
+                        .computeIfAbsent(combo, c -> new ArrayList<>())
+                        .add(command);
+            }
+        }
+        return true;
+    }
+
 
     private static int parseUnsignedInteger(String propertyValue, int min, int max) {
         int integer = Integer.parseUnsignedInt(propertyValue);
@@ -2819,6 +2907,15 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> breakMacro;
         Property<Map<Combo, List<Command>>> macro;
 
+        /**
+         * MutateMode commands generated from combo-triggered property
+         * changes (e.g., {@code indicator.idle.color=#F00 | _{leftctrl} -> #0F0}).
+         * Not a {@link Property} because these don't participate in the
+         * property-reference inheritance system — they're part of the
+         * ComboMap which has its own inheritance.
+         */
+        Map<Combo, List<Command>> mutateModeCommands = new HashMap<>();
+
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
 
@@ -2909,6 +3006,7 @@ public class ConfigurationParser {
             add(commandsByCombo, breakComboPreparation.builder);
             add(commandsByCombo, breakMacro.builder);
             add(commandsByCombo, macro.builder);
+            add(commandsByCombo, mutateModeCommands);
             return commandsByCombo;
         }
 

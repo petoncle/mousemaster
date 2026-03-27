@@ -249,7 +249,11 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
 
     @Override
     public String toString() {
-        return label + ": " + (precondition.isEmpty() ? "" : precondition + " ") + sequence;
+        String preconditionString = precondition.isEmpty() ? "" : precondition.toString();
+        String sequenceString = sequence.toString();
+        if (!preconditionString.isEmpty() && !sequenceString.isEmpty())
+            return label + ": " + preconditionString + " " + sequenceString;
+        return label + ": " + preconditionString + sequenceString;
     }
 
     public Set<Key> keysPressedAfterMoves(Set<Key> preconditionPressedKeySet,
