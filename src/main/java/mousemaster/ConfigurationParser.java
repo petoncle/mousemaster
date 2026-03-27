@@ -272,7 +272,8 @@ public class ConfigurationParser {
                 new Property<>("cycle-previous", Map.of()),
                 new Property<>("break-combo-preparation", Map.of()),
                 new Property<>("break-macro", Map.of()),
-                new Property<>("macro", Map.of())
+                new Property<>("macro", Map.of()),
+                new Property<>("mutate-mode", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
     }
@@ -852,7 +853,7 @@ public class ConfigurationParser {
                         if (!tryParseComboProperty(propertyValue, modeName,
                                 handler.propertyPath(), handler.valueParser(),
                                 handler.modeBuilderSetter(),
-                                mode.comboMap.mutateModeCommands,
+                                mode.comboMap.mutateMode.builder,
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver))
                             handler.modeBuilderSetter().accept(propertyValue);
@@ -1059,7 +1060,7 @@ public class ConfigurationParser {
                         parseIndicatorProperty(targetIndicator, subKey,
                                 propertyValue, fontAvailability,
                                 indicatorPropertyPathPrefix,
-                                mode.comboMap.mutateModeCommands,
+                                mode.comboMap.mutateMode.builder,
                                 modeName, defaultComboMoveDuration,
                                 keyAliases, appAliases, keyResolver);
                     }
@@ -1784,7 +1785,7 @@ public class ConfigurationParser {
                                                 String key, String propertyValue,
                                                 Predicate<String> fontAvailability,
                                                 ModePropertyPath propertyPathPrefix,
-                                                Map<Combo, List<Command>> mutateModeCommands,
+                                                Map<Combo, List<Command>> mutateModeCommandMap,
                                                 String modeName,
                                                 ComboMoveDuration defaultComboMoveDuration,
                                                 Map<String, KeyAlias> keyAliases,
@@ -1795,7 +1796,7 @@ public class ConfigurationParser {
         if (handler == null)
             throw new IllegalArgumentException("Invalid indicator property key: " + key);
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
-                handler.valueParser(), handler.modeBuilderSetter(), mutateModeCommands,
+                handler.valueParser(), handler.modeBuilderSetter(), mutateModeCommandMap,
                 defaultComboMoveDuration, keyAliases, appAliases, keyResolver))
             handler.modeBuilderSetter().accept(propertyValue);
     }
@@ -2118,14 +2119,11 @@ public class ConfigurationParser {
 
     /**
      * Tries to parse {@code propertyValue} as a combo-triggered property.
-     * If it contains top-level {@code | ... -> ...} syntax, the default
-     * value is passed to {@code modeBuilderSetter}, each combo segment produces
-     * a {@link Command.MutateMode} in {@code mutateModeCommands}, and
+     * If it contains {@code | ... -> ...} syntax, the default
+     * value is passed to {@code modeBuilderSetter}, each combo produces
+     * a {@link Command.MutateMode} in {@code mutateModeCommandMap}, and
      * {@code true} is returned. Otherwise returns {@code false} and the
      * caller should parse normally.
-     *
-     * @param valueParser converts the raw value string to the typed object
-     *                    stored in MutateMode (also validates it)
      */
     private static boolean tryParseComboProperty(
             String propertyValue,
@@ -2133,7 +2131,7 @@ public class ConfigurationParser {
             ModePropertyPath propertyPath,
             Function<String, Object> valueParser,
             Consumer<String> modeBuilderSetter,
-            Map<Combo, List<Command>> mutateModeCommands,
+            Map<Combo, List<Command>> mutateModeCommandMap,
             ComboMoveDuration defaultComboMoveDuration,
             Map<String, KeyAlias> keyAliases,
             Map<String, AppAlias> appAliases,
@@ -2151,7 +2149,7 @@ public class ConfigurationParser {
             for (Combo combo : combos) {
                 Command command = new Command.MutateMode(modeName, propertyPath,
                         parsedValue, combo);
-                mutateModeCommands
+                mutateModeCommandMap
                         .computeIfAbsent(combo, c -> new ArrayList<>())
                         .add(command);
             }
@@ -2934,15 +2932,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> breakComboPreparation;
         Property<Map<Combo, List<Command>>> breakMacro;
         Property<Map<Combo, List<Command>>> macro;
-
-        /**
-         * MutateMode commands generated from combo-triggered property
-         * changes (e.g., {@code indicator.idle.color=#F00 | _{leftctrl} -> #0F0}).
-         * Not a {@link Property} because these don't participate in the
-         * property-reference inheritance system — they're part of the
-         * ComboMap which has its own inheritance.
-         */
-        Map<Combo, List<Command>> mutateModeCommands = new HashMap<>();
+        Property<Map<Combo, List<Command>>> mutateMode;
 
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
@@ -2970,6 +2960,7 @@ public class ConfigurationParser {
             breakComboPreparation = new ComboMapProperty("break-combo-preparation", modeName, propertyByKey);
             breakMacro = new ComboMapProperty("break-macro", modeName, propertyByKey);
             macro = new ComboMapProperty("macro", modeName, propertyByKey);
+            mutateMode = new ComboMapProperty("mutate-mode", modeName, propertyByKey);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
@@ -3034,7 +3025,7 @@ public class ConfigurationParser {
             add(commandsByCombo, breakComboPreparation.builder);
             add(commandsByCombo, breakMacro.builder);
             add(commandsByCombo, macro.builder);
-            add(commandsByCombo, mutateModeCommands);
+            add(commandsByCombo, mutateMode.builder);
             return commandsByCombo;
         }
 
