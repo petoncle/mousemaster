@@ -1055,6 +1055,7 @@ public class ComboWatcher {
         // KeyManager won't notify ComboWatcher of the release of the comboPreparationBreakerKey.
         currentlyPressedCompletedComboKeys.remove(comboPreparationBreakerKey);
         currentlyPressedComboKeys.remove(comboPreparationBreakerKey);
+        revertUnsatisfiedMutations();
     }
 
     public void modeChanged(Mode newMode) {

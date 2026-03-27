@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class ModePropertyMutator {
 
@@ -18,12 +19,18 @@ public class ModePropertyMutator {
                 newPropertyValue);
     }
 
+    @SuppressWarnings("unchecked")
     private static Object mutateModeProperty(Object obj, List<String> fieldNames,
                                              Object newPropertyValue) {
-        if (fieldNames.isEmpty())
+        if (fieldNames.isEmpty()) {
+            if (newPropertyValue instanceof Function<?, ?> function)
+                return ((Function<Object, Object>) function).apply(obj);
             return newPropertyValue;
+        }
         String fieldName = fieldNames.getFirst();
         Object child = getField(obj, fieldName);
+        if (child == null)
+            return obj; // Field not found on this sealed type, skip mutation.
         List<String> remaining = fieldNames.subList(1, fieldNames.size());
         Object mutatedChild;
         if (child instanceof ViewportFilterMap<?> viewportFilterMap) {
@@ -60,6 +67,10 @@ public class ModePropertyMutator {
         }
     }
 
+    /**
+     * Returns the value of the named field, or {@code null} if the field does
+     * not exist on this record type (a sealed type that does not declare this field).
+     */
     private static Object getField(Object obj, String fieldName) {
         try {
             RecordComponent[] components = getComponents(obj.getClass());
@@ -67,8 +78,7 @@ public class ModePropertyMutator {
                 if (component.getName().equals(fieldName))
                     return component.getAccessor().invoke(obj);
             }
-            throw new IllegalArgumentException(
-                    "No field " + fieldName + " on " + obj.getClass().getSimpleName());
+            return null;
         }
         catch (ReflectiveOperationException e) {
             throw new RuntimeException(

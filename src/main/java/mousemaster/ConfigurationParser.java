@@ -1879,10 +1879,38 @@ public class ConfigurationParser {
             case "visible" -> ModePropertyHandler.of(prefix.append("visible"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.visible(v));
             case "mouse-movement" -> ModePropertyHandler.of(prefix.append("mouseMovement"), v -> parseHintMouseMovement("hint.mouse-movement", v), v -> hintMeshBuilder.mouseMovement(v));
             case "eat-unused-selection-keys" -> ModePropertyHandler.of(prefix.append("eatUnusedSelectionKeys"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.eatUnusedSelectionKeys(v));
-            // Type property (sealed variant)
-            case "type" -> new ModePropertyHandler(prefix.append("type"), v -> { return switch (parseHintMeshTypeType("hint.type", v)) { case GRID -> new HintMeshType.HintGrid(hintMeshBuilder.type().gridArea().build(), hintMeshBuilder.type().gridLayoutByFilter().build(HintGridLayoutBuilder::build)); case POSITION_HISTORY -> new HintMeshType.HintPositionHistory(); case UI -> new HintMeshType.UiHintMesh(); }; }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
-            // Grid area properties
-            case "grid-area" -> new ModePropertyHandler(prefix.append("type", "area"), v -> { return switch (parseHintGridAreaType("hint.grid-area", v)) { case ACTIVE_SCREEN -> new HintGridArea.ActiveScreenHintGridArea(hintMeshBuilder.type().gridArea().activeScreenHintGridAreaCenter()); case ACTIVE_WINDOW -> new HintGridArea.ActiveWindowHintGridArea(); case ALL_SCREENS -> new HintGridArea.AllScreensHintGridArea(); }; }, v -> hintMeshBuilder.type().gridArea().type(parseHintGridAreaType("hint.grid-area", v)));
+            // Type property (sealed variant): uses Function for GRID because it
+            // needs the current area/gridLayout at mutation time, not parse time.
+            case "type" -> new ModePropertyHandler(prefix.append("type"), v -> {
+                HintMeshType.HintMeshTypeType typeType = parseHintMeshTypeType("hint.type", v);
+                return switch (typeType) {
+                    case GRID -> (Object) (Function<Object, Object>) currentType -> {
+                        if (currentType instanceof HintMeshType.HintGrid)
+                            return currentType;
+                        throw new IllegalArgumentException(
+                                "Cannot combo-trigger hint type to GRID: current type is " +
+                                currentType.getClass().getSimpleName());
+                    };
+                    case POSITION_HISTORY -> new HintMeshType.HintPositionHistory();
+                    case UI -> new HintMeshType.UiHintMesh();
+                };
+            }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
+            // Grid area properties: uses Function for ACTIVE_SCREEN because it
+            // needs the current center at mutation time, not parse time.
+            case "grid-area" -> new ModePropertyHandler(prefix.append("type", "area"), v -> {
+                HintGridAreaType areaType = parseHintGridAreaType("hint.grid-area", v);
+                return switch (areaType) {
+                    case ACTIVE_SCREEN -> (Object) (Function<Object, Object>) currentArea -> {
+                        ActiveScreenHintGridAreaCenter center =
+                                currentArea instanceof HintGridArea.ActiveScreenHintGridArea activeScreen
+                                        ? activeScreen.center()
+                                        : ActiveScreenHintGridAreaCenter.MOUSE;
+                        return new HintGridArea.ActiveScreenHintGridArea(center);
+                    };
+                    case ACTIVE_WINDOW -> new HintGridArea.ActiveWindowHintGridArea();
+                    case ALL_SCREENS -> new HintGridArea.AllScreensHintGridArea();
+                };
+            }, v -> hintMeshBuilder.type().gridArea().type(parseHintGridAreaType("hint.grid-area", v)));
             case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseActiveScreenHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().activeScreenHintGridAreaCenter(v));
             // Grid layout properties (viewport-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxRowCount(v));
