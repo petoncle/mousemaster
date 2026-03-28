@@ -135,6 +135,7 @@ public class KeyboardManager {
                     regurgitates = buildRegurgitates(null, null, currentCombos);
                 }
                 currentlyPressedKeys.put(key, processingSet);
+                macroPlayer.clearEarlyRelease(key);
                 if (processingSet.mustBeEaten()) {
                     eatenKeys.put(key, new Eat(false, processingSet));
                 }
@@ -155,6 +156,7 @@ public class KeyboardManager {
         }
         else { // Key release.
             if (processingSet != null) {
+                macroPlayer.recordEarlyRelease(key);
                 if (processingSet.handled() ||
                     processingSet.isPartOfUnpressedComboPreconditionOnly()) {
                     List<Regurgitate> regurgitates = List.of();

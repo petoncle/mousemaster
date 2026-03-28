@@ -28,6 +28,12 @@ public class MacroPlayer {
      * keysPressedByMacro because the macro just pressed it).
      */
     private final Set<Key> keysPressedByMacroDuringCurrentTick = new HashSet<>();
+    /**
+     * Keys where the user physically released the key before the macro's
+     * pending press for that key executed. When the macro later presses
+     * such a key, it sends a tap (+key -key) instead of a hold (+key with repeat).
+     */
+    private final Set<Key> earlyReleasedKeys = new HashSet<>();
 
     public MacroPlayer(PlatformClock clock, ComboWatcher comboWatcher,
                        KeyboardManager keyboardManager) {
@@ -101,6 +107,7 @@ public class MacroPlayer {
         macroInProgress = null;
         keysPressedByMacro.clear();
         keysPressedByMacroDuringCurrentTick.clear();
+        earlyReleasedKeys.clear();
     }
 
     public void keyPressedNotEaten(Key key) {
@@ -124,6 +131,32 @@ public class MacroPlayer {
                !keysPressedByMacroDuringCurrentTick.contains(key);
     }
 
+    public void recordEarlyRelease(Key key) {
+        if (macroInProgress == null)
+            return;
+        for (int i = macroInProgress.currentIndex + 1;
+             i < macroInProgress.macro.output().parallels().size(); i++) {
+            for (ResolvedMacroMove move : macroInProgress.macro.output()
+                                                               .parallels()
+                                                               .get(i)
+                                                               .moves()) {
+                if (move instanceof ResolvedKeyMacroMove km &&
+                    km.press() && km.key().equals(key) &&
+                    km.destination() == MacroMoveDestination.OS) {
+                    earlyReleasedKeys.add(key);
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * Called by KeyboardManager on physical key press.
+     * If the user re-presses a key after releasing it, the early release no longer applies.
+     */
+    public void clearEarlyRelease(Key key) {
+        earlyReleasedKeys.remove(key);
+    }
 
     public void update(double delta) {
         if (macroInProgress == null && !macrosToExecute.isEmpty()) {
@@ -185,10 +218,22 @@ public class MacroPlayer {
                             // Macro-press is noop if user already has the key pressed at OS level.
                             boolean macroPressIsNoop =
                                     keyboardManager.isPressedKeyNotEaten(keyMove.key());
-                            keysPressedByMacro.add(keyMove.key());
-                            keysPressedByMacroDuringCurrentTick.add(keyMove.key());
-                            if (!macroPressIsNoop)
+                            if (!macroPressIsNoop &&
+                                earlyReleasedKeys.remove(keyMove.key())) {
+                                // User already released this key before the macro
+                                // pressed it. Tap instead of hold to avoid stuck repeat.
                                 osMoves.add(keyMove);
+                                osMoves.add(new ResolvedKeyMacroMove(
+                                        keyMove.key(), false,
+                                        MacroMoveDestination.OS));
+                            }
+                            else {
+                                keysPressedByMacro.add(keyMove.key());
+                                keysPressedByMacroDuringCurrentTick.add(
+                                        keyMove.key());
+                                if (!macroPressIsNoop)
+                                    osMoves.add(keyMove);
+                            }
                         }
                         else {
                             // Macro-release is noop if key is not pressed at OS level.
