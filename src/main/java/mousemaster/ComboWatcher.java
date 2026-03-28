@@ -768,12 +768,25 @@ public class ComboWatcher {
             return;
         Key lastEventKey = lastKeyEvent == null ? null : lastKeyEvent.key();
         List<Command> commands = new ArrayList<>(commandsToRun);
+        // Batch all mutations so the mode is rebuilt only once.
+        boolean anyMutation = false;
+        for (Command command : commands) {
+            if (command instanceof Command.MutateMode mutateMode) {
+                activeMutations.put(mutateMode.propertyPath(),
+                        new ActiveModeMutation(mutateMode.newPropertyValue(),
+                                mutateMode.combo()));
+                anyMutation = true;
+            }
+        }
+        if (anyMutation) {
+            commands.removeIf(Command.MutateMode.class::isInstance);
+            Mode previousMutatedMode = mutatedMode;
+            rebuildMutatedMode();
+            if (!mutatedMode.equals(previousMutatedMode))
+                notifyMutatedMode();
+        }
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
             Command command = commands.removeFirst();
-            if (command instanceof Command.MutateMode mutateMode) {
-                handleMutateMode(mutateMode);
-                continue;
-            }
             commandRunner.run(command, lastEventKey);
             if (hintManager.pollLastHintCommandSupercedesOtherCommands())
                 return;
@@ -1208,14 +1221,6 @@ public class ComboWatcher {
         }
     }
 
-    private void handleMutateMode(Command.MutateMode mutateMode) {
-        activeMutations.put(mutateMode.propertyPath(),
-                new ActiveModeMutation(mutateMode.newPropertyValue(), mutateMode.combo()));
-        Mode previousMutatedMode = mutatedMode;
-        rebuildMutatedMode();
-        if (!mutatedMode.equals(previousMutatedMode))
-            notifyMutatedMode();
-    }
 
     private void revertUnsatisfiedMutations() {
         if (activeMutations.isEmpty())
