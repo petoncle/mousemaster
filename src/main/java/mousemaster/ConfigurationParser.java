@@ -2213,11 +2213,18 @@ public class ConfigurationParser {
         if (splitComboProperty.defaultValue() != null)
             modeBuilderSetter.accept(splitComboProperty.defaultValue());
         String label = modeName + "." + String.join(".", propertyPath.fieldNames());
-        for (SplitComboProperty.ComboPropertyValue cpv : splitComboProperty.comboValues()) {
-            Object parsedValue = valueParser.apply(cpv.valueString());
-            List<Combo> combos = parseCombos(cpv.comboString(), label,
+        for (SplitComboProperty.ComboPropertyValue comboPropertyValue : splitComboProperty.comboValues()) {
+            List<Combo> combos = parseCombos(comboPropertyValue.comboString(), label,
                     defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
             for (Combo combo : combos) {
+                Object parsedValue;
+                if (combo.sequence().aliasNames().contains(comboPropertyValue.valueString())) {
+                    parsedValue = new UnresolvedAliasComboPropertyValue(
+                            comboPropertyValue.valueString());
+                }
+                else {
+                    parsedValue = valueParser.apply(comboPropertyValue.valueString());
+                }
                 Command command = new Command.MutateMode(modeName, propertyPath,
                         parsedValue, combo);
                 mutateModeCommandMap

@@ -965,7 +965,7 @@ public class ComboWatcher {
     private List<Command> longestComboCommandsLastAndDeduplicate(List<ComboAndCommands> commandsToRun) {
         // Resolve macro aliases before deduplication: each macro command's
         // aliases are resolved using the alias bindings from its combo match.
-        attachMacroAliasResolutions(commandsToRun);
+        attachAliasResolutions(commandsToRun);
         // Suppress combos whose matched key moves are a strict subset of
         // another completing combo's matched key moves.
         commandsToRun.removeIf(candidate -> {
@@ -987,7 +987,7 @@ public class ComboWatcher {
                             .toList();
     }
 
-    private static void attachMacroAliasResolutions(List<ComboAndCommands> comboAndCommandsList) {
+    private static void attachAliasResolutions(List<ComboAndCommands> comboAndCommandsList) {
         for (int i = 0; i < comboAndCommandsList.size(); i++) {
             ComboAndCommands cac = comboAndCommandsList.get(i);
             AliasResolution resolution = cac.match.aliasResolution();
@@ -1020,6 +1020,14 @@ public class ComboWatcher {
                     resolvedCommands.add(new Command.MacroCommand(macro, filteredResolution));
                     changed = true;
                 }
+                else if (command instanceof Command.MutateMode mutateMode &&
+                         mutateMode.newPropertyValue() instanceof UnresolvedAliasComboPropertyValue unresolved) {
+                    String resolved = resolveAliasComboPropertyValue(unresolved, resolution);
+                    resolvedCommands.add(new Command.MutateMode(
+                            mutateMode.modeName(), mutateMode.propertyPath(),
+                            resolved, mutateMode.combo()));
+                    changed = true;
+                }
                 else {
                     resolvedCommands.add(command);
                 }
@@ -1029,6 +1037,21 @@ public class ComboWatcher {
                         new ComboAndCommands(cac.combo, resolvedCommands, cac.match));
             }
         }
+    }
+
+    private static String resolveAliasComboPropertyValue(
+            UnresolvedAliasComboPropertyValue unresolved,
+            AliasResolution resolution) {
+        String aliasName = unresolved.aliasName();
+        List<Key> tapKeys = resolution.keysByTapExpandedFromAlias()
+                                      .get(aliasName);
+        if (tapKeys != null && !tapKeys.isEmpty()) {
+            return tapKeys.stream()
+                          .map(Key::hintLabel)
+                          .collect(Collectors.joining());
+        }
+        Key key = resolution.keyByAliasName().get(aliasName);
+        return key != null ? key.hintLabel() : aliasName;
     }
 
     /**
