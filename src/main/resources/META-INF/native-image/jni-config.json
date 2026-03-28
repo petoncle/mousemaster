@@ -781,7 +781,7 @@
 },
 {
   "name":"mousemaster.WindowsOverlay$ClearBackgroundQLabel",
-  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setClearColor","parameterTypes":["io.qt.gui.QColor"] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$HintPaintLayer",
