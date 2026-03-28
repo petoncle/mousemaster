@@ -132,6 +132,7 @@ public class MacroPlayer {
     }
 
     public void recordEarlyRelease(Key key) {
+        WindowsKeyboard.recordEarlyReleaseForQueuedPress(key);
         if (macroInProgress == null)
             return;
         for (int i = macroInProgress.currentIndex + 1;
@@ -156,6 +157,7 @@ public class MacroPlayer {
      */
     public void clearEarlyRelease(Key key) {
         earlyReleasedKeys.remove(key);
+        WindowsKeyboard.clearEarlyReleaseForQueuedPress(key);
     }
 
     public void update(double delta) {

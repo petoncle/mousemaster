@@ -39,6 +39,7 @@ public class WindowsKeyboard {
 
     public static void reset() {
         sendInputQueue.clear();
+        earlyReleasedQueuedKeys.clear();
         moveWaitingForKeyboardHookCallbackAcknowledgment = null;
         ticksWaitingForAcknowledgment = 0;
         pressedKeyToRepeat = null;
@@ -56,6 +57,15 @@ public class WindowsKeyboard {
      */
     private record SendInputMove(ResolvedMacroMove move, boolean startRepeat) {}
     private static final List<SendInputMove> sendInputQueue = new LinkedList<>();
+    /**
+     * Keys where the user physically released the key while a pending +key
+     * was sitting in the sendInputQueue. When the deferred +key is sent,
+     * a -key is appended to the batch (tap instead of hold) to prevent
+     * stuck repeat. This handles the case where leftalt batching splits
+     * a single parallel's sends (e.g. [+leftalt, +i, -leftalt] becomes
+     * [+leftalt] then deferred [+i, -leftalt]).
+     */
+    private static final Set<Key> earlyReleasedQueuedKeys = new HashSet<>();
     private static ResolvedKeyMacroMove moveWaitingForKeyboardHookCallbackAcknowledgment;
     private static int ticksWaitingForAcknowledgment;
 
@@ -86,6 +96,21 @@ public class WindowsKeyboard {
     public static void keyReleasedNotEaten(Key key) {
         if (key.equals(pressedKeyToRepeat))
             pressedKeyToRepeat = null;
+    }
+
+    public static void recordEarlyReleaseForQueuedPress(Key key) {
+        for (SendInputMove queued : sendInputQueue) {
+            if (queued.move() instanceof ResolvedKeyMacroMove km &&
+                km.press() && km.key().equals(key) &&
+                km.destination() == MacroMoveDestination.OS) {
+                earlyReleasedQueuedKeys.add(key);
+                return;
+            }
+        }
+    }
+
+    public static void clearEarlyReleaseForQueuedPress(Key key) {
+        earlyReleasedQueuedKeys.remove(key);
     }
 
     private static final Set<Key> userPressedKeys = new HashSet<>();
@@ -195,6 +220,16 @@ public class WindowsKeyboard {
                         if (next.key().equals(Key.leftalt))
                             break;
 //                        break;
+                    }
+                    // If the user released a key while its +key was
+                    // queued, append a -key so SendInput sends a tap
+                    // (no OS-level stuck key, no mousemaster repeat).
+                    for (ResolvedKeyMacroMove m : List.copyOf(batch)) {
+                        if (m.press() &&
+                            earlyReleasedQueuedKeys.remove(m.key())) {
+                            batch.add(new ResolvedKeyMacroMove(
+                                    m.key(), false, m.destination()));
+                        }
                     }
                     sendInputKeys(batch, sendInputMove.startRepeat());
                     return true;
