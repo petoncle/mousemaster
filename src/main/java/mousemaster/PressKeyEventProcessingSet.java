@@ -42,6 +42,12 @@ public record PressKeyEventProcessingSet(
                                         PressKeyEventProcessing::isPartOfCompletedComboSequenceAndMustBeEaten);
     }
 
+    public boolean hasInProgressMustBeEatenCombo() {
+        return processingByCombo.values().stream()
+                                .anyMatch(p -> p.isPartOfComboSequence() && p.mustBeEaten()
+                                            && !p.isPartOfCompletedComboSequence());
+    }
+
     public boolean isPartOfCompletedComboSequence() {
         return processingByCombo.values().stream()
                                 .anyMatch(

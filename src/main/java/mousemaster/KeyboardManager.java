@@ -194,7 +194,11 @@ public class KeyboardManager {
                                         releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatches(),
                                         false);
                                 clearFullyCompletedEatenKeys();
-                                regurgitates = buildRegurgitates(key, key, Set.of());
+                                Eat eatEntry = eatenKeys.get(key);
+                                if (eatEntry == null ||
+                                    !eatEntry.processingSet().hasInProgressMustBeEatenCombo()) {
+                                    regurgitates = buildRegurgitates(key, key, Set.of());
+                                }
                             }
                         }
                         if (processingSet.isComboPreparationBreaker()) {
