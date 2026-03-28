@@ -102,6 +102,8 @@ public class CommandRunner {
 
             case BreakMacro breakMacro -> macroPlayer.breakMacro();
 
+            case Noop noop -> {}
+
             case SelectHintKey selectHintKey -> hintManager.selectHintKey(eventKey);
             case UnselectHintKey unselectHintKey -> hintManager.unselectHintKey();
             // @formatter:on

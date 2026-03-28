@@ -273,7 +273,8 @@ public class ConfigurationParser {
                 new Property<>("break-combo-preparation", Map.of()),
                 new Property<>("break-macro", Map.of()),
                 new Property<>("macro", Map.of()),
-                new Property<>("mutate-mode", Map.of())
+                new Property<>("mutate-mode", Map.of()),
+                new Property<>("noop", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
     }
@@ -1355,6 +1356,9 @@ public class ConfigurationParser {
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             case "break-macro" -> mode.comboMap.breakMacro.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.breakMacro.builder, propertyValue, new BreakMacro(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "noop" -> mode.comboMap.noop.parseReferenceOr(propertyKey, propertyValue,
+                    commandsByCombo -> setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             // @formatter:on
             default -> throw new IllegalArgumentException(
@@ -2933,6 +2937,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> breakMacro;
         Property<Map<Combo, List<Command>>> macro;
         Property<Map<Combo, List<Command>>> mutateMode;
+        Property<Map<Combo, List<Command>>> noop;
 
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
@@ -2961,6 +2966,7 @@ public class ConfigurationParser {
             breakMacro = new ComboMapProperty("break-macro", modeName, propertyByKey);
             macro = new ComboMapProperty("macro", modeName, propertyByKey);
             mutateMode = new ComboMapProperty("mutate-mode", modeName, propertyByKey);
+            noop = new ComboMapProperty("noop", modeName, propertyByKey);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
@@ -3026,6 +3032,7 @@ public class ConfigurationParser {
             add(commandsByCombo, breakMacro.builder);
             add(commandsByCombo, macro.builder);
             add(commandsByCombo, mutateMode.builder);
+            add(commandsByCombo, noop.builder);
             return commandsByCombo;
         }
 
