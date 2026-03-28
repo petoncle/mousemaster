@@ -439,6 +439,25 @@ public class ConfigurationParser {
                     defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
                     rootPropertyNode, propertyByKey, referencedModesByReferencerMode);
         }
+        // Aggregate mutateModeCommands from individual properties into
+        // each mode's comboMap.mutateMode so they are included in the ComboMap.
+        for (ModeBuilder mode : modeByName.values()) {
+            for (Property<?> property : List.of(
+                    mode.stopCommandsFromPreviousMode,
+                    mode.pushModeToHistoryStack,
+                    mode.modeAfterUnhandledKeyPress,
+                    mode.mouse, mode.wheel,
+                    mode.grid, mode.hintMesh, mode.timeout, mode.indicator,
+                    mode.hideCursor, mode.zoom)) {
+                for (Map.Entry<Combo, List<Command>> entry :
+                        property.mutateModeCommands.entrySet()) {
+                    mode.comboMap.mutateMode.builder
+                            .computeIfAbsent(entry.getKey(),
+                                    c -> new ArrayList<>())
+                            .addAll(entry.getValue());
+                }
+            }
+        }
         for (ModeBuilder mode : modeByName.values()) {
             Set<String> referencedModes =
                     referencedModesByReferencerMode.computeIfAbsent(mode.modeName,
@@ -694,24 +713,47 @@ public class ConfigurationParser {
         switch (group2) {
             case "stop-commands-from-previous-mode" ->
                     mode.stopCommandsFromPreviousMode.parseReferenceOr(propertyKey,
-                            propertyValue, builder -> builder.set(
-                                    Boolean.parseBoolean(propertyValue)),
+                            propertyValue, builder -> {
+                                if (!tryParseComboProperty(propertyValue, modeName,
+                                        new ModePropertyPath(List.of("stopCommandsFromPreviousMode")),
+                                        v -> Boolean.parseBoolean(v),
+                                        v -> builder.set(Boolean.parseBoolean(v)),
+                                        mode.stopCommandsFromPreviousMode.mutateModeCommands,
+                                        defaultComboMoveDuration, keyAliases, appAliases,
+                                        keyResolver))
+                                    builder.set(Boolean.parseBoolean(propertyValue));
+                            },
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
             case "push-mode-to-history-stack" ->
                     mode.pushModeToHistoryStack.parseReferenceOr(propertyKey,
-                            propertyValue, builder -> builder.set(
-                                    Boolean.parseBoolean(propertyValue)),
+                            propertyValue, builder -> {
+                                if (!tryParseComboProperty(propertyValue, modeName,
+                                        new ModePropertyPath(List.of("pushModeToHistoryStack")),
+                                        v -> Boolean.parseBoolean(v),
+                                        v -> builder.set(Boolean.parseBoolean(v)),
+                                        mode.pushModeToHistoryStack.mutateModeCommands,
+                                        defaultComboMoveDuration, keyAliases, appAliases,
+                                        keyResolver))
+                                    builder.set(Boolean.parseBoolean(propertyValue));
+                            },
                             childPropertiesByParentProperty,
                             nonRootPropertyKeys);
-            case "mode-after-unhandled-key-press" -> {
-                String modeAfterPressingUnhandledKeysOnly =
-                        checkModeReference(propertyValue);
-                mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
-                        modeAfterPressingUnhandledKeysOnly, builder ->
-                                builder.set(modeAfterPressingUnhandledKeysOnly),
-                        childPropertiesByParentProperty, nonRootPropertyKeys);
-            }
+            case "mode-after-unhandled-key-press" ->
+                    mode.modeAfterUnhandledKeyPress.parseReferenceOr(propertyKey,
+                            propertyValue, builder -> {
+                                if (!tryParseComboProperty(propertyValue, modeName,
+                                        new ModePropertyPath(List.of("modeAfterUnhandledKeyPress")),
+                                        v -> { modeReferences.add(checkModeReference(v)); return v; },
+                                        v -> { modeReferences.add(checkModeReference(v)); builder.set(v); },
+                                        mode.modeAfterUnhandledKeyPress.mutateModeCommands,
+                                        defaultComboMoveDuration, keyAliases, appAliases,
+                                        keyResolver)) {
+                                    modeReferences.add(checkModeReference(propertyValue));
+                                    builder.set(propertyValue);
+                                }
+                            },
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
             case "mouse" -> {
                 if (keyMatcher.group(group3) == null)
                     mode.mouse.parsePropertyReference(propertyKey, propertyValue,
@@ -730,7 +772,7 @@ public class ConfigurationParser {
                     if (!tryParseComboProperty(propertyValue, modeName,
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
-                            mode.comboMap.mutateMode.builder,
+                            mode.mouse.mutateModeCommands,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -754,7 +796,7 @@ public class ConfigurationParser {
                     if (!tryParseComboProperty(propertyValue, modeName,
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
-                            mode.comboMap.mutateMode.builder,
+                            mode.wheel.mutateModeCommands,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -778,7 +820,7 @@ public class ConfigurationParser {
                     if (!tryParseComboProperty(propertyValue, modeName,
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
-                            mode.comboMap.mutateMode.builder,
+                            mode.grid.mutateModeCommands,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -807,7 +849,7 @@ public class ConfigurationParser {
                         if (!tryParseComboProperty(propertyValue, modeName,
                                 handler.propertyPath(), handler.valueParser(),
                                 handler.modeBuilderSetter(),
-                                mode.comboMap.mutateMode.builder,
+                                mode.hintMesh.mutateModeCommands,
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver))
                             handler.modeBuilderSetter().accept(propertyValue);
@@ -936,7 +978,7 @@ public class ConfigurationParser {
                     if (!tryParseComboProperty(propertyValue, modeName,
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
-                            mode.comboMap.mutateMode.builder,
+                            mode.timeout.mutateModeCommands,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -964,7 +1006,7 @@ public class ConfigurationParser {
                         if (!tryParseComboProperty(propertyValue, modeName,
                                 handler.propertyPath(), handler.valueParser(),
                                 handler.modeBuilderSetter(),
-                                mode.comboMap.mutateMode.builder,
+                                mode.indicator.mutateModeCommands,
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver))
                             handler.modeBuilderSetter().accept(propertyValue);
@@ -1021,7 +1063,7 @@ public class ConfigurationParser {
                         parseIndicatorProperty(targetIndicator, subKey,
                                 propertyValue, fontAvailability,
                                 indicatorPropertyPathPrefix,
-                                mode.comboMap.mutateMode.builder,
+                                mode.indicator.mutateModeCommands,
                                 modeName, defaultComboMoveDuration,
                                 keyAliases, appAliases, keyResolver);
                     }
@@ -1047,7 +1089,7 @@ public class ConfigurationParser {
                     if (!tryParseComboProperty(propertyValue, modeName,
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
-                            mode.comboMap.mutateMode.builder,
+                            mode.hideCursor.mutateModeCommands,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -1071,7 +1113,7 @@ public class ConfigurationParser {
                     if (!tryParseComboProperty(propertyValue, modeName,
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
-                            mode.comboMap.mutateMode.builder,
+                            mode.zoom.mutateModeCommands,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -1691,6 +1733,26 @@ public class ConfigurationParser {
         }
 */
         property.extend(parentProperty.builder);
+        // Copy MutateMode commands from the parent property to the child,
+        // adjusting the modeName to the child mode.
+        String childModeName = property.propertyKey.modeName();
+        if (childModeName != null) {
+            for (Map.Entry<Combo, List<Command>> entry :
+                    parentProperty.mutateModeCommands.entrySet()) {
+                for (Command command : entry.getValue()) {
+                    Command adjusted = command;
+                    if (command instanceof Command.MutateMode mutateMode) {
+                        adjusted = new Command.MutateMode(
+                                childModeName, mutateMode.propertyPath(),
+                                mutateMode.newPropertyValue(), mutateMode.combo());
+                    }
+                    property.mutateModeCommands
+                            .computeIfAbsent(entry.getKey(),
+                                    c -> new ArrayList<>())
+                            .add(adjusted);
+                }
+            }
+        }
         for (PropertyNode childPropertyNode : propertyNode.childProperties)
             recursivelyExtendProperty(property, childPropertyNode, propertyByKey,
                     referencedModesByReferencerMode);
@@ -3136,6 +3198,7 @@ public class ConfigurationParser {
     private static class Property<T> {
         final PropertyKey propertyKey;
         final T builder;
+        final Map<Combo, List<Command>> mutateModeCommands = new HashMap<>();
         PropertyKey parentPropertyKey;
 
         private Property(String name, String mode,
