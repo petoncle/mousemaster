@@ -1006,8 +1006,17 @@ public class ConfigurationParser {
                     // group5 is the property name (color, size, etc.).
                     String stateOrKey = keyMatcher.group(group4);
                     if (stateOrKey.equals("enabled")) {
-                        mode.indicator.builder.enabled(
-                                Boolean.parseBoolean(propertyValue));
+                        ModePropertyHandler handler = ModePropertyHandler.of(
+                                new ModePropertyPath(List.of("indicator", "enabled")),
+                                Boolean::parseBoolean,
+                                v -> mode.indicator.builder.enabled(v));
+                        if (!tryParseComboProperty(propertyValue, modeName,
+                                handler.propertyPath(), handler.valueParser(),
+                                handler.modeBuilderSetter(),
+                                mode.comboMap.mutateMode.builder,
+                                defaultComboMoveDuration, keyAliases, appAliases,
+                                keyResolver))
+                            handler.modeBuilderSetter().accept(propertyValue);
                     }
                     else {
                         String subKey = keyMatcher.group(group5);
