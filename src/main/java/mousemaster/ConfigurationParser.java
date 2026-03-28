@@ -769,60 +769,19 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid grid property key");
                 else {
-                    switch (keyMatcher.group(group4)) {
-                        case "area" -> mode.grid.builder.area()
-                                                        .type(parseGridAreaType(
-                                                                propertyKey,
-                                                                propertyValue));
-                        case "area-width-percent" -> mode.grid.builder.area()
-                                                                      .widthPercent(
-                                                                              parseNonZeroPercent(
-                                                                                      propertyValue,
-                                                                                      2));
-                        case "area-height-percent" -> mode.grid.builder.area()
-                                                                       .heightPercent(
-                                                                               parseNonZeroPercent(
-                                                                                       propertyValue,
-                                                                                       2));
-                        case "area-top-inset" -> mode.grid.builder.area()
-                                                                  .topInset(
-                                                                          parseUnsignedInteger(
-                                                                                  propertyValue,
-                                                                                  0,
-                                                                                  10_000));
-                        case "area-bottom-inset" -> mode.grid.builder.area()
-                                                                     .bottomInset(
-                                                                          parseUnsignedInteger(
-                                                                                  propertyValue,
-                                                                                  0,
-                                                                                  10_000));
-                        case "area-left-inset" -> mode.grid.builder.area()
-                                                                   .leftInset(
-                                                                          parseUnsignedInteger(
-                                                                                  propertyValue,
-                                                                                  0,
-                                                                                  10_000));
-                        case "area-right-inset" -> mode.grid.builder.area()
-                                                                    .rightInset(
-                                                                          parseUnsignedInteger(
-                                                                                  propertyValue,
-                                                                                  0,
-                                                                                  10_000));
-                        case "synchronization" -> mode.grid.builder.synchronization(
-                                parseSynchronization(propertyKey, propertyValue));
-                        case "row-count" -> mode.grid.builder.rowCount(
-                                parseUnsignedInteger(propertyValue, 1, 50));
-                        case "column-count" -> mode.grid.builder.columnCount(
-                                parseUnsignedInteger(propertyValue, 1, 50));
-                        case "line-visible" -> mode.grid.builder.lineVisible(
-                                Boolean.parseBoolean(propertyValue));
-                        case "line-color" -> mode.grid.builder.lineHexColor(
-                                checkColorFormat(propertyValue));
-                        case "line-thickness" -> mode.grid.builder.lineThickness(
-                                parseDouble(propertyValue, false, 0, 1000));
-                        default -> throw new IllegalArgumentException(
+                    ModePropertyHandler handler = gridHandler(
+                            new ModePropertyPath(List.of("grid")),
+                            mode.grid.builder, keyMatcher.group(group4));
+                    if (handler == null)
+                        throw new IllegalArgumentException(
                                 "Invalid grid property key");
-                    }
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.comboMap.mutateMode.builder,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver))
+                        handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
             case "hint" -> {
@@ -967,22 +926,20 @@ public class ConfigurationParser {
                 else {
                     if (mode.timeout.builder.enabled() == null)
                         mode.timeout.builder.enabled(true);
-                    switch (keyMatcher.group(group4)) {
-                        case "enabled" -> mode.timeout.builder.enabled(
-                                Boolean.parseBoolean(propertyValue));
-                        case "duration-millis" -> mode.timeout.builder.duration(
-                                parseDuration(propertyValue));
-                        case "mode" -> {
-                            String timeoutModeName = propertyValue;
-                            mode.timeout.builder.modeName(timeoutModeName);
-                            modeReferences.add(
-                                    checkModeReference(timeoutModeName));
-                        }
-                        case "only-if-idle" -> mode.timeout.builder.onlyIfIdle(
-                                Boolean.parseBoolean(propertyValue));
-                        default -> throw new IllegalArgumentException(
+                    ModePropertyHandler handler = timeoutHandler(
+                            new ModePropertyPath(List.of("timeout")),
+                            mode.timeout.builder, keyMatcher.group(group4),
+                            modeReferences);
+                    if (handler == null)
+                        throw new IllegalArgumentException(
                                 "Invalid timeout property key");
-                    }
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.comboMap.mutateMode.builder,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver))
+                        handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
             case "indicator" -> {
@@ -1081,15 +1038,19 @@ public class ConfigurationParser {
                 else {
                     if (mode.hideCursor.builder.enabled() == null)
                         mode.hideCursor.builder.enabled(true);
-                    switch (keyMatcher.group(group4)) {
-                        case "enabled" -> mode.hideCursor.builder.enabled(
-                                Boolean.parseBoolean(propertyValue));
-                        case "idle-duration-millis" ->
-                                mode.hideCursor.builder.idleDuration(
-                                        parseDuration(propertyValue));
-                        default -> throw new IllegalArgumentException(
-                                "Invalid hide-cursor configuration");
-                    }
+                    ModePropertyHandler handler = hideCursorHandler(
+                            new ModePropertyPath(List.of("hideCursor")),
+                            mode.hideCursor.builder, keyMatcher.group(group4));
+                    if (handler == null)
+                        throw new IllegalArgumentException(
+                                "Invalid hide-cursor property key");
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.comboMap.mutateMode.builder,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver))
+                        handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
             case "zoom" -> {
@@ -1101,21 +1062,19 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid zoom property key");
                 else {
-                    switch (keyMatcher.group(group4)) {
-                        case "percent" -> mode.zoom.builder.percent(
-                                parseDouble(propertyValue, true, 1, 100));
-                        case "center" ->
-                                mode.zoom.builder.center(
-                                        parseZoomCenter(propertyKey, propertyValue));
-                        case "animation-enabled" -> mode.zoom.builder.animationEnabled(
-                                Boolean.parseBoolean(propertyValue));
-                        case "animation-easing" -> mode.zoom.builder.animationEasing(
-                                parseEasing(propertyValue));
-                        case "animation-duration-millis" -> mode.zoom.builder.animationDurationMillis(
-                                parseDouble(propertyValue, true, 0, 10000));
-                        default -> throw new IllegalArgumentException(
+                    ModePropertyHandler handler = zoomHandler(
+                            new ModePropertyPath(List.of("zoom")),
+                            mode.zoom.builder, keyMatcher.group(group4));
+                    if (handler == null)
+                        throw new IllegalArgumentException(
                                 "Invalid zoom property key");
-                    }
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.comboMap.mutateMode.builder,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver))
+                        handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
             case "start-move" -> {
@@ -1846,6 +1805,85 @@ public class ConfigurationParser {
             case "acceleration" -> ModePropertyHandler.of(prefix.append("velocity", "acceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().acceleration(v));
             case "acceleration-easing" -> ModePropertyHandler.of(prefix.append("velocity", "accelerationEasing"), v -> parseEasing(v), v -> wheel.velocity().accelerationEasing(v));
             case "deceleration" -> ModePropertyHandler.of(prefix.append("velocity", "deceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().deceleration(v));
+            default -> null;
+        };
+    }
+
+    private static ModePropertyHandler gridHandler(
+            ModePropertyPath prefix,
+            GridConfiguration.GridConfigurationBuilder grid, String key) {
+        return switch (key) {
+            // @formatter:off
+            case "area" -> new ModePropertyHandler(prefix.append("area"),
+                    v -> {
+                        GridArea.GridAreaType type = parseGridAreaType("grid.area", v);
+                        return (Function<GridArea, GridArea>) currentArea -> switch (type) {
+                            case ACTIVE_SCREEN -> new GridArea.ActiveScreenGridArea(
+                                    currentArea.widthPercent(), currentArea.heightPercent(),
+                                    currentArea.topInset(), currentArea.bottomInset(),
+                                    currentArea.leftInset(), currentArea.rightInset());
+                            case ACTIVE_WINDOW -> new GridArea.ActiveWindowGridArea(
+                                    currentArea.widthPercent(), currentArea.heightPercent(),
+                                    currentArea.topInset(), currentArea.bottomInset(),
+                                    currentArea.leftInset(), currentArea.rightInset());
+                        };
+                    },
+                    v -> grid.area().type(parseGridAreaType("grid.area", v)));
+            case "area-width-percent" -> ModePropertyHandler.of(prefix.append("area", "widthPercent"), v -> parseNonZeroPercent(v, 2), v -> grid.area().widthPercent(v));
+            case "area-height-percent" -> ModePropertyHandler.of(prefix.append("area", "heightPercent"), v -> parseNonZeroPercent(v, 2), v -> grid.area().heightPercent(v));
+            case "area-top-inset" -> ModePropertyHandler.of(prefix.append("area", "topInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().topInset(v));
+            case "area-bottom-inset" -> ModePropertyHandler.of(prefix.append("area", "bottomInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().bottomInset(v));
+            case "area-left-inset" -> ModePropertyHandler.of(prefix.append("area", "leftInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().leftInset(v));
+            case "area-right-inset" -> ModePropertyHandler.of(prefix.append("area", "rightInset"), v -> parseUnsignedInteger(v, 0, 10_000), v -> grid.area().rightInset(v));
+            case "synchronization" -> ModePropertyHandler.of(prefix.append("synchronization"), v -> parseSynchronization("grid.synchronization", v), v -> grid.synchronization(v));
+            case "row-count" -> ModePropertyHandler.of(prefix.append("rowCount"), v -> parseUnsignedInteger(v, 1, 50), v -> grid.rowCount(v));
+            case "column-count" -> ModePropertyHandler.of(prefix.append("columnCount"), v -> parseUnsignedInteger(v, 1, 50), v -> grid.columnCount(v));
+            case "line-visible" -> ModePropertyHandler.of(prefix.append("lineVisible"), v -> Boolean.parseBoolean(v), v -> grid.lineVisible(v));
+            case "line-color" -> ModePropertyHandler.of(prefix.append("lineHexColor"), v -> checkColorFormat(v), v -> grid.lineHexColor(v));
+            case "line-thickness" -> ModePropertyHandler.of(prefix.append("lineThickness"), v -> parseDouble(v, false, 0, 1000), v -> grid.lineThickness(v));
+            // @formatter:on
+            default -> null;
+        };
+    }
+
+    private static ModePropertyHandler timeoutHandler(
+            ModePropertyPath prefix,
+            ModeTimeout.ModeTimeoutBuilder timeout, String key,
+            Set<String> modeReferences) {
+        return switch (key) {
+            // @formatter:off
+            case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> timeout.enabled(v));
+            case "duration-millis" -> ModePropertyHandler.of(prefix.append("duration"), v -> parseDuration(v), v -> timeout.duration(v));
+            case "mode" -> ModePropertyHandler.of(prefix.append("modeName"), v -> { modeReferences.add(checkModeReference(v)); return v; }, v -> timeout.modeName(v));
+            case "only-if-idle" -> ModePropertyHandler.of(prefix.append("onlyIfIdle"), v -> Boolean.parseBoolean(v), v -> timeout.onlyIfIdle(v));
+            // @formatter:on
+            default -> null;
+        };
+    }
+
+    private static ModePropertyHandler hideCursorHandler(
+            ModePropertyPath prefix,
+            HideCursor.HideCursorBuilder hideCursor, String key) {
+        return switch (key) {
+            // @formatter:off
+            case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> hideCursor.enabled(v));
+            case "idle-duration-millis" -> ModePropertyHandler.of(prefix.append("idleDuration"), v -> parseDuration(v), v -> hideCursor.idleDuration(v));
+            // @formatter:on
+            default -> null;
+        };
+    }
+
+    private static ModePropertyHandler zoomHandler(
+            ModePropertyPath prefix,
+            ZoomConfiguration.ZoomConfigurationBuilder zoom, String key) {
+        return switch (key) {
+            // @formatter:off
+            case "percent" -> ModePropertyHandler.of(prefix.append("percent"), v -> parseDouble(v, true, 1, 100), v -> zoom.percent(v));
+            case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseZoomCenter("zoom.center", v), v -> zoom.center(v));
+            case "animation-enabled" -> ModePropertyHandler.of(prefix.append("animationEnabled"), v -> Boolean.parseBoolean(v), v -> zoom.animationEnabled(v));
+            case "animation-easing" -> ModePropertyHandler.of(prefix.append("animationEasing"), v -> parseEasing(v), v -> zoom.animationEasing(v));
+            case "animation-duration-millis" -> ModePropertyHandler.of(prefix.append("animationDurationMillis"), v -> parseDouble(v, true, 0, 10000), v -> zoom.animationDurationMillis(v));
+            // @formatter:on
             default -> null;
         };
     }

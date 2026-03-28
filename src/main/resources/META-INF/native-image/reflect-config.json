@@ -760,6 +760,26 @@
   "allDeclaredFields":true
 },
 {
+  "name":"mousemaster.GridArea$ActiveScreenGridArea",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["double","double","int","int","int","int"] }, {"name":"bottomInset","parameterTypes":[] }, {"name":"heightPercent","parameterTypes":[] }, {"name":"leftInset","parameterTypes":[] }, {"name":"rightInset","parameterTypes":[] }, {"name":"topInset","parameterTypes":[] }, {"name":"widthPercent","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.GridArea$ActiveWindowGridArea",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["double","double","int","int","int","int"] }, {"name":"bottomInset","parameterTypes":[] }, {"name":"heightPercent","parameterTypes":[] }, {"name":"leftInset","parameterTypes":[] }, {"name":"rightInset","parameterTypes":[] }, {"name":"topInset","parameterTypes":[] }, {"name":"widthPercent","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.GridConfiguration",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.GridArea","mousemaster.Synchronization","int","int","boolean","java.lang.String","double"] }, {"name":"area","parameterTypes":[] }, {"name":"columnCount","parameterTypes":[] }, {"name":"lineHexColor","parameterTypes":[] }, {"name":"lineThickness","parameterTypes":[] }, {"name":"lineVisible","parameterTypes":[] }, {"name":"rowCount","parameterTypes":[] }, {"name":"synchronization","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HideCursor",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["boolean","java.time.Duration"] }, {"name":"enabled","parameterTypes":[] }, {"name":"idleDuration","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.HintMeshConfiguration",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","mousemaster.HintMouseMovement","mousemaster.HintMeshType","mousemaster.ViewportFilterMap","mousemaster.ViewportFilterMap","java.lang.String","boolean","java.util.List","java.util.List"] }, {"name":"eatUnusedSelectionKeys","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"keysByFilter","parameterTypes":[] }, {"name":"modeAfterSelection","parameterTypes":[] }, {"name":"mouseMovement","parameterTypes":[] }, {"name":"selectCombos","parameterTypes":[] }, {"name":"styleByFilter","parameterTypes":[] }, {"name":"type","parameterTypes":[] }, {"name":"unselectCombos","parameterTypes":[] }, {"name":"visible","parameterTypes":[] }]
@@ -778,6 +798,11 @@
   "name":"mousemaster.IndicatorConfiguration",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["boolean","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator"] }, {"name":"enabled","parameterTypes":[] }, {"name":"idleIndicator","parameterTypes":[] }, {"name":"leftMousePressIndicator","parameterTypes":[] }, {"name":"middleMousePressIndicator","parameterTypes":[] }, {"name":"mousePressIndicator","parameterTypes":[] }, {"name":"moveIndicator","parameterTypes":[] }, {"name":"rightMousePressIndicator","parameterTypes":[] }, {"name":"unhandledKeyPressIndicator","parameterTypes":[] }, {"name":"wheelIndicator","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.ModeTimeout",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["boolean","java.time.Duration","java.lang.String","boolean"] }, {"name":"duration","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"modeName","parameterTypes":[] }, {"name":"onlyIfIdle","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.KeyboardLayout",
@@ -951,6 +976,11 @@
 {
   "name":"mousemaster.WindowsVirtualKey",
   "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.ZoomConfiguration",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"animationDurationMillis","parameterTypes":[] }, {"name":"animationEasing","parameterTypes":[] }, {"name":"animationEnabled","parameterTypes":[] }, {"name":"center","parameterTypes":[] }, {"name":"percent","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.qt.QtJambi_LibraryUtilities"
