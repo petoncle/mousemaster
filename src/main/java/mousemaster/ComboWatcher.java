@@ -750,15 +750,15 @@ public class ComboWatcher {
                      completeCombosCommandsToRun);
         if (!comboAndCommandsToRun.isEmpty()) {
             comboListeners.forEach(ComboListener::completedCombo);
-        }
-        runCommands(commandsToRun);
-        boolean atLeastOneComboCompleted = !comboAndCommandsToRun.isEmpty();
-        if (atLeastOneComboCompleted) {
+            // Add completed combo keys before running commands so that if a
+            // SwitchMode command triggers modeChanged -> applySatisfiedPreconditionOnlyMutations,
+            // the completed combo keys are available for precondition checks.
             for (ComboAndCommands comboAndCommands : comboAndCommandsToRun) {
                 addCurrentlyPressedCompletedComboKeys(comboAndCommands.combo,
                         currentlyPressedKeys, comboAndCommands.match);
             }
         }
+        runCommands(commandsToRun);
         return processingSet;
     }
 
@@ -1063,8 +1063,9 @@ public class ComboWatcher {
         mutatedMode = newMode;
         activeMutations.clear();
         computePreconditionOnlyByPropertyPath();
+        applySatisfiedPreconditionOnlyMutations();
         for (ModeListener listener : modeListeners)
-            listener.modeChanged(newMode);
+            listener.modeChanged(mutatedMode);
         leadingWaitBeginTimeByCombo.clear();
         lastEventTimeByKey.clear();
         lastPressEventTime = null;
@@ -1251,6 +1252,27 @@ public class ComboWatcher {
                 List.of()))
             return false;
         return true;
+    }
+
+    private void applySatisfiedPreconditionOnlyMutations() {
+        for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
+                                                             .commandsByCombo()
+                                                             .entrySet()) {
+            Combo combo = entry.getKey();
+            if (!combo.sequence().isEmpty())
+                continue;
+            if (!isComboPreconditionSatisfied(combo))
+                continue;
+            for (Command command : entry.getValue()) {
+                if (command instanceof Command.MutateMode mutateMode) {
+                    activeMutations.put(mutateMode.propertyPath(),
+                            new ActiveModeMutation(mutateMode.newPropertyValue(),
+                                    combo));
+                }
+            }
+        }
+        if (!activeMutations.isEmpty())
+            rebuildMutatedMode();
     }
 
     private void rebuildMutatedMode() {
