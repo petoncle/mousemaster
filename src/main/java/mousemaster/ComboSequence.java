@@ -1,7 +1,6 @@
 package mousemaster;
 
 import mousemaster.ComboMove.KeyComboMove;
-import mousemaster.ComboMove.TapComboMove;
 import mousemaster.MoveSet.KeyMoveSet;
 import mousemaster.MoveSet.WaitMoveSet;
 
@@ -57,18 +56,21 @@ public record ComboSequence(List<MoveSet> moveSets) {
                        .filter(move -> !move.negated() && move.keyOrAlias().isAlias())
                        .map(move -> move.keyOrAlias().aliasName())
                        .collect(Collectors.toCollection(HashSet::new));
-        // Include aliases that tap moves were expanded from.
+        // Include aliases that moves were expanded from.
         for (MoveSet moveSet : moveSets) {
             if (moveSet instanceof KeyMoveSet kms) {
                 for (KeyComboMove move : kms.requiredMoves())
-                    if (move instanceof TapComboMove tap && tap.expandedFromAlias() != null)
-                        names.add(tap.expandedFromAlias());
+                    addExpandedFromAlias(move, names);
                 for (KeyComboMove move : kms.optionalMoves())
-                    if (move instanceof TapComboMove tap && tap.expandedFromAlias() != null)
-                        names.add(tap.expandedFromAlias());
+                    addExpandedFromAlias(move, names);
             }
         }
         return names;
+    }
+
+    private static void addExpandedFromAlias(KeyComboMove move, Set<String> names) {
+        if (move.expandedFromAlias() != null)
+            names.add(move.expandedFromAlias());
     }
 
     /**

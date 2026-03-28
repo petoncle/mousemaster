@@ -428,11 +428,13 @@ public record ExpandableSequence(List<Set<ComboAliasMove>> moveSets) {
                             new PressComboMove(keyOrAlias,
                                     pressMove.negated(),
                                     pressMove.eventMustBeEaten(),
-                                    aliasMove.duration());
+                                    aliasMove.duration(),
+                                    pressMove.expandedFromAlias());
                     case ComboAliasMove.ReleaseComboAliasMove releaseMove ->
                             new ReleaseComboMove(keyOrAlias,
                                     releaseMove.negated(),
-                                    aliasMove.duration());
+                                    aliasMove.duration(),
+                                    releaseMove.expandedFromAlias());
                     case ComboAliasMove.TapComboAliasMove tapMove ->
                             new TapComboMove(keyOrAlias,
                                     tapMove.expandedFromAlias(),

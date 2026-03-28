@@ -545,7 +545,7 @@ public class ConfigurationParser {
                                         ComboSequence.ofMoves(
                                                 List.<KeyComboMove>of(new PressComboMove(
                                                         KeyOrAlias.ofKey(key), false, true,
-                                                        defaultComboMoveDuration)))))
+                                                        defaultComboMoveDuration, null)))))
                                 .toList();
     }
 
