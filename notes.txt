@@ -179,3 +179,21 @@
 
 +++ hint1-mode.hint.undo=backspace is not valid anymore as it expands to +backspace -backspace
 ++ Log which combos a preparation is part of e.g. normal-mode.start-move.down
+
+- Combo-triggered property change?
+ - oneshot-mode.indicator.idle.color=leftctrl -> #00FF80 | {leftctrl leftshift} -> #FFFF00
+ - Longest combo match: in previous example, if both leftctrl and leftshft are tapped, then second combo runs
+ - hint-mode.hint.box-border-color=#00FFFF | _{rightalt} -> #FFFFFF
+  - #00FFFF is the value applied when none of the other combos match
+  - When rightalt is released, it should go back (from #FFFFFF) to #00FFFF. How? Not clear for combo sequences
+  - If all combos are precondition-only, then can go back to #00FFFF when none of the combos match.
+  - If combos include sequences, then user needs to specify combo sequence to go back
+    to initial property value, and the initial value alone jis only used on mode change
+ - Need a way to update all properties while keeping the immutable approach.
+  - Changing the property should kind of be like if the mode was changed and the mode has a new property value.
+  - Maybe we should see these property changes as a temporary mode tweak?
+    i.e. a new Mode() instance is created with the new value(s) and sent to the ModeController.
+   - ComboWatcher would keep track of the temporarily active mode properties
+ - Mostly useful for indicator properties and hint properties
+ + Cannot currently have multi-combo -> mutation
+ + Maybe need a combo-alias if we want to use the same combo multiple times for many properties?
