@@ -3842,11 +3842,12 @@ public class WindowsOverlay {
                 WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
                 Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
                 double labelShadowScale = activeScreen.scale() * zoomPercent();
-                QGraphicsDropShadowEffect effect = new QGraphicsDropShadowEffect();
+                StackedShadowEffect effect = new StackedShadowEffect();
                 effect.setBlurRadius(labelShadow.blurRadius() * labelShadowScale);
                 effect.setOffset(labelShadow.horizontalOffset() * labelShadowScale,
                         labelShadow.verticalOffset() * labelShadowScale);
                 effect.setColor(labelShadowColor);
+                effect.setStackCount(labelShadow.stackCount());
                 indicatorWindow.labelWidget.setGraphicsEffect(effect);
             }
             else {

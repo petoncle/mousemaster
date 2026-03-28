@@ -225,7 +225,7 @@ public class ConfigurationParser {
                      .outlineHexColor("#000000")
                      .outlineOpacity(0d);
         idleIndicator.labelFontStyle().shadow()
-                     .blurRadius(0d)
+                     .blurRadius(10d)
                      .hexColor("#000000")
                      .opacity(0d)
                      .horizontalOffset(0d)
