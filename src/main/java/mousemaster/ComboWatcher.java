@@ -100,6 +100,7 @@ public class ComboWatcher {
     public record ComboWatcherUpdateResult(List<ComboAndMatch> completedCombos,
                                            boolean preparationIsNotPrefixAnymore,
                                            boolean hasComboPreparationBreaker,
+                                           boolean comboPreparationAlreadyBroken,
                                            Key comboPreparationBreakerKey) {
 
     }
@@ -281,21 +282,23 @@ public class ComboWatcher {
         Mode beforeMode = baseMode;
         runCommands(commandsToRun);
         combosWaitingForLastMoveToComplete.removeAll(completedCombosWaitingForLastMoveToComplete);
+        boolean comboPreparationAlreadyBroken = false;
         if (hasAsyncSelfSwitch) {
             breakComboPreparation();
+            comboPreparationAlreadyBroken = true;
             processKeyEventForCurrentMode(null, false);
         }
         else if (baseMode != beforeMode) {
             if (hasComboPreparationBreaker) {
                 breakComboPreparation();
-                hasComboPreparationBreaker = false;
+                comboPreparationAlreadyBroken = true;
             }
             PressKeyEventProcessingSet processingSet =
                     processKeyEventForCurrentMode(null, false);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         revertUnsatisfiedMutations();
-        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationBreakerKey);
+        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {

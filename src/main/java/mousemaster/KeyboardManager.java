@@ -61,10 +61,13 @@ public class KeyboardManager {
                 regurgitatePressedKeys();
             }
             if (watcherUpdateResult.hasComboPreparationBreaker()) {
-                if (watcherUpdateResult.comboPreparationBreakerKey() != null)
-                    comboWatcher.reset(watcherUpdateResult.comboPreparationBreakerKey());
-                else
-                    comboWatcher.breakComboPreparation();
+                regurgitatePressedKeys();
+                if (!watcherUpdateResult.comboPreparationAlreadyBroken()) {
+                    if (watcherUpdateResult.comboPreparationBreakerKey() != null)
+                        comboWatcher.reset(watcherUpdateResult.comboPreparationBreakerKey());
+                    else
+                        comboWatcher.breakComboPreparation();
+                }
             }
         }
     }
