@@ -721,24 +721,19 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid mouse property key");
                 else {
-                    switch (keyMatcher.group(group4)) {
-                        case "initial-velocity" -> mode.mouse.builder.velocity().initialVelocity(
-                                Double.parseDouble(propertyValue));
-                        case "max-velocity" -> mode.mouse.builder.velocity().maxVelocity(
-                                Double.parseDouble(propertyValue));
-                        case "acceleration" -> mode.mouse.builder.velocity().acceleration(
-                                Double.parseDouble(propertyValue));
-                        case "acceleration-easing" -> mode.mouse.builder.velocity().accelerationEasing(
-                                parseEasing(propertyValue));
-                        case "deceleration" -> mode.mouse.builder.velocity().deceleration(
-                                Double.parseDouble(propertyValue));
-                        case "smooth-jump-enabled" -> mode.mouse.builder.smoothJumpEnabled(
-                                Boolean.parseBoolean(propertyValue));
-                        case "smooth-jump-velocity" -> mode.mouse.builder.smoothJumpVelocity(
-                                Double.parseDouble(propertyValue));
-                        default -> throw new IllegalArgumentException(
+                    ModePropertyHandler handler = mouseHandler(
+                            new ModePropertyPath(List.of("mouse")),
+                            mode.mouse.builder, keyMatcher.group(group4));
+                    if (handler == null)
+                        throw new IllegalArgumentException(
                                 "Invalid mouse property key");
-                    }
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.comboMap.mutateMode.builder,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver))
+                        handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
             case "wheel" -> {
@@ -750,20 +745,19 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Invalid wheel property key");
                 else {
-                    switch (keyMatcher.group(group4)) {
-                        case "acceleration" -> mode.wheel.builder.velocity().acceleration(
-                                Double.parseDouble(propertyValue));
-                        case "initial-velocity" -> mode.wheel.builder.velocity().initialVelocity(
-                                Double.parseDouble(propertyValue));
-                        case "max-velocity" -> mode.wheel.builder.velocity().maxVelocity(
-                                Double.parseDouble(propertyValue));
-                        case "acceleration-easing" -> mode.wheel.builder.velocity().accelerationEasing(
-                                parseEasing(propertyValue));
-                        case "deceleration" -> mode.wheel.builder.velocity().deceleration(
-                                Double.parseDouble(propertyValue));
-                        default -> throw new IllegalArgumentException(
+                    ModePropertyHandler handler = wheelHandler(
+                            new ModePropertyPath(List.of("wheel")),
+                            mode.wheel.builder, keyMatcher.group(group4));
+                    if (handler == null)
+                        throw new IllegalArgumentException(
                                 "Invalid wheel property key");
-                    }
+                    if (!tryParseComboProperty(propertyValue, modeName,
+                            handler.propertyPath(), handler.valueParser(),
+                            handler.modeBuilderSetter(),
+                            mode.comboMap.mutateMode.builder,
+                            defaultComboMoveDuration, keyAliases, appAliases,
+                            keyResolver))
+                        handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
             case "grid" -> {
@@ -1828,6 +1822,32 @@ public class ConfigurationParser {
                     parser::apply,
                     s -> setter.accept(parser.apply(s)));
         }
+    }
+
+    private static ModePropertyHandler mouseHandler(
+            ModePropertyPath prefix, Mouse.MouseBuilder mouse, String key) {
+        return switch (key) {
+            case "initial-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "initialVelocity"), v -> Double.parseDouble(v), v -> mouse.velocity().initialVelocity(v));
+            case "max-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "maxVelocity"), v -> Double.parseDouble(v), v -> mouse.velocity().maxVelocity(v));
+            case "acceleration" -> ModePropertyHandler.of(prefix.append("velocity", "acceleration"), v -> Double.parseDouble(v), v -> mouse.velocity().acceleration(v));
+            case "acceleration-easing" -> ModePropertyHandler.of(prefix.append("velocity", "accelerationEasing"), v -> parseEasing(v), v -> mouse.velocity().accelerationEasing(v));
+            case "deceleration" -> ModePropertyHandler.of(prefix.append("velocity", "deceleration"), v -> Double.parseDouble(v), v -> mouse.velocity().deceleration(v));
+            case "smooth-jump-enabled" -> ModePropertyHandler.of(prefix.append("smoothJumpEnabled"), v -> Boolean.parseBoolean(v), v -> mouse.smoothJumpEnabled(v));
+            case "smooth-jump-velocity" -> ModePropertyHandler.of(prefix.append("smoothJumpVelocity"), v -> Double.parseDouble(v), v -> mouse.smoothJumpVelocity(v));
+            default -> null;
+        };
+    }
+
+    private static ModePropertyHandler wheelHandler(
+            ModePropertyPath prefix, Wheel.WheelBuilder wheel, String key) {
+        return switch (key) {
+            case "initial-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "initialVelocity"), v -> Double.parseDouble(v), v -> wheel.velocity().initialVelocity(v));
+            case "max-velocity" -> ModePropertyHandler.of(prefix.append("velocity", "maxVelocity"), v -> Double.parseDouble(v), v -> wheel.velocity().maxVelocity(v));
+            case "acceleration" -> ModePropertyHandler.of(prefix.append("velocity", "acceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().acceleration(v));
+            case "acceleration-easing" -> ModePropertyHandler.of(prefix.append("velocity", "accelerationEasing"), v -> parseEasing(v), v -> wheel.velocity().accelerationEasing(v));
+            case "deceleration" -> ModePropertyHandler.of(prefix.append("velocity", "deceleration"), v -> Double.parseDouble(v), v -> wheel.velocity().deceleration(v));
+            default -> null;
+        };
     }
 
     private static ModePropertyHandler indicatorHandler(
