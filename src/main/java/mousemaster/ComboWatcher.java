@@ -97,6 +97,10 @@ public class ComboWatcher {
         this.modeListeners = modeListeners;
     }
 
+    public Mode getMutatedMode() {
+        return mutatedMode;
+    }
+
     public record ComboWatcherUpdateResult(List<ComboAndMatch> completedCombos,
                                            boolean preparationIsNotPrefixAnymore,
                                            boolean hasComboPreparationBreaker,

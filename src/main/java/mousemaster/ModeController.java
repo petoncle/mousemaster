@@ -23,6 +23,8 @@ public class ModeController implements ComboListener {
     private double modeTimeoutTimer;
     private double hideCursorIdleTimer;
     private boolean justCompletedCombo;
+    private boolean previousTimeoutEnabled;
+    private boolean previousHideCursorEnabled;
 
     public ModeController(ModeMap modeMap, MouseController mouseController,
                           MouseState mouseState, KeyboardState keyboardState,
@@ -38,11 +40,12 @@ public class ModeController implements ComboListener {
 
     public void update(double delta) {
         hintManager.completePendingUiHintQuery();
+        Mode mutatedMode = comboWatcher.getMutatedMode();
         if (keyboardState.pressingUnhandledKey()) {
-            if (currentMode.modeAfterUnhandledKeyPress() != null) {
+            if (mutatedMode.modeAfterUnhandledKeyPress() != null) {
                 logger.debug("Unhandled key press, switching to " +
-                             currentMode.modeAfterUnhandledKeyPress());
-                switchMode(currentMode.modeAfterUnhandledKeyPress());
+                             mutatedMode.modeAfterUnhandledKeyPress());
+                switchMode(mutatedMode.modeAfterUnhandledKeyPress());
                 return;
             }
         }
@@ -50,15 +53,17 @@ public class ModeController implements ComboListener {
                          !mouseState.leftPressing() && !mouseState.middlePressing() && !mouseState.rightPressing() &&
                          !mouseState.wheeling() && !justCompletedCombo;
         boolean mustResetHideCursorTimeout = !idling || hintManager.showingHintMesh();
-        boolean mustResetModeTimeout = currentMode.timeout().onlyIfIdle() && !idling ||
-                                       hintManager.showingHintMesh();
         justCompletedCombo = false;
+        boolean hideCursorEnabled = mutatedMode.hideCursor().enabled();
+        if (!previousHideCursorEnabled && hideCursorEnabled)
+            resetHideCursorTimer(mutatedMode);
+        previousHideCursorEnabled = hideCursorEnabled;
         if (mustResetHideCursorTimeout) {
-            resetHideCursorTimer();
-            resetCurrentModeCursorHidden();
+            resetHideCursorTimer(mutatedMode);
+            resetCurrentModeCursorHidden(mutatedMode);
         }
         else {
-            if (currentMode.hideCursor().enabled() && !currentModeCursorHidden) {
+            if (hideCursorEnabled && !currentModeCursorHidden) {
                 hideCursorIdleTimer -= delta;
                 if (hideCursorIdleTimer <= 0) {
                     logger.debug("Hide cursor timer for " + currentMode.name() +
@@ -68,18 +73,24 @@ public class ModeController implements ComboListener {
                 }
             }
         }
+        boolean timeoutEnabled = mutatedMode.timeout().enabled();
+        if (!previousTimeoutEnabled && timeoutEnabled)
+            modeTimeoutTimer = mutatedMode.timeout().duration().toNanos() / 1e9d;
+        previousTimeoutEnabled = timeoutEnabled;
+        boolean mustResetModeTimeout = mutatedMode.timeout().onlyIfIdle() && !idling ||
+                                       hintManager.showingHintMesh();
         if (mustResetModeTimeout) {
-            resetModeTimeoutTimer();
+            resetModeTimeoutTimer(mutatedMode);
         }
         else {
-            if (currentMode.timeout().enabled()) {
+            if (timeoutEnabled) {
                 modeTimeoutTimer -= delta;
                 if (modeTimeoutTimer <= 0) {
-                    logger.debug("Current " + currentMode.name() +
+                    logger.debug("Current " + mutatedMode.name() +
                                  " has timed out, switching to " +
-                                 currentMode.timeout().modeName());
+                                 mutatedMode.timeout().modeName());
                     comboWatcher.modeTimedOut();
-                    switchMode(currentMode.timeout().modeName());
+                    switchMode(mutatedMode.timeout().modeName());
                 }
             }
         }
@@ -101,42 +112,46 @@ public class ModeController implements ComboListener {
                 modeHistoryStack.poll();
             modeHistoryStack.poll();
         }
-        else if (currentMode != null && currentMode.pushModeToHistoryStack() &&
+        else if (currentMode != null &&
+                 comboWatcher.getMutatedMode().pushModeToHistoryStack() &&
                  !modeHistoryStack.contains(currentMode))
             modeHistoryStack.push(currentMode);
         currentMode = newMode;
-        resetCurrentModeCursorHidden();
-        resetHideCursorTimer();
-        resetModeTimeoutTimer();
         comboWatcher.modeChanged(newMode);
+        Mode mutatedMode = comboWatcher.getMutatedMode();
+        resetCurrentModeCursorHidden(mutatedMode);
+        resetHideCursorTimer(mutatedMode);
+        resetModeTimeoutTimer(mutatedMode);
+        previousTimeoutEnabled = mutatedMode.timeout().enabled();
+        previousHideCursorEnabled = mutatedMode.hideCursor().enabled();
     }
 
-    private void resetCurrentModeCursorHidden() {
+    private void resetCurrentModeCursorHidden(Mode mode) {
         if (currentModeCursorHidden) {
-            if (!currentMode.hideCursor().enabled() ||
-                !currentMode.hideCursor().idleDuration().equals(Duration.ZERO)) {
+            if (!mode.hideCursor().enabled() ||
+                !mode.hideCursor().idleDuration().equals(Duration.ZERO)) {
                 mouseController.showCursor();
                 currentModeCursorHidden = false;
             }
         }
         else {
-            if (currentMode.hideCursor().enabled() &&
-                currentMode.hideCursor().idleDuration().equals(Duration.ZERO)) {
+            if (mode.hideCursor().enabled() &&
+                mode.hideCursor().idleDuration().equals(Duration.ZERO)) {
                 mouseController.hideCursor();
                 currentModeCursorHidden = true;
             }
         }
     }
 
-    private void resetModeTimeoutTimer() {
-        if (currentMode.timeout().enabled())
-            modeTimeoutTimer = currentMode.timeout().duration().toNanos() / 1e9d;
+    private void resetModeTimeoutTimer(Mode mode) {
+        if (mode.timeout().enabled())
+            modeTimeoutTimer = mode.timeout().duration().toNanos() / 1e9d;
     }
 
-    private void resetHideCursorTimer() {
-        if (currentMode.hideCursor().enabled())
+    private void resetHideCursorTimer(Mode mode) {
+        if (mode.hideCursor().enabled())
             hideCursorIdleTimer =
-                    currentMode.hideCursor().idleDuration().toNanos() / 1e9d;
+                    mode.hideCursor().idleDuration().toNanos() / 1e9d;
     }
 
     @Override
