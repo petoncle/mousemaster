@@ -197,3 +197,7 @@
  - Mostly useful for indicator properties and hint properties
  + Cannot currently have multi-combo -> mutation
  + Maybe need a combo-alias if we want to use the same combo multiple times for many properties?
+ - In typing mode: typing-loop-mode.indicator.idle.label-text= | #typingkeys -> typingkeys | -typingkeys ->
+   which binds typingkeys and use that as property value, works only for properties that accept unrestricted strings
+   - E.g. if typingkeys is leftalt then new property value is Key.hintLabel(), i.e. ⎇. hintLabel should be renamed to something more generic, maybe label.
+   - alias expansion should also work: {*typingkeys} -> typingkeys: if user tap a then b, then new property value is ab

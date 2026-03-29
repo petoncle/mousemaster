@@ -1046,7 +1046,15 @@ public class ComboWatcher {
     private static String resolveAliasComboPropertyValue(
             UnresolvedAliasComboPropertyValue unresolved,
             AliasResolution resolution) {
-        String aliasName = unresolved.aliasName();
+        StringBuilder sb = new StringBuilder();
+        for (String aliasName : unresolved.aliasNames()) {
+            sb.append(resolveSingleAlias(aliasName, resolution));
+        }
+        return sb.toString();
+    }
+
+    private static String resolveSingleAlias(String aliasName,
+                                             AliasResolution resolution) {
         List<Key> tapKeys = resolution.keysByTapExpandedFromAlias()
                                       .get(aliasName);
         if (tapKeys != null && !tapKeys.isEmpty()) {

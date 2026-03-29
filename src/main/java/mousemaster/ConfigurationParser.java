@@ -2280,9 +2280,14 @@ public class ConfigurationParser {
                     defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
             for (Combo combo : combos) {
                 Object parsedValue;
-                if (combo.sequence().aliasNames().contains(comboPropertyValue.valueString())) {
+                Set<String> aliasNames = combo.sequence().aliasNames();
+                List<String> valueTokens = List.of(
+                        comboPropertyValue.valueString().split(" "));
+                if (valueTokens.stream().anyMatch(aliasNames::contains)) {
                     parsedValue = new UnresolvedAliasComboPropertyValue(
-                            comboPropertyValue.valueString());
+                            valueTokens.stream()
+                                       .filter(aliasNames::contains)
+                                       .toList());
                 }
                 else {
                     parsedValue = valueParser.apply(comboPropertyValue.valueString());
