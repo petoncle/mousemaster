@@ -27,8 +27,8 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
     public static final Key uparrow = new Key("uparrow", "↑", null);
     public static final Key rightarrow = new Key("rightarrow", "→", null);
     public static final Key downarrow = new Key("downarrow", "↓", null);
-    public static final Key printscreen = new Key("printscreen", null, null);
-    public static final Key insert = new Key("insert", null, null);
+    public static final Key printscreen = new Key("printscreen", "⎙", null);
+    public static final Key insert = new Key("insert", "⎀", null);
     public static final Key del = new Key("del", "⌦", null);
     public static final Key break_ = new Key("break", null, null);
     public static final Key backspace = new Key("backspace", "⌫", null);
