@@ -8,6 +8,7 @@
 - [Mode history](#mode-history)
 - [Mode timeout](#mode-timeout)
 - [Standalone mode properties](#standalone-mode-properties)
+- [Mode property mutation](#mode-property-mutation)
 - [Mouse properties](#mouse-properties)
 - [Wheel properties](#wheel-scrolling-properties)
 - [Indicator properties](#indicator-properties)
@@ -223,6 +224,32 @@ normal-mode.mode-after-unhandled-key-press=idle-mode
   button will be released) as soon as the current mode is switched to that mode.
 - `mode-after-unhandled-key-press` is for switching to a mode whenever a key that is not
   part of any combo is pressed.
+
+### Mode property mutation
+
+Mode property mutation allows a mode property to change its value dynamically based on which keys are currently pressed, without switching modes.
+
+```
+mode.property=default | combo1 -> value1 | combo2 -> value2
+```
+
+The `|` separates the default value from combo-triggered mutations. Each `combo -> value` pair applies its value when the combo is satisfied. A part without `->` is the default value.
+
+For example, change the hint box border color while shift is held, to signal that a different action will follow:
+
+```properties
+hint-mode.hint.box-border-color=#FFFFFF | _{leftshift} -> #00FFFF
+```
+
+- Default border color: `#FFFFFF` (white)
+- While shift is held: `#00FFFF` (cyan)
+
+When shift is released, the property reverts to its default. Mutations are most useful with precondition-only combos (combos that have no key sequence, only a precondition like `_{key}`). These combos activate when the precondition becomes true and revert when it becomes false.
+
+```properties
+# Change the indicator color while leftctrl is held
+normal-mode.indicator.idle.color=#00FF00 | _{leftctrl} -> #FF0000
+```
 
 ### Mouse properties
 
