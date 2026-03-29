@@ -1010,7 +1010,7 @@ public class ComboWatcher {
                         Key key = resolution.keyByAliasName().get(aliasName);
                         if (key != null)
                             filteredMap.put(aliasName, key);
-                        List<Key> tapKeys = resolution.keysByTapExpandedFromAlias().get(aliasName);
+                        List<Key> tapKeys = resolution.keysByExpandedAlias().get(aliasName);
                         if (tapKeys != null)
                             filteredTapMap.put(aliasName, tapKeys);
                     }
@@ -1048,14 +1048,34 @@ public class ComboWatcher {
             AliasResolution resolution) {
         StringBuilder sb = new StringBuilder();
         for (String aliasName : unresolved.aliasNames()) {
-            sb.append(resolveSingleAlias(aliasName, resolution));
+            AliasRemap<String> aliasRemap = unresolved.remapByAliasName().get(aliasName);
+            if (aliasRemap != null)
+                sb.append(resolveRemappedAlias(aliasName, aliasRemap.remap(), resolution));
+            else
+                sb.append(resolveSingleAlias(aliasName, resolution));
         }
         return sb.toString();
     }
 
+    private static String resolveRemappedAlias(String aliasName,
+                                               Map<Key, String> remap,
+                                               AliasResolution resolution) {
+        List<Key> tapKeys = resolution.keysByExpandedAlias()
+                                      .get(aliasName);
+        if (tapKeys != null && !tapKeys.isEmpty()) {
+            return tapKeys.stream()
+                          .map(key -> remap.getOrDefault(key, key.hintLabel()))
+                          .collect(Collectors.joining());
+        }
+        Key key = resolution.keyByAliasName().get(aliasName);
+        if (key != null && remap.containsKey(key))
+            return remap.get(key);
+        return key != null ? key.hintLabel() : aliasName;
+    }
+
     private static String resolveSingleAlias(String aliasName,
                                              AliasResolution resolution) {
-        List<Key> tapKeys = resolution.keysByTapExpandedFromAlias()
+        List<Key> tapKeys = resolution.keysByExpandedAlias()
                                       .get(aliasName);
         if (tapKeys != null && !tapKeys.isEmpty()) {
             return tapKeys.stream()

@@ -5,7 +5,7 @@ import java.util.Map;
 
 public record AliasResolution(Map<String, Key> keyByAliasName,
                               Map<String, Key> negatedKeyByName,
-                              Map<String, List<Key>> keysByTapExpandedFromAlias) {
+                              Map<String, List<Key>> keysByExpandedAlias) {
 
     public AliasResolution(Map<String, Key> keyByAliasName,
                            Map<String, Key> negatedKeyByName) {

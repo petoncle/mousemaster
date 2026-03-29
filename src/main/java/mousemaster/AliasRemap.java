@@ -4,14 +4,27 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
 
-public record MacroAliasRemap(Map<Key, Key> keyRemap) {
+public record AliasRemap<T>(Map<Key, T> remap) {
 
-    static Map<String, MacroAliasRemap> of(
+    static Map<String, AliasRemap<Key>> keyValues(
             String remapString, Map<String, KeyAlias> keyAliases,
             KeyResolver keyResolver, String propertyType) {
-        Map<String, Map<Key, Key>> remapsByAlias = new LinkedHashMap<>();
+        Map<String, Map<Key, Key>> remapsByAlias =
+                parseRemap(remapString, keyAliases, keyResolver,
+                        keyResolver::resolve, propertyType);
+        Map<String, AliasRemap<Key>> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<Key, Key>> entry : remapsByAlias.entrySet())
+            result.put(entry.getKey(), new AliasRemap<>(entry.getValue()));
+        return result;
+    }
+
+    private static <T> Map<String, Map<Key, T>> parseRemap(
+            String remapString, Map<String, KeyAlias> keyAliases,
+            KeyResolver keyResolver, Function<String, T> targetValueParser,
+            String propertyType) {
+        Map<String, Map<Key, T>> remapsByAlias = new LinkedHashMap<>();
         String[] tokens = remapString.split("\\s+");
         int i = 0;
         while (i < tokens.length) {
@@ -21,10 +34,10 @@ public record MacroAliasRemap(Map<Key, Key> keyRemap) {
                 throw new IllegalArgumentException(
                         "Invalid remap token in " + propertyType + ": " + token);
             String leftHandSide = equalsParts[0];
-            Key firstTargetKey = keyResolver.resolve(equalsParts[1]);
+            T firstTargetValue = targetValueParser.apply(equalsParts[1]);
             int dotIndex = leftHandSide.indexOf('.');
             if (dotIndex >= 0) {
-                // Per-key form: alias.sourceKey=targetKey
+                // Per-key form: alias.sourceKey=targetValue
                 String aliasName = leftHandSide.substring(0, dotIndex);
                 String sourceKeyName = leftHandSide.substring(dotIndex + 1);
                 KeyAlias alias = keyAliases.get(aliasName);
@@ -38,48 +51,54 @@ public record MacroAliasRemap(Map<Key, Key> keyRemap) {
                             "Remap source key " + sourceKeyName +
                             " is not in " + alias);
                 remapsByAlias.computeIfAbsent(aliasName, k -> new LinkedHashMap<>())
-                             .put(sourceKey, firstTargetKey);
+                             .put(sourceKey, firstTargetValue);
                 i++;
             }
             else {
-                // Broadcast form: alias=targetKey [targetKey2 ...]
+                // Broadcast or positional: alias=value1 [value2 ...]
                 String aliasName = leftHandSide;
                 KeyAlias alias = keyAliases.get(aliasName);
                 if (alias == null)
                     throw new IllegalArgumentException(
                             "Remap alias " + aliasName +
                             " does not exist");
-                // Collect additional target keys (tokens without '=').
-                List<Key> targetKeys = new ArrayList<>();
-                targetKeys.add(firstTargetKey);
+                List<T> targetValues = new ArrayList<>();
+                targetValues.add(firstTargetValue);
                 i++;
                 while (i < tokens.length && !tokens[i].contains("=")) {
-                    targetKeys.add(keyResolver.resolve(tokens[i]));
+                    targetValues.add(targetValueParser.apply(tokens[i]));
                     i++;
                 }
-                Map<Key, Key> keyRemap = remapsByAlias.computeIfAbsent(
+                Map<Key, T> keyRemap = remapsByAlias.computeIfAbsent(
                         aliasName, k -> new LinkedHashMap<>());
                 List<Key> aliasKeys = new ArrayList<>(alias.keys());
-                if (targetKeys.size() == 1) {
-                    // Single target: broadcast to all alias keys.
+                if (targetValues.size() == 1) {
                     for (Key key : aliasKeys)
-                        keyRemap.put(key, targetKeys.getFirst());
+                        keyRemap.put(key, targetValues.getFirst());
                 }
                 else {
-                    // Multiple targets: zip positionally with alias keys.
-                    if (targetKeys.size() != aliasKeys.size())
+                    if (targetValues.size() != aliasKeys.size())
                         throw new IllegalArgumentException(
                                 "Remap for alias " + aliasName + " has " +
-                                targetKeys.size() + " target keys but alias has " +
+                                targetValues.size() + " values but alias has " +
                                 aliasKeys.size() + " keys");
                     for (int j = 0; j < aliasKeys.size(); j++)
-                        keyRemap.put(aliasKeys.get(j), targetKeys.get(j));
+                        keyRemap.put(aliasKeys.get(j), targetValues.get(j));
                 }
             }
         }
-        Map<String, MacroAliasRemap> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Map<Key, Key>> entry : remapsByAlias.entrySet())
-            result.put(entry.getKey(), new MacroAliasRemap(entry.getValue()));
+        return remapsByAlias;
+    }
+
+    static Map<String, AliasRemap<String>> stringValues(
+            String remapString, Map<String, KeyAlias> keyAliases,
+            KeyResolver keyResolver, String propertyType) {
+        Map<String, Map<Key, String>> remapsByAlias =
+                parseRemap(remapString, keyAliases, keyResolver,
+                        Function.identity(), propertyType);
+        Map<String, AliasRemap<String>> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<Key, String>> entry : remapsByAlias.entrySet())
+            result.put(entry.getKey(), new AliasRemap<>(entry.getValue()));
         return result;
     }
 

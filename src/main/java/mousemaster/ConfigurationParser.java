@@ -656,9 +656,9 @@ public class ConfigurationParser {
                     "Negated names " + negatedNotInCombo +
                     " cannot be used in the " + propertyType + " output because they are not used as negated in the combo sequence");
         }
-        Map<String, MacroAliasRemap> aliasRemapByAliasName;
+        Map<String, AliasRemap<Key>> aliasRemapByAliasName;
         if (remapString != null) {
-            aliasRemapByAliasName = MacroAliasRemap.of(
+            aliasRemapByAliasName = AliasRemap.keyValues(
                     remapString, keyAliases, keyResolver, propertyType);
             // Remap aliases must be used in the combo.
             for (String remapAliasName : aliasRemapByAliasName.keySet()) {
@@ -2203,7 +2203,8 @@ public class ConfigurationParser {
 
     private record SplitComboProperty(String defaultValue,
                                          List<ComboPropertyValue> comboValues) {
-        record ComboPropertyValue(String comboString, String valueString) {}
+        record ComboPropertyValue(String comboString, String remapString,
+                                  String valueString) {}
     }
 
     /**
@@ -2236,9 +2237,13 @@ public class ConfigurationParser {
         List<SplitComboProperty.ComboPropertyValue> comboValues = new ArrayList<>();
         for (String segment : segments) {
             if (segment.contains("->")) {
-                String[] parts = segment.split("\\s*->\\s*", 2);
-                comboValues.add(new SplitComboProperty.ComboPropertyValue(
-                        parts[0].strip(), parts[1].strip()));
+                String[] parts = segment.split("\\s*->\\s*", 3);
+                if (parts.length == 3)
+                    comboValues.add(new SplitComboProperty.ComboPropertyValue(
+                            parts[0].strip(), parts[1].strip(), parts[2].strip()));
+                else
+                    comboValues.add(new SplitComboProperty.ComboPropertyValue(
+                            parts[0].strip(), null, parts[1].strip()));
             }
             else {
                 if (defaultValue != null)
@@ -2284,10 +2289,18 @@ public class ConfigurationParser {
                 List<String> valueTokens = List.of(
                         comboPropertyValue.valueString().split(" "));
                 if (valueTokens.stream().anyMatch(aliasNames::contains)) {
+                    Map<String, AliasRemap<String>> remap =
+                            comboPropertyValue.remapString() != null ?
+                                    AliasRemap.stringValues(
+                                            comboPropertyValue.remapString(),
+                                            keyAliases, keyResolver,
+                                            "mutation") :
+                                    Map.of();
                     parsedValue = new UnresolvedAliasComboPropertyValue(
                             valueTokens.stream()
                                        .filter(aliasNames::contains)
-                                       .toList());
+                                       .toList(),
+                            remap);
                 }
                 else {
                     parsedValue = valueParser.apply(comboPropertyValue.valueString());
