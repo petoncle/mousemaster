@@ -748,6 +748,11 @@
   "methods":[{"name":"callback","parameterTypes":["com.sun.jna.Pointer","int","com.sun.jna.platform.win32.WinDef$HWND","int","int","int","int"] }]
 },
 {
+  "name":"mousemaster.FontStyle",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","mousemaster.FontWeight","double","java.lang.String","double","double","java.lang.String","double","mousemaster.Shadow"] }, {"name":"hexColor","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"outlineHexColor","parameterTypes":[] }, {"name":"outlineOpacity","parameterTypes":[] }, {"name":"outlineThickness","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"weight","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.Gdiplus$CharacterRange",
   "allDeclaredFields":true
 },
@@ -780,6 +785,36 @@
   "methods":[{"name":"<init>","parameterTypes":["boolean","java.time.Duration"] }, {"name":"enabled","parameterTypes":[] }, {"name":"idleDuration","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.HintFontStyle",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.FontStyle","double","mousemaster.FontStyle","mousemaster.FontStyle"] }, {"name":"defaultFontStyle","parameterTypes":[] }, {"name":"focusedFontStyle","parameterTypes":[] }, {"name":"selectedFontStyle","parameterTypes":[] }, {"name":"spacingPercent","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintGridArea$ActiveScreenHintGridArea",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.ActiveScreenHintGridAreaCenter"] }, {"name":"center","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintGridArea$ActiveWindowHintGridArea",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintGridArea$AllScreensHintGridArea",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintGridLayout",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["int","int","double","double","int","int","boolean"] }, {"name":"cellHeight","parameterTypes":[] }, {"name":"cellWidth","parameterTypes":[] }, {"name":"layoutColumnCount","parameterTypes":[] }, {"name":"layoutRowCount","parameterTypes":[] }, {"name":"layoutRowOriented","parameterTypes":[] }, {"name":"maxColumnCount","parameterTypes":[] }, {"name":"maxRowCount","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintMeshKeys",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["java.util.List","int"] }, {"name":"rowKeyOffset","parameterTypes":[] }, {"name":"selectionKeys","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.HintMeshConfiguration",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","mousemaster.HintMouseMovement","mousemaster.HintMeshType","mousemaster.ViewportFilterMap","mousemaster.ViewportFilterMap","java.lang.String","boolean","java.util.List","java.util.List"] }, {"name":"eatUnusedSelectionKeys","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"keysByFilter","parameterTypes":[] }, {"name":"modeAfterSelection","parameterTypes":[] }, {"name":"mouseMovement","parameterTypes":[] }, {"name":"selectCombos","parameterTypes":[] }, {"name":"styleByFilter","parameterTypes":[] }, {"name":"type","parameterTypes":[] }, {"name":"unselectCombos","parameterTypes":[] }, {"name":"visible","parameterTypes":[] }]
@@ -790,6 +825,21 @@
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintFontStyle","boolean","mousemaster.HintFontStyle","java.lang.String","double","double","double","java.lang.String","double","double","mousemaster.Shadow","boolean","double","double","java.lang.String","double","double","double","double","double","int","int","double","double","java.lang.String","double","boolean","java.time.Duration","java.lang.String","double"] }, {"name":"backgroundHexColor","parameterTypes":[] }, {"name":"backgroundOpacity","parameterTypes":[] }, {"name":"boxBorderHexColor","parameterTypes":[] }, {"name":"boxBorderLength","parameterTypes":[] }, {"name":"boxBorderOpacity","parameterTypes":[] }, {"name":"boxBorderRadius","parameterTypes":[] }, {"name":"boxBorderThickness","parameterTypes":[] }, {"name":"boxHeightPercent","parameterTypes":[] }, {"name":"boxHexColor","parameterTypes":[] }, {"name":"boxOpacity","parameterTypes":[] }, {"name":"boxShadow","parameterTypes":[] }, {"name":"boxWidthPercent","parameterTypes":[] }, {"name":"cellHorizontalPadding","parameterTypes":[] }, {"name":"cellVerticalPadding","parameterTypes":[] }, {"name":"fontStyle","parameterTypes":[] }, {"name":"prefixBoxBorderHexColor","parameterTypes":[] }, {"name":"prefixBoxBorderLength","parameterTypes":[] }, {"name":"prefixBoxBorderOpacity","parameterTypes":[] }, {"name":"prefixBoxBorderThickness","parameterTypes":[] }, {"name":"prefixBoxEnabled","parameterTypes":[] }, {"name":"prefixFontStyle","parameterTypes":[] }, {"name":"prefixInBackground","parameterTypes":[] }, {"name":"subgridBorderHexColor","parameterTypes":[] }, {"name":"subgridBorderLength","parameterTypes":[] }, {"name":"subgridBorderOpacity","parameterTypes":[] }, {"name":"subgridBorderThickness","parameterTypes":[] }, {"name":"subgridColumnCount","parameterTypes":[] }, {"name":"subgridRowCount","parameterTypes":[] }, {"name":"transitionAnimationDuration","parameterTypes":[] }, {"name":"transitionAnimationEnabled","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.HintMeshType$HintGrid",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridArea","mousemaster.ViewportFilterMap"] }, {"name":"area","parameterTypes":[] }, {"name":"gridLayoutByFilter","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintMeshType$HintPositionHistory",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintMeshType$UiHintMesh",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.Indicator",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["int","int","java.lang.String","double","mousemaster.IndicatorOutline","mousemaster.IndicatorOutline","mousemaster.Shadow","boolean","java.lang.String","mousemaster.FontStyle","mousemaster.IndicatorPosition"] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"hexColor","parameterTypes":[] }, {"name":"innerOutline","parameterTypes":[] }, {"name":"labelEnabled","parameterTypes":[] }, {"name":"labelFontStyle","parameterTypes":[] }, {"name":"labelText","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"outerOutline","parameterTypes":[] }, {"name":"position","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }, {"name":"size","parameterTypes":[] }]
@@ -798,6 +848,11 @@
   "name":"mousemaster.IndicatorConfiguration",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["boolean","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator"] }, {"name":"enabled","parameterTypes":[] }, {"name":"idleIndicator","parameterTypes":[] }, {"name":"leftMousePressIndicator","parameterTypes":[] }, {"name":"middleMousePressIndicator","parameterTypes":[] }, {"name":"mousePressIndicator","parameterTypes":[] }, {"name":"moveIndicator","parameterTypes":[] }, {"name":"rightMousePressIndicator","parameterTypes":[] }, {"name":"unhandledKeyPressIndicator","parameterTypes":[] }, {"name":"wheelIndicator","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.IndicatorOutline",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["double","java.lang.String","double","double","double","mousemaster.FillDirection"] }, {"name":"fillDirection","parameterTypes":[] }, {"name":"fillPercent","parameterTypes":[] }, {"name":"fillStartAngle","parameterTypes":[] }, {"name":"hexColor","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"thickness","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.ModeTimeout",
@@ -831,11 +886,31 @@
   "methods":[{"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.Mouse","mousemaster.Wheel","mousemaster.GridConfiguration","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration"] }, {"name":"comboMap","parameterTypes":[] }, {"name":"grid","parameterTypes":[] }, {"name":"hideCursor","parameterTypes":[] }, {"name":"hintMesh","parameterTypes":[] }, {"name":"indicator","parameterTypes":[] }, {"name":"modeAfterUnhandledKeyPress","parameterTypes":[] }, {"name":"mouse","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"pushModeToHistoryStack","parameterTypes":[] }, {"name":"stopCommandsFromPreviousMode","parameterTypes":[] }, {"name":"timeout","parameterTypes":[] }, {"name":"wheel","parameterTypes":[] }, {"name":"zoom","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.Mouse",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.VelocityConfiguration","boolean","double"] }, {"name":"smoothJumpEnabled","parameterTypes":[] }, {"name":"smoothJumpVelocity","parameterTypes":[] }, {"name":"velocity","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.QtJambi_LibraryUtilities"
 },
 {
   "name":"mousemaster.Shcore$MONITOR_DPI_TYPE",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.Shadow",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["double","java.lang.String","double","double","double","int"] }, {"name":"blurRadius","parameterTypes":[] }, {"name":"hexColor","parameterTypes":[] }, {"name":"horizontalOffset","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"stackCount","parameterTypes":[] }, {"name":"verticalOffset","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.VelocityConfiguration",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["double","double","double","mousemaster.Easing","double"] }, {"name":"acceleration","parameterTypes":[] }, {"name":"accelerationEasing","parameterTypes":[] }, {"name":"deceleration","parameterTypes":[] }, {"name":"initialVelocity","parameterTypes":[] }, {"name":"maxVelocity","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.Wheel",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.VelocityConfiguration"] }, {"name":"velocity","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.WindowsOverlay$ClearBackgroundQLabel",
