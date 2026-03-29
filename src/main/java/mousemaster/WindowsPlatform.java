@@ -370,6 +370,15 @@ public class WindowsPlatform implements Platform {
                         keyEvent != null) {
                         reentrantKeyEvents.add(
                                 new ReentrantKeyEvent(keyEvent, info.flags, altgrLeftctrl));
+                        // If this is a repeat press for a key that was originally eaten,
+                        // eat it here too. Otherwise CallNextHookEx would let it leak
+                        // to the app (the reentrant handler cannot call processKeyEvent
+                        // to decide, so we check the eaten state directly).
+                        if (keyEvent.isPress() &&
+                            keysPressedInHook.contains(keyEvent.key()) &&
+                            !currentlyPressedNotEatenKeys.containsKey(keyEvent.key())) {
+                            return new WinDef.LRESULT(1);
+                        }
                     }
                     return ExtendedUser32.INSTANCE.CallNextHookEx(keyboardHook, nCode, wParam, info);
                 }

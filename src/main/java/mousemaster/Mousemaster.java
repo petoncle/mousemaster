@@ -95,7 +95,7 @@ public class Mousemaster {
             long iterationDuration =
                     (long) ((iterationEndTime - iterationBeginTime) / 1e6);
             if (iterationDuration > 10L && logger.isTraceEnabled()) {
-                logger.trace("Iteration duration is long: " + iterationDuration + "ms, " +
+                logger.trace("Long iteration duration: " + iterationDuration + "ms, " +
                              "updateConfigurationDuration = " + updateConfigurationDuration + "ms, " +
                              "updateActiveKeyboardLayoutDuration = " + updateActiveKeyboardLayoutDuration + "ms, " +
                              "platformDuration = " + platformDuration + "ms, " +
