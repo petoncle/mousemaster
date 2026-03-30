@@ -169,10 +169,7 @@ public class KeyboardManager {
                             processingSet.isIgnoredByLeadingWait()) {
                             PressKeyEventProcessingSet releaseProcessingSet =
                                     comboWatcher.keyEvent(keyEvent);
-                            if (!releaseProcessingSet.handled()) {
-                                regurgitates = buildRegurgitates(null, key, Set.of());
-                            }
-                            else if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
+                            if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
                                 for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
                                                                                                            .entrySet()) {
                                     // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
@@ -194,11 +191,11 @@ public class KeyboardManager {
                                         releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatches(),
                                         false);
                                 clearFullyCompletedEatenKeys();
-                                Eat eatEntry = eatenKeys.get(key);
-                                if (eatEntry == null ||
-                                    !eatEntry.processingSet().hasInProgressMustBeEatenCombo()) {
-                                    regurgitates = buildRegurgitates(key, key, Set.of());
-                                }
+                            }
+                            Eat eatEntry = eatenKeys.get(key);
+                            if (eatEntry == null ||
+                                !eatEntry.processingSet().hasInProgressMustBeEatenCombo()) {
+                                regurgitates = buildRegurgitates(key, key, Set.of());
                             }
                         }
                         if (processingSet.isComboPreparationBreaker()) {
