@@ -218,8 +218,10 @@ public class WindowsKeyboard {
                     // leftwin stuck.
                     List<ResolvedKeyMacroMove> batch = new ArrayList<>();
                     batch.add(keyMove);
-                    // Batching leftalt does not work because we need to wait for the phantom events to be acknowledged.
-                    while (!keyMove.key().equals(Key.leftalt) &&
+                    // Batching +leftalt (press) does not work because we need to wait for the phantom events to be acknowledged.
+                    // Batching -leftalt (release) with the next move is fine: the ack waits for the last move in the batch,
+                    // and the phantom +leftalt/-leftalt pair (IntelliJ only?) arrives much later without interfering.
+                    while (!(keyMove.key().equals(Key.leftalt) && keyMove.press()) &&
                            !sendInputQueue.isEmpty() &&
                            sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next
 //                           && next.key().equals(keyMove.key())
