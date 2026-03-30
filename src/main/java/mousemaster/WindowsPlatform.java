@@ -45,7 +45,10 @@ public class WindowsPlatform implements Platform {
     private boolean altgrLeftctrlPressEaten;
     private boolean altgrRightaltPressEaten;
     private boolean inKeyboardHookCallback = false;
-    private record ReentrantKeyEvent(KeyEvent keyEvent, int infoFlags, boolean altgrLeftctrl) {}
+
+    private record ReentrantKeyEvent(KeyEvent keyEvent, int infoFlags,
+                                     boolean altgrLeftctrl, boolean eaten) {
+    }
     private final List<ReentrantKeyEvent> reentrantKeyEvents = new ArrayList<>();
     private Set<Key> extendedKeys = new HashSet<>();
     private final Set<Key> keysPressedInHook = new HashSet<>();
@@ -368,15 +371,16 @@ public class WindowsPlatform implements Platform {
                         !(info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
                           (info.flags & 0b10000) == 0b10000) &&
                         keyEvent != null) {
-                        reentrantKeyEvents.add(
-                                new ReentrantKeyEvent(keyEvent, info.flags, altgrLeftctrl));
                         // If this is a repeat press for a key that was originally eaten,
                         // eat it here too. Otherwise CallNextHookEx would let it leak
                         // to the app (the reentrant handler cannot call processKeyEvent
                         // to decide, so we check the eaten state directly).
-                        if (keyEvent.isPress() &&
+                        boolean eaten = keyEvent.isPress() &&
                             keysPressedInHook.contains(keyEvent.key()) &&
-                            !currentlyPressedNotEatenKeys.containsKey(keyEvent.key())) {
+                            !currentlyPressedNotEatenKeys.containsKey(keyEvent.key());
+                        reentrantKeyEvents.add(
+                                new ReentrantKeyEvent(keyEvent, info.flags, altgrLeftctrl, eaten));
+                        if (eaten) {
                             return new WinDef.LRESULT(1);
                         }
                     }
@@ -434,12 +438,12 @@ public class WindowsPlatform implements Platform {
                             logger.debug("Received unexpected key event wParam: " + wParam.intValue());
                     }
                     // Process queued reentrant events for KeyboardManager state tracking.
-                    // These events already passed through to the OS; we cannot eat them.
                     // inKeyboardHookCallback is still true, so any hook callback
                     // triggered during replay will be queued and picked up by this loop.
                     while (!reentrantKeyEvents.isEmpty()) {
                         ReentrantKeyEvent reentrantKeyEvent = reentrantKeyEvents.remove(0);
-                        if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl))
+                        if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl)
+                            && !reentrantKeyEvent.eaten)
                             logger.warn("Reentrant event would have been eaten but already passed through: " + reentrantKeyEvent.keyEvent);
                     }
                     if (eaten)
@@ -450,7 +454,8 @@ public class WindowsPlatform implements Platform {
                     // Process reentrant events that arrived during CallNextHookEx.
                     while (!reentrantKeyEvents.isEmpty()) {
                         ReentrantKeyEvent reentrantKeyEvent = reentrantKeyEvents.remove(0);
-                        if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl))
+                        if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl)
+                            && !reentrantKeyEvent.eaten)
                             logger.warn("Reentrant event would have been eaten but already passed through: " + reentrantKeyEvent.keyEvent);
                     }
                     return result;
