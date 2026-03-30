@@ -362,8 +362,13 @@ public class WindowsPlatform implements Platform {
                                 keyEventString(info, wParamString(wParam), keyEvent, injected, altgrLeftctrl));
                     WindowsKeyboard.keyboardHookCallback(info, wParam, null,
                             keyEvent, injected, altgrLeftctrl);
-                    if (injected && keyEvent != null)
+                    if (injected && keyEvent != null) {
+                        if (WindowsKeyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
+                            logger.trace("Suppressing external +leftalt (reentrant)");
+                            return new WinDef.LRESULT(1);
+                        }
                         trackNotEatenKey(keyEvent);
+                    }
                     // Queue for deferred KeyboardManager state tracking, applying the
                     // same filters as the normal path: skip injected events (already
                     // acknowledged above), skip duplicate alt, skip unmapped keys.
@@ -413,8 +418,14 @@ public class WindowsPlatform implements Platform {
                             WindowsKeyboard.keyboardHookCallback(info, wParam, wParamString,
                                     keyEvent, injected, altgrLeftctrl);
                             if (injected) {
-                                if (keyEvent != null)
-                                    trackNotEatenKey(keyEvent);
+                                if (keyEvent != null) {
+                                    if (WindowsKeyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
+                                        logger.trace("Suppressing external +leftalt");
+                                        eaten = true;
+                                    }
+                                    else
+                                        trackNotEatenKey(keyEvent);
+                                }
                             }
                             else if (info.vkCode == WindowsVirtualKey.VK_LMENU.virtualKeyCode &&
                                 (info.flags & 0b10000) == 0b10000) {

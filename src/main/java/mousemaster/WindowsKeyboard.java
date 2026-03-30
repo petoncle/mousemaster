@@ -45,6 +45,7 @@ public class WindowsKeyboard {
         pressedKeyToRepeat = null;
         durationUntilNextKeyPressRepeat = 0;
         repeatStartedDuringCurrentTick = false;
+        suppressExternalLeftalt = false;
     }
 
     /**
@@ -115,17 +116,45 @@ public class WindowsKeyboard {
 
     private static final Set<Key> userPressedKeys = new HashSet<>();
 
+    /**
+     * When we inject -leftalt while the user physically holds alt, some apps (e.g.
+     * IntelliJ) inject +leftalt/-leftalt pairs to "correct" the state mismatch.
+     * These external events can cause apps to see alt+key instead of just key.
+     * When this flag is true, injected +leftalt events that are not our own ack
+     * are eaten (suppressed) to prevent this.
+     */
+    private static boolean suppressExternalLeftalt;
+
     private static final Set<Key> modifierKeys =
             Set.of(Key.leftshift, Key.rightshift, Key.leftctrl, Key.rightctrl,
                     Key.leftalt, Key.rightalt, Key.leftwin, Key.rightwin);
+
+    /**
+     * Returns true if this injected +leftalt event is from an external app
+     * and should be eaten to prevent apps from seeing alt+key.
+     */
+    public static boolean shouldSuppressExternalLeftalt(KeyEvent keyEvent, boolean injected) {
+        if (!suppressExternalLeftalt || !injected || keyEvent == null ||
+            !keyEvent.key().equals(Key.leftalt) || !keyEvent.isPress())
+            return false;
+        // Don't suppress if this is our own +leftalt that we're waiting to ack.
+        if (moveWaitingForKeyboardHookCallbackAcknowledgment != null &&
+            moveWaitingForKeyboardHookCallbackAcknowledgment.key().equals(Key.leftalt) &&
+            moveWaitingForKeyboardHookCallbackAcknowledgment.press())
+            return false;
+        return true;
+    }
 
     public static void keyboardHookCallback(WinUser.KBDLLHOOKSTRUCT info,
                                             WinDef.WPARAM wParam, String wParamString, KeyEvent keyEvent,
                                             boolean injected, boolean altgrLeftctrl) {
         if (!injected) {
             if (keyEvent != null) {
-                if (keyEvent.isRelease())
+                if (keyEvent.isRelease()) {
                     userPressedKeys.remove(keyEvent.key());
+                    if (keyEvent.key().equals(Key.leftalt))
+                        suppressExternalLeftalt = false;
+                }
                 else
                     userPressedKeys.add(keyEvent.key());
             }
@@ -220,7 +249,7 @@ public class WindowsKeyboard {
                     batch.add(keyMove);
                     // Batching +leftalt (press) does not work because we need to wait for the phantom events to be acknowledged.
                     // Batching -leftalt (release) with the next move is fine: the ack waits for the last move in the batch,
-                    // and the phantom +leftalt/-leftalt pair (IntelliJ only?) arrives much later without interfering.
+                    // and the external +leftalt/-leftalt pair (IntelliJ only?) arrives much later without interfering.
                     while (!(keyMove.key().equals(Key.leftalt) && keyMove.press()) &&
                            !sendInputQueue.isEmpty() &&
                            sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next
@@ -301,6 +330,17 @@ public class WindowsKeyboard {
         if (logger.isTraceEnabled()) {
             logger.trace("Sending " + moves + ", triggerKeyRepeating = " + triggerKeyRepeating);
             logger.trace("Waiting for ackowledgment of " + moves.getLast());
+        }
+        // Update external suppression flag before SendInput so reentrant external
+        // events during SendInput are caught. +leftalt clears the flag (re-pressing
+        // alt means no more externals), -leftalt while user holds alt sets it.
+        for (ResolvedKeyMacroMove move : moves) {
+            if (move.key().equals(Key.leftalt)) {
+                if (move.press())
+                    suppressExternalLeftalt = false;
+                else if (userPressedKeys.contains(Key.leftalt))
+                    suppressExternalLeftalt = true;
+            }
         }
         moveWaitingForKeyboardHookCallbackAcknowledgment = moves.getLast();
         ticksWaitingForAcknowledgment = 0;
