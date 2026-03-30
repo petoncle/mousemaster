@@ -57,6 +57,13 @@ public class KeyboardManager {
                         watcherUpdateResult.hasComboPreparationBreaker());
                 clearFullyCompletedEatenKeys();
             }
+            if (!watcherUpdateResult.expiredCombos().isEmpty()) {
+                List<Regurgitate> deadComboRegurgitates =
+                        handleDeadEatingCombos(watcherUpdateResult.expiredCombos(), null);
+                for (Regurgitate regurgitate : deadComboRegurgitates) {
+                    keyRegurgitator.regurgitate(regurgitate, !regurgitate.alsoRelease());
+                }
+            }
             if (watcherUpdateResult.preparationIsNotPrefixAnymore()) {
                 regurgitatePressedKeys();
             }
@@ -144,6 +151,12 @@ public class KeyboardManager {
                             processingSet.partOfCompletedComboSequenceCombosWithMatches(), false);
                     clearFullyCompletedEatenKeys();
                 }
+                Set<Combo> deadCombos = computeDeadCombos(processingSet);
+                List<Regurgitate> deadComboRegurgitates = handleDeadEatingCombos(deadCombos, null);
+                if (!deadComboRegurgitates.isEmpty()) {
+                    regurgitates = new ArrayList<>(regurgitates);
+                    regurgitates.addAll(deadComboRegurgitates);
+                }
                 if (processingSet.isComboPreparationBreaker()) {
                     comboWatcher.reset(key);
                 }
@@ -198,11 +211,10 @@ public class KeyboardManager {
                                             false);
                                     clearFullyCompletedEatenKeys();
                                 }
-                                Eat eatEntry = eatenKeys.get(key);
-                                if (eatEntry == null ||
-                                    !eatEntry.processingSet().hasInProgressMustBeEatenCombo()) {
-                                    regurgitates = buildRegurgitates(key, key, Set.of());
-                                }
+                                Set<Combo> deadCombos = computeDeadCombos(releaseProcessingSet);
+                                List<Regurgitate> deadComboRegurgitates = handleDeadEatingCombos(deadCombos, key);
+                                if (!deadComboRegurgitates.isEmpty())
+                                    regurgitates = deadComboRegurgitates;
                             }
                         }
                         if (processingSet.isComboPreparationBreaker()) {
@@ -220,6 +232,15 @@ public class KeyboardManager {
                         !pressedProcessingSet.isPartOfCompletedComboSequenceAndMustBeEaten() &&
                         regurgitates.stream().noneMatch(r -> r.key().equals(key))) {
                         eatenKeys.put(key, new Eat(true, pressedProcessingSet));
+                    }
+                    else {
+                        // Even if mustBeEaten is false (e.g. macro holds the key),
+                        // mark the existing eat entry as released so that future
+                        // regurgitation sends press+release instead of press-only.
+                        Eat existingEat = eatenKeys.get(key);
+                        if (existingEat != null && !existingEat.released()) {
+                            eatenKeys.put(key, new Eat(true, existingEat.processingSet()));
+                        }
                     }
                     if (!mustBeEaten)
                         macroPlayer.keyReleasedNotEaten(key);
@@ -374,6 +395,71 @@ public class KeyboardManager {
     public boolean isPressedKeyNotEaten(Key key) {
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
         return processingSet != null && !processingSet.mustBeEaten();
+    }
+
+    /**
+     * Find combos that are eating in some eaten key's processing set
+     * but no longer viable in the latest processing set.
+     */
+    private Set<Combo> computeDeadCombos(PressKeyEventProcessingSet latestProcessingSet) {
+        Set<Combo> viableCombos = new HashSet<>();
+        for (Map.Entry<Combo, PressKeyEventProcessing> entry :
+                latestProcessingSet.processingByCombo().entrySet()) {
+            if (entry.getValue().isPartOfComboSequence())
+                viableCombos.add(entry.getKey());
+        }
+        Set<Combo> deadCombos = new HashSet<>();
+        for (Eat eat : eatenKeys.values()) {
+            for (Map.Entry<Combo, PressKeyEventProcessing> entry :
+                    eat.processingSet().processingByCombo().entrySet()) {
+                if (entry.getValue().isPartOfComboSequenceMustBeEaten() &&
+                    !viableCombos.contains(entry.getKey())) {
+                    deadCombos.add(entry.getKey());
+                }
+            }
+        }
+        return deadCombos;
+    }
+
+    /**
+     * For each eaten key, check if any eating combos are in deadCombos.
+     * If ALL eating combos are dead, regurgitate the key.
+     * If some are dead but others remain, mark dead ones as non-eating.
+     */
+    private List<Regurgitate> handleDeadEatingCombos(Set<Combo> deadCombos,
+                                                      Key releasingKey) {
+        if (eatenKeys.isEmpty() || deadCombos.isEmpty()) return List.of();
+        List<Regurgitate> regurgitates = new ArrayList<>();
+        for (Map.Entry<Key, Eat> entry : eatenKeys.entrySet()) {
+            Key eatenKey = entry.getKey();
+            Eat eat = entry.getValue();
+            PressKeyEventProcessingSet ps = eat.processingSet();
+            // Check if any viable (non-dead) eating combo remains.
+            boolean hasViableEatingCombo = ps.processingByCombo().entrySet()
+                    .stream()
+                    .anyMatch(e -> e.getValue().isPartOfComboSequenceMustBeEaten()
+                                && !deadCombos.contains(e.getKey()));
+            if (!hasViableEatingCombo && ps.mustBeEaten()) {
+                // All eating combos are dead. Regurgitate.
+                boolean alsoRelease = eat.released() ||
+                        (releasingKey != null && releasingKey.equals(eatenKey));
+                addRegurgitate(ps, regurgitates, eatenKey, alsoRelease);
+            }
+            else {
+                // Mark dead combos as non-eating for clearFullyCompletedEatenKeys.
+                for (Map.Entry<Combo, PressKeyEventProcessing> ce :
+                        ps.processingByCombo().entrySet()) {
+                    if (ce.getValue().isPartOfComboSequenceMustBeEaten() &&
+                        deadCombos.contains(ce.getKey())) {
+                        ce.setValue(PressKeyEventProcessing.partOfComboSequence(
+                                false,
+                                ce.getValue().isPartOfCompletedComboSequence(),
+                                ce.getValue().isComboPreparationBreaker()));
+                    }
+                }
+            }
+        }
+        return regurgitates;
     }
 
     /**

@@ -178,7 +178,8 @@ public class ComboWatcher {
                                            boolean preparationIsNotPrefixAnymore,
                                            boolean hasComboPreparationBreaker,
                                            boolean comboPreparationAlreadyBroken,
-                                           Key comboPreparationBreakerKey) {
+                                           Key comboPreparationBreakerKey,
+                                           Set<Combo> expiredCombos) {
 
     }
 
@@ -209,6 +210,7 @@ public class ComboWatcher {
             }
         }
         boolean preparationIsNotPrefixAnymore = false;
+        Set<Combo> expiredCombos = new HashSet<>();
         if (lastProcessingSet != null) {
             // Check if the preparation is still a prefix of at least one combo.
             // If it is not, then it means a key is being pressed for longer than what the combo expects,
@@ -249,6 +251,9 @@ public class ComboWatcher {
                                 lastMatchedEvent.time(), currentTime);
                         if (!tooMuch) {
                             preparationIsStillPrefixOfAtLeastOneCombo = true;
+                        }
+                        else {
+                            expiredCombos.add(combo);
                         }
                     }
                 }
@@ -379,7 +384,7 @@ public class ComboWatcher {
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         revertUnsatisfiedMutations();
-        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey);
+        return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey, expiredCombos);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {

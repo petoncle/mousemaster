@@ -201,9 +201,9 @@ public class WindowsKeyboard {
             // callback can leave the key stuck because Windows hasn't fully
             // committed the press.
             boolean nextIsSameModifier = modifierKeys.contains(keyEvent.key())
-                    && !sendInputQueue.isEmpty()
+ /*                   && !sendInputQueue.isEmpty()
                     && sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next
-                    && next.key().equals(keyEvent.key());
+                    && next.key().equals(keyEvent.key())*/;
             if (!nextIsSameModifier)
                 processOneSendInputMove();
         }
