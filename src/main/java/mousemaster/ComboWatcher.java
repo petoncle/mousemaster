@@ -740,11 +740,12 @@ public class ComboWatcher {
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
         long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
-        List<String> comboLabels = processingByCombo.entrySet().stream()
-                                                    .filter(e -> e.getValue()
-                                                                  .isPartOfComboSequence())
-                                                    .map(e -> e.getKey().label())
-                                                    .toList();
+        List<String> comboStrings = processingByCombo.entrySet().stream()
+                                                   .filter(e -> e.getValue()
+                                                                 .isPartOfComboSequence())
+                                                   .map(Map.Entry::getKey)
+                                                   .map(Combo::toString)
+                                                   .toList();
         logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
                      "ms, mode = " + beforeCommandsMode.name() +
                      ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
@@ -752,7 +753,7 @@ public class ComboWatcher {
                      ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
                      ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
                      ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
-                     ", combos = " + comboLabels +
+                     ", combos = " + comboStrings +
                      ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
                      completeCombosCommandsToRun);
         if (!comboAndCommandsToRun.isEmpty()) {
