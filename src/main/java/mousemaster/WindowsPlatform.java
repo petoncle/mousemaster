@@ -355,7 +355,7 @@ public class WindowsPlatform implements Platform {
                     KeyEvent keyEvent = buildKeyEvent(info, wParam, altgrLeftctrl);
                     boolean injected = (info.flags & ExtendedUser32.LLKHF_INJECTED) ==
                                        ExtendedUser32.LLKHF_INJECTED;
-                    logger.warn("Reentrant keyboard hook callback, skipping KeyboardManager: " +
+                    logger.trace("Reentrant keyboard hook callback, skipping KeyboardManager: " +
                                 keyEventString(info, wParamString(wParam), keyEvent, injected, altgrLeftctrl));
                     WindowsKeyboard.keyboardHookCallback(info, wParam, null,
                             keyEvent, injected, altgrLeftctrl);

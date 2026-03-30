@@ -272,7 +272,11 @@ public class ComboWatcher {
             logger.debug(
                     "Completed asynchronous combos, mode = " +
                     baseMode.name() + ", completedCombos = " +
-                    completedCombos.stream().map(ComboAndMatch::combo).toList() +
+                    completedCombos.stream()
+                                   .map(ComboAndMatch::combo)
+                                   .map(combo -> logger.isTraceEnabled() ?
+                                           combo.toString() : combo.label())
+                                   .toList() +
                     ", commandsToRun = " + commandsToRun);
         }
         boolean hasComboPreparationBreaker =
@@ -741,11 +745,14 @@ public class ComboWatcher {
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
         long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
         List<String> comboStrings = processingByCombo.entrySet().stream()
-                                                   .filter(e -> e.getValue()
-                                                                 .isPartOfComboSequence())
-                                                   .map(Map.Entry::getKey)
-                                                   .map(Combo::toString)
-                                                   .toList();
+                                                     .filter(e -> e.getValue()
+                                                                   .isPartOfComboSequence())
+                                                     .map(Map.Entry::getKey)
+                                                     .map(combo ->
+                                                             logger.isTraceEnabled() ?
+                                                                     combo.toString() :
+                                                                     combo.label())
+                                                     .toList();
         logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
                      "ms, mode = " + beforeCommandsMode.name() +
                      ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
