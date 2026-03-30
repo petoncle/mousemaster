@@ -72,11 +72,72 @@ public class ComboWatcher {
     private Map<Combo, Instant> leadingWaitBeginTimeByCombo = new HashMap<>();
     private App lastActiveApp;
 
+    private final Duration comboPreparationRetainDuration;
+    private final int comboPreparationMinRetainEventCount;
+
+    static Duration comboPreparationRetainDuration(ModeMap modeMap) {
+        Duration max = Duration.ZERO;
+        for (Mode mode : modeMap.modes()) {
+            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+                List<MoveSet> moveSets = combo.sequence().moveSets();
+                if (moveSets.stream()
+                            .allMatch(ms -> ms instanceof WaitMoveSet))
+                    continue;
+                Duration waitDurationSum = Duration.ZERO;
+                for (int i = 0; i < moveSets.size(); i++) {
+                    MoveSet moveSet = moveSets.get(i);
+                    WaitComboMove waitComboMove;
+                    if (moveSet instanceof WaitMoveSet(WaitComboMove wm)) {
+                        waitComboMove = wm;
+                    }
+                    else if (moveSet instanceof KeyMoveSet kms
+                             && kms.canAbsorbEvents()) {
+                        waitComboMove = kms.waitMove();
+                    }
+                    else {
+                        continue;
+                    }
+                    ComboMoveDuration duration = waitComboMove.duration();
+                    if (duration.max() != null) {
+                        waitDurationSum = waitDurationSum.plus(duration.max());
+                    }
+                    else if (i == moveSets.size() - 1) {
+                        // Trailing unbounded wait: combo fires at min.
+                        waitDurationSum = waitDurationSum.plus(duration.min());
+                    }
+                    else {
+                        // Non-trailing unbounded wait: time span is unbounded,
+                        // so time-based trimming cannot be used.
+                        return null;
+                    }
+                }
+                if (waitDurationSum.compareTo(max) > 0)
+                    max = waitDurationSum;
+            }
+        }
+        return max;
+    }
+
+    static int comboPreparationMinRetainEventCount(ModeMap modeMap) {
+        int max = 0;
+        for (Mode mode : modeMap.modes()) {
+            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+                int comboEventCount = 0;
+                for (MoveSet moveSet : combo.sequence().moveSets())
+                    comboEventCount += moveSet.maxMoveCount();
+                if (comboEventCount > max)
+                    max = comboEventCount;
+            }
+        }
+        return max;
+    }
+
     public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
                         ActiveAppFinder activeAppFinder,
                         PlatformClock clock,
                         Set<Key> unpressedComboPreconditionKeys,
-                        Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys) {
+                        Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
+                        ModeMap modeMap) {
         this.commandRunner = commandRunner;
         this.hintManager = hintManager;
         this.activeAppFinder = activeAppFinder;
@@ -86,6 +147,13 @@ public class ComboWatcher {
         this.pressedComboPreconditionKeys =
                 pressedComboPreconditionKeys;
         this.logRedactKeys = logRedactKeys;
+        this.comboPreparationRetainDuration = comboPreparationRetainDuration(modeMap);
+        this.comboPreparationMinRetainEventCount = comboPreparationMinRetainEventCount(modeMap);
+        logger.debug("Combo preparation will retain events from the last " +
+                     (comboPreparationRetainDuration != null
+                             ? comboPreparationRetainDuration.toMillis() + "ms"
+                             : "unlimited") +
+                     ", min " + comboPreparationMinRetainEventCount + " events");
         this.comboPreparation = ComboPreparation.empty();
     }
 
@@ -411,6 +479,19 @@ public class ComboWatcher {
             }
         }
         comboPreparation.events().add(event);
+        List<KeyEvent> preparationEvents = comboPreparation.events();
+        if (comboPreparationRetainDuration != null &&
+            preparationEvents.size() > comboPreparationMinRetainEventCount) {
+            Instant cutoff = event.time().minus(comboPreparationRetainDuration);
+            int trimIndex = 0;
+            int maxTrim = preparationEvents.size() - comboPreparationMinRetainEventCount;
+            while (trimIndex < maxTrim &&
+                   preparationEvents.get(trimIndex).time().isBefore(cutoff)) {
+                trimIndex++;
+            }
+            if (trimIndex > 0)
+                preparationEvents.subList(0, trimIndex).clear();
+        }
         Mode beforeMode = baseMode;
         PressKeyEventProcessingSet processingSet =
                 processKeyEventForCurrentMode(event, false);

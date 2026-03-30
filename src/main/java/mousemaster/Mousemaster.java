@@ -204,7 +204,8 @@ public class Mousemaster {
                 new ComboWatcher(commandRunner, hintManager, new ActiveAppFinder(),
                         platform.clock(),
                         unpressedComboPreconditionKeys,
-                        pressedComboPreconditionKeys, configuration.logRedactKeys());
+                        pressedComboPreconditionKeys, configuration.logRedactKeys(),
+                        configuration.modeMap());
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());
         macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager);
