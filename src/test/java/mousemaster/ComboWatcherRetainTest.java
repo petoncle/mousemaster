@@ -70,9 +70,17 @@ class ComboWatcherRetainTest {
     }
 
     @Test
-    void retainDuration_trailingUnboundedAbsorbingWait_usesMin() {
-        // +a #{*}-500: trailing unbounded absorbing wait, uses min = 500ms
+    void retainDuration_trailingUnboundedWaitMoveSet_usesMin() {
+        // +a #{*}-500: trailing unbounded WaitMoveSet, combo fires at min = 500ms
         assertEquals(Duration.ofMillis(500), retainDuration("+a #{*}-500"));
+    }
+
+    @Test
+    void retainDuration_trailingUnboundedKeyMoveSetWait_returnsNull() {
+        // {+a +b #{*}}: trailing KeyMoveSet with unbounded absorbing wait.
+        // KeyMoveSets match by suffix, not by combosWaitingForLastMoveToComplete,
+        // so the time span is unbounded.
+        assertNull(retainDuration("{+a +b #{*}}"));
     }
 
     @Test

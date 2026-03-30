@@ -101,13 +101,18 @@ public class ComboWatcher {
                     if (duration.max() != null) {
                         waitDurationSum = waitDurationSum.plus(duration.max());
                     }
-                    else if (i == moveSets.size() - 1) {
-                        // Trailing unbounded wait: combo fires at min.
+                    else if (i == moveSets.size() - 1
+                             && moveSet instanceof WaitMoveSet) {
+                        // Trailing unbounded WaitMoveSet: combo fires at min
+                        // via combosWaitingForLastMoveToComplete.
+                        // KeyMoveSets don't fire at min — they match by suffix,
+                        // so an unbounded absorbing wait means unbounded time span.
                         waitDurationSum = waitDurationSum.plus(duration.min());
                     }
                     else {
                         // Non-trailing unbounded wait: time span is unbounded,
                         // so time-based trimming cannot be used.
+                        logger.warn("Combo " + combo + " has unbounded wait");
                         return null;
                     }
                 }
