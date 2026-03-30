@@ -166,7 +166,16 @@ public class WindowsKeyboard {
             // If user presses g, i, then a, the regurgitation of g then i will happen on
             // the +a event (and before WindowsPlatform#keyboardHookCallback returns, i.e. before 'a' will be typed)
             // User will see 'gia' (and not 'gai').
-            if (!modifierKeys.contains(keyEvent.key()))
+            // Process the next queued move immediately, unless it targets
+            // the same modifier key (e.g. -leftwin after +leftwin): sending
+            // a modifier release from inside the same modifier's press hook
+            // callback can leave the key stuck because Windows hasn't fully
+            // committed the press.
+            boolean nextIsSameModifier = modifierKeys.contains(keyEvent.key())
+                    && !sendInputQueue.isEmpty()
+                    && sendInputQueue.getFirst().move() instanceof ResolvedKeyMacroMove next
+                    && next.key().equals(keyEvent.key());
+            if (!nextIsSameModifier)
                 processOneSendInputMove();
         }
     }
