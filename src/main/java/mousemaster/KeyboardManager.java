@@ -169,33 +169,40 @@ public class KeyboardManager {
                             processingSet.isIgnoredByLeadingWait()) {
                             PressKeyEventProcessingSet releaseProcessingSet =
                                     comboWatcher.keyEvent(keyEvent);
-                            if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
-                                for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
-                                                                                                           .entrySet()) {
-                                    // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
-                                    processingSet.processingByCombo()
-                                                 .compute(entry.getKey(),
-                                                         (combo, existingProcessing) -> {
-                                                             return existingProcessing ==
-                                                                    null ?
-                                                                     entry.getValue() :
-                                                                     PressKeyEventProcessing.partOfComboSequence(
-                                                                             existingProcessing.mustBeEaten(),
-                                                                             entry.getValue()
-                                                                                  .isPartOfCompletedComboSequence(),
-                                                                             existingProcessing.isComboPreparationBreaker()
-                                                                             || entry.getValue().isComboPreparationBreaker());
-                                                         });
-                                }
-                                markOtherKeysOfTheseCombosAsCompleted(
-                                        releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatches(),
-                                        false);
-                                clearFullyCompletedEatenKeys();
+                            if (!releaseProcessingSet.handled()) {
+                                // No combo recognizes the release: the combo
+                                // system lost track of this key, regurgitate.
+                                regurgitates = buildRegurgitates(null, key, Set.of());
                             }
-                            Eat eatEntry = eatenKeys.get(key);
-                            if (eatEntry == null ||
-                                !eatEntry.processingSet().hasInProgressMustBeEatenCombo()) {
-                                regurgitates = buildRegurgitates(key, key, Set.of());
+                            else {
+                                if (releaseProcessingSet.isPartOfCompletedComboSequence()) {
+                                    for (Map.Entry<Combo, PressKeyEventProcessing> entry : releaseProcessingSet.processingByCombo()
+                                                                                                               .entrySet()) {
+                                        // Mark current combo as completed (so it is not regurgitated, e.g. +rightalt -rightalt).
+                                        processingSet.processingByCombo()
+                                                     .compute(entry.getKey(),
+                                                             (combo, existingProcessing) -> {
+                                                                 return existingProcessing ==
+                                                                        null ?
+                                                                         entry.getValue() :
+                                                                         PressKeyEventProcessing.partOfComboSequence(
+                                                                                 existingProcessing.mustBeEaten(),
+                                                                                 entry.getValue()
+                                                                                      .isPartOfCompletedComboSequence(),
+                                                                                 existingProcessing.isComboPreparationBreaker()
+                                                                                 || entry.getValue().isComboPreparationBreaker());
+                                                             });
+                                    }
+                                    markOtherKeysOfTheseCombosAsCompleted(
+                                            releaseProcessingSet.partOfCompletedComboSequenceCombosWithMatches(),
+                                            false);
+                                    clearFullyCompletedEatenKeys();
+                                }
+                                Eat eatEntry = eatenKeys.get(key);
+                                if (eatEntry == null ||
+                                    !eatEntry.processingSet().hasInProgressMustBeEatenCombo()) {
+                                    regurgitates = buildRegurgitates(key, key, Set.of());
+                                }
                             }
                         }
                         if (processingSet.isComboPreparationBreaker()) {
