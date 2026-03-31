@@ -618,6 +618,21 @@ public record ComboPreparation(List<KeyEvent> events) {
                 regionBeginIndex, previousMatchedKeyMoves,
                 aliasBindings, negatedBindings, expandedAliasBindings,
                 allowLeadingIgnored, allowTrailingIgnored, false)) {
+            // Enforce atLeastOneOptional: at least one optional move must be matched.
+            // Only for full matching (minimumRequiredCount == required.size()),
+            // not for partial matching where we're still accumulating events.
+            if (keyMoveSet.atLeastOneOptional() &&
+                minimumRequiredCount == required.size()) {
+                boolean anyOptionalMatched = false;
+                for (int i = required.size(); i < allMoves.size(); i++) {
+                    if (moveStates[i] != UNUSED) {
+                        anyOptionalMatched = true;
+                        break;
+                    }
+                }
+                if (!anyOptionalMatched)
+                    return false;
+            }
             // Collect expandedFromAlias bindings.
             collectExpandedFromAliasBindings(allMoves, moveStates,
                     matchedKeys, assignedMovesForEvents, eventCount,

@@ -1261,6 +1261,25 @@ class ComboPreparationTest {
                 "#{*} inside braces should absorb unrelated keys");
     }
 
+    // --- atLeastOne with release-wait absorption ---
+
+    @Test
+    void atLeastOne_releaseAbsorbedByWait_noKeyMoveMatched_shouldNotComplete() {
+        // {#*keys+ #{-}-0-2000} with keys=a,b: the AT_LEAST_ONE constraint
+        // requires at least one of #a or #b (press moves) to be matched.
+        // Event [-a] is a release: it can't match any press move, but the
+        // #{-} release-wait absorbs it. The combo should NOT be complete
+        // because no AT_LEAST_ONE optional move was matched.
+        // Bug: the absorption path succeeds with 0 matched moves because
+        // requiredCount=0 and atLeastOneOptional is not checked.
+        Map<String, KeyAlias> aliases = Map.of(
+                "keys", new KeyAlias("keys", List.of(a, b)));
+        ComboSequence combo = parseCombo("{#*keys+ #{-}-0-2000}", aliases);
+        ComboSequenceMatch match = prep("-a").match(combo);
+        assertFalse(match.complete(),
+                "release absorbed by #{-} should not satisfy AT_LEAST_ONE press requirement");
+    }
+
     // --- Negated press move tests ---
 
     @Test
