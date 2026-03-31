@@ -380,7 +380,7 @@ public class ComboWatcher {
                 comboPreparationAlreadyBroken = true;
             }
             PressKeyEventProcessingSet processingSet =
-                    processKeyEventForCurrentMode(null, false);
+                    processKeyEventForCurrentMode(null, true);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         revertUnsatisfiedMutations();
