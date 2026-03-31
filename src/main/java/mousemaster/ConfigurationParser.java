@@ -1735,11 +1735,23 @@ public class ConfigurationParser {
         property.extend(parentProperty.builder);
         // Copy MutateMode commands from the parent property to the child,
         // adjusting the modeName to the child mode.
+        // Skip commands whose property path is already targeted by the
+        // child's own commands (the child overrides that property).
         String childModeName = property.propertyKey.modeName();
         if (childModeName != null) {
+            Set<ModePropertyPath> childPropertyPaths = new HashSet<>();
+            for (List<Command> commands : property.mutateModeCommands.values()) {
+                for (Command command : commands) {
+                    if (command instanceof Command.MutateMode mutateMode)
+                        childPropertyPaths.add(mutateMode.propertyPath());
+                }
+            }
             for (Map.Entry<Combo, List<Command>> entry :
                     parentProperty.mutateModeCommands.entrySet()) {
                 for (Command command : entry.getValue()) {
+                    if (command instanceof Command.MutateMode mutateMode &&
+                        childPropertyPaths.contains(mutateMode.propertyPath()))
+                        continue;
                     Command adjusted = command;
                     if (command instanceof Command.MutateMode mutateMode) {
                         adjusted = new Command.MutateMode(
