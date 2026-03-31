@@ -1361,9 +1361,15 @@ public class ConfigurationParser {
             case "break-macro" -> mode.comboMap.breakMacro.parseReferenceOr(propertyKey, propertyValue,
                     commandsByCombo -> setCommand(mode.comboMap.breakMacro.builder, propertyValue, new BreakMacro(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
-            case "noop" -> mode.comboMap.noop.parseReferenceOr(propertyKey, propertyValue,
-                    commandsByCombo -> setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
-                    childPropertiesByParentProperty, nonRootPropertyKeys);
+            case "noop" -> {
+                if (keyMatcher.group(group3) == null)
+                    mode.comboMap.noop.parseReferenceOr(propertyKey, propertyValue,
+                            commandsByCombo -> setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(propertyKey), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                else
+                    setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(propertyKey),
+                            propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+            }
             // @formatter:on
             default -> throw new IllegalArgumentException(
                     "Invalid mode property key");
