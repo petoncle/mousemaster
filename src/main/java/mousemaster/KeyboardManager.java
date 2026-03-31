@@ -389,6 +389,22 @@ public class KeyboardManager {
     }
 
     /**
+     * Used for mode-after-unhandled-key-press and active indicator, where we care about
+     * the current mode's perspective.
+     */
+    public boolean pressingUnhandledKeyInCurrentMode() {
+        for (Map.Entry<Key, PressKeyEventProcessingSet> entry : currentlyPressedKeys.entrySet()) {
+            PressKeyEventProcessingSet processingSet = entry.getValue();
+            if (!processingSet.handled())
+                return true;
+            if (processingSet.isPartOfPressedComboPreconditionOnly() &&
+                !comboWatcher.isCurrentModePressedPreconditionKey(entry.getKey()))
+                return true;
+        }
+        return false;
+    }
+
+    /**
      * Returns true if the key is currently pressed by the user and the press was not eaten
      * (i.e. the rest of the OS apps saw the press).
      */

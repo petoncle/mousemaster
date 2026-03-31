@@ -41,7 +41,7 @@ public class ModeController implements ComboListener {
     public void update(double delta) {
         hintManager.completePendingUiHintQuery();
         Mode mutatedMode = comboWatcher.getMutatedMode();
-        if (keyboardState.pressingUnhandledKey()) {
+        if (keyboardState.pressingUnhandledKeyInCurrentMode()) {
             if (mutatedMode.modeAfterUnhandledKeyPress() != null) {
                 logger.debug("Unhandled key press, switching to " +
                              mutatedMode.modeAfterUnhandledKeyPress());

@@ -35,7 +35,7 @@ public class IndicatorManager implements ModeListener {
 
     private Indicator activeIndicator() {
         IndicatorConfiguration config = currentMode.indicator();
-        if (keyboardState.pressingUnhandledKey() &&
+        if (keyboardState.pressingUnhandledKeyInCurrentMode() &&
             config.unhandledKeyPressIndicator().hexColor() != null)
             return config.unhandledKeyPressIndicator();
         if (mouseState.leftPressing() && config.leftMousePressIndicator().hexColor() != null)

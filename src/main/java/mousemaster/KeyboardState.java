@@ -12,4 +12,8 @@ public class KeyboardState {
     public boolean pressingUnhandledKey() {
         return keyboardManager.pressingUnhandledKey();
     }
+
+    public boolean pressingUnhandledKeyInCurrentMode() {
+        return keyboardManager.pressingUnhandledKeyInCurrentMode();
+    }
 }

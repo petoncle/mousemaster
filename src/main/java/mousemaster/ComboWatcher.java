@@ -27,6 +27,8 @@ public class ComboWatcher {
     private final Set<Key> pressedComboPreconditionKeys;
     private final boolean logRedactKeys;
     private final Set<Key> unpressedComboPreconditionKeys;
+    private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
+    private Set<Key> currentModePressedPreconditionKeys;
     private List<ComboListener> comboListeners;
     private List<ModeListener> modeListeners;
     private Mode baseMode;
@@ -1228,10 +1230,16 @@ public class ComboWatcher {
         revertUnsatisfiedMutations();
     }
 
+    public boolean isCurrentModePressedPreconditionKey(Key key) {
+        return currentModePressedPreconditionKeys.contains(key);
+    }
+
     public void modeChanged(Mode newMode) {
         baseMode = newMode;
         mutatedMode = newMode;
         activeMutations.clear();
+        currentModePressedPreconditionKeys =
+                pressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
         computePreconditionOnlyByPropertyPath();
         applySatisfiedPreconditionOnlyMutations();
         for (ModeListener listener : modeListeners)
