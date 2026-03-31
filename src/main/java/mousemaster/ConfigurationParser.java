@@ -1364,10 +1364,10 @@ public class ConfigurationParser {
             case "noop" -> {
                 if (keyMatcher.group(group3) == null)
                     mode.comboMap.noop.parseReferenceOr(propertyKey, propertyValue,
-                            commandsByCombo -> setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(propertyKey), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                            commandsByCombo -> setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(""), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
                             childPropertiesByParentProperty, nonRootPropertyKeys);
                 else
-                    setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(propertyKey),
+                    setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(keyMatcher.group(group4)),
                             propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
             }
             // @formatter:on
@@ -3161,8 +3161,15 @@ public class ConfigurationParser {
                 Map<Combo, List<Command>> parent =
                         (Map<Combo, List<Command>>) parent_;
                 Set<Command> childCommands = new HashSet<>();
-                for (List<Command> commands : builder.values())
+                Set<String> childCommandNames = new HashSet<>();
+                for (List<Command> commands : builder.values()) {
                     childCommands.addAll(commands);
+                    for (Command command : commands) {
+                        String name = commandName(command);
+                        if (name != null)
+                            childCommandNames.add(name);
+                    }
+                }
                 for (Map.Entry<Combo, List<Command>> parentEntry : parent.entrySet()) {
                     // mode1.start-move.up=x
                     // mode2.start-move=mode1.start-move
@@ -3171,8 +3178,19 @@ public class ConfigurationParser {
                         continue;
                     if (parentEntry.getValue().stream().anyMatch(childCommands::contains))
                         continue;
+                    String name = commandName(parentEntry.getValue().getFirst());
+                    if (name != null && childCommandNames.contains(name))
+                        continue;
                     builder.put(parentEntry.getKey(), parentEntry.getValue());
                 }
+            }
+
+            private static String commandName(Command cmd) {
+                if (cmd instanceof Command.Noop noop)
+                    return noop.name();
+                if (cmd instanceof Command.MacroCommand mc)
+                    return mc.macro().name();
+                return null;
             }
         }
 
