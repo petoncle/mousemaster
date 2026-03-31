@@ -134,6 +134,9 @@ public class WindowsKeyboard {
      * and should be eaten to prevent apps from seeing alt+key.
      */
     public static boolean shouldSuppressExternalLeftalt(KeyEvent keyEvent, boolean injected) {
+        if (true)
+            // Does not work for double tap of leftalt in IntelliJ.
+            return false;
         if (!suppressExternalLeftalt || !injected || keyEvent == null ||
             !keyEvent.key().equals(Key.leftalt) || !keyEvent.isPress())
             return false;
