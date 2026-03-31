@@ -73,7 +73,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             // 1.2x→1x (interrupted at 10%), use 10% of the configured duration.
             double fullRange = Math.abs(animationConfig.percent() - 1.0);
             double actualRange = Math.abs(beginPercent - endPercent);
-            double durationScale = fullRange > 0 ? actualRange / fullRange : 1.0;
+            double durationScale = fullRange > 0 ? Math.min(1.0, actualRange / fullRange) : 1.0;
             animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0
                     * durationScale;
             beginCenterPoint = currentCenterPoint != null
