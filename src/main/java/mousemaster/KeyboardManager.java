@@ -30,6 +30,12 @@ public class KeyboardManager {
      */
     private final Map<Key, Eat> eatenKeys = new LinkedHashMap<>();
     private MacroPlayer macroPlayer;
+    /**
+     * Set when a key press is unhandled in the current mode. This persists across
+     * key releases so that briefly-pressed unhandled keys are not missed by the
+     * poll-based check in ModeController.update().
+     */
+    private boolean hadUnhandledKeyPressInCurrentMode;
 
     private record Eat(boolean released, PressKeyEventProcessingSet processingSet) {
     }
@@ -87,6 +93,7 @@ public class KeyboardManager {
         regurgitatePressedKeys();
         currentlyPressedKeys.clear();
         eatenKeys.clear();
+        hadUnhandledKeyPressInCurrentMode = false;
         comboWatcher.reset();
         macroPlayer.reset();
     }
@@ -142,6 +149,8 @@ public class KeyboardManager {
                     regurgitates = buildRegurgitates(null, null, currentCombos);
                 }
                 currentlyPressedKeys.put(key, processingSet);
+                if (pressingUnhandledKeyInCurrentMode())
+                    hadUnhandledKeyPressInCurrentMode = true;
                 macroPlayer.clearEarlyRelease(key);
                 if (processingSet.mustBeEaten()) {
                     eatenKeys.put(key, new Eat(false, processingSet));
@@ -402,6 +411,15 @@ public class KeyboardManager {
                 return true;
         }
         return false;
+    }
+
+    public boolean pollHadUnhandledKeyPressInCurrentMode() {
+        try {
+            return hadUnhandledKeyPressInCurrentMode;
+        }
+        finally {
+            hadUnhandledKeyPressInCurrentMode = false;
+        }
     }
 
     /**
