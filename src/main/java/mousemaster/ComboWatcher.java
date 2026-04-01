@@ -1402,7 +1402,7 @@ public class ComboWatcher {
     private void revertUnsatisfiedMutations() {
         if (activeMutations.isEmpty())
             return;
-        boolean anyReverted = false;
+        List<Map.Entry<ModePropertyPath, ActiveModeMutation>> reverted = null;
         Iterator<Map.Entry<ModePropertyPath, ActiveModeMutation>> activeMutationIterator =
                 activeMutations.entrySet().iterator();
         while (activeMutationIterator.hasNext()) {
@@ -1411,23 +1411,33 @@ public class ComboWatcher {
             if (!preconditionOnlyByPropertyPath.getOrDefault(path, false))
                 continue;
             ActiveModeMutation mutation = entry.getValue();
-            if (!isComboPreconditionSatisfied(mutation.combo())) {
+            if (!isMutationComboPreconditionSatisfied(mutation.combo())) {
+                if (reverted == null)
+                    reverted = new ArrayList<>();
+                reverted.add(entry);
                 activeMutationIterator.remove();
-                anyReverted = true;
             }
         }
-        if (anyReverted) {
+        if (reverted != null) {
+            logger.debug("Reverted unsatisfied mutations: " + reverted);
             rebuildMutatedMode();
             notifyMutatedMode();
         }
     }
 
-    private boolean isComboPreconditionSatisfied(Combo combo) {
+    private boolean isMutationComboPreconditionSatisfied(Combo combo) {
         if (!combo.precondition().appPrecondition().satisfied(activeAppFinder.activeApp()))
             return false;
-        if (!combo.precondition().keyPrecondition().pressedKeyPrecondition().isEmpty()) {
-            if (findSatisfiedPressedPreconditionKeys(combo, currentlyPressedComboKeys,
-                    currentlyPressedCompletedComboKeys, List.of(), Set.of()) == null)
+        PressedKeyPrecondition pressedPrecondition =
+                combo.precondition().keyPrecondition().pressedKeyPrecondition();
+        if (!pressedPrecondition.isEmpty()) {
+            // Check that at least one group's keys are all pressed.
+            // Unlike findSatisfiedPressedPreconditionKeys, we don't require
+            // that all currently pressed keys belong to the group. Extra
+            // keys from other combos are irrelevant for mutation reversion.
+            boolean anySatisfied = pressedPrecondition.groups().stream()
+                    .anyMatch(g -> currentlyPressedComboKeys.containsAll(g.allKeys()));
+            if (!anySatisfied)
                 return false;
         }
         if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys,
@@ -1443,7 +1453,7 @@ public class ComboWatcher {
             Combo combo = entry.getKey();
             if (!combo.sequence().isEmpty())
                 continue;
-            if (!isComboPreconditionSatisfied(combo))
+            if (!isMutationComboPreconditionSatisfied(combo))
                 continue;
             for (Command command : entry.getValue()) {
                 if (command instanceof Command.MutateMode mutateMode) {
