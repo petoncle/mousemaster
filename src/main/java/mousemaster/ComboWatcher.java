@@ -1434,12 +1434,14 @@ public class ComboWatcher {
         PressedKeyPrecondition pressedPrecondition =
                 combo.precondition().keyPrecondition().pressedKeyPrecondition();
         if (!pressedPrecondition.isEmpty()) {
-            // Check that at least one group's keys are all pressed.
             // Unlike findSatisfiedPressedPreconditionKeys, we don't require
             // that all currently pressed keys belong to the group. Extra
             // keys from other combos are irrelevant for mutation reversion.
+            // For each keySet in the group, at least one key must be pressed.
             boolean anySatisfied = pressedPrecondition.groups().stream()
-                    .anyMatch(g -> currentlyPressedComboKeys.containsAll(g.allKeys()));
+                    .anyMatch(g -> g.keySets().stream()
+                            .allMatch(keySet -> keySet.stream()
+                                    .anyMatch(currentlyPressedComboKeys::contains)));
             if (!anySatisfied)
                 return false;
         }
