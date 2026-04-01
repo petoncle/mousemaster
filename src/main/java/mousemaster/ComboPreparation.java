@@ -37,12 +37,12 @@ public record ComboPreparation(List<KeyEvent> events) {
     public ComboSequenceMatch match(ComboSequence sequence) {
         List<MoveSet> moveSets = sequence.moveSets();
         if (moveSets.isEmpty())
-            return new ComboSequenceMatch(List.of(), true, 0, -1, false, Set.of(), new AliasResolution(Map.of(), Map.of()));
+            return new ComboSequenceMatch(List.of(), true, 0, -1, false, Set.of(), new AliasResolution(Map.of()));
         // A sequence that is only wait moves (e.g. "wait-2000") has no event-based moves.
         // It is "complete" with 0 matched events: ComboWatcher handles the wait duration.
         boolean allWait = moveSets.stream().allMatch(ms -> ms instanceof WaitMoveSet);
         if (allWait)
-            return new ComboSequenceMatch(List.of(), true, moveSets.size(), -1, false, Set.of(), new AliasResolution(Map.of(), Map.of()));
+            return new ComboSequenceMatch(List.of(), true, moveSets.size(), -1, false, Set.of(), new AliasResolution(Map.of()));
         if (events.isEmpty())
             return ComboSequenceMatch.noMatch();
 
@@ -146,12 +146,17 @@ public record ComboPreparation(List<KeyEvent> events) {
                         continue;
                     }
                     int moveSetCount = isPartial ? k - 1 : k;
+                    // Merge single-key alias bindings into expanded alias bindings.
+                    Map<String, List<Key>> mergedAliasBindings =
+                            new HashMap<>(expandedAliasBindings);
+                    for (Map.Entry<String, Key> entry : aliasBindings.entrySet())
+                        mergedAliasBindings.putIfAbsent(entry.getKey(),
+                                List.of(entry.getValue()));
                     return new ComboSequenceMatch(List.copyOf(matchedKeyMoves), complete,
                             moveSetCount, lastKeyMoveEventIndex[0], lastEventAbsorbed[0],
                             Set.copyOf(absorbedPressedKeys),
-                            new AliasResolution(Map.copyOf(aliasBindings),
-                                    Map.copyOf(negatedBindings),
-                                    deepCopyOf(expandedAliasBindings)));
+                            new AliasResolution(Map.copyOf(negatedBindings),
+                                    Map.copyOf(mergedAliasBindings)));
                 }
             }
         }
@@ -1065,13 +1070,6 @@ public record ComboPreparation(List<KeyEvent> events) {
                     canFill[i] = true;
         }
         return canFill[eventCount];
-    }
-
-    private static Map<String, List<Key>> deepCopyOf(Map<String, List<Key>> map) {
-        Map<String, List<Key>> copy = new HashMap<>();
-        for (var entry : map.entrySet())
-            copy.put(entry.getKey(), List.copyOf(entry.getValue()));
-        return Map.copyOf(copy);
     }
 
     @Override

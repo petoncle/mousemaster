@@ -1104,7 +1104,7 @@ public class ComboWatcher {
                             .toList();
     }
 
-    private static void attachAliasResolutions(List<ComboAndCommands> comboAndCommandsList) {
+    private void attachAliasResolutions(List<ComboAndCommands> comboAndCommandsList) {
         for (int i = 0; i < comboAndCommandsList.size(); i++) {
             ComboAndCommands cac = comboAndCommandsList.get(i);
             AliasResolution resolution = cac.match.aliasResolution();
@@ -1112,29 +1112,38 @@ public class ComboWatcher {
             boolean changed = false;
             for (Command command : cac.commands) {
                 if (command instanceof Command.MacroCommand(Macro macro, var __)) {
-                    // Filter resolution to only aliases used in the macro output,
+                    // Resolve only aliases used in the macro output,
                     // so that combos with different input aliases but identical
                     // resolved output are deduplicated.
                     Set<String> usedAliases = macro.outputAliasNames();
-                    Map<String, Key> filteredMap = new HashMap<>();
-                    Map<String, Key> filteredNegatedMap = new HashMap<>();
-                    Map<String, List<Key>> filteredTapMap = new HashMap<>();
+                    Map<String, Key> outputNegatedMap = new HashMap<>();
+                    Map<String, List<Key>> outputAliasMap = new HashMap<>();
                     for (String aliasName : usedAliases) {
-                        Key key = resolution.keyByAliasName().get(aliasName);
-                        if (key != null)
-                            filteredMap.put(aliasName, key);
-                        List<Key> tapKeys = resolution.keysByExpandedAlias().get(aliasName);
-                        if (tapKeys != null)
-                            filteredTapMap.put(aliasName, tapKeys);
+                        List<Key> allKeys = macro.outputAliasAllKeys().get(aliasName);
+                        // Pressed keys first, then combo-resolved keys.
+                        Set<Key> merged = new LinkedHashSet<>();
+                        if (allKeys != null) {
+                            for (Key k : allKeys) {
+                                if (currentlyPressedComboKeys.contains(k))
+                                    merged.add(k);
+                            }
+                        }
+                        List<Key> comboKeys = resolution.keysByAlias().get(aliasName);
+                        if (comboKeys != null)
+                            merged.addAll(comboKeys);
+                        if (!merged.isEmpty())
+                            outputAliasMap.put(aliasName, List.copyOf(merged));
+                        else if (allKeys != null)
+                            outputAliasMap.put(aliasName, allKeys);
                     }
                     for (String name : macro.outputNegatedNames()) {
                         Key key = resolution.negatedKeyByName().get(name);
                         if (key != null)
-                            filteredNegatedMap.put(name, key);
+                            outputNegatedMap.put(name, key);
                     }
-                    AliasResolution filteredResolution = new AliasResolution(
-                            filteredMap, filteredNegatedMap, filteredTapMap);
-                    resolvedCommands.add(new Command.MacroCommand(macro, filteredResolution));
+                    AliasResolution outputResolution = new AliasResolution(
+                            outputNegatedMap, outputAliasMap);
+                    resolvedCommands.add(new Command.MacroCommand(macro, outputResolution));
                     changed = true;
                 }
                 else if (command instanceof Command.MutateMode mutateMode &&
@@ -1173,30 +1182,24 @@ public class ComboWatcher {
     private static String resolveRemappedAlias(String aliasName,
                                                Map<Key, String> remap,
                                                AliasResolution resolution) {
-        List<Key> tapKeys = resolution.keysByExpandedAlias()
-                                      .get(aliasName);
-        if (tapKeys != null && !tapKeys.isEmpty()) {
-            return tapKeys.stream()
-                          .map(key -> remap.getOrDefault(key, key.hintLabel()))
-                          .collect(Collectors.joining());
+        List<Key> keys = resolution.keysByAlias().get(aliasName);
+        if (keys != null && !keys.isEmpty()) {
+            return keys.stream()
+                       .map(key -> remap.getOrDefault(key, key.hintLabel()))
+                       .collect(Collectors.joining());
         }
-        Key key = resolution.keyByAliasName().get(aliasName);
-        if (key != null && remap.containsKey(key))
-            return remap.get(key);
-        return key != null ? key.hintLabel() : aliasName;
+        return aliasName;
     }
 
     private static String resolveSingleAlias(String aliasName,
                                              AliasResolution resolution) {
-        List<Key> tapKeys = resolution.keysByExpandedAlias()
-                                      .get(aliasName);
-        if (tapKeys != null && !tapKeys.isEmpty()) {
-            return tapKeys.stream()
-                          .map(Key::hintLabel)
-                          .collect(Collectors.joining());
+        List<Key> keys = resolution.keysByAlias().get(aliasName);
+        if (keys != null && !keys.isEmpty()) {
+            return keys.stream()
+                       .map(Key::hintLabel)
+                       .collect(Collectors.joining());
         }
-        Key key = resolution.keyByAliasName().get(aliasName);
-        return key != null ? key.hintLabel() : aliasName;
+        return aliasName;
     }
 
     /**

@@ -623,8 +623,6 @@ public class ConfigurationParser {
                 Combo.multiCombo(label, comboString, defaultComboMoveDuration,
                         keyAliases,
                         appAliases, keyResolver);
-        // Aliases used in the macro output must be used in all of the
-        // combos of that multi combo.
         Set<String> comboAliasNameIntersection = new HashSet<>(
                 combos.getFirst().sequence().aliasNames());
         for (Combo combo : combos) {
@@ -632,13 +630,11 @@ public class ConfigurationParser {
         }
         Set<String> aliasNamesUsedInOutput =
                 Macro.aliasNamesUsedInOutput(outputString, keyAliases.keySet());
-        if (!comboAliasNameIntersection.containsAll(aliasNamesUsedInOutput)) {
-            Set<String> aliasesNotUsedInComboSequence =
-                    new HashSet<>(aliasNamesUsedInOutput);
-            aliasesNotUsedInComboSequence.removeAll(comboAliasNameIntersection);
-            throw new IllegalArgumentException(
-                    "Key aliases " + aliasesNotUsedInComboSequence +
-                    " cannot be used in the " + propertyType + " output because they are not used in the combo sequence");
+        // For each output alias, store all its keys so that at runtime
+        // pressed keys can be resolved (from precondition pressed keys).
+        Map<String, List<Key>> outputAliasAllKeys = new HashMap<>();
+        for (String aliasName : aliasNamesUsedInOutput) {
+            outputAliasAllKeys.put(aliasName, keyAliases.get(aliasName).keys());
         }
         // Negated names used in the macro output must be negated in all combos.
         Set<String> comboNegatedNameIntersection = new HashSet<>(
@@ -680,7 +676,7 @@ public class ConfigurationParser {
             aliasRemapByAliasName = Map.of();
         }
         Macro macro = Macro.of(name, outputString, keyAliases, keyResolver,
-                aliasRemapByAliasName);
+                aliasRemapByAliasName, outputAliasAllKeys);
         Command command = new MacroCommand(macro, null);
         for (Combo combo : combos)
             builder.computeIfAbsent(combo, combo1 -> new ArrayList<>())
