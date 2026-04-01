@@ -719,6 +719,7 @@ public class ConfigurationParser {
                                         v -> Boolean.parseBoolean(v),
                                         v -> builder.set(Boolean.parseBoolean(v)),
                                         mode.stopCommandsFromPreviousMode.mutateModeCommands,
+                                        mode.stopCommandsFromPreviousMode.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
                                         keyResolver))
                                     builder.set(Boolean.parseBoolean(propertyValue));
@@ -733,6 +734,7 @@ public class ConfigurationParser {
                                         v -> Boolean.parseBoolean(v),
                                         v -> builder.set(Boolean.parseBoolean(v)),
                                         mode.pushModeToHistoryStack.mutateModeCommands,
+                                        mode.pushModeToHistoryStack.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
                                         keyResolver))
                                     builder.set(Boolean.parseBoolean(propertyValue));
@@ -747,6 +749,7 @@ public class ConfigurationParser {
                                         v -> { modeReferences.add(checkModeReference(v)); return v; },
                                         v -> { modeReferences.add(checkModeReference(v)); builder.set(v); },
                                         mode.modeAfterUnhandledKeyPress.mutateModeCommands,
+                                        mode.modeAfterUnhandledKeyPress.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
                                         keyResolver)) {
                                     modeReferences.add(checkModeReference(propertyValue));
@@ -773,6 +776,7 @@ public class ConfigurationParser {
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
                             mode.mouse.mutateModeCommands,
+                            mode.mouse.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -797,6 +801,7 @@ public class ConfigurationParser {
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
                             mode.wheel.mutateModeCommands,
+                            mode.wheel.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -821,6 +826,7 @@ public class ConfigurationParser {
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
                             mode.grid.mutateModeCommands,
+                            mode.grid.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -850,6 +856,7 @@ public class ConfigurationParser {
                                 handler.propertyPath(), handler.valueParser(),
                                 handler.modeBuilderSetter(),
                                 mode.hintMesh.mutateModeCommands,
+                                mode.hintMesh.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver))
                             handler.modeBuilderSetter().accept(propertyValue);
@@ -979,6 +986,7 @@ public class ConfigurationParser {
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
                             mode.timeout.mutateModeCommands,
+                            mode.timeout.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -1007,6 +1015,7 @@ public class ConfigurationParser {
                                 handler.propertyPath(), handler.valueParser(),
                                 handler.modeBuilderSetter(),
                                 mode.indicator.mutateModeCommands,
+                                mode.indicator.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver))
                             handler.modeBuilderSetter().accept(propertyValue);
@@ -1064,6 +1073,7 @@ public class ConfigurationParser {
                                 propertyValue, fontAvailability,
                                 indicatorPropertyPathPrefix,
                                 mode.indicator.mutateModeCommands,
+                                mode.indicator.setPropertyPaths,
                                 modeName, defaultComboMoveDuration,
                                 keyAliases, appAliases, keyResolver);
                     }
@@ -1090,6 +1100,7 @@ public class ConfigurationParser {
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
                             mode.hideCursor.mutateModeCommands,
+                            mode.hideCursor.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -1114,6 +1125,7 @@ public class ConfigurationParser {
                             handler.propertyPath(), handler.valueParser(),
                             handler.modeBuilderSetter(),
                             mode.zoom.mutateModeCommands,
+                            mode.zoom.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
                             keyResolver))
                         handler.modeBuilderSetter().accept(propertyValue);
@@ -1745,7 +1757,7 @@ public class ConfigurationParser {
         // child's own commands (the child overrides that property).
         String childModeName = property.propertyKey.modeName();
         if (childModeName != null) {
-            Set<ModePropertyPath> childPropertyPaths = new HashSet<>();
+            Set<ModePropertyPath> childPropertyPaths = new HashSet<>(property.setPropertyPaths);
             for (List<Command> commands : property.mutateModeCommands.values()) {
                 for (Command command : commands) {
                     if (command instanceof Command.MutateMode mutateMode)
@@ -1832,6 +1844,7 @@ public class ConfigurationParser {
                                                 Predicate<String> fontAvailability,
                                                 ModePropertyPath propertyPathPrefix,
                                                 Map<Combo, List<Command>> mutateModeCommandMap,
+                                                Set<ModePropertyPath> setPropertyPaths,
                                                 String modeName,
                                                 ComboMoveDuration defaultComboMoveDuration,
                                                 Map<String, KeyAlias> keyAliases,
@@ -1843,6 +1856,7 @@ public class ConfigurationParser {
             throw new IllegalArgumentException("Invalid indicator property key: " + key);
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
                 handler.valueParser(), handler.modeBuilderSetter(), mutateModeCommandMap,
+                setPropertyPaths,
                 defaultComboMoveDuration, keyAliases, appAliases, keyResolver))
             handler.modeBuilderSetter().accept(propertyValue);
     }
@@ -2288,10 +2302,12 @@ public class ConfigurationParser {
             Function<String, Object> valueParser,
             Consumer<String> modeBuilderSetter,
             Map<Combo, List<Command>> mutateModeCommandMap,
+            Set<ModePropertyPath> setPropertyPaths,
             ComboMoveDuration defaultComboMoveDuration,
             Map<String, KeyAlias> keyAliases,
             Map<String, AppAlias> appAliases,
             KeyResolver keyResolver) {
+        setPropertyPaths.add(propertyPath);
         SplitComboProperty splitComboProperty = splitComboProperties(propertyValue);
         if (splitComboProperty == null)
             return false;
@@ -3253,6 +3269,7 @@ public class ConfigurationParser {
         final PropertyKey propertyKey;
         final T builder;
         final Map<Combo, List<Command>> mutateModeCommands = new HashMap<>();
+        final Set<ModePropertyPath> setPropertyPaths = new HashSet<>();
         PropertyKey parentPropertyKey;
 
         private Property(String name, String mode,
