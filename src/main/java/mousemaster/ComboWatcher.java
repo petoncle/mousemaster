@@ -162,6 +162,18 @@ public class ComboWatcher {
                              : "unlimited") +
                      ", min " + comboPreparationMinRetainEventCount + " events");
         this.comboPreparation = ComboPreparation.empty();
+        Map<Mode, Set<Key>> preconditionKeysByMode = new HashMap<>();
+        for (Mode mode : modeMap.modes()) {
+            Set<Key> keys = new HashSet<>();
+            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+                keys.addAll(combo.precondition()
+                                 .keyPrecondition()
+                                 .pressedKeyPrecondition()
+                                 .allKeys());
+            }
+            preconditionKeysByMode.put(mode, keys);
+        }
+        this.pressedPreconditionKeysByMode = preconditionKeysByMode;
     }
 
     public void setComboListeners(List<ComboListener> comboListeners) {
