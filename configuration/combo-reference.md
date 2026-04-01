@@ -704,12 +704,12 @@ Press `a` and `b` together (within 200ms) to hold Tab. Release both to release T
 
 ```properties
 idle-mode.macro.presstab={+a +b wait-0-200} -> +tab
-idle-mode.macro.releasetab={+a +b wait-0-200} wait-0 {-a -b} -> -tab
+idle-mode.macro.releasetab={+a +b wait-0-200} wait-0-1000 {-a -b} -> -tab
 ```
 
 Breakdown:
 - `{+a +b wait-0-200}`: press `a` and `b` in any order within 200ms.
-- `wait-0` between the press and release sets decouples the duration, allowing the keys to be held for any length of time before releasing.
+- `wait-0-1000` between the press and release sets decouples the duration, allowing the keys to be held for up to 1 second before releasing.
 - `{-a -b}`: release both keys in any order.
 
 ### Sequence
@@ -729,10 +729,10 @@ Press `g` and `i` together to output 'git '. Follow with `c` for 'git checkout '
 ```properties
 key-alias.punctuation=. , ;
 idle-mode.macro.git={+g +i}-0-500 -> 'git '
-idle-mode.macro.git-punctuation={+g +i}-0-500 #{-} +punctuation -> +backspace -backspace +punctuation
-idle-mode.macro.gitcheckout={+g +i}-0-500 #{-} +c -> 'checkout '
-idle-mode.macro.gitcheckout-punctuation={+g +i}-0-500 #{-} +c -c +punctuation -> +backspace -backspace +punctuation
-idle-mode.macro.gitcheckoutb={+g +i}-0-500 #{-} +c -c +b -> '-b'
+idle-mode.macro.git-punctuation={+g +i}-0-500 #{-}-0-1000 +punctuation -> +backspace -backspace +punctuation
+idle-mode.macro.gitcheckout={+g +i}-0-500 #{-}-0-1000 +c -> 'checkout '
+idle-mode.macro.gitcheckout-punctuation={+g +i}-0-500 #{-}-0-1000 +c -c +punctuation -> +backspace -backspace +punctuation
+idle-mode.macro.gitcheckoutb={+g +i}-0-500 #{-}-0-1000 +c -c +b -> '-b'
 ```
 
 Breakdown:
@@ -740,7 +740,7 @@ Breakdown:
 - `git-punctuation`: if punctuation follows the chord, delete the trailing space and output the punctuation directly (e.g., 'git.').
 - `gitcheckout`: if `c` follows, append 'checkout '.
 - `gitcheckoutb`: if `b` follows `c`, append '-b'.
-- `#{-}` between moves ignores release events so releasing `g`/`i` doesn't break the sequence.
+- `#{-}-0-1000` between moves ignores release events so releasing `g`/`i` doesn't break the sequence.
 
 ---
 

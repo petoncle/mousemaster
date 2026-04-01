@@ -201,3 +201,8 @@
    which binds typingkeys and use that as property value, works only for properties that accept unrestricted strings
    - E.g. if typingkeys is leftalt then new property value is Key.hintLabel(), i.e. ⎇. hintLabel should be renamed to something more generic, maybe label.
    - alias expansion should also work: {*typingkeys} -> typingkeys: if user tap a then b, then new property value is ab
+ - killing shorter combos is not right?
+ - .noop should have multiple named properties, like macros? still allow no-name noop: zoom-mode.noop=+middlebutton zoom-mode.noop.eatx=+x
+ - Problem with shift + '
+ - After ANY event (press or release) or time condition expiry, if an eating combo can no longer match the preparation, immediately detect
+    it as dead and regurgitate affected keys.
