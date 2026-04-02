@@ -413,6 +413,17 @@ hint2-2-mode.zoom.center=last-selected-hint
 - `zoom.center` can either be `screen-center`, `mouse`
   or `last-selected-hint`.
 
+Optional animation can be enabled to smoothly transition in and out of zoom:
+```properties
+zoom-mode.zoom.animation-enabled=true
+zoom-mode.zoom.animation-easing=smootherstep
+zoom-mode.zoom.animation-duration-millis=300
+```
+
+- `zoom.animation-enabled` defaults to `false`.
+- `zoom.animation-easing` can be `linear`, `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or `polynomial-N` (where N is the exponent). Defaults to `smootherstep`.
+- `zoom.animation-duration-millis` is the duration of a full zoom transition (from 1x to the configured percent). Partial transitions (e.g. interrupted animations) are proportionally shorter. Defaults to `200`.
+
 ### Mouse move commands
 
 ```properties
