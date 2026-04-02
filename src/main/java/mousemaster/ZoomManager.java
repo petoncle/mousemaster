@@ -12,6 +12,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     private int mouseX, mouseY;
 
     private boolean animating;
+    private boolean endIsNoZoom;
     private double animationDuration;
     private double beginPercent;
     private double endPercent;
@@ -37,7 +38,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         this.currentMode = newMode;
         if (previousMode != null && previousMode.zoom().equals(newMode.zoom()))
             return;
-        boolean endIsNoZoom = newMode.zoom().percent() == 1
+        endIsNoZoom = newMode.zoom().percent() == 1
                 && newMode.zoom().center() == ZoomCenter.SCREEN_CENTER;
         beginPercent = currentPercent;
         endPercent = endIsNoZoom ? 1.0 : newMode.zoom().percent();
@@ -140,7 +141,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         }
         if (t >= 1.0) {
             animating = false;
-            Zoom endZoom = currentPercent == 1.0 ? null :
+            Zoom endZoom = endIsNoZoom ? null :
                     new Zoom(currentPercent, centerPoint, screen.rectangle());
             WindowsOverlay.endScreenshotZoomAnimation(endZoom);
             if (endHintMesh != null) {
@@ -151,7 +152,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 endHintMesh = null;
                 endHintZoomCenter = null;
             }
-            if (currentPercent == 1.0)
+            if (endIsNoZoom)
                 currentCenterPoint = null;
         }
     }
