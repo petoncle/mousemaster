@@ -2316,9 +2316,22 @@ public class ConfigurationParser {
             for (Combo combo : combos) {
                 Object parsedValue;
                 Set<String> aliasNames = combo.sequence().aliasNames();
+                Set<String> negatedNames = combo.sequence().negatedNames();
                 List<String> valueTokens = List.of(
                         comboPropertyValue.valueString().split(" "));
-                if (valueTokens.stream().anyMatch(aliasNames::contains)) {
+                List<String> unresolvedNames = new ArrayList<>();
+                Set<String> unresolvedNameNegatedSet = new HashSet<>();
+                for (String token : valueTokens) {
+                    if (aliasNames.contains(token)) {
+                        unresolvedNames.add(token);
+                    }
+                    else if (token.startsWith("!") &&
+                             negatedNames.contains(token.substring(1))) {
+                        unresolvedNames.add(token.substring(1));
+                        unresolvedNameNegatedSet.add(token.substring(1));
+                    }
+                }
+                if (!unresolvedNames.isEmpty()) {
                     Map<String, AliasRemap<String>> remap =
                             comboPropertyValue.remapString() != null ?
                                     AliasRemap.stringValues(
@@ -2327,10 +2340,7 @@ public class ConfigurationParser {
                                             "mutation") :
                                     Map.of();
                     parsedValue = new UnresolvedAliasComboPropertyValue(
-                            valueTokens.stream()
-                                       .filter(aliasNames::contains)
-                                       .toList(),
-                            remap);
+                            unresolvedNames, unresolvedNameNegatedSet, remap);
                 }
                 else {
                     parsedValue = valueParser.apply(comboPropertyValue.valueString());

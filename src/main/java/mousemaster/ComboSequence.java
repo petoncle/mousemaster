@@ -47,15 +47,15 @@ public record ComboSequence(List<MoveSet> moveSets) {
     }
 
     public Set<String> aliasNames() {
-        Set<String> names = moveSets.stream()
-                       .filter(moveSet -> moveSet instanceof KeyMoveSet)
-                       .map(moveSet -> (KeyMoveSet) moveSet)
-                       .flatMap(moveSet -> Stream.concat(
-                               moveSet.requiredMoves().stream(),
-                               moveSet.optionalMoves().stream()))
-                       .filter(move -> !move.negated() && move.keyOrAlias().isAlias())
-                       .map(move -> move.keyOrAlias().aliasName())
-                       .collect(Collectors.toCollection(HashSet::new));
+        Set<String> names = new HashSet<>();
+        for (MoveSet moveSet : moveSets) {
+            if (moveSet instanceof KeyMoveSet kms) {
+                for (KeyComboMove move : kms.requiredMoves())
+                    addAliasName(move, names);
+                for (KeyComboMove move : kms.optionalMoves())
+                    addAliasName(move, names);
+            }
+        }
         // Include aliases that moves were expanded from.
         for (MoveSet moveSet : moveSets) {
             if (moveSet instanceof KeyMoveSet kms) {
@@ -66,6 +66,12 @@ public record ComboSequence(List<MoveSet> moveSets) {
             }
         }
         return names;
+    }
+
+    private static void addAliasName(KeyComboMove move, Set<String> names) {
+        KeyOrAlias keyOrAlias = move.keyOrAlias();
+        if (!move.negated() && keyOrAlias.isAlias())
+            names.add(keyOrAlias.aliasName());
     }
 
     private static void addExpandedFromAlias(KeyComboMove move, Set<String> names) {

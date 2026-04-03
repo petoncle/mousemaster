@@ -1158,32 +1158,37 @@ public class ComboWatcher {
             UnresolvedAliasComboPropertyValue unresolved,
             AliasResolution resolution) {
         StringBuilder sb = new StringBuilder();
-        for (String aliasName : unresolved.aliasNames()) {
-            AliasRemap<String> aliasRemap = unresolved.remapByAliasName().get(aliasName);
-            if (aliasRemap != null)
-                sb.append(resolveRemappedAlias(aliasName, aliasRemap.remap(), resolution));
+        for (String name : unresolved.names()) {
+            boolean negated = unresolved.nameNegatedSet().contains(name);
+            AliasRemap<String> aliasRemap = unresolved.remapByName().get(name);
+            if (negated)
+                sb.append(resolveNegatedName(name, aliasRemap, resolution));
             else
-                sb.append(resolveSingleAlias(aliasName, resolution));
+                sb.append(resolveAlias(name, aliasRemap, resolution));
         }
         return sb.toString();
     }
 
-    private static String resolveRemappedAlias(String aliasName,
-                                               Map<Key, String> remap,
-                                               AliasResolution resolution) {
-        List<Key> keys = resolution.keysByAlias().get(aliasName);
-        if (keys != null && !keys.isEmpty()) {
-            return keys.stream()
-                       .map(key -> remap.getOrDefault(key, key.hintLabel()))
-                       .collect(Collectors.joining());
-        }
-        return aliasName;
+    private static String resolveNegatedName(String name,
+                                             AliasRemap<String> aliasRemap,
+                                             AliasResolution resolution) {
+        Key key = resolution.negatedKeyByName().get(name);
+        if (key == null)
+            return name;
+        if (aliasRemap != null)
+            return aliasRemap.remap().getOrDefault(key, key.hintLabel());
+        return key.hintLabel();
     }
 
-    private static String resolveSingleAlias(String aliasName,
-                                             AliasResolution resolution) {
+    private static String resolveAlias(String aliasName,
+                                       AliasRemap<String> aliasRemap,
+                                       AliasResolution resolution) {
         List<Key> keys = resolution.keysByAlias().get(aliasName);
         if (keys != null && !keys.isEmpty()) {
+            if (aliasRemap != null)
+                return keys.stream()
+                           .map(key -> aliasRemap.remap().getOrDefault(key, key.hintLabel()))
+                           .collect(Collectors.joining());
             return keys.stream()
                        .map(Key::hintLabel)
                        .collect(Collectors.joining());
