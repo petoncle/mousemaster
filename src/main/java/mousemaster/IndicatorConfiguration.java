@@ -2,6 +2,8 @@ package mousemaster;
 
 import mousemaster.Indicator.IndicatorBuilder;
 
+import java.util.List;
+
 public record IndicatorConfiguration(boolean enabled,
                                      Indicator idleIndicator,
                                      Indicator moveIndicator,
@@ -13,6 +15,22 @@ public record IndicatorConfiguration(boolean enabled,
                                      Indicator unhandledKeyPressIndicator) {
 
     public static class IndicatorConfigurationBuilder {
+
+        /**
+         * Cascade relationships: target extends source.
+         * Order matters: idle → mousePress must come before mousePress → left/middle/right.
+         * Used by both build() (value cascading) and ConfigurationParser (mutation cascading).
+         */
+        static final List<CascadeRule> CASCADE_RULES = List.of(
+                new CascadeRule(List.of("idleIndicator"), List.of("mousePressIndicator")),
+                new CascadeRule(List.of("idleIndicator"), List.of("moveIndicator")),
+                new CascadeRule(List.of("idleIndicator"), List.of("wheelIndicator")),
+                new CascadeRule(List.of("idleIndicator"), List.of("unhandledKeyPressIndicator")),
+                new CascadeRule(List.of("mousePressIndicator"), List.of("leftMousePressIndicator")),
+                new CascadeRule(List.of("mousePressIndicator"), List.of("middleMousePressIndicator")),
+                new CascadeRule(List.of("mousePressIndicator"), List.of("rightMousePressIndicator"))
+        );
+
         private Boolean enabled;
         private IndicatorBuilder idleIndicator = new IndicatorBuilder();
         private IndicatorBuilder moveIndicator = new IndicatorBuilder();
@@ -76,16 +94,24 @@ public record IndicatorConfiguration(boolean enabled,
             unhandledKeyPressIndicator.extend(parent.unhandledKeyPressIndicator);
         }
 
+        private IndicatorBuilder builderByName(String name) {
+            return switch (name) {
+                case "idleIndicator" -> idleIndicator;
+                case "moveIndicator" -> moveIndicator;
+                case "wheelIndicator" -> wheelIndicator;
+                case "mousePressIndicator" -> mousePressIndicator;
+                case "leftMousePressIndicator" -> leftMousePressIndicator;
+                case "middleMousePressIndicator" -> middleMousePressIndicator;
+                case "rightMousePressIndicator" -> rightMousePressIndicator;
+                case "unhandledKeyPressIndicator" -> unhandledKeyPressIndicator;
+                default -> throw new IllegalArgumentException(name);
+            };
+        }
+
         public IndicatorConfiguration build() {
-            // State inheritance: non-idle states inherit unset fields from idle.
-            // left/middle/right-mouse-press inherit from mouse-press first.
-            mousePressIndicator.extend(idleIndicator);
-            moveIndicator.extend(idleIndicator);
-            wheelIndicator.extend(idleIndicator);
-            unhandledKeyPressIndicator.extend(idleIndicator);
-            leftMousePressIndicator.extend(mousePressIndicator);
-            middleMousePressIndicator.extend(mousePressIndicator);
-            rightMousePressIndicator.extend(mousePressIndicator);
+            for (CascadeRule rule : CASCADE_RULES)
+                builderByName(rule.targetFieldNames().getFirst())
+                        .extend(builderByName(rule.sourceFieldNames().getFirst()));
             return new IndicatorConfiguration(enabled,
                     idleIndicator.build(),
                     moveIndicator.build(),

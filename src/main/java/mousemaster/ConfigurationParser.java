@@ -439,6 +439,14 @@ public class ConfigurationParser {
                     defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
                     rootPropertyNode, propertyByKey, referencedModesByReferencerMode);
         }
+        // Cascade mutations along property inheritance paths:
+        // e.g., font-color -> focused-font-color/selected-font-color/prefix variants,
+        // indicator idle -> move/wheel/mousePress/etc.
+        // Does not cascade to properties the user explicitly set in the configuration.
+        for (ModeBuilder mode : modeByName.values()) {
+            cascadeMutations(mode.hintMesh, HINT_FONT_STYLE_CASCADE_RULES);
+            cascadeMutations(mode.indicator, IndicatorConfigurationBuilder.CASCADE_RULES);
+        }
         // Aggregate mutateModeCommands from individual properties into
         // each mode's comboMap.mutateMode so they are included in the ComboMap.
         for (ModeBuilder mode : modeByName.values()) {
@@ -1718,6 +1726,68 @@ public class ConfigurationParser {
                 case ALL_SCREENS -> {
                     // No op.
                 }
+            }
+        }
+    }
+
+    /**
+     * Hint font style cascade rules, matching the cascade in cascadeAllFontStyles:
+     * defaultFontStyle -> focused/selected, fontStyle -> prefixFontStyle.
+     * Order matters: fontStyle.defaultFontStyle -> prefixFontStyle.defaultFontStyle
+     * must run before the prefixFontStyle.defaultFontStyle -> focused/selected rules,
+     * so that transitive cascades work.
+     */
+    private static final List<CascadeRule> HINT_FONT_STYLE_CASCADE_RULES = List.of(
+            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "focusedFontStyle")),
+            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("fontStyle", "selectedFontStyle")),
+            new CascadeRule(List.of("fontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "defaultFontStyle")),
+            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "focusedFontStyle")),
+            new CascadeRule(List.of("prefixFontStyle", "defaultFontStyle"), List.of("prefixFontStyle", "selectedFontStyle"))
+    );
+
+    /**
+     * Cascades MutateMode commands along inheritance paths within a property.
+     */
+    private static void cascadeMutations(Property<?> property, List<CascadeRule> rules) {
+        for (CascadeRule rule : rules) {
+            Map<Combo, List<Command>> newEntries = new HashMap<>();
+            for (Map.Entry<Combo, List<Command>> entry :
+                    property.mutateModeCommands.entrySet()) {
+                for (Command command : entry.getValue()) {
+                    if (!(command instanceof Command.MutateMode mutateMode))
+                        continue;
+                    // Example: path = [indicator, idleIndicator, hexColor],
+                    // rule = idleIndicator -> mousePressIndicator:
+                    // 1. sourceIndex = 1 (where [idleIndicator] appears in the path)
+                    // 2. Take everything before: [indicator]
+                    // 3. Add the target: [indicator, mousePressIndicator]
+                    // 4. Add everything after: [indicator, mousePressIndicator, hexColor]
+                    List<String> fields = mutateMode.propertyPath().fieldNames();
+                    int sourceIndex = Collections.indexOfSubList(fields, rule.sourceFieldNames());
+                    if (sourceIndex < 0)
+                        continue;
+                    List<String> targetFields = new ArrayList<>(
+                            fields.subList(0, sourceIndex));
+                    targetFields.addAll(rule.targetFieldNames());
+                    targetFields.addAll(fields.subList(
+                            sourceIndex + rule.sourceFieldNames().size(),
+                            fields.size()));
+                    ModePropertyPath targetPath =
+                            new ModePropertyPath(List.copyOf(targetFields));
+                    if (property.setPropertyPaths.contains(targetPath))
+                        continue;
+                    Command cascadedCommand = new Command.MutateMode(
+                            mutateMode.modeName(), targetPath,
+                            mutateMode.newPropertyValue(), mutateMode.combo());
+                    newEntries.computeIfAbsent(entry.getKey(),
+                                    c -> new ArrayList<>())
+                            .add(cascadedCommand);
+                }
+            }
+            for (Map.Entry<Combo, List<Command>> entry : newEntries.entrySet()) {
+                property.mutateModeCommands
+                        .computeIfAbsent(entry.getKey(), c -> new ArrayList<>())
+                        .addAll(entry.getValue());
             }
         }
     }
