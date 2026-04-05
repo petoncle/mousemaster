@@ -892,9 +892,16 @@ public class ComboWatcher {
         boolean anyMutation = false;
         for (Command command : commands) {
             if (command instanceof Command.MutateMode mutateMode) {
-                activeMutations.put(mutateMode.propertyPath(),
-                        new ActiveModeMutation(mutateMode.newPropertyValue(),
-                                mutateMode.combo()));
+                ActiveModeMutation existing = activeMutations.get(mutateMode.propertyPath());
+                if (existing != null && existing.newPropertyValue().equals(mutateMode.newPropertyValue())) {
+                    // Toggle off when the property is changed to the same value.
+                    activeMutations.remove(mutateMode.propertyPath());
+                }
+                else {
+                    activeMutations.put(mutateMode.propertyPath(),
+                            new ActiveModeMutation(mutateMode.newPropertyValue(),
+                                    mutateMode.combo()));
+                }
                 anyMutation = true;
             }
         }
