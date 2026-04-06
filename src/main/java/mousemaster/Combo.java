@@ -2,6 +2,8 @@ package mousemaster;
 
 import mousemaster.ComboPrecondition.ComboAppPrecondition;
 import mousemaster.ComboPrecondition.ComboKeyPrecondition;
+import mousemaster.ComboPrecondition.ComboVariablePrecondition;
+import mousemaster.ComboPrecondition.ComboVariablePrecondition.VariableCondition;
 import mousemaster.ComboPrecondition.PressedKeyGroup;
 import mousemaster.ComboPrecondition.PressedKeyPrecondition;
 
@@ -28,7 +30,8 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                                  ComboMoveDuration defaultMoveDuration,
                                  Map<String, KeyAlias> keyAliases,
                                  Map<String, AppAlias> appAliases,
-                                 KeyResolver keyResolver) {
+                                 KeyResolver keyResolver,
+                                 Set<String> allVariableNames) {
         // Match ^{...} and _{...} preconditions in any order.
         Matcher preconditionMatcher = Pattern.compile("\\G([\\^_])\\{([^{}]+)\\}\\s*").matcher(string);
         String mustNotBeActiveAppsString = null;
@@ -39,6 +42,7 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
         Set<App> mustBeActiveApps = Set.of();
         String pressedKeyPreconditionString = null;
         PressedKeyPrecondition pressedKeyPrecondition = new PressedKeyPrecondition(List.of());
+        List<List<VariableCondition>> variableConditionGroups = new ArrayList<>();
         String sequenceString = string;
         while (preconditionMatcher.find()) {
             String prefix = preconditionMatcher.group(1);
@@ -63,10 +67,27 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                     mustBeActiveAppsString = content;
                     mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString, appAliases);
                 }
+                else if (isVariableBlock(content, allVariableNames)) {
+                    for (String groupString : content.split("\\|")) {
+                        List<VariableCondition> group = new ArrayList<>();
+                        for (String token : groupString.trim().split("\\s+")) {
+                            boolean negated = token.startsWith("!");
+                            String name = negated ? token.substring(1) : token;
+                            group.add(new VariableCondition(name, negated));
+                        }
+                        variableConditionGroups.add(List.copyOf(group));
+                    }
+                }
                 else {
+                    for (String token : content.split("[\\s|]+")) {
+                        if (token.startsWith("!"))
+                            throw new IllegalArgumentException(
+                                    "! prefix is only valid for variable names in a variable-only _{...} block: " + token);
+                    }
                     pressedKeyPreconditionString = content;
                     pressedKeyPrecondition =
-                            parsePressedKeyPrecondition(pressedKeyPreconditionString,
+                            parsePressedKeyPrecondition(
+                                    pressedKeyPreconditionString,
                                     keyAliases, keyResolver);
                 }
             }
@@ -85,6 +106,8 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                     "^{" + unpressedKeySetString + "} _{" +
                     pressedKeyPreconditionString + "}");
         }
+        ComboVariablePrecondition variablePrecondition =
+                new ComboVariablePrecondition(List.copyOf(variableConditionGroups));
         ComboSequence sequence;
         if (sequenceString.isEmpty()) {
             sequence = new ComboSequence(List.of());
@@ -98,8 +121,9 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
         return List.of(buildCombo(label, string, sequence,
                 unpressedKeySet, unpressedKeySetString, sequenceString,
                 pressedKeyPrecondition, pressedKeyPreconditionString,
-                mustNotBeActiveApps, mustBeActiveApps));
+                mustNotBeActiveApps, mustBeActiveApps, variablePrecondition));
     }
+
 
     private static Set<App> parseMustNotBeActiveApps(String appSetString,
                                                      Map<String, AppAlias> appAliases) {
@@ -127,11 +151,13 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                                     PressedKeyPrecondition pressedKeyPrecondition,
                                     String pressedKeyPreconditionString,
                                     Set<App> mustNotBeActiveApps,
-                                    Set<App> mustBeActiveApps) {
+                                    Set<App> mustBeActiveApps,
+                                    ComboVariablePrecondition variablePrecondition) {
         ComboPrecondition precondition = new ComboPrecondition(
                 new ComboKeyPrecondition(unpressedKeySet,
                         pressedKeyPrecondition),
-                new ComboAppPrecondition(mustNotBeActiveApps, mustBeActiveApps));
+                new ComboAppPrecondition(mustNotBeActiveApps, mustBeActiveApps),
+                variablePrecondition);
         if (precondition.isEmpty() && sequence.isEmpty())
             throw new IllegalArgumentException("Empty combo: " + string);
         return new Combo(label, precondition, sequence);
@@ -162,12 +188,14 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
         return alias.apps();
     }
 
-    private static boolean isAppSetString(String string, Map<String, AppAlias> appAliases) {
-        if (string.toLowerCase(Locale.ENGLISH).contains(".exe"))
-            // firefox.exe chrome.exe
-            return true;
-        List<String> appStrings = List.of(string.split("\\s+|(\\s*\\|\\s*)"));
-        return appStrings.stream().allMatch(appAliases::containsKey);
+    private static boolean isVariableBlock(String content,
+                                             Set<String> allVariableNames) {
+        for (String token : content.split("[\\s|]+")) {
+            String name = token.startsWith("!") ? token.substring(1) : token;
+            if (!allVariableNames.contains(name))
+                return false;
+        }
+        return !allVariableNames.isEmpty();
     }
 
     private static PressedKeyPrecondition parsePressedKeyPrecondition(
@@ -181,6 +209,15 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                                       .collect(Collectors.toList());
         return new PressedKeyPrecondition(groups);
     }
+
+    private static boolean isAppSetString(String string, Map<String, AppAlias> appAliases) {
+        if (string.toLowerCase(Locale.ENGLISH).contains(".exe"))
+            // firefox.exe chrome.exe
+            return true;
+        List<String> appStrings = List.of(string.split("\\s+|(\\s*\\|\\s*)"));
+        return appStrings.stream().allMatch(appAliases::containsKey);
+    }
+
 
     private static PressedKeyGroup parsePressedKeyGroup(String keySetString,
                                                         Map<String, KeyAlias> aliases,
@@ -216,7 +253,8 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                                          ComboMoveDuration defaultMoveDuration,
                                          Map<String, KeyAlias> keyAliases,
                                          Map<String, AppAlias> appAliases,
-                                         KeyResolver keyResolver) {
+                                         KeyResolver keyResolver,
+                                         Set<String> allVariableNames) {
         // One combo is: ^{key|...} _{key|...} move1 move2 ...
         // Two combos: ^{key|...} _{key|...} move1 move2 ... | ^{key|...} _{key|...} move ...
         // Combo with mustBeActiveApps: _{firefox.exe|chrome.exe} ^{key|...} _{key|...} move1 move2 ...
@@ -238,12 +276,14 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
             else if (character == '|' && braceDepth == 0) {
                 combos.addAll(
                         of(label, multiComboString.substring(comboBeginIndex, charIndex).strip(),
-                                defaultMoveDuration, keyAliases, appAliases, keyResolver));
+                                defaultMoveDuration, keyAliases, appAliases, keyResolver,
+                                allVariableNames));
                 comboBeginIndex = charIndex + 1;
             }
         }
         combos.addAll(of(label, multiComboString.substring(comboBeginIndex).strip(),
-                defaultMoveDuration, keyAliases, appAliases, keyResolver));
+                defaultMoveDuration, keyAliases, appAliases, keyResolver,
+                allVariableNames));
         return List.copyOf(combos);
     }
 

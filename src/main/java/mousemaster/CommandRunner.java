@@ -100,6 +100,11 @@ public class CommandRunner {
             // Handled by ComboWatcher directly (it holds the mode state for mutations).
             case MutateMode mutateMode -> {}
 
+            // Handled by ComboWatcher directly (it holds the variable state).
+            case SetVariable setVariable -> {}
+            case UnsetVariable unsetVariable -> {}
+            case ClearVariables clearVariables -> {}
+
             case BreakMacro breakMacro -> macroPlayer.breakMacro();
 
             case Noop noop -> {}

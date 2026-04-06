@@ -21,7 +21,8 @@ class ComboWatcherRetainTest {
 
     static final ComboPrecondition emptyPrecondition = new ComboPrecondition(
             new ComboKeyPrecondition(Set.of(), new PressedKeyPrecondition(List.of())),
-            new ComboAppPrecondition(Set.of(), Set.of()));
+            new ComboAppPrecondition(Set.of(), Set.of()),
+            new ComboPrecondition.ComboVariablePrecondition(List.of()));
 
     static ComboSequence parseSequence(String comboString) {
         ExpandableSequence expandable = ExpandableSequence.parseSequence(

@@ -35,6 +35,7 @@ public class ComboWatcher {
     private Mode mutatedMode;
     private record ActiveModeMutation(Object newPropertyValue, Combo combo) {}
     private final Map<ModePropertyPath, ActiveModeMutation> activeMutations = new LinkedHashMap<>();
+    private final Set<String> activeVariables = new HashSet<>();
     /**
      * Computed once on mode change: true if ALL MutateMode combos for this
      * field path are precondition-only (no sequence moves).
@@ -612,8 +613,10 @@ public class ComboWatcher {
                       .appPrecondition()
                       .satisfied(activeAppFinder.activeApp()))
                 continue;
-            if (!combo.precondition().appPrecondition().isEmpty() && combo.sequence().isEmpty())
-                continue; // Active app changes are handled in ComboWatcher#update.
+            if (combo.sequence().isEmpty() &&
+                (!combo.precondition().appPrecondition().isEmpty() ||
+                 !combo.precondition().variablePrecondition().isEmpty()))
+                continue; // Precondition-only combos are handled by applySatisfiedPreconditionOnlyMutations / update.
             // Bare wait combos (all MoveSets are wait) are handled in update().
             if (!combo.sequence().isEmpty() &&
                 combo.sequence().moveSets().stream().allMatch(ms -> ms instanceof WaitMoveSet))
@@ -678,6 +681,8 @@ public class ComboWatcher {
             if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys, match.matchedKeyMoves())) {
                 continue;
             }
+            if (!combo.precondition().variablePrecondition().satisfiedBy(activeVariables))
+                continue;
             boolean mustBeEaten = false;
             boolean partOfComboSequence = false;
             if (match.hasMatch()) {
@@ -890,6 +895,7 @@ public class ComboWatcher {
         List<Command> commands = new ArrayList<>(commandsToRun);
         // Batch all mutations so the mode is rebuilt only once.
         boolean anyMutation = false;
+        boolean anyVariableChange = false;
         for (Command command : commands) {
             if (command instanceof Command.MutateMode mutateMode) {
                 ActiveModeMutation existing = activeMutations.get(mutateMode.propertyPath());
@@ -904,11 +910,31 @@ public class ComboWatcher {
                 }
                 anyMutation = true;
             }
+            else if (command instanceof Command.SetVariable setVariable) {
+                anyVariableChange |= activeVariables.add(setVariable.variableName());
+            }
+            else if (command instanceof Command.UnsetVariable unsetVariable) {
+                anyVariableChange |= activeVariables.remove(unsetVariable.variableName());
+            }
+            else if (command instanceof Command.ClearVariables) {
+                anyVariableChange |= !activeVariables.isEmpty();
+                activeVariables.clear();
+            }
         }
+        commands.removeIf(c -> c instanceof Command.SetVariable ||
+                               c instanceof Command.UnsetVariable ||
+                               c instanceof Command.ClearVariables);
         if (anyMutation) {
             commands.removeIf(Command.MutateMode.class::isInstance);
             Mode previousMutatedMode = mutatedMode;
             rebuildMutatedMode();
+            if (!mutatedMode.equals(previousMutatedMode))
+                notifyMutatedMode();
+        }
+        if (anyVariableChange) {
+            Mode previousMutatedMode = mutatedMode;
+            revertUnsatisfiedMutations();
+            applySatisfiedPreconditionOnlyMutations();
             if (!mutatedMode.equals(previousMutatedMode))
                 notifyMutatedMode();
         }
@@ -945,6 +971,8 @@ public class ComboWatcher {
                                                        Set<Key> currentlyPressedCompletedComboKeys,
                                                        List<ResolvedKeyComboMove> matchedKeyMoves,
                                                        Set<Key> absorbedPressedKeys) {
+        if (!combo.precondition().variablePrecondition().satisfiedBy(activeVariables))
+            return null;
         PressedKeyPrecondition precondition = combo.precondition()
                                                    .keyPrecondition()
                                                    .pressedKeyPrecondition();
@@ -1448,6 +1476,8 @@ public class ComboWatcher {
         }
         if (!comboUnpressedPreconditionSatisfied(combo, currentlyPressedComboKeys,
                 List.of()))
+            return false;
+        if (!combo.precondition().variablePrecondition().satisfiedBy(activeVariables))
             return false;
         return true;
     }

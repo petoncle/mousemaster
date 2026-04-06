@@ -5,21 +5,30 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
-                                ComboAppPrecondition appPrecondition) {
+                                ComboAppPrecondition appPrecondition,
+                                ComboVariablePrecondition variablePrecondition) {
 
     public boolean isEmpty() {
-        return keyPrecondition.isEmpty() && appPrecondition.isEmpty();
+        return keyPrecondition.isEmpty() && appPrecondition.isEmpty() &&
+               variablePrecondition.isEmpty();
     }
 
     @Override
     public String toString() {
-        if (keyPrecondition.isEmpty() && appPrecondition.isEmpty())
-            return "";
-        if (appPrecondition.isEmpty())
-            return keyPrecondition.toString();
-        if (keyPrecondition.isEmpty())
-            return appPrecondition.toString();
-        return keyPrecondition + " " + appPrecondition;
+        StringBuilder sb = new StringBuilder();
+        if (!keyPrecondition.isEmpty())
+            sb.append(keyPrecondition);
+        if (!appPrecondition.isEmpty()) {
+            if (!sb.isEmpty())
+                sb.append(" ");
+            sb.append(appPrecondition);
+        }
+        if (!variablePrecondition.isEmpty()) {
+            if (!sb.isEmpty())
+                sb.append(" ");
+            sb.append(variablePrecondition);
+        }
+        return sb.toString();
     }
 
     public record ComboKeyPrecondition(Set<Key> unpressedKeySet,
@@ -146,6 +155,53 @@ public record ComboPrecondition(ComboKeyPrecondition keyPrecondition,
                 return notActive;
             return notActive + " " + active;
         }
+    }
+
+    /**
+     * A variable precondition is a list of alternative groups.
+     * At least one group must be satisfied (OR between groups).
+     * Within a group, all conditions must be satisfied (AND).
+     * Example: _{islclick | ismclick | isrclick}
+     *   groups = [[islclick], [ismclick], [isrclick]]
+     */
+    public record ComboVariablePrecondition(List<List<VariableCondition>> groups) {
+
+        public boolean isEmpty() {
+            return groups.isEmpty();
+        }
+
+        public boolean satisfiedBy(Set<String> activeVariables) {
+            if (groups.isEmpty())
+                return true;
+            for (List<VariableCondition> group : groups) {
+                boolean groupSatisfied = true;
+                for (VariableCondition condition : group) {
+                    boolean isSet = activeVariables.contains(condition.variableName());
+                    if (condition.negated() ? isSet : !isSet) {
+                        groupSatisfied = false;
+                        break;
+                    }
+                }
+                if (groupSatisfied)
+                    return true;
+            }
+            return false;
+        }
+
+        public List<VariableCondition> conditions() {
+            return groups.stream().flatMap(List::stream).toList();
+        }
+
+        @Override
+        public String toString() {
+            return "_{" + groups.stream()
+                    .map(group -> group.stream()
+                            .map(c -> (c.negated() ? "!" : "") + c.variableName())
+                            .collect(Collectors.joining(" ")))
+                    .collect(Collectors.joining(" | ")) + "}";
+        }
+
+        public record VariableCondition(String variableName, boolean negated) {}
     }
 
     private static String keySetToString(Set<Key> keySet) {

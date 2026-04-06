@@ -274,6 +274,9 @@ public class ConfigurationParser {
                 new Property<>("break-macro", Map.of()),
                 new Property<>("macro", Map.of()),
                 new Property<>("mutate-mode", Map.of()),
+                new Property<>("set-variable", Map.of()),
+                new Property<>("unset-variable", Map.of()),
+                new Property<>("clear-variables", Map.of()),
                 new Property<>("noop", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
@@ -317,7 +320,7 @@ public class ConfigurationParser {
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
                 configurationKeyboardLayout);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
-
+        Set<String> allVariableNames = parseVariableNames(properties, keyAliases, keyResolver);
 
         String logLevel = null;
         boolean logRedactKeys = false;
@@ -400,7 +403,8 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys,
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases, keyResolver,
                         modeReferences, defaultComboMoveDuration, appAliases,
-                        finalDefaultComboMoveDuration, QFontDatabase::hasFamily);
+                        finalDefaultComboMoveDuration, QFontDatabase::hasFamily,
+                        allVariableNames);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
                         new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
@@ -546,7 +550,8 @@ public class ConfigurationParser {
         ComboPrecondition emptyComboPrecondition = new ComboPrecondition(
                 new ComboPrecondition.ComboKeyPrecondition(Set.of(),
                         new ComboPrecondition.PressedKeyPrecondition(List.of())),
-                new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()));
+                new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()),
+                new ComboPrecondition.ComboVariablePrecondition(List.of()));
         String label = modeName + ".hint.select";
         return hintSelectionKeys.stream()
                                 .map(key -> new Combo(label, emptyComboPrecondition,
@@ -619,7 +624,8 @@ public class ConfigurationParser {
             ComboMoveDuration defaultComboMoveDuration,
             Map<String, KeyAlias> keyAliases,
             Map<String, AppAlias> appAliases,
-            Map<Combo, List<Command>> builder, KeyResolver keyResolver) {
+            Map<Combo, List<Command>> builder, KeyResolver keyResolver,
+            Set<String> allVariableNames) {
         String[] split = propertyValue.split("\\s*->\\s*");
         if (split.length < 2 || split.length > 3)
             throw new IllegalArgumentException(
@@ -630,7 +636,7 @@ public class ConfigurationParser {
         List<Combo> combos =
                 Combo.multiCombo(label, comboString, defaultComboMoveDuration,
                         keyAliases,
-                        appAliases, keyResolver);
+                        appAliases, keyResolver, allVariableNames);
         Set<String> comboAliasNameIntersection = new HashSet<>(
                 combos.getFirst().sequence().aliasNames());
         for (Combo combo : combos) {
@@ -704,7 +710,8 @@ public class ConfigurationParser {
                                   ComboMoveDuration defaultComboMoveDuration,
                                   Map<String, AppAlias> appAliases,
                                   ComboMoveDuration finalDefaultComboMoveDuration,
-                                  Predicate<String> fontAvailability) {
+                                  Predicate<String> fontAvailability,
+                                  Set<String> allVariableNames) {
         if (group2 == null) {
             // Mode reference.
             parseModeReference(propertyKey, propertyValue, childModesByParentMode,
@@ -725,7 +732,7 @@ public class ConfigurationParser {
                                         mode.stopCommandsFromPreviousMode.mutateModeCommands,
                                         mode.stopCommandsFromPreviousMode.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
-                                        keyResolver))
+                                        keyResolver, allVariableNames))
                                     builder.set(Boolean.parseBoolean(propertyValue));
                             },
                             childPropertiesByParentProperty,
@@ -740,7 +747,7 @@ public class ConfigurationParser {
                                         mode.pushModeToHistoryStack.mutateModeCommands,
                                         mode.pushModeToHistoryStack.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
-                                        keyResolver))
+                                        keyResolver, allVariableNames))
                                     builder.set(Boolean.parseBoolean(propertyValue));
                             },
                             childPropertiesByParentProperty,
@@ -755,7 +762,7 @@ public class ConfigurationParser {
                                         mode.modeAfterUnhandledKeyPress.mutateModeCommands,
                                         mode.modeAfterUnhandledKeyPress.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
-                                        keyResolver)) {
+                                        keyResolver, allVariableNames)) {
                                     modeReferences.add(checkModeReference(propertyValue));
                                     builder.set(propertyValue);
                                 }
@@ -782,7 +789,7 @@ public class ConfigurationParser {
                             mode.mouse.mutateModeCommands,
                             mode.mouse.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver))
+                            keyResolver, allVariableNames))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -807,7 +814,7 @@ public class ConfigurationParser {
                             mode.wheel.mutateModeCommands,
                             mode.wheel.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver))
+                            keyResolver, allVariableNames))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -832,7 +839,7 @@ public class ConfigurationParser {
                             mode.grid.mutateModeCommands,
                             mode.grid.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver))
+                            keyResolver, allVariableNames))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -862,7 +869,7 @@ public class ConfigurationParser {
                                 mode.hintMesh.mutateModeCommands,
                                 mode.hintMesh.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver))
+                                keyResolver, allVariableNames))
                             handler.modeBuilderSetter().accept(propertyValue);
                         return;
                     }
@@ -905,13 +912,13 @@ public class ConfigurationParser {
                             mode.hintMesh.builder.selectCombos(
                                     parseCombos(propertyValue, propertyKey,
                                             defaultComboMoveDuration,
-                                            keyAliases, appAliases, keyResolver));
+                                            keyAliases, appAliases, keyResolver, allVariableNames));
                         }
                         case "undo" -> {
                             mode.hintMesh.builder.unselectCombos(
                                     parseCombos(propertyValue, propertyKey,
                                             defaultComboMoveDuration,
-                                            keyAliases, appAliases, keyResolver));
+                                            keyAliases, appAliases, keyResolver, allVariableNames));
                         }
                         default -> throw new IllegalArgumentException(
                                 "Invalid hint property key");
@@ -932,7 +939,7 @@ public class ConfigurationParser {
                     setCommand(mode.comboMap.to.builder, propertyValue,
                             new SwitchMode(newModeName), propertyKey,
                             defaultComboMoveDuration,
-                            keyAliases, appAliases, keyResolver);
+                            keyAliases, appAliases, keyResolver, allVariableNames);
                 }
             }
             case "remapping" -> {
@@ -949,7 +956,8 @@ public class ConfigurationParser {
                     parseMacroMapping("remapping", keyMatcher.group(group4),
                             propertyKey, propertyValue, defaultComboMoveDuration,
                             keyAliases, appAliases,
-                            mode.comboMap.macro.builder, keyResolver);
+                            mode.comboMap.macro.builder, keyResolver,
+                            allVariableNames);
                 }
             }
             case "macro" -> {
@@ -965,7 +973,8 @@ public class ConfigurationParser {
                     parseMacroMapping("macro", keyMatcher.group(group4),
                             propertyKey, propertyValue, defaultComboMoveDuration,
                             keyAliases, appAliases,
-                            mode.comboMap.macro.builder, keyResolver);
+                            mode.comboMap.macro.builder, keyResolver,
+                            allVariableNames);
                 }
             }
             case "timeout" -> {
@@ -992,7 +1001,7 @@ public class ConfigurationParser {
                             mode.timeout.mutateModeCommands,
                             mode.timeout.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver))
+                            keyResolver, allVariableNames))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -1021,7 +1030,7 @@ public class ConfigurationParser {
                                 mode.indicator.mutateModeCommands,
                                 mode.indicator.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver))
+                                keyResolver, allVariableNames))
                             handler.modeBuilderSetter().accept(propertyValue);
                     }
                     else {
@@ -1079,7 +1088,7 @@ public class ConfigurationParser {
                                 mode.indicator.mutateModeCommands,
                                 mode.indicator.setPropertyPaths,
                                 modeName, defaultComboMoveDuration,
-                                keyAliases, appAliases, keyResolver);
+                                keyAliases, appAliases, keyResolver, allVariableNames);
                     }
                 }
             }
@@ -1106,7 +1115,7 @@ public class ConfigurationParser {
                             mode.hideCursor.mutateModeCommands,
                             mode.hideCursor.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver))
+                            keyResolver, allVariableNames))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -1131,7 +1140,7 @@ public class ConfigurationParser {
                             mode.zoom.mutateModeCommands,
                             mode.zoom.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver))
+                            keyResolver, allVariableNames))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -1147,10 +1156,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "down" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "left" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "up" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.startMove.builder,  propertyValue, new StartMoveRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1167,10 +1176,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "down" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "left" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "up" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.stopMove.builder,  propertyValue, new StopMoveRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1186,9 +1195,9 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "left" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "middle" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "left" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "middle" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.press.builder,  propertyValue, new PressRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1205,9 +1214,9 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "left" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "middle" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "left" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "middle" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.release.builder,  propertyValue, new ReleaseRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1224,9 +1233,9 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "left" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "middle" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "left" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "middle" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleMiddle(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.toggle.builder,  propertyValue, new ToggleRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1243,10 +1252,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "down" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "left" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "up" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.startWheel.builder,  propertyValue, new StartWheelRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1263,10 +1272,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "down" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "left" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "up" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.stopWheel.builder,  propertyValue, new StopWheelRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1282,10 +1291,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "down" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "left" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "up" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.snap.builder,  propertyValue, new SnapRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1302,10 +1311,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "down" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "left" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "up" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.shrinkGrid.builder,  propertyValue, new ShrinkGridRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1322,10 +1331,10 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "up" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "down" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "left" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "right" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "up" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridUp(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "down" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridDown(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "left" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridLeft(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "right" -> setCommand(mode.comboMap.moveGrid.builder,  propertyValue, new MoveGridRight(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                     }
                 }
@@ -1349,11 +1358,11 @@ public class ConfigurationParser {
                 else {
                     switch (keyMatcher.group(group4)) {
                         // @formatter:off
-                        case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "unsave-position" -> setCommand(mode.comboMap.unsavePosition.builder,  propertyValue, new UnsavePosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
-                        case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                        case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "unsave-position" -> setCommand(mode.comboMap.unsavePosition.builder,  propertyValue, new UnsavePosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
                         // @formatter:on
                         default -> throw new IllegalArgumentException(
                                 "Invalid position-history property key");
@@ -1363,28 +1372,63 @@ public class ConfigurationParser {
             // @formatter:off
             case "move-to-grid-center" -> {
                 mode.comboMap.moveToGridCenter.parseReferenceOr(propertyKey, propertyValue,
-                        commandsByCombo -> setCommand(mode.comboMap.moveToGridCenter.builder,  propertyValue, new MoveToGridCenter(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                        commandsByCombo -> setCommand(mode.comboMap.moveToGridCenter.builder,  propertyValue, new MoveToGridCenter(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "move-to-last-selected-hint" -> {
                 mode.comboMap.moveToLastSelectedHint.parseReferenceOr(propertyKey, propertyValue,
-                        commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                        commandsByCombo -> setCommand(mode.comboMap.moveToLastSelectedHint.builder,  propertyValue, new MoveToLastSelectedHint(), propertyKey, finalDefaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             case "break-combo-preparation" -> mode.comboMap.breakComboPreparation.parseReferenceOr(propertyKey, propertyValue,
-                    commandsByCombo -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                    commandsByCombo -> setCommand(mode.comboMap.breakComboPreparation.builder,  propertyValue, new BreakComboPreparation(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             case "break-macro" -> mode.comboMap.breakMacro.parseReferenceOr(propertyKey, propertyValue,
-                    commandsByCombo -> setCommand(mode.comboMap.breakMacro.builder, propertyValue, new BreakMacro(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                    commandsByCombo -> setCommand(mode.comboMap.breakMacro.builder, propertyValue, new BreakMacro(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                     childPropertiesByParentProperty, nonRootPropertyKeys);
             case "noop" -> {
                 if (keyMatcher.group(group3) == null)
                     mode.comboMap.noop.parseReferenceOr(propertyKey, propertyValue,
-                            commandsByCombo -> setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(""), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver),
+                            commandsByCombo -> setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(""), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                             childPropertiesByParentProperty, nonRootPropertyKeys);
                 else
                     setCommand(mode.comboMap.noop.builder, propertyValue, new Noop(keyMatcher.group(group4)),
-                            propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                            propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+            }
+            case "set-variable" -> {
+                if (keyMatcher.group(group3) == null)
+                    throw new IllegalArgumentException(
+                            "set-variable requires a variable name: set-variable.<name>");
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "set-variable requires a variable name: set-variable.<name>");
+                else {
+                    String variableName = keyMatcher.group(group4);
+                    setCommand(mode.comboMap.setVariable.builder, propertyValue,
+                            new Command.SetVariable(variableName), propertyKey,
+                            defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
+                            allVariableNames);
+                }
+            }
+            case "unset-variable" -> {
+                if (keyMatcher.group(group3) == null)
+                    throw new IllegalArgumentException(
+                            "unset-variable requires a variable name: unset-variable.<name>");
+                else if (keyMatcher.group(group4) == null)
+                    throw new IllegalArgumentException(
+                            "unset-variable requires a variable name: unset-variable.<name>");
+                else {
+                    String variableName = keyMatcher.group(group4);
+                    setCommand(mode.comboMap.unsetVariable.builder, propertyValue,
+                            new Command.UnsetVariable(variableName), propertyKey,
+                            defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
+                            allVariableNames);
+                }
+            }
+            case "clear-variables" -> {
+                mode.comboMap.clearVariables.parseReferenceOr(propertyKey, propertyValue,
+                        commandsByCombo -> setCommand(mode.comboMap.clearVariables.builder, propertyValue, new Command.ClearVariables(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+                        childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             // @formatter:on
             default -> throw new IllegalArgumentException(
@@ -1568,6 +1612,46 @@ public class ConfigurationParser {
             }
         }
         return new ResolvedAliasWithRefs(new KeyAlias(aliasName, keys), referencedAliasNames);
+    }
+
+    /**
+     * First pass: scan all property lines for set-variable.X= patterns
+     * and collect variable names. Also checks for collisions with key names and aliases.
+     */
+    private static Set<String> parseVariableNames(List<String> properties,
+                                                  Map<String, KeyAlias> keyAliases,
+                                                  KeyResolver keyResolver) {
+        Set<String> variableNames = new HashSet<>();
+        for (String line : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(line);
+            if (!lineMatcher.matches())
+                continue;
+            String propertyKey = lineMatcher.group(1).strip();
+            // Match: <mode-name>.set-variable.<variable-name>=...
+            Pattern setVarPattern = Pattern.compile("[^.]+-mode\\.set-variable\\.([^.]+)");
+            Matcher setVarMatcher = setVarPattern.matcher(propertyKey);
+            if (setVarMatcher.matches()) {
+                String variableName = setVarMatcher.group(1);
+                if (keyAliases.containsKey(variableName))
+                    throw new IllegalArgumentException(
+                            "Variable name '" + variableName +
+                            "' collides with a key alias name");
+                try {
+                    keyResolver.resolve(variableName);
+                    throw new IllegalArgumentException(
+                            "Variable name '" + variableName +
+                            "' collides with a key name");
+                }
+                catch (IllegalArgumentException e) {
+                    // TODO Find a different way to handle key name collision (not exception catching).
+                    if (e.getMessage().startsWith("Variable name"))
+                        throw e;
+                    // Key not found: good, no collision.
+                }
+                variableNames.add(variableName);
+            }
+        }
+        return variableNames;
     }
 
     private static Aliases parseAliases(List<String> properties) {
@@ -1915,7 +1999,8 @@ public class ConfigurationParser {
                                                 ComboMoveDuration defaultComboMoveDuration,
                                                 Map<String, KeyAlias> keyAliases,
                                                 Map<String, AppAlias> appAliases,
-                                                KeyResolver keyResolver) {
+                                                KeyResolver keyResolver,
+                                                Set<String> allVariableNames) {
         ModePropertyHandler handler =
                 indicatorHandler(propertyPathPrefix, indicator, key, fontAvailability);
         if (handler == null)
@@ -1923,7 +2008,8 @@ public class ConfigurationParser {
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
                 handler.valueParser(), handler.modeBuilderSetter(), mutateModeCommandMap,
                 setPropertyPaths,
-                defaultComboMoveDuration, keyAliases, appAliases, keyResolver))
+                defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
+                allVariableNames))
             handler.modeBuilderSetter().accept(propertyValue);
     }
 
@@ -2372,7 +2458,8 @@ public class ConfigurationParser {
             ComboMoveDuration defaultComboMoveDuration,
             Map<String, KeyAlias> keyAliases,
             Map<String, AppAlias> appAliases,
-            KeyResolver keyResolver) {
+            KeyResolver keyResolver,
+            Set<String> allVariableNames) {
         setPropertyPaths.add(propertyPath);
         SplitComboProperty splitComboProperty = splitComboProperties(propertyValue);
         if (splitComboProperty == null)
@@ -2382,7 +2469,8 @@ public class ConfigurationParser {
         String label = modeName + "." + String.join(".", propertyPath.fieldNames());
         for (SplitComboProperty.ComboPropertyValue comboPropertyValue : splitComboProperty.comboValues()) {
             List<Combo> combos = parseCombos(comboPropertyValue.comboString(), label,
-                    defaultComboMoveDuration, keyAliases, appAliases, keyResolver);
+                    defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
+                    allVariableNames);
             for (Combo combo : combos) {
                 Object parsedValue;
                 Set<String> aliasNames = combo.sequence().aliasNames();
@@ -2595,10 +2683,11 @@ public class ConfigurationParser {
                                    ComboMoveDuration defaultComboMoveDuration,
                                    Map<String, KeyAlias> keyAliases,
                                    Map<String, AppAlias> appAliases,
-                                   KeyResolver keyResolver) {
+                                   KeyResolver keyResolver,
+                                   Set<String> allVariableNames) {
         List<Combo> combos =
                 parseCombos(multiComboString, label, defaultComboMoveDuration,
-                        keyAliases, appAliases, keyResolver);
+                        keyAliases, appAliases, keyResolver, allVariableNames);
         for (Combo combo : combos)
             commandsByCombo.computeIfAbsent(combo, combo1 -> new ArrayList<>())
                            .add(command);
@@ -2609,9 +2698,10 @@ public class ConfigurationParser {
                                            ComboMoveDuration defaultComboMoveDuration,
                                            Map<String, KeyAlias> keyAliases,
                                            Map<String, AppAlias> appAliases,
-                                           KeyResolver keyResolver) {
+                                           KeyResolver keyResolver,
+                                           Set<String> allVariableNames) {
         return Combo.multiCombo(label, multiComboString, defaultComboMoveDuration,
-                keyAliases, appAliases, keyResolver);
+                keyAliases, appAliases, keyResolver, allVariableNames);
     }
 
     /**
@@ -3202,6 +3292,9 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> macro;
         Property<Map<Combo, List<Command>>> mutateMode;
         Property<Map<Combo, List<Command>>> noop;
+        Property<Map<Combo, List<Command>>> setVariable;
+        Property<Map<Combo, List<Command>>> unsetVariable;
+        Property<Map<Combo, List<Command>>> clearVariables;
 
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
@@ -3231,6 +3324,9 @@ public class ConfigurationParser {
             macro = new ComboMapProperty("macro", modeName, propertyByKey);
             mutateMode = new ComboMapProperty("mutate-mode", modeName, propertyByKey);
             noop = new ComboMapProperty("noop", modeName, propertyByKey);
+            setVariable = new ComboMapProperty("set-variable", modeName, propertyByKey);
+            unsetVariable = new ComboMapProperty("unset-variable", modeName, propertyByKey);
+            clearVariables = new ComboMapProperty("clear-variables", modeName, propertyByKey);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
@@ -3315,6 +3411,9 @@ public class ConfigurationParser {
             add(commandsByCombo, macro.builder);
             add(commandsByCombo, mutateMode.builder);
             add(commandsByCombo, noop.builder);
+            add(commandsByCombo, setVariable.builder);
+            add(commandsByCombo, unsetVariable.builder);
+            add(commandsByCombo, clearVariables.builder);
             return commandsByCombo;
         }
 

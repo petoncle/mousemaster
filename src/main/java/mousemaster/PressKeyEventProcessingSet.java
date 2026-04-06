@@ -16,7 +16,8 @@ public record PressKeyEventProcessingSet(
     public static final Combo dummyCombo = new Combo("dummy", new ComboPrecondition(
             new ComboPrecondition.ComboKeyPrecondition(Set.of(),
                     new PressedKeyPrecondition(List.of())),
-            new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of())),
+            new ComboPrecondition.ComboAppPrecondition(Set.of(), Set.of()),
+            new ComboPrecondition.ComboVariablePrecondition(List.of())),
             new ComboSequence(List.of()));
 
     public boolean mustBeEaten() {

@@ -74,4 +74,8 @@ public sealed interface Command {
 
     record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {}
 
+    record SetVariable(String variableName) implements Command {}
+    record UnsetVariable(String variableName) implements Command {}
+    record ClearVariables() implements Command {}
+
 }
