@@ -609,14 +609,24 @@ public class ComboWatcher {
             // that other key should be processed only for combos that
             // contains the pressed precondition key.
             Combo combo = entry.getKey();
+            List<Command> comboCommands = entry.getValue();
             if (!combo.precondition()
                       .appPrecondition()
                       .satisfied(activeAppFinder.activeApp()))
                 continue;
             if (combo.sequence().isEmpty() &&
                 (!combo.precondition().appPrecondition().isEmpty() ||
-                 !combo.precondition().variablePrecondition().isEmpty()))
-                continue; // Precondition-only combos are handled by applySatisfiedPreconditionOnlyMutations / update.
+                 !combo.precondition().variablePrecondition().isEmpty())) {
+                if (combo.precondition().variablePrecondition().isEmpty())
+                    continue; // App-precondition-only combos are handled by update / async combos.
+                // MutateMode is handled declaratively by applySatisfiedPreconditionOnlyMutations.
+                // Let non-MutateMode commands through event processing.
+                comboCommands = comboCommands.stream()
+                        .filter(c -> !(c instanceof Command.MutateMode))
+                        .toList();
+                if (comboCommands.isEmpty())
+                    continue;
+            }
             // Bare wait combos (all MoveSets are wait) are handled in update().
             if (!combo.sequence().isEmpty() &&
                 combo.sequence().moveSets().stream().allMatch(ms -> ms instanceof WaitMoveSet))
@@ -804,21 +814,21 @@ public class ComboWatcher {
                 combo.sequence().moveSets().getLast() instanceof WaitMoveSet lastWaitMoveSet) {
                 // Wait as last move: all event-based moves matched, now wait.
                 WaitComboMove waitMove = lastWaitMoveSet.waitMove();
-                List<Command> commands = entry.getValue();
+                List<Command> commands = comboCommands;
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(baseMode, comboAndCommands,
                                 waitMove.duration().min().toNanos() / 1e9d));
             }
             else if (lastMoveIsWaitingMove) {
-                List<Command> commands = entry.getValue();
+                List<Command> commands = comboCommands;
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(baseMode, comboAndCommands,
                                 comboLastMove.duration().min().toNanos() / 1e9d));
             }
             else {
-                List<Command> commands = entry.getValue();
+                List<Command> commands = comboCommands;
                 // We never want to execute (un)select hint key if the key event just
                 // switched the mode to a hint mode.
                 Predicate<Command> switchModeOrHintPredicate =
