@@ -903,6 +903,20 @@ public class ComboWatcher {
             return;
         Key lastEventKey = lastKeyEvent == null ? null : lastKeyEvent.key();
         List<Command> commands = new ArrayList<>(commandsToRun);
+        // Run hint selection/unselection commands first, before variable and
+        // mutation commands. If a hint command supersedes other commands,
+        // skip the rest.
+        for (int i = 0; i < commands.size(); i++) {
+            Command command = commands.get(i);
+            if (command instanceof Command.SelectHintKey ||
+                command instanceof Command.UnselectHintKey) {
+                commandRunner.run(command, lastEventKey);
+                commands.remove(i);
+                i--;
+                if (hintManager.pollLastHintCommandSupercedesOtherCommands())
+                    return;
+            }
+        }
         // Batch all mutations so the mode is rebuilt only once.
         boolean anyMutation = false;
         boolean anyVariableChange = false;
@@ -951,26 +965,15 @@ public class ComboWatcher {
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
             Command command = commands.removeFirst();
             commandRunner.run(command, lastEventKey);
-            if (hintManager.pollLastHintCommandSupercedesOtherCommands())
-                return;
         }
         // Run SwitchMode commands now to avoid losing key events meant for the next mode.
         for (int commandIndex = 0; commandIndex < commands.size(); commandIndex++) {
             Command command = commands.get(commandIndex);
-            if (command instanceof Command.SelectHintKey) {
-                commandRunner.run(command, lastEventKey);
-                commands.remove(commandIndex);
-                commandIndex--;
-                if (hintManager.pollLastHintCommandSupercedesOtherCommands())
-                    return;
-            }
             if (command instanceof Command.BreakComboPreparation ||
                 command instanceof Command.SwitchMode) {
                 commandRunner.run(command, lastEventKey);
                 commands.remove(commandIndex);
                 commandIndex--;
-                if (hintManager.pollLastHintCommandSupercedesOtherCommands())
-                    return;
             }
         }
         commandsWaitingForAtomicCommandToComplete.addAll(commands);
@@ -1093,19 +1096,16 @@ public class ComboWatcher {
 
     private enum CommandOrder {
         RUN_FIRST,
-        RUN_SECOND,
         RUN_LAST;
     }
 
     private static CommandOrder commandOrder(Command command) {
-        // Hint commands are executed first because they can cancel other commands.
-        // Run BreakComboPreparation last, just before SwitchMode.
+        // Run BreakComboPreparation and SwitchMode last so the while loop
+        // in runCommands processes other commands first.
         return switch (command) {
-            case Command.SelectHintKey c -> CommandOrder.RUN_FIRST;
-            case Command.UnselectHintKey c -> CommandOrder.RUN_FIRST;
             case Command.BreakComboPreparation c -> CommandOrder.RUN_LAST;
             case Command.SwitchMode c -> CommandOrder.RUN_LAST;
-            default -> CommandOrder.RUN_SECOND;
+            default -> CommandOrder.RUN_FIRST;
         };
     }
 
