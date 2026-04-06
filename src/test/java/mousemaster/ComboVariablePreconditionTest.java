@@ -200,4 +200,11 @@ class ComboVariablePreconditionTest {
                 () -> parseSingle("_{islclick leftctrl} +a", Set.of("islclick")));
     }
 
+    @Test
+    void multipleVariableBlocksThrows() {
+        assertThrows(IllegalArgumentException.class,
+                () -> parseSingle("_{is3level} _{islclick | ismclick | isrclick} +a",
+                        Set.of("is3level", "islclick", "ismclick", "isrclick")));
+    }
+
 }

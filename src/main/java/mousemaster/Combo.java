@@ -68,6 +68,10 @@ public record Combo(String label, ComboPrecondition precondition, ComboSequence 
                     mustBeActiveApps = parseMustBeActiveApps(mustBeActiveAppsString, appAliases);
                 }
                 else if (isVariableBlock(content, allVariableNames)) {
+                    if (!variableConditionGroups.isEmpty())
+                        throw new IllegalArgumentException(
+                                "[" + label + "] Multiple variable _{...} blocks are not allowed, " +
+                                "combine them into a single block: " + string);
                     for (String groupString : content.split("\\|")) {
                         List<VariableCondition> group = new ArrayList<>();
                         for (String token : groupString.trim().split("\\s+")) {
