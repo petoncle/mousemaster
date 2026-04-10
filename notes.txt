@@ -206,3 +206,10 @@
  - Problem with shift + '
  - After ANY event (press or release) or time condition expiry, if an eating combo can no longer match the preparation, immediately detect
     it as dead and regurgitate affected keys.
+
+- Toggle mutation if mutation already active when completing mutation combo
+- boolean variables in config, or mutable combos? to avoid lclick/rclick/mclick/nm modes with tapping. Need to solve the | -> precedence problem.
+ (would require to get rid of the click-after- modes: is that possible?)
+  - set/unset variables? .set-var.ishintnomove=+/ .unset-var.ishintnomove=-/
+  - Used in combos as variable precondition: _{ishintmove !ishintlclick}, or _{ishintlclick | ishintrclick | ishintmclick}
++ Get rid of lastHintCommandSupercedesOtherCommands. This is too much magic.
