@@ -3351,25 +3351,27 @@ public class ConfigurationParser {
                     }
                 }
                 for (Map.Entry<Combo, List<Command>> parentEntry : parent.entrySet()) {
-                    // mode1.start-move.up=x
-                    // mode2.start-move=mode1.start-move
-                    // mode2.start-move.up=y
-                    if (builder.containsKey(parentEntry.getKey()))
-                        continue;
-                    if (parentEntry.getValue().stream().anyMatch(childCommands::contains))
-                        continue;
-                    String name = commandName(parentEntry.getValue().getFirst());
-                    if (name != null && childCommandNames.contains(name))
-                        continue;
-                    builder.put(parentEntry.getKey(), parentEntry.getValue());
+                    List<Command> existingBuilderCommands = builder.get(parentEntry.getKey());
+                    for (Command parentCommand : parentEntry.getValue()) {
+                        if (childCommands.contains(parentCommand))
+                            continue;
+                        String name = commandName(parentCommand);
+                        if (name != null && childCommandNames.contains(name))
+                            continue;
+                        if (existingBuilderCommands == null) {
+                            existingBuilderCommands = new ArrayList<>();
+                            builder.put(parentEntry.getKey(), existingBuilderCommands);
+                        }
+                        existingBuilderCommands.add(parentCommand);
+                    }
                 }
             }
 
             private static String commandName(Command cmd) {
                 if (cmd instanceof Command.Noop noop)
                     return noop.name();
-                if (cmd instanceof Command.MacroCommand mc)
-                    return mc.macro().name();
+                if (cmd instanceof Command.MacroCommand macroCommand)
+                    return macroCommand.macro().name();
                 return null;
             }
         }
