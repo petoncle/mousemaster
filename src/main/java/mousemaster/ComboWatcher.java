@@ -398,7 +398,7 @@ public class ComboWatcher {
                     processKeyEventForCurrentMode(null, true);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
-        revertUnsatisfiedMutations();
+        refreshPreconditionOnlyMutations();
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey, expiredCombos);
     }
 
@@ -584,7 +584,7 @@ public class ComboWatcher {
         else
             lastReleaseEventTime = event.time();
         lastProcessingSet = processingSet;
-        revertUnsatisfiedMutations();
+        refreshPreconditionOnlyMutations();
         return processingSet;
     }
 
@@ -619,7 +619,7 @@ public class ComboWatcher {
                  !combo.precondition().variablePrecondition().isEmpty())) {
                 if (combo.precondition().variablePrecondition().isEmpty())
                     continue; // App-precondition-only combos are handled by update / async combos.
-                // MutateMode is handled declaratively by applySatisfiedPreconditionOnlyMutations.
+                // MutateMode is handled declaratively by refreshPreconditionOnlyMutations.
                 // Let non-MutateMode commands through event processing.
                 comboCommands = comboCommands.stream()
                         .filter(c -> !(c instanceof Command.MutateMode))
@@ -886,7 +886,7 @@ public class ComboWatcher {
         if (!comboAndCommandsToRun.isEmpty()) {
             comboListeners.forEach(ComboListener::completedCombo);
             // Add completed combo keys before running commands so that if a
-            // SwitchMode command triggers modeChanged -> applySatisfiedPreconditionOnlyMutations,
+            // SwitchMode command triggers modeChanged -> refreshPreconditionOnlyMutations,
             // the completed combo keys are available for precondition checks.
             for (ComboAndCommands comboAndCommands : comboAndCommandsToRun) {
                 addCurrentlyPressedCompletedComboKeys(comboAndCommands.combo,
@@ -948,13 +948,8 @@ public class ComboWatcher {
             if (!mutatedMode.equals(previousMutatedMode))
                 notifyMutatedMode();
         }
-        if (anyVariableChange) {
-            Mode previousMutatedMode = mutatedMode;
-            revertUnsatisfiedMutations();
-            applySatisfiedPreconditionOnlyMutations();
-            if (!mutatedMode.equals(previousMutatedMode))
-                notifyMutatedMode();
-        }
+        if (anyVariableChange)
+            refreshPreconditionOnlyMutations();
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
             Command command = commands.removeFirst();
             commandRunner.run(command, lastEventKey);
@@ -1274,7 +1269,7 @@ public class ComboWatcher {
         // KeyManager won't notify ComboWatcher of the release of the comboPreparationBreakerKey.
         currentlyPressedCompletedComboKeys.remove(comboPreparationBreakerKey);
         currentlyPressedComboKeys.remove(comboPreparationBreakerKey);
-        revertUnsatisfiedMutations();
+        refreshPreconditionOnlyMutations();
     }
 
     public boolean isCurrentModePressedPreconditionKey(Key key) {
@@ -1288,7 +1283,7 @@ public class ComboWatcher {
         currentModePressedPreconditionKeys =
                 pressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
         computePreconditionOnlyByPropertyPath();
-        applySatisfiedPreconditionOnlyMutations();
+        refreshPreconditionOnlyMutations();
         for (ModeListener listener : modeListeners)
             listener.modeChanged(mutatedMode);
         leadingWaitBeginTimeByCombo.clear();
@@ -1434,10 +1429,8 @@ public class ComboWatcher {
     }
 
 
-    private void revertUnsatisfiedMutations() {
-        if (activeMutations.isEmpty())
-            return;
-        List<Map.Entry<ModePropertyPath, ActiveModeMutation>> reverted = null;
+    private void refreshPreconditionOnlyMutations() {
+        // Revert unsatisfied precondition-only mutations.
         Iterator<Map.Entry<ModePropertyPath, ActiveModeMutation>> activeMutationIterator =
                 activeMutations.entrySet().iterator();
         while (activeMutationIterator.hasNext()) {
@@ -1446,18 +1439,30 @@ public class ComboWatcher {
             if (!preconditionOnlyByPropertyPath.getOrDefault(path, false))
                 continue;
             ActiveModeMutation mutation = entry.getValue();
-            if (!isMutationComboPreconditionSatisfied(mutation.combo())) {
-                if (reverted == null)
-                    reverted = new ArrayList<>();
-                reverted.add(entry);
+            if (!isMutationComboPreconditionSatisfied(mutation.combo()))
                 activeMutationIterator.remove();
+        }
+        // Activate newly satisfied precondition-only mutations.
+        for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
+                                                             .commandsByCombo()
+                                                             .entrySet()) {
+            Combo combo = entry.getKey();
+            if (!combo.sequence().isEmpty())
+                continue;
+            if (!isMutationComboPreconditionSatisfied(combo))
+                continue;
+            for (Command command : entry.getValue()) {
+                if (command instanceof Command.MutateMode mutateMode) {
+                    activeMutations.put(mutateMode.propertyPath(),
+                            new ActiveModeMutation(mutateMode.newPropertyValue(),
+                                    combo));
+                }
             }
         }
-        if (reverted != null) {
-            logger.debug("Reverted unsatisfied mutations: " + reverted);
-            rebuildMutatedMode();
+        Mode previousMutatedMode = mutatedMode;
+        rebuildMutatedMode();
+        if (!mutatedMode.equals(previousMutatedMode))
             notifyMutatedMode();
-        }
     }
 
     private boolean isMutationComboPreconditionSatisfied(Combo combo) {
@@ -1483,27 +1488,6 @@ public class ComboWatcher {
         if (!combo.precondition().variablePrecondition().satisfiedBy(activeVariables))
             return false;
         return true;
-    }
-
-    private void applySatisfiedPreconditionOnlyMutations() {
-        for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
-                                                             .commandsByCombo()
-                                                             .entrySet()) {
-            Combo combo = entry.getKey();
-            if (!combo.sequence().isEmpty())
-                continue;
-            if (!isMutationComboPreconditionSatisfied(combo))
-                continue;
-            for (Command command : entry.getValue()) {
-                if (command instanceof Command.MutateMode mutateMode) {
-                    activeMutations.put(mutateMode.propertyPath(),
-                            new ActiveModeMutation(mutateMode.newPropertyValue(),
-                                    combo));
-                }
-            }
-        }
-        if (!activeMutations.isEmpty())
-            rebuildMutatedMode();
     }
 
     private void rebuildMutatedMode() {
