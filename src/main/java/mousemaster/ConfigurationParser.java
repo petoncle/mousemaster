@@ -1636,18 +1636,10 @@ public class ConfigurationParser {
                     throw new IllegalArgumentException(
                             "Variable name '" + variableName +
                             "' collides with a key alias name");
-                try {
-                    keyResolver.resolve(variableName);
+                if (Key.tryOfName(variableName) != null)
                     throw new IllegalArgumentException(
                             "Variable name '" + variableName +
                             "' collides with a key name");
-                }
-                catch (IllegalArgumentException e) {
-                    // TODO Find a different way to handle key name collision (not exception catching).
-                    if (e.getMessage().startsWith("Variable name"))
-                        throw e;
-                    // Key not found: good, no collision.
-                }
                 variableNames.add(variableName);
             }
         }

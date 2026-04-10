@@ -188,14 +188,18 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
         return staticallyNamedKeys.get(staticName);
     }
 
-    public static Key ofName(String name) {
+    public static Key tryOfName(String name) {
         Key staticallyNamedKey = ofStaticName(name);
         if (staticallyNamedKey != null)
             return staticallyNamedKey;
-        String character = name;
-        if (character.length() != 1)
-            throw new IllegalArgumentException("Invalid key character: " + character);
-        return ofCharacter(character);
+        return name.length() == 1 ? ofCharacter(name) : null;
+    }
+
+    public static Key ofName(String name) {
+        Key key = tryOfName(name);
+        if (key == null)
+            throw new IllegalArgumentException("Invalid key character: " + name);
+        return key;
     }
 
     public static Key ofCharacter(String character) {
