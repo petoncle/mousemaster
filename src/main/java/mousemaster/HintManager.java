@@ -842,8 +842,10 @@ public class HintManager implements ModeListener, MousePositionListener {
      * Undo.
      */
     public void unselectHintKey() {
-        if (pendingUiHintQuery != null)
+        if (pendingUiHintQuery != null) {
+            lastHintCommandSupercedesOtherCommands = true;
             return;
+        }
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
             return;
@@ -877,8 +879,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public void selectHintKey(Key key) {
-        if (pendingUiHintQuery != null)
+        if (pendingUiHintQuery != null) {
+            lastHintCommandSupercedesOtherCommands = true;
             return;
+        }
         if (key == null)
             return;
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
