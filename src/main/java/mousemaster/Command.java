@@ -72,7 +72,12 @@ public sealed interface Command {
     record SelectHintKey() implements Command {}
     record UnselectHintKey() implements Command {}
 
-    record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {}
+    record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {
+        @Override
+        public String toString() {
+            return "MutateMode[" + propertyPath + "=" + newPropertyValue + "]";
+        }
+    }
 
     record SetVariable(String variableName) implements Command {}
     record UnsetVariable(String variableName) implements Command {}
