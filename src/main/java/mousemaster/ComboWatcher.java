@@ -920,6 +920,14 @@ public class ComboWatcher {
         // Batch all mutations so the mode is rebuilt only once.
         boolean anyMutation = false;
         boolean anyVariableChange = false;
+        // Process ClearVariables before Set/UnsetVariable so that
+        // clear-variables + set-variable on the same combo clears first, then sets.
+        for (Command command : commands) {
+            if (command instanceof Command.ClearVariables) {
+                anyVariableChange |= !activeVariables.isEmpty();
+                activeVariables.clear();
+            }
+        }
         for (Command command : commands) {
             if (command instanceof Command.MutateMode mutateMode) {
                 activeMutations.put(mutateMode.propertyPath(),
@@ -932,10 +940,6 @@ public class ComboWatcher {
             }
             else if (command instanceof Command.UnsetVariable unsetVariable) {
                 anyVariableChange |= activeVariables.remove(unsetVariable.variableName());
-            }
-            else if (command instanceof Command.ClearVariables) {
-                anyVariableChange |= !activeVariables.isEmpty();
-                activeVariables.clear();
             }
         }
         commands.removeIf(c -> c instanceof Command.SetVariable ||
