@@ -842,10 +842,9 @@ public class HintManager implements ModeListener, MousePositionListener {
      * Undo.
      */
     public void unselectHintKey() {
-        if (pendingUiHintQuery != null) {
-            lastHintCommandSupercedesOtherCommands = true;
+        if (pendingUiHintQuery != null)
+            // Let user perform an action on undo (e.g. switch mode) even when UI hint query is ongoing.
             return;
-        }
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         if (!hintMeshConfiguration.enabled())
             return;
