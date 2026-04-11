@@ -30,6 +30,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double subgridBorderOpacity,
                             boolean transitionAnimationEnabled,
                             Duration transitionAnimationDuration,
+                            boolean fadeAnimationEnabled,
+                            Duration fadeAnimationDuration,
                             String backgroundHexColor,
                             double backgroundOpacity) {
 
@@ -66,6 +68,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double subgridBorderOpacity;
         private Boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
+        private Boolean fadeAnimationEnabled;
+        private Duration fadeAnimationDuration;
         private String backgroundHexColor;
         private Double backgroundOpacity;
 
@@ -102,6 +106,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.subgridBorderOpacity = style.subgridBorderOpacity;
             this.transitionAnimationEnabled = style.transitionAnimationEnabled;
             this.transitionAnimationDuration = style.transitionAnimationDuration;
+            this.fadeAnimationEnabled = style.fadeAnimationEnabled;
+            this.fadeAnimationDuration = style.fadeAnimationDuration;
             this.backgroundHexColor = style.backgroundHexColor;
             this.backgroundOpacity = style.backgroundOpacity;
         }
@@ -232,6 +238,16 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
+        public HintMeshStyleBuilder fadeAnimationEnabled(Boolean fadeAnimationEnabled) {
+            this.fadeAnimationEnabled = fadeAnimationEnabled;
+            return this;
+        }
+
+        public HintMeshStyleBuilder fadeAnimationDuration(Duration fadeAnimationDuration) {
+            this.fadeAnimationDuration = fadeAnimationDuration;
+            return this;
+        }
+
         public HintMeshStyleBuilder backgroundHexColor(String backgroundHexColor) {
             this.backgroundHexColor = backgroundHexColor;
             return this;
@@ -354,6 +370,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return transitionAnimationDuration;
         }
 
+        public Boolean fadeAnimationEnabled() {
+            return fadeAnimationEnabled;
+        }
+
+        public Duration fadeAnimationDuration() {
+            return fadeAnimationDuration;
+        }
+
         public String backgroundHexColor() {
             return backgroundHexColor;
         }
@@ -395,6 +419,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity,
                     transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
                     transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,
+                    fadeAnimationEnabled == null ? defaultStyle.fadeAnimationEnabled : fadeAnimationEnabled,
+                    fadeAnimationDuration == null ? defaultStyle.fadeAnimationDuration : fadeAnimationDuration,
                     backgroundHexColor == null ? defaultStyle.backgroundHexColor : backgroundHexColor,
                     backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity
             );

@@ -143,6 +143,8 @@ public class ConfigurationParser {
                 .subgridBorderOpacity(1d)
                 .transitionAnimationEnabled(true)
                 .transitionAnimationDuration(Duration.ofMillis(100))
+                .fadeAnimationEnabled(true)
+                .fadeAnimationDuration(Duration.ofMillis(100))
                 .backgroundHexColor("#000000")
                 .backgroundOpacity(0d);
         hintMesh.eatUnusedSelectionKeys(true);
@@ -2361,6 +2363,8 @@ public class ConfigurationParser {
             // Style: animation & background
             case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationEnabled(v));
             case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationDuration(v));
+            case "fade-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fadeAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).fadeAnimationEnabled(v));
+            case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fadeAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(viewportFilter).fadeAnimationDuration(v));
             case "background-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).backgroundHexColor(v));
             case "background-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "backgroundOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).backgroundOpacity(v));
             // @formatter:on
@@ -3081,6 +3085,16 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.transitionAnimationDuration(
                                 parentStyle.transitionAnimationDuration());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::fadeAnimationEnabled,
+                            childStyleByFilter, filter))
+                        childStyle.fadeAnimationEnabled(
+                                parentStyle.fadeAnimationEnabled());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::fadeAnimationDuration,
+                            childStyleByFilter, filter))
+                        childStyle.fadeAnimationDuration(
+                                parentStyle.fadeAnimationDuration());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::backgroundHexColor,
                             childStyleByFilter, filter))
