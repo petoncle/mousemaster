@@ -2,9 +2,12 @@ package mousemaster;
 
 import mousemaster.Indicator.IndicatorBuilder;
 
+import java.time.Duration;
 import java.util.List;
 
 public record IndicatorConfiguration(boolean enabled,
+                                     boolean fadeAnimationEnabled,
+                                     Duration fadeAnimationDuration,
                                      Indicator idleIndicator,
                                      Indicator moveIndicator,
                                      Indicator wheelIndicator,
@@ -32,6 +35,8 @@ public record IndicatorConfiguration(boolean enabled,
         );
 
         private Boolean enabled;
+        private Boolean fadeAnimationEnabled;
+        private Duration fadeAnimationDuration;
         private IndicatorBuilder idleIndicator = new IndicatorBuilder();
         private IndicatorBuilder moveIndicator = new IndicatorBuilder();
         private IndicatorBuilder wheelIndicator = new IndicatorBuilder();
@@ -48,6 +53,24 @@ public record IndicatorConfiguration(boolean enabled,
 
         public Boolean enabled() {
             return enabled;
+        }
+
+        public IndicatorConfigurationBuilder fadeAnimationEnabled(boolean fadeAnimationEnabled) {
+            this.fadeAnimationEnabled = fadeAnimationEnabled;
+            return this;
+        }
+
+        public Boolean fadeAnimationEnabled() {
+            return fadeAnimationEnabled;
+        }
+
+        public IndicatorConfigurationBuilder fadeAnimationDuration(Duration fadeAnimationDuration) {
+            this.fadeAnimationDuration = fadeAnimationDuration;
+            return this;
+        }
+
+        public Duration fadeAnimationDuration() {
+            return fadeAnimationDuration;
         }
 
         public IndicatorBuilder idleIndicator() {
@@ -84,6 +107,8 @@ public record IndicatorConfiguration(boolean enabled,
 
         public void extend(IndicatorConfigurationBuilder parent) {
             if (enabled == null) enabled = parent.enabled;
+            if (fadeAnimationEnabled == null) fadeAnimationEnabled = parent.fadeAnimationEnabled;
+            if (fadeAnimationDuration == null) fadeAnimationDuration = parent.fadeAnimationDuration;
             idleIndicator.extend(parent.idleIndicator);
             moveIndicator.extend(parent.moveIndicator);
             wheelIndicator.extend(parent.wheelIndicator);
@@ -113,6 +138,8 @@ public record IndicatorConfiguration(boolean enabled,
                 builderByName(rule.targetFieldNames().getFirst())
                         .extend(builderByName(rule.sourceFieldNames().getFirst()));
             return new IndicatorConfiguration(enabled,
+                    fadeAnimationEnabled,
+                    fadeAnimationDuration,
                     idleIndicator.build(),
                     moveIndicator.build(),
                     wheelIndicator.build(),

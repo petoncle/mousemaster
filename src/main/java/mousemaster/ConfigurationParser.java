@@ -167,7 +167,9 @@ public class ConfigurationParser {
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
                 new IndicatorConfigurationBuilder();
-        indicator.enabled(false);
+        indicator.enabled(false)
+                 .fadeAnimationEnabled(true)
+                 .fadeAnimationDuration(Duration.ofMillis(100));
         // Defaults are set on idle indicator; other states inherit during build.
         IndicatorBuilder idleIndicator = indicator.idleIndicator();
         idleIndicator.size(26)
@@ -175,7 +177,7 @@ public class ConfigurationParser {
                      .hexColor("#FF0000")
                      .opacity(0.2)
                      .position(IndicatorPosition.CENTER);
-        idleIndicator.outerOutline()
+         idleIndicator.outerOutline()
                      .thickness(0)
                      .hexColor("#FF0000")
                      .opacity(1.0)
@@ -1034,6 +1036,14 @@ public class ConfigurationParser {
                                 defaultComboMoveDuration, keyAliases, appAliases,
                                 keyResolver, allVariableNames))
                             handler.modeBuilderSetter().accept(propertyValue);
+                    }
+                    else if (stateOrKey.equals("fade-animation-enabled")) {
+                        mode.indicator.builder.fadeAnimationEnabled(
+                                Boolean.parseBoolean(propertyValue));
+                    }
+                    else if (stateOrKey.equals("fade-animation-duration-millis")) {
+                        mode.indicator.builder.fadeAnimationDuration(
+                                Duration.ofMillis(Integer.parseInt(propertyValue)));
                     }
                     else {
                         String subKey = keyMatcher.group(group5);

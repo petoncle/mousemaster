@@ -847,7 +847,7 @@
 {
   "name":"mousemaster.IndicatorConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator"] }, {"name":"enabled","parameterTypes":[] }, {"name":"idleIndicator","parameterTypes":[] }, {"name":"leftMousePressIndicator","parameterTypes":[] }, {"name":"middleMousePressIndicator","parameterTypes":[] }, {"name":"mousePressIndicator","parameterTypes":[] }, {"name":"moveIndicator","parameterTypes":[] }, {"name":"rightMousePressIndicator","parameterTypes":[] }, {"name":"unhandledKeyPressIndicator","parameterTypes":[] }, {"name":"wheelIndicator","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","java.time.Duration","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator","mousemaster.Indicator"] }, {"name":"enabled","parameterTypes":[] }, {"name":"fadeAnimationDuration","parameterTypes":[] }, {"name":"fadeAnimationEnabled","parameterTypes":[] }, {"name":"idleIndicator","parameterTypes":[] }, {"name":"leftMousePressIndicator","parameterTypes":[] }, {"name":"middleMousePressIndicator","parameterTypes":[] }, {"name":"mousePressIndicator","parameterTypes":[] }, {"name":"moveIndicator","parameterTypes":[] }, {"name":"rightMousePressIndicator","parameterTypes":[] }, {"name":"unhandledKeyPressIndicator","parameterTypes":[] }, {"name":"wheelIndicator","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.IndicatorOutline",

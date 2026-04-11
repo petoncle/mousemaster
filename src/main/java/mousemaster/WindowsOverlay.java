@@ -35,6 +35,7 @@ public class WindowsOverlay {
     private static boolean showingIndicator;
     private static Indicator currentIndicator;
     private static int maxIndicatorShadowPadding;
+    private static FadeAnimator indicatorFadeAnimator;
     private static GridWindow gridWindow, standByGridWindow;
     private static boolean standByGridCanBeHidden;
     private static boolean showingGrid;
@@ -57,12 +58,7 @@ public class WindowsOverlay {
     private static QPixmap screenshotPixmap;
     private static boolean screenshotAnimating;
     private static boolean screenshotPendingHide;
-    // Hint mesh fade animation fields.
-    private static QVariantAnimation hintMeshFadeAnimation;
-    private static boolean hintMeshFadingOut;
-    private static boolean hintMeshFadeAnimationEnabled;
-    private static Duration hintMeshFadeAnimationDuration;
-    private static final Easing HINT_MESH_FADE_EASING = new Easing.Smootherstep();
+    private static FadeAnimator hintMeshFadeAnimator;
     /**
      * Building the hint window is expensive and when it is done from the keyboard hook,
      * Windows will cancel the hook and the key press will go through to the other apps.
@@ -1726,42 +1722,6 @@ public class WindowsOverlay {
         }
     }
 
-    public static class FadeAnimationValueChanged implements QMetaObject.Slot1<Object> {
-
-        private final boolean fadeOut;
-
-        public FadeAnimationValueChanged(boolean fadeOut) {
-            this.fadeOut = fadeOut;
-        }
-
-        @Override
-        public void invoke(Object arg) {
-            double t = HINT_MESH_FADE_EASING.apply((Double) arg);
-            double opacity = fadeOut ? 1.0 - t : t;
-            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
-                hintMeshWindow.window.setWindowOpacity(opacity);
-        }
-    }
-
-    public static class FadeAnimationFinished implements QMetaObject.Slot0 {
-
-        private final boolean fadeOut;
-
-        public FadeAnimationFinished(boolean fadeOut) {
-            this.fadeOut = fadeOut;
-        }
-
-        @Override
-        public void invoke() {
-            if (fadeOut) {
-                hideHintMesh();
-            }
-            else {
-                for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
-                    hintMeshWindow.window.setWindowOpacity(1.0);
-            }
-        }
-    }
 
     private static QVariantAnimation hintContainerAnimation(QRect beginRect,
                                                             QRect endRect,
@@ -3815,11 +3775,18 @@ public class WindowsOverlay {
                (int) Math.round(blue * opacity);
     }
 
-    public static void setIndicator(Indicator indicator) {
+    public static void setIndicator(Indicator indicator,
+                                    boolean fadeAnimationEnabled,
+                                    Duration fadeAnimationDuration) {
         Objects.requireNonNull(indicator);
         if (showingIndicator && currentIndicator != null &&
             currentIndicator.equals(indicator))
             return;
+        boolean wasShowing = showingIndicator;
+        // If re-showing during a fade-out, cancel the fade-out.
+        if (indicatorFadeAnimator != null && indicatorFadeAnimator.isFadingOut()) {
+            indicatorFadeAnimator.cancelAndResetOpacity();
+        }
         Indicator oldIndicator = currentIndicator;
         currentIndicator = indicator;
         boolean created = indicatorWindow == null;
@@ -3906,6 +3873,17 @@ public class WindowsOverlay {
         }
         indicatorWindow.window.show();
         indicatorWindow.widget.repaint();
+        if (!wasShowing) {
+            indicatorFadeAnimator = new FadeAnimator(
+                    opacity -> indicatorWindow.window.setWindowOpacity(opacity),
+                    WindowsOverlay::doHideIndicator,
+                    fadeAnimationEnabled,
+                    fadeAnimationDuration);
+            if (indicatorFadeAnimator.isEnabled()) {
+                indicatorWindow.window.setWindowOpacity(0.0);
+                indicatorFadeAnimator.startFadeIn();
+            }
+        }
     }
 
     private static void createScreenshotWindow() {
@@ -4283,11 +4261,20 @@ public class WindowsOverlay {
     public static void hideIndicator() {
         if (!showingIndicator)
             return;
+        if (indicatorFadeAnimator != null && indicatorFadeAnimator.shouldDeferHide())
+            return;
+        doHideIndicator();
+    }
+
+    private static void doHideIndicator() {
         showingIndicator = false;
+        if (indicatorFadeAnimator != null)
+            indicatorFadeAnimator.cancel();
         // Paint the surface fully transparent before hiding.
         indicatorWindow.widget.cleared = true;
         indicatorWindow.widget.repaint();
         indicatorWindow.window.hide();
+        indicatorWindow.window.setWindowOpacity(1.0);
     }
 
     public static void setGrid(Grid grid) {
@@ -4384,15 +4371,8 @@ public class WindowsOverlay {
             return;
         boolean wasShowing = showingHintMesh;
         // If re-showing during a fade-out, cancel the fade-out.
-        if (hintMeshFadingOut) {
-            if (hintMeshFadeAnimation != null) {
-                hintMeshFadeAnimation.stop();
-                hintMeshFadeAnimation.dispose();
-                hintMeshFadeAnimation = null;
-            }
-            hintMeshFadingOut = false;
-            for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
-                hintMeshWindow.window.setWindowOpacity(1.0);
+        if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.isFadingOut()) {
+            hintMeshFadeAnimator.cancelAndResetOpacity();
         }
         if (hintMesh.hints().isEmpty()) {
             currentHintMesh = hintMesh;
@@ -4428,22 +4408,18 @@ public class WindowsOverlay {
                     hintMeshWindows.entrySet().iterator().next();
             HintMeshStyle style = currentHintMesh.styleByFilter()
                     .get(ViewportFilter.of(firstEntry.getKey()));
-            hintMeshFadeAnimationEnabled = style.fadeAnimationEnabled();
-            hintMeshFadeAnimationDuration = style.fadeAnimationDuration();
-            if (hintMeshFadeAnimationEnabled) {
+            hintMeshFadeAnimator = new FadeAnimator(
+                    opacity -> {
+                        for (HintMeshWindow w : hintMeshWindows.values())
+                            w.window.setWindowOpacity(opacity);
+                    },
+                    WindowsOverlay::doHideHintMesh,
+                    style.fadeAnimationEnabled(),
+                    style.fadeAnimationDuration());
+            if (hintMeshFadeAnimator.isEnabled()) {
                 for (HintMeshWindow w : hintMeshWindows.values())
                     w.window.setWindowOpacity(0.0);
-                hintMeshFadeAnimation = new QVariantAnimation();
-                hintMeshFadeAnimation.setStartValue(0.0);
-                hintMeshFadeAnimation.setEndValue(1.0);
-                hintMeshFadeAnimation.setDuration((int) hintMeshFadeAnimationDuration.toMillis());
-                hintMeshFadeAnimation.setEasingCurve(QEasingCurve.Type.Linear);
-                FadeAnimationValueChanged valueChanged =
-                        new FadeAnimationValueChanged(false);
-                hintMeshFadeAnimation.valueChanged.connect(valueChanged);
-                FadeAnimationFinished finished = new FadeAnimationFinished(false);
-                hintMeshFadeAnimation.finished.connect(finished);
-                hintMeshFadeAnimation.start();
+                hintMeshFadeAnimator.startFadeIn();
             }
         }
         if (!waitForZoomBeforeRepainting) {
@@ -4460,41 +4436,20 @@ public class WindowsOverlay {
         requestWindowRepaint(gridWindow.hwnd);
     }
 
-    public static void  hideHintMesh() {
+    public static void hideHintMesh() {
         if (!showingHintMesh)
             return;
         if (hintMeshEndAnimation)
             return;
-        // Start fade-out if enabled and not already fading out.
-        if (hintMeshFadeAnimationEnabled && !hintMeshFadingOut) {
-            // Cancel any in-progress fade-in.
-            if (hintMeshFadeAnimation != null) {
-                hintMeshFadeAnimation.stop();
-                hintMeshFadeAnimation.dispose();
-                hintMeshFadeAnimation = null;
-            }
-            hintMeshFadingOut = true;
-            hintMeshFadeAnimation = new QVariantAnimation();
-            hintMeshFadeAnimation.setStartValue(0.0);
-            hintMeshFadeAnimation.setEndValue(1.0);
-            hintMeshFadeAnimation.setDuration((int) hintMeshFadeAnimationDuration.toMillis());
-            hintMeshFadeAnimation.setEasingCurve(QEasingCurve.Type.Linear);
-            FadeAnimationValueChanged valueChanged =
-                    new FadeAnimationValueChanged(true);
-            hintMeshFadeAnimation.valueChanged.connect(valueChanged);
-            FadeAnimationFinished finished = new FadeAnimationFinished(true);
-            hintMeshFadeAnimation.finished.connect(finished);
-            hintMeshFadeAnimation.start();
+        if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.shouldDeferHide())
             return;
-        }
+        doHideHintMesh();
+    }
+
+    private static void doHideHintMesh() {
         showingHintMesh = false;
-        // Stop and dispose fade animation.
-        if (hintMeshFadeAnimation != null) {
-            hintMeshFadeAnimation.stop();
-            hintMeshFadeAnimation.dispose();
-            hintMeshFadeAnimation = null;
-        }
-        hintMeshFadingOut = false;
+        if (hintMeshFadeAnimator != null)
+            hintMeshFadeAnimator.cancel();
         // Cancel any pending build/cache runnables that reference containers
         // about to be hidden. Otherwise container.grab() in the next update()
         // would paint a destroyed widget, causing a native _purecall crash.
