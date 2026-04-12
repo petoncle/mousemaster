@@ -12,22 +12,31 @@ public class IndicatorManager implements ModeListener {
     }
 
     public void update(double delta) {
-        if (currentMode.indicator().enabled()) {
-            Indicator indicator = activeIndicator();
-            if (indicator.hexColor() == null)
-                WindowsOverlay.hideIndicator();
-            else
-                WindowsOverlay.setIndicator(indicator,
-                        currentMode.indicator().fadeAnimationEnabled(),
-                        currentMode.indicator().fadeAnimationDuration());
-        }
-        else
-            WindowsOverlay.hideIndicator();
+        updateIndicator(true);
     }
 
     @Override
     public void modeChanged(Mode newMode) {
+        // Skip the fade animation when the zoom is about to change.
+        boolean allowFade = currentMode == null ||
+                            currentMode.zoom().equals(newMode.zoom());
         currentMode = newMode;
+        updateIndicator(allowFade);
+    }
+
+    private void updateIndicator(boolean allowFade) {
+        if (currentMode.indicator().enabled()) {
+            Indicator indicator = activeIndicator();
+            if (indicator.hexColor() == null)
+                WindowsOverlay.hideIndicator(allowFade);
+            else
+                WindowsOverlay.setIndicator(indicator,
+                        currentMode.indicator().fadeAnimationEnabled(),
+                        currentMode.indicator().fadeAnimationDuration(),
+                        allowFade);
+        }
+        else
+            WindowsOverlay.hideIndicator(allowFade);
     }
 
     @Override

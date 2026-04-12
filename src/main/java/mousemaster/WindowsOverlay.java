@@ -3777,7 +3777,8 @@ public class WindowsOverlay {
 
     public static void setIndicator(Indicator indicator,
                                     boolean fadeAnimationEnabled,
-                                    Duration fadeAnimationDuration) {
+                                    Duration fadeAnimationDuration,
+                                    boolean allowFade) {
         Objects.requireNonNull(indicator);
         if (showingIndicator && currentIndicator != null &&
             currentIndicator.equals(indicator))
@@ -3879,7 +3880,7 @@ public class WindowsOverlay {
                     WindowsOverlay::doHideIndicator,
                     fadeAnimationEnabled,
                     fadeAnimationDuration);
-            if (indicatorFadeAnimator.isEnabled()) {
+            if (allowFade && indicatorFadeAnimator.isEnabled()) {
                 indicatorWindow.window.setWindowOpacity(0.0);
                 indicatorFadeAnimator.startFadeIn();
             }
@@ -4258,10 +4259,11 @@ public class WindowsOverlay {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    public static void hideIndicator() {
+    public static void hideIndicator(boolean allowFade) {
         if (!showingIndicator)
             return;
-        if (indicatorFadeAnimator != null && indicatorFadeAnimator.shouldDeferHide())
+        if (allowFade && indicatorFadeAnimator != null &&
+            indicatorFadeAnimator.shouldDeferHide())
             return;
         doHideIndicator();
     }

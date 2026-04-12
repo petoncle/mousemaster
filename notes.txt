@@ -213,3 +213,8 @@
   - set/unset variables? .set-var.ishintnomove=+/ .unset-var.ishintnomove=-/
   - Used in combos as variable precondition: _{ishintmove !ishintlclick}, or _{ishintlclick | ishintrclick | ishintmclick}
 + Get rid of lastHintCommandSupercedesOtherCommands. This is too much magic.
+
++ Add transition anim for grid, and labels (with a size list per level, e.g. font-sizes=72 32 8), and background color (like hints)
+ + Label text = last press key of e.g. screen-grid-mode.shrink-grid.down=^{leftshift leftctrl} +down
+  + Should reuse HintLabel or even HintBox? Want same features: color, shadow, outline, etc.
+  + Unlike hint transition animation, grid animation should draw grid with an animated shrinking width/height. Not screenshot-based anim

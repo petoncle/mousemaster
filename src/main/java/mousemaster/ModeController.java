@@ -62,6 +62,8 @@ public class ModeController implements ComboListener {
         boolean hideCursorEnabled = mutatedMode.hideCursor().enabled();
         if (!previousHideCursorEnabled && hideCursorEnabled)
             resetHideCursorTimer(mutatedMode);
+        else if (previousHideCursorEnabled && !hideCursorEnabled)
+            resetCurrentModeCursorHidden(mutatedMode);
         previousHideCursorEnabled = hideCursorEnabled;
         if (mustResetHideCursorTimeout) {
             resetHideCursorTimer(mutatedMode);
