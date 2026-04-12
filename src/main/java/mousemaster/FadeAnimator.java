@@ -88,7 +88,7 @@ class FadeAnimator {
     private void disposeAnimation() {
         if (animation != null) {
             animation.stop();
-            animation.dispose();
+            animation.disposeLater();
             animation = null;
         }
     }

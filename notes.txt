@@ -218,3 +218,5 @@
  + Label text = last press key of e.g. screen-grid-mode.shrink-grid.down=^{leftshift leftctrl} +down
   + Should reuse HintLabel or even HintBox? Want same features: color, shadow, outline, etc.
   + Unlike hint transition animation, grid animation should draw grid with an animated shrinking width/height. Not screenshot-based anim
+
++ Optional hint3 zoom?
