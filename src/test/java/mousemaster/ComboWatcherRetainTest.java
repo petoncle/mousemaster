@@ -43,11 +43,15 @@ class ComboWatcherRetainTest {
     }
 
     static Duration retainDuration(String... comboStrings) {
-        return ComboWatcher.comboPreparationRetainDuration(modeMap(comboStrings));
+        ModeMap modeMap = modeMap(comboStrings);
+        return ComboWatcher.comboPreparationRetainDurationByMode(modeMap)
+                           .values().iterator().next();
     }
 
     static int retainEventCount(String... comboStrings) {
-        return ComboWatcher.comboPreparationMinRetainEventCount(modeMap(comboStrings));
+        ModeMap modeMap = modeMap(comboStrings);
+        return ComboWatcher.comboPreparationMinRetainEventCountByMode(modeMap)
+                           .values().iterator().next();
     }
 
     // ===== comboPreparationRetainDuration tests =====

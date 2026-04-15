@@ -152,6 +152,7 @@ public class KeyboardManager {
                 if (pressingUnhandledKeyInCurrentMode())
                     hadUnhandledKeyPressInCurrentMode = true;
                 macroPlayer.clearEarlyRelease(key);
+                macroPlayer.clearDeferredRelease(key);
                 if (processingSet.mustBeEaten()) {
                     eatenKeys.put(key, new Eat(false, processingSet));
                 }
@@ -232,9 +233,20 @@ public class KeyboardManager {
                     }
                     PressKeyEventProcessingSet pressedProcessingSet = currentlyPressedKeys.remove(key);
 //                    logger.info("Removed key " + key, new Exception());
-                    boolean mustBeEaten =
-                            !macroPlayer.isKeyPressedByMacro(key) &&
-                            pressedProcessingSet.mustBeEaten();
+                    boolean macroHoldsKey = macroPlayer.isKeyPressedByMacro(key);
+                    boolean mustBeEaten;
+                    if (macroHoldsKey && macroPlayer.macroInProgress()) {
+                        // Macro is still executing — eat the release and defer it
+                        // so the key stays held for subsequent macro parallels.
+                        mustBeEaten = pressedProcessingSet.mustBeEaten();
+                        if (mustBeEaten)
+                            macroPlayer.deferUserRelease(key);
+                    }
+                    else {
+                        mustBeEaten =
+                                !macroHoldsKey &&
+                                pressedProcessingSet.mustBeEaten();
+                    }
                     // Track released eaten keys that are part of a partial combo
                     // for future regurgitation if the combo fails.
                     if (mustBeEaten &&

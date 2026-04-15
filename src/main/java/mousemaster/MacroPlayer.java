@@ -42,6 +42,13 @@ public class MacroPlayer {
      * that a subsequent macro press is not incorrectly treated as a noop.
      */
     private final Set<Key> macroReleasedKeys = new HashSet<>();
+    /**
+     * Keys where the user physically released the key while the macro held it
+     * and the macro was still in progress. The release is eaten (deferred) to
+     * keep the key held for subsequent macro parallels. When the macro finishes,
+     * these keys are released at the OS level.
+     */
+    private final Set<Key> deferredUserReleases = new HashSet<>();
 
     public MacroPlayer(PlatformClock clock, ComboWatcher comboWatcher,
                        KeyboardManager keyboardManager) {
@@ -93,6 +100,7 @@ public class MacroPlayer {
         if (macroInProgress.currentIndex ==
             macroInProgress.macro.output().parallels().size() - 1) {
             macroInProgress = null;
+            processDeferredReleases();
         }
     }
 
@@ -117,6 +125,7 @@ public class MacroPlayer {
         keysPressedByMacroDuringCurrentTick.clear();
         earlyReleasedKeys.clear();
         macroReleasedKeys.clear();
+        deferredUserReleases.clear();
     }
 
     public void keyPressedNotEaten(Key key) {
@@ -140,6 +149,43 @@ public class MacroPlayer {
     public boolean isKeyPressedByMacro(Key key) {
         return keysPressedByMacro.contains(key) &&
                !keysPressedByMacroDuringCurrentTick.contains(key);
+    }
+
+    /**
+     * Records that the user physically released a key while the macro held it
+     * and was still in progress. The actual OS release is deferred until the
+     * macro finishes.
+     */
+    public void deferUserRelease(Key key) {
+        deferredUserReleases.add(key);
+    }
+
+    /**
+     * Clears a deferred release (e.g. when the user re-presses the key).
+     */
+    public void clearDeferredRelease(Key key) {
+        deferredUserReleases.remove(key);
+    }
+
+    /**
+     * After the macro finishes, release keys that the user physically released
+     * while the macro was in progress.
+     */
+    private void processDeferredReleases() {
+        if (deferredUserReleases.isEmpty())
+            return;
+        List<ResolvedMacroMove> releases = new ArrayList<>();
+        for (Key key : deferredUserReleases) {
+            if (keysPressedByMacro.remove(key)) {
+                releases.add(new ResolvedKeyMacroMove(key, false,
+                        MacroMoveDestination.OS));
+            }
+        }
+        deferredUserReleases.clear();
+        if (!releases.isEmpty()) {
+            logger.debug("Processing deferred user releases: " + releases);
+            WindowsKeyboard.sendInputMoves(releases, false);
+        }
     }
 
     public void recordEarlyRelease(Key key) {
@@ -185,6 +231,7 @@ public class MacroPlayer {
             if (macroInProgress.currentIndex ==
                 macroInProgress.macro.output().parallels().size() - 1) {
                 macroInProgress = null;
+                processDeferredReleases();
                 return;
             }
             macroInProgress.currentIndex++;

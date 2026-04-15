@@ -75,12 +75,14 @@ public class ComboWatcher {
     private Map<Combo, Instant> leadingWaitBeginTimeByCombo = new HashMap<>();
     private App lastActiveApp;
 
-    private final Duration comboPreparationRetainDuration;
-    private final int comboPreparationMinRetainEventCount;
+    private final Map<Mode, Duration> comboPreparationRetainDurationByMode;
+    private final Map<Mode, Integer> comboPreparationMinRetainEventCountByMode;
 
-    static Duration comboPreparationRetainDuration(ModeMap modeMap) {
-        Duration max = Duration.ZERO;
+    static Map<Mode, Duration> comboPreparationRetainDurationByMode(ModeMap modeMap) {
+        Map<Mode, Duration> result = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
+            Duration max = Duration.ZERO;
+            boolean unbounded = false;
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 List<MoveSet> moveSets = combo.sequence().moveSets();
                 if (moveSets.stream()
@@ -116,19 +118,24 @@ public class ComboWatcher {
                         // Non-trailing unbounded wait: time span is unbounded,
                         // so time-based trimming cannot be used.
                         logger.warn("Combo " + combo + " has unbounded wait");
-                        return null;
+                        unbounded = true;
+                        break;
                     }
                 }
+                if (unbounded)
+                    break;
                 if (waitDurationSum.compareTo(max) > 0)
                     max = waitDurationSum;
             }
+            result.put(mode, unbounded ? null : max);
         }
-        return max;
+        return result;
     }
 
-    static int comboPreparationMinRetainEventCount(ModeMap modeMap) {
-        int max = 0;
+    static Map<Mode, Integer> comboPreparationMinRetainEventCountByMode(ModeMap modeMap) {
+        Map<Mode, Integer> result = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
+            int max = 0;
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 int comboEventCount = 0;
                 for (MoveSet moveSet : combo.sequence().moveSets())
@@ -136,8 +143,9 @@ public class ComboWatcher {
                 if (comboEventCount > max)
                     max = comboEventCount;
             }
+            result.put(mode, max);
         }
-        return max;
+        return result;
     }
 
     public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
@@ -155,13 +163,18 @@ public class ComboWatcher {
         this.pressedComboPreconditionKeys =
                 pressedComboPreconditionKeys;
         this.logRedactKeys = logRedactKeys;
-        this.comboPreparationRetainDuration = comboPreparationRetainDuration(modeMap);
-        this.comboPreparationMinRetainEventCount = comboPreparationMinRetainEventCount(modeMap);
-        logger.debug("Combo preparation will retain events from the last " +
-                     (comboPreparationRetainDuration != null
-                             ? comboPreparationRetainDuration.toMillis() + "ms"
-                             : "unlimited") +
-                     ", min " + comboPreparationMinRetainEventCount + " events");
+        this.comboPreparationRetainDurationByMode = comboPreparationRetainDurationByMode(modeMap);
+        this.comboPreparationMinRetainEventCountByMode = comboPreparationMinRetainEventCountByMode(modeMap);
+        for (Mode mode : modeMap.modes()) {
+            Duration retainDuration = comboPreparationRetainDurationByMode.get(mode);
+            int minRetainEventCount = comboPreparationMinRetainEventCountByMode.get(mode);
+            logger.debug("Combo preparation for " + mode.name() +
+                         " will retain events from the last " +
+                         (retainDuration != null
+                                 ? retainDuration.toMillis() + "ms"
+                                 : "unlimited") +
+                         ", min " + minRetainEventCount + " events");
+        }
         this.comboPreparation = ComboPreparation.empty();
         Map<Mode, Set<Key>> preconditionKeysByMode = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
@@ -505,11 +518,13 @@ public class ComboWatcher {
         }
         comboPreparation.events().add(event);
         List<KeyEvent> preparationEvents = comboPreparation.events();
-        if (comboPreparationRetainDuration != null &&
-            preparationEvents.size() > comboPreparationMinRetainEventCount) {
-            Instant cutoff = event.time().minus(comboPreparationRetainDuration);
+        Duration retainDuration = comboPreparationRetainDurationByMode.get(baseMode);
+        int minRetainEventCount = comboPreparationMinRetainEventCountByMode.getOrDefault(baseMode, 0);
+        if (retainDuration != null &&
+            preparationEvents.size() > minRetainEventCount) {
+            Instant cutoff = event.time().minus(retainDuration);
             int trimIndex = 0;
-            int maxTrim = preparationEvents.size() - comboPreparationMinRetainEventCount;
+            int maxTrim = preparationEvents.size() - minRetainEventCount;
             while (trimIndex < maxTrim &&
                    preparationEvents.get(trimIndex).time().isBefore(cutoff)) {
                 trimIndex++;
