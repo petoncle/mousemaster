@@ -74,6 +74,24 @@ public sealed interface Command {
 
     record MutateMode(String modeName, ModePropertyPath propertyPath, Object newPropertyValue, Combo combo) implements Command {
         @Override
+        public boolean equals(Object o) {
+            // Ignore combo.
+            if (this == o) return true;
+            if (!(o instanceof MutateMode m)) return false;
+            return modeName.equals(m.modeName) &&
+                   propertyPath.equals(m.propertyPath) &&
+                   newPropertyValue.equals(m.newPropertyValue);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = modeName.hashCode();
+            h = 31 * h + propertyPath.hashCode();
+            h = 31 * h + newPropertyValue.hashCode();
+            return h;
+        }
+
+        @Override
         public String toString() {
             return "MutateMode[" + propertyPath + "=" + newPropertyValue + "]";
         }
