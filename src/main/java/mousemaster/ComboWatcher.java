@@ -361,7 +361,7 @@ public class ComboWatcher {
                 completedComboAndCommands.stream()
                                          .map(cac -> new ComboAndMatch(cac.combo, cac.match))
                                          .collect(Collectors.toCollection(ArrayList::new));
-        if (!completedCombosCommands.isEmpty()) {
+        if (!completedCombosCommands.isEmpty() && logger.isDebugEnabled()) {
             logger.debug(
                     "Completed asynchronous combos, mode = " +
                     baseMode.name() + ", completedCombos = " +
@@ -838,11 +838,12 @@ public class ComboWatcher {
                 if (ignoreSwitchModeAndHintCommands &&
                     commands.stream()
                             .anyMatch(switchModeOrHintPredicate)) {
-                    logger.debug(
-                            "Ignoring the following commands because the mode was just changed to " +
-                            baseMode.name() + ": " + commands.stream()
-                                                                .filter(switchModeOrHintPredicate)
-                                                                .toList());
+                    if (logger.isDebugEnabled())
+                        logger.debug(
+                                "Ignoring the following commands because the mode was just changed to " +
+                                baseMode.name() + ": " + commands.stream()
+                                                                    .filter(switchModeOrHintPredicate)
+                                                                    .toList());
                     commands = commands.stream()
                                        .filter(Predicate.not(
                                                switchModeOrHintPredicate))
@@ -864,25 +865,27 @@ public class ComboWatcher {
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
         long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
-        List<String> comboStrings = processingByCombo.entrySet().stream()
-                                                     .filter(e -> e.getValue()
-                                                                   .isPartOfComboSequence())
-                                                     .map(Map.Entry::getKey)
-                                                     .map(combo ->
-                                                             logger.isTraceEnabled() ?
-                                                                     combo.toString() :
-                                                                     combo.label())
-                                                     .toList();
-        logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
-                     "ms, mode = " + beforeCommandsMode.name() +
-                     ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
-                     ", event = " + (logRedactKeys ? "<redacted>" : event) +
-                     ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
-                     ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
-                     ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
-                     ", combos = " + comboStrings +
-                     ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
-                     completeCombosCommandsToRun);
+        if (logger.isDebugEnabled()) {
+            List<String> comboStrings = processingByCombo.entrySet().stream()
+                                                         .filter(e -> e.getValue()
+                                                                       .isPartOfComboSequence())
+                                                         .map(Map.Entry::getKey)
+                                                         .map(combo ->
+                                                                 logger.isTraceEnabled() ?
+                                                                         combo.toString() :
+                                                                         combo.label())
+                                                         .toList();
+            logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
+                         "ms, mode = " + beforeCommandsMode.name() +
+                         ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
+                         ", event = " + (logRedactKeys ? "<redacted>" : event) +
+                         ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
+                         ", comboPreparation = " + (logRedactKeys ? "<redacted>" : comboPreparation.toString()) +
+                         ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
+                         ", combos = " + comboStrings +
+                         ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
+                         completeCombosCommandsToRun);
+        }
         if (!comboAndCommandsToRun.isEmpty()) {
             comboListeners.forEach(ComboListener::completedCombo);
             // Add completed combo keys before running commands so that if a
