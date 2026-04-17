@@ -606,7 +606,7 @@ public class ComboWatcher {
     private PressKeyEventProcessingSet processKeyEventForCurrentMode(
             KeyEvent event,
             boolean ignoreSwitchModeAndHintCommands) {
-        long before = System.nanoTime();
+        long beforeNanos = System.nanoTime();
         Mode beforeCommandsMode = baseMode;
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
         Map<Combo, ComboSequenceMatch> matchByCombo = new HashMap<>();
@@ -617,17 +617,26 @@ public class ComboWatcher {
         ComboMoveDuration newComboDuration = null;
         // Union of ignored wait moves across all partially-matching combos.
         List<WaitComboMove> newIgnoredWaitMoves = null;
+        int matchCallCount = 0;
+        long totalMatchNanos = 0;
+        long totalPreMatchNanos = 0;
+        long totalPostMatchNanos = 0;
+        Instant now = clock.now();
+        long activeAppBeforeNanos = System.nanoTime();
+        App activeApp = activeAppFinder.activeApp();
+        long activeAppMs = (long) ((System.nanoTime() - activeAppBeforeNanos) / 1e6);
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
                                                              .commandsByCombo()
                                                              .entrySet()) {
             // When a precondition key is pressed, and another key is pressed,
             // that other key should be processed only for combos that
             // contains the pressed precondition key.
+            long comboIterationStartNanos = System.nanoTime();
             Combo combo = entry.getKey();
             List<Command> comboCommands = entry.getValue();
             if (!combo.precondition()
                       .appPrecondition()
-                      .satisfied(activeAppFinder.activeApp()))
+                      .satisfied(activeApp))
                 continue;
             if (combo.sequence().isEmpty() &&
                 (!combo.precondition().appPrecondition().isEmpty() ||
@@ -670,7 +679,6 @@ public class ComboWatcher {
                 }
                 WaitComboMove leadingWait =
                         ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
-                Instant now = clock.now();
                 // Fallback: no prior non-ignored events means the wait is
                 // trivially satisfied (no interrupting keys ever occurred).
                 // Use now minus min duration so beginTime + min <= now.
@@ -686,7 +694,13 @@ public class ComboWatcher {
                     continue;
                 }
             }
+            totalPreMatchNanos += System.nanoTime() - comboIterationStartNanos;
+            matchCallCount++;
+            long matchBeforeNanos = System.nanoTime();
             ComboSequenceMatch match = comboPreparation.match(combo.sequence());
+            long matchElapsedNanos = System.nanoTime() - matchBeforeNanos;
+            totalMatchNanos += matchElapsedNanos;
+            long postMatchStartNanos = System.nanoTime();
             ResolvedKeyComboMove currentKeyMove = match.hasMatch() ?
                     match.lastMatchedKeyMove() : null;
             // If the combo has no explicit pressed precondition, we ignore the
@@ -867,19 +881,24 @@ public class ComboWatcher {
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
                 comboAndCommandsToRun.add(comboAndCommands);
             }
+            totalPostMatchNanos += System.nanoTime() - postMatchStartNanos;
         }
         if (newComboDuration != null) {
             previousComboMoveDuration = newComboDuration;
             ignoredWaitMoves = newIgnoredWaitMoves;
         }
+        long afterLoopNanos = System.nanoTime();
         List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
         commandsWaitingForAtomicCommandToComplete.clear();
         List<Command> completeCombosCommandsToRun =
                 longestComboCommandsLastAndDeduplicate(comboAndCommandsToRun);
         commandsToRun.addAll(completeCombosCommandsToRun);
+        long afterDeduplicateNanos = System.nanoTime();
         PressKeyEventProcessingSet processingSet =
                 new PressKeyEventProcessingSet(processingByCombo, matchByCombo);
-        long processKeyEventDurationMs = (long) ((System.nanoTime() - before) / 1e6);
+        long processKeyEventDurationMs = (long) ((System.nanoTime() - beforeNanos) / 1e6);
+        long loopMs = (long) ((afterLoopNanos - beforeNanos) / 1e6);
+        long deduplicateMs = (long) ((afterDeduplicateNanos - afterLoopNanos) / 1e6);
         if (logger.isDebugEnabled()) {
             List<String> comboStrings = processingByCombo.entrySet().stream()
                                                          .filter(e -> e.getValue()
@@ -893,9 +912,14 @@ public class ComboWatcher {
             String comboPreparationString = logRedactKeys ? "<redacted>" :
                     logger.isTraceEnabled() ? comboPreparation.toString() :
                     comboPreparation.events().size() + " events";
+            long totalMatchMs = (long) (totalMatchNanos / 1e6);
+            long preMatchMs = (long) (totalPreMatchNanos / 1e6);
+            long postMatchMs = (long) (totalPostMatchNanos / 1e6);
             logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
-                         "ms, mode = " + beforeCommandsMode.name() +
+                         "ms (loop=" + loopMs + "ms, activeApp=" + activeAppMs + "ms, pre=" + preMatchMs + "ms, match=" + totalMatchMs + "ms, post=" + postMatchMs + "ms, deduplicate=" + deduplicateMs + "ms)" +
+                         ", mode = " + beforeCommandsMode.name() +
                          ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
+                         ", matchCalls = " + matchCallCount +
                          ", event = " + (logRedactKeys ? "<redacted>" : event) +
                          ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
                          ", comboPreparation = " + comboPreparationString +
@@ -914,7 +938,11 @@ public class ComboWatcher {
                         currentlyPressedKeys, comboAndCommands.match);
             }
         }
+        long beforeRunCommandsNanos = System.nanoTime();
         runCommands(commandsToRun);
+        long runCommandsMs = (long) ((System.nanoTime() - beforeRunCommandsNanos) / 1e6);
+        if (runCommandsMs > 0 && logger.isDebugEnabled())
+            logger.debug("runCommands took " + runCommandsMs + "ms");
         return processingSet;
     }
 
