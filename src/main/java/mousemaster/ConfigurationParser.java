@@ -3357,7 +3357,7 @@ public class ConfigurationParser {
 
             private ComboMapProperty(String name, String mode,
                                      Map<PropertyKey, Property<?>> propertyByKey) {
-                super(name, mode, propertyByKey, new HashMap<>());
+                super(name, mode, propertyByKey, new LinkedHashMap<>());
             }
 
             @Override
@@ -3401,7 +3401,7 @@ public class ConfigurationParser {
         }
 
         public Map<Combo, List<Command>> commandsByCombo() {
-            Map<Combo, List<Command>> commandsByCombo = new HashMap<>();
+            Map<Combo, List<Command>> commandsByCombo = new LinkedHashMap<>();
             if (hintSelectCombos != null)
                 add(commandsByCombo, hintSelectCombos.stream().collect(Collectors.toMap(Function.identity(), combo -> List.of(new SelectHintKey()))));
             if (hintUnselectCombos != null)
@@ -3461,7 +3461,7 @@ public class ConfigurationParser {
     private static class Property<T> {
         final PropertyKey propertyKey;
         final T builder;
-        final Map<Combo, List<Command>> mutateModeCommands = new HashMap<>();
+        final Map<Combo, List<Command>> mutateModeCommands = new LinkedHashMap<>();
         final Set<ModePropertyPath> setPropertyPaths = new HashSet<>();
         PropertyKey parentPropertyKey;
 
