@@ -736,7 +736,7 @@ public class ConfigurationParser {
                                         mode.stopCommandsFromPreviousMode.mutateModeCommands,
                                         mode.stopCommandsFromPreviousMode.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
-                                        keyResolver, allVariableNames))
+                                        keyResolver, allVariableNames, null))
                                     builder.set(Boolean.parseBoolean(propertyValue));
                             },
                             childPropertiesByParentProperty,
@@ -751,7 +751,7 @@ public class ConfigurationParser {
                                         mode.pushModeToHistoryStack.mutateModeCommands,
                                         mode.pushModeToHistoryStack.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
-                                        keyResolver, allVariableNames))
+                                        keyResolver, allVariableNames, null))
                                     builder.set(Boolean.parseBoolean(propertyValue));
                             },
                             childPropertiesByParentProperty,
@@ -766,7 +766,7 @@ public class ConfigurationParser {
                                         mode.modeAfterUnhandledKeyPress.mutateModeCommands,
                                         mode.modeAfterUnhandledKeyPress.setPropertyPaths,
                                         defaultComboMoveDuration, keyAliases, appAliases,
-                                        keyResolver, allVariableNames)) {
+                                        keyResolver, allVariableNames, null)) {
                                     modeReferences.add(checkModeReference(propertyValue));
                                     builder.set(propertyValue);
                                 }
@@ -793,7 +793,7 @@ public class ConfigurationParser {
                             mode.mouse.mutateModeCommands,
                             mode.mouse.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver, allVariableNames))
+                            keyResolver, allVariableNames, null))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -818,7 +818,7 @@ public class ConfigurationParser {
                             mode.wheel.mutateModeCommands,
                             mode.wheel.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver, allVariableNames))
+                            keyResolver, allVariableNames, null))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -843,7 +843,7 @@ public class ConfigurationParser {
                             mode.grid.mutateModeCommands,
                             mode.grid.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver, allVariableNames))
+                            keyResolver, allVariableNames, null))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -873,7 +873,7 @@ public class ConfigurationParser {
                                 mode.hintMesh.mutateModeCommands,
                                 mode.hintMesh.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver, allVariableNames))
+                                keyResolver, allVariableNames, viewportFilter))
                             handler.modeBuilderSetter().accept(propertyValue);
                         return;
                     }
@@ -1005,7 +1005,7 @@ public class ConfigurationParser {
                             mode.timeout.mutateModeCommands,
                             mode.timeout.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver, allVariableNames))
+                            keyResolver, allVariableNames, null))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -1034,7 +1034,7 @@ public class ConfigurationParser {
                                 mode.indicator.mutateModeCommands,
                                 mode.indicator.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver, allVariableNames))
+                                keyResolver, allVariableNames, null))
                             handler.modeBuilderSetter().accept(propertyValue);
                     }
                     else if (stateOrKey.equals("fade-animation-enabled")) {
@@ -1127,7 +1127,7 @@ public class ConfigurationParser {
                             mode.hideCursor.mutateModeCommands,
                             mode.hideCursor.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver, allVariableNames))
+                            keyResolver, allVariableNames, null))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -1152,7 +1152,7 @@ public class ConfigurationParser {
                             mode.zoom.mutateModeCommands,
                             mode.zoom.setPropertyPaths,
                             defaultComboMoveDuration, keyAliases, appAliases,
-                            keyResolver, allVariableNames))
+                            keyResolver, allVariableNames, null))
                         handler.modeBuilderSetter().accept(propertyValue);
                 }
             }
@@ -1922,7 +1922,9 @@ public class ConfigurationParser {
                     parentProperty.mutateModeCommands.entrySet()) {
                 for (Command command : entry.getValue()) {
                     if (command instanceof Command.MutateMode mutateMode &&
-                        childPropertyPaths.contains(mutateMode.propertyPath()))
+                        childPropertyPaths.stream().anyMatch(
+                                p -> p.equalsIgnoringViewportFilter(
+                                        mutateMode.propertyPath())))
                         continue;
                     Command adjusted = command;
                     if (command instanceof Command.MutateMode mutateMode) {
@@ -2013,7 +2015,7 @@ public class ConfigurationParser {
                 handler.valueParser(), handler.modeBuilderSetter(), mutateModeCommandMap,
                 setPropertyPaths,
                 defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
-                allVariableNames))
+                allVariableNames, null))
             handler.modeBuilderSetter().accept(propertyValue);
     }
 
@@ -2465,13 +2467,19 @@ public class ConfigurationParser {
             Map<String, KeyAlias> keyAliases,
             Map<String, AppAlias> appAliases,
             KeyResolver keyResolver,
-            Set<String> allVariableNames) {
+            Set<String> allVariableNames,
+            ViewportFilter viewportFilter) {
         setPropertyPaths.add(propertyPath);
         SplitComboProperty splitComboProperty = splitComboProperties(propertyValue);
         if (splitComboProperty == null)
             return false;
         if (splitComboProperty.defaultValue() != null)
             modeBuilderSetter.accept(splitComboProperty.defaultValue());
+        ModePropertyPath mutationPath =
+                viewportFilter != null &&
+                !(viewportFilter instanceof AnyViewportFilter) ?
+                        propertyPath.withViewportFilter(viewportFilter) :
+                        propertyPath;
         String label = modeName + "." + String.join(".", propertyPath.fieldNames());
         for (SplitComboProperty.ComboPropertyValue comboPropertyValue : splitComboProperty.comboValues()) {
             List<Combo> combos = parseCombos(comboPropertyValue.comboString(), label,
@@ -2509,7 +2517,7 @@ public class ConfigurationParser {
                 else {
                     parsedValue = valueParser.apply(comboPropertyValue.valueString());
                 }
-                Command command = new Command.MutateMode(modeName, propertyPath,
+                Command command = new Command.MutateMode(modeName, mutationPath,
                         parsedValue, combo);
                 mutateModeCommandMap
                         .computeIfAbsent(combo, c -> new ArrayList<>())

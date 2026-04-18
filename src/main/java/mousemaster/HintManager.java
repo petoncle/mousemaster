@@ -155,6 +155,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
             hintMeshStates.clear();
+            hintMesh = null;
             WindowsOverlay.hideHintMesh();
             return;
         }
@@ -162,6 +163,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             // This makes the behavior of the hint different depending on whether it is visible.
             // An alternative would be a setting like hint.reset-selected-key-sequence-history-after-selection=true.
             hintMeshStates.clear();
+            hintMesh = null;
             WindowsOverlay.hideHintMesh();
         }
         Point zoomCenterPoint = newMode.zoom().center().centerPoint(
@@ -230,6 +232,21 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
             moveMouse(hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence()));
         }
+    }
+
+    private static Rectangle hintCenterBounds(List<Hint> hints, Zoom zoom) {
+        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
+        double maxX = -Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+        for (Hint hint : hints) {
+            double x = zoom.unzoomedX(hint.centerX());
+            double y = zoom.unzoomedY(hint.centerY());
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+        }
+        return new Rectangle((int) minX, (int) minY,
+                (int) (maxX - minX), (int) (maxY - minY));
     }
 
     private static Point hintMeshCenter(List<Hint> hints, List<Key> selectedHintKeySequence) {
@@ -492,19 +509,33 @@ public class HintManager implements ModeListener, MousePositionListener {
             if (left != Integer.MAX_VALUE)
                 hintMesh.backgroundArea(new Rectangle(left, top, right - left, bottom - top));
         }
-        HintMeshState previousHintMeshState = hintMeshStates.get(
-                new HintMeshKey(hintMeshConfiguration.type(),
-                        hintMeshConfiguration.keysByFilter()
-                                             .get(screenFilter)
-                                             .selectionKeys(),
-                        zoomConfiguration));
-        if (previousHintMeshState != null &&
-            previousHintMeshState.hintMesh.hints()
-                                          .equals(hintMesh.hints())) {
-            // Keep the old selectedKeySequence.
-            // This is useful for hint-then-click-mode that extends hint-mode.
-            hintMesh.selectedKeySequence(
-                    previousHintMeshState.hintMesh.selectedKeySequence());
+        // Prefer the live selection from the current mesh when the hint
+        // area overlaps (e.g. zoom toggle). This is authoritative: do not
+        // fall through to hintMeshStates even if the live selection is empty.
+        boolean selectionResolved = false;
+        if (this.hintMesh != null && !this.hintMesh.hints().isEmpty() &&
+            !hintMesh.hints().isEmpty()) {
+            Rectangle oldBounds = hintCenterBounds(this.hintMesh.hints(), currentZoom);
+            Rectangle newBounds = hintCenterBounds(hintMesh.hints(), zoom);
+            if (oldBounds.overlapRatio(newBounds) >= 0.9) {
+                hintMesh.selectedKeySequence(
+                        this.hintMesh.selectedKeySequence());
+                selectionResolved = true;
+            }
+        }
+        if (!selectionResolved) {
+            HintMeshState previousHintMeshState = hintMeshStates.get(
+                    new HintMeshKey(hintMeshConfiguration.type(),
+                            hintMeshConfiguration.keysByFilter()
+                                                 .get(screenFilter)
+                                                 .selectionKeys(),
+                            zoomConfiguration));
+            if (previousHintMeshState != null &&
+                previousHintMeshState.hintMesh.hints()
+                                              .equals(hintMesh.hints())) {
+                hintMesh.selectedKeySequence(
+                        previousHintMeshState.hintMesh.selectedKeySequence());
+            }
         }
         return hintMesh.build();
     }

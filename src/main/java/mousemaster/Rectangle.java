@@ -26,6 +26,22 @@ public record Rectangle(int x, int y, int width, int height) {
         return rectangleContains(x, y, width, height, pointX, pointY);
     }
 
+    public double overlapRatio(Rectangle other) {
+        int intersectX = Math.max(this.x, other.x);
+        int intersectY = Math.max(this.y, other.y);
+        int intersectRight = Math.min(this.x + this.width, other.x + other.width);
+        int intersectBottom = Math.min(this.y + this.height, other.y + other.height);
+        if (intersectRight <= intersectX || intersectBottom <= intersectY)
+            return 0;
+        long intersectionArea = (long) (intersectRight - intersectX) *
+                                (intersectBottom - intersectY);
+        long largerArea = Math.max((long) this.width * this.height,
+                                   (long) other.width * other.height);
+        if (largerArea == 0)
+            return 0;
+        return (double) intersectionArea / largerArea;
+    }
+
     public boolean sharesEdgeWith(Rectangle other) {
         // Check for shared top/bottom edge.
         if ((this.y == other.y + other.height) || (this.y + this.height == other.y)) {

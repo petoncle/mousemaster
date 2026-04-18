@@ -16,12 +16,13 @@ public class ModePropertyMutator {
     public static Mode mutateModeProperty(Mode mode, ModePropertyPath propertyPath,
                                            Object newPropertyValue) {
         return (Mode) mutateModeProperty(mode, propertyPath.fieldNames(),
-                newPropertyValue);
+                newPropertyValue, propertyPath.viewportFilter());
     }
 
     @SuppressWarnings("unchecked")
     private static Object mutateModeProperty(Object obj, List<String> fieldNames,
-                                             Object newPropertyValue) {
+                                             Object newPropertyValue,
+                                             ViewportFilter targetViewportFilter) {
         if (fieldNames.isEmpty()) {
             if (newPropertyValue instanceof Function<?, ?> function)
                 return ((Function<Object, Object>) function).apply(obj);
@@ -35,13 +36,22 @@ public class ModePropertyMutator {
         Object mutatedChild;
         if (child instanceof ViewportFilterMap<?> viewportFilterMap) {
             Map<ViewportFilter, Object> mutatedMap = new LinkedHashMap<>();
-            for (var entry : viewportFilterMap.map().entrySet())
-                mutatedMap.put(entry.getKey(),
-                        mutateModeProperty(entry.getValue(), remaining, newPropertyValue));
+            for (var entry : viewportFilterMap.map().entrySet()) {
+                if (targetViewportFilter != null &&
+                    !entry.getKey().equals(targetViewportFilter)) {
+                    mutatedMap.put(entry.getKey(), entry.getValue());
+                }
+                else {
+                    mutatedMap.put(entry.getKey(),
+                            mutateModeProperty(entry.getValue(), remaining,
+                                    newPropertyValue, null));
+                }
+            }
             mutatedChild = new ViewportFilterMap<>(mutatedMap);
         }
         else {
-            mutatedChild = mutateModeProperty(child, remaining, newPropertyValue);
+            mutatedChild = mutateModeProperty(child, remaining,
+                    newPropertyValue, targetViewportFilter);
         }
         return createWithField(obj, fieldName, mutatedChild);
     }
