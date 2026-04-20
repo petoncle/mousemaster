@@ -11,6 +11,7 @@ import mousemaster.ResolvedKeyComboMove.ResolvedPressComboMove;
 import mousemaster.ResolvedKeyComboMove.ResolvedReleaseComboMove;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
 public record ComboPreparation(List<KeyEvent> events) {
@@ -93,6 +94,45 @@ public record ComboPreparation(List<KeyEvent> events) {
             }
             int effectiveMaxEventCount = canAbsorbPreparationEvents ?
                     events.size() : Math.min(maxTotalEventCount, events.size());
+
+            // Tighten suffix bound for absorbing combos: the total time span
+            // of a valid suffix is bounded by the sum of all wait max durations.
+            // Events outside this window will fail duration checks anyway.
+            if (canAbsorbPreparationEvents) {
+                Duration totalWaitMax = Duration.ZERO;
+                boolean allBounded = true;
+                for (MoveSet ms : subMoveSets) {
+                    WaitComboMove waitMove = null;
+                    if (ms instanceof WaitMoveSet wms && wms.canAbsorbEvents())
+                        waitMove = wms.waitMove();
+                    else if (ms instanceof KeyMoveSet kms && kms.canAbsorbEvents())
+                        waitMove = kms.waitMove();
+                    if (waitMove != null) {
+                        if (waitMove.duration().max() == null) {
+                            allBounded = false;
+                            break;
+                        }
+                        totalWaitMax = totalWaitMax.plus(waitMove.duration().max());
+                    }
+                }
+                if (allBounded && !totalWaitMax.isZero()) {
+                    Instant lastTime = events.getLast().time();
+                    Instant cutoff = lastTime.minus(totalWaitMax);
+                    // Find the first event at or after cutoff (linear scan from end).
+                    int maxSuffix = events.size();
+                    for (int i = events.size() - 1; i >= 0; i--) {
+                        if (events.get(i).time().isBefore(cutoff)) {
+                            maxSuffix = events.size() - i - 1;
+                            break;
+                        }
+                    }
+                    // Add the maximum number of key move event slots (not covered
+                    // by wait durations).
+                    int keyMoveSlots = maxTotalEventCount;
+                    effectiveMaxEventCount = Math.min(effectiveMaxEventCount,
+                            maxSuffix + keyMoveSlots);
+                }
+            }
 
             // Quick-reject for absorbing combos: check that the preparation
             // contains at least one event matching a required move of each
