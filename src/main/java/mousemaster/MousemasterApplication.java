@@ -69,6 +69,10 @@ public class MousemasterApplication {
             versionProp.load(versionInputStream);
             version = versionProp.getProperty("version");
         }
+        if (Stream.of(args).anyMatch(Predicate.isEqual(("--version")))) {
+            System.out.println("mousemaster v" + version);
+            return;
+        }
         Path configurationPath = Stream.of(args)
                                        .filter(arg -> arg.startsWith(
                                                "--configuration-file="))
