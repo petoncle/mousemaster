@@ -142,15 +142,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                          activeScreenHintGridArea.center() == ActiveScreenHintGridAreaCenter.LAST_SELECTED_HINT) {
             // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
             // (Because currently, last selected hint is the hint selected by hint3-2.)
-            HintMeshState
-                    hintMeshState =
-                    hintMeshStates.get(
-                            new HintMeshKey(hintMeshConfiguration.type(),
-                                    selectionKeys,
-                                    newMode.zoom()));
-            if (hintMeshState != null)
-                lastSelectedHintPoint =
-                        hintMeshState.previousModeSelectedHintPoint;
+            // Skip for same-mode mutations (e.g. zoom toggle): lastSelectedHintPoint
+            // is already correct, and a stale cache entry (from a previous visit with
+            // different variable state) could overwrite it with an outdated value.
+            if (currentMode == null || !currentMode.name().equals(newMode.name())) {
+                HintMeshState hintMeshState = hintMeshStates.get(
+                        new HintMeshKey(hintMeshConfiguration.type(),
+                                selectionKeys, newMode.zoom()));
+                if (hintMeshState != null)
+                    lastSelectedHintPoint =
+                            hintMeshState.previousModeSelectedHintPoint;
+            }
         }
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
