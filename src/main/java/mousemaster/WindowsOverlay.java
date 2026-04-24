@@ -3780,6 +3780,8 @@ public class WindowsOverlay {
                                     Duration fadeAnimationDuration,
                                     boolean allowFade) {
         Objects.requireNonNull(indicator);
+        if (WindowsMouse.tryFindMousePosition() == null)
+            return;
         if (showingIndicator && currentIndicator != null &&
             currentIndicator.equals(indicator))
             return;
