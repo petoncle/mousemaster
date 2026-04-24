@@ -2338,7 +2338,7 @@ public class WindowsOverlay {
             if (Math.abs(left - hints.get(i).centerX()) < 0.01)
                 return i;
         }
-        throw new IllegalStateException();
+        return hints.size();
     }
 
     private static int hintRoundedX(double centerX, double cellWidth,
