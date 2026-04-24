@@ -126,9 +126,23 @@
 
     <build>
         <plugins>
-            <!-- maven-resources-plugin is used to replace ${project.version} in
-            src/main/resources/application.properties with the version defined in this
-            pom file. -->
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>9.0.1</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- maven-resources-plugin is used to replace ${project.version} and
+            ${git.commit.id.abbrev} in src/main/resources/application.properties. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>

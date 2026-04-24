@@ -64,13 +64,15 @@ public class MousemasterApplication {
                                      .map(Boolean::parseBoolean)
                                      .orElse(true);
         String version;
+        String commitId;
         try (InputStream versionInputStream = MousemasterApplication.class.getClassLoader().getResourceAsStream("application.properties")) {
             Properties versionProp = new Properties();
             versionProp.load(versionInputStream);
             version = versionProp.getProperty("version");
+            commitId = versionProp.getProperty("commitId");
         }
         if (Stream.of(args).anyMatch(Predicate.isEqual(("--version")))) {
-            System.out.println("mousemaster v" + version);
+            System.out.println("mousemaster v" + version + " (" + commitId + ")");
             return;
         }
         Path configurationPath = Stream.of(args)
@@ -106,7 +108,7 @@ public class MousemasterApplication {
             }).start();
         }
         WindowsPlatform platform = platform(multipleInstancesAllowed, keyRegurgitationEnabled, pauseOnError);
-        logger.info("mousemaster v" + version);
+        logger.info("mousemaster v" + version + " (" + commitId + ")");
         if (platform == null)
             return;
         try {
