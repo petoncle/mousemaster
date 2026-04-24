@@ -10,6 +10,7 @@
 - [Negated moves](#negated-moves)
 - [Optionality](#optionality)
 - [Preconditions](#preconditions)
+- [Variables](#variables)
 - [Combo preparation](#combo-preparation)
 - [Multi-combo](#multi-combo)
 - [Macro output syntax](#macro-output-syntax)
@@ -428,6 +429,110 @@ _{firefox.exe | chrome.exe}  combo only works when Firefox or Chrome is active
 
 ---
 
+## Variables
+
+Variables are boolean flags that persist across mode switches. They allow combos and property values to change behavior dynamically based on runtime state.
+
+### Setting and unsetting variables
+
+Variables are managed with `set-variable`, `unset-variable`, and `clear-variables` commands. Each takes a combo expression.
+
+```properties
+mode.set-variable.iszoom=combo           set iszoom when combo matches
+mode.unset-variable.iszoom=combo         unset iszoom when combo matches
+mode.clear-variables=combo               unset all variables when combo matches
+```
+
+A common pattern is toggling a variable on/off with the same key:
+
+```properties
+mode.set-variable.iszoom=_{!iszoom} +leftctrl       set iszoom if not already set
+mode.unset-variable.iszoom=_{iszoom} +leftctrl       unset iszoom if already set
+```
+
+### Variable preconditions in combos
+
+Variable preconditions use the `_{}` syntax (same block type as pressed-key preconditions). Variable names are distinguished from key names automatically.
+
+```
+_{iszoom}              iszoom must be set
+_{!iszoom}             iszoom must NOT be set
+_{isslow iszoom}       both isslow and iszoom must be set
+_{isslow | iszoom}     isslow OR iszoom must be set
+```
+
+**Important**: variable preconditions and key preconditions cannot be mixed in one `_{}` block. Use separate blocks:
+
+```
+_{rightalt} _{iszoom} +a     correct: separate blocks for key and variable
+_{rightalt iszoom} +a        wrong: parser treats iszoom as a key name
+```
+
+**Important**: multiple variable `_{}` blocks are not allowed on one combo branch. Combine into one block:
+
+```
+_{isslow iszoom} +a               correct: one block with both variables
+_{isslow} _{iszoom} +a            WRONG: multiple variable blocks
+_{isslow iszoom | isrclick} +a    correct: OR with combined conditions
+```
+
+Negated variable preconditions can be combined with regular ones:
+
+```
+_{!isslow !iszoom !isrclick}       none of these three variables are set
+_{iszoom !isnomove}                iszoom is set AND isnomove is not set
+```
+
+### Mode property mutation with variables
+
+Properties can have different values depending on which variables are set. The syntax uses `|` to separate branches, with `_{}` variable preconditions and `->` pointing to the value:
+
+```properties
+mode.property=default | _{iszoom} -> zoomed-value
+```
+
+The last matching branch wins (rightmost has highest priority). The leftmost branch has no precondition and serves as the default.
+
+```properties
+# Single variable override
+hint3-mode.zoom.percent=1 | _{iszoom} -> 30
+
+# Multiple variable overrides
+_hint-mode.hint.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
+
+# Combined variable + key precondition
+_hint-mode.hint.box-border-color=#FFFF00 | _{iszoom} -> #00FF00 | _{rightalt} -> #FFFFFF
+```
+
+### Example: slow and zoom toggles
+
+Toggle slow mode and zoom mode on/off with keys, changing hint box color accordingly:
+
+```properties
+_hint-mode.set-variable.isslow=_{!isslow} +s
+_hint-mode.unset-variable.isslow=_{isslow} +s
+_hint-mode.set-variable.iszoom=_{!iszoom} +z
+_hint-mode.unset-variable.iszoom=_{iszoom} +z
+
+# Change hint box color based on active variable
+_hint-mode.hint.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
+```
+
+### Example: zoom toggle
+
+Toggle zoom on/off with a key, adjusting hint cell size accordingly:
+
+```properties
+hint3-mode.set-variable.iszoom=_{!iszoom} +z
+hint3-mode.unset-variable.iszoom=_{iszoom} +z
+
+hint3-mode.zoom.percent=1 | _{iszoom} -> 30
+hint3-mode.hint.grid-cell-width=10.7 | _{iszoom} -> 320
+hint3-mode.hint.grid-cell-height=6.0 | _{iszoom} -> 180
+```
+
+---
+
 ## Combo preparation
 
 As key events arrive, mousemaster builds up a **combo preparation**, the sequence of recent events that might match a combo. This preparation carries across mode switches, allowing a combo to be initiated in one mode and completed in another.
@@ -780,6 +885,12 @@ Breakdown:
 | `_{keys}` | Precondition: keys must be pressed |
 | `_{none}` | Precondition: no keys pressed |
 | `_{a \| b}` | Precondition: a or b pressed |
+| `_{variable}` | Precondition: variable must be set |
+| `_{!variable}` | Precondition: variable must NOT be set |
+| `set-variable.variable=combo` | Set variable when combo matches |
+| `unset-variable.variable=combo` | Unset variable when combo matches |
+| `clear-variables=combo` | Unset all variables when combo matches |
+| `val \| _{variable} -> val2` | Variable-conditional property value |
 | `combo1 \| combo2` | Alternative combos |
 | `combo -> output` | Macro output |
 | `-> +key` | Output: press key to OS |

@@ -168,7 +168,7 @@ public class ComboWatcher {
         for (Mode mode : modeMap.modes()) {
             Duration retainDuration = comboPreparationRetainDurationByMode.get(mode);
             int minRetainEventCount = comboPreparationMinRetainEventCountByMode.get(mode);
-            logger.debug("Combo preparation for " + mode.name() +
+            logger.trace("Combo preparation for " + mode.name() +
                          " will retain events from the last " +
                          (retainDuration != null
                                  ? retainDuration.toMillis() + "ms"
