@@ -1381,9 +1381,8 @@ public class ComboWatcher {
         currentModePressedPreconditionKeys =
                 pressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
         computePreconditionOnlyByPropertyPath();
-        refreshPreconditionOnlyMutations();
-        for (ModeListener listener : modeListeners)
-            listener.modeChanged(mutatedMode);
+        if (!refreshPreconditionOnlyMutations())
+            notifyMutatedMode();
         leadingWaitBeginTimeByCombo.clear();
         lastEventTimeByKey.clear();
         lastPressEventTime = null;
@@ -1527,7 +1526,7 @@ public class ComboWatcher {
     }
 
 
-    private void refreshPreconditionOnlyMutations() {
+    private boolean refreshPreconditionOnlyMutations() {
         // Revert unsatisfied precondition-only mutations.
         Iterator<Map.Entry<ModePropertyPath, ActiveModeMutation>> activeMutationIterator =
                 activeMutations.entrySet().iterator();
@@ -1559,8 +1558,10 @@ public class ComboWatcher {
         }
         Mode previousMutatedMode = mutatedMode;
         rebuildMutatedMode();
-        if (!mutatedMode.equals(previousMutatedMode))
+        boolean notified = !mutatedMode.equals(previousMutatedMode);
+        if (notified)
             notifyMutatedMode();
+        return notified;
     }
 
     private boolean isMutationComboPreconditionSatisfied(Combo combo) {
