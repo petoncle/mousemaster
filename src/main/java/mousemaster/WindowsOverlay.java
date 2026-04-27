@@ -3674,15 +3674,18 @@ public class WindowsOverlay {
         WinUser.HPEN gridPen =
                 ExtendedGDI32.INSTANCE.CreatePen(ExtendedGDI32.PS_SOLID, scaledLineThickness,
                         hexColorStringToInt(lineColor));
-        if (gridPen == null)
-            throw new IllegalStateException("Unable to create grid pen");
+        if (gridPen == null) {
+            logger.warn("Unable to create grid pen");
+            return;
+        }
         WinNT.HANDLE oldPen = GDI32.INSTANCE.SelectObject(hdc, gridPen);
         boolean polyPolylineResult = ExtendedGDI32.INSTANCE.PolyPolyline(hdc, points, polyCounts,
                 polyCounts.length);
         if (!polyPolylineResult) {
-            int lastError = Native.getLastError();
-            throw new IllegalStateException(
-                    "PolyPolyline failed with error code " + lastError);
+            logger.warn("PolyPolyline failed");
+            GDI32.INSTANCE.SelectObject(hdc, oldPen);
+            GDI32.INSTANCE.DeleteObject(gridPen);
+            return;
         }
         GDI32.INSTANCE.SelectObject(hdc, oldPen);
         GDI32.INSTANCE.DeleteObject(gridPen);
@@ -3780,8 +3783,10 @@ public class WindowsOverlay {
                                     Duration fadeAnimationDuration,
                                     boolean allowFade) {
         Objects.requireNonNull(indicator);
-        if (WindowsMouse.tryFindMousePosition() == null)
+        if (WindowsMouse.tryFindMousePosition() == null) {
+            logger.warn("Unable to find mouse position for indicator");
             return;
+        }
         if (showingIndicator && currentIndicator != null &&
             currentIndicator.equals(indicator))
             return;

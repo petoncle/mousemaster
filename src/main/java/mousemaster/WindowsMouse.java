@@ -248,8 +248,11 @@ public class WindowsMouse {
         WinDef.HCURSOR transparentCursor =
                 ExtendedUser32.INSTANCE.CreateCursor(null, 0, 0, cursorWidth,
                         cursorHeight, andMask, xorMask);
-        if (transparentCursor == null)
-            throw new IllegalStateException("Unable to create transparent cursor");
+        if (transparentCursor == null) {
+            logger.warn("Unable to create transparent cursor");
+            cursorHidden = false;
+            return;
+        }
         List<WinDef.UINT> cursorIds =
                 LongStream.of(32512, 32513, 32514, 32515, 32516, 32640, 32641, 32642, 32643,
                               32644, 32645, 32646, 32648, 32649, 32650, 32651)
