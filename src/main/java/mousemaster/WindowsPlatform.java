@@ -323,10 +323,21 @@ public class WindowsPlatform implements Platform {
                     continue;
                 Key key = layout.keyFromVirtualKey(virtualKey);
                 if (key != null && keysPressedInHook.contains(key) &&
-                    !currentlyPressedNotEatenKeys.containsKey(key))
+                    !currentlyPressedNotEatenKeys.containsKey(key)) {
+                    if (key.equals(Key.leftctrl) &&
+                        currentlyPressedNotEatenKeys.containsKey(Key.rightalt)) {
+                        logger.debug("Skipping stuck leftctrl injection " +
+                                     "while rightalt is held (AltGr active)");
+                        continue;
+                    }
                     logger.warn("Stuck key detected: " + key +
                                 " is pressed according to GetAsyncKeyState" +
-                                " but not in currentlyPressedNotEatenKeys");
+                                " but not in currentlyPressedNotEatenKeys" +
+                                ", injecting release");
+                    WindowsKeyboard.sendInputKeyRelease(
+                            virtualKey.virtualKeyCode,
+                            extendedKeys.contains(key));
+                }
             }
         }
     }
@@ -563,8 +574,11 @@ public class WindowsPlatform implements Platform {
     private boolean processKeyEvent(KeyEvent keyEvent, int infoFlags, boolean altgrLeftctrl) {
         Key key = keyEvent.key();
         boolean release = keyEvent.isRelease();
-        if (!release)
+        if (!release) {
             keysPressedInHook.add(key);
+            if (altgrLeftctrl)
+                keysPressedInHook.add(Key.leftctrl);
+        }
         if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
             logger.info("Key event ignored because it is equal to the last event: " + keyEvent);
             lastKeyEvent = keyEvent;

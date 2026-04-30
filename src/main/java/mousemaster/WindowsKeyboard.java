@@ -378,4 +378,18 @@ public class WindowsKeyboard {
                 pInputs[0].size());
     }
 
+    public static void sendInputKeyRelease(int virtualKeyCode, boolean extendedKey) {
+        WinUser.INPUT[] pInputs =
+                (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
+        pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
+        pInputs[0].input.setType(WinUser.KEYBDINPUT.class);
+        pInputs[0].input.ki.wVk = new WinDef.WORD(virtualKeyCode);
+        int flags = WinUser.KEYBDINPUT.KEYEVENTF_KEYUP;
+        if (extendedKey)
+            flags |= WinUser.KEYBDINPUT.KEYEVENTF_EXTENDEDKEY;
+        pInputs[0].input.ki.dwFlags = new WinDef.DWORD(flags);
+        User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs,
+                pInputs[0].size());
+    }
+
 }
