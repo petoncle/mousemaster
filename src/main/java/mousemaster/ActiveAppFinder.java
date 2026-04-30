@@ -34,6 +34,7 @@ public class ActiveAppFinder {
         if (ExtendedPsapi.INSTANCE.GetModuleBaseNameA(processHandle, null,
                 executableNameBytes,
                 executableNameBytes.length) == 0) {
+            Kernel32.INSTANCE.CloseHandle(processHandle);
             if (!lastAttemptFailed)
                 logger.info("Unable to find the name of the active app");
             lastAttemptFailed = true;
