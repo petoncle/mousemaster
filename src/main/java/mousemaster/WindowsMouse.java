@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.stream.LongStream;
 
 public class WindowsMouse {
 
@@ -253,18 +252,20 @@ public class WindowsMouse {
             cursorHidden = false;
             return;
         }
-        List<WinDef.UINT> cursorIds =
-                LongStream.of(32512, 32513, 32514, 32515, 32516, 32640, 32641, 32642, 32643,
-                              32644, 32645, 32646, 32648, 32649, 32650, 32651)
-                          .mapToObj(WinDef.UINT::new)
-                          .toList();
-        for (WinDef.UINT cursorId : cursorIds) {
+        // 32640 (OCR_SIZE) and 32641 (OCR_ICON) are excluded: they are obsolete
+        // cursors that SPI_SETCURSORS does not reload from the registry, so
+        // SetSystemCursor for them leaks a GDI handle on every hide/show cycle.
+        long[] cursorIds = {32512, 32513, 32514, 32515, 32516,
+                32642, 32643, 32644, 32645, 32646, 32648, 32649, 32650, 32651};
+        for (long cursorId : cursorIds) {
             WinNT.HANDLE imageHandle =
                     ExtendedUser32.INSTANCE.CopyImage(transparentCursor,
                             new WinDef.UINT(ExtendedUser32.IMAGE_CURSOR), 0, 0,
                             new WinDef.UINT(0));
-            ExtendedUser32.INSTANCE.SetSystemCursor(imageHandle, cursorId);
+            ExtendedUser32.INSTANCE.SetSystemCursor(imageHandle,
+                    new WinDef.UINT(cursorId));
         }
+        ExtendedUser32.INSTANCE.DestroyCursor(transparentCursor);
     }
 
     public static WinDef.POINT findMousePosition() {

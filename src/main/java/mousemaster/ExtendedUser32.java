@@ -125,4 +125,6 @@ public interface ExtendedUser32 extends User32 {
                        WinDef.HBRUSH hbrFlickerFreeDraw, int diFlags);
     int DI_NORMAL = 0x0003;
 
+    boolean DestroyCursor(HCURSOR hCursor);
+
 }
