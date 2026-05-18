@@ -1,11 +1,18 @@
 package mousemaster;
 
+import mousemaster.platform.Screens;
+
 import java.util.Set;
 
 public class ScreenManager implements MousePositionListener {
 
+    private final Screens screens;
     private int mouseX;
     private int mouseY;
+
+    public ScreenManager(Screens screens) {
+        this.screens = screens;
+    }
 
     public Screen activeScreen() {
         return nearestScreenContaining(mouseX, mouseY);
@@ -35,7 +42,7 @@ public class ScreenManager implements MousePositionListener {
     }
 
     public Set<Screen> screens() {
-        return WindowsScreen.findScreens();
+        return screens.findScreens();
     }
 
     public Screen screenContaining(double x, double y) {

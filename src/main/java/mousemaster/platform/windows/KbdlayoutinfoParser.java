@@ -1,4 +1,6 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

@@ -1,12 +1,17 @@
 package mousemaster;
 
+import mousemaster.platform.Overlay;
+
 public class IndicatorManager implements ModeListener {
 
+    private final Overlay overlay;
     private final MouseState mouseState;
     private final KeyboardState keyboardState;
     private Mode currentMode;
 
-    public IndicatorManager(MouseState mouseState, KeyboardState keyboardState) {
+    public IndicatorManager(Overlay overlay, MouseState mouseState,
+                            KeyboardState keyboardState) {
+        this.overlay = overlay;
         this.mouseState = mouseState;
         this.keyboardState = keyboardState;
     }
@@ -28,15 +33,15 @@ public class IndicatorManager implements ModeListener {
         if (currentMode.indicator().enabled()) {
             Indicator indicator = activeIndicator();
             if (indicator.hexColor() == null)
-                WindowsOverlay.hideIndicator(allowFade);
+                overlay.hideIndicator(allowFade);
             else
-                WindowsOverlay.setIndicator(indicator,
+                overlay.setIndicator(indicator,
                         currentMode.indicator().fadeAnimationEnabled(),
                         currentMode.indicator().fadeAnimationDuration(),
                         allowFade);
         }
         else
-            WindowsOverlay.hideIndicator(allowFade);
+            overlay.hideIndicator(allowFade);
     }
 
     @Override
