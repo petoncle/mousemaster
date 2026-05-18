@@ -21,7 +21,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <native.maven.plugin.version>0.9.28</native.maven.plugin.version>
         <imageName>mousemaster</imageName>
-        <mainClass>mousemaster.MousemasterApplication</mainClass>
+        <mainClass>mousemaster.platform.windows.WindowsMain</mainClass>
         <jna.version>5.13.0</jna.version> <!-- Check https://www.graalvm.org/latest/reference-manual/native-image/metadata/ -->
     </properties>
     <dependencies>
