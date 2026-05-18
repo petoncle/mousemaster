@@ -315,7 +315,6 @@ public class WindowsPlatform implements Platform {
         return console;
     }
 
-
     /**
      * On the Windows lock screen, hit space then enter the pin. Space press is recorded by the app but the
      * corresponding release is never received. That is why we need to double-check if the key is still pressed
@@ -375,7 +374,7 @@ public class WindowsPlatform implements Platform {
                 boolean pressedAccordingToOs = (state & 0x8000) != 0;
                 if (!pressedAccordingToOs)
                     continue;
-                Key key = layout.keyFromVirtualKey(virtualKey);
+                Key key = layout.keyFromVirtualKeyName(virtualKey.name());
                 if (key != null && keysPressedInHook.contains(key) &&
                     !currentlyPressedNotEatenKeys.containsKey(key)) {
                     if (key.equals(Key.leftctrl) &&
