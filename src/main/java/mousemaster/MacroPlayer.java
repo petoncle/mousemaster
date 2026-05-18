@@ -2,6 +2,7 @@ package mousemaster;
 
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
+import mousemaster.platform.Keyboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,7 @@ public class MacroPlayer {
     private final PlatformClock clock;
     private final ComboWatcher comboWatcher;
     private final KeyboardManager keyboardManager;
+    private final Keyboard keyboard;
     private final List<ResolvedMacro> macrosToExecute = new ArrayList<>();
     private MacroInProgress macroInProgress;
     private final Set<Key> keysPressedByMacro = new HashSet<>();
@@ -51,10 +53,11 @@ public class MacroPlayer {
     private final Set<Key> deferredUserReleases = new HashSet<>();
 
     public MacroPlayer(PlatformClock clock, ComboWatcher comboWatcher,
-                       KeyboardManager keyboardManager) {
+                       KeyboardManager keyboardManager, Keyboard keyboard) {
         this.clock = clock;
         this.comboWatcher = comboWatcher;
         this.keyboardManager = keyboardManager;
+        this.keyboard = keyboard;
     }
 
     private static class MacroInProgress {
@@ -113,7 +116,7 @@ public class MacroPlayer {
             List<ResolvedMacroMove> releases = new ArrayList<>();
             for (Key key : keysPressedByMacro)
                 releases.add(new ResolvedKeyMacroMove(key, false, MacroMoveDestination.OS));
-            WindowsKeyboard.sendInputMoves(releases, false);
+            keyboard.sendInputMoves(releases, false);
         }
         reset();
     }
@@ -130,7 +133,7 @@ public class MacroPlayer {
 
     public void keyPressedNotEaten(Key key) {
         macroReleasedKeys.remove(key);
-        WindowsKeyboard.keyPressedNotEaten(key);
+        keyboard.keyPressedNotEaten(key);
     }
 
     public void keyReleasedNotEaten(Key key) {
@@ -139,7 +142,7 @@ public class MacroPlayer {
         macroReleasedKeys.remove(key);
         // Scenario where user-press-eaten, then macro-press (uneats the key), then user-release (not eaten as per rule 1).
         // The macro-press is a repeating SendInput that should be stopped when user releases the key.
-        WindowsKeyboard.keyReleasedNotEaten(key);
+        keyboard.keyReleasedNotEaten(key);
     }
 
     public void newKeyEvent() {
@@ -184,12 +187,12 @@ public class MacroPlayer {
         deferredUserReleases.clear();
         if (!releases.isEmpty()) {
             logger.debug("Processing deferred user releases: " + releases);
-            WindowsKeyboard.sendInputMoves(releases, false);
+            keyboard.sendInputMoves(releases, false);
         }
     }
 
     public void recordEarlyRelease(Key key) {
-        WindowsKeyboard.recordEarlyReleaseForQueuedPress(key);
+        keyboard.recordEarlyReleaseForQueuedPress(key);
         if (macroInProgress == null)
             return;
         for (int i = macroInProgress.currentIndex + 1;
@@ -214,7 +217,7 @@ public class MacroPlayer {
      */
     public void clearEarlyRelease(Key key) {
         earlyReleasedKeys.remove(key);
-        WindowsKeyboard.clearEarlyReleaseForQueuedPress(key);
+        keyboard.clearEarlyReleaseForQueuedPress(key);
     }
 
     public void update(double delta) {
@@ -315,7 +318,7 @@ public class MacroPlayer {
                     else {
                         // Flush any pending OS moves before sending to ComboWatcher.
                         if (!osMoves.isEmpty()) {
-                            WindowsKeyboard.sendInputMoves(osMoves, true);
+                            keyboard.sendInputMoves(osMoves, true);
                             osMoves.clear();
                         }
                         KeyEvent event = keyMove.press()
@@ -328,7 +331,7 @@ public class MacroPlayer {
         }
         // Flush remaining OS moves.
         if (!osMoves.isEmpty()) {
-            WindowsKeyboard.sendInputMoves(osMoves, true);
+            keyboard.sendInputMoves(osMoves, true);
         }
     }
 

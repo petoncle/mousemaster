@@ -1,6 +1,7 @@
 package mousemaster;
 
 import mousemaster.Grid.GridBuilder;
+import mousemaster.platform.Overlay;
 
 /**
  * Displays the grid and handles grid commands.
@@ -9,13 +10,16 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private final ScreenManager screenManager;
     private final MouseController mouseController;
+    private final Overlay overlay;
     private Grid grid;
     private int mouseX, mouseY;
     private Mode currentMode;
 
-    public GridManager(ScreenManager screenManager, MouseController mouseController) {
+    public GridManager(ScreenManager screenManager, MouseController mouseController,
+                       Overlay overlay) {
         this.screenManager = screenManager;
         this.mouseController = mouseController;
+        this.overlay = overlay;
     }
 
     public void shrinkGridUp() {
@@ -294,7 +298,7 @@ public class GridManager implements MousePositionListener, ModeListener {
                            .height(gridHeight);
             }
             case GridArea.ActiveWindowGridArea activeWindowGridArea -> {
-                Rectangle activeWindowRectangle = WindowsOverlay.activeWindowRectangle(
+                Rectangle activeWindowRectangle = overlay.activeWindowRectangle(
                         activeWindowGridArea.widthPercent(),
                         activeWindowGridArea.heightPercent(), scaledTopInset,
                         scaledBottomInset, scaledLeftInset, scaledRightInset);
@@ -325,9 +329,9 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private void setOverlay() {
         if (grid.lineVisible())
-            WindowsOverlay.setGrid(grid);
+            overlay.setGrid(grid);
         else
-            WindowsOverlay.hideGrid();
+            overlay.hideGrid();
     }
 
     @Override
@@ -336,4 +340,3 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
 }
-

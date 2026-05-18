@@ -4,6 +4,9 @@ import mousemaster.HintGridArea.ActiveScreenHintGridArea;
 import mousemaster.HintGridArea.ActiveWindowHintGridArea;
 import mousemaster.HintGridArea.AllScreensHintGridArea;
 import mousemaster.HintMesh.HintMeshBuilder;
+import mousemaster.platform.Overlay;
+import mousemaster.platform.UiAutomation;
+import mousemaster.platform.UiAutomation.UiElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +21,8 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
     private final MouseController mouseController;
+    private final Overlay overlay;
+    private final UiAutomation uiAutomation;
     private ModeController modeController;
     private HintMesh hintMesh;
     private ViewportFilter screenFilter;
@@ -40,14 +45,14 @@ public class HintManager implements ModeListener, MousePositionListener {
     private boolean lastHintCommandSupercedesOtherCommands;
 
     private record PendingUiHintQuery(
-            Future<List<WindowsUiAutomation.UiElement>> future,
+            Future<List<UiElement>> future,
             HintMeshConfiguration hintMeshConfiguration,
             Zoom zoom,
             ViewportFilter screenFilter) {
     }
 
     private PendingUiHintQuery pendingUiHintQuery;
-    private List<WindowsUiAutomation.UiElement> lastUiElements;
+    private List<UiElement> lastUiElements;
 
     /**
      * It would be better to have an instance of Zoom instead of ZoomConfiguration
@@ -69,10 +74,13 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
-                       MouseController mouseController) {
+                       MouseController mouseController, Overlay overlay,
+                       UiAutomation uiAutomation) {
         this.maxPositionHistorySize = maxPositionHistorySize;
         this.screenManager = screenManager;
         this.mouseController = mouseController;
+        this.overlay = overlay;
+        this.uiAutomation = uiAutomation;
     }
 
     public void setModeController(ModeController modeController) {
@@ -158,7 +166,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             currentMode = newMode;
             hintMeshStates.clear();
             hintMesh = null;
-            WindowsOverlay.hideHintMesh();
+            overlay.hideHintMesh();
             return;
         }
         if (!hintMeshConfiguration.visible()) {
@@ -166,7 +174,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             // An alternative would be a setting like hint.reset-selected-key-sequence-history-after-selection=true.
             hintMeshStates.clear();
             hintMesh = null;
-            WindowsOverlay.hideHintMesh();
+            overlay.hideHintMesh();
         }
         Point zoomCenterPoint = newMode.zoom().center().centerPoint(
                 screenManager.activeScreen().rectangle(), mouseX, mouseY,
@@ -180,7 +188,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             if (currentMode == null ||
                 !(currentMode.hintMesh().type() instanceof HintMeshType.UiHintMesh)) {
                 pendingUiHintQuery = new PendingUiHintQuery(
-                        WindowsUiAutomation.startFindInteractiveUiElements(),
+                        uiAutomation.startFindInteractiveUiElements(),
                         hintMeshConfiguration, newZoom, newScreenFilter);
                 currentMode = newMode;
                 currentZoom = newZoom;
@@ -229,7 +237,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         newMode.zoom()),
                 new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
-        WindowsOverlay.setHintMesh(hintMesh, newZoom);
+        overlay.setHintMesh(hintMesh, newZoom);
         if (hintMeshConfiguration.mouseMovement() ==
             HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
             moveMouse(hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence()));
@@ -287,7 +295,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         PendingUiHintQuery pending = pendingUiHintQuery;
         pendingUiHintQuery = null;
-        List<WindowsUiAutomation.UiElement> uiElements;
+        List<UiElement> uiElements;
         try {
             uiElements = pending.future().get();
         }
@@ -324,7 +332,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 }
                 case ActiveWindowHintGridArea activeWindowHintGridArea -> {
                     Rectangle activeWindowRectangle =
-                            WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
+                            overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                     Point gridCenter = activeWindowRectangle.center();
                     Screen screen =
                             screenManager.nearestScreenContaining(gridCenter.x(),
@@ -335,7 +343,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         else if (type instanceof HintMeshType.UiHintMesh) {
             Rectangle activeWindowRectangle =
-                    WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
+                    overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
             Point center = activeWindowRectangle.center();
             Screen screen = screenManager.nearestScreenContaining(center.x(), center.y());
             return ViewportFilter.of(screen);
@@ -352,7 +360,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMeshConfiguration hintMeshConfiguration,
             ZoomConfiguration zoomConfiguration, Zoom zoom,
             ViewportFilter screenFilter,
-            List<WindowsUiAutomation.UiElement> uiElements) {
+            List<UiElement> uiElements) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
                 .styleByFilter(hintMeshConfiguration.styleByFilter());
@@ -403,7 +411,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             else if (hintGrid.area() instanceof ActiveWindowHintGridArea activeWindowHintGridArea) {
                 Rectangle activeWindowRectangle =
-                        WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
+                        overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                 Point gridCenter = activeWindowRectangle.center();
                 Screen screen =
                         screenManager.nearestScreenContaining(gridCenter.x(), gridCenter.y());
@@ -468,7 +476,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1)
                     .backgroundArea(
-                            WindowsOverlay.activeWindowRectangle(1, 1, 0, 0, 0, 0));
+                            overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0));
         }
         else {
             int hintCount = positionHistory.size();
@@ -544,14 +552,14 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private void buildUiHints(HintMeshConfiguration hintMeshConfiguration,
                            ViewportFilter screenFilter,
-                           List<WindowsUiAutomation.UiElement> uiElements,
+                           List<UiElement> uiElements,
                               Set<Integer> prefixLengths, List<Hint> hints) {
         HintMeshKeys hintMeshKeys =
                 hintMeshConfiguration.keysByFilter().get(screenFilter);
         List<Key> selectionKeys = hintMeshKeys.selectionKeys();
         int rowKeyOffset = hintMeshKeys.rowKeyOffset();
         for (int i = 0; i < uiElements.size(); i++) {
-            WindowsUiAutomation.UiElement element = uiElements.get(i);
+            UiElement element = uiElements.get(i);
             List<Key> keySequence = hintKeySequence(
                     selectionKeys, rowKeyOffset, uiElements.size(),
                     0, -1, i,
@@ -911,7 +919,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
                     )
             );
-            WindowsOverlay.setHintMesh(hintMesh, currentZoom);
+            overlay.setHintMesh(hintMesh, currentZoom);
             if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
                 moveMouse(hintMeshCenter(hintMesh.hints(),
                         hintMesh.selectedKeySequence()));
@@ -987,7 +995,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMesh,
                             hintMeshStates.get(hintMeshKey).previousModeSelectedHintPoint
                     ));
-            WindowsOverlay.setHintMesh(hintMesh, currentZoom);
+            overlay.setHintMesh(hintMesh, currentZoom);
             if (hintMeshConfiguration.mouseMovement() == HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
                 moveMouse(hintMeshCenter(hintMesh.hints(), newSelectedKeySequence));
             }
@@ -1031,7 +1039,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    .map(Key::name)
                                    .toList() +
                      " selected");
-        WindowsOverlay.animateHintMatch(hint);
+        overlay.animateHintMatch(hint);
         hintMesh =
                 hintMesh.builder()
                         .selectedKeySequence(newSelectedKeySequence)

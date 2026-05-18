@@ -1,8 +1,9 @@
-package mousemaster;
+package mousemaster.platform.windows;
 
 import io.qt.core.QEasingCurve;
 import io.qt.core.QMetaObject;
 import io.qt.core.QVariantAnimation;
+import mousemaster.Easing;
 
 import java.time.Duration;
 import java.util.function.Consumer;

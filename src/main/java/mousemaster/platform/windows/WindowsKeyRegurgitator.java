@@ -1,17 +1,24 @@
-package mousemaster;
+package mousemaster.platform.windows;
 
+import mousemaster.*;
+
+import mousemaster.platform.Keyboard;
+import mousemaster.platform.KeyRegurgitator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-/**
- * This should be an interface with one implementation per platform.
- */
-public class KeyRegurgitator {
+public class WindowsKeyRegurgitator implements KeyRegurgitator {
 
-    private static final Logger logger = LoggerFactory.getLogger(KeyRegurgitator.class);
+    private static final Logger logger = LoggerFactory.getLogger(WindowsKeyRegurgitator.class);
+    private final Keyboard keyboard;
 
+    public WindowsKeyRegurgitator(Keyboard keyboard) {
+        this.keyboard = keyboard;
+    }
+
+    @Override
     public void regurgitate(KeyboardManager.Regurgitate regurgitate, boolean startRepeat) {
         logger.debug(
                 "Regurgitating " + regurgitate.key() + ", startRepeat = " + startRepeat +
@@ -24,7 +31,7 @@ public class KeyRegurgitator {
         // then just pressing g again would open the Windows Game popup, as if leftwin
         // was still being pressed.
         Key key = regurgitate.key();
-        WindowsKeyboard.sendInputMoves(
+        keyboard.sendInputMoves(
                 !regurgitate.alsoRelease()
                         ? List.of(new ResolvedKeyMacroMove(key, true, MacroMoveDestination.OS))
                         : List.of(new ResolvedKeyMacroMove(key, true, MacroMoveDestination.OS),

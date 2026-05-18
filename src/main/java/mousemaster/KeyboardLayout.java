@@ -2,6 +2,7 @@ package mousemaster;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import mousemaster.platform.windows.WindowsVirtualKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

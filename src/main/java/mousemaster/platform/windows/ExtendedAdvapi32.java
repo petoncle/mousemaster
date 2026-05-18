@@ -1,4 +1,6 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.WinNT;

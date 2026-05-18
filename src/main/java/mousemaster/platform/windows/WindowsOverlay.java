@@ -1,4 +1,6 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
@@ -13,7 +15,7 @@ import io.qt.widgets.QGraphicsPixmapItem;
 import io.qt.widgets.QGraphicsScene;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
-import mousemaster.WindowsMouse.MouseSize;
+import mousemaster.platform.windows.WindowsMouse.MouseSize;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

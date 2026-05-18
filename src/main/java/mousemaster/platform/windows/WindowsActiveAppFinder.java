@@ -1,16 +1,19 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
+import mousemaster.platform.ActiveAppFinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
-public class ActiveAppFinder {
+public class WindowsActiveAppFinder implements ActiveAppFinder {
 
-    private static final Logger logger = LoggerFactory.getLogger(ActiveAppFinder.class);
+    private static final Logger logger = LoggerFactory.getLogger(WindowsActiveAppFinder.class);
 
     private IntByReference processId = new IntByReference();
     private byte[] executableNameBytes = new byte[1024];
@@ -18,6 +21,7 @@ public class ActiveAppFinder {
     private String lastIgnoredExecutableName;
     private boolean lastAttemptFailed;
 
+    @Override
     public App activeApp() {
         WinDef.HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         User32.INSTANCE.GetWindowThreadProcessId(hwnd, processId);

@@ -1,5 +1,7 @@
 package mousemaster;
 
+import mousemaster.platform.Overlay;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +10,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
     private final HintManager hintManager;
+    private final Overlay overlay;
     private Mode currentMode;
     private int mouseX, mouseY;
 
@@ -27,9 +30,11 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     // The zoom center used to build endHintMesh.
     private Point endHintZoomCenter;
 
-    public ZoomManager(ScreenManager screenManager, HintManager hintManager) {
+    public ZoomManager(ScreenManager screenManager, HintManager hintManager,
+                       Overlay overlay) {
         this.screenManager = screenManager;
         this.hintManager = hintManager;
+        this.overlay = overlay;
     }
 
     @Override
@@ -50,7 +55,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             currentPercent = endPercent;
             if (endIsNoZoom) {
                 currentCenterPoint = null;
-                WindowsOverlay.setZoom(null);
+                overlay.setZoom(null);
             }
             else {
                 Point centerPoint = newMode.zoom().center().centerPoint(
@@ -59,7 +64,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 currentCenterPoint = centerPoint;
                 Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                         centerPoint.y());
-                WindowsOverlay.setZoom(new Zoom(endPercent,
+                overlay.setZoom(new Zoom(endPercent,
                         centerPoint, screen.rectangle()));
             }
         }
@@ -98,7 +103,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 HintMesh interpolatedMesh = interpolateHintMesh(endHintMesh,
                         endHintZoomCenter, beginCenterPoint,
                         screen.rectangle().center(), endPercent, beginPercent);
-                WindowsOverlay.setHintMesh(interpolatedMesh,
+                overlay.setHintMesh(interpolatedMesh,
                         new Zoom(beginPercent, beginCenterPoint, screen.rectangle()));
             }
             else {
@@ -109,7 +114,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             Screen screen = screenManager.nearestScreenContaining(
                     beginCenterPoint.x(), beginCenterPoint.y());
             Zoom beginZoom = new Zoom(beginPercent, beginCenterPoint, screen.rectangle());
-            WindowsOverlay.startScreenshotZoomAnimation(screen.rectangle(), beginZoom);
+            overlay.startScreenshotZoomAnimation(screen.rectangle(), beginZoom);
         }
     }
 
@@ -132,23 +137,23 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                 centerPoint.y());
         Zoom currentZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
-        WindowsOverlay.updateScreenshotZoom(currentZoom);
+        overlay.updateScreenshotZoom(currentZoom);
         if (endHintMesh != null) {
             HintMesh interpolatedMesh = interpolateHintMesh(endHintMesh,
                     endHintZoomCenter, centerPoint,
                     screen.rectangle().center(), endPercent, currentPercent);
-            WindowsOverlay.setHintMesh(interpolatedMesh, currentZoom);
+            overlay.setHintMesh(interpolatedMesh, currentZoom);
         }
         if (t >= 1.0) {
             animating = false;
             Zoom endZoom = endIsNoZoom ? null :
                     new Zoom(currentPercent, centerPoint, screen.rectangle());
-            WindowsOverlay.endScreenshotZoomAnimation(endZoom);
+            overlay.endScreenshotZoomAnimation(endZoom);
             if (endHintMesh != null) {
                 // Restore the final hint mesh.
                 if (endZoom == null)
                     endZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
-                WindowsOverlay.setHintMesh(endHintMesh, endZoom);
+                overlay.setHintMesh(endHintMesh, endZoom);
                 endHintMesh = null;
                 endHintZoomCenter = null;
             }
@@ -252,7 +257,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             currentCenterPoint = centerPoint;
             Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                     centerPoint.y());
-            WindowsOverlay.setZoom(new Zoom(currentMode.zoom().percent(),
+            overlay.setZoom(new Zoom(currentMode.zoom().percent(),
                     centerPoint, screen.rectangle()));
         }
     }
