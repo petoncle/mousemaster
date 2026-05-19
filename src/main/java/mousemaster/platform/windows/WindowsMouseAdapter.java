@@ -2,9 +2,9 @@ package mousemaster.platform.windows;
 
 import mousemaster.*;
 
-import mousemaster.platform.Mouse;
+import mousemaster.platform.PlatformMouse;
 
-public class WindowsMouseAdapter implements Mouse {
+public class WindowsMouseAdapter implements PlatformMouse {
 
     @Override
     public void beginMove() {
