@@ -29,6 +29,7 @@ public final class KeyboardLayout {
         Type listType = new TypeToken<List<KeyboardLayout>>() {}.getType();
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Key.class, new KeyDeserializer())
+                .registerTypeAdapter(KeyboardLayoutKey.class, new KeyboardLayoutKeyDeserializer())
                 .create();
         long before = System.nanoTime();
         List<KeyboardLayout> keyboardLayouts = gson.fromJson(reader, listType);
@@ -57,9 +58,25 @@ public final class KeyboardLayout {
         }
     }
 
-    public record KeyboardLayoutKey(int scanCode, WindowsVirtualKey virtualKey, Key key,
+    public record KeyboardLayoutKey(int scanCode, String virtualKeyName, Key key,
                                     String text, String name) {
 
+    }
+
+    public static class KeyboardLayoutKeyDeserializer implements JsonDeserializer<KeyboardLayoutKey> {
+
+        @Override
+        public KeyboardLayoutKey deserialize(JsonElement json, Type typeOfT,
+                                             JsonDeserializationContext context)
+                throws JsonParseException {
+            JsonObject obj = json.getAsJsonObject();
+            int scanCode = obj.get("scanCode").getAsInt();
+            String virtualKeyName = obj.get("virtualKey").getAsString();
+            Key key = context.deserialize(obj.get("key"), Key.class);
+            String text = obj.has("text") ? obj.get("text").getAsString() : null;
+            String name = obj.has("name") ? obj.get("name").getAsString() : null;
+            return new KeyboardLayoutKey(scanCode, virtualKeyName, key, text, name);
+        }
     }
 
     private final String identifier;
@@ -110,9 +127,9 @@ public final class KeyboardLayout {
         return null;
     }
 
-    public Key keyFromVirtualKey(WindowsVirtualKey virtualKey) {
+    public Key keyFromVirtualKeyName(String virtualKeyName) {
         for (KeyboardLayoutKey keyboardLayoutKey : keys) {
-            if (keyboardLayoutKey.virtualKey == virtualKey)
+            if (virtualKeyName.equals(keyboardLayoutKey.virtualKeyName()))
                 return keyboardLayoutKey.key();
         }
         return null;
@@ -126,10 +143,10 @@ public final class KeyboardLayout {
         return -1;
     }
 
-    public WindowsVirtualKey virtualKey(Key key) {
+    public String virtualKeyName(Key key) {
         for (KeyboardLayoutKey keyboardLayoutKey : keys) {
             if (keyboardLayoutKey.key.equals(key))
-                return keyboardLayoutKey.virtualKey();
+                return keyboardLayoutKey.virtualKeyName();
         }
         return null;
     }

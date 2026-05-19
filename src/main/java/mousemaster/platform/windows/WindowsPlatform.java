@@ -1,8 +1,19 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import mousemaster.platform.ActiveAppFinder;
+import mousemaster.platform.Console;
+import mousemaster.platform.Keyboard;
+import mousemaster.platform.KeyboardLayoutProvider;
+import mousemaster.platform.KeyRegurgitator;
+import mousemaster.platform.Overlay;
+import mousemaster.platform.PlatformMouse;
+import mousemaster.platform.Screens;
+import mousemaster.platform.UiAutomation;
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
 import org.slf4j.Logger;
@@ -18,7 +29,15 @@ public class WindowsPlatform implements Platform {
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
 
     private final boolean keyRegurgitationEnabled;
-    private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator();
+    private final Keyboard keyboard = new WindowsKeyboardAdapter();
+    private final PlatformMouse mouse = new WindowsMouseAdapter();
+    private final Screens screens = new WindowsScreens();
+    private final Overlay overlay = new WindowsOverlayAdapter();
+    private final UiAutomation uiAutomation = new WindowsUiAutomationAdapter();
+    private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
+    private final Console console = new WindowsConsole();
+    private final KeyboardLayoutProvider keyboardLayoutProvider = WindowsVirtualKey::activeKeyboardLayout;
+    private final KeyRegurgitator keyRegurgitator = new WindowsKeyRegurgitator(keyboard);
     private final WindowsClock clock = new WindowsClock();
 
     private MouseController mouseController;
@@ -83,7 +102,7 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public void windowsMessagePump() {
+    public void pumpEvents() {
         while (User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1)) {
             User32.INSTANCE.TranslateMessage(msg);
             User32.INSTANCE.DispatchMessage(msg);
@@ -93,7 +112,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void sleep() throws InterruptedException {
-        windowsMessagePump();
+        pumpEvents();
         WinDef.POINT mousePosition = null;
         for (WinDef.POINT p; (p = mousePositionQueue.poll()) != null;)
             mousePosition = p;
@@ -115,14 +134,14 @@ public class WindowsPlatform implements Platform {
             // Reposition the indicator with the updated cursor visual center.
             WindowsOverlay.mouseMoved(lastMousePosition);
         }
-        windowsMessagePump();
+        pumpEvents();
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();
             if ((currentTime - beforeTime) / 1e6 >= 10)
                 break;
             Thread.sleep(1);
-            windowsMessagePump();
+            pumpEvents();
         }
     }
 
@@ -166,7 +185,7 @@ public class WindowsPlatform implements Platform {
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
                         mousePosition.y));
-        WindowsOverlay.setMessagePump(this::windowsMessagePump);
+        WindowsOverlay.setMessagePump(this::pumpEvents);
         if (keyboardHookCallback == null)
             installHooks();
     }
@@ -257,10 +276,44 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public KeyboardLayout activeKeyboardLayout() {
-        return WindowsVirtualKey.activeKeyboardLayout();
+    public KeyboardLayoutProvider keyboardLayoutProvider() {
+        return keyboardLayoutProvider;
     }
 
+    @Override
+    public Keyboard keyboard() {
+        return keyboard;
+    }
+
+    @Override
+    public PlatformMouse mouse() {
+        return mouse;
+    }
+
+    @Override
+    public Screens screens() {
+        return screens;
+    }
+
+    @Override
+    public Overlay overlay() {
+        return overlay;
+    }
+
+    @Override
+    public UiAutomation uiAutomation() {
+        return uiAutomation;
+    }
+
+    @Override
+    public ActiveAppFinder activeAppFinder() {
+        return activeAppFinder;
+    }
+
+    @Override
+    public Console console() {
+        return console;
+    }
 
     /**
      * On the Windows lock screen, hit space then enter the pin. Space press is recorded by the app but the
@@ -321,7 +374,7 @@ public class WindowsPlatform implements Platform {
                 boolean pressedAccordingToOs = (state & 0x8000) != 0;
                 if (!pressedAccordingToOs)
                     continue;
-                Key key = layout.keyFromVirtualKey(virtualKey);
+                Key key = layout.keyFromVirtualKeyName(virtualKey.name());
                 if (key != null && keysPressedInHook.contains(key) &&
                     !currentlyPressedNotEatenKeys.containsKey(key)) {
                     if (key.equals(Key.leftctrl) &&

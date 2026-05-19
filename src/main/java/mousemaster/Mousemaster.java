@@ -31,7 +31,7 @@ public class Mousemaster {
     public Mousemaster(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
         this.platform = platform;
-        this.activeKeyboardLayout = platform.activeKeyboardLayout();
+        this.activeKeyboardLayout = platform.keyboardLayoutProvider().activeKeyboardLayout();
         QtManager.initialize();
         loadConfiguration(true);
         watchService = FileSystems.getDefault().newWatchService();
@@ -51,42 +51,42 @@ public class Mousemaster {
             updateConfiguration();
             long timeAfterOp = System.nanoTime();
             long updateConfigurationDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             updateActiveKeyboardLayout(delta);
             timeAfterOp = System.nanoTime();
             long updateActiveKeyboardLayoutDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             QtManager.processEvents();
             platform.update(delta);
             timeAfterOp = System.nanoTime();
             long platformDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             modeController.update(delta);
             timeAfterOp = System.nanoTime();
             long modeControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             mouseController.update(delta);
             timeAfterOp = System.nanoTime();
             long mouseControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             keyboardManager.update(delta);
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             indicatorManager.update(delta);
             timeAfterOp = System.nanoTime();
             long indicatorManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             zoomManager.update(delta);
             timeAfterOp = System.nanoTime();
-            platform.windowsMessagePump();
+            platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
             macroPlayer.update(delta);
             timeAfterOp = System.nanoTime();
@@ -112,7 +112,7 @@ public class Mousemaster {
     private void updateActiveKeyboardLayout(double delta) {
         if (forcedActiveKeyboardLayout != null)
             return;
-        KeyboardLayout newActiveKeyboardLayout = platform.activeKeyboardLayout();
+        KeyboardLayout newActiveKeyboardLayout = platform.keyboardLayoutProvider().activeKeyboardLayout();
         if (!newActiveKeyboardLayout.equals(activeKeyboardLayout)) {
             activeKeyboardLayout = newActiveKeyboardLayout;
             tryLoadConfiguration(false);
@@ -172,18 +172,18 @@ public class Mousemaster {
         else
             MousemasterApplication.disableLogToFile();
         if (configuration.hideConsole())
-            MousemasterApplication.hideConsole();
+            platform.console().hide();
         else
-            MousemasterApplication.showConsole();
+            platform.console().show();
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +
                     (readFile ? "file " + configurationPath + " " : "") +
                     "with active keyboard layout " + activeKeyboardLayout);
-        ScreenManager screenManager = new ScreenManager();
-        mouseController = new MouseController(screenManager);
+        ScreenManager screenManager = new ScreenManager(platform.screens());
+        mouseController = new MouseController(screenManager, platform.mouse());
         MouseState mouseState = new MouseState(mouseController);
-        GridManager gridManager = new GridManager(screenManager, mouseController);
+        GridManager gridManager = new GridManager(screenManager, mouseController, platform.overlay());
         HintManager hintManager = new HintManager(configuration.maxPositionHistorySize(),
-                screenManager, mouseController);
+                screenManager, mouseController, platform.overlay(), platform.uiAutomation());
         commandRunner = new CommandRunner(mouseController, gridManager, hintManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
@@ -201,18 +201,18 @@ public class Mousemaster {
             }
         }
         ComboWatcher comboWatcher =
-                new ComboWatcher(commandRunner, hintManager, new ActiveAppFinder(),
+                new ComboWatcher(commandRunner, hintManager, platform.activeAppFinder(),
                         platform.clock(),
                         unpressedComboPreconditionKeys,
                         pressedComboPreconditionKeys, configuration.logRedactKeys(),
                         configuration.modeMap());
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());
-        macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager);
+        macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager, platform.keyboard());
         keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
-        indicatorManager = new IndicatorManager(mouseState, keyboardState);
-        zoomManager = new ZoomManager(screenManager, hintManager);
+        indicatorManager = new IndicatorManager(platform.overlay(), mouseState, keyboardState);
+        zoomManager = new ZoomManager(screenManager, hintManager, platform.overlay());
         // ComboWatcher is the sole broadcaster to ModeListeners: it broadcasts
         // on mode switch (delegated from ModeController) and on mode mutation.
         // ZoomManager must be notified after HintManager because it calls

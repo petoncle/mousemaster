@@ -1,4 +1,6 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.sun.jna.*;
 import com.sun.jna.platform.win32.*;
@@ -6,6 +8,7 @@ import com.sun.jna.platform.win32.COM.Unknown;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
+import mousemaster.platform.UiAutomation.UiElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,9 +60,6 @@ public class WindowsUiAutomation {
                 return t;
             });
     private static volatile boolean backgroundComInitialized;
-
-    record UiElement(double centerX, double centerY) {
-    }
 
     private static Memory createBoolVariantTrue() {
         Memory variant = new Memory(16);

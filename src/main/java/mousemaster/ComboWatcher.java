@@ -2,6 +2,7 @@ package mousemaster;
 
 import mousemaster.ComboMove.WaitComboMove;
 import mousemaster.ResolvedKeyComboMove.ResolvedPressComboMove;
+import mousemaster.platform.ActiveAppFinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

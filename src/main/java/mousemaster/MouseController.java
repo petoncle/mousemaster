@@ -1,5 +1,7 @@
 package mousemaster;
 
+import mousemaster.platform.PlatformMouse;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
@@ -7,6 +9,7 @@ import java.util.Iterator;
 public class MouseController implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
+    private final PlatformMouse platformMouse;
     private Mouse mouse;
     private Wheel wheel;
     private double moveDuration;
@@ -43,8 +46,10 @@ public class MouseController implements ModeListener, MousePositionListener {
     private int jumpBeginX, jumpBeginY;
     private int jumpEndX, jumpEndY;
 
-    public MouseController(ScreenManager screenManager) {
+    public MouseController(ScreenManager screenManager,
+                           PlatformMouse platformMouse) {
         this.screenManager = screenManager;
+        this.platformMouse = platformMouse;
     }
 
     public void reset() {
@@ -104,7 +109,7 @@ public class MouseController implements ModeListener, MousePositionListener {
 
     public void update(double delta) {
         if (activelyMoving()) {
-            WindowsMouse.beginMove();
+            platformMouse.beginMove();
             moveDuration += delta;
             double moveVelocity = moveVelocity();
             // Save direction for potential deceleration.
@@ -131,7 +136,7 @@ public class MouseController implements ModeListener, MousePositionListener {
                 deltaBigEnough = deltaDistanceY >= 1;
             }
             if (deltaBigEnough && !jumping) {
-                WindowsMouse.moveBy(
+                platformMouse.moveBy(
                         !xMoveForwardStack.isEmpty() && xMoveForwardStack.peek(),
                         deltaDistanceX,
                         !yMoveForwardStack.isEmpty() && yMoveForwardStack.peek(),
@@ -140,7 +145,7 @@ public class MouseController implements ModeListener, MousePositionListener {
             }
         }
         else if (decelerating) {
-            WindowsMouse.beginMove();
+            platformMouse.beginMove();
             decelerationDuration += delta;
             double velocity = decelerationVelocity(mouse.velocity(),
                     velocityAtDecelerationStart, decelerationDuration);
@@ -166,7 +171,7 @@ public class MouseController implements ModeListener, MousePositionListener {
                     deltaBigEnough = deltaDistanceY >= 1;
                 }
                 if (deltaBigEnough && !jumping) {
-                    WindowsMouse.moveBy(
+                    platformMouse.moveBy(
                             decelerateXActive && decelerateXForward,
                             deltaDistanceX,
                             decelerateYActive && decelerateYForward,
@@ -176,7 +181,7 @@ public class MouseController implements ModeListener, MousePositionListener {
             }
         }
         else if (!jumping)
-            WindowsMouse.endMove();
+            platformMouse.endMove();
         if (jumping) {
             jumpDuration += delta;
             double jumpVelocity = mouse.smoothJumpVelocity(); // Pixels per second.
@@ -205,7 +210,7 @@ public class MouseController implements ModeListener, MousePositionListener {
                 }
             }
             if (nextJumpX != jumpX || nextJumpY != jumpY) {
-                WindowsMouse.synchronousMoveTo(nextJumpX, nextJumpY);
+                platformMouse.synchronousMoveTo(nextJumpX, nextJumpY);
                 jumpX = nextJumpX;
                 jumpY = nextJumpY;
             }
@@ -222,9 +227,9 @@ public class MouseController implements ModeListener, MousePositionListener {
             if (lastWheelYActive)
                 lastWheelYForward = yWheelForwardStack.peek();
             if (!xWheelForwardStack.isEmpty())
-                WindowsMouse.wheelHorizontallyBy(xWheelForwardStack.peek(), deltaDistance);
+                platformMouse.wheelHorizontallyBy(xWheelForwardStack.peek(), deltaDistance);
             if (!yWheelForwardStack.isEmpty())
-                WindowsMouse.wheelVerticallyBy(yWheelForwardStack.peek(), deltaDistance);
+                platformMouse.wheelVerticallyBy(yWheelForwardStack.peek(), deltaDistance);
         }
         else if (wheelDecelerating) {
             wheelDecelerationDuration += delta;
@@ -236,9 +241,9 @@ public class MouseController implements ModeListener, MousePositionListener {
             }
             else {
                 if (wheelDecelerateXActive)
-                    WindowsMouse.wheelHorizontallyBy(wheelDecelerateXForward, deltaDistance);
+                    platformMouse.wheelHorizontallyBy(wheelDecelerateXForward, deltaDistance);
                 if (wheelDecelerateYActive)
-                    WindowsMouse.wheelVerticallyBy(wheelDecelerateYForward, deltaDistance);
+                    platformMouse.wheelVerticallyBy(wheelDecelerateYForward, deltaDistance);
             }
         }
     }
@@ -464,20 +469,20 @@ public class MouseController implements ModeListener, MousePositionListener {
 
     public void clickLeft() {
         if (!leftPressing)
-            WindowsMouse.pressLeft();
-        WindowsMouse.releaseLeft();
+            platformMouse.pressLeft();
+        platformMouse.releaseLeft();
     }
 
     public void clickMiddle() {
         if (!middlePressing)
-            WindowsMouse.pressMiddle();
-        WindowsMouse.releaseMiddle();
+            platformMouse.pressMiddle();
+        platformMouse.releaseMiddle();
     }
 
     public void clickRight() {
         if (!rightPressing)
-            WindowsMouse.pressRight();
-        WindowsMouse.releaseRight();
+            platformMouse.pressRight();
+        platformMouse.releaseRight();
     }
 
     public void pressLeft() {
@@ -485,7 +490,7 @@ public class MouseController implements ModeListener, MousePositionListener {
             return;
         releaseAll();
         leftPressing = true;
-        WindowsMouse.pressLeft();
+        platformMouse.pressLeft();
     }
 
     public void pressMiddle() {
@@ -493,7 +498,7 @@ public class MouseController implements ModeListener, MousePositionListener {
             return;
         releaseAll();
         middlePressing = true;
-        WindowsMouse.pressMiddle();
+        platformMouse.pressMiddle();
     }
 
     public void pressRight() {
@@ -501,24 +506,24 @@ public class MouseController implements ModeListener, MousePositionListener {
             return;
         releaseAll();
         rightPressing = true;
-        WindowsMouse.pressRight();
+        platformMouse.pressRight();
     }
 
     public void releaseLeft() {
         if (leftPressing)
-            WindowsMouse.releaseLeft();
+            platformMouse.releaseLeft();
         leftPressing = false;
     }
 
     public void releaseMiddle() {
         if (middlePressing)
-            WindowsMouse.releaseMiddle();
+            platformMouse.releaseMiddle();
         middlePressing = false;
     }
 
     public void releaseRight() {
         if (rightPressing)
-            WindowsMouse.releaseRight();
+            platformMouse.releaseRight();
         rightPressing = false;
     }
 
@@ -606,11 +611,11 @@ public class MouseController implements ModeListener, MousePositionListener {
     }
 
     public void showCursor() {
-        WindowsMouse.showCursor();
+        platformMouse.showCursor();
     }
 
     public void hideCursor() {
-        WindowsMouse.hideCursor();
+        platformMouse.hideCursor();
     }
 
     public void moveTo(int x, int y) {
@@ -623,8 +628,8 @@ public class MouseController implements ModeListener, MousePositionListener {
             return;
         // Move a single pixel. Skype's titlebar does not like being dragged too quick too far.
         if (!mouse.smoothJumpEnabled()) {
-            WindowsMouse.beginMove();
-            WindowsMouse.synchronousMoveTo(x, y);
+            platformMouse.beginMove();
+            platformMouse.synchronousMoveTo(x, y);
             return;
         }
         // If already jumping but one direction changes, then reset velocity.
@@ -638,7 +643,7 @@ public class MouseController implements ModeListener, MousePositionListener {
         jumpX = mouseX;
         jumpY = mouseY;
         jumping = true;
-        WindowsMouse.beginMove();
+        platformMouse.beginMove();
         jumpEndX = x;
         jumpEndY = y;
     }
@@ -701,8 +706,8 @@ public class MouseController implements ModeListener, MousePositionListener {
         if (jumping && !mouse.smoothJumpEnabled()) {
             jumping = false;
             jumpDuration = 0;
-            WindowsMouse.beginMove();
-            WindowsMouse.synchronousMoveTo(jumpEndX, jumpEndY);
+            platformMouse.beginMove();
+            platformMouse.synchronousMoveTo(jumpEndX, jumpEndY);
         }
         if (newMode.stopCommandsFromPreviousMode()) {
             stopMoveDown();

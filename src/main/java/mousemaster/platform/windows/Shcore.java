@@ -1,4 +1,6 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.sun.jna.IntegerType;
 import com.sun.jna.Native;

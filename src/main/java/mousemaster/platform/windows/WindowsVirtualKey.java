@@ -1,4 +1,6 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -472,7 +474,7 @@ public enum WindowsVirtualKey {
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode, int flags) {
         if (scanCode == 0) {
             // Injected key event have scanCode 0.
-            return WindowsVirtualKey.activeKeyboardLayout().keyFromVirtualKey(windowsVirtualKey);
+            return WindowsVirtualKey.activeKeyboardLayout().keyFromVirtualKeyName(windowsVirtualKey.name());
         }
         // When pressing rightctrl the scanCode should be E01D but is 1D (which is leftctrl's scanCode).
         // rightctrl:
@@ -493,12 +495,18 @@ public enum WindowsVirtualKey {
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key,
                                                              KeyboardLayout keyboardLayout) {
-        WindowsVirtualKey virtualKey = keyboardLayout.virtualKey(key);
-        if (virtualKey == null) {
+        String virtualKeyName = keyboardLayout.virtualKeyName(key);
+        if (virtualKeyName == null) {
             logger.debug("Unable to map key " + key + " to a Windows virtual key using " +
                          keyboardLayout);
+            return null;
         }
-        return virtualKey;
+        try {
+            return WindowsVirtualKey.valueOf(virtualKeyName);
+        } catch (IllegalArgumentException e) {
+            logger.debug("Unknown virtual key name: " + virtualKeyName);
+            return null;
+        }
     }
 
 }

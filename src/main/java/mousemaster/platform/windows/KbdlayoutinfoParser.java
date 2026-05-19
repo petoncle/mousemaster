@@ -1,4 +1,6 @@
-package mousemaster;
+package mousemaster.platform.windows;
+
+import mousemaster.*;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -299,7 +301,7 @@ public class KbdlayoutinfoParser {
                 key = Key.ofCharacter(text);
             if (key != null)
                 keyboardLayout.keys()
-                              .add(new KeyboardLayout.KeyboardLayoutKey(sc, vk, key,
+                              .add(new KeyboardLayout.KeyboardLayoutKey(sc, vk.name(), key,
                                       text == null || text.isBlank() ? null : text,
                                       name.isBlank() ? null : name));
         }
@@ -353,7 +355,7 @@ public class KbdlayoutinfoParser {
                                   .orElseThrow();
             KeyboardLayout.KeyboardLayoutKey usHalmakKey = new KeyboardLayout.KeyboardLayoutKey(
                     usQwertyKey.scanCode(),
-                    sameCharacterUsQwertyKey.virtualKey(),
+                    sameCharacterUsQwertyKey.virtualKeyName(),
                     sameCharacterUsQwertyKey.key(),
                     sameCharacterUsQwertyKey.text(),
                     sameCharacterUsQwertyKey.name()
@@ -374,7 +376,7 @@ public class KbdlayoutinfoParser {
                                .orElseThrow();
         koreanKeyboardLayout.keys()
                             .add(new KeyboardLayout.KeyboardLayoutKey(57400,
-                                    WindowsVirtualKey.VK_RMENU, Key.rightalt, null,
+                                    WindowsVirtualKey.VK_RMENU.name(), Key.rightalt, null,
                                     "Right Alt"));
     }
 
