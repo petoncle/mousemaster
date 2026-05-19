@@ -10,8 +10,8 @@ import mousemaster.platform.Console;
 import mousemaster.platform.Keyboard;
 import mousemaster.platform.KeyboardLayoutProvider;
 import mousemaster.platform.KeyRegurgitator;
-import mousemaster.platform.Mouse;
 import mousemaster.platform.Overlay;
+import mousemaster.platform.PlatformMouse;
 import mousemaster.platform.Screens;
 import mousemaster.platform.UiAutomation;
 import mousemaster.KeyEvent.PressKeyEvent;
@@ -30,7 +30,7 @@ public class WindowsPlatform implements Platform {
 
     private final boolean keyRegurgitationEnabled;
     private final Keyboard keyboard = new WindowsKeyboardAdapter();
-    private final Mouse mouse = new WindowsMouseAdapter();
+    private final PlatformMouse mouse = new WindowsMouseAdapter();
     private final Screens screens = new WindowsScreens();
     private final Overlay overlay = new WindowsOverlayAdapter();
     private final UiAutomation uiAutomation = new WindowsUiAutomationAdapter();
@@ -286,7 +286,7 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public Mouse mouse() {
+    public PlatformMouse mouse() {
         return mouse;
     }
 

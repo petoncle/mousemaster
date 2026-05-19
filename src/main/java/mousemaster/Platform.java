@@ -5,8 +5,8 @@ import mousemaster.platform.Console;
 import mousemaster.platform.Keyboard;
 import mousemaster.platform.KeyboardLayoutProvider;
 import mousemaster.platform.KeyRegurgitator;
-import mousemaster.platform.Mouse;
 import mousemaster.platform.Overlay;
+import mousemaster.platform.PlatformMouse;
 import mousemaster.platform.Screens;
 import mousemaster.platform.UiAutomation;
 
@@ -35,7 +35,7 @@ public interface Platform extends ModeListener {
 
     Keyboard keyboard();
 
-    Mouse mouse();
+    PlatformMouse mouse();
 
     Screens screens();
 
