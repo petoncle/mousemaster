@@ -29,5 +29,4 @@ public interface Mouse {
     void showCursor();
 
     void hideCursor();
-
 }

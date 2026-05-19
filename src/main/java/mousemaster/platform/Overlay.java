@@ -57,5 +57,4 @@ public interface Overlay {
     boolean waitForZoomBeforeRepainting();
 
     void setWaitForZoomBeforeRepainting(boolean value);
-
 }

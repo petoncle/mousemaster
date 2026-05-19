@@ -7,5 +7,4 @@ import java.util.Set;
 public interface Screens {
 
     Set<Screen> findScreens();
-
 }
