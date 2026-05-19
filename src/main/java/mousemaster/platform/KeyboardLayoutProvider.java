@@ -5,5 +5,4 @@ import mousemaster.KeyboardLayout;
 public interface KeyboardLayoutProvider {
 
     KeyboardLayout activeKeyboardLayout();
-
 }

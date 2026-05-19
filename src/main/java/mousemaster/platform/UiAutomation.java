@@ -9,5 +9,4 @@ public interface UiAutomation {
 
     record UiElement(double centerX, double centerY) {
     }
-
 }
