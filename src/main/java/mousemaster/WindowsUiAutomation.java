@@ -206,15 +206,18 @@ public class WindowsUiAutomation {
         }
     }
 
-    private static final double MIN_DISTANCE_BETWEEN_HINTS = 40;
+    // UIA returns bounding rectangles in zoomed (physical) pixels, so the
+    // threshold is multiplied by the window's scale at filter time.
+    // 13 unzoomed px = 13 physical px at 100% scale, 40 physical px at 300%.
+    private static final double MIN_DISTANCE_BETWEEN_HINTS_UNZOOMED = 13;
 
     private static boolean isTooCloseToExistingUiElements(List<UiElement> elements,
-                                                          double x, double y) {
+                                                          double x, double y,
+                                                          double thresholdSquared) {
         for (UiElement e : elements) {
             double dx = e.centerX() - x;
             double dy = e.centerY() - y;
-            if (dx * dx + dy * dy <
-                MIN_DISTANCE_BETWEEN_HINTS * MIN_DISTANCE_BETWEEN_HINTS)
+            if (dx * dx + dy * dy < thresholdSquared)
                 return true;
         }
         return false;
@@ -293,6 +296,10 @@ public class WindowsUiAutomation {
                 WinUser.MONITOR_DEFAULTTONULL) == null)
             // The window is not within a screen.
             return;
+        WinDef.POINT center = new WinDef.POINT(
+                (windowRect.left + windowRect.right) / 2,
+                (windowRect.top + windowRect.bottom) / 2);
+        double scale = WindowsScreen.findActiveScreen(center).scale();
         UIAutomation uia = new UIAutomation(automation);
         UIAutomationElement root = null;
         UIAutomationElementArray array = null;
@@ -304,7 +311,7 @@ public class WindowsUiAutomation {
             array = root.findAllBuildCache(TreeScope_Descendants,
                     cachedCondition, cachedCacheRequest);
             if (array != null)
-                collectElements(array, windowRect, uiElements);
+                collectElements(array, windowRect, scale, uiElements);
             logger.trace("Found {} UI elements in HWND {} in {}ms",
                     uiElements.size(),
                     Pointer.nativeValue(hwnd.getPointer()),
@@ -320,7 +327,10 @@ public class WindowsUiAutomation {
 
     private static void collectElements(UIAutomationElementArray array,
                                         WinDef.RECT windowRect,
+                                        double scale,
                                         List<UiElement> uiElements) {
+        double threshold = MIN_DISTANCE_BETWEEN_HINTS_UNZOOMED * scale;
+        double thresholdSquared = threshold * threshold;
         int length = array.getLength();
         for (int i = 0; i < length; i++) {
             UIAutomationElement element = array.getElement(i);
@@ -342,7 +352,7 @@ public class WindowsUiAutomation {
                     centerY > windowRect.bottom)
                     continue;
                 if (isTooCloseToExistingUiElements(uiElements,
-                        centerX, centerY))
+                        centerX, centerY, thresholdSquared))
                     continue;
                 uiElements.add(new UiElement(centerX, centerY));
             }
