@@ -5,12 +5,13 @@ import mousemaster.*;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
+import mousemaster.platform.PlatformKeyboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class WindowsKeyboard {
+public class WindowsKeyboard implements PlatformKeyboard {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsKeyboard.class);
 
@@ -37,9 +38,10 @@ public class WindowsKeyboard {
             Key.enter // Only enter from numpad?
     );
 
-    public static KeyboardLayout activeKeyboardLayout;
+    public KeyboardLayout activeKeyboardLayout;
 
-    public static void reset() {
+    @Override
+    public void reset() {
         sendInputQueue.clear();
         earlyReleasedQueuedKeys.clear();
         moveWaitingForKeyboardHookCallbackAcknowledgment = null;
@@ -59,7 +61,7 @@ public class WindowsKeyboard {
      * 2026-02-21T23:30:38.341 [main] TRACE mousemaster.WindowsPlatform - Received key event: vkCode = 0xa4 (VK_LMENU), scanCode = 0x38, flags = 0x30, wParam = WM_SYSKEYDOWN
      */
     private record SendInputMove(ResolvedMacroMove move, boolean startRepeat) {}
-    private static final List<SendInputMove> sendInputQueue = new LinkedList<>();
+    private final List<SendInputMove> sendInputQueue = new LinkedList<>();
     /**
      * Keys where the user physically released the key while a pending +key
      * was sitting in the sendInputQueue. When the deferred +key is sent,
@@ -68,11 +70,12 @@ public class WindowsKeyboard {
      * a single parallel's sends (e.g. [+leftalt, +i, -leftalt] becomes
      * [+leftalt] then deferred [+i, -leftalt]).
      */
-    private static final Set<Key> earlyReleasedQueuedKeys = new HashSet<>();
-    private static ResolvedKeyMacroMove moveWaitingForKeyboardHookCallbackAcknowledgment;
-    private static int ticksWaitingForAcknowledgment;
+    private final Set<Key> earlyReleasedQueuedKeys = new HashSet<>();
+    private ResolvedKeyMacroMove moveWaitingForKeyboardHookCallbackAcknowledgment;
+    private int ticksWaitingForAcknowledgment;
 
-    public static void sendInputMoves(List<ResolvedMacroMove> moves, boolean startRepeat) {
+    @Override
+    public void sendInputMoves(List<ResolvedMacroMove> moves, boolean startRepeat) {
         boolean sendInputQueueWasEmpty = sendInputQueue.isEmpty();
         for (ResolvedMacroMove move : moves)
             sendInputQueue.add(new SendInputMove(move, startRepeat));
@@ -81,27 +84,30 @@ public class WindowsKeyboard {
             processOneSendInputMove();
     }
 
-    private static Key pressedKeyToRepeat;
-    private static double durationUntilNextKeyPressRepeat;
+    private Key pressedKeyToRepeat;
+    private double durationUntilNextKeyPressRepeat;
     /**
      * Used to prevent keyPressedNotEaten from killing a repeat that was just
      * started by a macro during the same event processing (e.g. combo triggers
      * macro +a which starts repeating, then keyPressedNotEaten is called for
      * the triggering key: we must not stop the repeat).
      */
-    private static boolean repeatStartedDuringCurrentTick;
+    private boolean repeatStartedDuringCurrentTick;
 
-    public static void keyPressedNotEaten(Key key) {
+    @Override
+    public void keyPressedNotEaten(Key key) {
         if (!repeatStartedDuringCurrentTick || !key.equals(pressedKeyToRepeat))
             pressedKeyToRepeat = null;
     }
 
-    public static void keyReleasedNotEaten(Key key) {
+    @Override
+    public void keyReleasedNotEaten(Key key) {
         if (key.equals(pressedKeyToRepeat))
             pressedKeyToRepeat = null;
     }
 
-    public static void recordEarlyReleaseForQueuedPress(Key key) {
+    @Override
+    public void recordEarlyReleaseForQueuedPress(Key key) {
         for (SendInputMove queued : sendInputQueue) {
             if (queued.move() instanceof ResolvedKeyMacroMove km &&
                 km.press() && km.key().equals(key) &&
@@ -112,11 +118,12 @@ public class WindowsKeyboard {
         }
     }
 
-    public static void clearEarlyReleaseForQueuedPress(Key key) {
+    @Override
+    public void clearEarlyReleaseForQueuedPress(Key key) {
         earlyReleasedQueuedKeys.remove(key);
     }
 
-    private static final Set<Key> userPressedKeys = new HashSet<>();
+    private final Set<Key> userPressedKeys = new HashSet<>();
 
     /**
      * When we inject -leftalt while the user physically holds alt, some apps (e.g.
@@ -125,7 +132,7 @@ public class WindowsKeyboard {
      * When this flag is true, injected +leftalt events that are not our own ack
      * are eaten (suppressed) to prevent this.
      */
-    private static boolean suppressExternalLeftalt;
+    private boolean suppressExternalLeftalt;
 
     private static final Set<Key> modifierKeys =
             Set.of(Key.leftshift, Key.rightshift, Key.leftctrl, Key.rightctrl,
@@ -135,7 +142,7 @@ public class WindowsKeyboard {
      * Returns true if this injected +leftalt event is from an external app
      * and should be eaten to prevent apps from seeing alt+key.
      */
-    public static boolean shouldSuppressExternalLeftalt(KeyEvent keyEvent, boolean injected) {
+    public boolean shouldSuppressExternalLeftalt(KeyEvent keyEvent, boolean injected) {
         if (true)
             // Does not work for double tap of leftalt in IntelliJ.
             return false;
@@ -150,7 +157,7 @@ public class WindowsKeyboard {
         return true;
     }
 
-    public static void keyboardHookCallback(WinUser.KBDLLHOOKSTRUCT info,
+    public void keyboardHookCallback(WinUser.KBDLLHOOKSTRUCT info,
                                             WinDef.WPARAM wParam, String wParamString, KeyEvent keyEvent,
                                             boolean injected, boolean altgrLeftctrl) {
         if (!injected) {
@@ -214,7 +221,8 @@ public class WindowsKeyboard {
         }
     }
 
-    public static void update(double delta) {
+    @Override
+    public void update(double delta) {
         repeatStartedDuringCurrentTick = false;
         if (moveWaitingForKeyboardHookCallbackAcknowledgment != null) {
             ticksWaitingForAcknowledgment++;
@@ -238,7 +246,7 @@ public class WindowsKeyboard {
         }
     }
 
-    private static boolean processOneSendInputMove() {
+    private boolean processOneSendInputMove() {
         while (!sendInputQueue.isEmpty()) {
             SendInputMove sendInputMove = sendInputQueue.removeFirst();
             switch (sendInputMove.move()) {
@@ -287,7 +295,7 @@ public class WindowsKeyboard {
         return false;
     }
 
-    private static void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean triggerKeyRepeating) {
+    private void sendInputKeys(List<ResolvedKeyMacroMove> moves, boolean triggerKeyRepeating) {
 //        triggerKeyRepeating = false;
         // Send a press event for the key to regurgitate.
         WinUser.INPUT[] pInputs =
@@ -352,7 +360,7 @@ public class WindowsKeyboard {
                         pInputs[0].size());
     }
 
-    public static void sendInputString(String string) {
+    public void sendInputString(String string) {
         logger.trace("Sending input string: " + string);
         int inputCount = string.length() * 2; // down + up per character
         WinUser.INPUT[] pInputs =
@@ -380,7 +388,7 @@ public class WindowsKeyboard {
                 pInputs[0].size());
     }
 
-    public static void sendInputKeyRelease(int virtualKeyCode, boolean extendedKey) {
+    public void sendInputKeyRelease(int virtualKeyCode, boolean extendedKey) {
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(1);
         pInputs[0].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);

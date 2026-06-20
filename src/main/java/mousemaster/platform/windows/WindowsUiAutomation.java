@@ -8,7 +8,8 @@ import com.sun.jna.platform.win32.COM.Unknown;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
-import mousemaster.platform.UiAutomation.UiElement;
+import mousemaster.platform.PlatformUiAutomation;
+import mousemaster.platform.PlatformUiAutomation.UiElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class WindowsUiAutomation {
+public class WindowsUiAutomation implements PlatformUiAutomation {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsUiAutomation.class);
 
@@ -365,7 +366,8 @@ public class WindowsUiAutomation {
     /**
      * Starts an asynchronous UI element query on a background thread.
      */
-    public static Future<List<UiElement>> startFindInteractiveUiElements() {
+    @Override
+    public Future<List<UiElement>> startFindInteractiveUiElements() {
         ensureInitialized();
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         long hwndKey = hwnd != null ? Pointer.nativeValue(hwnd.getPointer()) : 0;

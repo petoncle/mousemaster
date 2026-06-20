@@ -4,9 +4,9 @@ import mousemaster.HintGridArea.ActiveScreenHintGridArea;
 import mousemaster.HintGridArea.ActiveWindowHintGridArea;
 import mousemaster.HintGridArea.AllScreensHintGridArea;
 import mousemaster.HintMesh.HintMeshBuilder;
-import mousemaster.platform.Overlay;
-import mousemaster.platform.UiAutomation;
-import mousemaster.platform.UiAutomation.UiElement;
+import mousemaster.platform.PlatformOverlay;
+import mousemaster.platform.PlatformUiAutomation;
+import mousemaster.platform.PlatformUiAutomation.UiElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +21,8 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
     private final MouseController mouseController;
-    private final Overlay overlay;
-    private final UiAutomation uiAutomation;
+    private final PlatformOverlay overlay;
+    private final PlatformUiAutomation uiAutomation;
     private ModeController modeController;
     private HintMesh hintMesh;
     private ViewportFilter screenFilter;
@@ -74,8 +74,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
-                       MouseController mouseController, Overlay overlay,
-                       UiAutomation uiAutomation) {
+                       MouseController mouseController, PlatformOverlay overlay,
+                       PlatformUiAutomation uiAutomation) {
         this.maxPositionHistorySize = maxPositionHistorySize;
         this.screenManager = screenManager;
         this.mouseController = mouseController;

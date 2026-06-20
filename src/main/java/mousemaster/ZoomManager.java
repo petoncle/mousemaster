@@ -1,6 +1,6 @@
 package mousemaster;
 
-import mousemaster.platform.Overlay;
+import mousemaster.platform.PlatformOverlay;
 
 import java.util.HashMap;
 import java.util.List;
@@ -10,7 +10,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
     private final HintManager hintManager;
-    private final Overlay overlay;
+    private final PlatformOverlay overlay;
     private Mode currentMode;
     private int mouseX, mouseY;
 
@@ -31,7 +31,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     private Point endHintZoomCenter;
 
     public ZoomManager(ScreenManager screenManager, HintManager hintManager,
-                       Overlay overlay) {
+                       PlatformOverlay overlay) {
         this.screenManager = screenManager;
         this.hintManager = hintManager;
         this.overlay = overlay;

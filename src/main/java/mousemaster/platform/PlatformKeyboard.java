@@ -5,7 +5,7 @@ import mousemaster.ResolvedMacroMove;
 
 import java.util.List;
 
-public interface Keyboard {
+public interface PlatformKeyboard {
 
     void update(double delta);
 

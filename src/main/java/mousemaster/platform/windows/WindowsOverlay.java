@@ -7,6 +7,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.PointerByReference;
+import mousemaster.platform.PlatformOverlay;
 import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.QApplication;
@@ -27,60 +28,78 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class WindowsOverlay {
+public class WindowsOverlay implements PlatformOverlay {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsOverlay.class);
 
-    public static boolean waitForZoomBeforeRepainting;
+    private final WindowsMouse mouse;
 
-    private static IndicatorWindow indicatorWindow;
-    private static boolean showingIndicator;
-    private static Indicator currentIndicator;
-    private static int maxIndicatorShadowPadding;
-    private static FadeAnimator indicatorFadeAnimator;
-    private static GridWindow gridWindow, standByGridWindow;
-    private static boolean standByGridCanBeHidden;
-    private static boolean showingGrid;
-    private static Grid currentGrid;
-    private static final Map<Screen, HintMeshWindow> hintMeshWindows =
+    public WindowsOverlay(WindowsMouse mouse) {
+        this.mouse = mouse;
+    }
+
+    private boolean waitForZoom;
+
+    @Override
+    public boolean waitForZoomBeforeRepainting() {
+        return waitForZoom;
+    }
+
+    @Override
+    public void setWaitForZoomBeforeRepainting(boolean value) {
+        waitForZoom = value;
+    }
+
+    private IndicatorWindow indicatorWindow;
+    private boolean showingIndicator;
+    private Indicator currentIndicator;
+    private int maxIndicatorShadowPadding;
+    private FadeAnimator indicatorFadeAnimator;
+    private GridWindow gridWindow, standByGridWindow;
+    private boolean standByGridCanBeHidden;
+    private boolean showingGrid;
+    private Grid currentGrid;
+    private final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
-    private static final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
-    private static final Map<HintMesh, Map<List<Key>, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
-    private static boolean showingHintMesh;
-    private static boolean hintMeshEndAnimation;
-    private static boolean zoomAfterHintMeshEndAnimation;
-    private static Zoom afterHintMeshEndAnimationZoom;
-    private static HintMesh currentHintMesh;
-    private static ZoomWindow zoomWindow, standByZoomWindow;
-    private static Zoom currentZoom;
-    private static boolean mustUpdateMagnifierSource;
+    private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
+    private final Map<HintMesh, Map<List<Key>, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
+    private boolean showingHintMesh;
+    private boolean hintMeshEndAnimation;
+    private boolean zoomAfterHintMeshEndAnimation;
+    private Zoom afterHintMeshEndAnimationZoom;
+    private HintMesh currentHintMesh;
+    private ZoomWindow zoomWindow, standByZoomWindow;
+    private Zoom currentZoom;
+    private boolean mustUpdateMagnifierSource;
     // Screenshot-based zoom animation fields.
-    private static ScreenshotWidget screenshotWidget;
-    private static WinDef.HWND screenshotHwnd;
-    private static QPixmap screenshotPixmap;
-    private static boolean screenshotAnimating;
-    private static boolean screenshotPendingHide;
-    private static FadeAnimator hintMeshFadeAnimator;
+    private ScreenshotWidget screenshotWidget;
+    private WinDef.HWND screenshotHwnd;
+    private QPixmap screenshotPixmap;
+    private boolean screenshotAnimating;
+    private boolean screenshotPendingHide;
+    private FadeAnimator hintMeshFadeAnimator;
     /**
      * Building the hint window is expensive and when it is done from the keyboard hook,
      * Windows will cancel the hook and the key press will go through to the other apps.
      * Windows won't wait for the keyboard hook to return if it's taking too long.
      */
-    private static Runnable setUncachedHintMeshWindowRunnable;
-    private static Runnable cacheQtHintWindowIntoPixmapRunnable;
-    private static Runnable messagePump;
+    private Runnable setUncachedHintMeshWindowRunnable;
+    private Runnable cacheQtHintWindowIntoPixmapRunnable;
+    private Runnable messagePump;
     /**
      * True when the build is running from update() (deferred), meaning we are
      * NOT inside a keyboard hook callback and can safely pump messages to keep
      * the hook responsive. False when running inline from the hook callback.
      */
-    private static boolean pumpDuringHintBuild;
+    private boolean pumpDuringHintBuild;
 
-    static void setMessagePump(Runnable pump) {
+    @Override
+    public void setMessagePump(Runnable pump) {
         messagePump = pump;
     }
 
-    public static void update(double delta) {
+    @Override
+    public void update(double delta) {
         if (setUncachedHintMeshWindowRunnable != null) {
             pumpDuringHintBuild = true;
             setUncachedHintMeshWindowRunnable.run();
@@ -113,7 +132,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static void updateZoomWindow() {
+    private void updateZoomWindow() {
         if (screenshotAnimating)
             return;
         if (currentZoom == null)
@@ -142,7 +161,8 @@ public class WindowsOverlay {
         setTopmost();
     }
 
-    public static void flushCache() {
+    @Override
+    public void flushCache() {
         for (PixmapAndPosition pixmapAndPosition : hintMeshPixmaps.values())
             pixmapAndPosition.pixmap().dispose();
         hintMeshPixmaps.clear();
@@ -152,7 +172,8 @@ public class WindowsOverlay {
         }
     }
 
-    public static Rectangle activeWindowRectangle(double windowWidthPercent,
+    @Override
+    public Rectangle activeWindowRectangle(double windowWidthPercent,
                                                   double windowHeightPercent,
                                                   int scaledTopInset,
                                                   int scaledBottomInset,
@@ -184,7 +205,8 @@ public class WindowsOverlay {
         return rect;
     }
 
-    public static void setTopmost() {
+    @Override
+    public void setTopmost() {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
         if (gridWindow != null)
@@ -233,13 +255,13 @@ public class WindowsOverlay {
             setWindowTopmost(hwnds.get(windowIndex), ExtendedUser32.HWND_TOPMOST);
     }
 
-    private static WinDef.HWND windowBelow(WinDef.HWND hwnd) {
+    private WinDef.HWND windowBelow(WinDef.HWND hwnd) {
         WinDef.HWND nextHwnd =
                 User32.INSTANCE.GetWindow(hwnd, new WinDef.DWORD(User32.GW_HWNDNEXT));
         return nextHwnd;
     }
 
-    private static void setWindowTopmost(WinDef.HWND hwnd, WinDef.HWND hwndTopmost) {
+    private void setWindowTopmost(WinDef.HWND hwnd, WinDef.HWND hwndTopmost) {
         User32.INSTANCE.SetWindowPos(hwnd, hwndTopmost, 0, 0, 0, 0,
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
     }
@@ -249,7 +271,7 @@ public class WindowsOverlay {
                                    IndicatorLabelWidget labelWidget) {
     }
 
-    private static class IndicatorWidget extends QWidget {
+    private class IndicatorWidget extends QWidget {
 
         private QColor color;
         private int edgeCount;
@@ -838,12 +860,14 @@ public class WindowsOverlay {
     public static class IndicatorShadowEffect extends StackedShadowEffect {
 
         private final IndicatorWidget widget;
+        private final WindowsOverlay overlay;
         private QColor fillColor;
         private QColor outerOutlineColor;
         private QColor innerOutlineColor;
 
-        IndicatorShadowEffect(IndicatorWidget widget) {
+        IndicatorShadowEffect(IndicatorWidget widget, WindowsOverlay overlay) {
             this.widget = widget;
+            this.overlay = overlay;
         }
 
         void setColors(QColor fillColor, QColor outerOutlineColor,
@@ -872,7 +896,7 @@ public class WindowsOverlay {
 
         @Override
         protected void redrawSourceOverShadow(QPainter painter) {
-            if (!indicatorHasTransparency())
+            if (!overlay.indicatorHasTransparency())
                 return;
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             widget.drawContent(painter, fillColor, outerOutlineColor, innerOutlineColor, false);
@@ -880,7 +904,7 @@ public class WindowsOverlay {
     }
 
 
-    private static class IndicatorLabelWidget extends QWidget {
+    private class IndicatorLabelWidget extends QWidget {
 
         private String labelText;
         private QFont labelFont;
@@ -984,7 +1008,7 @@ public class WindowsOverlay {
 
     }
 
-    private static class ScreenshotWidget extends QWidget {
+    private class ScreenshotWidget extends QWidget {
         private QPixmap pixmap;
         private Zoom zoom;
         private Rectangle screenRect;
@@ -1027,17 +1051,17 @@ public class WindowsOverlay {
         }
     }
 
-    private static int indicatorSize(double screenScale) {
+    private int indicatorSize(double screenScale) {
         return scaledPixels(currentIndicator.size(), screenScale);
     }
 
-    private static double zoomedX(double x) {
+    private double zoomedX(double x) {
         if (currentZoom == null)
             return x;
         return currentZoom.zoomedX(x);
     }
 
-    private static double zoomedY(double y) {
+    private double zoomedY(double y) {
         if (currentZoom == null)
             return y;
         return currentZoom.zoomedY(y);
@@ -1051,11 +1075,11 @@ public class WindowsOverlay {
      * For corner positions, the indicator is placed in that corner relative to the cursor,
      * flipping to the opposite side when near the corresponding screen edge.
      */
-    private static Point indicatorTopLeft(WinDef.POINT mousePosition,
+    private Point indicatorTopLeft(WinDef.POINT mousePosition,
                                           Screen activeScreen, int visualSize) {
         Rectangle screen = activeScreen.rectangle();
         if (currentIndicator.position() == IndicatorPosition.CENTER) {
-            Point cursorCenter = WindowsMouse.cursorVisualCenter();
+            Point cursorCenter = mouse.cursorVisualCenter();
             double centerX = mousePosition.x + cursorCenter.x();
             double centerY = mousePosition.y + cursorCenter.y();
             centerX = Math.max(screen.x(), Math.min(centerX,
@@ -1065,7 +1089,7 @@ public class WindowsOverlay {
             return new Point(zoomedX(centerX) - visualSize / 2.0,
                     zoomedY(centerY) - visualSize / 2.0);
         }
-        WindowsMouse.MouseSize mouseSize = WindowsMouse.mouseSize();
+        WindowsMouse.MouseSize mouseSize = mouse.mouseSize();
         int mouseX = Math.max(screen.x(), Math.min(mousePosition.x,
                 screen.x() + screen.width()));
         int mouseY = Math.max(screen.y(), Math.min(mousePosition.y,
@@ -1092,14 +1116,14 @@ public class WindowsOverlay {
         return new Point(zoomedX(indicatorX), zoomedY(indicatorY));
     }
 
-    private static int indicatorOutlinePadding(double scale) {
+    private int indicatorOutlinePadding(double scale) {
         double scaled = Math.max(
                 currentIndicator.outerOutline().thickness(),
                 currentIndicator.innerOutline().thickness()) * scale * zoomPercent();
         return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, currentIndicator.edgeCount()));
     }
 
-    private static int indicatorShadowPadding(double scale) {
+    private int indicatorShadowPadding(double scale) {
         if (currentIndicator.shadow().blurRadius() == 0)
             return 0;
         return (int) Math.ceil((currentIndicator.shadow().blurRadius() +
@@ -1107,11 +1131,11 @@ public class WindowsOverlay {
                          Math.abs(currentIndicator.shadow().verticalOffset()))) * scale);
     }
 
-    private static void moveAndResizeIndicatorWindow() {
-        moveAndResizeIndicatorWindow(WindowsMouse.findMousePosition());
+    private void moveAndResizeIndicatorWindow() {
+        moveAndResizeIndicatorWindow(mouse.findMousePosition());
     }
 
-    private static void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
+    private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         double screenScale = activeScreen.scale();
         int size = indicatorSize(screenScale);
@@ -1149,7 +1173,7 @@ public class WindowsOverlay {
         indicatorWindow.labelWidget.setLabelFontScale(zoomPercent());
     }
 
-    private static boolean indicatorHasTransparency() {
+    private boolean indicatorHasTransparency() {
         if (currentIndicator.opacity() < 1.0)
             return true;
         IndicatorOutline outer = currentIndicator.outerOutline();
@@ -1158,7 +1182,7 @@ public class WindowsOverlay {
                (inner.thickness() > 0 && inner.opacity() < 1.0);
     }
 
-    private static boolean qtFontStyleHasTransparency(QtFontStyle qtFontStyle) {
+    private boolean qtFontStyleHasTransparency(QtFontStyle qtFontStyle) {
         if (qtFontStyle.outlineThickness() != 0 &&
             qtFontStyle.outlineColor().alpha() < 255 &&
             // 0 means outline will not be rendered.
@@ -1169,7 +1193,7 @@ public class WindowsOverlay {
         return false;
     }
 
-    private static boolean qtHintFontStyleHasTransparency(QtHintFontStyle style,
+    private boolean qtHintFontStyleHasTransparency(QtHintFontStyle style,
                                                           boolean hasSelectedKeys) {
         if (qtFontStyleHasTransparency(style.defaultStyle()) ||
                (hasSelectedKeys && qtFontStyleHasTransparency(style.selectedStyle())) ||
@@ -1184,7 +1208,7 @@ public class WindowsOverlay {
         return false;
     }
 
-    private static void setIndicatorEffectColors(IndicatorShadowEffect effect) {
+    private void setIndicatorEffectColors(IndicatorShadowEffect effect) {
         IndicatorOutline outer = currentIndicator.outerOutline();
         IndicatorOutline inner = currentIndicator.innerOutline();
         effect.setColors(
@@ -1193,12 +1217,12 @@ public class WindowsOverlay {
                 qColor(inner.hexColor(), inner.opacity()));
     }
 
-    private static void applyIndicatorShadowEffect(double scale) {
+    private void applyIndicatorShadowEffect(double scale) {
         Shadow shadow = currentIndicator.shadow();
         QColor baseColor = qColor(shadow.hexColor(), 1.0);
         boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
         if (hasShadow) {
-            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget);
+            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget, this);
             effect.setBlurRadius(shadow.blurRadius() * scale);
             effect.setOffset(shadow.horizontalOffset() * scale,
                     shadow.verticalOffset() * scale);
@@ -1213,7 +1237,7 @@ public class WindowsOverlay {
             indicatorWindow.widget.setGraphicsEffect(effect);
         }
         else if (indicatorHasTransparency()) {
-            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget);
+            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget, this);
             effect.setTransparencyOnly(true);
             setIndicatorEffectColors(effect);
             indicatorWindow.widget.customGraphicsEffect = effect;
@@ -1226,7 +1250,7 @@ public class WindowsOverlay {
         baseColor.dispose();
     }
 
-    private static void createIndicatorWindow() {
+    private void createIndicatorWindow() {
         TransparentWindow window = new TransparentWindow();
         IndicatorWidget widget = new IndicatorWidget(window);
         WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
@@ -1243,24 +1267,24 @@ public class WindowsOverlay {
         // of the shadow effect and can clear/redraw the fill area.
         IndicatorLabelWidget labelWidget = new IndicatorLabelWidget(window);
         indicatorWindow = new IndicatorWindow(hwnd, window, widget, labelWidget);
-        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        WinDef.POINT mousePosition = mouse.findMousePosition();
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
         updateZoomExcludedWindows();
     }
 
-    private static int scaledPixels(double originalInPixels, double scale) {
+    private int scaledPixels(double originalInPixels, double scale) {
         return (int) Math.floor(originalInPixels * scale * zoomPercent());
     }
 
-    private static double zoomPercent() {
+    private double zoomPercent() {
         if (currentZoom == null)
             return 1;
         return currentZoom.percent();
     }
 
-    private static void createGridWindow(int x, int y, int width, int height) {
-        WinUser.WindowProc callback = WindowsOverlay::gridWindowCallback;
+    private void createGridWindow(int x, int y, int width, int height) {
+        WinUser.WindowProc callback = this::gridWindowCallback;
         WinDef.HWND hwnd =
                 createWindow("Grid" + (gridWindow == null ? 1 : 2), x, y, width, height,
                         callback);
@@ -1268,7 +1292,7 @@ public class WindowsOverlay {
         updateZoomExcludedWindows();
     }
 
-    private static void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom) {
+    private void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom) {
         Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(hintMesh.hints());
         if (hintsByScreen.isEmpty() && hintMesh.backgroundArea() != null) {
             Rectangle backgroundArea = hintMesh.backgroundArea();
@@ -1322,7 +1346,7 @@ public class WindowsOverlay {
             updateZoomExcludedWindows();
     }
 
-    private static Map<Screen, List<Hint>> hintsByScreen(List<Hint> hints) {
+    private Map<Screen, List<Hint>> hintsByScreen(List<Hint> hints) {
         Set<Screen> screens = WindowsScreen.findScreens();
         Map<Screen, List<Hint>> hintsByScreen = new HashMap<>();
         for (Hint hint : hints) {
@@ -1358,7 +1382,7 @@ public class WindowsOverlay {
         return hintsByScreen;
     }
 
-    private static class ClearBackgroundQLabel extends QLabel {
+    private class ClearBackgroundQLabel extends QLabel {
         private QColor clearColor = new QColor(0, 0, 0, 0);
 
         void setClearColor(QColor clearColor) {
@@ -1381,7 +1405,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static void setHintMeshWindow(HintMeshWindow hintMeshWindow,
+    private void setHintMeshWindow(HintMeshWindow hintMeshWindow,
                                           HintMesh hintMesh, double screenScale,
                                           HintMeshStyle style,
                                           boolean zoomChanged,
@@ -1550,7 +1574,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
+    private void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
                                                  QWidget newContainer, TransparentWindow window,
                                                  HintMeshWindow hintMeshWindow,
                                                  Duration animationDuration,
@@ -1592,7 +1616,7 @@ public class WindowsOverlay {
                 animation.valueChanged.connect(animationChanged);
                 HintContainerAnimationFinished animationFinished =
                         new HintContainerAnimationFinished(oldContainer, oldContainer,
-                                endRect);
+                                endRect, this);
                 animation.finished.connect(animationFinished);
                 // It may be necessary to save those instances somewhere (HintMeshWindow),
                 // because they could get GC'd while they are still used by Qt (?).
@@ -1632,7 +1656,7 @@ public class WindowsOverlay {
                 animation.valueChanged.connect(animationChanged);
                 HintContainerAnimationFinished animationFinished =
                         new HintContainerAnimationFinished(null, newContainer,
-                                endRect);
+                                endRect, this);
                 animation.finished.connect(animationFinished);
                 hintMeshWindow.animations.add(animation);
                 hintMeshWindow.animationCallbacks.add(animationChanged);
@@ -1657,7 +1681,7 @@ public class WindowsOverlay {
         window.show();
     }
 
-    private static QRect paddedRect(QRect rect) {
+    private QRect paddedRect(QRect rect) {
         int extraWidth = (int) (rect.width() * 0.05d);
         int extraHeight = (int) (rect.height() * 0.05d);
         return new QRect(
@@ -1690,12 +1714,14 @@ public class WindowsOverlay {
         private final QWidget oldContainer;
         private final QWidget animatedContainer;
         private final QRect endRect;
+        private final WindowsOverlay overlay;
 
         public HintContainerAnimationFinished(QWidget oldContainer, QWidget animatedContainer,
-                                              QRect endRect) {
+                                              QRect endRect, WindowsOverlay overlay) {
             this.oldContainer = oldContainer;
             this.animatedContainer = animatedContainer;
             this.endRect = endRect;
+            this.overlay = overlay;
         }
 
         @Override
@@ -1708,11 +1734,11 @@ public class WindowsOverlay {
                 oldContainer.setParent(null);
                 oldContainer.disposeLater();
             }
-            hintContainerAnimationEnded();
+            overlay.hintContainerAnimationEnded();
         }
     }
 
-    private static void hintContainerAnimationEnded() {
+    private void hintContainerAnimationEnded() {
         if (hintMeshEndAnimation) {
             hintMeshEndAnimation = false;
             hideHintMesh();
@@ -1725,7 +1751,7 @@ public class WindowsOverlay {
     }
 
 
-    private static QVariantAnimation hintContainerAnimation(QRect beginRect,
+    private QVariantAnimation hintContainerAnimation(QRect beginRect,
                                                             QRect endRect,
                                                             Duration animationDuration) {
         QVariantAnimation animation = new QVariantAnimation();
@@ -1742,7 +1768,7 @@ public class WindowsOverlay {
         return animation;
     }
 
-    private static class HintGroup {
+    private class HintGroup {
 
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -1759,7 +1785,7 @@ public class WindowsOverlay {
 
     }
 
-    private static Map<List<Key>, QRect> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
+    private Map<List<Key>, QRect> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
                                                               QWidget container) {
@@ -2130,7 +2156,7 @@ public class WindowsOverlay {
         return hintBoxGeometries;
     }
 
-    private static HintMeshWindow createHintMeshWindow(Screen screen, List<Hint> hints,
+    private HintMeshWindow createHintMeshWindow(Screen screen, List<Hint> hints,
                                                        Zoom zoom) {
         TransparentWindow window = new TransparentWindow();
         WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
@@ -2148,7 +2174,8 @@ public class WindowsOverlay {
                 new ArrayList<>(), new ArrayList<>(), new AtomicReference<>());
     }
 
-    static void preWarmHintMeshWindows() {
+    @Override
+    public void preWarmHintMeshWindows() {
         long before = System.nanoTime();
         Set<Screen> screens = WindowsScreen.findScreens();
         for (Screen screen : screens) {
@@ -2167,7 +2194,8 @@ public class WindowsOverlay {
      * GDI font engine initialization (~130ms). By doing this at startup, we shift that
      * cost away from the first hint mesh render.
      */
-    static void preWarmFontStyles(Set<HintMeshConfiguration> hintMeshConfigurations) {
+    @Override
+    public void preWarmFontStyles(Set<HintMeshConfiguration> hintMeshConfigurations) {
         long before = System.nanoTime();
         Set<HintFontStyle> fontStyles = new HashSet<>();
         for (HintMeshConfiguration hintMeshConfiguration : hintMeshConfigurations) {
@@ -2201,7 +2229,7 @@ public class WindowsOverlay {
                 (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
-    private static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
+    private QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
         QFont font = new QFont(fontName, (int) Math.round(fontSize),
                 fontWeight.qtWeight().value());
         font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
@@ -2221,7 +2249,7 @@ public class WindowsOverlay {
      * shown on a non-primary screen (Qt detects the monitor DPI), creating a
      * false "no correction needed" match on subsequent calls.
      */
-    private static QFontMetrics correctedFontMetricsForScreenDpi(QFont renderFont, double fontSizePoints,
+    private QFontMetrics correctedFontMetricsForScreenDpi(QFont renderFont, double fontSizePoints,
                                                 double screenScale) {
         double primaryScreenDpi = QApplication.primaryScreen().logicalDotsPerInchX();
         double targetDpi = screenScale * 96.0;
@@ -2247,13 +2275,13 @@ public class WindowsOverlay {
      * QImages uses the primary screen's DPI, causing wrong-sized glyphs on
      * secondary screens with different scaling.
      */
-    private static void setQImageDpiForScreen(QImage image, double screenScale) {
+    private void setQImageDpiForScreen(QImage image, double screenScale) {
         int dotsPerMeter = (int) Math.round(screenScale * 96.0 / 0.0254);
         image.setDotsPerMeterX(dotsPerMeter);
         image.setDotsPerMeterY(dotsPerMeter);
     }
 
-    private static void cacheQtHintWindowIntoPixmap(TransparentWindow window, QWidget container,
+    private void cacheQtHintWindowIntoPixmap(TransparentWindow window, QWidget container,
                                                     HintMesh hintMeshKey, HintMesh hintMesh) {
         long before = System.nanoTime();
         QPixmap pixmap = container.grab();
@@ -2267,7 +2295,7 @@ public class WindowsOverlay {
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
     }
 
-    private static List<Hint> trimmedHints(List<Hint> hints,
+    private List<Hint> trimmedHints(List<Hint> hints,
                                            List<Key> selectedKeySequence) {
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -2290,7 +2318,7 @@ public class WindowsOverlay {
         return trimmedHints;
     }
 
-    private static HintBox[][] addSubgridBoxes(HintBox hintBox,
+    private HintBox[][] addSubgridBoxes(HintBox hintBox,
                                                double qtScaleFactor, QColor subgridBoxColor,
                                                QColor subgridBoxBorderColor,
                                                int subgridRowCount,
@@ -2332,7 +2360,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static int hintGridColumnCount(List<Hint> hints) {
+    private int hintGridColumnCount(List<Hint> hints) {
         if (hints.size() == 1)
             return 1;
         double left = hints.getFirst().centerX();
@@ -2343,12 +2371,12 @@ public class WindowsOverlay {
         return hints.size();
     }
 
-    private static int hintRoundedX(double centerX, double cellWidth,
+    private int hintRoundedX(double centerX, double cellWidth,
                                     double qtScaleFactor) {
         return (int) Math.round((centerX - cellWidth / 2) / qtScaleFactor);
     }
 
-    private static int hintRoundedY(double centerY, double cellHeight,
+    private int hintRoundedY(double centerY, double cellHeight,
                                     double qtScaleFactor) {
         return (int) Math.round((centerY - cellHeight / 2) / qtScaleFactor);
     }
@@ -2764,15 +2792,15 @@ public class WindowsOverlay {
 
     }
 
-    private static QColor qColor(String hexColor, double opacity) {
+    private QColor qColor(String hexColor, double opacity) {
         return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
     }
 
-    private static QColor shadowColor(Shadow shadow) {
+    private QColor shadowColor(Shadow shadow) {
         return qColor(shadow.hexColor(), shadow.opacity());
     }
 
-    private static QtFontStyle buildQtFontStyle(FontStyle fs, QFont font,
+    private QtFontStyle buildQtFontStyle(FontStyle fs, QFont font,
                                                             QFontMetrics metrics,
                                                             double screenScale) {
         return new QtFontStyle(
@@ -2794,18 +2822,18 @@ public class WindowsOverlay {
      * When one is zero and the other is not, per-key processing is needed to exclude
      * the zero-opacity keys from the other's shadow.
      */
-    private static boolean shadowsNeedPerKeyProcessing(Shadow a, Shadow b) {
+    private boolean shadowsNeedPerKeyProcessing(Shadow a, Shadow b) {
         return (a.opacity() != 0 || b.opacity() != 0) && !a.equals(b);
     }
 
-    private static boolean fontShapeEquals(FontStyle a, FontStyle b) {
+    private boolean fontShapeEquals(FontStyle a, FontStyle b) {
         return a.name().equals(b.name()) &&
                a.weight() == b.weight() &&
                Double.compare(a.size(), b.size()) == 0;
     }
 
 
-    private static QtHintFontStyle buildQtHintFontStyle(HintFontStyle hintFontStyle,
+    private QtHintFontStyle buildQtHintFontStyle(HintFontStyle hintFontStyle,
                                                        HintFontStyle prefixHintFontStyle,
                                                        double screenScale,
                                                        boolean hasSelectedKeys) {
@@ -3191,7 +3219,7 @@ public class WindowsOverlay {
      * stackCount == 1, uses Qt's effect directly (fast path). Otherwise,
      * pre-renders the shadow off-screen into a separate layer.
      */
-    private static void applyBoxShadow(HintPaintLayer boxLayer,
+    private void applyBoxShadow(HintPaintLayer boxLayer,
                                        HintPaintLayer boxShadowLayer,
                                        List<HintBox> hintBoxes,
                                        Shadow boxShadow,
@@ -3254,7 +3282,7 @@ public class WindowsOverlay {
      * has transparency, pre-renders the shadow off-screen and punches out the
      * text shape so shadow doesn't show through transparent text.
      */
-    private static void applyLabelShadow(HintPaintLayer layer,
+    private void applyLabelShadow(HintPaintLayer layer,
                                          List<HintLabel> labels,
                                          QtHintFontStyle style,
                                          boolean hasSelectedKeys,
@@ -3295,7 +3323,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static void preRenderLabelShadow(HintPaintLayer layer,
+    private void preRenderLabelShadow(HintPaintLayer layer,
                                              List<HintLabel> labels,
                                              QtHintFontStyle style,
                                              int containerWidth,
@@ -3406,7 +3434,7 @@ public class WindowsOverlay {
      * settings (state + prefix/non-prefix), renders each group separately,
      * bakes stacking, and composites into a single shadow pixmap.
      */
-    private static void preRenderPerGroupShadow(
+    private void preRenderPerGroupShadow(
             HintPaintLayer layer, List<HintLabel> labels,
             int containerWidth, int containerHeight,
             double screenScale) {
@@ -3487,7 +3515,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static class HintPaintLayer extends QWidget {
+    private class HintPaintLayer extends QWidget {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
@@ -3526,7 +3554,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static WinDef.HWND createWindow(String windowName, int windowX, int windowY,
+    private WinDef.HWND createWindow(String windowName, int windowX, int windowY,
                                             int windowWidth, int windowHeight,
                                             WinUser.WindowProc windowCallback) {
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
@@ -3546,12 +3574,12 @@ public class WindowsOverlay {
         return hwnd;
     }
 
-    private static WinDef.HWND createZoomWindow() {
+    private WinDef.HWND createZoomWindow() {
         if (!Magnification.INSTANCE.MagInitialize())
             logger.error("Failed MagInitialize: " +
                          Integer.toHexString(Native.getLastError()));
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
-        WinUser.WindowProc callback = WindowsOverlay::zoomWindowCallback;
+        WinUser.WindowProc callback = this::zoomWindowCallback;
         wClass.hbrBackground = null;
         String WC_MAGNIFIER = "Magnifier";
         wClass.lpszClassName = "MagnifierWindow";
@@ -3585,7 +3613,7 @@ public class WindowsOverlay {
 
 
 
-    private static WinDef.LRESULT gridWindowCallback(WinDef.HWND hwnd, int uMsg,
+    private WinDef.LRESULT gridWindowCallback(WinDef.HWND hwnd, int uMsg,
                                                      WinDef.WPARAM wParam,
                                                      WinDef.LPARAM lParam) {
         switch (uMsg) {
@@ -3627,13 +3655,13 @@ public class WindowsOverlay {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    private static void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect, int color) {
+    private void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect, int color) {
         WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(color);
         ExtendedUser32.INSTANCE.FillRect(hdc, windowRect, hbrBackground);
         GDI32.INSTANCE.DeleteObject(hbrBackground);
     }
 
-    private static void drawGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
+    private void drawGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
         int rowCount = currentGrid.rowCount();
         int columnCount = currentGrid.columnCount();
         int cellWidth = currentGrid.width() / columnCount;
@@ -3719,7 +3747,7 @@ public class WindowsOverlay {
     }
 
     // color1 is background, color2 is foreground
-    private static int blend(int color1, int color2, double color2Opacity) {
+    private int blend(int color1, int color2, double color2Opacity) {
         int red1 = (color1 >> 16) & 0xFF;
         int green1 = (color1 >> 8) & 0xFF;
         int blue1 = color1 & 0xFF;
@@ -3736,7 +3764,7 @@ public class WindowsOverlay {
 
     }
 
-    private static int hexColorStringToInt(String hexColor) {
+    private int hexColorStringToInt(String hexColor) {
         if (hexColor.startsWith("#"))
             hexColor = hexColor.substring(1);
         int colorInt = Integer.parseUnsignedInt(hexColor, 16);
@@ -3747,7 +3775,7 @@ public class WindowsOverlay {
         return (blue << 16) | (green << 8) | red;
     }
 
-    private static int hexColorStringToRgba(String hexColor, double opacity) {
+    private int hexColorStringToRgba(String hexColor, double opacity) {
         if (hexColor.startsWith("#"))
             hexColor = hexColor.substring(1);
         int colorInt = Integer.parseUnsignedInt(hexColor, 16);
@@ -3758,7 +3786,7 @@ public class WindowsOverlay {
         return (alpha << 24) | (red << 16) | (green << 8) | blue;
     }
 
-    private static int hexColorStringToRgb(String hexColor, double opacity) {
+    private int hexColorStringToRgb(String hexColor, double opacity) {
         // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-blendfunction
         // Note that the APIs use premultiplied alpha, which means that the red, green
         // and blue channel values in the bitmap must be premultiplied with the alpha channel value.
@@ -3772,7 +3800,7 @@ public class WindowsOverlay {
         return (red << 16) | (green << 8) | blue;
     }
 
-    private static int alphaMultipliedChannelsColor(int color, double opacity) {
+    private int alphaMultipliedChannelsColor(int color, double opacity) {
         int red = (color >> 16) & 0xFF;
         int green = (color >> 8) & 0xFF;
         int blue = color & 0xFF;
@@ -3780,12 +3808,13 @@ public class WindowsOverlay {
                (int) Math.round(blue * opacity);
     }
 
-    public static void setIndicator(Indicator indicator,
+    @Override
+    public void setIndicator(Indicator indicator,
                                     boolean fadeAnimationEnabled,
                                     Duration fadeAnimationDuration,
                                     boolean allowFade) {
         Objects.requireNonNull(indicator);
-        if (WindowsMouse.tryFindMousePosition() == null) {
+        if (mouse.tryFindMousePosition() == null) {
             logger.warn("Unable to find mouse position for indicator");
             return;
         }
@@ -3817,7 +3846,7 @@ public class WindowsOverlay {
             boolean positionChanged = oldIndicator == null ||
                     indicator.position() != oldIndicator.position();
             if (sizeOrShadowChanged) {
-                WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+                WinDef.POINT mousePosition = mouse.findMousePosition();
                 Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
                 applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
             }
@@ -3859,7 +3888,7 @@ public class WindowsOverlay {
             Shadow labelShadow = labelFontStyle.shadow();
             QColor labelShadowColor = qColor(labelShadow.hexColor(), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {
-                WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+                WinDef.POINT mousePosition = mouse.findMousePosition();
                 Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
                 double labelShadowScale = activeScreen.scale() * zoomPercent();
                 StackedShadowEffect effect = new StackedShadowEffect();
@@ -3886,7 +3915,7 @@ public class WindowsOverlay {
         if (!wasShowing) {
             indicatorFadeAnimator = new FadeAnimator(
                     opacity -> indicatorWindow.window.setWindowOpacity(opacity),
-                    WindowsOverlay::doHideIndicator,
+                    this::doHideIndicator,
                     fadeAnimationEnabled,
                     fadeAnimationDuration);
             if (allowFade && indicatorFadeAnimator.isEnabled()) {
@@ -3896,7 +3925,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static void createScreenshotWindow() {
+    private void createScreenshotWindow() {
         screenshotWidget = new ScreenshotWidget();
         screenshotHwnd = new WinDef.HWND(new Pointer(screenshotWidget.winId()));
         long currentStyle =
@@ -3914,7 +3943,8 @@ public class WindowsOverlay {
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
     }
 
-    public static void startScreenshotZoomAnimation(Rectangle screenRect,
+    @Override
+    public void startScreenshotZoomAnimation(Rectangle screenRect,
                                                       Zoom beginZoom) {
         boolean interruptingMidAnimation = screenshotAnimating;
         if (screenshotAnimating || screenshotPendingHide) {
@@ -3986,7 +4016,7 @@ public class WindowsOverlay {
         setTopmost();
     }
 
-    private static void drawCursorOnto(QPixmap pixmap, Rectangle screenRect) {
+    private void drawCursorOnto(QPixmap pixmap, Rectangle screenRect) {
         ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
         if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) ||
             cursorInfo.hCursor == null)
@@ -4104,7 +4134,7 @@ public class WindowsOverlay {
         }
     }
 
-    private static byte[] readBitmap32(WinDef.HBITMAP bitmap, int width,
+    private byte[] readBitmap32(WinDef.HBITMAP bitmap, int width,
                                        int height) {
         WinGDI.BITMAPINFO bi = new WinGDI.BITMAPINFO();
         bi.bmiHeader.biWidth = width;
@@ -4121,7 +4151,8 @@ public class WindowsOverlay {
         return pixels.getByteArray(0, width * height * 4);
     }
 
-    public static void updateScreenshotZoom(Zoom zoom) {
+    @Override
+    public void updateScreenshotZoom(Zoom zoom) {
         if (!screenshotAnimating)
             return;
         currentZoom = zoom;
@@ -4132,7 +4163,8 @@ public class WindowsOverlay {
         setTopmost();
     }
 
-    public static void endScreenshotZoomAnimation(Zoom finalZoom) {
+    @Override
+    public void endScreenshotZoomAnimation(Zoom finalZoom) {
         if (!screenshotAnimating)
             return;
         screenshotAnimating = false;
@@ -4157,7 +4189,8 @@ public class WindowsOverlay {
         }
     }
 
-    public static void setZoom(Zoom zoom) {
+    @Override
+    public void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
         if (hintMeshEndAnimation) {
@@ -4228,7 +4261,7 @@ public class WindowsOverlay {
         updateZoomWindow();
     }
 
-    private static void updateZoomExcludedWindows() {
+    private void updateZoomExcludedWindows() {
         if (zoomWindow == null)
             return;
         List<WinDef.HWND> hwnds = new ArrayList<>();
@@ -4252,7 +4285,7 @@ public class WindowsOverlay {
                          Integer.toHexString(Native.getLastError()));
     }
 
-    private static WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
+    private WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
                                                      WinDef.WPARAM wParam,
                                                      WinDef.LPARAM lParam) {
 //        switch (uMsg) {
@@ -4268,7 +4301,8 @@ public class WindowsOverlay {
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    public static void hideIndicator(boolean allowFade) {
+    @Override
+    public void hideIndicator(boolean allowFade) {
         if (!showingIndicator)
             return;
         if (allowFade && indicatorFadeAnimator != null &&
@@ -4277,7 +4311,7 @@ public class WindowsOverlay {
         doHideIndicator();
     }
 
-    private static void doHideIndicator() {
+    private void doHideIndicator() {
         showingIndicator = false;
         if (indicatorFadeAnimator != null)
             indicatorFadeAnimator.cancel();
@@ -4288,7 +4322,8 @@ public class WindowsOverlay {
         indicatorWindow.window.setWindowOpacity(1.0);
     }
 
-    public static void setGrid(Grid grid) {
+    @Override
+    public void setGrid(Grid grid) {
         Objects.requireNonNull(grid);
         if (showingGrid && currentGrid != null && currentGrid.equals(grid))
             return;
@@ -4330,7 +4365,8 @@ public class WindowsOverlay {
      * The reason we don't call setHintMesh with the match hint is because
      * that does not keep the prefix box borders of the previous hint mesh.
      */
-    public static void animateHintMatch(Hint hint) {
+    @Override
+    public void animateHintMatch(Hint hint) {
         if (!showingHintMesh) // Invisible hint mesh.
             return;
         Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(List.of(hint));
@@ -4368,11 +4404,13 @@ public class WindowsOverlay {
         setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, false, pixmapAndPosition);
     }
 
-    public static void setHintMesh(HintMesh hintMesh, Zoom zoom) {
+    @Override
+    public void setHintMesh(HintMesh hintMesh, Zoom zoom) {
         setHintMesh(hintMesh, zoom, false);
     }
 
-    public static void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
+    @Override
+    public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
         Objects.requireNonNull(hintMesh);
         if (!hintMesh.visible()) {
             hideHintMesh();
@@ -4424,7 +4462,7 @@ public class WindowsOverlay {
                         for (HintMeshWindow w : hintMeshWindows.values())
                             w.window.setWindowOpacity(opacity);
                     },
-                    WindowsOverlay::doHideHintMesh,
+                    this::doHideHintMesh,
                     style.fadeAnimationEnabled(),
                     style.fadeAnimationDuration());
             if (hintMeshFadeAnimator.isEnabled()) {
@@ -4433,21 +4471,23 @@ public class WindowsOverlay {
                 hintMeshFadeAnimator.startFadeIn();
             }
         }
-        if (!waitForZoomBeforeRepainting) {
+        if (!waitForZoom) {
             for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
 //                requestWindowRepaint(hintMeshWindow.hwnd);
             }
         }
     }
 
-    public static void hideGrid() {
+    @Override
+    public void hideGrid() {
         if (!showingGrid)
             return;
         showingGrid = false;
         requestWindowRepaint(gridWindow.hwnd);
     }
 
-    public static void hideHintMesh() {
+    @Override
+    public void hideHintMesh() {
         if (!showingHintMesh)
             return;
         if (hintMeshEndAnimation)
@@ -4457,7 +4497,7 @@ public class WindowsOverlay {
         doHideHintMesh();
     }
 
-    private static void doHideHintMesh() {
+    private void doHideHintMesh() {
         showingHintMesh = false;
         if (hintMeshFadeAnimator != null)
             hintMeshFadeAnimator.cancel();
@@ -4484,12 +4524,12 @@ public class WindowsOverlay {
         }
     }
 
-    private static void requestWindowRepaint(WinDef.HWND hwnd) {
+    private void requestWindowRepaint(WinDef.HWND hwnd) {
         User32.INSTANCE.InvalidateRect(hwnd, null, true);
         User32.INSTANCE.UpdateWindow(hwnd);
     }
 
-    static void mouseMoved(WinDef.POINT mousePosition) {
+    void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorWindow == null)
              return;
         // During zoom, currentZoom still has the previous frame's zoom center

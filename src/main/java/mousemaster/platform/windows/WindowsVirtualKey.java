@@ -471,7 +471,8 @@ public enum WindowsVirtualKey {
                 new String(nameBuffer, 0, nameLength));
     }
 
-    public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode, int flags) {
+    public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode,
+                                          int flags, KeyboardLayout activeKeyboardLayout) {
         if (scanCode == 0) {
             // Injected key event have scanCode 0.
             return WindowsVirtualKey.activeKeyboardLayout().keyFromVirtualKeyName(windowsVirtualKey.name());
@@ -486,11 +487,11 @@ public enum WindowsVirtualKey {
         boolean isExtended = (flags & 0x1) != 0;
         if (isExtended) {
             int extendedKeyScanCode = 0xE000 | scanCode;
-            Key extendedKey = WindowsKeyboard.activeKeyboardLayout.keyFromScanCode(extendedKeyScanCode);
+            Key extendedKey = activeKeyboardLayout.keyFromScanCode(extendedKeyScanCode);
             if (extendedKey != null)
                 return extendedKey;
         }
-        return WindowsKeyboard.activeKeyboardLayout.keyFromScanCode(scanCode);
+        return activeKeyboardLayout.keyFromScanCode(scanCode);
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key,

@@ -5,19 +5,28 @@ import mousemaster.*;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import mousemaster.platform.PlatformMouse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-public class WindowsMouse {
+public class WindowsMouse implements PlatformMouse {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsMouse.class);
 
-    public static void moveBy(boolean xForward, double deltaX, boolean yForward,
-                              double deltaY) {
+    private final Consumer<WinDef.POINT> mousePositionSetCallback;
+
+    public WindowsMouse(Consumer<WinDef.POINT> mousePositionSetCallback) {
+        this.mousePositionSetCallback = mousePositionSetCallback;
+    }
+
+    @Override
+    public void moveBy(boolean xForward, double deltaX, boolean yForward,
+                       double deltaY) {
         if (((long) deltaX) == 0 && ((long) deltaY) == 0)
             return;
         sendInput((long) deltaX * (xForward ? 1 : -1),
@@ -27,13 +36,13 @@ public class WindowsMouse {
 
     // Mutable field that will contain the user's mouse settings
     // (Control panel > Mouse settings > Pointer options tab).
-    private static final WinDef.DWORD[] originalMouseThresholdsAndAcceleration =
+    private final WinDef.DWORD[] originalMouseThresholdsAndAcceleration =
             new WinDef.DWORD[]{
                     new WinDef.DWORD(0), // Threshold1.
                     new WinDef.DWORD(0), // Threshold2.
                     new WinDef.DWORD(0)  // Acceleration.
             };
-    private static final WinDef.DWORD[] originalMouseSpeed = new WinDef.DWORD[] { new WinDef.DWORD(0) };
+    private final WinDef.DWORD[] originalMouseSpeed = new WinDef.DWORD[] { new WinDef.DWORD(0) };
     // Following is a "no enhanced pointer precision" mouse setting that we use to be
     // able to predict where the mouse will end up when moving the mouse to a target
     // position using SendInput.
@@ -54,7 +63,7 @@ public class WindowsMouse {
      * If enhanced pointer precision is disabled, then the values are all 0.
      * On my computer, SPI_GETMOUSESPEED is 10 (that's the default).
      */
-    private static void findMouseThresholdsAndAccelerationAndSpeed(
+    private void findMouseThresholdsAndAccelerationAndSpeed(
             WinDef.DWORD[] mouseThresholdsAndAcceleration,
             WinDef.DWORD[] originalMouseSpeed) {
         boolean getMouseSuccess = ExtendedUser32.INSTANCE.SystemParametersInfoA(
@@ -80,7 +89,7 @@ public class WindowsMouse {
         }
     }
 
-    private static void setMouseThresholdsAndAccelerationAndSpeed(
+    private void setMouseThresholdsAndAccelerationAndSpeed(
             WinDef.DWORD[] mouseThresholdsAndAcceleration, int mouseSpeed) {
         int SPIF_SENDCHANGE = 0x02;
         boolean setMouseSuccess = ExtendedUser32.INSTANCE.SystemParametersInfoA(
@@ -100,9 +109,10 @@ public class WindowsMouse {
         }
     }
 
-    private static boolean moving;
+    private boolean moving;
 
-    public static void beginMove() {
+    @Override
+    public void beginMove() {
         if (moving)
             return;
         findMouseThresholdsAndAccelerationAndSpeed(originalMouseThresholdsAndAcceleration,
@@ -112,7 +122,8 @@ public class WindowsMouse {
         moving = true;
     }
 
-    public static void endMove() {
+    @Override
+    public void endMove() {
         if (!moving)
             return;
         moving = false;
@@ -120,7 +131,8 @@ public class WindowsMouse {
                 originalMouseSpeed[0].intValue());
     }
 
-    public static void synchronousMoveTo(int x, int y) {
+    @Override
+    public void synchronousMoveTo(int x, int y) {
         WinDef.POINT mousePosition = tryFindMousePosition();
         // GetCursorPos can fail on the Win+L lock screen.
         if (mousePosition == null) {
@@ -164,27 +176,33 @@ public class WindowsMouse {
      */
     private static final Executor buttonExecutor = Executors.newSingleThreadExecutor();
 
-    public static void pressLeft() {
+    @Override
+    public void pressLeft() {
         buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTDOWN));
     }
 
-    public static void pressMiddle() {
+    @Override
+    public void pressMiddle() {
         buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEDOWN));
     }
 
-    public static void pressRight() {
+    @Override
+    public void pressRight() {
         buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTDOWN));
     }
 
-    public static void releaseLeft() {
+    @Override
+    public void releaseLeft() {
         buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_LEFTUP));
     }
 
-    public static void releaseMiddle() {
+    @Override
+    public void releaseMiddle() {
         buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_MIDDLEUP));
     }
 
-    public static void releaseRight() {
+    @Override
+    public void releaseRight() {
         buttonExecutor.execute(() -> sendInput(0, 0, 0, ExtendedUser32.MOUSEEVENTF_RIGHTUP));
     }
 
@@ -195,17 +213,19 @@ public class WindowsMouse {
      */
     private static final Executor wheelExecutor = Executors.newSingleThreadExecutor();
 
-    public static void wheelHorizontallyBy(boolean forward, double delta) {
+    @Override
+    public void wheelHorizontallyBy(boolean forward, double delta) {
         wheelExecutor.execute(() -> sendInput(0, 0, (int) delta * (forward ? 1 : -1),
                 ExtendedUser32.MOUSEEVENTF_HWHEEL));
     }
 
-    public static void wheelVerticallyBy(boolean forward, double delta) {
+    @Override
+    public void wheelVerticallyBy(boolean forward, double delta) {
         wheelExecutor.execute(() -> sendInput(0, 0, (int) delta * (forward ? -1 : 1),
                 ExtendedUser32.MOUSEEVENTF_WHEEL));
     }
 
-    private static void sendInput(long dx, long dy, int wheelDelta, int eventFlag) {
+    private void sendInput(long dx, long dy, int wheelDelta, int eventFlag) {
         WinUser.INPUT input = new WinUser.INPUT();
         input.type = new WinDef.DWORD(WinUser.INPUT.INPUT_MOUSE);
         WinUser.MOUSEINPUT mouseInput = new WinUser.MOUSEINPUT();
@@ -223,16 +243,15 @@ public class WindowsMouse {
         User32.INSTANCE.SendInput(nInputs, pInputs, size);
     }
 
-    public static WindowsPlatform windowsPlatform; // TODO Get rid of this field.
-
-    private static boolean setMousePosition(WinDef.POINT mousePosition) {
-        windowsPlatform.mousePositionSet(mousePosition);
+    private boolean setMousePosition(WinDef.POINT mousePosition) {
+        mousePositionSetCallback.accept(mousePosition);
         return User32.INSTANCE.SetCursorPos(mousePosition.x, mousePosition.y);
     }
 
-    private static boolean cursorHidden = false;
+    private boolean cursorHidden = false;
 
-    public static void showCursor() {
+    @Override
+    public void showCursor() {
         if (!cursorHidden)
             return;
         cursorHidden = false;
@@ -241,7 +260,8 @@ public class WindowsMouse {
                 new WinDef.UINT(0));
     }
 
-    public static void hideCursor() {
+    @Override
+    public void hideCursor() {
         // User32 ShowCursor(false) always returns -1 and does not hide the cursor.
         if (cursorHidden)
             return;
@@ -275,14 +295,14 @@ public class WindowsMouse {
         ExtendedUser32.INSTANCE.DestroyCursor(transparentCursor);
     }
 
-    public static WinDef.POINT findMousePosition() {
+    public WinDef.POINT findMousePosition() {
         WinDef.POINT mousePosition = tryFindMousePosition();
         if (mousePosition == null)
             throw new IllegalStateException("Unable to find mouse position");
         return mousePosition;
     }
 
-    public static WinDef.POINT tryFindMousePosition() {
+    public WinDef.POINT tryFindMousePosition() {
         WinDef.POINT mousePosition = new WinDef.POINT();
         boolean getCursorPosResult = User32.INSTANCE.GetCursorPos(mousePosition);
         if (!getCursorPosResult)
@@ -290,9 +310,9 @@ public class WindowsMouse {
         return mousePosition;
     }
 
-    private static MouseSize mouseSize;
+    private MouseSize mouseSize;
 
-    static MouseSize mouseSize() {
+    MouseSize mouseSize() {
         if (mouseSize != null)
             return mouseSize;
         ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
@@ -325,12 +345,12 @@ public class WindowsMouse {
             GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
         if (iconInfo.hbmMask != null)
             GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
-        MouseSize mouseSize = new MouseSize(cursorWidth, cursorHeight);
-        WindowsMouse.mouseSize = mouseSize;
-        return mouseSize;
+        MouseSize result = new MouseSize(cursorWidth, cursorHeight);
+        this.mouseSize = result;
+        return result;
     }
 
-    private static MouseSize mouseSizeFallback() {
+    private MouseSize mouseSizeFallback() {
         Screen activeScreen = WindowsScreen.findActiveScreen(findMousePosition());
         double scale = activeScreen.scale();
         logger.info("Unable to find mouse size, using 32x32 (multiplied by scale " +
@@ -342,14 +362,14 @@ public class WindowsMouse {
 
     }
 
-    private static final Map<Pointer, Point> centerByCursorHandle = new HashMap<>();
+    private final Map<Pointer, Point> centerByCursorHandle = new HashMap<>();
 
     /**
      * Returns the visual center of the current cursor relative to its hotspot,
      * computed by finding the bounding box of non-transparent pixels.
      * Results are cached per cursor handle.
      */
-    static Point cursorVisualCenter() {
+    Point cursorVisualCenter() {
         ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
         if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) ||
             cursorInfo.hCursor == null)
@@ -364,7 +384,7 @@ public class WindowsMouse {
         return center != null ? center : new Point(0, 0);
     }
 
-    private static Point computeCursorVisualCenter(
+    private Point computeCursorVisualCenter(
             ExtendedUser32.CURSORINFO cursorInfo) {
         WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
         if (!User32.INSTANCE.GetIconInfo(
@@ -412,7 +432,7 @@ public class WindowsMouse {
      * checking for non-black RGB (for XOR/inversion cursors like I-beam where
      * alpha is 0 but RGB encodes the visible shape).
      */
-    private static Rectangle colorBitmapBounds(WinDef.HBITMAP bitmap) {
+    private Rectangle colorBitmapBounds(WinDef.HBITMAP bitmap) {
         WinGDI.BITMAP bmp = new WinGDI.BITMAP();
         GDI32.INSTANCE.GetObject(bitmap, bmp.size(), bmp.getPointer());
         bmp.read();
@@ -464,7 +484,7 @@ public class WindowsMouse {
      *               false for monochrome cursors (double-height: top=AND, bottom=XOR;
      *               visible if AND=0 or XOR is non-zero).
      */
-    private static Rectangle maskBitmapBounds(WinDef.HBITMAP bitmap, boolean andOnly) {
+    private Rectangle maskBitmapBounds(WinDef.HBITMAP bitmap, boolean andOnly) {
         WinGDI.BITMAP bmp = new WinGDI.BITMAP();
         GDI32.INSTANCE.GetObject(bitmap, bmp.size(), bmp.getPointer());
         bmp.read();
@@ -508,7 +528,7 @@ public class WindowsMouse {
         }
     }
 
-    private static Memory readBitmap32(WinDef.HBITMAP bitmap, int width, int height) {
+    private Memory readBitmap32(WinDef.HBITMAP bitmap, int width, int height) {
         WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
         bitmapInfo.bmiHeader.biWidth = width;
         bitmapInfo.bmiHeader.biHeight = -height; // Negative = top-down

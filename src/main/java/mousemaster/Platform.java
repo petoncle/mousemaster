@@ -2,13 +2,13 @@ package mousemaster;
 
 import mousemaster.platform.ActiveAppFinder;
 import mousemaster.platform.Console;
-import mousemaster.platform.Keyboard;
-import mousemaster.platform.KeyboardLayoutProvider;
 import mousemaster.platform.KeyRegurgitator;
-import mousemaster.platform.Overlay;
+import mousemaster.platform.KeyboardLayoutProvider;
+import mousemaster.platform.PlatformKeyboard;
 import mousemaster.platform.PlatformMouse;
+import mousemaster.platform.PlatformOverlay;
+import mousemaster.platform.PlatformUiAutomation;
 import mousemaster.platform.Screens;
-import mousemaster.platform.UiAutomation;
 
 import java.util.List;
 
@@ -33,15 +33,15 @@ public interface Platform extends ModeListener {
 
     KeyboardLayoutProvider keyboardLayoutProvider();
 
-    Keyboard keyboard();
+    PlatformKeyboard keyboard();
 
     PlatformMouse mouse();
 
     Screens screens();
 
-    Overlay overlay();
+    PlatformOverlay overlay();
 
-    UiAutomation uiAutomation();
+    PlatformUiAutomation uiAutomation();
 
     ActiveAppFinder activeAppFinder();
 

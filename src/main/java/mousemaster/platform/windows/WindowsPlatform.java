@@ -7,13 +7,13 @@ import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import mousemaster.platform.ActiveAppFinder;
 import mousemaster.platform.Console;
-import mousemaster.platform.Keyboard;
-import mousemaster.platform.KeyboardLayoutProvider;
 import mousemaster.platform.KeyRegurgitator;
-import mousemaster.platform.Overlay;
+import mousemaster.platform.KeyboardLayoutProvider;
+import mousemaster.platform.PlatformKeyboard;
 import mousemaster.platform.PlatformMouse;
+import mousemaster.platform.PlatformOverlay;
+import mousemaster.platform.PlatformUiAutomation;
 import mousemaster.platform.Screens;
-import mousemaster.platform.UiAutomation;
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
 import org.slf4j.Logger;
@@ -29,15 +29,15 @@ public class WindowsPlatform implements Platform {
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
 
     private final boolean keyRegurgitationEnabled;
-    private final Keyboard keyboard = new WindowsKeyboardAdapter();
-    private final PlatformMouse mouse = new WindowsMouseAdapter();
+    private final WindowsKeyboard keyboard = new WindowsKeyboard();
+    private final WindowsMouse mouse = new WindowsMouse(this::mousePositionSet);
     private final Screens screens = new WindowsScreens();
-    private final Overlay overlay = new WindowsOverlayAdapter();
-    private final UiAutomation uiAutomation = new WindowsUiAutomationAdapter();
+    private final WindowsOverlay overlay = new WindowsOverlay(mouse);
+    private final PlatformUiAutomation uiAutomation = new WindowsUiAutomation();
     private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
     private final Console console = new WindowsConsole();
     private final KeyboardLayoutProvider keyboardLayoutProvider = WindowsVirtualKey::activeKeyboardLayout;
-    private final KeyRegurgitator keyRegurgitator = new WindowsKeyRegurgitator(keyboard);
+    private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator(keyboard);
     private final WindowsClock clock = new WindowsClock();
 
     private MouseController mouseController;
@@ -76,7 +76,6 @@ public class WindowsPlatform implements Platform {
 
     public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
-        WindowsMouse.windowsPlatform = this; // TODO Get rid of this.
         WindowsUiAccess.checkAndTryToGetUiAccess(); // Done before acquiring the single instance mutex.
         if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
@@ -89,16 +88,16 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void update(double delta) {
-        WindowsOverlay.waitForZoomBeforeRepainting = false;
-        WindowsKeyboard.update(delta);
+        overlay.setWaitForZoomBeforeRepainting(false);
+        keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         enforceWindowsTopmostTimer -= delta;
         if (enforceWindowsTopmostTimer < 0) {
             // Every 200ms.
             enforceWindowsTopmostTimer = 0.2;
-            WindowsOverlay.setTopmost();
+            overlay.setTopmost();
         }
-        WindowsOverlay.update(delta);
+        overlay.update(delta);
     }
 
     @Override
@@ -117,12 +116,12 @@ public class WindowsPlatform implements Platform {
         for (WinDef.POINT p; (p = mousePositionQueue.poll()) != null;)
             mousePosition = p;
         if (mousePosition == null)
-            mousePosition = WindowsMouse.tryFindMousePosition();
+            mousePosition = mouse.tryFindMousePosition();
         if (mousePosition != null &&
             (lastMousePosition == null || mousePosition.x != lastMousePosition.x ||
              mousePosition.y != lastMousePosition.y)) {
             lastMousePosition = mousePosition;
-            WindowsOverlay.mouseMoved(mousePosition);
+            overlay.mouseMoved(mousePosition);
             for (MousePositionListener listener : mousePositionListeners) {
                 // ZoomListener can take up to 30ms.
                 listener.mouseMoved(mousePosition.x, mousePosition.y);
@@ -132,7 +131,7 @@ public class WindowsPlatform implements Platform {
             // Mouse position hasn't changed, but the cursor shape may have changed
             // (e.g., arrow to hand after keyboard-driven movement stopped).
             // Reposition the indicator with the updated cursor visual center.
-            WindowsOverlay.mouseMoved(lastMousePosition);
+            overlay.mouseMoved(lastMousePosition);
         }
         pumpEvents();
         long beforeTime = System.nanoTime();
@@ -161,12 +160,12 @@ public class WindowsPlatform implements Platform {
         this.mouseController = mouseController;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
-        if (WindowsKeyboard.activeKeyboardLayout != null &&
-            !WindowsKeyboard.activeKeyboardLayout.equals(activeKeyboardLayout)) {
+        if (keyboard.activeKeyboardLayout != null &&
+            !keyboard.activeKeyboardLayout.equals(activeKeyboardLayout)) {
             keyboardManager.reset();
-            WindowsKeyboard.reset();
+            keyboard.reset();
         }
-        WindowsKeyboard.activeKeyboardLayout = activeKeyboardLayout;
+        keyboard.activeKeyboardLayout = activeKeyboardLayout;
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());
@@ -175,17 +174,17 @@ public class WindowsPlatform implements Platform {
             if (oldModeMap != null) {
                 logger.debug(
                         "Flushing overlay cache because hint mesh configurations have changed");
-                WindowsOverlay.flushCache();
+                overlay.flushCache();
             }
-            WindowsOverlay.preWarmFontStyles(newHintMeshConfigurations);
-            WindowsOverlay.preWarmHintMeshWindows();
+            overlay.preWarmFontStyles(newHintMeshConfigurations);
+            overlay.preWarmHintMeshWindows();
         }
         this.modeMap = newModeMap;
-        WinDef.POINT mousePosition = WindowsMouse.findMousePosition();
+        WinDef.POINT mousePosition = mouse.findMousePosition();
         mousePositionListeners.forEach(
                 mousePositionListener -> mousePositionListener.mouseMoved(mousePosition.x,
                         mousePosition.y));
-        WindowsOverlay.setMessagePump(this::pumpEvents);
+        overlay.setMessagePump(this::pumpEvents);
         if (keyboardHookCallback == null)
             installHooks();
     }
@@ -254,7 +253,7 @@ public class WindowsPlatform implements Platform {
         if (shutdown)
             return;
         shutdown = true;
-        WindowsMouse.showCursor(); // Just in case we are shutting down while cursor is hidden.
+        mouse.showCursor(); // Just in case we are shutting down while cursor is hidden.
         boolean keyboardHookUnhooked =
                 User32.INSTANCE.UnhookWindowsHookEx(keyboardHook);
         boolean mouseHookUnhooked = User32.INSTANCE.UnhookWindowsHookEx(mouseHook);
@@ -281,7 +280,7 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public Keyboard keyboard() {
+    public PlatformKeyboard keyboard() {
         return keyboard;
     }
 
@@ -296,12 +295,12 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public Overlay overlay() {
+    public PlatformOverlay overlay() {
         return overlay;
     }
 
     @Override
-    public UiAutomation uiAutomation() {
+    public PlatformUiAutomation uiAutomation() {
         return uiAutomation;
     }
 
@@ -337,7 +336,7 @@ public class WindowsPlatform implements Platform {
                 continue;
             WindowsVirtualKey windowsVirtualKey =
                     WindowsVirtualKey.windowsVirtualKeyFromKey(key,
-                            WindowsKeyboard.activeKeyboardLayout);
+                            keyboard.activeKeyboardLayout);
             if (windowsVirtualKey == null) {
                 // Can be null if key was added to currentlyPressedNotEatenKeys
                 // then the layout changed. The following crash has happened:
@@ -368,7 +367,7 @@ public class WindowsPlatform implements Platform {
         stuckKeyCheckTimer += delta;
         if (stuckKeyCheckTimer >= 1) {
             stuckKeyCheckTimer = 0;
-            KeyboardLayout layout = WindowsKeyboard.activeKeyboardLayout;
+            KeyboardLayout layout = keyboard.activeKeyboardLayout;
             for (WindowsVirtualKey virtualKey : WindowsVirtualKey.values()) {
                 short state  = User32.INSTANCE.GetAsyncKeyState(virtualKey.virtualKeyCode);
                 boolean pressedAccordingToOs = (state & 0x8000) != 0;
@@ -387,7 +386,7 @@ public class WindowsPlatform implements Platform {
                                 " is pressed according to GetAsyncKeyState" +
                                 " but not in currentlyPressedNotEatenKeys" +
                                 ", injecting release");
-                    WindowsKeyboard.sendInputKeyRelease(
+                    keyboard.sendInputKeyRelease(
                             virtualKey.virtualKeyCode,
                             extendedKeys.contains(key));
                 }
@@ -424,10 +423,10 @@ public class WindowsPlatform implements Platform {
                                        ExtendedUser32.LLKHF_INJECTED;
                     logger.trace("Reentrant keyboard hook callback, skipping KeyboardManager: " +
                                 keyEventString(info, wParamString(wParam), keyEvent, injected, altgrLeftctrl));
-                    WindowsKeyboard.keyboardHookCallback(info, wParam, null,
+                    keyboard.keyboardHookCallback(info, wParam, null,
                             keyEvent, injected, altgrLeftctrl);
                     if (injected && keyEvent != null) {
-                        if (WindowsKeyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
+                        if (keyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
                             logger.trace("Suppressing external +leftalt (reentrant)");
                             return new WinDef.LRESULT(1);
                         }
@@ -479,11 +478,11 @@ public class WindowsPlatform implements Platform {
                             KeyEvent keyEvent = buildKeyEvent(info, wParam, altgrLeftctrl);
                             boolean injected = (info.flags & ExtendedUser32.LLKHF_INJECTED) == ExtendedUser32.LLKHF_INJECTED;
                             logKeyEvent(info, wParamString, keyEvent, injected, altgrLeftctrl);
-                            WindowsKeyboard.keyboardHookCallback(info, wParam, wParamString,
+                            keyboard.keyboardHookCallback(info, wParam, wParamString,
                                     keyEvent, injected, altgrLeftctrl);
                             if (injected) {
                                 if (keyEvent != null) {
-                                    if (WindowsKeyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
+                                    if (keyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
                                         logger.trace("Suppressing external +leftalt");
                                         eaten = true;
                                     }
@@ -574,7 +573,8 @@ public class WindowsPlatform implements Platform {
             key = Key.rightalt;
         else
             key = WindowsVirtualKey.keyFromWindowsEvent(
-                    WindowsVirtualKey.values.get(info.vkCode), info.scanCode, info.flags);
+                    WindowsVirtualKey.values.get(info.vkCode), info.scanCode, info.flags,
+                    keyboard.activeKeyboardLayout);
         if (key == null)
             return null;
         Instant time = clock.now();
@@ -732,8 +732,8 @@ public class WindowsPlatform implements Platform {
     public void modeChanged(Mode newMode) {
         // If zoom is going to change, WindowsOverlay.setZoom() will repaint the hint mesh
         // after the zoom window is initialized.
-        WindowsOverlay.waitForZoomBeforeRepainting =
-                currentMode != null && !currentMode.zoom().equals(newMode.zoom());
+        overlay.setWaitForZoomBeforeRepainting(
+                currentMode != null && !currentMode.zoom().equals(newMode.zoom()));
         currentMode = newMode;
     }
 

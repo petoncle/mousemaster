@@ -3,7 +3,7 @@ package mousemaster.platform;
 import java.util.List;
 import java.util.concurrent.Future;
 
-public interface UiAutomation {
+public interface PlatformUiAutomation {
 
     Future<List<UiElement>> startFindInteractiveUiElements();
 
