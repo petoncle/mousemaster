@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import mousemaster.platform.windows.WindowsKeyboardLayout;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -397,8 +398,8 @@ class ComboPreparationTest {
     // --- Alias expansion tests ---
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
-            new KeyboardLayout("test", "test", "test", "test", List.of()),
-            new KeyboardLayout("test", "test", "test", "test", List.of()));
+            new WindowsKeyboardLayout("test", "test", "test", "test", List.of()),
+            new WindowsKeyboardLayout("test", "test", "test", "test", List.of()));
 
     static ComboSequence parseCombo(String comboString,
                                     Map<String, KeyAlias> aliases) {

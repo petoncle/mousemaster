@@ -158,7 +158,8 @@ public class Mousemaster {
             }
         }
         configuration =
-                ConfigurationParser.parse(configurationProperties, activeKeyboardLayout);
+                ConfigurationParser.parse(configurationProperties, activeKeyboardLayout,
+                        platform.keyboardLayoutProvider());
         // User can override the layout. When active layout is dvorak, Windows HKL only
         // gives the language identifier, which is 0409. But it is missing the other part
         // of the layout identifier (00010409).

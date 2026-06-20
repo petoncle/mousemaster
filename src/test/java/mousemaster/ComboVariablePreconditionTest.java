@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import mousemaster.platform.windows.WindowsKeyboardLayout;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,8 +18,8 @@ class ComboVariablePreconditionTest {
             new ComboMoveDuration(Duration.ZERO, null);
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
-            new KeyboardLayout("test", "test", "test", "test", List.of()),
-            new KeyboardLayout("test", "test", "test", "test", List.of()));
+            new WindowsKeyboardLayout("test", "test", "test", "test", List.of()),
+            new WindowsKeyboardLayout("test", "test", "test", "test", List.of()));
 
     private static List<Combo> parse(String comboString, Set<String> allVariableNames) {
         return Combo.of("test", comboString, defaultDuration, Map.of(), Map.of(),

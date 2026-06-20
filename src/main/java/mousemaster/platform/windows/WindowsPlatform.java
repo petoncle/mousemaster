@@ -36,7 +36,12 @@ public class WindowsPlatform implements Platform {
     private final PlatformUiAutomation uiAutomation = new WindowsUiAutomation();
     private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
     private final Console console = new WindowsConsole();
-    private final KeyboardLayoutProvider keyboardLayoutProvider = WindowsVirtualKey::activeKeyboardLayout;
+    private final KeyboardLayoutProvider keyboardLayoutProvider = new KeyboardLayoutProvider() {
+        @Override public KeyboardLayout activeKeyboardLayout() { return WindowsVirtualKey.activeKeyboardLayout(); }
+        @Override public KeyboardLayout byShortName(String name) { return WindowsKeyboardLayout.keyboardLayoutByShortName.get(name); }
+        @Override public KeyboardLayout byIdentifier(String id) { return WindowsKeyboardLayout.keyboardLayoutByIdentifier.get(id); }
+        @Override public java.util.Set<String> shortNames() { return WindowsKeyboardLayout.keyboardLayoutByShortName.keySet(); }
+    };
     private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator(keyboard);
     private final WindowsClock clock = new WindowsClock();
 
@@ -165,7 +170,7 @@ public class WindowsPlatform implements Platform {
             keyboardManager.reset();
             keyboard.reset();
         }
-        keyboard.activeKeyboardLayout = activeKeyboardLayout;
+        keyboard.activeKeyboardLayout = (WindowsKeyboardLayout) activeKeyboardLayout;
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());
@@ -367,13 +372,13 @@ public class WindowsPlatform implements Platform {
         stuckKeyCheckTimer += delta;
         if (stuckKeyCheckTimer >= 1) {
             stuckKeyCheckTimer = 0;
-            KeyboardLayout layout = keyboard.activeKeyboardLayout;
+            WindowsKeyboardLayout layout = keyboard.activeKeyboardLayout;
             for (WindowsVirtualKey virtualKey : WindowsVirtualKey.values()) {
                 short state  = User32.INSTANCE.GetAsyncKeyState(virtualKey.virtualKeyCode);
                 boolean pressedAccordingToOs = (state & 0x8000) != 0;
                 if (!pressedAccordingToOs)
                     continue;
-                Key key = layout.keyFromVirtualKeyName(virtualKey.name());
+                Key key = layout.keyFromVirtualKey(virtualKey);
                 if (key != null && keysPressedInHook.contains(key) &&
                     !currentlyPressedNotEatenKeys.containsKey(key)) {
                     if (key.equals(Key.leftctrl) &&

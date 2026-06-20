@@ -358,7 +358,7 @@ public enum WindowsVirtualKey {
         values = Arrays.stream(valueArrayWithoutDuplicateCodes).toList();
     }
 
-    private static KeyboardLayout lastPolledActiveKeyboardLayout;
+    private static WindowsKeyboardLayout lastPolledActiveKeyboardLayout;
     private static int keyboardLayoutSeenCount;
     private static boolean lastActiveKeyboardLayoutFailed;
 
@@ -368,8 +368,8 @@ public enum WindowsVirtualKey {
      * a few milliseconds. The workaround here waits for the layout to show up twice before
      * confirming it has changed.
      */
-    public static KeyboardLayout activeKeyboardLayout() {
-        KeyboardLayout foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
+    public static WindowsKeyboardLayout activeKeyboardLayout() {
+        WindowsKeyboardLayout foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
         if (foregroundWindowKeyboardLayout != null) {
             if (!foregroundWindowKeyboardLayout.equals(lastPolledActiveKeyboardLayout)) {
                 if (lastPolledActiveKeyboardLayout != null && keyboardLayoutSeenCount++ < 2)
@@ -395,7 +395,7 @@ public enum WindowsVirtualKey {
             lastActiveKeyboardLayoutFailed = true;
             return lastPolledActiveKeyboardLayout;
         }
-        KeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
+        WindowsKeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
         if (!lastActiveKeyboardLayoutFailed)
             logger.trace(
                     "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
@@ -438,7 +438,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static KeyboardLayout foregroundWindowKeyboardLayout() {
+    private static WindowsKeyboardLayout foregroundWindowKeyboardLayout() {
         WinDef.HKL hkl = foregroundWindowHkl();
         if (hkl != null) {
             // The mousemaster.exe command line window does not handle the WM_INPUTLANGCHANGE message.
@@ -446,7 +446,7 @@ public enum WindowsVirtualKey {
             // We call ActivateKeyboardLayout to change the layout of the command line window.
             ExtendedUser32.INSTANCE.ActivateKeyboardLayout(hkl, 0);
             int languageIdentifier = hkl.getLanguageIdentifier();
-            KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayoutByIdentifier.get(
+            WindowsKeyboardLayout keyboardLayout = WindowsKeyboardLayout.keyboardLayoutByIdentifier.get(
                     String.format("%08X", languageIdentifier));
 //            logger.debug("Found active window keyboard layout: " + keyboardLayout);
             return keyboardLayout;
@@ -454,7 +454,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static KeyboardLayout startupKeyboardLayout() {
+    private static WindowsKeyboardLayout startupKeyboardLayout() {
         // GetKeyboardLayoutName returns the layout at the time of when the app was started.
         // If the system layout is changed after the app is started, GetKeyboardLayoutName
         // still returns the old layout.
@@ -467,15 +467,15 @@ public enum WindowsVirtualKey {
                 break;
             }
         }
-        return KeyboardLayout.keyboardLayoutByIdentifier.get(
+        return WindowsKeyboardLayout.keyboardLayoutByIdentifier.get(
                 new String(nameBuffer, 0, nameLength));
     }
 
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode,
-                                          int flags, KeyboardLayout activeKeyboardLayout) {
+                                          int flags, WindowsKeyboardLayout activeKeyboardLayout) {
         if (scanCode == 0) {
             // Injected key event have scanCode 0.
-            return WindowsVirtualKey.activeKeyboardLayout().keyFromVirtualKeyName(windowsVirtualKey.name());
+            return WindowsVirtualKey.activeKeyboardLayout().keyFromVirtualKey(windowsVirtualKey);
         }
         // When pressing rightctrl the scanCode should be E01D but is 1D (which is leftctrl's scanCode).
         // rightctrl:
@@ -495,19 +495,13 @@ public enum WindowsVirtualKey {
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key,
-                                                             KeyboardLayout keyboardLayout) {
-        String virtualKeyName = keyboardLayout.virtualKeyName(key);
-        if (virtualKeyName == null) {
+                                                             WindowsKeyboardLayout keyboardLayout) {
+        WindowsVirtualKey virtualKey = keyboardLayout.virtualKey(key);
+        if (virtualKey == null) {
             logger.debug("Unable to map key " + key + " to a Windows virtual key using " +
                          keyboardLayout);
-            return null;
         }
-        try {
-            return WindowsVirtualKey.valueOf(virtualKeyName);
-        } catch (IllegalArgumentException e) {
-            logger.debug("Unknown virtual key name: " + virtualKeyName);
-            return null;
-        }
+        return virtualKey;
     }
 
 }

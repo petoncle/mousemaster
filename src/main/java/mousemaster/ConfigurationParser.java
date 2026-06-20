@@ -1,6 +1,7 @@
 package mousemaster;
 
 import io.qt.gui.QFontDatabase;
+import mousemaster.platform.KeyboardLayoutProvider;
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
 import mousemaster.GridArea.GridAreaType;
@@ -306,9 +307,10 @@ public class ConfigurationParser {
     }
 
     public static Configuration parse(List<String> properties,
-                                      KeyboardLayout platformActiveKeyboardLayout) {
+                                      KeyboardLayout platformActiveKeyboardLayout,
+                                      KeyboardLayoutProvider layoutProvider) {
         ForcedActiveAndConfigurationKeyboardLayouts
-                forcedActiveAndConfigurationKeyboardLayouts = parseForcedAndConfigurationLayouts(properties);
+                forcedActiveAndConfigurationKeyboardLayouts = parseForcedAndConfigurationLayouts(properties, layoutProvider);
         KeyboardLayout activeKeyboardLayout =
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout == null ?
                         platformActiveKeyboardLayout :
@@ -319,7 +321,7 @@ public class ConfigurationParser {
                         forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout;
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout);
-        Aliases configurationAliases = parseAliases(properties);
+        Aliases configurationAliases = parseAliases(properties, layoutProvider);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
                 configurationKeyboardLayout);
@@ -567,7 +569,8 @@ public class ConfigurationParser {
     }
 
     private static ForcedActiveAndConfigurationKeyboardLayouts parseForcedAndConfigurationLayouts(
-            List<String> properties) {
+            List<String> properties,
+            KeyboardLayoutProvider layoutProvider) {
         Set<String> visitedPropertyKeys = new HashSet<>();
         KeyboardLayout forcedActiveKeyboardLayout = null;
         KeyboardLayout configurationKeyboardLayout = null;
@@ -581,13 +584,13 @@ public class ConfigurationParser {
             if (propertyKey.equals("keyboard-layout")) {
                 logger.warn(
                         "key-layout has been deprecated: use forced-active-keyboard-layout instead");
-                forcedActiveKeyboardLayout = parseKeyboardLayout(propertyValue);
+                forcedActiveKeyboardLayout = parseKeyboardLayout(propertyValue, layoutProvider);
             }
             if (propertyKey.equals("forced-active-keyboard-layout")) {
-                forcedActiveKeyboardLayout = parseKeyboardLayout(propertyValue);
+                forcedActiveKeyboardLayout = parseKeyboardLayout(propertyValue, layoutProvider);
             }
             if (propertyKey.equals("configuration-keyboard-layout")) {
-                configurationKeyboardLayout = parseKeyboardLayout(propertyValue);
+                configurationKeyboardLayout = parseKeyboardLayout(propertyValue, layoutProvider);
             }
         }
         return new ForcedActiveAndConfigurationKeyboardLayouts(forcedActiveKeyboardLayout,
@@ -1658,7 +1661,8 @@ public class ConfigurationParser {
         return variableNames;
     }
 
-    private static Aliases parseAliases(List<String> properties) {
+    private static Aliases parseAliases(List<String> properties,
+                                        KeyboardLayoutProvider layoutProvider) {
         Map<String, LayoutKeyAlias> layoutKeyAliasByName = new HashMap<>();
         Map<String, AppAlias> appAliasByName = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
@@ -1670,7 +1674,7 @@ public class ConfigurationParser {
             String propertyKey = lineMatcher.group(1).strip();
             String propertyValue = lineMatcher.group(2).strip();
             try {
-                parseAlias(propertyKey, propertyValue, appAliasByName, layoutKeyAliasByName);
+                parseAlias(propertyKey, propertyValue, appAliasByName, layoutKeyAliasByName, layoutProvider);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
                         new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
@@ -1683,7 +1687,8 @@ public class ConfigurationParser {
 
     private static void parseAlias(String propertyKey, String propertyValue,
                                    Map<String, AppAlias> appAliasByName,
-                                   Map<String, LayoutKeyAlias> layoutKeyAliasByName) {
+                                   Map<String, LayoutKeyAlias> layoutKeyAliasByName,
+                                   KeyboardLayoutProvider layoutProvider) {
         if (propertyKey.startsWith("app-alias.")) {
             String aliasName = propertyKey.substring("app-alias.".length());
             Set<App> apps = Arrays.stream(propertyValue.split("\\s+"))
@@ -1708,23 +1713,22 @@ public class ConfigurationParser {
             }
             else {
                 String layoutName = keyMatcher.group(3);
-                KeyboardLayout layout = parseKeyboardLayout(layoutName);
+                KeyboardLayout layout = parseKeyboardLayout(layoutName, layoutProvider);
                 layoutKeyAlias.tokensByLayout.put(layout, tokens);
             }
         }
     }
 
-    private static KeyboardLayout parseKeyboardLayout(String layoutName) {
-        KeyboardLayout layout =
-                KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
+    private static KeyboardLayout parseKeyboardLayout(String layoutName,
+                                                      KeyboardLayoutProvider layoutProvider) {
+        KeyboardLayout layout = layoutProvider.byShortName(layoutName);
         if (layout == null) {
-            String layoutIdentifier = layoutName;
-            layout = KeyboardLayout.keyboardLayoutByIdentifier.get(layoutIdentifier);
+            layout = layoutProvider.byIdentifier(layoutName);
             if (layout == null)
                 throw new IllegalArgumentException(
                         "Invalid keyboard layout: " + layoutName +
                         ", available keyboard layouts: " +
-                        KeyboardLayout.keyboardLayoutByShortName.keySet());
+                        layoutProvider.shortNames());
         }
         return layout;
     }

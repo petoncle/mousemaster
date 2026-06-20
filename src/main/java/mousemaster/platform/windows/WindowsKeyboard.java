@@ -38,7 +38,7 @@ public class WindowsKeyboard implements PlatformKeyboard {
             Key.enter // Only enter from numpad?
     );
 
-    public KeyboardLayout activeKeyboardLayout;
+    public WindowsKeyboardLayout activeKeyboardLayout;
 
     @Override
     public void reset() {

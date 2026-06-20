@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import mousemaster.platform.windows.WindowsKeyboardLayout;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -350,8 +351,8 @@ class ExpandableSequenceTest {
     // --- #{}/+{} inside braces (ignored keys in KeyMoveSet) ---
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
-            new KeyboardLayout("test", "test", "test", "test", List.of()),
-            new KeyboardLayout("test", "test", "test", "test", List.of()));
+            new WindowsKeyboardLayout("test", "test", "test", "test", List.of()),
+            new WindowsKeyboardLayout("test", "test", "test", "test", List.of()));
 
     private static KeyMoveSet parseMoveSetWithIgnoredKeys(String input) {
         ExpandableSequence seq =
