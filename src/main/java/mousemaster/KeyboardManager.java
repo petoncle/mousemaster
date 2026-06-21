@@ -1,7 +1,6 @@
 package mousemaster;
 
 import mousemaster.ComboWatcher.ComboWatcherUpdateResult;
-import mousemaster.platform.KeyRegurgitator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

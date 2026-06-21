@@ -1,9 +1,6 @@
-package mousemaster.platform;
+package mousemaster;
 
-import mousemaster.Key;
-import mousemaster.KeyboardManager;
-import mousemaster.MacroMoveDestination;
-import mousemaster.ResolvedKeyMacroMove;
+import mousemaster.platform.KeyboardController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

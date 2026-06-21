@@ -2,7 +2,6 @@ package mousemaster;
 
 import mousemaster.platform.ActiveAppFinder;
 import mousemaster.platform.Console;
-import mousemaster.platform.KeyRegurgitator;
 import mousemaster.platform.KeyboardController;
 import mousemaster.platform.Overlay;
 import mousemaster.platform.Screens;

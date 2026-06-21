@@ -1,4 +1,4 @@
-package mousemaster.platform.windows;
+package mousemaster.qt;
 
 import io.qt.core.QEasingCurve;
 import io.qt.core.QMetaObject;
@@ -8,7 +8,7 @@ import mousemaster.Easing;
 import java.time.Duration;
 import java.util.function.Consumer;
 
-class FadeAnimator {
+public class FadeAnimator {
 
     private static final Easing FADE_EASING = new Easing.Smootherstep();
 
@@ -24,7 +24,7 @@ class FadeAnimator {
     private ValueChanged valueChangedCallback;
     private Finished finishedCallback;
 
-    FadeAnimator(Consumer<Double> applyOpacity, Runnable onFadeOutComplete,
+    public FadeAnimator(Consumer<Double> applyOpacity, Runnable onFadeOutComplete,
                  boolean enabled, Duration duration) {
         this.applyOpacity = applyOpacity;
         this.onFadeOutComplete = onFadeOutComplete;
@@ -32,15 +32,15 @@ class FadeAnimator {
         this.duration = duration;
     }
 
-    boolean isEnabled() {
+    public boolean isEnabled() {
         return enabled;
     }
 
-    boolean isFadingOut() {
+    public boolean isFadingOut() {
         return fadingOut;
     }
 
-    void startFadeIn() {
+    public void startFadeIn() {
         disposeAnimation();
         animation = createAnimation(false);
         animation.start();
@@ -50,7 +50,7 @@ class FadeAnimator {
      * Starts fade-out if enabled and not already fading out.
      * Returns true if the caller should defer the hide (fade-out started or already in progress).
      */
-    boolean shouldDeferHide() {
+    public boolean shouldDeferHide() {
         if (!enabled)
             return false;
         if (fadingOut)
@@ -63,12 +63,12 @@ class FadeAnimator {
         return true;
     }
 
-    void cancel() {
+    public void cancel() {
         disposeAnimation();
         fadingOut = false;
     }
 
-    void cancelAndResetOpacity() {
+    public void cancelAndResetOpacity() {
         cancel();
         applyOpacity.accept(1.0);
     }

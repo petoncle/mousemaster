@@ -7,7 +7,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import mousemaster.platform.ActiveAppFinder;
 import mousemaster.platform.Console;
-import mousemaster.platform.KeyRegurgitator;
+import mousemaster.KeyRegurgitator;
 
 import mousemaster.platform.KeyboardController;
 import mousemaster.platform.Overlay;

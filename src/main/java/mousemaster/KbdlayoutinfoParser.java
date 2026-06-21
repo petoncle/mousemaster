@@ -1,9 +1,8 @@
-package mousemaster.platform.windows;
-
-import mousemaster.*;
+package mousemaster;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import mousemaster.platform.windows.WindowsVirtualKey;
 import org.jsoup.Jsoup;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
