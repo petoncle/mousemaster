@@ -15,34 +15,34 @@
     "interfaces":["com.sun.jna.platform.win32.User32"]
   },
   {
-    "interfaces":["mousemaster.Dwmapi"]
+    "interfaces":["mousemaster.platform.windows.Dwmapi"]
   },
   {
-    "interfaces":["mousemaster.ExtendedAdvapi32"]
+    "interfaces":["mousemaster.platform.windows.ExtendedAdvapi32"]
   },
   {
-    "interfaces":["mousemaster.ExtendedGDI32"]
+    "interfaces":["mousemaster.platform.windows.ExtendedGDI32"]
   },
   {
-    "interfaces":["mousemaster.ExtendedKernel32"]
+    "interfaces":["mousemaster.platform.windows.ExtendedKernel32"]
   },
   {
-    "interfaces":["mousemaster.ExtendedPsapi"]
+    "interfaces":["mousemaster.platform.windows.ExtendedPsapi"]
   },
   {
-    "interfaces":["mousemaster.ExtendedUser32"]
+    "interfaces":["mousemaster.platform.windows.ExtendedUser32"]
   },
   {
-    "interfaces":["mousemaster.Gdiplus"]
+    "interfaces":["mousemaster.platform.windows.Gdiplus"]
   },
   {
-    "interfaces":["mousemaster.Magnification"]
+    "interfaces":["mousemaster.platform.windows.Magnification"]
   },
   {
-    "interfaces":["mousemaster.Shcore"]
+    "interfaces":["mousemaster.platform.windows.Shcore"]
   },
   {
-    "interfaces":["mousemaster.Winmm"]
+    "interfaces":["mousemaster.platform.windows.Winmm"]
   },
   {
     "interfaces":["sun.nio.ch.Interruptible"]

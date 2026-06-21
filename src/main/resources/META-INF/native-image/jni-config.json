@@ -776,35 +776,35 @@
   "methods":[{"name":"clear","parameterTypes":[] }, {"name":"entrySet","parameterTypes":[] }, {"name":"get","parameterTypes":["java.lang.Object"] }, {"name":"keySet","parameterTypes":[] }, {"name":"put","parameterTypes":["java.lang.Object","java.lang.Object"] }, {"name":"putAll","parameterTypes":["java.util.Map"] }, {"name":"remove","parameterTypes":["java.lang.Object"] }, {"name":"remove","parameterTypes":["java.lang.Object","java.lang.Object"] }, {"name":"size","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.MousemasterApplication",
+  "name":"mousemaster.platform.windows.WindowsMain",
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$ClearBackgroundQLabel",
+  "name":"mousemaster.platform.windows.WindowsOverlay$ClearBackgroundQLabel",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setClearColor","parameterTypes":["io.qt.gui.QColor"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$HintPaintLayer",
+  "name":"mousemaster.platform.windows.WindowsOverlay$HintPaintLayer",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setShadowPixmap","parameterTypes":["io.qt.gui.QPixmap","int","int"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$IndicatorLabelWidget",
+  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorLabelWidget",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$IndicatorShadowEffect",
+  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorShadowEffect",
   "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"setFillColor","parameterTypes":["io.qt.gui.QColor"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$IndicatorWidget",
+  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorWidget",
   "methods":[{"name":"clearOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","double"] }, {"name":"clearOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","double","double","mousemaster.FillDirection"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor","boolean"] }, {"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double"] }, {"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double","mousemaster.FillDirection","double"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","io.qt.gui.QColor","double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","mousemaster.FillDirection","double","io.qt.gui.QColor","double","double","mousemaster.FillDirection"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$ScreenshotWidget",
+  "name":"mousemaster.platform.windows.WindowsOverlay$ScreenshotWidget",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setScreenshot","parameterTypes":["io.qt.gui.QPixmap","mousemaster.Rectangle"] }, {"name":"setZoom","parameterTypes":["mousemaster.Zoom"] }]
 },
 {
-  "name":"mousemaster.WindowsOverlay$StackedShadowEffect",
+  "name":"mousemaster.platform.windows.WindowsOverlay$StackedShadowEffect",
   "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"redrawSourceOverShadow","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setStackCount","parameterTypes":["int"] }, {"name":"setStackedOpacity","parameterTypes":["double"] }, {"name":"setTransparencyOnly","parameterTypes":["boolean"] }]
 },
 {
