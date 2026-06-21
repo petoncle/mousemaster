@@ -1,6 +1,6 @@
 package mousemaster;
 
-import mousemaster.platform.PlatformMouse;
+
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -9,7 +9,7 @@ import java.util.Iterator;
 public class MouseController implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
-    private final PlatformMouse platformMouse;
+    private final mousemaster.platform.MouseController platformMouse;
     private Mouse mouse;
     private Wheel wheel;
     private double moveDuration;
@@ -47,7 +47,7 @@ public class MouseController implements ModeListener, MousePositionListener {
     private int jumpEndX, jumpEndY;
 
     public MouseController(ScreenManager screenManager,
-                           PlatformMouse platformMouse) {
+                           mousemaster.platform.MouseController platformMouse) {
         this.screenManager = screenManager;
         this.platformMouse = platformMouse;
     }

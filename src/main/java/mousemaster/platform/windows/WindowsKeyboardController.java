@@ -5,15 +5,15 @@ import mousemaster.*;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
-import mousemaster.platform.PlatformKeyboard;
+import mousemaster.platform.KeyboardController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class WindowsKeyboard implements PlatformKeyboard {
+public class WindowsKeyboardController implements KeyboardController {
 
-    private static final Logger logger = LoggerFactory.getLogger(WindowsKeyboard.class);
+    private static final Logger logger = LoggerFactory.getLogger(WindowsKeyboardController.class);
 
     /**
      * https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input
@@ -38,7 +38,7 @@ public class WindowsKeyboard implements PlatformKeyboard {
             Key.enter // Only enter from numpad?
     );
 
-    public WindowsKeyboardLayout activeKeyboardLayout;
+    public KeyboardLayout activeKeyboardLayout;
 
     @Override
     public void reset() {

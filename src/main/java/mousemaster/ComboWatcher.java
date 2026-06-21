@@ -24,7 +24,7 @@ public class ComboWatcher {
     private final CommandRunner commandRunner;
     private final HintManager hintManager;
     private final ActiveAppFinder activeAppFinder;
-    private final PlatformClock clock;
+    private final Clock clock;
     private final Set<Key> pressedComboPreconditionKeys;
     private final boolean logRedactKeys;
     private final Set<Key> unpressedComboPreconditionKeys;
@@ -151,7 +151,7 @@ public class ComboWatcher {
 
     public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
                         ActiveAppFinder activeAppFinder,
-                        PlatformClock clock,
+                        Clock clock,
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
                         ModeMap modeMap) {

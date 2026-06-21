@@ -7,7 +7,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.PointerByReference;
-import mousemaster.platform.PlatformOverlay;
+import mousemaster.platform.Overlay;
 import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.QApplication;
@@ -16,7 +16,7 @@ import io.qt.widgets.QGraphicsPixmapItem;
 import io.qt.widgets.QGraphicsScene;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
-import mousemaster.platform.windows.WindowsMouse.MouseSize;
+import mousemaster.platform.windows.WindowsMouseController.MouseSize;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +28,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class WindowsOverlay implements PlatformOverlay {
+public class WindowsOverlay implements Overlay {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsOverlay.class);
 
-    private final WindowsMouse mouse;
+    private final WindowsMouseController mouse;
 
-    public WindowsOverlay(WindowsMouse mouse) {
+    public WindowsOverlay(WindowsMouseController mouse) {
         this.mouse = mouse;
     }
 
@@ -1089,7 +1089,7 @@ public class WindowsOverlay implements PlatformOverlay {
             return new Point(zoomedX(centerX) - visualSize / 2.0,
                     zoomedY(centerY) - visualSize / 2.0);
         }
-        WindowsMouse.MouseSize mouseSize = mouse.mouseSize();
+        WindowsMouseController.MouseSize mouseSize = mouse.mouseSize();
         int mouseX = Math.max(screen.x(), Math.min(mousePosition.x,
                 screen.x() + screen.width()));
         int mouseY = Math.max(screen.y(), Math.min(mousePosition.y,

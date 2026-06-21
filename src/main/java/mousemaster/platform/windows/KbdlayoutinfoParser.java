@@ -151,13 +151,13 @@ public class KbdlayoutinfoParser {
             throws IOException, ParserConfigurationException, SAXException {
         List<String> keyboardLayoutIdentifiers = parseRootPage();
 //        keyboardLayoutIdentifiers.removeIf(Predicate.not(Predicate.isEqual("00000412")));
-        List<WindowsKeyboardLayout> keyboardLayouts = new ArrayList<>();
+        List<KeyboardLayout> keyboardLayouts = new ArrayList<>();
         for (String keyboardLayoutIdentifier : keyboardLayoutIdentifiers) {
             logger.info("Parsing keyboard layout page " + keyboardLayoutIdentifier);
-            WindowsKeyboardLayout keyboardLayout = parseKeyboardLayoutPage(keyboardLayoutIdentifier);
+            KeyboardLayout keyboardLayout = parseKeyboardLayoutPage(keyboardLayoutIdentifier);
             keyboardLayouts.add(keyboardLayout);
         }
-        for (WindowsKeyboardLayout keyboardLayout : keyboardLayouts) {
+        for (KeyboardLayout keyboardLayout : keyboardLayouts) {
             logger.info("Parsing keyboard layout XML for processing " + keyboardLayout);
             parseKeyboardLayoutXmlForProcessing(keyboardLayout);
         }
@@ -183,7 +183,7 @@ public class KbdlayoutinfoParser {
         return keyboardLayoutIdentifiers;
     }
 
-    private static WindowsKeyboardLayout parseKeyboardLayoutPage(String keyboardLayoutIdentifier)
+    private static KeyboardLayout parseKeyboardLayoutPage(String keyboardLayoutIdentifier)
             throws IOException {
         org.jsoup.nodes.Document document =
                 Jsoup.connect("https://kbdlayout.info/" + keyboardLayoutIdentifier).get();
@@ -205,13 +205,13 @@ public class KbdlayoutinfoParser {
         }
         if (displayName == null || driverName == null)
             throw new IllegalStateException();
-        return new WindowsKeyboardLayout(keyboardLayoutIdentifier, displayName, driverName,
+        return new KeyboardLayout(keyboardLayoutIdentifier, displayName, driverName,
                 keyboardLayoutShortNameByIdentifier.get(keyboardLayoutIdentifier),
                 new ArrayList<>());
     }
 
     private static void parseKeyboardLayoutXmlForProcessing(
-            WindowsKeyboardLayout keyboardLayout)
+            KeyboardLayout keyboardLayout)
             throws IOException, ParserConfigurationException, SAXException {
         String urlString = "https://kbdlayout.info/" + keyboardLayout.identifier() + "/download/xml";
         URL url = URI.create(urlString).toURL();
@@ -301,7 +301,7 @@ public class KbdlayoutinfoParser {
                 key = Key.ofCharacter(text);
             if (key != null)
                 keyboardLayout.keys()
-                              .add(new WindowsKeyboardLayout.KeyboardLayoutKey(sc, vk, key,
+                              .add(new KeyboardLayout.KeyboardLayoutKey(sc, vk, key,
                                       text == null || text.isBlank() ? null : text,
                                       name.isBlank() ? null : name));
         }
@@ -315,7 +315,7 @@ public class KbdlayoutinfoParser {
         conn.disconnect();
     }
 
-    private static void addCustomKeyboardLayouts(List<WindowsKeyboardLayout> keyboardLayouts) {
+    private static void addCustomKeyboardLayouts(List<KeyboardLayout> keyboardLayouts) {
         String usQwertyCharacterKeys = """
                 `1234567890-=
                 qwertyuiop[]
@@ -328,13 +328,13 @@ public class KbdlayoutinfoParser {
                 shnt,.aeoi'\\
                 fmvc/gpxky
                 """.replaceAll("\\s", "");
-        WindowsKeyboardLayout usQwertyLayout = keyboardLayouts.stream()
+        KeyboardLayout usQwertyLayout = keyboardLayouts.stream()
                                                        .filter(keyboardLayout -> "us-qwerty".equals(
                                                                keyboardLayout.shortName()))
                                                        .findFirst()
                                                        .orElseThrow();
-        List<WindowsKeyboardLayout.KeyboardLayoutKey> usHalmakKeys = new ArrayList<>();
-        for (WindowsKeyboardLayout.KeyboardLayoutKey usQwertyKey : usQwertyLayout.keys()) {
+        List<KeyboardLayout.KeyboardLayoutKey> usHalmakKeys = new ArrayList<>();
+        for (KeyboardLayout.KeyboardLayoutKey usQwertyKey : usQwertyLayout.keys()) {
             if (usQwertyKey.key().character() == null) {
                 usHalmakKeys.add(usQwertyKey);
                 continue;
@@ -345,7 +345,7 @@ public class KbdlayoutinfoParser {
                 continue;
             }
             String usHalmakKeyCharacter = "" + usHalmakCharacterKeys.charAt(characterKeyIndex);
-            WindowsKeyboardLayout.KeyboardLayoutKey sameCharacterUsQwertyKey =
+            KeyboardLayout.KeyboardLayoutKey sameCharacterUsQwertyKey =
                     usQwertyLayout.keys()
                                   .stream()
                                   .filter(keyboardLayoutKey -> usHalmakKeyCharacter.equals(
@@ -353,7 +353,7 @@ public class KbdlayoutinfoParser {
                                                            .character()))
                                   .findFirst()
                                   .orElseThrow();
-            WindowsKeyboardLayout.KeyboardLayoutKey usHalmakKey = new WindowsKeyboardLayout.KeyboardLayoutKey(
+            KeyboardLayout.KeyboardLayoutKey usHalmakKey = new KeyboardLayout.KeyboardLayoutKey(
                     usQwertyKey.scanCode(),
                     sameCharacterUsQwertyKey.virtualKey(),
                     sameCharacterUsQwertyKey.key(),
@@ -363,19 +363,19 @@ public class KbdlayoutinfoParser {
             usHalmakKeys.add(usHalmakKey);
         }
         keyboardLayouts.add(
-                new WindowsKeyboardLayout(null, null, null, "us-halmak", usHalmakKeys));
+                new KeyboardLayout(null, null, null, "us-halmak", usHalmakKeys));
     }
 
-    private static void fixKoreanKeyboardLayout(List<WindowsKeyboardLayout> keyboardLayouts) {
+    private static void fixKoreanKeyboardLayout(List<KeyboardLayout> keyboardLayouts) {
         // https://kbdlayout.info/00000412/download/xml is missing RMENU.
-        WindowsKeyboardLayout koreanKeyboardLayout =
+        KeyboardLayout koreanKeyboardLayout =
                 keyboardLayouts.stream()
                                .filter(keyboardLayout -> keyboardLayout.identifier()
                                                                        .equals("00000412"))
                                .findFirst()
                                .orElseThrow();
         koreanKeyboardLayout.keys()
-                            .add(new WindowsKeyboardLayout.KeyboardLayoutKey(57400,
+                            .add(new KeyboardLayout.KeyboardLayoutKey(57400,
                                     WindowsVirtualKey.VK_RMENU, Key.rightalt, null,
                                     "Right Alt"));
     }

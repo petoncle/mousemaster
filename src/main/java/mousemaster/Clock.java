@@ -2,7 +2,7 @@ package mousemaster;
 
 import java.time.Instant;
 
-public interface PlatformClock {
+public interface Clock {
 
     Instant now();
 

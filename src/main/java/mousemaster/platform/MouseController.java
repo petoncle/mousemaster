@@ -1,6 +1,6 @@
 package mousemaster.platform;
 
-public interface PlatformMouse {
+public interface MouseController {
 
     void beginMove();
 

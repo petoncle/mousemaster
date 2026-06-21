@@ -1,10 +1,11 @@
 package mousemaster.platform.windows;
 
 import mousemaster.*;
+import mousemaster.Clock;
 
 import java.time.Instant;
 
-public class WindowsClock implements PlatformClock {
+public class WindowsClock implements Clock {
 
     private static final Instant systemStartTime;
 

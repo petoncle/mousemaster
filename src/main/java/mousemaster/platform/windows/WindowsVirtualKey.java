@@ -358,7 +358,7 @@ public enum WindowsVirtualKey {
         values = Arrays.stream(valueArrayWithoutDuplicateCodes).toList();
     }
 
-    private static WindowsKeyboardLayout lastPolledActiveKeyboardLayout;
+    private static KeyboardLayout lastPolledActiveKeyboardLayout;
     private static int keyboardLayoutSeenCount;
     private static boolean lastActiveKeyboardLayoutFailed;
 
@@ -368,8 +368,8 @@ public enum WindowsVirtualKey {
      * a few milliseconds. The workaround here waits for the layout to show up twice before
      * confirming it has changed.
      */
-    public static WindowsKeyboardLayout activeKeyboardLayout() {
-        WindowsKeyboardLayout foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
+    public static KeyboardLayout activeKeyboardLayout() {
+        KeyboardLayout foregroundWindowKeyboardLayout = foregroundWindowKeyboardLayout();
         if (foregroundWindowKeyboardLayout != null) {
             if (!foregroundWindowKeyboardLayout.equals(lastPolledActiveKeyboardLayout)) {
                 if (lastPolledActiveKeyboardLayout != null && keyboardLayoutSeenCount++ < 2)
@@ -395,7 +395,7 @@ public enum WindowsVirtualKey {
             lastActiveKeyboardLayoutFailed = true;
             return lastPolledActiveKeyboardLayout;
         }
-        WindowsKeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
+        KeyboardLayout startupKeyboardLayout = startupKeyboardLayout();
         if (!lastActiveKeyboardLayoutFailed)
             logger.trace(
                     "Unable to find the foreground window's keyboard layout, using start up keyboard layout " +
@@ -438,7 +438,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static WindowsKeyboardLayout foregroundWindowKeyboardLayout() {
+    private static KeyboardLayout foregroundWindowKeyboardLayout() {
         WinDef.HKL hkl = foregroundWindowHkl();
         if (hkl != null) {
             // The mousemaster.exe command line window does not handle the WM_INPUTLANGCHANGE message.
@@ -446,7 +446,7 @@ public enum WindowsVirtualKey {
             // We call ActivateKeyboardLayout to change the layout of the command line window.
             ExtendedUser32.INSTANCE.ActivateKeyboardLayout(hkl, 0);
             int languageIdentifier = hkl.getLanguageIdentifier();
-            WindowsKeyboardLayout keyboardLayout = WindowsKeyboardLayout.keyboardLayoutByIdentifier.get(
+            KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayoutByIdentifier.get(
                     String.format("%08X", languageIdentifier));
 //            logger.debug("Found active window keyboard layout: " + keyboardLayout);
             return keyboardLayout;
@@ -454,7 +454,7 @@ public enum WindowsVirtualKey {
         return null;
     }
 
-    private static WindowsKeyboardLayout startupKeyboardLayout() {
+    private static KeyboardLayout startupKeyboardLayout() {
         // GetKeyboardLayoutName returns the layout at the time of when the app was started.
         // If the system layout is changed after the app is started, GetKeyboardLayoutName
         // still returns the old layout.
@@ -467,12 +467,12 @@ public enum WindowsVirtualKey {
                 break;
             }
         }
-        return WindowsKeyboardLayout.keyboardLayoutByIdentifier.get(
+        return KeyboardLayout.keyboardLayoutByIdentifier.get(
                 new String(nameBuffer, 0, nameLength));
     }
 
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode,
-                                          int flags, WindowsKeyboardLayout activeKeyboardLayout) {
+                                          int flags, KeyboardLayout activeKeyboardLayout) {
         if (scanCode == 0) {
             // Injected key event have scanCode 0.
             return WindowsVirtualKey.activeKeyboardLayout().keyFromVirtualKey(windowsVirtualKey);
@@ -495,7 +495,7 @@ public enum WindowsVirtualKey {
     }
 
     public static WindowsVirtualKey windowsVirtualKeyFromKey(Key key,
-                                                             WindowsKeyboardLayout keyboardLayout) {
+                                                             KeyboardLayout keyboardLayout) {
         WindowsVirtualKey virtualKey = keyboardLayout.virtualKey(key);
         if (virtualKey == null) {
             logger.debug("Unable to map key " + key + " to a Windows virtual key using " +

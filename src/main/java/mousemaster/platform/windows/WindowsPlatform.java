@@ -8,11 +8,10 @@ import com.sun.jna.platform.win32.*;
 import mousemaster.platform.ActiveAppFinder;
 import mousemaster.platform.Console;
 import mousemaster.platform.KeyRegurgitator;
-import mousemaster.platform.KeyboardLayoutProvider;
-import mousemaster.platform.PlatformKeyboard;
-import mousemaster.platform.PlatformMouse;
-import mousemaster.platform.PlatformOverlay;
-import mousemaster.platform.PlatformUiAutomation;
+
+import mousemaster.platform.KeyboardController;
+import mousemaster.platform.Overlay;
+import mousemaster.platform.UiAutomation;
 import mousemaster.platform.Screens;
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
@@ -29,19 +28,13 @@ public class WindowsPlatform implements Platform {
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
 
     private final boolean keyRegurgitationEnabled;
-    private final WindowsKeyboard keyboard = new WindowsKeyboard();
-    private final WindowsMouse mouse = new WindowsMouse(this::mousePositionSet);
+    private final WindowsKeyboardController keyboard = new WindowsKeyboardController();
+    private final WindowsMouseController mouse = new WindowsMouseController(this::mousePositionSet);
     private final Screens screens = new WindowsScreens();
     private final WindowsOverlay overlay = new WindowsOverlay(mouse);
-    private final PlatformUiAutomation uiAutomation = new WindowsUiAutomation();
+    private final UiAutomation uiAutomation = new WindowsUiAutomation();
     private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
     private final Console console = new WindowsConsole();
-    private final KeyboardLayoutProvider keyboardLayoutProvider = new KeyboardLayoutProvider() {
-        @Override public KeyboardLayout activeKeyboardLayout() { return WindowsVirtualKey.activeKeyboardLayout(); }
-        @Override public KeyboardLayout byShortName(String name) { return WindowsKeyboardLayout.keyboardLayoutByShortName.get(name); }
-        @Override public KeyboardLayout byIdentifier(String id) { return WindowsKeyboardLayout.keyboardLayoutByIdentifier.get(id); }
-        @Override public java.util.Set<String> shortNames() { return WindowsKeyboardLayout.keyboardLayoutByShortName.keySet(); }
-    };
     private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator(keyboard);
     private final WindowsClock clock = new WindowsClock();
 
@@ -170,7 +163,7 @@ public class WindowsPlatform implements Platform {
             keyboardManager.reset();
             keyboard.reset();
         }
-        keyboard.activeKeyboardLayout = (WindowsKeyboardLayout) activeKeyboardLayout;
+        keyboard.activeKeyboardLayout = activeKeyboardLayout;
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());
@@ -275,22 +268,22 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public PlatformClock clock() {
+    public Clock clock() {
         return clock;
     }
 
     @Override
-    public KeyboardLayoutProvider keyboardLayoutProvider() {
-        return keyboardLayoutProvider;
+    public KeyboardLayout activeKeyboardLayout() {
+        return WindowsVirtualKey.activeKeyboardLayout();
     }
 
     @Override
-    public PlatformKeyboard keyboard() {
+    public KeyboardController keyboard() {
         return keyboard;
     }
 
     @Override
-    public PlatformMouse mouse() {
+    public mousemaster.platform.MouseController mouse() {
         return mouse;
     }
 
@@ -300,12 +293,12 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public PlatformOverlay overlay() {
+    public Overlay overlay() {
         return overlay;
     }
 
     @Override
-    public PlatformUiAutomation uiAutomation() {
+    public UiAutomation uiAutomation() {
         return uiAutomation;
     }
 
@@ -372,7 +365,7 @@ public class WindowsPlatform implements Platform {
         stuckKeyCheckTimer += delta;
         if (stuckKeyCheckTimer >= 1) {
             stuckKeyCheckTimer = 0;
-            WindowsKeyboardLayout layout = keyboard.activeKeyboardLayout;
+            KeyboardLayout layout = keyboard.activeKeyboardLayout;
             for (WindowsVirtualKey virtualKey : WindowsVirtualKey.values()) {
                 short state  = User32.INSTANCE.GetAsyncKeyState(virtualKey.virtualKeyCode);
                 boolean pressedAccordingToOs = (state & 0x8000) != 0;

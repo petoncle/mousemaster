@@ -5,7 +5,7 @@ import mousemaster.*;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
-import mousemaster.platform.PlatformMouse;
+import mousemaster.platform.MouseController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,13 +14,13 @@ import java.util.function.Consumer;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-public class WindowsMouse implements PlatformMouse {
+public class WindowsMouseController implements MouseController {
 
-    private static final Logger logger = LoggerFactory.getLogger(WindowsMouse.class);
+    private static final Logger logger = LoggerFactory.getLogger(WindowsMouseController.class);
 
     private final Consumer<WinDef.POINT> mousePositionSetCallback;
 
-    public WindowsMouse(Consumer<WinDef.POINT> mousePositionSetCallback) {
+    public WindowsMouseController(Consumer<WinDef.POINT> mousePositionSetCallback) {
         this.mousePositionSetCallback = mousePositionSetCallback;
     }
 
@@ -169,8 +169,8 @@ public class WindowsMouse implements PlatformMouse {
      * 	at com.sun.jna.Function.invoke(Function.java:361)
      * 	at com.sun.jna.Library$Handler.invoke(Library.java:270)
      * 	at jdk.proxy2/jdk.proxy2.$Proxy6.SendInput(Unknown Source)
-     * 	at mousemaster.WindowsMouse.sendInput(WindowsMouse.java:175)
-     * 	at mousemaster.WindowsMouse.pressLeft(WindowsMouse.java:120)
+     * 	at mousemaster.platform.windows.WindowsMouseController.sendInput(WindowsMouse.java:175)
+     * 	at mousemaster.platform.windows.WindowsMouseController.pressLeft(WindowsMouse.java:120)
      * 	at mousemaster.MouseController.pressLeft(MouseController.java:237)
      * 	at mousemaster.CommandRunner.run(CommandRunner.java:38)
      */
@@ -345,9 +345,9 @@ public class WindowsMouse implements PlatformMouse {
             GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
         if (iconInfo.hbmMask != null)
             GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
-        MouseSize result = new MouseSize(cursorWidth, cursorHeight);
-        this.mouseSize = result;
-        return result;
+        MouseSize mouseSize = new MouseSize(cursorWidth, cursorHeight);
+        this.mouseSize = mouseSize;
+        return mouseSize;
     }
 
     private MouseSize mouseSizeFallback() {

@@ -1,7 +1,7 @@
 package mousemaster;
 
 import mousemaster.Grid.GridBuilder;
-import mousemaster.platform.PlatformOverlay;
+import mousemaster.platform.Overlay;
 
 /**
  * Displays the grid and handles grid commands.
@@ -10,13 +10,13 @@ public class GridManager implements MousePositionListener, ModeListener {
 
     private final ScreenManager screenManager;
     private final MouseController mouseController;
-    private final PlatformOverlay overlay;
+    private final Overlay overlay;
     private Grid grid;
     private int mouseX, mouseY;
     private Mode currentMode;
 
     public GridManager(ScreenManager screenManager, MouseController mouseController,
-                       PlatformOverlay overlay) {
+                       Overlay overlay) {
         this.screenManager = screenManager;
         this.mouseController = mouseController;
         this.overlay = overlay;

@@ -1,15 +1,15 @@
 package mousemaster;
 
-import mousemaster.platform.PlatformOverlay;
+import mousemaster.platform.Overlay;
 
 public class IndicatorManager implements ModeListener {
 
-    private final PlatformOverlay overlay;
+    private final Overlay overlay;
     private final MouseState mouseState;
     private final KeyboardState keyboardState;
     private Mode currentMode;
 
-    public IndicatorManager(PlatformOverlay overlay, MouseState mouseState,
+    public IndicatorManager(Overlay overlay, MouseState mouseState,
                             KeyboardState keyboardState) {
         this.overlay = overlay;
         this.mouseState = mouseState;

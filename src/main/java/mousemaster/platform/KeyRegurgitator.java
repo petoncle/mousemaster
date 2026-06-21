@@ -12,9 +12,9 @@ import java.util.List;
 public class KeyRegurgitator {
 
     private static final Logger logger = LoggerFactory.getLogger(KeyRegurgitator.class);
-    private final PlatformKeyboard keyboard;
+    private final KeyboardController keyboard;
 
-    public KeyRegurgitator(PlatformKeyboard keyboard) {
+    public KeyRegurgitator(KeyboardController keyboard) {
         this.keyboard = keyboard;
     }
 

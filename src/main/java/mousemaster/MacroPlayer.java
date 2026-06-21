@@ -2,7 +2,7 @@ package mousemaster;
 
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
-import mousemaster.platform.PlatformKeyboard;
+import mousemaster.platform.KeyboardController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,10 +15,10 @@ public class MacroPlayer {
 
     private static final Logger logger = LoggerFactory.getLogger(MacroPlayer.class);
 
-    private final PlatformClock clock;
+    private final Clock clock;
     private final ComboWatcher comboWatcher;
     private final KeyboardManager keyboardManager;
-    private final PlatformKeyboard keyboard;
+    private final KeyboardController keyboard;
     private final List<ResolvedMacro> macrosToExecute = new ArrayList<>();
     private MacroInProgress macroInProgress;
     private final Set<Key> keysPressedByMacro = new HashSet<>();
@@ -52,8 +52,8 @@ public class MacroPlayer {
      */
     private final Set<Key> deferredUserReleases = new HashSet<>();
 
-    public MacroPlayer(PlatformClock clock, ComboWatcher comboWatcher,
-                       KeyboardManager keyboardManager, PlatformKeyboard keyboard) {
+    public MacroPlayer(Clock clock, ComboWatcher comboWatcher,
+                       KeyboardManager keyboardManager, KeyboardController keyboard) {
         this.clock = clock;
         this.comboWatcher = comboWatcher;
         this.keyboardManager = keyboardManager;

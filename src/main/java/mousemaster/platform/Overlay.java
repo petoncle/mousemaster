@@ -11,7 +11,7 @@ import mousemaster.Zoom;
 import java.util.Set;
 import java.time.Duration;
 
-public interface PlatformOverlay {
+public interface Overlay {
 
     void update(double delta);
 

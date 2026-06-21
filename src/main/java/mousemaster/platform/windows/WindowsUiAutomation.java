@@ -8,8 +8,8 @@ import com.sun.jna.platform.win32.COM.Unknown;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
-import mousemaster.platform.PlatformUiAutomation;
-import mousemaster.platform.PlatformUiAutomation.UiElement;
+import mousemaster.platform.UiAutomation;
+import mousemaster.platform.UiAutomation.UiElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class WindowsUiAutomation implements PlatformUiAutomation {
+public class WindowsUiAutomation implements UiAutomation {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsUiAutomation.class);
 

@@ -31,7 +31,7 @@ public class Mousemaster {
     public Mousemaster(Path configurationPath, Platform platform) throws IOException {
         this.configurationPath = configurationPath;
         this.platform = platform;
-        this.activeKeyboardLayout = platform.keyboardLayoutProvider().activeKeyboardLayout();
+        this.activeKeyboardLayout = platform.activeKeyboardLayout();
         QtManager.initialize();
         loadConfiguration(true);
         watchService = FileSystems.getDefault().newWatchService();
@@ -112,7 +112,7 @@ public class Mousemaster {
     private void updateActiveKeyboardLayout(double delta) {
         if (forcedActiveKeyboardLayout != null)
             return;
-        KeyboardLayout newActiveKeyboardLayout = platform.keyboardLayoutProvider().activeKeyboardLayout();
+        KeyboardLayout newActiveKeyboardLayout = platform.activeKeyboardLayout();
         if (!newActiveKeyboardLayout.equals(activeKeyboardLayout)) {
             activeKeyboardLayout = newActiveKeyboardLayout;
             tryLoadConfiguration(false);
@@ -158,8 +158,7 @@ public class Mousemaster {
             }
         }
         configuration =
-                ConfigurationParser.parse(configurationProperties, activeKeyboardLayout,
-                        platform.keyboardLayoutProvider());
+                ConfigurationParser.parse(configurationProperties, activeKeyboardLayout);
         // User can override the layout. When active layout is dvorak, Windows HKL only
         // gives the language identifier, which is 0409. But it is missing the other part
         // of the layout identifier (00010409).
