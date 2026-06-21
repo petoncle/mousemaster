@@ -17,7 +17,7 @@ public class Mousemaster {
     private final Platform platform;
     private final WatchService watchService;
     private Configuration configuration;
-    private MouseController mouseController;
+    private MouseManager mouseManager;
     private CommandRunner commandRunner;
     private MacroPlayer macroPlayer;
     private KeyboardManager keyboardManager;
@@ -69,7 +69,7 @@ public class Mousemaster {
             long modeControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
             timeBeforeOp = timeAfterOp;
-            mouseController.update(delta);
+            mouseManager.update(delta);
             timeAfterOp = System.nanoTime();
             long mouseControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
@@ -179,12 +179,12 @@ public class Mousemaster {
                     (readFile ? "file " + configurationPath + " " : "") +
                     "with active keyboard layout " + activeKeyboardLayout);
         ScreenManager screenManager = new ScreenManager(platform.screens());
-        mouseController = new MouseController(screenManager, platform.mouse());
-        MouseState mouseState = new MouseState(mouseController);
-        GridManager gridManager = new GridManager(screenManager, mouseController, platform.overlay());
+        mouseManager = new MouseManager(screenManager, platform.mouse());
+        MouseState mouseState = new MouseState(mouseManager);
+        GridManager gridManager = new GridManager(screenManager, mouseManager, platform.overlay());
         HintManager hintManager = new HintManager(configuration.maxPositionHistorySize(),
-                screenManager, mouseController, platform.overlay(), platform.uiAutomation());
-        commandRunner = new CommandRunner(mouseController, gridManager, hintManager);
+                screenManager, mouseManager, platform.overlay(), platform.uiAutomation());
+        commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
         for (Mode mode : configuration.modeMap().modes()) {
@@ -218,10 +218,10 @@ public class Mousemaster {
         // ZoomManager must be notified after HintManager because it calls
         // lastSelectedHintPoint() which is updated by HintManager#modeChanged.
         comboWatcher.setModeListeners(
-                List.of(platform, mouseController, indicatorManager, gridManager,
+                List.of(platform, mouseManager, indicatorManager, gridManager,
                         hintManager, zoomManager));
         modeController =
-                new ModeController(configuration.modeMap(), mouseController, mouseState,
+                new ModeController(configuration.modeMap(), mouseManager, mouseState,
                         keyboardState,
                         hintManager,
                         comboWatcher);
@@ -230,9 +230,9 @@ public class Mousemaster {
         hintManager.setModeController(modeController);
         comboWatcher.setComboListeners(List.of(modeController));
         modeController.switchMode(Mode.IDLE_MODE_NAME);
-        platform.reset(mouseController, keyboardManager,
+        platform.reset(mouseManager, keyboardManager,
                 configuration.modeMap(),
-                List.of(mouseController, gridManager, hintManager, screenManager,
+                List.of(mouseManager, gridManager, hintManager, screenManager,
                         zoomManager), activeKeyboardLayout);
     }
 

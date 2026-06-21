@@ -12,7 +12,7 @@ public class ModeController implements ComboListener {
     private static final Logger logger = LoggerFactory.getLogger(ModeController.class);
 
     private final ModeMap modeMap;
-    private final MouseController mouseController;
+    private final MouseManager mouseManager;
     private final MouseState mouseState;
     private final KeyboardState keyboardState;
     private final HintManager hintManager;
@@ -26,12 +26,12 @@ public class ModeController implements ComboListener {
     private boolean previousTimeoutEnabled;
     private boolean previousHideCursorEnabled;
 
-    public ModeController(ModeMap modeMap, MouseController mouseController,
+    public ModeController(ModeMap modeMap, MouseManager mouseManager,
                           MouseState mouseState, KeyboardState keyboardState,
                           HintManager hintManager,
                           ComboWatcher comboWatcher) {
         this.modeMap = modeMap;
-        this.mouseController = mouseController;
+        this.mouseManager = mouseManager;
         this.mouseState = mouseState;
         this.keyboardState = keyboardState;
         this.hintManager = hintManager;
@@ -76,7 +76,7 @@ public class ModeController implements ComboListener {
                     logger.debug("Hide cursor timer for " + currentMode.name() +
                                  " has elapsed");
                     currentModeCursorHidden = true;
-                    mouseController.hideCursor();
+                    mouseManager.hideCursor();
                 }
             }
         }
@@ -138,14 +138,14 @@ public class ModeController implements ComboListener {
         if (currentModeCursorHidden) {
             if (!mode.hideCursor().enabled() ||
                 !mode.hideCursor().idleDuration().equals(Duration.ZERO)) {
-                mouseController.showCursor();
+                mouseManager.showCursor();
                 currentModeCursorHidden = false;
             }
         }
         else {
             if (mode.hideCursor().enabled() &&
                 mode.hideCursor().idleDuration().equals(Duration.ZERO)) {
-                mouseController.hideCursor();
+                mouseManager.hideCursor();
                 currentModeCursorHidden = true;
             }
         }

@@ -9,21 +9,21 @@ import mousemaster.platform.Overlay;
 public class GridManager implements MousePositionListener, ModeListener {
 
     private final ScreenManager screenManager;
-    private final MouseController mouseController;
+    private final MouseManager mouseManager;
     private final Overlay overlay;
     private Grid grid;
     private int mouseX, mouseY;
     private Mode currentMode;
 
-    public GridManager(ScreenManager screenManager, MouseController mouseController,
+    public GridManager(ScreenManager screenManager, MouseManager mouseManager,
                        Overlay overlay) {
         this.screenManager = screenManager;
-        this.mouseController = mouseController;
+        this.mouseManager = mouseManager;
         this.overlay = overlay;
     }
 
     public void shrinkGridUp() {
-        if (mouseController.jumping(false, false) &&
+        if (mouseManager.jumping(false, false) &&
             currentMode.grid().synchronization() ==
             Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
             return;
@@ -40,7 +40,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void shrinkGridDown() {
-        if (mouseController.jumping(false, true) &&
+        if (mouseManager.jumping(false, true) &&
             currentMode.grid().synchronization() ==
             Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
             return;
@@ -57,7 +57,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void shrinkGridLeft() {
-        if (mouseController.jumping(true, false) &&
+        if (mouseManager.jumping(true, false) &&
             currentMode.grid().synchronization() ==
             Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
             return;
@@ -74,7 +74,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     public void shrinkGridRight() {
-        if (mouseController.jumping(true, true) &&
+        if (mouseManager.jumping(true, true) &&
             currentMode.grid().synchronization() ==
             Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
             return;
@@ -95,7 +95,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     private void moveGrid(int deltaX, int deltaY) {
-        if (mouseController.jumping(deltaX != 0, deltaX > 0 || deltaY > 0) &&
+        if (mouseManager.jumping(deltaX != 0, deltaX > 0 || deltaY > 0) &&
             currentMode.grid().synchronization() ==
             Synchronization.MOUSE_FOLLOWS_GRID_CENTER)
             return;
@@ -159,7 +159,7 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     private void snap(boolean horizontal, boolean forward) {
-        if (mouseController.jumping(horizontal, forward))
+        if (mouseManager.jumping(horizontal, forward))
             return;
         boolean mouseIsInsideGrid =
                 Rectangle.rectangleContains(grid.x(), grid.y(), grid.width(),
@@ -220,15 +220,15 @@ public class GridManager implements MousePositionListener, ModeListener {
     }
 
     private void moveMouseTo(int x, int y) {
-        mouseController.moveTo(x, y);
+        mouseManager.moveTo(x, y);
         mouseMoved(x, y);
     }
 
     @Override
     public void mouseMoved(int x, int y) {
-        if (mouseController.jumping()) {
-            mouseX = mouseController.jumpEndX();
-            mouseY = mouseController.jumpEndY();
+        if (mouseManager.jumping()) {
+            mouseX = mouseManager.jumpEndX();
+            mouseY = mouseManager.jumpEndY();
             return;
         }
         mouseX = x;

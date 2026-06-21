@@ -20,7 +20,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private static final Logger logger = LoggerFactory.getLogger(HintManager.class);
 
     private final ScreenManager screenManager;
-    private final MouseController mouseController;
+    private final MouseManager mouseManager;
     private final Overlay overlay;
     private final UiAutomation uiAutomation;
     private ModeController modeController;
@@ -74,11 +74,11 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
-                       MouseController mouseController, Overlay overlay,
+                       MouseManager mouseManager, Overlay overlay,
                        UiAutomation uiAutomation) {
         this.maxPositionHistorySize = maxPositionHistorySize;
         this.screenManager = screenManager;
-        this.mouseController = mouseController;
+        this.mouseManager = mouseManager;
         this.overlay = overlay;
         this.uiAutomation = uiAutomation;
     }
@@ -99,13 +99,13 @@ public class HintManager implements ModeListener, MousePositionListener {
     public void moveToLastSelectedHint() {
         if (lastSelectedHintPoint == null)
             return;
-        mouseController.moveTo((int) lastSelectedHintPoint.x(),
+        mouseManager.moveTo((int) lastSelectedHintPoint.x(),
                 (int) lastSelectedHintPoint.y());
     }
 
     @Override
     public void mouseMoved(int x, int y) {
-        if (mouseController.jumping())
+        if (mouseManager.jumping())
             return;
         mouseX = x;
         mouseY = y;
@@ -1028,7 +1028,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             mouseY = (int) Math.round(point.y());
         }
         logger.info("Moving mouse to " + mouseX + ", " + mouseY);
-        mouseController.moveTo(mouseX, mouseY);
+        mouseManager.moveTo(mouseX, mouseY);
     }
 
     private void finalizeHintSelection(Hint hint, List<Key> newSelectedKeySequence) {
@@ -1105,7 +1105,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         findPositionHistoryEntryMatchingCurrentPosition();
         positionCycleIndex = (positionCycleIndex + 1) % positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
-        mouseController.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
+        mouseManager.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
     }
 
     private void findPositionHistoryEntryMatchingCurrentPosition() {
@@ -1126,7 +1126,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         positionCycleIndex = (positionCycleIndex - 1 + positionHistory.size()) %
                              positionHistory.size();
         Point point = positionHistory.get(positionCycleIndex);
-        mouseController.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
+        mouseManager.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
     }
 
 }

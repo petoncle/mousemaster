@@ -38,7 +38,7 @@ public class WindowsPlatform implements Platform {
     private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator(keyboard);
     private final WindowsClock clock = new WindowsClock();
 
-    private MouseController mouseController;
+    private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
@@ -143,7 +143,7 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public void reset(MouseController mouseController, KeyboardManager keyboardManager,
+    public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
                       ModeMap newModeMap,
                       List<MousePositionListener> mousePositionListeners,
                       KeyboardLayout activeKeyboardLayout) {
@@ -155,7 +155,7 @@ public class WindowsPlatform implements Platform {
                       .map(Mode::hintMesh)
                       .forEach(oldHintMeshConfigurations::add);
         }
-        this.mouseController = mouseController;
+        this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
         this.mousePositionListeners = mousePositionListeners;
         if (keyboard.activeKeyboardLayout != null &&
@@ -360,7 +360,7 @@ public class WindowsPlatform implements Platform {
                     keysThatDoNotSeemToBePressedAnymore);
             currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
-            mouseController.reset();
+            mouseManager.reset();
         }
         stuckKeyCheckTimer += delta;
         if (stuckKeyCheckTimer >= 1) {
