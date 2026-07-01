@@ -28,6 +28,7 @@ public class WindowsPlatform implements Platform {
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
 
     private final boolean keyRegurgitationEnabled;
+    private final boolean ignoreInjectedEvents;
     private final WindowsKeyboardController keyboard = new WindowsKeyboardController();
     private final WindowsMouseController mouse = new WindowsMouseController(this::mousePositionSet);
     private final Screens screens = new WindowsScreens();
@@ -72,8 +73,10 @@ public class WindowsPlatform implements Platform {
     private Mode currentMode;
     private double stuckKeyCheckTimer;
 
-    public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
+    public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled,
+                           boolean ignoreInjectedEvents) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
+        this.ignoreInjectedEvents = ignoreInjectedEvents;
         WindowsUiAccess.checkAndTryToGetUiAccess(); // Done before acquiring the single instance mutex.
         if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
@@ -478,7 +481,7 @@ public class WindowsPlatform implements Platform {
                             logKeyEvent(info, wParamString, keyEvent, injected, altgrLeftctrl);
                             keyboard.keyboardHookCallback(info, wParam, wParamString,
                                     keyEvent, injected, altgrLeftctrl);
-                            if (injected) {
+                            if (injected && ignoreInjectedEvents) {
                                 if (keyEvent != null) {
                                     if (keyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
                                         logger.trace("Suppressing external +leftalt");
