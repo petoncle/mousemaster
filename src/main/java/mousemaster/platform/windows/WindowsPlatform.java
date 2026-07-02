@@ -217,7 +217,7 @@ public class WindowsPlatform implements Platform {
         if (keyboardHook == null)
             throw new IllegalStateException(
                     "Unable to install keyboard hook " + Native.getLastError());
-        logger.trace("Installed keyboard hook successfully");
+        logger.info("Installed keyboard hook successfully");
         // Run mouse hook in a separate thread to avoid lags:
         // https://www.linkedin.com/pulse/windows-mouse-hook-lagging-simone-galleni
         // https://stackoverflow.com/a/52201983
