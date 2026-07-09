@@ -32,14 +32,8 @@ public class HintMeshWindow extends TransparentWindow {
 
     public void setHintMesh(HintMesh hintMesh) {
         this.hintMesh = hintMesh;
-
-        // Make window fullscreen to cover all hints
-        setGeometry(0, 0, 1920, 1080);
-
-        // Make window visible
+        setGeometry(primaryScreenGeometry());
         show();
-
-        // Request repaint
         update();
     }
 
