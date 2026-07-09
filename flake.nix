@@ -18,21 +18,21 @@
             maven
 
             # X11 libs loaded by JNA at runtime
-            xorg.libX11
-            xorg.libXrandr
-            xorg.libXtst   # XTest extension - for key/mouse injection
-            xorg.libXi
-            xorg.libXext
-            xorg.libXrender
-            xorg.libXfixes
+            libx11
+            libxrandr
+            libxtst    # XTest extension - for key/mouse injection
+            libxi
+            libxext
+            libxrender
+            libxfixes
 
             # System libs that the bundled Qt 6.8.2 .so files will dlopen
-            xorg.libxcb
-            xcb-util
-            xcb-util-image
-            xcb-util-keysyms
-            xcb-util-renderutil
-            xcb-util-wm
+            libxcb
+            xcbutil
+            xcbutilimage
+            xcbutilkeysyms
+            xcbutilrenderutil
+            xcbutilwm
             libxkbcommon
             fontconfig
             freetype
@@ -42,19 +42,19 @@
           shellHook = ''
             export JAVA_HOME="${pkgs.jdk21}"
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath (with pkgs; [
-              xorg.libX11
-              xorg.libXrandr
-              xorg.libXtst
-              xorg.libXi
-              xorg.libXext
-              xorg.libXrender
-              xorg.libXfixes
-              xorg.libxcb
-              xcb-util
-              xcb-util-image
-              xcb-util-keysyms
-              xcb-util-renderutil
-              xcb-util-wm
+              libx11
+              libxrandr
+              libxtst
+              libxi
+              libxext
+              libxrender
+              libxfixes
+              libxcb
+              xcbutil
+              xcbutilimage
+              xcbutilkeysyms
+              xcbutilrenderutil
+              xcbutilwm
               libxkbcommon
               fontconfig
               freetype
