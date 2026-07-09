@@ -10,6 +10,7 @@ import ch.qos.logback.core.FileAppender;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import java.io.File;
 import java.util.Scanner;
 import java.util.logging.LogManager;
 
@@ -42,9 +43,11 @@ public class MousemasterApplication {
         }
         if (MousemasterApplication.tempDirectory == null)
             MousemasterApplication.tempDirectory =
-                    System.getProperty("java.io.tmpdir") + "mousemaster-" +
+                    System.getProperty("java.io.tmpdir") + File.separator + "mousemaster-" +
                     System.getProperty("user.name").hashCode();
-        System.setProperty("jna.tmpdir", MousemasterApplication.tempDirectory + "/jna");
+        String jnaTmpDir = MousemasterApplication.tempDirectory + "/jna";
+        System.setProperty("jna.tmpdir", jnaTmpDir);
+        new File(jnaTmpDir).mkdirs();
     }
 
     public static void shutdownAfterException(Throwable e, Platform platform,

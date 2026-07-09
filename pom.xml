@@ -56,11 +56,6 @@
             <version>6.8.2</version>
         </dependency>
         <dependency>
-            <groupId>io.qtjambi</groupId>
-            <artifactId>qtjambi-native-windows-x64</artifactId>
-            <version>6.8.2</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.12.1</version>
@@ -80,6 +75,35 @@
     </dependencies>
 
     <profiles>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os><family>windows</family></os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>io.qtjambi</groupId>
+                    <artifactId>qtjambi-native-windows-x64</artifactId>
+                    <version>6.8.2</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>linux</id>
+            <activation>
+                <os><family>unix</family></os>
+            </activation>
+            <properties>
+                <mainClass>mousemaster.platform.linux.LinuxMain</mainClass>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.qtjambi</groupId>
+                    <artifactId>qtjambi-native-linux-x64</artifactId>
+                    <version>6.8.2</version>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>native</id>
             <build>
@@ -161,7 +185,9 @@
                                     <directory>src/main/resources</directory>
                                     <filtering>true</filtering>
                                     <excludes>
-                                        <exclude>**/*.dll</exclude> <!-- Exclude DLLs from filtering. -->
+                                        <exclude>**/*.dll</exclude>
+                                        <exclude>**/*.so</exclude>
+                                        <exclude>**/*.so.*</exclude>
                                     </excludes>
                                 </resource>
                             </resources>
