@@ -63,7 +63,6 @@ public class LinuxPlatform implements Platform {
         // Initialize all platform components
         clock = new LinuxClock();
         keyboard = new LinuxKeyboard();
-        mouse = new LinuxMouse();
         screens = new LinuxScreens(display);
         overlay = new LinuxOverlay(display);
         overlay.setPlatform(this);
@@ -72,11 +71,13 @@ public class LinuxPlatform implements Platform {
         console = new LinuxConsole();
         keyRegurgitator = new KeyRegurgitator(keyboard);
 
-        logger.info("LinuxPlatform initialized successfully");
-
-        // Get root window for event monitoring
+        // rootWindow must be obtained before creating LinuxMouse (mouse needs it for XWarpPointer)
         rootWindow = LibX11.INSTANCE.XDefaultRootWindow(display);
         logger.info("Root window handle: {}", rootWindow);
+
+        mouse = new LinuxMouse(display, rootWindow);
+
+        logger.info("LinuxPlatform initialized successfully");
 
         if (!isWayland) {
             LibX11.INSTANCE.XSelectInput(display, rootWindow,
@@ -226,6 +227,8 @@ public class LinuxPlatform implements Platform {
         if (keyboardSimulator != null) {
             keyboardSimulator.stop();
         }
+
+        mouse.destroy();
 
         if (display != null) {
             LibX11.INSTANCE.XCloseDisplay(display);

@@ -52,6 +52,15 @@ public interface LibX11 extends Library {
     // Window management
     int XGetWindowAttributes(Pointer display, long window, XWindowAttributes attributesReturn);
 
+    // Cursor management
+    long XCreateBitmapFromData(Pointer display, long drawable, byte[] data, int width, int height);
+    long XCreatePixmapCursor(Pointer display, long source, long mask,
+                             XColor fg, XColor bg, int x, int y);
+    int XDefineCursor(Pointer display, long window, long cursor);
+    int XUndefineCursor(Pointer display, long window);
+    int XFreePixmap(Pointer display, long pixmap);
+    int XFreeCursor(Pointer display, long cursor);
+
     // Memory management
     int XFree(Pointer data);
 
@@ -97,6 +106,17 @@ public interface LibX11 extends Library {
     long AnyPropertyType = 0L;
     long XA_ATOM = 4L;
     long XA_WINDOW = 33L;
+
+    /**
+     * X11 color structure (used for cursor creation)
+     * Layout: unsigned long pixel (8), unsigned short red/green/blue (2 each), char flags/pad (1 each)
+     */
+    @Structure.FieldOrder({"pixel", "red", "green", "blue", "flags", "pad"})
+    class XColor extends Structure {
+        public long pixel;
+        public short red, green, blue;
+        public byte flags, pad;
+    }
 
     /**
      * X11 Event union structure

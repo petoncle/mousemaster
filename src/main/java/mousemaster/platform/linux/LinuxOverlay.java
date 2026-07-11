@@ -220,7 +220,10 @@ public class LinuxOverlay implements Overlay {
             String hintLabel = getHintLabel(hint);
             if (hintLabel.equals(key)) {
                 logger.info("TEST: Hint '{}' selected at position ({}, {})",
-                           key, (int)hint.centerX(), (int)hint.centerY());
+                           key, (int) hint.centerX(), (int) hint.centerY());
+                if (platform != null) {
+                    platform.mouse().synchronousMoveTo((int) hint.centerX(), (int) hint.centerY());
+                }
                 hideHintMesh();
                 return;
             }
