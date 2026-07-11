@@ -8,14 +8,8 @@ import io.qt.gui.QPen;
 import mousemaster.Grid;
 
 /**
- * Platform-agnostic Qt window for displaying the grid overlay.
- * Renders grid lines based on Grid configuration.
- *
- * NOTE: This is a shared, platform-agnostic implementation currently used by Linux.
- * Windows has its own implementation using Win32 API (WindowsOverlay.createGridWindow).
- * TODO: Consider refactoring Windows to use this shared Qt-based implementation
- *       instead of platform-specific Win32 rendering, which would reduce code duplication
- *       and improve maintainability.
+ * Cross-platform Qt grid overlay. Currently used by Linux; Windows has its own Win32-based
+ * implementation. Planned to consolidate in a future PR.
  */
 public class GridWindow extends TransparentWindow {
 

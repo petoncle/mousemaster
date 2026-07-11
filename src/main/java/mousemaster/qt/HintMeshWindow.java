@@ -9,18 +9,9 @@ import mousemaster.Key;
 import java.util.List;
 
 /**
- * Platform-agnostic Qt window for displaying hint mesh overlay.
- * Renders letter labels at hint positions.
- *
- * NOTE: This is a shared, platform-agnostic implementation currently used by Linux.
- * Windows has its own more sophisticated implementation using QLabel widgets, pixmap caching,
- * and animations (see WindowsOverlay.HintMeshWindow record and ClearBackgroundQLabel class).
- * TODO: Consider whether to:
- *       1. Enhance this shared version with Windows' advanced features (animations, caching)
- *          and migrate Windows to use it, OR
- *       2. Keep this as a simple version for basic platforms and maintain Windows' advanced version
- *       The former would reduce code duplication but requires careful refactoring of Windows' complex
- *       hint rendering pipeline.
+ * Cross-platform Qt hint mesh overlay. Currently used by Linux; Windows has a more
+ * sophisticated implementation with per-screen windows, pixmap caching, and animations.
+ * Planned to consolidate in a future PR once this class is feature-complete.
  */
 public class HintMeshWindow extends TransparentWindow {
 
