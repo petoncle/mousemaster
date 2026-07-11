@@ -32,7 +32,7 @@ public class Mousemaster {
         this.configurationPath = configurationPath;
         this.platform = platform;
         this.activeKeyboardLayout = platform.activeKeyboardLayout();
-        QtManager.initialize();
+        QtManager.initialize(platform.qtDeploymentStrategy());
         loadConfiguration(true);
         watchService = FileSystems.getDefault().newWatchService();
         configurationPath.toAbsolutePath()

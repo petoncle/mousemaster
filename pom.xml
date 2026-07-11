@@ -23,6 +23,7 @@
         <imageName>mousemaster</imageName>
         <mainClass>mousemaster.platform.windows.WindowsMain</mainClass>
         <jna.version>5.13.0</jna.version> <!-- Check https://www.graalvm.org/latest/reference-manual/native-image/metadata/ -->
+        <qtjambi.version>6.8.2</qtjambi.version>
     </properties>
     <dependencies>
         <dependency>
@@ -53,12 +54,7 @@
         <dependency>
             <groupId>io.qtjambi</groupId>
             <artifactId>qtjambi</artifactId>
-            <version>6.8.2</version>
-        </dependency>
-        <dependency>
-            <groupId>io.qtjambi</groupId>
-            <artifactId>qtjambi-native-windows-x64</artifactId>
-            <version>6.8.2</version>
+            <version>${qtjambi.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -80,6 +76,42 @@
     </dependencies>
 
     <profiles>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <mainClass>mousemaster.platform.windows.WindowsMain</mainClass>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.qtjambi</groupId>
+                    <artifactId>qtjambi-native-windows-x64</artifactId>
+                    <version>${qtjambi.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>macos</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <properties>
+                <mainClass>mousemaster.platform.macos.MacosMain</mainClass>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.qtjambi</groupId>
+                    <artifactId>qtjambi-native-macos</artifactId>
+                    <version>${qtjambi.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>native</id>
             <build>

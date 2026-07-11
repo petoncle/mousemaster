@@ -24,6 +24,8 @@ public interface Platform extends ModeListener {
 
     void shutdown();
 
+    QtManager.DeploymentStrategy qtDeploymentStrategy();
+
     KeyRegurgitator keyRegurgitator();
 
     Clock clock();
