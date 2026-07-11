@@ -2,13 +2,13 @@ package mousemaster;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
-import mousemaster.platform.windows.WindowsVirtualKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +74,9 @@ public final class KeyboardLayout {
     private final String driverName;
     private final String shortName;
     private final List<KeyboardLayoutKey> keys;
+    private transient Map<Integer, Key> keyByScanCode;
+    private transient Map<WindowsVirtualKey, Key> keyByVirtualKey;
+    private transient Map<Key, KeyboardLayoutKey> layoutKeyByKey;
 
     public KeyboardLayout(String identifier, String displayName, String driverName,
                           String shortName, List<KeyboardLayoutKey> keys) {
@@ -109,35 +112,43 @@ public final class KeyboardLayout {
     }
 
     public Key keyFromScanCode(int scanCode) {
-        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
-            if (keyboardLayoutKey.scanCode == scanCode)
-                return keyboardLayoutKey.key();
-        }
-        return null;
+        buildLookupMaps();
+        return keyByScanCode.get(scanCode);
     }
 
     public Key keyFromVirtualKey(WindowsVirtualKey virtualKey) {
-        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
-            if (keyboardLayoutKey.virtualKey == virtualKey)
-                return keyboardLayoutKey.key();
-        }
-        return null;
+        buildLookupMaps();
+        return keyByVirtualKey.get(virtualKey);
     }
 
     public int scanCode(Key key) {
-        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
-            if (keyboardLayoutKey.key.equals(key))
-                return keyboardLayoutKey.scanCode();
-        }
-        return -1;
+        buildLookupMaps();
+        KeyboardLayoutKey layoutKey = layoutKeyByKey.get(key);
+        return layoutKey == null ? -1 : layoutKey.scanCode();
     }
 
     public WindowsVirtualKey virtualKey(Key key) {
+        buildLookupMaps();
+        KeyboardLayoutKey layoutKey = layoutKeyByKey.get(key);
+        return layoutKey == null ? null : layoutKey.virtualKey();
+    }
+
+    private void buildLookupMaps() {
+        if (layoutKeyByKey != null)
+            return;
+        Map<Integer, Key> byScanCode = new HashMap<>();
+        Map<WindowsVirtualKey, Key> byVirtualKey = new HashMap<>();
+        Map<Key, KeyboardLayoutKey> byKey = new HashMap<>();
         for (KeyboardLayoutKey keyboardLayoutKey : keys) {
-            if (keyboardLayoutKey.key.equals(key))
-                return keyboardLayoutKey.virtualKey();
+            byScanCode.putIfAbsent(keyboardLayoutKey.scanCode(), keyboardLayoutKey.key());
+            if (keyboardLayoutKey.virtualKey() != null)
+                byVirtualKey.putIfAbsent(keyboardLayoutKey.virtualKey(),
+                        keyboardLayoutKey.key());
+            byKey.putIfAbsent(keyboardLayoutKey.key(), keyboardLayoutKey);
         }
-        return null;
+        keyByScanCode = Collections.unmodifiableMap(byScanCode);
+        keyByVirtualKey = Collections.unmodifiableMap(byVirtualKey);
+        layoutKeyByKey = Collections.unmodifiableMap(byKey);
     }
 
     @Override

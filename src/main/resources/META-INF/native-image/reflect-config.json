@@ -863,7 +863,7 @@
 {
   "name":"mousemaster.KeyboardLayout$KeyboardLayoutKey",
   "allDeclaredFields":true,
-  "methods":[{"name":"<init>","parameterTypes":["int","mousemaster.platform.windows.WindowsVirtualKey","mousemaster.Key","java.lang.String","java.lang.String"] }, {"name":"key","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"scanCode","parameterTypes":[] }, {"name":"text","parameterTypes":[] }, {"name":"virtualKey","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["int","mousemaster.WindowsVirtualKey","mousemaster.Key","java.lang.String","java.lang.String"] }, {"name":"key","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"scanCode","parameterTypes":[] }, {"name":"text","parameterTypes":[] }, {"name":"virtualKey","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.platform.windows.Magnification$MAGTRANSFORM",
@@ -1057,7 +1057,7 @@
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
 },
 {
-  "name":"mousemaster.platform.windows.WindowsVirtualKey",
+  "name":"mousemaster.WindowsVirtualKey",
   "allDeclaredFields":true
 },
 {

@@ -263,6 +263,11 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
+    public QtManager.DeploymentStrategy qtDeploymentStrategy() {
+        return QtManager.DeploymentStrategy.WINDOWS_EXTRACTED_RESOURCES;
+    }
+
+    @Override
     public KeyRegurgitator keyRegurgitator() {
         return keyRegurgitator;
     }
@@ -274,7 +279,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public KeyboardLayout activeKeyboardLayout() {
-        return WindowsVirtualKey.activeKeyboardLayout();
+        return WindowsKeys.activeKeyboardLayout();
     }
 
     @Override
@@ -333,7 +338,7 @@ public class WindowsPlatform implements Platform {
             if (pressDuration.get() < 10)
                 continue;
             WindowsVirtualKey windowsVirtualKey =
-                    WindowsVirtualKey.windowsVirtualKeyFromKey(key,
+                    WindowsKeys.windowsVirtualKeyFromKey(key,
                             keyboard.activeKeyboardLayout);
             if (windowsVirtualKey == null) {
                 // Can be null if key was added to currentlyPressedNotEatenKeys
@@ -570,7 +575,7 @@ public class WindowsPlatform implements Platform {
             // Consider altgr's leftctrl and altgr's rightalt as the same key: Key.rightalt.
             key = Key.rightalt;
         else
-            key = WindowsVirtualKey.keyFromWindowsEvent(
+            key = WindowsKeys.keyFromWindowsEvent(
                     WindowsVirtualKey.values.get(info.vkCode), info.scanCode, info.flags,
                     keyboard.activeKeyboardLayout);
         if (key == null)

@@ -18,6 +18,12 @@ import java.util.List;
 public class QtManager {
 
     private static final Logger logger = LoggerFactory.getLogger(QtManager.class.getName());
+    private static boolean initialized;
+
+    public enum DeploymentStrategy {
+        WINDOWS_EXTRACTED_RESOURCES,
+        QTJAMBI_DEFAULT
+    }
 
     private static final List<String> windowsResourcesPaths = List.of(
             "qt/bin/Qt6Core.dll",
@@ -46,7 +52,15 @@ public class QtManager {
             "qt-msvcp/msvcp140_2.dll"
     );
 
-    public static void initialize() throws IOException {
+    public static void initialize(DeploymentStrategy deploymentStrategy) throws IOException {
+        switch (deploymentStrategy) {
+            case WINDOWS_EXTRACTED_RESOURCES -> initializeWindows();
+            case QTJAMBI_DEFAULT -> initializeDefault();
+        }
+        initialized = true;
+    }
+
+    private static void initializeWindows() throws IOException {
         File extractDirectory = createExtractDirectory(
                 MousemasterApplication.tempDirectory);
         for (String resourcesPath : windowsResourcesPaths) {
@@ -88,6 +102,15 @@ public class QtManager {
 //        QApplication.initialize(new String[] { });
     }
 
+    private static void initializeDefault() {
+        // Used by macOS and other platforms where Qt Jambi native artifacts are
+        // loaded from the normal dependency/deployment path instead of extracted
+        // Windows DLL resources. macOS launchers must still provide
+        // -XstartOnFirstThread so AppKit/Qt runs on the process first thread.
+        QtUtilities.jambiDeploymentDir();
+        QApplication.initialize(new String[] {});
+    }
+
     private static void extractResourceFile(String resourcesPath, Path extractPath)
             throws IOException {
         try (InputStream inputStream = MousemasterApplication.class.getClassLoader().getResourceAsStream(
@@ -104,11 +127,15 @@ public class QtManager {
     }
 
     public static void stop() {
-        QApplication.shutdown();
+        if (initialized) {
+            QApplication.shutdown();
+            initialized = false;
+        }
     }
 
     public static void processEvents() {
-        QApplication.processEvents();
+        if (initialized)
+            QApplication.processEvents();
     }
 
     private static File createExtractDirectory(String tempDirectory) throws IOException {

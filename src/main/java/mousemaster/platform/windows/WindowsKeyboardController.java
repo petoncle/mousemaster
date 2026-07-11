@@ -301,7 +301,7 @@ public class WindowsKeyboardController implements KeyboardController {
         WinUser.INPUT[] pInputs =
                 (WinUser.INPUT[]) new WinUser.INPUT().toArray(moves.size());
         if (moves.stream()
-                 .map(move -> WindowsVirtualKey.windowsVirtualKeyFromKey(move.key(),
+                 .map(move -> WindowsKeys.windowsVirtualKeyFromKey(move.key(),
                          activeKeyboardLayout))
                  .anyMatch(Objects::isNull)) {
             // Happens when a macro output contains a key not in the active keyboard layout.
@@ -310,7 +310,7 @@ public class WindowsKeyboardController implements KeyboardController {
         for (int moveIndex = 0; moveIndex < moves.size(); moveIndex++) {
             ResolvedKeyMacroMove move = moves.get(moveIndex);
             WindowsVirtualKey windowsVirtualKey =
-                    WindowsVirtualKey.windowsVirtualKeyFromKey(move.key(),
+                    WindowsKeys.windowsVirtualKeyFromKey(move.key(),
                             activeKeyboardLayout);
             // Key already pressed.
             if (move.press()) {
