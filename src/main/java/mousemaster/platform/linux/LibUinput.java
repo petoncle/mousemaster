@@ -58,8 +58,9 @@ public class LibUinput {
     static final int INPUT_EVENT_SIZE = 24;
 
     static final String UINPUT_PATH = "/dev/uinput";
-    // Distinct name lets the evdev keyboard read-loop filter out this virtual device
+    // Distinct names let the evdev read-loop filter out these virtual devices
     static final String DEVICE_NAME = "mousemaster-mouse";
+    static final String KEYBOARD_DEVICE_NAME = "mousemaster-kb";
 
     interface CLib extends Library {
         CLib INSTANCE = Native.load("c", CLib.class);
@@ -68,6 +69,44 @@ public class LibUinput {
         int close(int fd);
         NativeLong write(int fd, Pointer buf, NativeLong count);
         int ioctl(int fd, NativeLong request, int arg);
+    }
+
+    static int createKeyboardDevice() {
+        int fd = CLib.INSTANCE.open(UINPUT_PATH, O_WRONLY | O_NONBLOCK);
+        if (fd < 0) {
+            logger.error("Cannot open {} for keyboard device (errno={})", UINPUT_PATH, Native.getLastError());
+            return -1;
+        }
+
+        requireIoctl(fd, UI_SET_EVBIT, EV_KEY, "UI_SET_EVBIT(EV_KEY)");
+        requireIoctl(fd, UI_SET_EVBIT, EV_SYN, "UI_SET_EVBIT(EV_SYN)");
+        // Enable all standard key codes (1–255 covers the full QWERTY + function + numpad range)
+        for (int code = 1; code <= 255; code++)
+            CLib.INSTANCE.ioctl(fd, new NativeLong(UI_SET_KEYBIT), code);
+
+        Memory userDev = new Memory(UINPUT_USER_DEV_SIZE);
+        userDev.clear();
+        byte[] nameBytes = KEYBOARD_DEVICE_NAME.getBytes(StandardCharsets.US_ASCII);
+        for (int i = 0; i < nameBytes.length && i < 79; i++)
+            userDev.setByte(i, nameBytes[i]);
+        userDev.setShort(80, BUS_VIRTUAL);
+        NativeLong written = CLib.INSTANCE.write(fd, userDev, new NativeLong(UINPUT_USER_DEV_SIZE));
+        if (written.longValue() != UINPUT_USER_DEV_SIZE) {
+            logger.error("uinput_user_dev write failed for keyboard device: wrote {} of {} bytes (errno={})",
+                    written.longValue(), UINPUT_USER_DEV_SIZE, Native.getLastError());
+            CLib.INSTANCE.close(fd);
+            return -1;
+        }
+
+        int result = CLib.INSTANCE.ioctl(fd, new NativeLong(UI_DEV_CREATE), 0);
+        if (result < 0) {
+            logger.error("UI_DEV_CREATE failed for keyboard device (errno={})", Native.getLastError());
+            CLib.INSTANCE.close(fd);
+            return -1;
+        }
+
+        logger.info("uinput keyboard device '{}' created (fd={})", KEYBOARD_DEVICE_NAME, fd);
+        return fd;
     }
 
     static int createMouseDevice() {
@@ -123,7 +162,7 @@ public class LibUinput {
         if (fd >= 0) {
             CLib.INSTANCE.ioctl(fd, new NativeLong(UI_DEV_DESTROY), 0);
             CLib.INSTANCE.close(fd);
-            logger.info("uinput mouse device destroyed");
+            logger.info("uinput device destroyed (fd={})", fd);
         }
     }
 
