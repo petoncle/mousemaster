@@ -4,7 +4,9 @@ import java.time.Duration;
 
 public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
                    boolean lineVisible, String lineHexColor, double lineThickness,
-                   boolean transitionAnimationEnabled, Duration transitionAnimationDuration) {
+                   double lineOpacity, String backgroundHexColor, double backgroundOpacity,
+                   boolean transitionAnimationEnabled, Duration transitionAnimationDuration,
+                   boolean fadeAnimationEnabled, Duration fadeAnimationDuration) {
 
     public GridBuilder builder() {
         return new GridBuilder(this);
@@ -20,8 +22,13 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         private boolean lineVisible;
         private String lineHexColor;
         private double lineThickness;
+        private double lineOpacity;
+        private String backgroundHexColor;
+        private double backgroundOpacity;
         private boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
+        private boolean fadeAnimationEnabled;
+        private Duration fadeAnimationDuration;
 
         public GridBuilder() {
         }
@@ -36,8 +43,13 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             this.lineVisible = grid.lineVisible;
             this.lineHexColor = grid.lineHexColor;
             this.lineThickness = grid.lineThickness;
+            this.lineOpacity = grid.lineOpacity;
+            this.backgroundHexColor = grid.backgroundHexColor;
+            this.backgroundOpacity = grid.backgroundOpacity;
             this.transitionAnimationEnabled = grid.transitionAnimationEnabled;
             this.transitionAnimationDuration = grid.transitionAnimationDuration;
+            this.fadeAnimationEnabled = grid.fadeAnimationEnabled;
+            this.fadeAnimationDuration = grid.fadeAnimationDuration;
         }
 
         public int x() {
@@ -76,12 +88,32 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return lineThickness;
         }
 
+        public double lineOpacity() {
+            return lineOpacity;
+        }
+
+        public String backgroundHexColor() {
+            return backgroundHexColor;
+        }
+
+        public double backgroundOpacity() {
+            return backgroundOpacity;
+        }
+
         public boolean transitionAnimationEnabled() {
             return transitionAnimationEnabled;
         }
 
         public Duration transitionAnimationDuration() {
             return transitionAnimationDuration;
+        }
+
+        public boolean fadeAnimationEnabled() {
+            return fadeAnimationEnabled;
+        }
+
+        public Duration fadeAnimationDuration() {
+            return fadeAnimationDuration;
         }
 
         public GridBuilder x(int x) {
@@ -129,6 +161,21 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
+        public GridBuilder lineOpacity(double lineOpacity) {
+            this.lineOpacity = lineOpacity;
+            return this;
+        }
+
+        public GridBuilder backgroundHexColor(String backgroundHexColor) {
+            this.backgroundHexColor = backgroundHexColor;
+            return this;
+        }
+
+        public GridBuilder backgroundOpacity(double backgroundOpacity) {
+            this.backgroundOpacity = backgroundOpacity;
+            return this;
+        }
+
         public GridBuilder transitionAnimationEnabled(boolean transitionAnimationEnabled) {
             this.transitionAnimationEnabled = transitionAnimationEnabled;
             return this;
@@ -139,10 +186,21 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
+        public GridBuilder fadeAnimationEnabled(boolean fadeAnimationEnabled) {
+            this.fadeAnimationEnabled = fadeAnimationEnabled;
+            return this;
+        }
+
+        public GridBuilder fadeAnimationDuration(Duration fadeAnimationDuration) {
+            this.fadeAnimationDuration = fadeAnimationDuration;
+            return this;
+        }
+
         public Grid build() {
             return new Grid(x, y, width, height, rowCount, columnCount, lineVisible,
-                    lineHexColor, lineThickness, transitionAnimationEnabled,
-                    transitionAnimationDuration);
+                    lineHexColor, lineThickness, lineOpacity, backgroundHexColor,
+                    backgroundOpacity, transitionAnimationEnabled, transitionAnimationDuration,
+                    fadeAnimationEnabled, fadeAnimationDuration);
         }
     }
 

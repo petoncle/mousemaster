@@ -55,6 +55,7 @@ public class WindowsOverlay implements Overlay {
     private int maxIndicatorShadowPadding;
     private FadeAnimator indicatorFadeAnimator;
     private GridWindow gridWindow;
+    private FadeAnimator gridFadeAnimator;
     private boolean showingGrid;
     private Grid currentGrid;
     private final Map<Screen, HintMeshWindow> hintMeshWindows =
@@ -1060,6 +1061,7 @@ public class WindowsOverlay implements Overlay {
         private Grid grid;
         private int lineThickness;
         private QColor lineColor;
+        private QColor backgroundColor; // Grid fill, or null when the background is off.
         private boolean visible;
         private int drawX, drawY, drawW, drawH; // Current (possibly animated) grid rectangle.
         private QRect paintedRect = new QRect(); // Last drawn grid bounds; cleared on the next paint.
@@ -1092,16 +1094,19 @@ public class WindowsOverlay implements Overlay {
                    grid.y() + grid.height() <= originY + coveredHeight;
         }
 
-        void showGrid(Grid grid, int lineThickness, QColor lineColor,
+        void showGrid(Grid grid, int lineThickness, QColor lineColor, QColor backgroundColor,
                       boolean animate, Duration animationDuration) {
             stopAnimation();
             if (this.lineColor != null)
                 this.lineColor.dispose();
+            if (this.backgroundColor != null)
+                this.backgroundColor.dispose();
             boolean wasVisible = visible;
             int oldX = drawX, oldY = drawY, oldW = drawW, oldH = drawH;
             this.grid = grid;
             this.lineThickness = lineThickness;
             this.lineColor = lineColor;
+            this.backgroundColor = backgroundColor;
             this.visible = true;
             int newX = grid.x(), newY = grid.y(), newW = grid.width(), newH = grid.height();
             boolean geometryChanged =
@@ -1192,6 +1197,8 @@ public class WindowsOverlay implements Overlay {
             int rowCount = grid.rowCount();
             int width = drawW;
             int height = drawH;
+            if (backgroundColor != null)
+                painter.fillRect(ox, oy, width, height, backgroundColor);
             int cellWidth = width / columnCount;
             int cellHeight = height / rowCount;
             // A pen of width t centered at c covers [c - t/2, c + (t+1)/2 - 1], so edge
@@ -4379,6 +4386,10 @@ public class WindowsOverlay implements Overlay {
         Objects.requireNonNull(grid);
         if (showingGrid && currentGrid != null && currentGrid.equals(grid))
             return;
+        boolean wasShowing = showingGrid;
+        // Re-showing during a fade-out cancels it.
+        if (gridFadeAnimator != null && gridFadeAnimator.isFadingOut())
+            gridFadeAnimator.cancelAndResetOpacity();
         currentGrid = grid;
         if (gridWindow == null)
             createGridWindow();
@@ -4386,10 +4397,23 @@ public class WindowsOverlay implements Overlay {
             // The grid moved outside the covered area (e.g. a monitor was reconfigured).
             gridWindow.widget.coverVirtualDesktop(virtualDesktopBounds());
         showingGrid = true;
+        QColor background = currentGrid.backgroundOpacity() > 0 ?
+                qColor(currentGrid.backgroundHexColor(), currentGrid.backgroundOpacity()) : null;
         gridWindow.widget.showGrid(currentGrid, scaledPixels(currentGrid.lineThickness(), 1),
-                qColor(currentGrid.lineHexColor(), 1.0),
+                qColor(currentGrid.lineHexColor(), currentGrid.lineOpacity()), background,
                 currentGrid.transitionAnimationEnabled(),
                 currentGrid.transitionAnimationDuration());
+        if (!wasShowing) {
+            gridFadeAnimator = new FadeAnimator(
+                    opacity -> gridWindow.widget.setWindowOpacity(opacity),
+                    this::doHideGrid,
+                    currentGrid.fadeAnimationEnabled(),
+                    currentGrid.fadeAnimationDuration());
+            if (gridFadeAnimator.isEnabled()) {
+                gridWindow.widget.setWindowOpacity(0.0);
+                gridFadeAnimator.startFadeIn();
+            }
+        }
     }
 
     /**
@@ -4513,8 +4537,17 @@ public class WindowsOverlay implements Overlay {
     public void hideGrid() {
         if (!showingGrid)
             return;
+        if (gridFadeAnimator != null && gridFadeAnimator.shouldDeferHide())
+            return;
+        doHideGrid();
+    }
+
+    private void doHideGrid() {
         showingGrid = false;
+        if (gridFadeAnimator != null)
+            gridFadeAnimator.cancel();
         gridWindow.widget.hideGrid();
+        gridWindow.widget.setWindowOpacity(1.0);
     }
 
     @Override

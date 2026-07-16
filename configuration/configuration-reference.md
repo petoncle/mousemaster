@@ -815,10 +815,15 @@ grid-mode.grid.column-count=2
 grid-mode.grid.line-visible=true
 grid-mode.grid.line-color=#FF0000
 grid-mode.grid.line-thickness=1
+grid-mode.grid.line-opacity=1.0
+grid-mode.grid.background-color=#000000
+grid-mode.grid.background-opacity=0.0
 
-# Grid transition animation
+# Grid transition and fade animations
 grid-mode.grid.transition-animation-enabled=true
 grid-mode.grid.transition-animation-duration-millis=100
+grid-mode.grid.fade-animation-enabled=true
+grid-mode.grid.fade-animation-duration-millis=100
 ```
 
 - **`grid-area`**: Determines where the grid is displayed:
@@ -837,10 +842,17 @@ grid-mode.grid.transition-animation-duration-millis=100
   - `line-visible`: Whether to show grid lines
   - `line-color`: Color of grid lines (hex format)
   - `line-thickness`: Thickness of grid lines in pixels
+  - `line-opacity`: Opacity of grid lines (0.0 = transparent, 1.0 = opaque). Default 1.0.
+  - `background-color`: Fill color of the grid area, behind the lines (hex format).
+  - `background-opacity`: Opacity of the background fill. Default 0.0 (no background).
 
 - Grid transition animation: eases the grid to its new position and size when it changes (e.g. after `shrink-grid` or `move-grid`):
   - `transition-animation-enabled`: Whether to animate grid transitions. Default enabled.
   - `transition-animation-duration-millis`: Animation duration in milliseconds. Default 100.
+
+- Grid fade animation: fades the grid in and out when it appears and disappears:
+  - `fade-animation-enabled`: Whether to fade the grid in/out. Default enabled.
+  - `fade-animation-duration-millis`: Fade duration in milliseconds. Default 100.
 
 ### Grid positioning and insets
 

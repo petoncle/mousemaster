@@ -249,8 +249,13 @@ public class GridManager implements MousePositionListener, ModeListener {
                                  .lineVisible(gridConfiguration.lineVisible())
                                  .lineHexColor(gridConfiguration.lineHexColor())
                                  .lineThickness(gridConfiguration.lineThickness())
+                                 .lineOpacity(gridConfiguration.lineOpacity())
+                                 .backgroundHexColor(gridConfiguration.backgroundHexColor())
+                                 .backgroundOpacity(gridConfiguration.backgroundOpacity())
                                  .transitionAnimationEnabled(gridConfiguration.transitionAnimationEnabled())
-                                 .transitionAnimationDuration(gridConfiguration.transitionAnimationDuration());
+                                 .transitionAnimationDuration(gridConfiguration.transitionAnimationDuration())
+                                 .fadeAnimationEnabled(gridConfiguration.fadeAnimationEnabled())
+                                 .fadeAnimationDuration(gridConfiguration.fadeAnimationDuration());
         if (currentMode != null) {
             GridConfiguration oldGridConfiguration = currentMode.grid();
             if (oldGridConfiguration.area().equals(gridConfiguration.area()) &&
