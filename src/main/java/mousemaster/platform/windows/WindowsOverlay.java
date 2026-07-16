@@ -4384,12 +4384,14 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void setGrid(Grid grid) {
         Objects.requireNonNull(grid);
-        if (showingGrid && currentGrid != null && currentGrid.equals(grid))
+        boolean fadingOut = gridFadeAnimator != null && gridFadeAnimator.isFadingOut();
+        if (!fadingOut && showingGrid && currentGrid != null && currentGrid.equals(grid))
             return;
-        boolean wasShowing = showingGrid;
-        // Re-showing during a fade-out cancels it.
-        if (gridFadeAnimator != null && gridFadeAnimator.isFadingOut())
-            gridFadeAnimator.cancelAndResetOpacity();
+        // While the old grid is fading out, treat this as a fresh appearance: the new
+        // grid fades in rather than morphing from the one that was disappearing.
+        boolean wasShowing = showingGrid && !fadingOut;
+        if (fadingOut)
+            gridFadeAnimator.cancel();
         currentGrid = grid;
         if (gridWindow == null)
             createGridWindow();
@@ -4401,7 +4403,7 @@ public class WindowsOverlay implements Overlay {
                 qColor(currentGrid.backgroundHexColor(), currentGrid.backgroundOpacity()) : null;
         gridWindow.widget.showGrid(currentGrid, scaledPixels(currentGrid.lineThickness(), 1),
                 qColor(currentGrid.lineHexColor(), currentGrid.lineOpacity()), background,
-                currentGrid.transitionAnimationEnabled(),
+                currentGrid.transitionAnimationEnabled() && wasShowing,
                 currentGrid.transitionAnimationDuration());
         if (!wasShowing) {
             gridFadeAnimator = new FadeAnimator(

@@ -3,14 +3,11 @@ package mousemaster.qt;
 import io.qt.core.QEasingCurve;
 import io.qt.core.QMetaObject;
 import io.qt.core.QVariantAnimation;
-import mousemaster.Easing;
 
 import java.time.Duration;
 import java.util.function.Consumer;
 
 public class FadeAnimator {
-
-    private static final Easing FADE_EASING = new Easing.Smootherstep();
 
     private final Consumer<Double> applyOpacity;
     private final Runnable onFadeOutComplete;
@@ -19,6 +16,7 @@ public class FadeAnimator {
 
     private QVariantAnimation animation;
     private boolean fadingOut;
+    private double currentOpacity = 1.0; // Tracked so an interrupted fade continues from here.
 
     // Store callback instances as fields to prevent GC.
     private ValueChanged valueChangedCallback;
@@ -42,7 +40,8 @@ public class FadeAnimator {
 
     public void startFadeIn() {
         disposeAnimation();
-        animation = createAnimation(false);
+        currentOpacity = 0.0;
+        animation = createAnimation(0.0, 1.0);
         animation.start();
     }
 
@@ -55,10 +54,10 @@ public class FadeAnimator {
             return false;
         if (fadingOut)
             return true;
-        // Cancel any in-progress fade-in.
+        // Cancel any in-progress fade-in and fade out from wherever it got to.
         disposeAnimation();
         fadingOut = true;
-        animation = createAnimation(true);
+        animation = createAnimation(currentOpacity, 0.0);
         animation.start();
         return true;
     }
@@ -70,18 +69,19 @@ public class FadeAnimator {
 
     public void cancelAndResetOpacity() {
         cancel();
+        currentOpacity = 1.0;
         applyOpacity.accept(1.0);
     }
 
-    private QVariantAnimation createAnimation(boolean fadeOut) {
+    private QVariantAnimation createAnimation(double from, double to) {
         QVariantAnimation anim = new QVariantAnimation();
-        anim.setStartValue(0.0);
-        anim.setEndValue(1.0);
-        anim.setDuration((int) duration.toMillis());
-        anim.setEasingCurve(QEasingCurve.Type.Linear);
-        valueChangedCallback = new ValueChanged(fadeOut);
+        anim.setStartValue(from);
+        anim.setEndValue(to);
+        anim.setDuration((int) Math.round(duration.toMillis() * Math.abs(to - from)));
+        anim.setEasingCurve(QEasingCurve.Type.InOutQuad);
+        valueChangedCallback = new ValueChanged();
         anim.valueChanged.connect(valueChangedCallback);
-        finishedCallback = new Finished(fadeOut);
+        finishedCallback = new Finished(to);
         anim.finished.connect(finishedCallback);
         return anim;
     }
@@ -96,36 +96,28 @@ public class FadeAnimator {
 
     private class ValueChanged implements QMetaObject.Slot1<Object> {
 
-        private final boolean fadeOut;
-
-        ValueChanged(boolean fadeOut) {
-            this.fadeOut = fadeOut;
-        }
-
         @Override
         public void invoke(Object arg) {
-            double t = FADE_EASING.apply((Double) arg);
-            double opacity = fadeOut ? 1.0 - t : t;
-            applyOpacity.accept(opacity);
+            currentOpacity = (Double) arg;
+            applyOpacity.accept(currentOpacity);
         }
     }
 
     private class Finished implements QMetaObject.Slot0 {
 
-        private final boolean fadeOut;
+        private final double to;
 
-        Finished(boolean fadeOut) {
-            this.fadeOut = fadeOut;
+        Finished(double to) {
+            this.to = to;
         }
 
         @Override
         public void invoke() {
-            if (fadeOut) {
+            currentOpacity = to;
+            if (to == 0.0)
                 onFadeOutComplete.run();
-            }
-            else {
+            else
                 applyOpacity.accept(1.0);
-            }
         }
     }
 
