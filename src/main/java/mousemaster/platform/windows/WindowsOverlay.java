@@ -54,8 +54,7 @@ public class WindowsOverlay implements Overlay {
     private Indicator currentIndicator;
     private int maxIndicatorShadowPadding;
     private FadeAnimator indicatorFadeAnimator;
-    private GridWindow gridWindow, standByGridWindow;
-    private boolean standByGridCanBeHidden;
+    private GridWindow gridWindow;
     private boolean showingGrid;
     private Grid currentGrid;
     private final Map<Screen, HintMeshWindow> hintMeshWindows =
@@ -990,7 +989,7 @@ public class WindowsOverlay implements Overlay {
         }
     }
 
-    private record GridWindow(WinDef.HWND hwnd, WinUser.WindowProc callback, int transparentColor) {
+    private record GridWindow(WinDef.HWND hwnd, GridWidget widget) {
 
     }
 
@@ -1047,6 +1046,125 @@ public class WindowsOverlay implements Overlay {
             targetRect.dispose();
             painter.end();
             painter.dispose();
+        }
+    }
+
+    /**
+     * Covers the whole virtual desktop and is never resized: the grid is drawn at an
+     * offset inside it and only the changed region is repainted. Resizing a translucent
+     * window re-composites slowly (flashing empty); a fixed window keeps its surface, so
+     * the old grid stays visible until the new one is painted over it.
+     */
+    private class GridWidget extends QWidget {
+        private int originX, originY, coveredWidth, coveredHeight;
+        private Grid grid;
+        private int lineThickness;
+        private QColor lineColor;
+        private boolean visible;
+        private QRect paintedRect = new QRect(); // Last drawn grid bounds; cleared on the next paint.
+
+        GridWidget() {
+            setWindowFlags(Qt.WindowType.FramelessWindowHint);
+            setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
+        }
+
+        void coverVirtualDesktop(Rectangle bounds) {
+            if (bounds.x() == originX && bounds.y() == originY &&
+                bounds.width() == coveredWidth && bounds.height() == coveredHeight)
+                return;
+            originX = bounds.x();
+            originY = bounds.y();
+            coveredWidth = bounds.width();
+            coveredHeight = bounds.height();
+            move(bounds.x(), bounds.y());
+            resize(bounds.width(), bounds.height());
+            // The resize reallocates (clears) the surface, so nothing is painted anymore.
+            paintedRect.dispose();
+            paintedRect = new QRect();
+        }
+
+        boolean covers(Grid grid) {
+            return grid.x() >= originX && grid.y() >= originY &&
+                   grid.x() + grid.width() <= originX + coveredWidth &&
+                   grid.y() + grid.height() <= originY + coveredHeight;
+        }
+
+        void showGrid(Grid grid, int lineThickness, QColor lineColor) {
+            if (this.lineColor != null)
+                this.lineColor.dispose();
+            this.grid = grid;
+            this.lineThickness = lineThickness;
+            this.lineColor = lineColor;
+            this.visible = true;
+            repaintGrid(new QRect(grid.x() - originX, grid.y() - originY,
+                    grid.width() + lineThickness, grid.height() + lineThickness));
+        }
+
+        void hideGrid() {
+            this.visible = false;
+            repaintGrid(new QRect());
+        }
+
+        // Repaints (clearing then redrawing) the union of the old and new grid bounds.
+        private void repaintGrid(QRect newRect) {
+            QRect dirty = newRect.united(paintedRect);
+            paintedRect.dispose();
+            paintedRect = newRect;
+            repaint(dirty);
+            dirty.dispose();
+        }
+
+        @Override
+        protected void paintEvent(QPaintEvent event) {
+            QPainter painter = new QPainter(this);
+            // Clear only the repainted region (the grid always fits inside it), leaving
+            // the rest of the surface untouched so the old grid persists until redrawn.
+            QColor transparent = new QColor(0, 0, 0, 0);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+            painter.fillRect(event.rect(), transparent);
+            transparent.dispose();
+            if (visible && grid != null)
+                drawGrid(painter);
+            painter.end();
+            painter.dispose();
+        }
+
+        private void drawGrid(QPainter painter) {
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+            int ox = grid.x() - originX;
+            int oy = grid.y() - originY;
+            int columnCount = grid.columnCount();
+            int rowCount = grid.rowCount();
+            int width = grid.width();
+            int height = grid.height();
+            int cellWidth = width / columnCount;
+            int cellHeight = height / rowCount;
+            // A pen of width t centered at c covers [c - t/2, c + (t+1)/2 - 1], so edge
+            // lines are inset by half the thickness to stay fully inside the grid.
+            int edgeInsetLow = lineThickness / 2;
+            int edgeInsetHigh = lineThickness / 2 + lineThickness % 2;
+            QPen pen = new QPen(lineColor);
+            pen.setCapStyle(Qt.PenCapStyle.FlatCap);
+            pen.setWidth(lineThickness);
+            painter.setPen(pen);
+            for (int i = 0; i <= columnCount; i++) {
+                int x = i == columnCount ? width : i * cellWidth;
+                if (i == 0)
+                    x += edgeInsetLow;
+                else if (i == columnCount)
+                    x -= edgeInsetHigh;
+                painter.drawLine(ox + x, oy, ox + x, oy + height);
+            }
+            for (int i = 0; i <= rowCount; i++) {
+                int y = i == rowCount ? height : i * cellHeight;
+                if (i == 0)
+                    y += edgeInsetLow;
+                else if (i == rowCount)
+                    y -= edgeInsetHigh;
+                painter.drawLine(ox, oy + y, ox + width, oy + y);
+            }
+            pen.dispose();
         }
     }
 
@@ -1282,13 +1400,35 @@ public class WindowsOverlay implements Overlay {
         return currentZoom.percent();
     }
 
-    private void createGridWindow(int x, int y, int width, int height) {
-        WinUser.WindowProc callback = this::gridWindowCallback;
-        WinDef.HWND hwnd =
-                createWindow("Grid" + (gridWindow == null ? 1 : 2), x, y, width, height,
-                        callback);
-        gridWindow = new GridWindow(hwnd, callback, 0);
+    private void createGridWindow() {
+        GridWidget widget = new GridWidget();
+        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(widget.winId()));
+        long currentStyle =
+                User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
+                               .longValue();
+        long newStyle = currentStyle | User32.WS_EX_TOPMOST |
+                        ExtendedUser32.WS_EX_NOACTIVATE |
+                        ExtendedUser32.WS_EX_TOOLWINDOW |
+                        ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
+        User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
+                new Pointer(newStyle));
+        widget.coverVirtualDesktop(virtualDesktopBounds());
+        widget.show();
+        gridWindow = new GridWindow(hwnd, widget);
         updateZoomExcludedWindows();
+    }
+
+    private Rectangle virtualDesktopBounds() {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+        for (Screen screen : WindowsScreen.findScreens()) {
+            Rectangle r = screen.rectangle();
+            minX = Math.min(minX, r.x());
+            minY = Math.min(minY, r.y());
+            maxX = Math.max(maxX, r.x() + r.width());
+            maxY = Math.max(maxY, r.y() + r.height());
+        }
+        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
     }
 
     private void createOrUpdateHintMeshWindows(HintMesh hintMesh, Zoom zoom) {
@@ -3553,26 +3693,6 @@ public class WindowsOverlay implements Overlay {
         }
     }
 
-    private WinDef.HWND createWindow(String windowName, int windowX, int windowY,
-                                            int windowWidth, int windowHeight,
-                                            WinUser.WindowProc windowCallback) {
-        WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
-        wClass.hbrBackground = null;
-        wClass.lpszClassName = "Mousemaster" + windowName + "ClassName";
-        wClass.lpfnWndProc = windowCallback;
-        WinDef.ATOM registerClassExResult = User32.INSTANCE.RegisterClassEx(wClass);
-        WinDef.HWND hwnd = User32.INSTANCE.CreateWindowEx(
-                User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW | ExtendedUser32.WS_EX_NOACTIVATE
-                | ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT,
-                wClass.lpszClassName, "Mousemaster" + windowName + "WindowName",
-                WinUser.WS_POPUP, windowX, windowY, windowWidth, windowHeight, null, null,
-                wClass.hInstance, null);
-        // Will be overwritten for hint mesh to something other than 0.
-        User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 0, WinUser.LWA_COLORKEY);
-        User32.INSTANCE.ShowWindow(hwnd, WinUser.SW_SHOWNORMAL);
-        return hwnd;
-    }
-
     private WinDef.HWND createZoomWindow() {
         if (!Magnification.INSTANCE.MagInitialize())
             logger.error("Failed MagInitialize: " +
@@ -3608,116 +3728,6 @@ public class WindowsOverlay implements Overlay {
         zoomWindow = new ZoomWindow(hwnd, hostHwnd, callback);
         updateZoomExcludedWindows();
         return hostHwnd;
-    }
-
-
-
-    private WinDef.LRESULT gridWindowCallback(WinDef.HWND hwnd, int uMsg,
-                                                     WinDef.WPARAM wParam,
-                                                     WinDef.LPARAM lParam) {
-        switch (uMsg) {
-            case WinUser.WM_PAINT:
-                boolean isStandByGridWindow = standByGridWindow != null &&
-                                              hwnd.equals(standByGridWindow.hwnd());
-                ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-                if (!showingGrid || (isStandByGridWindow && standByGridCanBeHidden)) {
-                    WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                    // The area has to be cleared otherwise the previous drawings will be drawn.
-                    clearWindow(hdc, ps.rcPaint, 0);
-                    ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
-                    break;
-                }
-                WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-                WinDef.HDC memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
-                // We may want to use the window's full dimension (GetClientRect) instead of rcPaint?
-                int width = ps.rcPaint.right - ps.rcPaint.left;
-                int height = ps.rcPaint.bottom - ps.rcPaint.top;
-                WinDef.HBITMAP
-                        hBitmap = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, width, height);
-                WinNT.HANDLE oldBitmap = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
-                clearWindow(memDC, ps.rcPaint, 0);
-                drawGrid(memDC, ps.rcPaint);
-                // Copy (blit) the off-screen buffer to the screen.
-                GDI32.INSTANCE.BitBlt(hdc, 0, 0, width, height, memDC, 0, 0,
-                        GDI32.SRCCOPY);
-                GDI32.INSTANCE.SelectObject(memDC, oldBitmap);
-                GDI32.INSTANCE.DeleteObject(hBitmap);
-                GDI32.INSTANCE.DeleteDC(memDC);
-                ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
-                // Stand-by grid can be hidden right after the new grid is visible (drawn at least once).
-                if (standByGridWindow != null && !standByGridCanBeHidden) {
-                    standByGridCanBeHidden = true;
-                    requestWindowRepaint(standByGridWindow.hwnd); // Drawings will be cleared.
-                }
-                break;
-        }
-        return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
-    }
-
-    private void clearWindow(WinDef.HDC hdc, WinDef.RECT windowRect, int color) {
-        WinDef.HBRUSH hbrBackground = ExtendedGDI32.INSTANCE.CreateSolidBrush(color);
-        ExtendedUser32.INSTANCE.FillRect(hdc, windowRect, hbrBackground);
-        GDI32.INSTANCE.DeleteObject(hbrBackground);
-    }
-
-    private void drawGrid(WinDef.HDC hdc, WinDef.RECT windowRect) {
-        int rowCount = currentGrid.rowCount();
-        int columnCount = currentGrid.columnCount();
-        int cellWidth = currentGrid.width() / columnCount;
-        int cellHeight = currentGrid.height() / rowCount;
-        int[] polyCounts = new int[rowCount + 1 + columnCount + 1];
-        WinDef.POINT[] points =
-                (WinDef.POINT[]) new WinDef.POINT().toArray(polyCounts.length * 2);
-        int scaledLineThickness = scaledPixels(currentGrid.lineThickness(), 1);
-        // Vertical lines
-        for (int lineIndex = 0; lineIndex <= columnCount; lineIndex++) {
-            int x = lineIndex == columnCount ? windowRect.right :
-                    lineIndex * cellWidth;
-            if (x == windowRect.left)
-                x += scaledLineThickness / 2;
-            else if (x == windowRect.right)
-                x -= scaledLineThickness / 2 + scaledLineThickness % 2;
-            points[2 * lineIndex].x = x;
-            points[2 * lineIndex].y = 0;
-            points[2 * lineIndex + 1].x = x;
-            points[2 * lineIndex + 1].y = currentGrid.height();
-            polyCounts[lineIndex] = 2;
-        }
-        // Horizontal lines
-        int polyCountsOffset = columnCount + 1;
-        int pointsOffset = 2 * polyCountsOffset;
-        for (int lineIndex = 0; lineIndex <= rowCount; lineIndex++) {
-            int y = lineIndex == rowCount ? windowRect.bottom :
-                    lineIndex * cellHeight;
-            if (y == windowRect.top)
-                y += scaledLineThickness / 2;
-            else if (y == windowRect.bottom)
-                y -= scaledLineThickness / 2 + scaledLineThickness % 2;
-            points[pointsOffset + 2 * lineIndex].x = 0;
-            points[pointsOffset + 2 * lineIndex].y = y;
-            points[pointsOffset + 2 * lineIndex + 1].x = currentGrid.width();
-            points[pointsOffset + 2 * lineIndex + 1].y = y;
-            polyCounts[polyCountsOffset + lineIndex] = 2;
-        }
-        String lineColor = currentGrid.lineHexColor();
-        WinUser.HPEN gridPen =
-                ExtendedGDI32.INSTANCE.CreatePen(ExtendedGDI32.PS_SOLID, scaledLineThickness,
-                        hexColorStringToInt(lineColor));
-        if (gridPen == null) {
-            logger.warn("Unable to create grid pen");
-            return;
-        }
-        WinNT.HANDLE oldPen = GDI32.INSTANCE.SelectObject(hdc, gridPen);
-        boolean polyPolylineResult = ExtendedGDI32.INSTANCE.PolyPolyline(hdc, points, polyCounts,
-                polyCounts.length);
-        if (!polyPolylineResult) {
-            logger.warn("PolyPolyline failed");
-            GDI32.INSTANCE.SelectObject(hdc, oldPen);
-            GDI32.INSTANCE.DeleteObject(gridPen);
-            return;
-        }
-        GDI32.INSTANCE.SelectObject(hdc, oldPen);
-        GDI32.INSTANCE.DeleteObject(gridPen);
     }
 
     /**
@@ -3761,17 +3771,6 @@ public class WindowsOverlay implements Overlay {
 
     private record HintSequenceText(Hint hint, List<HintKeyText> keyTexts) {
 
-    }
-
-    private int hexColorStringToInt(String hexColor) {
-        if (hexColor.startsWith("#"))
-            hexColor = hexColor.substring(1);
-        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
-        // In COLORREF, the order is 0x00BBGGRR, so we need to reorder the components.
-        int red = (colorInt >> 16) & 0xFF;
-        int green = (colorInt >> 8) & 0xFF;
-        int blue = colorInt & 0xFF;
-        return (blue << 16) | (green << 8) | red;
     }
 
     private int hexColorStringToRgba(String hexColor, double opacity) {
@@ -4326,38 +4325,15 @@ public class WindowsOverlay implements Overlay {
         Objects.requireNonNull(grid);
         if (showingGrid && currentGrid != null && currentGrid.equals(grid))
             return;
-        Grid oldGrid = currentGrid;
         currentGrid = grid;
-        // +1 width and height because no line can be drawn on y = windowHeight and y = windowWidth.
         if (gridWindow == null)
-            createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width(),
-                    currentGrid.height());
-        else {
-            if (grid.x() != oldGrid.x() || grid.y() != oldGrid.y() ||
-                grid.width() != oldGrid.width() || grid.height() != oldGrid.height()) {
-                // When going from a window grid to a screen grid, we don't want to:
-                // 1. Resize. 2. Draw old grid in resized window. 3. Draw new grid. Instead, we want to:
-                // 1. Clear old grid. 2. Resize. 3. Draw new grid.
-                // However, clearing then resizing introduces a "blank" frame,
-                // that is why we use 2 grid windows.
-                if (standByGridWindow == null) {
-                    standByGridWindow = gridWindow;
-                    createGridWindow(currentGrid.x(), currentGrid.y(), currentGrid.width(),
-                            currentGrid.height());
-                    standByGridCanBeHidden = false;
-                }
-                else {
-                    GridWindow newStandByGridWindow = gridWindow;
-                    gridWindow = standByGridWindow;
-                    standByGridWindow = newStandByGridWindow;
-                    User32.INSTANCE.SetWindowPos(gridWindow.hwnd(), null, grid.x(), grid.y(),
-                            grid.width(), grid.height(), User32.SWP_NOZORDER);
-                    standByGridCanBeHidden = false;
-                }
-            }
-        }
+            createGridWindow();
+        else if (!gridWindow.widget.covers(grid))
+            // The grid moved outside the covered area (e.g. a monitor was reconfigured).
+            gridWindow.widget.coverVirtualDesktop(virtualDesktopBounds());
         showingGrid = true;
-        requestWindowRepaint(gridWindow.hwnd);
+        gridWindow.widget.showGrid(currentGrid, scaledPixels(currentGrid.lineThickness(), 1),
+                qColor(currentGrid.lineHexColor(), 1.0));
     }
 
     /**
@@ -4482,7 +4458,7 @@ public class WindowsOverlay implements Overlay {
         if (!showingGrid)
             return;
         showingGrid = false;
-        requestWindowRepaint(gridWindow.hwnd);
+        gridWindow.widget.hideGrid();
     }
 
     @Override
@@ -4521,11 +4497,6 @@ public class WindowsOverlay implements Overlay {
             // Reset opacity after hiding so the window is ready for reuse.
             hintMeshWindow.window.setWindowOpacity(1.0);
         }
-    }
-
-    private void requestWindowRepaint(WinDef.HWND hwnd) {
-        User32.INSTANCE.InvalidateRect(hwnd, null, true);
-        User32.INSTANCE.UpdateWindow(hwnd);
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {
