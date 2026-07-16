@@ -115,6 +115,13 @@
   "fields":[{"name":"currentLoopChanged"}, {"name":"directionChanged"}, {"name":"finished"}, {"name":"stateChanged"}]
 },
 {
+  "name":"io.qt.core.QByteArray",
+  "methods":[{"name":"<init>","parameterTypes":["io.qt.QtObject$QPrivateConstructor"] }]
+},
+{
+  "name":"io.qt.core.QByteArrayView"
+},
+{
   "name":"io.qt.core.QCoreApplication",
   "fields":[{"name":"__qt_isInitializing"}, {"name":"aboutToQuit"}, {"name":"applicationNameChanged"}, {"name":"applicationVersionChanged"}, {"name":"organizationDomainChanged"}, {"name":"organizationNameChanged"}],
   "methods":[{"name":"execPostRoutines","parameterTypes":[] }, {"name":"execPreRoutines","parameterTypes":[] }]
@@ -782,6 +789,10 @@
 {
   "name":"mousemaster.platform.windows.WindowsOverlay$ClearBackgroundQLabel",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setClearColor","parameterTypes":["io.qt.gui.QColor"] }]
+},
+{
+  "name":"mousemaster.platform.windows.WindowsOverlay$GridWidget",
+  "methods":[{"name":"animateDrawRect","parameterTypes":["int","int","int","int","int","int","int","int","java.time.Duration"] }, {"name":"coverVirtualDesktop","parameterTypes":["mousemaster.Rectangle"] }, {"name":"drawGrid","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"hideGrid","parameterTypes":[] }, {"name":"lambda$animateDrawRect$65642449$1","parameterTypes":["java.lang.Object"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"repaintGrid","parameterTypes":["io.qt.core.QRect"] }, {"name":"setDrawRect","parameterTypes":["int","int","int","int"] }, {"name":"showGrid","parameterTypes":["mousemaster.Grid","int","io.qt.gui.QColor","io.qt.gui.QColor","boolean","java.time.Duration"] }, {"name":"stopAnimation","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.platform.windows.WindowsOverlay$HintPaintLayer",
