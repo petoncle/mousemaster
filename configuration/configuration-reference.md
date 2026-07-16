@@ -816,8 +816,8 @@ grid-mode.grid.line-visible=true
 grid-mode.grid.line-color=#FF0000
 grid-mode.grid.line-thickness=1
 grid-mode.grid.line-opacity=1.0
-grid-mode.grid.background-color=#000000
-grid-mode.grid.background-opacity=0.0
+grid-mode.grid.background-color=#FF0000
+grid-mode.grid.background-opacity=0.1
 
 # Grid transition and fade animations
 grid-mode.grid.transition-animation-enabled=true
@@ -843,8 +843,8 @@ grid-mode.grid.fade-animation-duration-millis=100
   - `line-color`: Color of grid lines (hex format)
   - `line-thickness`: Thickness of grid lines in pixels
   - `line-opacity`: Opacity of grid lines (0.0 = transparent, 1.0 = opaque). Default 1.0.
-  - `background-color`: Fill color of the grid area, behind the lines (hex format).
-  - `background-opacity`: Opacity of the background fill. Default 0.0 (no background).
+  - `background-color`: Fill color of the grid area, behind the lines (default #FF0000).
+  - `background-opacity`: Opacity of the background fill (default 0.1).
 
 - Grid transition animation: eases the grid to its new position and size when it changes (e.g. after `shrink-grid` or `move-grid`):
   - `transition-animation-enabled`: Whether to animate grid transitions. Default enabled.
