@@ -120,13 +120,9 @@ public class LinuxPlatform implements Platform {
     }
 
     /**
-     * Unlike WindowsPlatform (where the low-level hook's return value is what
-     * suppresses a key from reaching the OS), Linux already grabbed the physical
-     * device exclusively (EVIOCGRAB): nothing reaches other apps unless we write it
-     * to the uinput device ourselves. So the regurgitates KeyboardManager computes
-     * (e.g. a precondition key like leftbutton typed back out because the chord it
-     * was gating never completed) must be explicitly forwarded here, or they are
-     * silently dropped.
+     * Unlike Windows' low-level hook return value, Linux has no way to suppress a key
+     * after grabbing the device exclusively (EVIOCGRAB) — regurgitates must be
+     * explicitly re-injected here or they're silently dropped.
      */
     private void handleKeyEvent(KeyEvent event) {
         KeyboardManager.EatAndRegurgitates eatAndRegurgitates = keyboardManager.keyEvent(event);
@@ -144,10 +140,9 @@ public class LinuxPlatform implements Platform {
     }
 
     /**
-     * Windows notifies MousePositionListener (e.g. MouseManager, used to detect when a
-     * smooth jump has reached its destination and clear the atomic-command-in-progress
-     * flag) via its low-level mouse hook, which sees every cursor move including
-     * synthetic ones. X11 has no such hook, so the position is polled instead.
+     * Windows notifies MousePositionListener (e.g. MouseManager, to detect a smooth
+     * jump reaching its destination) via its low-level mouse hook. X11 has no such
+     * hook, so the position is polled instead.
      */
     private void notifyMousePositionListenersIfMoved() {
         LongByReference root = new LongByReference();
@@ -163,7 +158,9 @@ public class LinuxPlatform implements Platform {
             return;
         int x = rootX.getValue();
         int y = rootY.getValue();
-        if (lastMouseX != null && lastMouseX == x && lastMouseY != null && lastMouseY == y)
+        boolean positionUnchanged = lastMouseX != null && lastMouseX == x &&
+                                     lastMouseY != null && lastMouseY == y;
+        if (positionUnchanged)
             return;
         lastMouseX = x;
         lastMouseY = y;

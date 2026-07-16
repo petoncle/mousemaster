@@ -263,13 +263,9 @@ public class KeyboardManager {
                             eatenKeys.put(key, new Eat(true, existingEat.processingSet()));
                         }
                     }
-                    // If this key's release is itself part of `regurgitates` (its
-                    // combo failed and buildRegurgitates already queued a synthetic
-                    // press+release for it), don't also tell the platform the real
-                    // release is "not eaten": that would deliver the release twice on
-                    // platforms that actually re-inject not-eaten keys (Linux uinput).
-                    // On Windows this call is a bookkeeping no-op, so this is a no-op
-                    // change there.
+                    // Avoid double-delivering the release on platforms that re-inject
+                    // not-eaten keys (Linux uinput): don't also report "not eaten" if
+                    // it's already queued as a regurgitate.
                     boolean releasedByRegurgitation = regurgitates.stream()
                             .anyMatch(r -> r.key().equals(key) && r.alsoRelease());
                     if (!mustBeEaten && !releasedByRegurgitation)
@@ -334,11 +330,8 @@ public class KeyboardManager {
                                     processing.mustBeEaten(), true,
                                     processing.isComboPreparationBreaker() || forceIsComboPreparationBreaker));
             }
-            // Pressed precondition keys (e.g. _{leftbutton} in _{leftbutton} +hint1key)
-            // are not part of the sequence itself, so they are tracked under
-            // PressKeyEventProcessingSet.dummyCombo rather than under combo. Mark them
-            // completed too, so the completed chord's precondition key is not
-            // regurgitated once the combo it gated has fired.
+            // Precondition keys are tracked under dummyCombo, not combo, so they need
+            // marking separately to avoid being regurgitated once their combo fires.
             for (Key key : combo.precondition().keyPrecondition().pressedKeyPrecondition().allKeys()) {
                 PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
                 if (processingSet == null) {
@@ -400,12 +393,9 @@ public class KeyboardManager {
     }
 
     /**
-     * A key stays retained (not regurgitated) if it is directly part of one of
-     * retainCombos, or if it is a pressed-precondition-only key (e.g. leftbutton in
-     * _{leftbutton} +hint1key) required by one of retainCombos. The latter case
-     * matters because precondition keys are tracked under
-     * PressKeyEventProcessingSet.dummyCombo rather than under the real combo, so they
-     * cannot be matched by combo identity alone.
+     * Precondition-only keys are tracked under dummyCombo, not the real combo, so they
+     * can't be matched by combo identity alone; check the combo's precondition keys
+     * directly for that case.
      */
     private static boolean isRetainedByCombos(PressKeyEventProcessingSet processingSet,
                                               Key eatenKey, Set<Combo> retainCombos) {
@@ -537,6 +527,12 @@ public class KeyboardManager {
             Key eatenKey = entry.getKey();
             Eat eat = entry.getValue();
             PressKeyEventProcessingSet ps = eat.processingSet();
+            // Precondition-only keys are tracked under dummyCombo, not a real Combo, so
+            // they never appear in deadCombos/viableCombos and must be skipped here:
+            // their own combo's liveness is checked directly (isRetainedByCombos) when
+            // they're released, not via this dead-combo-identity tracking.
+            if (ps.isPartOfPressedComboPreconditionOnly())
+                continue;
             // Check if any viable (non-dead) eating combo remains.
             boolean hasViableEatingCombo = ps.processingByCombo().entrySet()
                     .stream()
@@ -577,12 +573,10 @@ public class KeyboardManager {
     }
 
     /**
-     * A precondition-only key (e.g. leftbutton in _{leftbutton} +hint1key) is not
-     * part of any combo's sequence, so isPartOfComboSequence() is false for it even
-     * while it must still be eaten and tracked (its gated combo has not completed or
-     * failed yet). Treat it as clearable only once it stops needing to be eaten;
-     * markOtherKeysOfTheseCombosAsCompleted rewrites it to a completed sequence entry
-     * once its combo fires.
+     * Precondition-only keys never satisfy isPartOfComboSequence(), so they need their
+     * own clearable check: clearable once no longer mustBeEaten (rewritten to a
+     * completed sequence entry by markOtherKeysOfTheseCombosAsCompleted once their
+     * combo fires).
      */
     private static boolean isClearedProcessing(PressKeyEventProcessing p) {
         if (p.isPartOfPressedComboPreconditionOnly())

@@ -47,14 +47,11 @@ public enum PressKeyEventProcessing {
                this == IGNORED_BY_LEADING_WAIT_MUST_BE_EATEN;
     }
 
-    // Note: PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN is deliberately NOT
-    // part of isPartOfComboSequence(): it is tracked under the empty dummyCombo
-    // sequence, and ComboWatcher.update() uses isPartOfComboSequence() to require an
-    // active sequence match against the preparation. Since dummyCombo's sequence can
-    // never match, that would make preparationIsNotPrefixAnymore fire on the very next
-    // tick, force-regurgitating the precondition key before the rest of the chord is
-    // typed. Instead, KeyboardManager treats isPartOfPressedComboPreconditionOnly()
-    // as its own case in clearFullyCompletedEatenKeys/buildRegurgitates.
+    // PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN is deliberately NOT part of
+    // isPartOfComboSequence(): it is tracked under the empty dummyCombo sequence, which
+    // can never match, so ComboWatcher.update()'s prefix check would immediately
+    // force-regurgitate the key. KeyboardManager instead handles it via
+    // isPartOfPressedComboPreconditionOnly() in clearFullyCompletedEatenKeys/buildRegurgitates.
     public boolean isPartOfComboSequence() {
         return this == PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN ||
                this == PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN ||
