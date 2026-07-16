@@ -579,8 +579,12 @@ public class ComboWatcher {
                 if (isIgnoredByLeadingWait)
                     processing = PressKeyEventProcessing.ignoredByLeadingWait(leadingWaitEatsEvents);
                 else // isComboPreconditionKey must be true
+                    // The key is eaten speculatively: it may be the first half of a
+                    // chord (e.g. holding leftbutton while pressing a hint key). If no
+                    // combo ends up using it, it is regurgitated on release (see
+                    // KeyboardManager's eatenKeys handling).
                     processing = isPressedComboPreconditionKey ?
-                            PressKeyEventProcessing.partOfPressedComboPreconditionOnly() :
+                            PressKeyEventProcessing.partOfPressedComboPreconditionOnly(true) :
                             PressKeyEventProcessing.partOfUnpressedComboPreconditionOnly();
                 processingSet = new PressKeyEventProcessingSet(
                         new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo, processing)),

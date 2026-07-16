@@ -263,7 +263,16 @@ public class KeyboardManager {
                             eatenKeys.put(key, new Eat(true, existingEat.processingSet()));
                         }
                     }
-                    if (!mustBeEaten)
+                    // If this key's release is itself part of `regurgitates` (its
+                    // combo failed and buildRegurgitates already queued a synthetic
+                    // press+release for it), don't also tell the platform the real
+                    // release is "not eaten": that would deliver the release twice on
+                    // platforms that actually re-inject not-eaten keys (Linux uinput).
+                    // On Windows this call is a bookkeeping no-op, so this is a no-op
+                    // change there.
+                    boolean releasedByRegurgitation = regurgitates.stream()
+                            .anyMatch(r -> r.key().equals(key) && r.alsoRelease());
+                    if (!mustBeEaten && !releasedByRegurgitation)
                         macroPlayer.keyReleasedNotEaten(key);
                     return eatAndRegurgitates(mustBeEaten, regurgitates);
                 }
@@ -325,6 +334,31 @@ public class KeyboardManager {
                                     processing.mustBeEaten(), true,
                                     processing.isComboPreparationBreaker() || forceIsComboPreparationBreaker));
             }
+            // Pressed precondition keys (e.g. _{leftbutton} in _{leftbutton} +hint1key)
+            // are not part of the sequence itself, so they are tracked under
+            // PressKeyEventProcessingSet.dummyCombo rather than under combo. Mark them
+            // completed too, so the completed chord's precondition key is not
+            // regurgitated once the combo it gated has fired.
+            for (Key key : combo.precondition().keyPrecondition().pressedKeyPrecondition().allKeys()) {
+                PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
+                if (processingSet == null) {
+                    Eat eat = eatenKeys.get(key);
+                    if (eat != null)
+                        processingSet = eat.processingSet();
+                }
+                if (processingSet == null)
+                    continue;
+                Map<Combo, PressKeyEventProcessing> processingByCombo =
+                        processingSet.processingByCombo();
+                for (Map.Entry<Combo, PressKeyEventProcessing> entry :
+                        Set.copyOf(processingByCombo.entrySet())) {
+                    if (entry.getValue().isPartOfPressedComboPreconditionOnly())
+                        processingByCombo.put(entry.getKey(),
+                                PressKeyEventProcessing.partOfComboSequence(
+                                        entry.getValue().mustBeEaten(), true,
+                                        forceIsComboPreparationBreaker));
+                }
+            }
         }
         return completedCombosHavePressedKeys;
     }
@@ -350,18 +384,12 @@ public class KeyboardManager {
             boolean alsoRelease;
             if (eat.released()) {
                 alsoRelease = true;
-                if (!retainCombos.isEmpty() &&
-                    processingSet.processingByCombo().entrySet().stream()
-                       .anyMatch(e -> retainCombos.contains(e.getKey()) &&
-                                      e.getValue().mustBeEaten()))
+                if (isRetainedByCombos(processingSet, eatenKey, retainCombos))
                     continue;
                 keysToRemove.add(eatenKey);
             }
             else {
-                if (!retainCombos.isEmpty() &&
-                    processingSet.processingByCombo().entrySet().stream()
-                       .anyMatch(e -> retainCombos.contains(e.getKey()) &&
-                                      e.getValue().mustBeEaten()))
+                if (isRetainedByCombos(processingSet, eatenKey, retainCombos))
                     continue;
                 alsoRelease = releasingKey != null && releasingKey.equals(eatenKey);
             }
@@ -369,6 +397,34 @@ public class KeyboardManager {
         }
         keysToRemove.forEach(eatenKeys::remove);
         return regurgitates;
+    }
+
+    /**
+     * A key stays retained (not regurgitated) if it is directly part of one of
+     * retainCombos, or if it is a pressed-precondition-only key (e.g. leftbutton in
+     * _{leftbutton} +hint1key) required by one of retainCombos. The latter case
+     * matters because precondition keys are tracked under
+     * PressKeyEventProcessingSet.dummyCombo rather than under the real combo, so they
+     * cannot be matched by combo identity alone.
+     */
+    private static boolean isRetainedByCombos(PressKeyEventProcessingSet processingSet,
+                                              Key eatenKey, Set<Combo> retainCombos) {
+        if (retainCombos.isEmpty())
+            return false;
+        if (processingSet.processingByCombo().entrySet().stream()
+                         .anyMatch(e -> retainCombos.contains(e.getKey()) &&
+                                        e.getValue().mustBeEaten()))
+            return true;
+        if (processingSet.processingByCombo().values().stream()
+                         .anyMatch(PressKeyEventProcessing::isPartOfPressedComboPreconditionOnly)) {
+            return retainCombos.stream()
+                               .anyMatch(combo -> combo.precondition()
+                                                       .keyPrecondition()
+                                                       .pressedKeyPrecondition()
+                                                       .allKeys()
+                                                       .contains(eatenKey));
+        }
+        return false;
     }
 
     private void addRegurgitate(PressKeyEventProcessingSet processingSet,
@@ -383,7 +439,8 @@ public class KeyboardManager {
                     processingSet.processingByCombo().entrySet())) {
                 Combo combo = entry.getKey();
                 PressKeyEventProcessing processing = entry.getValue();
-                if (processing.isPartOfComboSequence())
+                if (processing.isPartOfComboSequence() ||
+                    processing.isPartOfPressedComboPreconditionOnly())
                     processingSet.processingByCombo()
                                  .put(combo,
                                          PressKeyEventProcessing.partOfComboSequence(
@@ -516,9 +573,23 @@ public class KeyboardManager {
     private void clearFullyCompletedEatenKeys() {
         eatenKeys.entrySet().removeIf(entry ->
                 entry.getValue().processingSet().processingByCombo().values().stream()
-                     .allMatch(p -> !p.isPartOfComboSequence() ||
-                                    p.isPartOfCompletedComboSequence() ||
-                                    !p.mustBeEaten()));
+                     .allMatch(KeyboardManager::isClearedProcessing));
+    }
+
+    /**
+     * A precondition-only key (e.g. leftbutton in _{leftbutton} +hint1key) is not
+     * part of any combo's sequence, so isPartOfComboSequence() is false for it even
+     * while it must still be eaten and tracked (its gated combo has not completed or
+     * failed yet). Treat it as clearable only once it stops needing to be eaten;
+     * markOtherKeysOfTheseCombosAsCompleted rewrites it to a completed sequence entry
+     * once its combo fires.
+     */
+    private static boolean isClearedProcessing(PressKeyEventProcessing p) {
+        if (p.isPartOfPressedComboPreconditionOnly())
+            return !p.mustBeEaten();
+        return !p.isPartOfComboSequence() ||
+               p.isPartOfCompletedComboSequence() ||
+               !p.mustBeEaten();
     }
 
 }

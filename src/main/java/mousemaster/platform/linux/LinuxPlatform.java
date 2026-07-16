@@ -1,6 +1,8 @@
 package mousemaster.platform.linux;
 
 import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.LongByReference;
 import mousemaster.*;
 import mousemaster.platform.*;
 import org.slf4j.Logger;
@@ -36,6 +38,8 @@ public class LinuxPlatform implements Platform {
     private ModeMap modeMap;
     private long rootWindow;
     private final boolean isWayland;
+    private Integer lastMouseX;
+    private Integer lastMouseY;
     private LinuxKeyboardSimulator keyboardSimulator;
 
     public LinuxPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
@@ -101,7 +105,7 @@ public class LinuxPlatform implements Platform {
             while (keysym != null) {
                 Key key = LinuxVirtualKey.fromKeysym(keysym);
                 if (key != null && keyboardManager != null)
-                    keyboardManager.keyEvent(new KeyEvent.PressKeyEvent(Instant.now(), key));
+                    handleKeyEvent(new KeyEvent.PressKeyEvent(Instant.now(), key));
                 keysym = keyboardSimulator.pollKey();
             }
         }
@@ -110,16 +114,62 @@ public class LinuxPlatform implements Platform {
         while (event != null) {
             logger.debug("evdev: {}", event);
             if (keyboardManager != null)
-                keyboardManager.keyEvent(event);
+                handleKeyEvent(event);
             event = evdev.pollEvent();
+        }
+    }
+
+    /**
+     * Unlike WindowsPlatform (where the low-level hook's return value is what
+     * suppresses a key from reaching the OS), Linux already grabbed the physical
+     * device exclusively (EVIOCGRAB): nothing reaches other apps unless we write it
+     * to the uinput device ourselves. So the regurgitates KeyboardManager computes
+     * (e.g. a precondition key like leftbutton typed back out because the chord it
+     * was gating never completed) must be explicitly forwarded here, or they are
+     * silently dropped.
+     */
+    private void handleKeyEvent(KeyEvent event) {
+        KeyboardManager.EatAndRegurgitates eatAndRegurgitates = keyboardManager.keyEvent(event);
+        for (KeyboardManager.Regurgitate regurgitate : eatAndRegurgitates.regurgitates()) {
+            keyRegurgitator.regurgitate(regurgitate, !regurgitate.alsoRelease());
         }
     }
 
     @Override
     public void sleep() throws InterruptedException {
         pumpEvents();
+        notifyMousePositionListenersIfMoved();
         Thread.sleep(10);
         pumpEvents();
+    }
+
+    /**
+     * Windows notifies MousePositionListener (e.g. MouseManager, used to detect when a
+     * smooth jump has reached its destination and clear the atomic-command-in-progress
+     * flag) via its low-level mouse hook, which sees every cursor move including
+     * synthetic ones. X11 has no such hook, so the position is polled instead.
+     */
+    private void notifyMousePositionListenersIfMoved() {
+        LongByReference root = new LongByReference();
+        LongByReference child = new LongByReference();
+        IntByReference rootX = new IntByReference();
+        IntByReference rootY = new IntByReference();
+        IntByReference winX = new IntByReference();
+        IntByReference winY = new IntByReference();
+        IntByReference mask = new IntByReference();
+        boolean sameScreen = LibX11.INSTANCE.XQueryPointer(display, rootWindow, root, child,
+                rootX, rootY, winX, winY, mask);
+        if (!sameScreen)
+            return;
+        int x = rootX.getValue();
+        int y = rootY.getValue();
+        if (lastMouseX != null && lastMouseX == x && lastMouseY != null && lastMouseY == y)
+            return;
+        lastMouseX = x;
+        lastMouseY = y;
+        for (MousePositionListener listener : mousePositionListeners) {
+            listener.mouseMoved(x, y);
+        }
     }
 
     @Override
@@ -132,6 +182,9 @@ public class LinuxPlatform implements Platform {
         this.modeMap = modeMap;
         this.activeKeyboardLayout = activeKeyboardLayout;
         overlay.setMessagePump(this::pumpEvents);
+        lastMouseX = null;
+        lastMouseY = null;
+        notifyMousePositionListenersIfMoved();
     }
 
     @Override

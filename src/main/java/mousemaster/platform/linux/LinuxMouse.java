@@ -133,5 +133,6 @@ public class LinuxMouse implements MouseController {
 
     private void buttonEvent(int button, boolean press) {
         LibXTest.INSTANCE.XTestFakeButtonEvent(display, button, press ? 1 : 0, 0);
+        LibX11.INSTANCE.XFlush(display);
     }
 }
