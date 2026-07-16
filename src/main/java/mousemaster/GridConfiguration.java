@@ -1,8 +1,12 @@
 package mousemaster;
 
+import java.time.Duration;
+
 public record GridConfiguration(GridArea area, Synchronization synchronization, int rowCount,
                                 int columnCount, boolean lineVisible,
-                                String lineHexColor, double lineThickness) {
+                                String lineHexColor, double lineThickness,
+                                boolean transitionAnimationEnabled,
+                                Duration transitionAnimationDuration) {
 
     public static class GridConfigurationBuilder {
         private GridArea.GridAreaBuilder area = new GridArea.GridAreaBuilder();
@@ -12,6 +16,8 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
         private Boolean lineVisible;
         private String lineHexColor;
         private Double lineThickness;
+        private Boolean transitionAnimationEnabled;
+        private Duration transitionAnimationDuration;
 
         public GridConfigurationBuilder synchronization(Synchronization synchronization) {
             this.synchronization = synchronization;
@@ -43,6 +49,16 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return this;
         }
 
+        public GridConfigurationBuilder transitionAnimationEnabled(boolean transitionAnimationEnabled) {
+            this.transitionAnimationEnabled = transitionAnimationEnabled;
+            return this;
+        }
+
+        public GridConfigurationBuilder transitionAnimationDuration(Duration transitionAnimationDuration) {
+            this.transitionAnimationDuration = transitionAnimationDuration;
+            return this;
+        }
+
         public GridArea.GridAreaBuilder area() {
             return area;
         }
@@ -71,9 +87,18 @@ public record GridConfiguration(GridArea area, Synchronization synchronization, 
             return lineThickness;
         }
 
+        public Boolean transitionAnimationEnabled() {
+            return transitionAnimationEnabled;
+        }
+
+        public Duration transitionAnimationDuration() {
+            return transitionAnimationDuration;
+        }
+
         public GridConfiguration build() {
             return new GridConfiguration(area.build(), synchronization, rowCount,
-                    columnCount, lineVisible, lineHexColor, lineThickness);
+                    columnCount, lineVisible, lineHexColor, lineThickness,
+                    transitionAnimationEnabled, transitionAnimationDuration);
         }
 
     }

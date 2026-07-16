@@ -69,7 +69,9 @@ public class ConfigurationParser {
             .columnCount(2)
             .lineVisible(false)
             .lineHexColor("#FF0000")
-            .lineThickness(1);
+            .lineThickness(1)
+            .transitionAnimationEnabled(true)
+            .transitionAnimationDuration(Duration.ofMillis(100));
         GridArea.GridAreaBuilder gridAreaBuilder = grid.area();
         gridAreaBuilder.type(GridAreaType.ACTIVE_SCREEN)
                        .widthPercent(1)
@@ -2091,6 +2093,8 @@ public class ConfigurationParser {
             case "line-visible" -> ModePropertyHandler.of(prefix.append("lineVisible"), v -> Boolean.parseBoolean(v), v -> grid.lineVisible(v));
             case "line-color" -> ModePropertyHandler.of(prefix.append("lineHexColor"), v -> checkColorFormat(v), v -> grid.lineHexColor(v));
             case "line-thickness" -> ModePropertyHandler.of(prefix.append("lineThickness"), v -> parseDouble(v, false, 0, 1000), v -> grid.lineThickness(v));
+            case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> grid.transitionAnimationEnabled(v));
+            case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("transitionAnimationDuration"), v -> parseDuration(v), v -> grid.transitionAnimationDuration(v));
             // @formatter:on
             default -> null;
         };
@@ -2822,6 +2826,10 @@ public class ConfigurationParser {
                         builder.lineHexColor(parent.lineHexColor());
                     if (builder.lineThickness() == null)
                         builder.lineThickness(parent.lineThickness());
+                    if (builder.transitionAnimationEnabled() == null)
+                        builder.transitionAnimationEnabled(parent.transitionAnimationEnabled());
+                    if (builder.transitionAnimationDuration() == null)
+                        builder.transitionAnimationDuration(parent.transitionAnimationDuration());
                 }
             };
             hintMesh = new HintMeshProperty(modeName, propertyByKey);

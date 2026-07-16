@@ -815,6 +815,10 @@ grid-mode.grid.column-count=2
 grid-mode.grid.line-visible=true
 grid-mode.grid.line-color=#FF0000
 grid-mode.grid.line-thickness=1
+
+# Grid transition animation
+grid-mode.grid.transition-animation-enabled=true
+grid-mode.grid.transition-animation-duration-millis=100
 ```
 
 - **`grid-area`**: Determines where the grid is displayed:
@@ -833,6 +837,10 @@ grid-mode.grid.line-thickness=1
   - `line-visible`: Whether to show grid lines
   - `line-color`: Color of grid lines (hex format)
   - `line-thickness`: Thickness of grid lines in pixels
+
+- Grid transition animation: eases the grid to its new position and size when it changes (e.g. after `shrink-grid` or `move-grid`):
+  - `transition-animation-enabled`: Whether to animate grid transitions. Default enabled.
+  - `transition-animation-duration-millis`: Animation duration in milliseconds. Default 100.
 
 ### Grid positioning and insets
 

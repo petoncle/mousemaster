@@ -1,7 +1,10 @@
 package mousemaster;
 
+import java.time.Duration;
+
 public record Grid(int x, int y, int width, int height, int rowCount, int columnCount,
-                   boolean lineVisible, String lineHexColor, double lineThickness) {
+                   boolean lineVisible, String lineHexColor, double lineThickness,
+                   boolean transitionAnimationEnabled, Duration transitionAnimationDuration) {
 
     public GridBuilder builder() {
         return new GridBuilder(this);
@@ -17,6 +20,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
         private boolean lineVisible;
         private String lineHexColor;
         private double lineThickness;
+        private boolean transitionAnimationEnabled;
+        private Duration transitionAnimationDuration;
 
         public GridBuilder() {
         }
@@ -31,6 +36,8 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             this.lineVisible = grid.lineVisible;
             this.lineHexColor = grid.lineHexColor;
             this.lineThickness = grid.lineThickness;
+            this.transitionAnimationEnabled = grid.transitionAnimationEnabled;
+            this.transitionAnimationDuration = grid.transitionAnimationDuration;
         }
 
         public int x() {
@@ -67,6 +74,14 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
 
         public double lineThickness() {
             return lineThickness;
+        }
+
+        public boolean transitionAnimationEnabled() {
+            return transitionAnimationEnabled;
+        }
+
+        public Duration transitionAnimationDuration() {
+            return transitionAnimationDuration;
         }
 
         public GridBuilder x(int x) {
@@ -114,9 +129,20 @@ public record Grid(int x, int y, int width, int height, int rowCount, int column
             return this;
         }
 
+        public GridBuilder transitionAnimationEnabled(boolean transitionAnimationEnabled) {
+            this.transitionAnimationEnabled = transitionAnimationEnabled;
+            return this;
+        }
+
+        public GridBuilder transitionAnimationDuration(Duration transitionAnimationDuration) {
+            this.transitionAnimationDuration = transitionAnimationDuration;
+            return this;
+        }
+
         public Grid build() {
             return new Grid(x, y, width, height, rowCount, columnCount, lineVisible,
-                    lineHexColor, lineThickness);
+                    lineHexColor, lineThickness, transitionAnimationEnabled,
+                    transitionAnimationDuration);
         }
     }
 

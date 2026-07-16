@@ -1061,7 +1061,10 @@ public class WindowsOverlay implements Overlay {
         private int lineThickness;
         private QColor lineColor;
         private boolean visible;
+        private int drawX, drawY, drawW, drawH; // Current (possibly animated) grid rectangle.
         private QRect paintedRect = new QRect(); // Last drawn grid bounds; cleared on the next paint.
+        private QVariantAnimation animation;
+        private QMetaObject.Slot1<Object> animationChanged; // Kept referenced so Qt does not GC it.
 
         GridWidget() {
             setWindowFlags(Qt.WindowType.FramelessWindowHint);
@@ -1089,20 +1092,71 @@ public class WindowsOverlay implements Overlay {
                    grid.y() + grid.height() <= originY + coveredHeight;
         }
 
-        void showGrid(Grid grid, int lineThickness, QColor lineColor) {
+        void showGrid(Grid grid, int lineThickness, QColor lineColor,
+                      boolean animate, Duration animationDuration) {
+            stopAnimation();
             if (this.lineColor != null)
                 this.lineColor.dispose();
+            boolean wasVisible = visible;
+            int oldX = drawX, oldY = drawY, oldW = drawW, oldH = drawH;
             this.grid = grid;
             this.lineThickness = lineThickness;
             this.lineColor = lineColor;
             this.visible = true;
-            repaintGrid(new QRect(grid.x() - originX, grid.y() - originY,
-                    grid.width() + lineThickness, grid.height() + lineThickness));
+            int newX = grid.x(), newY = grid.y(), newW = grid.width(), newH = grid.height();
+            boolean geometryChanged =
+                    newX != oldX || newY != oldY || newW != oldW || newH != oldH;
+            if (animate && wasVisible && geometryChanged &&
+                animationDuration != null && !animationDuration.isZero())
+                animateDrawRect(oldX, oldY, oldW, oldH, newX, newY, newW, newH,
+                        animationDuration);
+            else
+                setDrawRect(newX, newY, newW, newH);
         }
 
         void hideGrid() {
-            this.visible = false;
+            stopAnimation();
+            visible = false;
             repaintGrid(new QRect());
+        }
+
+        // Eases the drawn rectangle from the old grid geometry to the new one.
+        private void animateDrawRect(int oldX, int oldY, int oldW, int oldH,
+                                     int newX, int newY, int newW, int newH,
+                                     Duration duration) {
+            QRect begin = new QRect(oldX, oldY, oldW, oldH);
+            QRect end = new QRect(newX, newY, newW, newH);
+            animation = new QVariantAnimation();
+            animation.setDuration((int) duration.toMillis());
+            animation.setStartValue(begin);
+            animation.setEndValue(end);
+            animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
+            animationChanged = value -> {
+                QRect r = (QRect) value;
+                setDrawRect(r.x(), r.y(), r.width(), r.height());
+            };
+            animation.valueChanged.connect(animationChanged);
+            animation.start();
+            begin.dispose();
+            end.dispose();
+        }
+
+        private void stopAnimation() {
+            if (animation == null)
+                return;
+            animation.stop();
+            animation.dispose();
+            animation = null;
+            animationChanged = null;
+        }
+
+        private void setDrawRect(int x, int y, int w, int h) {
+            drawX = x;
+            drawY = y;
+            drawW = w;
+            drawH = h;
+            repaintGrid(new QRect(x - originX, y - originY,
+                    w + lineThickness, h + lineThickness));
         }
 
         // Repaints (clearing then redrawing) the union of the old and new grid bounds.
@@ -1132,12 +1186,12 @@ public class WindowsOverlay implements Overlay {
         private void drawGrid(QPainter painter) {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
-            int ox = grid.x() - originX;
-            int oy = grid.y() - originY;
+            int ox = drawX - originX;
+            int oy = drawY - originY;
             int columnCount = grid.columnCount();
             int rowCount = grid.rowCount();
-            int width = grid.width();
-            int height = grid.height();
+            int width = drawW;
+            int height = drawH;
             int cellWidth = width / columnCount;
             int cellHeight = height / rowCount;
             // A pen of width t centered at c covers [c - t/2, c + (t+1)/2 - 1], so edge
@@ -4333,7 +4387,9 @@ public class WindowsOverlay implements Overlay {
             gridWindow.widget.coverVirtualDesktop(virtualDesktopBounds());
         showingGrid = true;
         gridWindow.widget.showGrid(currentGrid, scaledPixels(currentGrid.lineThickness(), 1),
-                qColor(currentGrid.lineHexColor(), 1.0));
+                qColor(currentGrid.lineHexColor(), 1.0),
+                currentGrid.transitionAnimationEnabled(),
+                currentGrid.transitionAnimationDuration());
     }
 
     /**
