@@ -28,6 +28,7 @@ public class WindowsPlatform implements Platform {
     private static final Logger logger = LoggerFactory.getLogger(WindowsPlatform.class);
 
     private final boolean keyRegurgitationEnabled;
+    private final boolean ignoreInjectedEvents;
     private final WindowsKeyboardController keyboard = new WindowsKeyboardController();
     private final WindowsMouseController mouse = new WindowsMouseController(this::mousePositionSet);
     private final Screens screens = new WindowsScreens();
@@ -72,8 +73,10 @@ public class WindowsPlatform implements Platform {
     private Mode currentMode;
     private double stuckKeyCheckTimer;
 
-    public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
+    public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled,
+                           boolean ignoreInjectedEvents) {
         this.keyRegurgitationEnabled = keyRegurgitationEnabled;
+        this.ignoreInjectedEvents = ignoreInjectedEvents;
         WindowsUiAccess.checkAndTryToGetUiAccess(); // Done before acquiring the single instance mutex.
         if (!multipleInstancesAllowed && !acquireSingleInstanceMutex())
             throw new IllegalStateException("Another instance is already running");
@@ -475,10 +478,20 @@ public class WindowsPlatform implements Platform {
                                                     info.scanCode == 0x21d;
                             KeyEvent keyEvent = buildKeyEvent(info, wParam, altgrLeftctrl);
                             boolean injected = (info.flags & ExtendedUser32.LLKHF_INJECTED) == ExtendedUser32.LLKHF_INJECTED;
+                            // mousemaster's own injected events (macros, regurgitation,
+                            // key repeat) are tagged with a dwExtraInfo signature. They
+                            // must never be fed back into combo/macro processing,
+                            // regardless of --ignore-injected-events: doing so would let
+                            // a macro's output re-trigger combos and corrupt MacroPlayer's
+                            // press/release bookkeeping.
+                            boolean mousemasterInjected = injected &&
+                                    info.dwExtraInfo != null &&
+                                    info.dwExtraInfo.longValue() ==
+                                    WindowsKeyboardController.MOUSEMASTER_INJECTED_EVENT_SIGNATURE;
                             logKeyEvent(info, wParamString, keyEvent, injected, altgrLeftctrl);
                             keyboard.keyboardHookCallback(info, wParam, wParamString,
                                     keyEvent, injected, altgrLeftctrl);
-                            if (injected) {
+                            if (injected && (ignoreInjectedEvents || mousemasterInjected)) {
                                 if (keyEvent != null) {
                                     if (keyboard.shouldSuppressExternalLeftalt(keyEvent, true)) {
                                         logger.trace("Suppressing external +leftalt");
@@ -677,6 +690,9 @@ public class WindowsPlatform implements Platform {
         return keyEvent +
                ", altgrLeftctrl = " + altgrLeftctrl +
                ", injected = " + injected +
+               ", dwExtraInfo = 0x" +
+               (info.dwExtraInfo == null ? "0" :
+                       Long.toHexString(info.dwExtraInfo.longValue())) +
                ", vkCode = 0x" + Integer.toHexString(info.vkCode) +
                " (" + WindowsVirtualKey.values.get(info.vkCode) +
                "), scanCode = 0x" + Integer.toHexString(info.scanCode) +
