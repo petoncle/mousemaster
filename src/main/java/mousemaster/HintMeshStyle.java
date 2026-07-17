@@ -28,6 +28,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double subgridBorderLength,
                             String subgridBorderHexColor,
                             double subgridBorderOpacity,
+                            boolean subgridClosed,
                             boolean transitionAnimationEnabled,
                             Duration transitionAnimationDuration,
                             boolean fadeAnimationEnabled,
@@ -66,6 +67,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double subgridBorderLength;
         private String subgridBorderHexColor;
         private Double subgridBorderOpacity;
+        private Boolean subgridClosed;
         private Boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
         private Boolean fadeAnimationEnabled;
@@ -104,6 +106,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.subgridBorderLength = style.subgridBorderLength;
             this.subgridBorderHexColor = style.subgridBorderHexColor;
             this.subgridBorderOpacity = style.subgridBorderOpacity;
+            this.subgridClosed = style.subgridClosed;
             this.transitionAnimationEnabled = style.transitionAnimationEnabled;
             this.transitionAnimationDuration = style.transitionAnimationDuration;
             this.fadeAnimationEnabled = style.fadeAnimationEnabled;
@@ -225,6 +228,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintMeshStyleBuilder subgridBorderOpacity(Double subgridBorderOpacity) {
             this.subgridBorderOpacity = subgridBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subgridClosed(Boolean subgridClosed) {
+            this.subgridClosed = subgridClosed;
             return this;
         }
 
@@ -362,6 +370,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return subgridBorderOpacity;
         }
 
+        public Boolean subgridClosed() {
+            return subgridClosed;
+        }
+
         public Boolean transitionAnimationEnabled() {
             return transitionAnimationEnabled;
         }
@@ -417,6 +429,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     subgridBorderLength == null ? defaultStyle.subgridBorderLength : subgridBorderLength,
                     subgridBorderHexColor == null ? defaultStyle.subgridBorderHexColor : subgridBorderHexColor,
                     subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity,
+                    subgridClosed == null ? defaultStyle.subgridClosed : subgridClosed,
                     transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
                     transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,
                     fadeAnimationEnabled == null ? defaultStyle.fadeAnimationEnabled : fadeAnimationEnabled,

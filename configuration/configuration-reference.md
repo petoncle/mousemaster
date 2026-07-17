@@ -649,6 +649,15 @@ hint-mode.hint.box-shadow-vertical-offset=2
 hint-mode.hint.box-width-percent=1.0
 hint-mode.hint.box-height-percent=1.0
 
+# Subgrid: subdivides each hint box with a grid of lines
+hint-mode.hint.subgrid-row-count=1
+hint-mode.hint.subgrid-column-count=1
+hint-mode.hint.subgrid-border-thickness=1
+hint-mode.hint.subgrid-border-length=10000
+hint-mode.hint.subgrid-border-color=#FFFFFF
+hint-mode.hint.subgrid-border-opacity=1.0
+hint-mode.hint.subgrid-closed=false
+
 # Cell padding for UI hints and position history hints only
 hint-mode.hint.cell-horizontal-padding=0
 hint-mode.hint.cell-vertical-padding=0
@@ -705,6 +714,11 @@ hint-mode.hint.background-opacity=0
   - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
   - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
   - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
+
+- Subgrid: draws a grid of lines inside each hint box
+  - `subgrid-row-count` / `subgrid-column-count`: How many rows/columns to divide each box into (default 1).
+  - `subgrid-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 subgrid).
+  - `subgrid-closed`: Whether the subgrid draws its own outer perimeter (default false). When false, only interior lines are drawn (the hint box border acts as the outer edge); set true for a fully-enclosed grid that does not rely on the parent border.
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)

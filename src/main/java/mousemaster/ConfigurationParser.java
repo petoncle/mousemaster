@@ -148,6 +148,7 @@ public class ConfigurationParser {
                 .subgridBorderLength(10_000d)
                 .subgridBorderHexColor("#FFFFFF")
                 .subgridBorderOpacity(1d)
+                .subgridClosed(false)
                 .transitionAnimationEnabled(true)
                 .transitionAnimationDuration(Duration.ofMillis(100))
                 .fadeAnimationEnabled(true)
@@ -2390,6 +2391,7 @@ public class ConfigurationParser {
             case "subgrid-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subgridBorderLength(v));
             case "subgrid-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subgridBorderHexColor(v));
             case "subgrid-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subgridBorderOpacity(v));
+            case "subgrid-closed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridClosed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).subgridClosed(v));
             // Style: animation & background
             case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationEnabled(v));
             case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationDuration(v));
@@ -3142,6 +3144,11 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.subgridBorderOpacity(
                                 parentStyle.subgridBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridClosed,
+                            childStyleByFilter, filter))
+                        childStyle.subgridClosed(
+                                parentStyle.subgridClosed());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::transitionAnimationEnabled,
                             childStyleByFilter, filter))

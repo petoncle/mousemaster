@@ -2124,7 +2124,8 @@ public class WindowsOverlay implements Overlay {
                     subgridBoxColor,
                     subgridBoxBorderColor,
                     style.subgridRowCount(), style.subgridColumnCount(),
-                    style.subgridBorderLength(), style.subgridBorderThickness());
+                    style.subgridBorderLength(), style.subgridBorderThickness(),
+                    style.subgridClosed());
             int boxWidth, boxHeight;
             if (isHintPartOfGrid
                 // Exclude single-hint grids (e.g. screen selection hint) so the box
@@ -2527,7 +2528,8 @@ public class WindowsOverlay implements Overlay {
                                                int subgridRowCount,
                                                int subgridColumnCount,
                                                double subgridBorderLength,
-                                               double subgridBorderThickness) {
+                                               double subgridBorderThickness,
+                                               boolean subgridClosed) {
         HintBox[][] hintBoxes = new HintBox[subgridRowCount][subgridColumnCount];
         for (int subgridRowIndex = 0; subgridRowIndex <
                                       subgridRowCount; subgridRowIndex++) {
@@ -2544,7 +2546,7 @@ public class WindowsOverlay implements Overlay {
                         subgridBoxBorderColor,
                         true,
                         gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
-                        false,
+                        subgridClosed, // Closed subgrid draws its own perimeter; open = interior lines only.
                         qtScaleFactor,
                         0
                 );
@@ -2830,7 +2832,7 @@ public class WindowsOverlay implements Overlay {
             // Top left corner.
             // Vertical line (LEFT top half, or full LEFT if merged).
             drawVerticalGridLine(painter,
-                    drawGridEdgeBorders || (!gridLeftEdge && !gridTopEdge),
+                    drawGridEdgeBorders || (!gridLeftEdge && (!gridTopEdge || leftMerged)),
                     drawGridEdgeBorders || gridLeftEdge,
                     edgePen,
                     insidePen,
@@ -2842,7 +2844,7 @@ public class WindowsOverlay implements Overlay {
             );
             // Horizontal line (TOP left half, or full TOP if merged).
             drawHorizontalGridLine(painter,
-                    drawGridEdgeBorders || (!gridTopEdge && !gridLeftEdge),
+                    drawGridEdgeBorders || (!gridTopEdge && (!gridLeftEdge || topMerged)),
                     drawGridEdgeBorders || gridTopEdge,
                     edgePen,
                     insidePen,
@@ -2855,7 +2857,7 @@ public class WindowsOverlay implements Overlay {
             // Top right corner.
             // Vertical line (RIGHT top half, or full RIGHT if merged).
             drawVerticalGridLine(painter,
-                    (drawGridEdgeBorders && gridRightEdge) || (!drawGridEdgeBorders && !gridRightEdge && !gridTopEdge),
+                    (drawGridEdgeBorders && gridRightEdge) || (!drawGridEdgeBorders && !gridRightEdge && (!gridTopEdge || rightMerged)),
                     drawGridEdgeBorders || gridRightEdge,
                     edgePen,
                     insidePen,
@@ -2892,7 +2894,7 @@ public class WindowsOverlay implements Overlay {
             );
             // Horizontal line (BOTTOM left half, or full BOTTOM if merged).
             drawHorizontalGridLine(painter,
-                    (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && !gridLeftEdge),
+                    (drawGridEdgeBorders && gridBottomEdge) || (!drawGridEdgeBorders && !gridBottomEdge && (!gridLeftEdge || bottomMerged)),
                     drawGridEdgeBorders || gridBottomEdge,
                     edgePen,
                     insidePen,
