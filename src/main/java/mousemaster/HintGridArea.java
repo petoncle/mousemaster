@@ -15,12 +15,16 @@ public sealed interface HintGridArea {
             implements HintGridArea {
     }
 
+    record LastSelectedHintCellGridArea()
+            implements HintGridArea {
+    }
+
     default HintGridAreaBuilder builder() {
         return new HintGridAreaBuilder(this);
     }
 
     enum HintGridAreaType {
-        ACTIVE_SCREEN, ACTIVE_WINDOW, ALL_SCREENS
+        ACTIVE_SCREEN, ACTIVE_WINDOW, ALL_SCREENS, LAST_SELECTED_HINT_CELL
     }
 
     class HintGridAreaBuilder {
@@ -42,6 +46,9 @@ public sealed interface HintGridArea {
                 }
                 case AllScreensHintGridArea allScreensHintGridArea -> {
                     this.type = HintGridAreaType.ALL_SCREENS;
+                }
+                case LastSelectedHintCellGridArea lastSelectedHintCellGridArea -> {
+                    this.type = HintGridAreaType.LAST_SELECTED_HINT_CELL;
                 }
             }
         }
@@ -73,6 +80,8 @@ public sealed interface HintGridArea {
                         new ActiveWindowHintGridArea();
                 case ALL_SCREENS ->
                         new AllScreensHintGridArea();
+                case LAST_SELECTED_HINT_CELL ->
+                        new LastSelectedHintCellGridArea();
             };
         }
     }

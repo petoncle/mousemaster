@@ -1,7 +1,9 @@
 package mousemaster;
 
-public record HintGridLayout(int maxRowCount, int maxColumnCount, double cellWidth,
-                             double cellHeight,
+import mousemaster.HintCellSizing.HintCellSizingType;
+
+public record HintGridLayout(int maxRowCount, int maxColumnCount,
+                             HintCellSizing cellSizing,
                              int layoutRowCount, int layoutColumnCount,
                              boolean layoutRowOriented) {
 
@@ -13,6 +15,7 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount, double cellWid
 
         private Integer maxRowCount;
         private Integer maxColumnCount;
+        private HintCellSizingType cellSizingType;
         private Double cellWidth;
         private Double cellHeight;
         private Integer layoutRowCount;
@@ -24,8 +27,15 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount, double cellWid
         }
 
         public HintGridLayoutBuilder(HintGridLayout layout) {
-            this.cellWidth = layout.cellWidth;
-            this.cellHeight = layout.cellHeight;
+            switch (layout.cellSizing) {
+                case HintCellSizing.FixedCellSize fixedCellSize -> {
+                    this.cellSizingType = HintCellSizingType.FIXED;
+                    this.cellWidth = fixedCellSize.cellWidth();
+                    this.cellHeight = fixedCellSize.cellHeight();
+                }
+                case HintCellSizing.FitToArea fitToArea ->
+                        this.cellSizingType = HintCellSizingType.FIT;
+            }
             this.layoutRowCount = layout.layoutRowCount;
             this.layoutColumnCount = layout.layoutColumnCount;
             this.layoutRowOriented = layout.layoutRowOriented;
@@ -37,6 +47,10 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount, double cellWid
 
         public Integer maxColumnCount() {
             return maxColumnCount;
+        }
+
+        public HintCellSizingType cellSizingType() {
+            return cellSizingType;
         }
 
         public Double cellWidth() {
@@ -69,6 +83,11 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount, double cellWid
             return this;
         }
 
+        public HintGridLayoutBuilder cellSizingType(HintCellSizingType cellSizingType) {
+            this.cellSizingType = cellSizingType;
+            return this;
+        }
+
         public HintGridLayoutBuilder cellWidth(Double cellWidth) {
             this.cellWidth = cellWidth;
             return this;
@@ -95,11 +114,29 @@ public record HintGridLayout(int maxRowCount, int maxColumnCount, double cellWid
         }
 
         public HintGridLayout build(HintGridLayout defaultLayout) {
+            HintCellSizing defaultCellSizing =
+                    defaultLayout == null ? null : defaultLayout.cellSizing;
+            HintCellSizingType resolvedCellSizingType = cellSizingType != null ?
+                    cellSizingType :
+                    defaultCellSizing instanceof HintCellSizing.FitToArea ?
+                            HintCellSizingType.FIT : HintCellSizingType.FIXED;
+            HintCellSizing cellSizing = switch (resolvedCellSizingType) {
+                case FIXED -> {
+                    HintCellSizing.FixedCellSize defaultFixed =
+                            defaultCellSizing instanceof HintCellSizing.FixedCellSize fixed ?
+                                    fixed : null;
+                    yield new HintCellSizing.FixedCellSize(
+                            cellWidth != null ? cellWidth :
+                                    defaultFixed != null ? defaultFixed.cellWidth() : 0,
+                            cellHeight != null ? cellHeight :
+                                    defaultFixed != null ? defaultFixed.cellHeight() : 0);
+                }
+                case FIT -> new HintCellSizing.FitToArea();
+            };
             return new HintGridLayout(
                     maxRowCount == null ? defaultLayout.maxRowCount : maxRowCount,
                     maxColumnCount == null ? defaultLayout.maxColumnCount : maxColumnCount,
-                    cellWidth == null ? defaultLayout.cellWidth : cellWidth,
-                    cellHeight == null ? defaultLayout.cellHeight : cellHeight,
+                    cellSizing,
                     layoutRowCount == null ? defaultLayout.layoutRowCount : layoutRowCount,
                     layoutColumnCount == null ? defaultLayout.layoutColumnCount : layoutColumnCount,
                     layoutRowOriented == null ? defaultLayout.layoutRowOriented : layoutRowOriented

@@ -160,6 +160,7 @@ public class ConfigurationParser {
                            .gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                            .maxRowCount(200)
                            .maxColumnCount(200)
+                           .cellSizingType(HintCellSizing.HintCellSizingType.FIXED)
                            .cellWidth(73d)
                            .cellHeight(36d)
                            .layoutRowCount(1_000_000)
@@ -1819,6 +1820,9 @@ public class ConfigurationParser {
                 case ALL_SCREENS -> {
                     // No op.
                 }
+                case LAST_SELECTED_HINT_CELL -> {
+                    // No op.
+                }
             }
         }
     }
@@ -2245,6 +2249,7 @@ public class ConfigurationParser {
                     };
                     case ACTIVE_WINDOW -> new HintGridArea.ActiveWindowHintGridArea();
                     case ALL_SCREENS -> new HintGridArea.AllScreensHintGridArea();
+                    case LAST_SELECTED_HINT_CELL -> new HintGridArea.LastSelectedHintCellGridArea();
                 };
             }, v -> hintMeshBuilder.type().gridArea().type(parseHintGridAreaType("hint.grid-area", v)));
             case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseActiveScreenHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().activeScreenHintGridAreaCenter(v));
@@ -2253,6 +2258,7 @@ public class ConfigurationParser {
             case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxColumnCount(v));
             case "grid-cell-width" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellWidth"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellWidth(v));
             case "grid-cell-height" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellHeight"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellHeight(v));
+            case "grid-cell-sizing" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizingType"), v -> parseHintCellSizingType("hint.grid-cell-sizing", v), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellSizingType(v));
             case "layout-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutRowCount(v));
             case "layout-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutColumnCount(v));
             case "layout-row-oriented" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowOriented"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutRowOriented(v));
@@ -2607,10 +2613,23 @@ public class ConfigurationParser {
             case "active-screen" -> HintGridAreaType.ACTIVE_SCREEN;
             case "active-window" -> HintGridAreaType.ACTIVE_WINDOW;
             case "all-screens" -> HintGridAreaType.ALL_SCREENS;
+            case "last-selected-hint-cell" -> HintGridAreaType.LAST_SELECTED_HINT_CELL;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": type should be one of " +
-                    List.of("active-screen", "active-window", "all-screens"));
+                    List.of("active-screen", "active-window", "all-screens",
+                            "last-selected-hint-cell"));
+        };
+    }
+
+    private static HintCellSizing.HintCellSizingType parseHintCellSizingType(
+            String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "fixed" -> HintCellSizing.HintCellSizingType.FIXED;
+            case "fit" -> HintCellSizing.HintCellSizingType.FIT;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": should be one of " + List.of("fixed", "fit"));
         };
     }
 
@@ -2965,6 +2984,10 @@ public class ConfigurationParser {
                             HintGridLayoutBuilder::maxColumnCount,
                             childLayoutByFilter, filter))
                         childLayout.maxColumnCount(parentLayout.maxColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::cellSizingType, childLayoutByFilter,
+                            filter))
+                        childLayout.cellSizingType(parentLayout.cellSizingType());
                     if (!childDoesNotNeedParentProperty(
                             HintGridLayoutBuilder::cellWidth, childLayoutByFilter,
                             filter))

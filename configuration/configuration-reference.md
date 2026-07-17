@@ -544,6 +544,7 @@ hint-mode.hint.active-screen-grid-area-center=screen-center
 # Grid layout configuration
 hint-mode.hint.grid-cell-width=74
 hint-mode.hint.grid-cell-height=36
+hint-mode.hint.grid-cell-sizing=fixed
 hint-mode.hint.layout-row-count=6
 hint-mode.hint.layout-column-count=5
 ```
@@ -561,6 +562,10 @@ hint-mode.hint.layout-column-count=5
 - **Grid dimensions**: Control the size of each hint cell:
   - `grid-cell-width`: Width of each hint cell in pixels
   - `grid-cell-height`: Height of each hint cell in pixels
+
+- **`grid-cell-sizing`**: How cell size is determined:
+  - `fixed` (default): cells are `grid-cell-width` x `grid-cell-height` pixels, and `grid-max-row-count`/`grid-max-column-count` cap how many fit.
+  - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `grid-area=last-selected-hint-cell`.
 
 - **Grid arrangement**: Control the number of rows and columns:
   - `layout-row-count`: Number of rows in the hint grid
