@@ -2175,11 +2175,14 @@ public class WindowsOverlay implements Overlay {
                                                  style.subgridColumnCount(); subgridColumnIndex++) {
                     HintBox subBox =
                             subgridBoxes[subgridRowIndex][subgridColumnIndex];
-                    int subBoxWidth = boxWidth / style.subgridColumnCount();
-                    int subBoxHeight = boxHeight / style.subgridRowCount();
-                    int subBoxX = subBoxWidth * subgridColumnIndex;
-                    int subBoxY = subBoxHeight * subgridRowIndex;
-                    subBox.setGeometry(subBoxX, subBoxY, subBoxWidth, subBoxHeight);
+                    // Tile the sub-boxes across the full box so the last one
+                    // reaches the box edge (no rounding gap between cells).
+                    int subBoxLeft = boxWidth * subgridColumnIndex / style.subgridColumnCount();
+                    int subBoxRight = boxWidth * (subgridColumnIndex + 1) / style.subgridColumnCount();
+                    int subBoxTop = boxHeight * subgridRowIndex / style.subgridRowCount();
+                    int subBoxBottom = boxHeight * (subgridRowIndex + 1) / style.subgridRowCount();
+                    subBox.setGeometry(subBoxLeft, subBoxTop,
+                            subBoxRight - subBoxLeft, subBoxBottom - subBoxTop);
                 }
             }
             if (pumpDuringHintBuild && messagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
