@@ -50,11 +50,11 @@ public class LinuxMain {
         }
         Thread failsafe = new Thread(() -> {
             try {
-                Thread.sleep(60_000);
+                Thread.sleep(300_000);
             } catch (InterruptedException ignored) {
                 return;
             }
-            logger.warn("60-second failsafe triggered — forcing exit to release keyboard grab");
+            logger.warn("5-minute failsafe triggered — forcing exit to release keyboard grab");
             System.exit(0);
         }, "failsafe-shutdown");
         failsafe.setDaemon(true);
