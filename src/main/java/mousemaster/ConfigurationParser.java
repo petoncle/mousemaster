@@ -1485,6 +1485,10 @@ public class ConfigurationParser {
                             "unset-variable requires a variable name: unset-variable.<name>");
                 else {
                     String variableName = keyMatcher.group(group4);
+                    if (BuiltInVariable.NAMES.contains(variableName))
+                        throw new IllegalArgumentException(
+                                "Variable name '" + variableName +
+                                "' is a built-in variable and cannot be unset");
                     setCommand(mode.comboMap.unsetVariable.builder, propertyValue,
                             new Command.UnsetVariable(variableName), propertyKey,
                             defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
@@ -1684,10 +1688,10 @@ public class ConfigurationParser {
      * First pass: scan all property lines for set-variable.X= patterns
      * and collect variable names. Also checks for collisions with key names and aliases.
      */
-    private static Set<String> parseVariableNames(List<String> properties,
-                                                  Map<String, KeyAlias> keyAliases,
-                                                  KeyResolver keyResolver) {
-        Set<String> variableNames = new HashSet<>();
+    static Set<String> parseVariableNames(List<String> properties,
+                                          Map<String, KeyAlias> keyAliases,
+                                          KeyResolver keyResolver) {
+        Set<String> variableNames = new HashSet<>(BuiltInVariable.NAMES);
         for (String line : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(line);
             if (!lineMatcher.matches())
@@ -1698,6 +1702,10 @@ public class ConfigurationParser {
             Matcher setVarMatcher = setVarPattern.matcher(propertyKey);
             if (setVarMatcher.matches()) {
                 String variableName = setVarMatcher.group(1);
+                if (BuiltInVariable.NAMES.contains(variableName))
+                    throw new IllegalArgumentException(
+                            "Variable name '" + variableName +
+                            "' is a built-in variable and cannot be set");
                 if (keyAliases.containsKey(variableName))
                     throw new IllegalArgumentException(
                             "Variable name '" + variableName +

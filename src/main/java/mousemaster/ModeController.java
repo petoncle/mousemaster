@@ -57,6 +57,7 @@ public class ModeController implements ComboListener {
         boolean idling = !mouseState.moving() &&
                          !mouseState.leftPressing() && !mouseState.middlePressing() && !mouseState.rightPressing() &&
                          !mouseState.wheeling() && !justCompletedCombo;
+        comboWatcher.setIdling(idling);
         boolean mustResetHideCursorTimeout = !idling || hintManager.showingHintMesh();
         justCompletedCombo = false;
         boolean hideCursorEnabled = mutatedMode.hideCursor().enabled();
