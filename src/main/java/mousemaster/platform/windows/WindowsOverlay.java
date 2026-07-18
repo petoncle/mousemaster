@@ -17,7 +17,9 @@ import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
 import mousemaster.qt.FadeAnimator;
 import mousemaster.qt.GridRenderer;
+import mousemaster.qt.IndicatorRenderer;
 import mousemaster.qt.QtColorUtil;
+import mousemaster.qt.StackedShadowEffect;
 import mousemaster.qt.QtFontStyle;
 import mousemaster.qt.QtHintFont;
 import mousemaster.qt.QtHintFontStyle;
@@ -54,11 +56,8 @@ public class WindowsOverlay implements Overlay {
         waitForZoom = value;
     }
 
-    private IndicatorWindow indicatorWindow;
-    private boolean showingIndicator;
-    private Indicator currentIndicator;
-    private int maxIndicatorShadowPadding;
-    private FadeAnimator indicatorFadeAnimator;
+    private IndicatorRenderer indicatorRenderer;
+    private WinDef.HWND indicatorHwnd;
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
     private final Map<Screen, HintMeshWindow> hintMeshWindows =
@@ -216,8 +215,8 @@ public class WindowsOverlay implements Overlay {
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
             hwnds.add(hintMeshWindow.hwnd);
         }
-        if (indicatorWindow != null)
-            hwnds.add(indicatorWindow.hwnd);
+        if (indicatorHwnd != null)
+            hwnds.add(indicatorHwnd);
         if (screenshotAnimating) {
             if (screenshotHwnd != null)
                 hwnds.add(screenshotHwnd);
@@ -266,731 +265,6 @@ public class WindowsOverlay implements Overlay {
     private void setWindowTopmost(WinDef.HWND hwnd, WinDef.HWND hwndTopmost) {
         User32.INSTANCE.SetWindowPos(hwnd, hwndTopmost, 0, 0, 0, 0,
                 WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
-    }
-
-    private record IndicatorWindow(WinDef.HWND hwnd, TransparentWindow window,
-                                   IndicatorWidget widget,
-                                   IndicatorLabelWidget labelWidget) {
-    }
-
-    private class IndicatorWidget extends QWidget {
-
-        private QColor color;
-        private int edgeCount;
-        private double outerOutlineThickness;
-        private QColor outerOutlineColor;
-        private double outerOutlineFillPercent;
-        private double outerOutlineFillStartAngle;
-        private FillDirection outerOutlineFillDirection;
-        private double innerOutlineThickness;
-        private QColor innerOutlineColor;
-        private double innerOutlineFillPercent;
-        private double innerOutlineFillStartAngle;
-        private FillDirection innerOutlineFillDirection;
-        private double outlineScale;
-        private IndicatorShadowEffect customGraphicsEffect;
-        private boolean cleared;
-
-        IndicatorWidget(QWidget parent) {
-            super(parent);
-        }
-
-        void setOutlineScale(double outlineScale) {
-            this.outlineScale = outlineScale;
-        }
-
-        void setColor(QColor color) {
-            if (this.color != null)
-                this.color.dispose();
-            this.color = color;
-        }
-
-        void setEdgeCount(int edgeCount) {
-            this.edgeCount = edgeCount;
-        }
-
-        void setOutlines(double outerOutlineThickness, QColor outerOutlineColor,
-                         double outerOutlineFillPercent,
-                         double outerOutlineFillStartAngle,
-                         FillDirection outerOutlineFillDirection,
-                         double innerOutlineThickness, QColor innerOutlineColor,
-                         double innerOutlineFillPercent,
-                         double innerOutlineFillStartAngle,
-                         FillDirection innerOutlineFillDirection) {
-            if (this.outerOutlineColor != null)
-                this.outerOutlineColor.dispose();
-            if (this.innerOutlineColor != null)
-                this.innerOutlineColor.dispose();
-            this.outerOutlineThickness = outerOutlineThickness;
-            this.outerOutlineColor = outerOutlineColor;
-            this.outerOutlineFillPercent = outerOutlineFillPercent;
-            this.outerOutlineFillStartAngle = outerOutlineFillStartAngle;
-            this.outerOutlineFillDirection = outerOutlineFillDirection;
-            this.innerOutlineThickness = innerOutlineThickness;
-            this.innerOutlineColor = innerOutlineColor;
-            this.innerOutlineFillPercent = innerOutlineFillPercent;
-            this.innerOutlineFillStartAngle = innerOutlineFillStartAngle;
-            this.innerOutlineFillDirection = innerOutlineFillDirection;
-        }
-
-        /**
-         * Radial distance from a fill vertex to the outline's miter tip,
-         * measured along the circumradius direction.
-         * The pen center path is at fillRadius + (corrected - 1) / 2 from center
-         * (1 = inward overlap). For a regular n-gon, offsetting edges outward by
-         * penWidth/2 gives a circumradius of R + penWidth / (2*cos(pi/n)),
-         * where penWidth = corrected + 1 (includes inward overlap).
-         */
-        private static double radialMiterPadding(double visualThickness, int edgeCount) {
-            double cos = Math.cos(Math.PI / edgeCount);
-            double corrected = (2 * visualThickness - (1 - cos)) / (1 + cos);
-            return (corrected - 1.0) / 2.0 + (corrected + 1.0) / (2.0 * cos);
-        }
-
-        /**
-         * Axis-aligned padding needed around the fill's bounding box to fit
-         * the outline's miter tips within a rectangular widget.
-         * Projects the radial miter extension onto the x/y axes for each vertex
-         * and returns the maximum.
-         */
-        static double miterPadding(double visualThickness, int edgeCount) {
-            double radial = radialMiterPadding(visualThickness, edgeCount);
-            double startAngle = polygonStartAngle(edgeCount);
-            double maxProjection = 0;
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
-                maxProjection = Math.max(maxProjection,
-                        Math.max(Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle))));
-            }
-            return radial * maxProjection;
-        }
-
-        private double correctedOutlineThickness(double visualThickness) {
-            double cos = Math.cos(Math.PI / edgeCount);
-            return (2 * visualThickness - (1 - cos)) / (1 + cos);
-        }
-
-        double maxOutlineThickness() {
-            double scaled = Math.max(outerOutlineThickness, innerOutlineThickness) * outlineScale;
-            return miterPadding(scaled, edgeCount);
-        }
-
-
-        private static double polygonStartAngle(int edgeCount) {
-            // Odd edge count: vertex at top (pointy top, e.g. triangle ▲).
-            // Even edge count: flat edge at top (e.g. square □, hexagon ⬡).
-            double startAngle = -Math.PI / 2;
-            if (edgeCount % 2 == 0)
-                startAngle += Math.PI / edgeCount;
-            return startAngle;
-        }
-
-        static QPainterPath polygonPath(double centerX, double centerY,
-                                       double radius, int edgeCount) {
-            QPainterPath path = new QPainterPath();
-            double startAngle = polygonStartAngle(edgeCount);
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
-                double x = centerX + radius * Math.cos(angle);
-                double y = centerY + radius * Math.sin(angle);
-                if (i == 0)
-                    path.moveTo(x, y);
-                else
-                    path.lineTo(x, y);
-            }
-            path.closeSubpath();
-            return path;
-        }
-
-        // Returns the circumradius such that the polygon's bounding box
-        // largest dimension equals targetSize, and the offset to center
-        // the bounding box (the polygon's BB may not be symmetric around
-        // the circumcenter, e.g. triangle).
-        record PolygonLayout(double radius, double offsetX, double offsetY) {}
-
-        static PolygonLayout polygonLayout(double targetSize, int edgeCount) {
-            double startAngle = polygonStartAngle(edgeCount);
-            double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
-            double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
-                double cx = Math.cos(angle);
-                double cy = Math.sin(angle);
-                minX = Math.min(minX, cx);
-                maxX = Math.max(maxX, cx);
-                minY = Math.min(minY, cy);
-                maxY = Math.max(maxY, cy);
-            }
-            double maxDimension = Math.max(maxX - minX, maxY - minY);
-            double radius = targetSize / maxDimension;
-            double offsetX = -(minX + maxX) / 2.0 * radius;
-            double offsetY = -(minY + maxY) / 2.0 * radius;
-            return new PolygonLayout(radius, offsetX, offsetY);
-        }
-
-        /**
-         * Builds an open path tracing a portion of the polygon outline.
-         * fillStartAngle: 0 = top (12 o'clock), increases clockwise, in degrees.
-         * fillDirection: BOTH = expand symmetrically from anchor.
-         */
-        private static QPainterPath partialPolygonPath(double centerX, double centerY,
-                                                       double radius, int edgeCount,
-                                                       double fillPercent,
-                                                       double fillStartAngle,
-                                                       FillDirection fillDirection) {
-            double polyStartAngle = polygonStartAngle(edgeCount);
-            double[] vx = new double[edgeCount];
-            double[] vy = new double[edgeCount];
-            for (int i = 0; i < edgeCount; i++) {
-                double angle = polyStartAngle + 2.0 * Math.PI * i / edgeCount;
-                vx[i] = centerX + radius * Math.cos(angle);
-                vy[i] = centerY + radius * Math.sin(angle);
-            }
-            double edgeLength = Math.hypot(vx[1] - vx[0], vy[1] - vy[0]);
-            double totalLength = edgeCount * edgeLength;
-            double fillLength = fillPercent * totalLength;
-            // Convert fillStartAngle (0=top, CW) to math angle for ray intersection.
-            // Math convention: 0=right, counter-clockwise positive.
-            // Screen coords: y increases downward, so sin is negated.
-            double mathAngle = Math.toRadians(90 - fillStartAngle);
-            double rayDx = Math.cos(mathAngle);
-            double rayDy = -Math.sin(mathAngle); // negate for screen coords
-            // Find anchor position on perimeter by intersecting ray from center with polygon edges.
-            double anchorPos = findAnchorPos(centerX, centerY, rayDx, rayDy,
-                    vx, vy, edgeCount, edgeLength);
-            // Build path(s) based on direction.
-            // Vertex order is clockwise on screen. Forward = CW, backward = CCW.
-            if (fillDirection == FillDirection.BOTH) {
-                double halfLength = fillLength / 2.0;
-                QPainterPath cwPath = traceAlongPerimeter(
-                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, true);
-                QPainterPath ccwPath = traceAlongPerimeter(
-                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, halfLength, false);
-                QPainterPath combined = ccwPath.toReversed();
-                combined.connectPath(cwPath);
-                cwPath.dispose();
-                ccwPath.dispose();
-                return combined;
-            }
-            else {
-                boolean forward = fillDirection == FillDirection.CLOCKWISE;
-                return traceAlongPerimeter(
-                        vx, vy, edgeCount, edgeLength, totalLength, anchorPos, fillLength, forward);
-            }
-        }
-
-        /**
-         * Finds the perimeter position (distance along polygon edges from vertex 0)
-         * where a ray from center in direction (rayDx, rayDy) intersects the polygon.
-         */
-        private static double findAnchorPos(double centerX, double centerY,
-                                            double rayDx, double rayDy,
-                                            double[] vx, double[] vy,
-                                            int edgeCount, double edgeLength) {
-            double bestT = Double.MAX_VALUE;
-            int bestEdge = 0;
-            double bestFrac = 0;
-            for (int i = 0; i < edgeCount; i++) {
-                int j = (i + 1) % edgeCount;
-                double ex = vx[j] - vx[i];
-                double ey = vy[j] - vy[i];
-                // Solve: center + t * ray = vertex[i] + s * edge
-                double denom = rayDx * ey - rayDy * ex;
-                if (Math.abs(denom) < 1e-12)
-                    continue;
-                double dx = vx[i] - centerX;
-                double dy = vy[i] - centerY;
-                double t = (dx * ey - dy * ex) / denom;
-                double s = (dx * rayDy - dy * rayDx) / denom;
-                if (t > 1e-9 && s >= -1e-9 && s <= 1 + 1e-9) {
-                    if (t < bestT) {
-                        bestT = t;
-                        bestEdge = i;
-                        bestFrac = Math.max(0, Math.min(1, s));
-                    }
-                }
-            }
-            return bestEdge * edgeLength + bestFrac * edgeLength;
-        }
-
-        /**
-         * Traces a path along the polygon perimeter starting from anchorPos
-         * for the given length, either forward (increasing vertex index) or
-         * backward (decreasing vertex index).
-         */
-        private static QPainterPath traceAlongPerimeter(double[] vx, double[] vy,
-                                                        int edgeCount, double edgeLength,
-                                                        double totalLength, double anchorPos,
-                                                        double length, boolean forward) {
-            // Compute start point on the perimeter.
-            double startPos = forward ? anchorPos : anchorPos;
-            int startEdge = (int) (startPos / edgeLength);
-            if (startEdge >= edgeCount)
-                startEdge = edgeCount - 1;
-            double startFrac = (startPos - startEdge * edgeLength) / edgeLength;
-            startFrac = Math.max(0, Math.min(1, startFrac));
-            int v0 = startEdge;
-            int v1 = (startEdge + 1) % edgeCount;
-            double sx = vx[v0] + startFrac * (vx[v1] - vx[v0]);
-            double sy = vy[v0] + startFrac * (vy[v1] - vy[v0]);
-            QPainterPath path = new QPainterPath();
-            path.moveTo(sx, sy);
-            double remaining = length;
-            if (forward) {
-                double distInCurrentEdge = (1 - startFrac) * edgeLength;
-                int currentEdge = startEdge;
-                while (remaining > 1e-6) {
-                    int nextV = (currentEdge + 1) % edgeCount;
-                    if (remaining >= distInCurrentEdge - 1e-6) {
-                        path.lineTo(vx[nextV], vy[nextV]);
-                        remaining -= distInCurrentEdge;
-                        currentEdge = (currentEdge + 1) % edgeCount;
-                        distInCurrentEdge = edgeLength;
-                    }
-                    else {
-                        double frac = remaining / edgeLength;
-                        int curV = currentEdge;
-                        int nxtV = (currentEdge + 1) % edgeCount;
-                        double ex = vx[curV] + frac * (vx[nxtV] - vx[curV]);
-                        double ey = vy[curV] + frac * (vy[nxtV] - vy[curV]);
-                        path.lineTo(ex, ey);
-                        remaining = 0;
-                    }
-                }
-            }
-            else {
-                // Backward: traverse edges in decreasing index order.
-                double distInCurrentEdge = startFrac * edgeLength;
-                int currentEdge = startEdge;
-                while (remaining > 1e-6) {
-                    int curV = currentEdge;
-                    if (remaining >= distInCurrentEdge - 1e-6) {
-                        path.lineTo(vx[curV], vy[curV]);
-                        remaining -= distInCurrentEdge;
-                        currentEdge = (currentEdge - 1 + edgeCount) % edgeCount;
-                        distInCurrentEdge = edgeLength;
-                    }
-                    else {
-                        int nextV = (currentEdge + 1) % edgeCount;
-                        double frac = 1.0 - remaining / edgeLength;
-                        double ex = vx[curV] + frac * (vx[nextV] - vx[curV]);
-                        double ey = vy[curV] + frac * (vy[nextV] - vy[curV]);
-                        path.lineTo(ex, ey);
-                        remaining = 0;
-                    }
-                }
-            }
-            return path;
-        }
-
-        private void clearOutline(QPainter painter, double centerX, double centerY,
-                                  double fillRadius, double thickness, double fillPercent,
-                                  double fillStartAngle, FillDirection fillDirection) {
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-            QColor clearColor = new QColor(0, 0, 0);
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    thickness, clearColor, fillPercent,
-                    fillStartAngle, fillDirection, 1.0);
-            clearColor.dispose();
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-        }
-
-        private void drawOutline(QPainter painter, double centerX, double centerY,
-                                 double fillRadius, double thickness, QColor color,
-                                 double fillPercent, double fillStartAngle,
-                                 FillDirection fillDirection, double inwardOverlap) {
-            if (thickness <= 0 || color == null || color.alpha() == 0 || fillPercent <= 0)
-                return;
-            // Extend the inner edge inward by inwardOverlap so that the
-            // antialiased inner pixels blend with the layer below (e.g. fill)
-            // rather than with a different-colored outline underneath.
-            double effectiveThickness = thickness + inwardOverlap;
-            QPen pen = new QPen(color);
-            pen.setWidthF(effectiveThickness);
-            pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin);
-            painter.setBrush(Qt.BrushStyle.NoBrush);
-            // Outer edge stays at fillRadius + thickness.
-            // Inner edge moves to fillRadius - inwardOverlap.
-            double outlineRadius = fillRadius + (thickness - inwardOverlap) / 2.0;
-            if (fillPercent >= 1.0) {
-                painter.setPen(pen);
-                QPainterPath outlinePath = polygonPath(centerX, centerY, outlineRadius, edgeCount);
-                painter.drawPath(outlinePath);
-                outlinePath.dispose();
-            }
-            else {
-                pen.setCapStyle(Qt.PenCapStyle.FlatCap);
-                painter.setPen(pen);
-                QPainterPath outlinePath = partialPolygonPath(
-                        centerX, centerY, outlineRadius, edgeCount, fillPercent,
-                        fillStartAngle, fillDirection);
-                painter.drawPath(outlinePath);
-                outlinePath.dispose();
-            }
-            pen.dispose();
-        }
-
-        void drawContent(QPainter painter, QColor fillColor,
-                         QColor outerOutlineColor, QColor innerOutlineColor,
-                         boolean clearFullArea) {
-            double maxOutlinePadding = maxOutlineThickness();
-            int outlinePadding = (int) Math.ceil(maxOutlinePadding);
-            double availableSize = Math.min(width(), height()) - 2 * outlinePadding;
-            PolygonLayout layout = polygonLayout(availableSize, edgeCount);
-            double centerX = width() / 2.0 + layout.offsetX;
-            double centerY = height() / 2.0 + layout.offsetY;
-            double fillRadius = layout.radius;
-            QPainterPath fillPath = polygonPath(centerX, centerY, fillRadius, edgeCount);
-            double scaledOuter = outerOutlineThickness * outlineScale;
-            double scaledInner = innerOutlineThickness * outlineScale;
-            double correctedOuter = correctedOutlineThickness(scaledOuter);
-            double correctedInner = correctedOutlineThickness(scaledInner);
-            // If any part is transparent, clear the area first so the shadow
-            // (composited by the effect) doesn't show through.
-            if (indicatorHasTransparency()) {
-                if (clearFullArea) {
-                    // paintEvent: clear the entire indicator area (widget starts
-                    // transparent, so this ensures a clean slate).
-                    double maxScaled = Math.max(scaledOuter, scaledInner);
-                    double radialPad = radialMiterPadding(maxScaled, edgeCount);
-                    QPainterPath outerBoundary = polygonPath(centerX, centerY,
-                            fillRadius + radialPad, edgeCount);
-                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-                    painter.setPen(Qt.PenStyle.NoPen);
-                    QColor clearBlack = new QColor(0, 0, 0);
-                    QBrush clearBrush = new QBrush(clearBlack);
-                    painter.setBrush(clearBrush);
-                    painter.drawPath(outerBoundary);
-                    clearBrush.dispose();
-                    clearBlack.dispose();
-                    outerBoundary.dispose();
-                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-                }
-             }
-            // Draw fill first, then outlines on top. Outlines cover the fill
-            // boundary with their inwardOverlap, preventing artifacts from
-            // opacity differences between fill and outline.
-            if (fillColor.alpha() != 0) {
-                if (!clearFullArea && fillColor.alpha() < 255) {
-                    // redrawSourceOverShadow with semi-transparent fill: use
-                    // Source mode to replace the opaque content from drawSource.
-                    painter.setCompositionMode(
-                            QPainter.CompositionMode.CompositionMode_Source);
-                    painter.setPen(Qt.PenStyle.NoPen);
-                    QBrush fillBrush = new QBrush(fillColor);
-                    painter.setBrush(fillBrush);
-                    painter.drawPath(fillPath);
-                    fillBrush.dispose();
-                    painter.setCompositionMode(
-                            QPainter.CompositionMode.CompositionMode_SourceOver);
-                }
-                else {
-                    painter.setPen(Qt.PenStyle.NoPen);
-                    QBrush fillBrush = new QBrush(fillColor);
-                    painter.setBrush(fillBrush);
-                    painter.drawPath(fillPath);
-                    fillBrush.dispose();
-                }
-            }
-            // Draw outer outline on top of fill.
-            if (!clearFullArea && outerOutlineColor != null && outerOutlineColor.alpha() > 0
-                    && outerOutlineColor.alpha() < 255) {
-                // redrawSourceOverShadow: clear the outline area first to
-                // remove the opaque outline from drawSource, preserving shadow
-                // in gaps of partial outlines.
-                clearOutline(painter, centerX, centerY, fillRadius,
-                        correctedOuter, outerOutlineFillPercent,
-                        outerOutlineFillStartAngle, outerOutlineFillDirection);
-            }
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedOuter, outerOutlineColor, outerOutlineFillPercent,
-                    outerOutlineFillStartAngle, outerOutlineFillDirection, 1.0);
-            // Draw inner outline on top of outer outline. Compute a larger
-            // inwardOverlap so the inner outline's inner miter tip extends
-            // past the outer outline's inner miter tip by at least `margin`
-            // pixels. Without this, the outer outline color bleeds through
-            // the inner outline's antialiased inner edge, especially at
-            // vertices of low-edge-count polygons (e.g. triangles).
-            // Formula derived from equating the radial miter tip positions:
-            //   tip = fillRadius + (corrected - overlap)/2
-            //         - (corrected + overlap) / (2*cos(PI/n))
-            double innerInwardOverlap;
-            if (correctedOuter > 0 && correctedInner > 0) {
-                double cos = Math.cos(Math.PI / edgeCount);
-                double D = correctedOuter - correctedInner;
-                double margin = 1.5;
-                innerInwardOverlap = D * (1 - cos) / (1 + cos)
-                        + 1.0 + 2.0 * margin * cos / (1 + cos);
-                innerInwardOverlap = Math.max(innerInwardOverlap, 1.0);
-            }
-            else {
-                innerInwardOverlap = 1.0;
-            }
-            if (!clearFullArea && innerOutlineColor != null && innerOutlineColor.alpha() > 0
-                    && innerOutlineColor.alpha() < 255) {
-                clearOutline(painter, centerX, centerY, fillRadius,
-                        correctedInner, innerOutlineFillPercent,
-                        innerOutlineFillStartAngle, innerOutlineFillDirection);
-            }
-            drawOutline(painter, centerX, centerY, fillRadius,
-                    correctedInner, innerOutlineColor, innerOutlineFillPercent,
-                    innerOutlineFillStartAngle, innerOutlineFillDirection, innerInwardOverlap);
-            fillPath.dispose();
-        }
-
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            QPainter painter = new QPainter(this);
-            if (cleared) {
-                // Paint fully transparent so DWM's cached surface is blank.
-                painter.setCompositionMode(
-                        QPainter.CompositionMode.CompositionMode_Clear);
-                QRect r = rect();
-                QColor c = new QColor(0, 0, 0, 0);
-                painter.fillRect(r, c);
-                r.dispose();
-                c.dispose();
-                painter.end();
-                painter.dispose();
-                return;
-            }
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            drawContent(painter, color, outerOutlineColor, innerOutlineColor, true);
-            painter.end();
-            painter.dispose();
-        }
-    }
-
-    public static class StackedShadowEffect extends QGraphicsDropShadowEffect {
-
-        private int stackCount;
-        private boolean transparencyOnly;
-
-        void setStackCount(int stackCount) {
-            this.stackCount = stackCount;
-        }
-
-        void setTransparencyOnly(boolean transparencyOnly) {
-            this.transparencyOnly = transparencyOnly;
-        }
-
-        @Override
-        protected void draw(QPainter painter) {
-            if (transparencyOnly) {
-                redrawSourceOverShadow(painter);
-                return;
-            }
-            if (stackCount <= 1) {
-                super.draw(painter);
-                redrawSourceOverShadow(painter);
-                return;
-            }
-            // Pre-render the shadow separately, bake stacking, then draw
-            // the stacked shadow and source independently.
-            QPoint sourceOffset = new QPoint();
-            QPixmap sourcePixmap = sourcePixmap(
-                    Qt.CoordinateSystem.DeviceCoordinates, sourceOffset,
-                    PixmapPadMode.PadToEffectiveBoundingRect);
-            QImage sourceImage = sourcePixmap.toImage();
-            int w = sourceImage.width();
-            int h = sourceImage.height();
-            QColor shadowColor = color();
-            ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
-                    blurRadius(), xOffset(), yOffset(), w, h);
-            shadowColor.dispose();
-            QImage stackedShadow = bakeStacking(shadow.image(), stackCount);
-            QTransform savedTransform = painter.worldTransform();
-            QTransform identity = new QTransform();
-            painter.setWorldTransform(identity);
-            painter.drawImage(sourceOffset.x() + shadow.x(),
-                    sourceOffset.y() + shadow.y(), stackedShadow);
-            stackedShadow.dispose();
-            painter.setWorldTransform(savedTransform);
-            savedTransform.dispose();
-            identity.dispose();
-            sourceImage.dispose();
-            sourcePixmap.dispose();
-            sourceOffset.dispose();
-            drawSource(painter);
-            redrawSourceOverShadow(painter);
-        }
-
-        protected void redrawSourceOverShadow(QPainter painter) {
-            // No-op by default. Subclasses override to clear and redraw
-            // source content, preventing shadow from showing through
-            // transparent parts.
-        }
-
-        /**
-         * Intensifies an image by computing the closed-form result of compositing
-         * it on top of itself stackCount times (premultiplied alpha geometric series).
-         * Returns a new QImage (caller must dispose the original if different).
-         */
-        static QImage bakeStacking(QImage image, int stackCount) {
-            if (stackCount <= 1)
-                return image;
-            int w = image.width();
-            int h = image.height();
-            int totalBytes = w * h * 4;
-            ByteBuffer buf = image.bits();
-            byte[] pixels = new byte[totalBytes];
-            buf.position(0);
-            buf.get(pixels);
-            // Precompute multiplier for each possible alpha value.
-            // For premultiplied alpha, stacking N times multiplies all channels by
-            // (1 - t^N) / (1 - t) where t = 1 - a/255.
-            double[] multiplier = new double[256];
-            for (int a = 1; a <= 255; a++) {
-                double t = 1.0 - a / 255.0;
-                multiplier[a] = (1.0 - Math.pow(t, stackCount)) / (a / 255.0);
-            }
-            // ARGB32_Premultiplied, little-endian: B, G, R, A.
-            for (int i = 0; i < totalBytes; i += 4) {
-                int a = pixels[i + 3] & 0xFF;
-                if (a == 0) continue;
-                double m = multiplier[a];
-                pixels[i]     = (byte) Math.min(255, (int) (((pixels[i]     & 0xFF) * m) + 0.5));
-                pixels[i + 1] = (byte) Math.min(255, (int) (((pixels[i + 1] & 0xFF) * m) + 0.5));
-                pixels[i + 2] = (byte) Math.min(255, (int) (((pixels[i + 2] & 0xFF) * m) + 0.5));
-                pixels[i + 3] = (byte) Math.min(255, (int) ((a * m) + 0.5));
-            }
-            image.dispose();
-            return new QImage(pixels, w, h, QImage.Format.Format_ARGB32_Premultiplied);
-        }
-    }
-
-    public static class IndicatorShadowEffect extends StackedShadowEffect {
-
-        private final IndicatorWidget widget;
-        private final WindowsOverlay overlay;
-        private QColor fillColor;
-        private QColor outerOutlineColor;
-        private QColor innerOutlineColor;
-
-        IndicatorShadowEffect(IndicatorWidget widget, WindowsOverlay overlay) {
-            this.widget = widget;
-            this.overlay = overlay;
-        }
-
-        void setColors(QColor fillColor, QColor outerOutlineColor,
-                       QColor innerOutlineColor) {
-            if (this.fillColor != null)
-                this.fillColor.dispose();
-            if (this.outerOutlineColor != null)
-                this.outerOutlineColor.dispose();
-            if (this.innerOutlineColor != null)
-                this.innerOutlineColor.dispose();
-            this.fillColor = fillColor;
-            this.outerOutlineColor = outerOutlineColor;
-            this.innerOutlineColor = innerOutlineColor;
-        }
-
-        @Override
-        protected void draw(QPainter painter) {
-            if (widget.cleared) {
-                // Just draw the source (triggers paintEvent which clears).
-                // Skip shadow and redrawSourceOverShadow.
-                drawSource(painter);
-                return;
-            }
-            super.draw(painter);
-        }
-
-        @Override
-        protected void redrawSourceOverShadow(QPainter painter) {
-            if (!overlay.indicatorHasTransparency())
-                return;
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            widget.drawContent(painter, fillColor, outerOutlineColor, innerOutlineColor, false);
-        }
-    }
-
-
-    private class IndicatorLabelWidget extends QWidget {
-
-        private String labelText;
-        private QFont labelFont;
-        private double labelFontSize;
-        private double labelFontScale;
-        private QColor labelColor;
-        private int outlineThickness;
-        private QColor outlineColor;
-        private int edgeCount;
-        private int indicatorOutlinePadding;
-
-        IndicatorLabelWidget(QWidget parent) {
-            super(parent);
-            setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
-        }
-
-        void setIndicatorOutlinePadding(int padding) {
-            this.indicatorOutlinePadding = padding;
-        }
-
-        void setLabelFontScale(double scale) {
-            this.labelFontScale = scale;
-        }
-
-        void setLabel(String labelText, QFont labelFont, double fontSize,
-                      QColor labelColor,
-                      int outlineThickness, QColor outlineColor,
-                      int edgeCount) {
-            if (this.labelFont != null)
-                this.labelFont.dispose();
-            if (this.labelColor != null)
-                this.labelColor.dispose();
-            if (this.outlineColor != null)
-                this.outlineColor.dispose();
-            this.labelText = labelText;
-            this.labelFont = labelFont;
-            this.labelFontSize = fontSize;
-            this.labelColor = labelColor;
-            this.outlineThickness = outlineThickness;
-            this.outlineColor = outlineColor;
-            this.edgeCount = edgeCount;
-            update();
-        }
-
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            if (labelText == null || labelFont == null || labelColor == null)
-                return;
-            labelFont.setPointSize((int) Math.round(labelFontSize * labelFontScale));
-            QPainter painter = new QPainter(this);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-            painter.setFont(labelFont);
-            QFontMetrics fm = new QFontMetrics(labelFont);
-            double availableSize = Math.min(width(), height()) - 2 * indicatorOutlinePadding;
-            IndicatorWidget.PolygonLayout polygonLayout =
-                    IndicatorWidget.polygonLayout(availableSize, edgeCount);
-            double centerX = width() / 2.0 + polygonLayout.offsetX();
-            double centerY = height() / 2.0 + polygonLayout.offsetY();
-            int textX = (int) Math.round(centerX - fm.horizontalAdvance(labelText) / 2.0);
-            QRect tightRect = fm.tightBoundingRect(labelText);
-            int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
-            tightRect.dispose();
-            // Outline: draw text path with outline pen.
-            if (outlineThickness != 0 && outlineColor != null && outlineColor.alpha() != 0) {
-                QPen outlinePen = new QPen(outlineColor);
-                outlinePen.setWidth(outlineThickness);
-                outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
-                painter.setPen(outlinePen);
-                painter.setBrush(Qt.BrushStyle.NoBrush);
-                QPainterPath textPath = new QPainterPath();
-                textPath.addText(textX, textY, labelFont, labelText);
-                painter.drawPath(textPath);
-                textPath.dispose();
-                outlinePen.dispose();
-            }
-            // Fill: draw text on top of outline.
-            if (labelColor.alpha() != 0) {
-                painter.setPen(labelColor);
-                painter.drawText(textX, textY, labelText);
-            }
-            fm.dispose();
-            painter.end();
-            painter.dispose();
-        }
     }
 
 
@@ -1050,10 +324,6 @@ public class WindowsOverlay implements Overlay {
         }
     }
 
-    private int indicatorSize(double screenScale) {
-        return scaledPixels(currentIndicator.size(), screenScale);
-    }
-
     private double zoomedX(double x) {
         if (currentZoom == null)
             return x;
@@ -1075,9 +345,9 @@ public class WindowsOverlay implements Overlay {
      * flipping to the opposite side when near the corresponding screen edge.
      */
     private Point indicatorTopLeft(WinDef.POINT mousePosition,
-                                          Screen activeScreen, int visualSize) {
+                                          Screen activeScreen, Indicator indicator, int visualSize) {
         Rectangle screen = activeScreen.rectangle();
-        if (currentIndicator.position() == IndicatorPosition.CENTER) {
+        if (indicator.position() == IndicatorPosition.CENTER) {
             Point cursorCenter = mouse.cursorVisualCenter();
             double centerX = mousePosition.x + cursorCenter.x();
             double centerY = mousePosition.y + cursorCenter.y();
@@ -1093,7 +363,7 @@ public class WindowsOverlay implements Overlay {
                 screen.x() + screen.width()));
         int mouseY = Math.max(screen.y(), Math.min(mousePosition.y,
                 screen.y() + screen.height()));
-        IndicatorPosition position = currentIndicator.position();
+        IndicatorPosition position = indicator.position();
         boolean defaultRight = position == IndicatorPosition.BOTTOM_RIGHT ||
                                position == IndicatorPosition.TOP_RIGHT;
         boolean defaultBottom = position == IndicatorPosition.BOTTOM_RIGHT ||
@@ -1115,134 +385,29 @@ public class WindowsOverlay implements Overlay {
         return new Point(zoomedX(indicatorX), zoomedY(indicatorY));
     }
 
-    private int indicatorOutlinePadding(double scale) {
-        double scaled = Math.max(
-                currentIndicator.outerOutline().thickness(),
-                currentIndicator.innerOutline().thickness()) * scale * zoomPercent();
-        return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, currentIndicator.edgeCount()));
-    }
-
-    private int indicatorShadowPadding(double scale) {
-        if (currentIndicator.shadow().blurRadius() == 0)
-            return 0;
-        return (int) Math.ceil((currentIndicator.shadow().blurRadius() +
-                Math.max(Math.abs(currentIndicator.shadow().horizontalOffset()),
-                         Math.abs(currentIndicator.shadow().verticalOffset()))) * scale);
-    }
-
     private void moveAndResizeIndicatorWindow() {
-        moveAndResizeIndicatorWindow(mouse.findMousePosition());
+        moveAndResizeIndicatorWindow(mouse.findMousePosition(),
+                indicatorRenderer.currentIndicator());
     }
 
-    private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
+    private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition, Indicator indicator) {
         Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
         double screenScale = activeScreen.scale();
-        int size = indicatorSize(screenScale);
-        int outlinePadding = indicatorOutlinePadding(screenScale);
-        indicatorWindow.widget.setOutlineScale(screenScale * zoomPercent());
-        int shadowPadding = indicatorShadowPadding(screenScale * zoomPercent());
-        // When switching from a shadow indicator to a no-shadow indicator, the window
-        // used to shrink dramatically (e.g., 62px to 26px).
-        // The DWM compositor shows the old window surface at the new smaller size for
-        // one frame before the new paint arrives, causing the indicator to appear
-        // mispositioned. By never shrinking, the window stays at 62px — no resize means
-        // no stale frame from the compositor.
-        // - The window is larger than needed when the current indicator has no shadow.
-        // The extra area is transparent and invisible.
-        // - The indicator position is unaffected: the window is at bestX - shadowPadding,
-        // the widget is at (shadowPadding, shadowPadding) within it, so the visible
-        // indicator is always at bestX regardless of how large the shadow padding is.
-        maxIndicatorShadowPadding = Math.max(maxIndicatorShadowPadding, shadowPadding);
-        shadowPadding = maxIndicatorShadowPadding;
-        int totalPadding = outlinePadding + shadowPadding;
-        int widgetSize = size + 2 * outlinePadding;
-        int windowSize = size + 2 * totalPadding;
+        double zoomPercent = zoomPercent();
+        int size = indicatorRenderer.indicatorSize(indicator, screenScale, zoomPercent);
+        int outlinePadding = indicatorRenderer.indicatorOutlinePadding(indicator, screenScale, zoomPercent);
+        int shadowPadding = indicatorRenderer.indicatorShadowPadding(indicator, screenScale * zoomPercent);
         int visualSize = size + 2 * outlinePadding;
-        Point topLeft = indicatorTopLeft(mousePosition, activeScreen, visualSize);
-        int indicatorX = (int) Math.round(topLeft.x());
-        int indicatorY = (int) Math.round(topLeft.y());
-        indicatorWindow.window.move(indicatorX - shadowPadding,
-                indicatorY - shadowPadding);
-        indicatorWindow.window.resize(windowSize, windowSize);
-        indicatorWindow.widget.move(shadowPadding, shadowPadding);
-        indicatorWindow.widget.resize(widgetSize, widgetSize);
-        indicatorWindow.labelWidget.move(shadowPadding, shadowPadding);
-        indicatorWindow.labelWidget.resize(widgetSize, widgetSize);
-        indicatorWindow.labelWidget.setIndicatorOutlinePadding(outlinePadding);
-        indicatorWindow.labelWidget.setLabelFontScale(zoomPercent());
-    }
-
-    private boolean indicatorHasTransparency() {
-        if (currentIndicator.opacity() < 1.0)
-            return true;
-        IndicatorOutline outer = currentIndicator.outerOutline();
-        IndicatorOutline inner = currentIndicator.innerOutline();
-        return (outer.thickness() > 0 && outer.opacity() < 1.0) ||
-               (inner.thickness() > 0 && inner.opacity() < 1.0);
-    }
-
-    private void setIndicatorEffectColors(IndicatorShadowEffect effect) {
-        IndicatorOutline outer = currentIndicator.outerOutline();
-        IndicatorOutline inner = currentIndicator.innerOutline();
-        effect.setColors(
-                QtColorUtil.qColor(currentIndicator.hexColor(), currentIndicator.opacity()),
-                QtColorUtil.qColor(outer.hexColor(), outer.opacity()),
-                QtColorUtil.qColor(inner.hexColor(), inner.opacity()));
-    }
-
-    private void applyIndicatorShadowEffect(double scale) {
-        Shadow shadow = currentIndicator.shadow();
-        QColor baseColor = QtColorUtil.qColor(shadow.hexColor(), 1.0);
-        boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
-        if (hasShadow) {
-            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget, this);
-            effect.setBlurRadius(shadow.blurRadius() * scale);
-            effect.setOffset(shadow.horizontalOffset() * scale,
-                    shadow.verticalOffset() * scale);
-            int alpha = (int) Math.round(shadow.opacity() * 255);
-            QColor shadowColor = new QColor(baseColor.red(), baseColor.green(),
-                    baseColor.blue(), alpha);
-            effect.setColor(shadowColor);
-            shadowColor.dispose();
-            effect.setStackCount(shadow.stackCount());
-            setIndicatorEffectColors(effect);
-            indicatorWindow.widget.customGraphicsEffect = effect;
-            indicatorWindow.widget.setGraphicsEffect(effect);
-        }
-        else if (indicatorHasTransparency()) {
-            IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget, this);
-            effect.setTransparencyOnly(true);
-            setIndicatorEffectColors(effect);
-            indicatorWindow.widget.customGraphicsEffect = effect;
-            indicatorWindow.widget.setGraphicsEffect(effect);
-        }
-        else {
-            indicatorWindow.widget.customGraphicsEffect = null;
-            indicatorWindow.widget.setGraphicsEffect(null);
-        }
-        baseColor.dispose();
+        Point topLeft = indicatorTopLeft(mousePosition, activeScreen, indicator, visualSize);
+        indicatorRenderer.moveAndResize((int) Math.round(topLeft.x()),
+                (int) Math.round(topLeft.y()), size, outlinePadding, shadowPadding,
+                screenScale * zoomPercent, zoomPercent);
     }
 
     private void createIndicatorWindow() {
-        TransparentWindow window = new TransparentWindow();
-        IndicatorWidget widget = new IndicatorWidget(window);
-        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
-        long currentStyle =
-                User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
-                               .longValue();
-        long newStyle = currentStyle | User32.WS_EX_TOPMOST |
-                        ExtendedUser32.WS_EX_NOACTIVATE |
-                        ExtendedUser32.WS_EX_TOOLWINDOW |
-                        ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
-        User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
-                new Pointer(newStyle));
-        // Label widget is a child of window (not widget) so it renders on top
-        // of the shadow effect and can clear/redraw the fill area.
-        IndicatorLabelWidget labelWidget = new IndicatorLabelWidget(window);
-        indicatorWindow = new IndicatorWindow(hwnd, window, widget, labelWidget);
-        WinDef.POINT mousePosition = mouse.findMousePosition();
-        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-        applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
+        indicatorRenderer = new IndicatorRenderer();
+        indicatorHwnd = new WinDef.HWND(new Pointer(indicatorRenderer.window().winId()));
+        applyOverlayExStyles(indicatorHwnd);
         updateZoomExcludedWindows();
     }
 
@@ -3061,7 +2226,7 @@ public class WindowsOverlay implements Overlay {
             }
             srcPainter.end();
             srcPainter.dispose();
-            ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
+            StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
                     boxShadow.blurRadius(), boxShadow.horizontalOffset(),
                     boxShadow.verticalOffset(), containerWidth, containerHeight);
             shadowColor.dispose();
@@ -3145,7 +2310,7 @@ public class WindowsOverlay implements Overlay {
         }
         srcPainter.end();
         srcPainter.dispose();
-        ShadowImage shadow = renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
+        StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
                 shadowStyle.shadowBlurRadius(), shadowStyle.shadowHorizontalOffset(),
                 shadowStyle.shadowVerticalOffset(), containerWidth, containerHeight);
         QImage shadowImage = StackedShadowEffect.bakeStacking(shadow.image(), shadowStyle.shadowStackCount());
@@ -3155,75 +2320,6 @@ public class WindowsOverlay implements Overlay {
         shadowImage.dispose();
     }
 
-    private record ShadowImage(QImage image, int x, int y) {
-    }
-
-    /**
-     * Applies a shadow effect to the source image, then subtracts the source
-     * pixels so only the shadow remains. Disposes the source image.
-     */
-    private static ShadowImage renderShadowOnly(
-            QImage sourceImage, QColor shadowColor, double blurRadius,
-            double horizontalOffset, double verticalOffset,
-            int containerWidth, int containerHeight) {
-        QGraphicsScene scene = new QGraphicsScene();
-        QPixmap sourcePixmap = QPixmap.fromImage(sourceImage);
-        QGraphicsPixmapItem item = scene.addPixmap(sourcePixmap);
-        StackedShadowEffect effect = new StackedShadowEffect();
-        effect.setBlurRadius(blurRadius);
-        effect.setOffset(horizontalOffset, verticalOffset);
-        effect.setColor(shadowColor);
-        effect.setStackCount(1);
-        item.setGraphicsEffect(effect);
-        QRectF bounds = scene.itemsBoundingRect();
-        int boundsX = (int) Math.floor(bounds.x());
-        int boundsY = (int) Math.floor(bounds.y());
-        int boundsW = (int) Math.ceil(bounds.x() + bounds.width()) - boundsX;
-        int boundsH = (int) Math.ceil(bounds.y() + bounds.height()) - boundsY;
-        bounds.dispose();
-        QRectF intBounds = new QRectF(boundsX, boundsY, boundsW, boundsH);
-        QImage resultImage = new QImage(boundsW, boundsH,
-                QImage.Format.Format_ARGB32_Premultiplied);
-        QColor fillColor = new QColor(0, 0, 0, 0);
-        resultImage.fill(fillColor);
-        fillColor.dispose();
-        QPainter resultPainter = new QPainter(resultImage);
-        QRect resultRect = resultImage.rect();
-        QRectF targetRect = new QRectF(resultRect);
-        scene.render(resultPainter, targetRect, intBounds);
-        resultRect.dispose();
-        targetRect.dispose();
-        intBounds.dispose();
-        resultPainter.end();
-        resultPainter.dispose();
-        scene.dispose();
-        sourcePixmap.dispose();
-        ByteBuffer combinedBuf = resultImage.bits();
-        ByteBuffer sourceBuf = sourceImage.bits();
-        int resultBytesPerLine = boundsW * 4;
-        int sourceBytesPerLine = containerWidth * 4;
-        int totalBytes = resultBytesPerLine * boundsH;
-        byte[] shadowBytes = new byte[totalBytes];
-        combinedBuf.get(0, shadowBytes, 0, totalBytes);
-        int srcOffX = -boundsX;
-        int srcOffY = -boundsY;
-        int overlapW = Math.min(containerWidth, boundsW - srcOffX);
-        int overlapH = Math.min(containerHeight, boundsH - srcOffY);
-        for (int py = 0; py < overlapH; py++) {
-            int resultRowStart = (py + srcOffY) * resultBytesPerLine + srcOffX * 4;
-            int sourceRowStart = py * sourceBytesPerLine;
-            for (int i = 0; i < overlapW * 4; i++) {
-                int c = shadowBytes[resultRowStart + i] & 0xFF;
-                int s = sourceBuf.get(sourceRowStart + i) & 0xFF;
-                shadowBytes[resultRowStart + i] = (byte) Math.max(0, c - s);
-            }
-        }
-        resultImage.dispose();
-        sourceImage.dispose();
-        QImage shadowImage = new QImage(shadowBytes, boundsW, boundsH,
-                QImage.Format.Format_ARGB32_Premultiplied);
-        return new ShadowImage(shadowImage, boundsX, boundsY);
-    }
 
 
 
@@ -3264,7 +2360,7 @@ public class WindowsOverlay implements Overlay {
             srcPainter.end();
             srcPainter.dispose();
             QColor shadowColor = new QColor(group.r(), group.g(), group.b(), group.a());
-            ShadowImage shadow = renderShadowOnly(sourceImage, shadowColor,
+            StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
                     group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
                     containerWidth, containerHeight);
             shadowColor.dispose();
@@ -3412,20 +2508,22 @@ public class WindowsOverlay implements Overlay {
             logger.warn("Unable to find mouse position for indicator");
             return;
         }
-        if (showingIndicator && currentIndicator != null &&
-            currentIndicator.equals(indicator))
+        boolean showing = indicatorRenderer != null && indicatorRenderer.showing();
+        Indicator oldIndicator = indicatorRenderer == null ? null
+                : indicatorRenderer.currentIndicator();
+        if (showing && oldIndicator != null && oldIndicator.equals(indicator))
             return;
-        boolean wasShowing = showingIndicator;
+        boolean wasShowing = showing;
         // If re-showing during a fade-out, cancel the fade-out.
-        if (indicatorFadeAnimator != null && indicatorFadeAnimator.isFadingOut()) {
-            indicatorFadeAnimator.cancelAndResetOpacity();
-        }
-        Indicator oldIndicator = currentIndicator;
-        currentIndicator = indicator;
-        boolean created = indicatorWindow == null;
-        boolean sizeOrShadowOrPositionChanged = false;
+        if (indicatorRenderer != null)
+            indicatorRenderer.cancelFadeOut();
+        boolean created = indicatorHwnd == null;
+        boolean applyShadow;
+        boolean sizeOrShadowOrPositionChanged;
         if (created) {
             createIndicatorWindow();
+            applyShadow = true;
+            sizeOrShadowOrPositionChanged = true;
         }
         else {
             boolean sizeOrShadowChanged = oldIndicator == null ||
@@ -3439,84 +2537,17 @@ public class WindowsOverlay implements Overlay {
                     indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity();
             boolean positionChanged = oldIndicator == null ||
                     indicator.position() != oldIndicator.position();
-            if (sizeOrShadowChanged) {
-                WinDef.POINT mousePosition = mouse.findMousePosition();
-                Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-                applyIndicatorShadowEffect(activeScreen.scale() * zoomPercent());
-            }
+            applyShadow = sizeOrShadowChanged;
             sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
         }
-        indicatorWindow.widget.cleared = false;
-        indicatorWindow.widget.setEdgeCount(indicator.edgeCount());
-        indicatorWindow.widget.setColor(indicator.opacity() > 0
-                ? new QColor(indicator.hexColor()) : new QColor(0, 0, 0, 0));
-        IndicatorOutline outer = indicator.outerOutline();
-        IndicatorOutline inner = indicator.innerOutline();
-        indicatorWindow.widget.setOutlines(
-                outer.thickness(),
-                outer.opacity() > 0 ? new QColor(outer.hexColor()) : new QColor(0, 0, 0, 0),
-                outer.fillPercent(),
-                outer.fillStartAngle(),
-                outer.fillDirection(),
-                inner.thickness(),
-                inner.opacity() > 0 ? new QColor(inner.hexColor()) : new QColor(0, 0, 0, 0),
-                inner.fillPercent(),
-                inner.fillStartAngle(),
-                inner.fillDirection());
-        if (indicatorWindow.widget.customGraphicsEffect != null) {
-            setIndicatorEffectColors(indicatorWindow.widget.customGraphicsEffect);
-        }
-        if (created || sizeOrShadowOrPositionChanged) {
-            moveAndResizeIndicatorWindow();
-        }
-        showingIndicator = true;
-        if (indicator.labelEnabled() && indicator.labelText() != null && indicator.labelFontStyle() != null) {
-            FontStyle labelFontStyle = indicator.labelFontStyle();
-            QFont labelFont = QtHintFont.qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
-            QColor labelColor = QtColorUtil.qColor(labelFontStyle.hexColor(), labelFontStyle.opacity());
-            QColor labelOutlineColor = QtColorUtil.qColor(labelFontStyle.outlineHexColor(), labelFontStyle.outlineOpacity());
-            indicatorWindow.labelWidget.setLabel(indicator.labelText(), labelFont, labelFontStyle.size(),
-                    labelColor,
-                    (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor,
-                    indicator.edgeCount());
-            Shadow labelShadow = labelFontStyle.shadow();
-            QColor labelShadowColor = QtColorUtil.qColor(labelShadow.hexColor(), labelShadow.opacity());
-            if (labelShadowColor.alpha() != 0) {
-                WinDef.POINT mousePosition = mouse.findMousePosition();
-                Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-                double labelShadowScale = activeScreen.scale() * zoomPercent();
-                StackedShadowEffect effect = new StackedShadowEffect();
-                effect.setBlurRadius(labelShadow.blurRadius() * labelShadowScale);
-                effect.setOffset(labelShadow.horizontalOffset() * labelShadowScale,
-                        labelShadow.verticalOffset() * labelShadowScale);
-                effect.setColor(labelShadowColor);
-                effect.setStackCount(labelShadow.stackCount());
-                indicatorWindow.labelWidget.setGraphicsEffect(effect);
-            }
-            else {
-                indicatorWindow.labelWidget.setGraphicsEffect(null);
-            }
-            labelShadowColor.dispose();
-            indicatorWindow.labelWidget.show();
-        }
-        else {
-            indicatorWindow.labelWidget.setLabel(null, null, 0, null, 0, null, 0);
-            indicatorWindow.labelWidget.setGraphicsEffect(null);
-            indicatorWindow.labelWidget.hide();
-        }
-        indicatorWindow.window.show();
-        indicatorWindow.widget.repaint();
-        if (!wasShowing) {
-            indicatorFadeAnimator = new FadeAnimator(
-                    opacity -> indicatorWindow.window.setWindowOpacity(opacity),
-                    this::doHideIndicator,
-                    fadeAnimationEnabled,
-                    fadeAnimationDuration);
-            if (allowFade && indicatorFadeAnimator.isEnabled()) {
-                indicatorWindow.window.setWindowOpacity(0.0);
-                indicatorFadeAnimator.startFadeIn();
-            }
-        }
+        WinDef.POINT mousePosition = mouse.findMousePosition();
+        // Position the (hidden) window before the renderer shows it.
+        if (created || sizeOrShadowOrPositionChanged)
+            moveAndResizeIndicatorWindow(mousePosition, indicator);
+        double shadowScale =
+                WindowsScreen.findActiveScreen(mousePosition).scale() * zoomPercent();
+        indicatorRenderer.setIndicator(indicator, applyShadow, shadowScale, wasShowing,
+                fadeAnimationEnabled, fadeAnimationDuration, allowFade);
     }
 
     private void createScreenshotWindow() {
@@ -3568,9 +2599,9 @@ public class WindowsOverlay implements Overlay {
                         standByZoomWindow.hostHwnd(),
                         ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         }
-        if (showingIndicator)
+        if (indicatorRenderer != null && indicatorRenderer.showing())
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    indicatorWindow.hwnd(),
+                    indicatorHwnd,
                     ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
@@ -3590,9 +2621,9 @@ public class WindowsOverlay implements Overlay {
                 ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
                         standByZoomWindow.hostHwnd(), ExtendedUser32.WDA_NONE);
         }
-        if (showingIndicator)
+        if (indicatorRenderer != null && indicatorRenderer.showing())
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    indicatorWindow.hwnd(), ExtendedUser32.WDA_NONE);
+                    indicatorHwnd, ExtendedUser32.WDA_NONE);
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
                     hintMeshWindow.hwnd(), ExtendedUser32.WDA_NONE);
@@ -3752,7 +2783,7 @@ public class WindowsOverlay implements Overlay {
         currentZoom = zoom;
         screenshotWidget.setZoom(zoom);
         screenshotWidget.repaint();
-        if (indicatorWindow != null)
+        if (indicatorHwnd != null)
             moveAndResizeIndicatorWindow();
         setTopmost();
     }
@@ -3844,7 +2875,7 @@ public class WindowsOverlay implements Overlay {
                     screenRectangle.width(), screenRectangle.height(),
                     User32.SWP_NOZORDER);
         }
-        if (indicatorWindow != null) {
+        if (indicatorHwnd != null) {
             moveAndResizeIndicatorWindow();
         }
         if (showingHintMesh) {
@@ -3864,8 +2895,8 @@ public class WindowsOverlay implements Overlay {
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
             hwnds.add(hintMeshWindow.hwnd);
         }
-        if (indicatorWindow != null)
-            hwnds.add(indicatorWindow.hwnd);
+        if (indicatorHwnd != null)
+            hwnds.add(indicatorHwnd);
         if (standByZoomWindow != null)
             hwnds.add(standByZoomWindow.hwnd);
         if (screenshotHwnd != null)
@@ -3897,23 +2928,8 @@ public class WindowsOverlay implements Overlay {
 
     @Override
     public void hideIndicator(boolean allowFade) {
-        if (!showingIndicator)
-            return;
-        if (allowFade && indicatorFadeAnimator != null &&
-            indicatorFadeAnimator.shouldDeferHide())
-            return;
-        doHideIndicator();
-    }
-
-    private void doHideIndicator() {
-        showingIndicator = false;
-        if (indicatorFadeAnimator != null)
-            indicatorFadeAnimator.cancel();
-        // Paint the surface fully transparent before hiding.
-        indicatorWindow.widget.cleared = true;
-        indicatorWindow.widget.repaint();
-        indicatorWindow.window.hide();
-        indicatorWindow.window.setWindowOpacity(1.0);
+        if (indicatorRenderer != null)
+            indicatorRenderer.hide(allowFade);
     }
 
     @Override
@@ -4093,7 +3109,7 @@ public class WindowsOverlay implements Overlay {
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {
-        if (indicatorWindow == null)
+        if (indicatorHwnd == null)
              return;
         // During zoom, currentZoom still has the previous frame's zoom center
         // (it will be updated right after by ZoomManager in WindowsPlatform.sleep).
@@ -4101,7 +3117,7 @@ public class WindowsOverlay implements Overlay {
         // mispositioning until setZoom() corrects it.
         if (currentZoom != null)
             return;
-        moveAndResizeIndicatorWindow(mousePosition);
+        moveAndResizeIndicatorWindow(mousePosition, indicatorRenderer.currentIndicator());
     }
 
 }
