@@ -19,6 +19,7 @@ import mousemaster.qt.FadeAnimator;
 import mousemaster.qt.GridRenderer;
 import mousemaster.qt.IndicatorRenderer;
 import mousemaster.qt.QtColorUtil;
+import mousemaster.qt.ScreenshotWidget;
 import mousemaster.qt.StackedShadowEffect;
 import mousemaster.qt.QtFontStyle;
 import mousemaster.qt.QtHintFont;
@@ -279,49 +280,6 @@ public class WindowsOverlay implements Overlay {
 
     private record ZoomWindow(WinDef.HWND hwnd, WinDef.HWND hostHwnd, WinUser.WindowProc callback) {
 
-    }
-
-    private class ScreenshotWidget extends QWidget {
-        private QPixmap pixmap;
-        private Zoom zoom;
-        private Rectangle screenRect;
-
-        ScreenshotWidget() {
-            setWindowFlags(Qt.WindowType.FramelessWindowHint);
-            setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
-        }
-
-        void setScreenshot(QPixmap pixmap, Rectangle screenRect) {
-            this.pixmap = pixmap;
-            this.screenRect = screenRect;
-        }
-
-        void setZoom(Zoom zoom) {
-            this.zoom = zoom;
-        }
-
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            if (pixmap == null || zoom == null)
-                return;
-            double zoomPercent = zoom.percent();
-            double localCenterX = zoom.center().x() - screenRect.x();
-            double localCenterY = zoom.center().y() - screenRect.y();
-            double sourceWidth = screenRect.width() / zoomPercent;
-            double sourceHeight = screenRect.height() / zoomPercent;
-            double sourceX = localCenterX - sourceWidth / 2;
-            double sourceY = localCenterY - sourceHeight / 2;
-            QPainter painter = new QPainter(this);
-            painter.fillRect(0, 0, width(), height(), new QColor(0, 0, 0));
-            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
-            QRectF sourceRect = new QRectF(sourceX, sourceY, sourceWidth, sourceHeight);
-            QRectF targetRect = new QRectF(0, 0, width(), height());
-            painter.drawPixmap(targetRect, pixmap, sourceRect);
-            sourceRect.dispose();
-            targetRect.dispose();
-            painter.end();
-            painter.dispose();
-        }
     }
 
     private double zoomedX(double x) {
@@ -1881,10 +1839,6 @@ public class WindowsOverlay implements Overlay {
         }
 
     }
-
-
-
-
 
     public static class HintLabel {
 
