@@ -16,6 +16,10 @@ import io.qt.widgets.QGraphicsScene;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
 import mousemaster.qt.FadeAnimator;
+import mousemaster.qt.QtColorUtil;
+import mousemaster.qt.QtFontStyle;
+import mousemaster.qt.QtHintFont;
+import mousemaster.qt.QtHintFontStyle;
 import mousemaster.qt.TransparentWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1360,44 +1364,18 @@ public class WindowsOverlay implements Overlay {
                (inner.thickness() > 0 && inner.opacity() < 1.0);
     }
 
-    private boolean qtFontStyleHasTransparency(QtFontStyle qtFontStyle) {
-        if (qtFontStyle.outlineThickness() != 0 &&
-            qtFontStyle.outlineColor().alpha() < 255 &&
-            // 0 means outline will not be rendered.
-            qtFontStyle.outlineColor().alpha() != 0)
-            return true;
-        if (qtFontStyle.color().alpha() < 255 && qtFontStyle.color().alpha() != 0)
-            return true;
-        return false;
-    }
-
-    private boolean qtHintFontStyleHasTransparency(QtHintFontStyle style,
-                                                          boolean hasSelectedKeys) {
-        if (qtFontStyleHasTransparency(style.defaultStyle()) ||
-               (hasSelectedKeys && qtFontStyleHasTransparency(style.selectedStyle())) ||
-               qtFontStyleHasTransparency(style.focusedStyle()))
-            return true;
-        if (style.prefixDefaultStyle() != null) {
-            if (qtFontStyleHasTransparency(style.prefixDefaultStyle()) ||
-                   (hasSelectedKeys && qtFontStyleHasTransparency(style.prefixSelectedStyle())) ||
-                   qtFontStyleHasTransparency(style.prefixFocusedStyle()))
-                return true;
-        }
-        return false;
-    }
-
     private void setIndicatorEffectColors(IndicatorShadowEffect effect) {
         IndicatorOutline outer = currentIndicator.outerOutline();
         IndicatorOutline inner = currentIndicator.innerOutline();
         effect.setColors(
-                qColor(currentIndicator.hexColor(), currentIndicator.opacity()),
-                qColor(outer.hexColor(), outer.opacity()),
-                qColor(inner.hexColor(), inner.opacity()));
+                QtColorUtil.qColor(currentIndicator.hexColor(), currentIndicator.opacity()),
+                QtColorUtil.qColor(outer.hexColor(), outer.opacity()),
+                QtColorUtil.qColor(inner.hexColor(), inner.opacity()));
     }
 
     private void applyIndicatorShadowEffect(double scale) {
         Shadow shadow = currentIndicator.shadow();
-        QColor baseColor = qColor(shadow.hexColor(), 1.0);
+        QColor baseColor = QtColorUtil.qColor(shadow.hexColor(), 1.0);
         boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
         if (hasShadow) {
             IndicatorShadowEffect effect = new IndicatorShadowEffect(indicatorWindow.widget, this);
@@ -1663,7 +1641,7 @@ public class WindowsOverlay implements Overlay {
         // Compute background color for both the window and the container clear.
         Rectangle backgroundArea = hintMesh.backgroundArea();
         QColor backgroundColor = backgroundArea != null && style.backgroundOpacity() > 0 ?
-                qColor(style.backgroundHexColor(), style.backgroundOpacity()) : null;
+                QtColorUtil.qColor(style.backgroundHexColor(), style.backgroundOpacity()) : null;
         if (backgroundColor != null) {
             // Set background on the window itself (painted before child containers,
             // covers the area outside the container).
@@ -2023,12 +2001,12 @@ public class WindowsOverlay implements Overlay {
         // Background prefix is on a different layer.
         boolean hasForegroundPrefixKeys = !style.prefixInBackground() && hintMesh.prefixLength() != -1;
         HintFontStyle prefixFontStyle = hasForegroundPrefixKeys ? style.prefixFontStyle() : null;
-        QtHintFontStyle labelFontStyle = buildQtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale, hasSelectedKeys);
-        QColor boxColor = qColor(style.boxHexColor(), style.boxOpacity());
-        QColor boxBorderColor = qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
-        QColor prefixBoxBorderColor = qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
-        QColor subgridBoxColor = qColor("#000000", 0);
-        QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
+        QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale, hasSelectedKeys);
+        QColor boxColor = QtColorUtil.qColor(style.boxHexColor(), style.boxOpacity());
+        QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
+        QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
+        QColor subgridBoxColor = QtColorUtil.qColor("#000000", 0);
+        QColor subgridBoxBorderColor = QtColorUtil.qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
         int subgridBorderThicknessPx = (int) Math.round(style.subgridBorderThickness());
         int subgridBorderLengthPx = (int) Math.round(style.subgridBorderLength());
@@ -2036,9 +2014,9 @@ public class WindowsOverlay implements Overlay {
         QColor subgridLabelColor = null;
         if (hintMesh.subgrid() != null) {
             FontStyle subgridFont = style.subgridFontStyle().defaultFontStyle();
-            subgridLabelFont = qFont(subgridFont.name(),
+            subgridLabelFont = QtHintFont.qFont(subgridFont.name(),
                     subgridFont.size(), subgridFont.weight());
-            subgridLabelColor = qColor(subgridFont.hexColor(), subgridFont.opacity());
+            subgridLabelColor = QtColorUtil.qColor(subgridFont.hexColor(), subgridFont.opacity());
         }
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         Map<String, Integer> xAdvancesByString = new HashMap<>();
@@ -2235,7 +2213,7 @@ public class WindowsOverlay implements Overlay {
             HintBox prefixHintBox =
                     new HintBox(null, (int) Math.round(style.prefixBoxBorderLength()),
                             prefixBoxBorderThickness,
-                            qColor("#000000", 0),
+                            QtColorUtil.qColor("#000000", 0),
                             prefixBoxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
@@ -2250,7 +2228,7 @@ public class WindowsOverlay implements Overlay {
         }
         QtHintFontStyle prefixQtHintFontStyle = null;
         if (style.prefixInBackground()) {
-            prefixQtHintFontStyle = buildQtHintFontStyle(style.prefixFontStyle(), null, screenScale, hasSelectedKeys);
+            prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale, hasSelectedKeys);
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;
             for (List<Key> prefix : hintGroupByPrefix.keySet()) {
@@ -2420,77 +2398,7 @@ public class WindowsOverlay implements Overlay {
      */
     @Override
     public void preWarmFontStyles(Set<HintMeshConfiguration> hintMeshConfigurations) {
-        long before = System.nanoTime();
-        Set<HintFontStyle> fontStyles = new HashSet<>();
-        for (HintMeshConfiguration hintMeshConfiguration : hintMeshConfigurations) {
-            for (HintMeshStyle style : hintMeshConfiguration.styleByFilter().map().values()) {
-                fontStyles.add(style.fontStyle());
-                fontStyles.add(style.prefixFontStyle());
-            }
-        }
-        for (HintFontStyle hintFontStyle : fontStyles) {
-            QFont font = qFont(hintFontStyle.defaultFontStyle().name(), hintFontStyle.defaultFontStyle().size(), hintFontStyle.defaultFontStyle().weight());
-            QFontMetrics fontMetrics = new QFontMetrics(font);
-            fontMetrics.horizontalAdvance("x");
-            fontMetrics.dispose();
-            font.dispose();
-            if (!fontShapeEquals(hintFontStyle.defaultFontStyle(), hintFontStyle.selectedFontStyle())) {
-                QFont selectedFont = qFont(hintFontStyle.selectedFontStyle().name(), hintFontStyle.selectedFontStyle().size(), hintFontStyle.selectedFontStyle().weight());
-                QFontMetrics selectedFontMetrics = new QFontMetrics(selectedFont);
-                selectedFontMetrics.horizontalAdvance("x");
-                selectedFontMetrics.dispose();
-                selectedFont.dispose();
-            }
-            if (!fontShapeEquals(hintFontStyle.defaultFontStyle(), hintFontStyle.focusedFontStyle())) {
-                QFont focusedFont = qFont(hintFontStyle.focusedFontStyle().name(), hintFontStyle.focusedFontStyle().size(), hintFontStyle.focusedFontStyle().weight());
-                QFontMetrics focusedFontMetrics = new QFontMetrics(focusedFont);
-                focusedFontMetrics.horizontalAdvance("x");
-                focusedFontMetrics.dispose();
-                focusedFont.dispose();
-            }
-        }
-        logger.debug("Pre-warmed " + fontStyles.size() + " hint font styles in " +
-                (long) ((System.nanoTime() - before) / 1e6) + "ms");
-    }
-
-    private QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
-        QFont font = new QFont(fontName, (int) Math.round(fontSize),
-                fontWeight.qtWeight().value());
-        font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
-        font.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
-        return font;
-    }
-
-    /**
-     * GDI renders text at the monitor's actual DPI, but QFontMetrics uses Qt's
-     * logical DPI (the primary screen's DPI when QT_ENABLE_HIGHDPI_SCALING=0).
-     * On multi-monitor setups with different scales, create a pixel-size font
-     * for metrics so they match the actual GDI rendering on the target screen.
-     *
-     * Note: we use the primary screen's DPI rather than window.logicalDpiX()
-     * because QFontMetrics always resolves point-size fonts using the primary
-     * screen's DPI, but window.logicalDpiX() can change after the window is
-     * shown on a non-primary screen (Qt detects the monitor DPI), creating a
-     * false "no correction needed" match on subsequent calls.
-     */
-    private QFontMetrics correctedFontMetricsForScreenDpi(QFont renderFont, double fontSizePoints,
-                                                double screenScale) {
-        double primaryScreenDpi = QApplication.primaryScreen().logicalDotsPerInchX();
-        double targetDpi = screenScale * 96.0;
-        if (Math.abs(primaryScreenDpi - targetDpi) < 1) {
-            // QFontMetrics already matches the target DPI, no correction needed.
-            return new QFontMetrics(renderFont);
-        }
-        // Create a metrics-only font with the pixel size that GDI will use.
-        int correctedPixelSize = (int) Math.round(fontSizePoints * targetDpi / 72.0);
-        QFont metricsFont = new QFont(renderFont.family());
-        metricsFont.setPixelSize(correctedPixelSize);
-        metricsFont.setWeight(renderFont.weight());
-        metricsFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
-        metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
-        QFontMetrics metrics = new QFontMetrics(metricsFont);
-        metricsFont.dispose();
-        return metrics;
+        QtHintFont.preWarm(hintMeshConfigurations);
     }
 
     /**
@@ -2998,136 +2906,9 @@ public class WindowsOverlay implements Overlay {
 
     }
 
-    private QColor qColor(String hexColor, double opacity) {
-        return QColor.fromRgba(hexColorStringToRgba(hexColor, opacity));
-    }
-
-    private QColor shadowColor(Shadow shadow) {
-        return qColor(shadow.hexColor(), shadow.opacity());
-    }
-
-    private QtFontStyle buildQtFontStyle(FontStyle fs, QFont font,
-                                                            QFontMetrics metrics,
-                                                            double screenScale) {
-        return new QtFontStyle(
-                font, metrics,
-                qColor(fs.hexColor(), fs.opacity()),
-                qColor(fs.outlineHexColor(), fs.outlineOpacity()),
-                (int) Math.round(fs.outlineThickness() * screenScale),
-                shadowColor(fs.shadow()),
-                fs.shadow().stackCount(),
-                fs.shadow().blurRadius() * screenScale,
-                fs.shadow().horizontalOffset() * screenScale,
-                fs.shadow().verticalOffset() * screenScale
-        );
-    }
-
-    /**
-     * Returns true if the two shadows differ and at least one has non-zero opacity.
-     * When both are zero-opacity neither renders, so no per-key processing is needed.
-     * When one is zero and the other is not, per-key processing is needed to exclude
-     * the zero-opacity keys from the other's shadow.
-     */
-    private boolean shadowsNeedPerKeyProcessing(Shadow a, Shadow b) {
-        return (a.opacity() != 0 || b.opacity() != 0) && !a.equals(b);
-    }
-
-    private boolean fontShapeEquals(FontStyle a, FontStyle b) {
-        return a.name().equals(b.name()) &&
-               a.weight() == b.weight() &&
-               Double.compare(a.size(), b.size()) == 0;
-    }
 
 
-    private QtHintFontStyle buildQtHintFontStyle(HintFontStyle hintFontStyle,
-                                                       HintFontStyle prefixHintFontStyle,
-                                                       double screenScale,
-                                                       boolean hasSelectedKeys) {
-        FontStyle defaultFontStyle = hintFontStyle.defaultFontStyle();
-        FontStyle selectedFontStyle = hintFontStyle.selectedFontStyle();
-        FontStyle focusedFontStyle = hintFontStyle.focusedFontStyle();
-        boolean perKeyFont = (hasSelectedKeys && !fontShapeEquals(defaultFontStyle, selectedFontStyle)) ||
-                             !fontShapeEquals(defaultFontStyle, focusedFontStyle);
-        if (prefixHintFontStyle != null) {
-            perKeyFont = perKeyFont ||
-                         !fontShapeEquals(defaultFontStyle, prefixHintFontStyle.defaultFontStyle()) ||
-                         (hasSelectedKeys && !fontShapeEquals(defaultFontStyle, prefixHintFontStyle.selectedFontStyle())) ||
-                         !fontShapeEquals(defaultFontStyle, prefixHintFontStyle.focusedFontStyle());
-        }
-        Shadow defaultShadow = defaultFontStyle.shadow();
-        boolean perKeyShadow =
-                (hasSelectedKeys && shadowsNeedPerKeyProcessing(defaultShadow, selectedFontStyle.shadow())) ||
-                shadowsNeedPerKeyProcessing(defaultShadow, focusedFontStyle.shadow());
-        if (prefixHintFontStyle != null) {
-            perKeyShadow = perKeyShadow ||
-                           shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.defaultFontStyle().shadow()) ||
-                           (hasSelectedKeys && shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.selectedFontStyle().shadow())) ||
-                           shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.focusedFontStyle().shadow());
-        }
-        QFont defaultFont = qFont(defaultFontStyle.name(), defaultFontStyle.size(), defaultFontStyle.weight());
-        QFontMetrics defaultMetrics = correctedFontMetricsForScreenDpi(defaultFont, defaultFontStyle.size(), screenScale);
-        QtFontStyle defaultQtFontStyle = buildQtFontStyle(defaultFontStyle, defaultFont, defaultMetrics, screenScale);
-        QtFontStyle selectedQtFontStyle;
-        QtFontStyle focusedQtFontStyle;
-        if (perKeyFont) {
-            QFont selectedFont = qFont(selectedFontStyle.name(), selectedFontStyle.size(), selectedFontStyle.weight());
-            QFontMetrics selectedMetrics = correctedFontMetricsForScreenDpi(selectedFont, selectedFontStyle.size(), screenScale);
-            selectedQtFontStyle = buildQtFontStyle(selectedFontStyle, selectedFont, selectedMetrics, screenScale);
-            QFont focusedFont = qFont(focusedFontStyle.name(), focusedFontStyle.size(), focusedFontStyle.weight());
-            QFontMetrics focusedMetrics = correctedFontMetricsForScreenDpi(focusedFont, focusedFontStyle.size(), screenScale);
-            focusedQtFontStyle = buildQtFontStyle(focusedFontStyle, focusedFont, focusedMetrics, screenScale);
-        }
-        else {
-            selectedQtFontStyle = buildQtFontStyle(selectedFontStyle, defaultFont, defaultMetrics, screenScale);
-            focusedQtFontStyle = buildQtFontStyle(focusedFontStyle, defaultFont, defaultMetrics, screenScale);
-        }
-        QtFontStyle prefixDefaultQtFontStyle = null;
-        QtFontStyle prefixSelectedQtFontStyle = null;
-        QtFontStyle prefixFocusedQtFontStyle = null;
-        if (prefixHintFontStyle != null) {
-            FontStyle prefixDefaultFs = prefixHintFontStyle.defaultFontStyle();
-            FontStyle prefixSelectedFs = prefixHintFontStyle.selectedFontStyle();
-            FontStyle prefixFocusedFs = prefixHintFontStyle.focusedFontStyle();
-            if (perKeyFont) {
-                QFont prefixDefaultFont = qFont(prefixDefaultFs.name(), prefixDefaultFs.size(), prefixDefaultFs.weight());
-                QFontMetrics prefixDefaultMetrics = correctedFontMetricsForScreenDpi(prefixDefaultFont, prefixDefaultFs.size(), screenScale);
-                prefixDefaultQtFontStyle = buildQtFontStyle(prefixDefaultFs, prefixDefaultFont, prefixDefaultMetrics, screenScale);
-                QFont prefixSelectedFont = qFont(prefixSelectedFs.name(), prefixSelectedFs.size(), prefixSelectedFs.weight());
-                QFontMetrics prefixSelectedMetrics = correctedFontMetricsForScreenDpi(prefixSelectedFont, prefixSelectedFs.size(), screenScale);
-                prefixSelectedQtFontStyle = buildQtFontStyle(prefixSelectedFs, prefixSelectedFont, prefixSelectedMetrics, screenScale);
-                QFont prefixFocusedFont = qFont(prefixFocusedFs.name(), prefixFocusedFs.size(), prefixFocusedFs.weight());
-                QFontMetrics prefixFocusedMetrics = correctedFontMetricsForScreenDpi(prefixFocusedFont, prefixFocusedFs.size(), screenScale);
-                prefixFocusedQtFontStyle = buildQtFontStyle(prefixFocusedFs, prefixFocusedFont, prefixFocusedMetrics, screenScale);
-            }
-            else {
-                prefixDefaultQtFontStyle = buildQtFontStyle(prefixDefaultFs, defaultFont, defaultMetrics, screenScale);
-                prefixSelectedQtFontStyle = buildQtFontStyle(prefixSelectedFs, defaultFont, defaultMetrics, screenScale);
-                prefixFocusedQtFontStyle = buildQtFontStyle(prefixFocusedFs, defaultFont, defaultMetrics, screenScale);
-            }
-        }
-        return new QtHintFontStyle(defaultQtFontStyle, selectedQtFontStyle, focusedQtFontStyle,
-                prefixDefaultQtFontStyle, prefixSelectedQtFontStyle, prefixFocusedQtFontStyle,
-                perKeyFont, perKeyShadow, hintFontStyle.spacingPercent());
-    }
 
-    record QtFontStyle(QFont font, QFontMetrics metrics,
-                             QColor color,
-                             QColor outlineColor, int outlineThickness,
-                             QColor shadowColor, int shadowStackCount,
-                             double shadowBlurRadius,
-                             double shadowHorizontalOffset, double shadowVerticalOffset) {
-    }
-
-    public record QtHintFontStyle(QtFontStyle defaultStyle,
-                                        QtFontStyle selectedStyle,
-                                        QtFontStyle focusedStyle,
-                                        QtFontStyle prefixDefaultStyle,
-                                        QtFontStyle prefixSelectedStyle,
-                                        QtFontStyle prefixFocusedStyle,
-                                        boolean perKeyFont,
-                                        boolean perKeyShadow,
-                                        double fontSpacingPercent) {
-    }
 
     public static class HintLabel {
 
@@ -3434,7 +3215,7 @@ public class WindowsOverlay implements Overlay {
                                        int boxBorderThickness,
                                        int containerWidth,
                                        int containerHeight) {
-        QColor shadowColor = shadowColor(boxShadow);
+        QColor shadowColor = QtColorUtil.shadow(boxShadow);
         if (shadowColor.alpha() == 0) {
             shadowColor.dispose();
             return;
@@ -3504,7 +3285,7 @@ public class WindowsOverlay implements Overlay {
         QtFontStyle defaultStyle = style.defaultStyle();
         if (defaultStyle.shadowColor().alpha() == 0)
             return;
-        if (!qtHintFontStyleHasTransparency(style, hasSelectedKeys) &&
+        if (!style.hasTransparency(hasSelectedKeys) &&
             defaultStyle.shadowStackCount() == 1) {
             logger.debug("Hint label shadow: opaque text, applying effect directly");
             StackedShadowEffect effect = new StackedShadowEffect();
@@ -3806,71 +3587,8 @@ public class WindowsOverlay implements Overlay {
      * We want the hint text to be antialiased with the effective color of the hint box
      * when the (transparent) hint box is above a white background.
      */
-    public static String blendColorOverWhite(String hexColor, double opacity) {
-        if (hexColor.startsWith("#"))
-            hexColor = hexColor.substring(1);
-        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
-        int inputRed = (colorInt >> 16) & 0xFF;
-        int inputGreen = (colorInt >> 8) & 0xFF;
-        int inputBlue = colorInt & 0xFF;
-        int whiteRed = 255;
-        int whiteGreen = 255;
-        int whiteBlue = 255;
-        int blendedRed = (int) Math.round((inputRed * opacity) + (whiteRed * (1 - opacity)));
-        int blendedGreen = (int) Math.round((inputGreen * opacity) + (whiteGreen * (1 - opacity)));
-        int blendedBlue = (int) Math.round((inputBlue * opacity) + (whiteBlue * (1 - opacity)));
-        return String.format("%02X%02X%02X", blendedRed, blendedGreen, blendedBlue);
-    }
-
-    // color1 is background, color2 is foreground
-    private int blend(int color1, int color2, double color2Opacity) {
-        int red1 = (color1 >> 16) & 0xFF;
-        int green1 = (color1 >> 8) & 0xFF;
-        int blue1 = color1 & 0xFF;
-        int red2 = (color2 >> 16) & 0xFF;
-        int green2 = (color2 >> 8) & 0xFF;
-        int blue2 = color2 & 0xFF;
-        int blendedRed = (int) Math.round((red2 * color2Opacity) + (red1 * (1 - color2Opacity)));
-        int blendedGreen = (int) Math.round((green2 * color2Opacity) + (green1 * (1 - color2Opacity)));
-        int blendedBlue = (int) Math.round((blue2 * color2Opacity) + (blue1 * (1 - color2Opacity)));
-        return (blendedRed << 16) | (blendedGreen << 8) | blendedBlue;
-    }
-
     private record HintSequenceText(Hint hint, List<HintKeyText> keyTexts) {
 
-    }
-
-    private int hexColorStringToRgba(String hexColor, double opacity) {
-        if (hexColor.startsWith("#"))
-            hexColor = hexColor.substring(1);
-        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
-        int red = (colorInt >> 16) & 0xFF;
-        int green = (colorInt >> 8) & 0xFF;
-        int blue = colorInt & 0xFF;
-        int alpha = opacity > 0 ? Math.max(1, (int) (opacity * 255) & 0xFF) : 0;
-        return (alpha << 24) | (red << 16) | (green << 8) | blue;
-    }
-
-    private int hexColorStringToRgb(String hexColor, double opacity) {
-        // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-blendfunction
-        // Note that the APIs use premultiplied alpha, which means that the red, green
-        // and blue channel values in the bitmap must be premultiplied with the alpha channel value.
-        if (hexColor.startsWith("#"))
-            hexColor = hexColor.substring(1);
-        int colorInt = Integer.parseUnsignedInt(hexColor, 16);
-        // In COLORREF, the order is 0x00BBGGRR, so we need to reorder the components.
-        int red = (int) (((colorInt >> 16) & 0xFF) * opacity);
-        int green = (int) (((colorInt >> 8) & 0xFF) * opacity);
-        int blue = (int) ((colorInt & 0xFF) * opacity);
-        return (red << 16) | (green << 8) | blue;
-    }
-
-    private int alphaMultipliedChannelsColor(int color, double opacity) {
-        int red = (color >> 16) & 0xFF;
-        int green = (color >> 8) & 0xFF;
-        int blue = color & 0xFF;
-        return ((int) Math.round(red * opacity) << 16) | ((int) Math.round(green * opacity) << 8) |
-               (int) Math.round(blue * opacity);
     }
 
     @Override
@@ -3943,15 +3661,15 @@ public class WindowsOverlay implements Overlay {
         showingIndicator = true;
         if (indicator.labelEnabled() && indicator.labelText() != null && indicator.labelFontStyle() != null) {
             FontStyle labelFontStyle = indicator.labelFontStyle();
-            QFont labelFont = qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
-            QColor labelColor = qColor(labelFontStyle.hexColor(), labelFontStyle.opacity());
-            QColor labelOutlineColor = qColor(labelFontStyle.outlineHexColor(), labelFontStyle.outlineOpacity());
+            QFont labelFont = QtHintFont.qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
+            QColor labelColor = QtColorUtil.qColor(labelFontStyle.hexColor(), labelFontStyle.opacity());
+            QColor labelOutlineColor = QtColorUtil.qColor(labelFontStyle.outlineHexColor(), labelFontStyle.outlineOpacity());
             indicatorWindow.labelWidget.setLabel(indicator.labelText(), labelFont, labelFontStyle.size(),
                     labelColor,
                     (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor,
                     indicator.edgeCount());
             Shadow labelShadow = labelFontStyle.shadow();
-            QColor labelShadowColor = qColor(labelShadow.hexColor(), labelShadow.opacity());
+            QColor labelShadowColor = QtColorUtil.qColor(labelShadow.hexColor(), labelShadow.opacity());
             if (labelShadowColor.alpha() != 0) {
                 WinDef.POINT mousePosition = mouse.findMousePosition();
                 Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
@@ -4406,9 +4124,9 @@ public class WindowsOverlay implements Overlay {
             gridWindow.widget.coverVirtualDesktop(virtualDesktopBounds());
         showingGrid = true;
         QColor background = currentGrid.backgroundOpacity() > 0 ?
-                qColor(currentGrid.backgroundHexColor(), currentGrid.backgroundOpacity()) : null;
+                QtColorUtil.qColor(currentGrid.backgroundHexColor(), currentGrid.backgroundOpacity()) : null;
         gridWindow.widget.showGrid(currentGrid, scaledPixels(currentGrid.lineThickness(), 1),
-                qColor(currentGrid.lineHexColor(), currentGrid.lineOpacity()), background,
+                QtColorUtil.qColor(currentGrid.lineHexColor(), currentGrid.lineOpacity()), background,
                 currentGrid.transitionAnimationEnabled() && wasShowing,
                 currentGrid.transitionAnimationDuration());
         if (!wasShowing) {
