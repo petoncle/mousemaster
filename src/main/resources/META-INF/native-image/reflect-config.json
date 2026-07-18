@@ -948,7 +948,7 @@
   "fields":[{"name":"arg$1"}]
 },
 {
-  "name":"mousemaster.qt.GridRenderer$GridWidget",
+  "name":"mousemaster.renderer.GridRenderer$GridWidget",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
@@ -956,13 +956,13 @@
   "methods":[{"name":"lambda$animateDrawRect$65642449$1","parameterTypes":["java.lang.Object"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
-  "name":"mousemaster.qt.GridRenderer$GridWidget$1"
+  "name":"mousemaster.renderer.GridRenderer$GridWidget$1"
 },
 {
-  "name":"mousemaster.qt.GridRenderer$GridWidget$WhenMappings"
+  "name":"mousemaster.renderer.GridRenderer$GridWidget$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$ClearBackgroundQLabel",
+  "name":"mousemaster.renderer.HintMeshRenderer$ClearBackgroundQLabel",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
@@ -970,47 +970,47 @@
   "methods":[{"name":"clearColor","parameterTypes":[] }, {"name":"getClearColor","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$ClearBackgroundQLabel$1"
+  "name":"mousemaster.renderer.HintMeshRenderer$ClearBackgroundQLabel$1"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$ClearBackgroundQLabel$WhenMappings"
+  "name":"mousemaster.renderer.HintMeshRenderer$ClearBackgroundQLabel$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintBox",
+  "name":"mousemaster.renderer.HintMeshRenderer$HintBox",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
   "queryAllDeclaredConstructors":true
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintBox$1"
+  "name":"mousemaster.renderer.HintMeshRenderer$HintBox$1"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintBox$WhenMappings"
+  "name":"mousemaster.renderer.HintMeshRenderer$HintBox$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintContainerAnimationChanged",
+  "name":"mousemaster.renderer.HintMeshRenderer$HintContainerAnimationChanged",
   "fields":[{"name":"arg$1"}]
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintContainerAnimationFinished",
+  "name":"mousemaster.renderer.HintMeshRenderer$HintContainerAnimationFinished",
   "fields":[{"name":"arg$1"}]
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintLabel",
+  "name":"mousemaster.renderer.HintMeshRenderer$HintLabel",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
   "queryAllDeclaredConstructors":true
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintLabel$1"
+  "name":"mousemaster.renderer.HintMeshRenderer$HintLabel$1"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintLabel$WhenMappings"
+  "name":"mousemaster.renderer.HintMeshRenderer$HintLabel$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintPaintLayer",
+  "name":"mousemaster.renderer.HintMeshRenderer$HintPaintLayer",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
@@ -1018,13 +1018,13 @@
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintPaintLayer$1"
+  "name":"mousemaster.renderer.HintMeshRenderer$HintPaintLayer$1"
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintPaintLayer$WhenMappings"
+  "name":"mousemaster.renderer.HintMeshRenderer$HintPaintLayer$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorLabelWidget",
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
@@ -1032,13 +1032,13 @@
   "methods":[{"name":"getIndicatorOutlinePadding","parameterTypes":[] }, {"name":"getLabelFontScale","parameterTypes":[] }, {"name":"indicatorOutlinePadding","parameterTypes":[] }, {"name":"labelFontScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorLabelWidget$1"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget$1"
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorLabelWidget$WhenMappings"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorShadowEffect",
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
@@ -1046,13 +1046,13 @@
   "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorShadowEffect$1"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$1"
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorShadowEffect$WhenMappings"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$WhenMappings"
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorWidget",
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorWidget",
   "allDeclaredFields":true,
   "allDeclaredClasses":true,
   "queryAllDeclaredMethods":true,
@@ -1060,10 +1060,10 @@
   "methods":[{"name":"color","parameterTypes":[] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"getColor","parameterTypes":[] }, {"name":"getEdgeCount","parameterTypes":[] }, {"name":"getOutlineScale","parameterTypes":[] }, {"name":"outlineScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorWidget$1"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorWidget$1"
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorWidget$WhenMappings"
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorWidget$WhenMappings"
 },
 {
   "name":"mousemaster.qt.QtJambi_LibraryUtilities"

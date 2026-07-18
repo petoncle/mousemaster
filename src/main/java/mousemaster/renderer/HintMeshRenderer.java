@@ -1,4 +1,6 @@
-package mousemaster.qt;
+package mousemaster.renderer;
+
+import mousemaster.qt.*;
 
 import io.qt.core.*;
 import io.qt.gui.*;

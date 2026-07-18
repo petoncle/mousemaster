@@ -787,27 +787,27 @@
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 },
 {
-  "name":"mousemaster.qt.GridRenderer$GridWidget",
+  "name":"mousemaster.renderer.GridRenderer$GridWidget",
   "methods":[{"name":"animateDrawRect","parameterTypes":["int","int","int","int","int","int","int","int","java.time.Duration"] }, {"name":"coverVirtualDesktop","parameterTypes":["mousemaster.Rectangle"] }, {"name":"drawGrid","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"hideGrid","parameterTypes":[] }, {"name":"lambda$animateDrawRect$65642449$1","parameterTypes":["java.lang.Object"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"repaintGrid","parameterTypes":["io.qt.core.QRect"] }, {"name":"setDrawRect","parameterTypes":["int","int","int","int"] }, {"name":"showGrid","parameterTypes":["mousemaster.Grid","int","io.qt.gui.QColor","io.qt.gui.QColor","boolean","java.time.Duration"] }, {"name":"stopAnimation","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$ClearBackgroundQLabel",
+  "name":"mousemaster.renderer.HintMeshRenderer$ClearBackgroundQLabel",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setClearColor","parameterTypes":["io.qt.gui.QColor"] }]
 },
 {
-  "name":"mousemaster.qt.HintMeshRenderer$HintPaintLayer",
+  "name":"mousemaster.renderer.HintMeshRenderer$HintPaintLayer",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setShadowPixmap","parameterTypes":["io.qt.gui.QPixmap","int","int"] }]
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorLabelWidget",
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget",
   "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setIndicatorOutlinePadding","parameterTypes":["int"] }, {"name":"setLabel","parameterTypes":["java.lang.String","io.qt.gui.QFont","double","io.qt.gui.QColor","int","io.qt.gui.QColor","int"] }, {"name":"setLabelFontScale","parameterTypes":["double"] }]
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorShadowEffect",
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect",
   "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }]
 },
 {
-  "name":"mousemaster.qt.IndicatorRenderer$IndicatorWidget",
+  "name":"mousemaster.renderer.IndicatorRenderer$IndicatorWidget",
   "methods":[{"name":"clearOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","double","double","mousemaster.FillDirection"] }, {"name":"drawContent","parameterTypes":["io.qt.gui.QPainter","io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor","boolean"] }, {"name":"drawOutline","parameterTypes":["io.qt.gui.QPainter","double","double","double","double","io.qt.gui.QColor","double","double","mousemaster.FillDirection","double"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"setColor","parameterTypes":["io.qt.gui.QColor"] }, {"name":"setEdgeCount","parameterTypes":["int"] }, {"name":"setOutlineScale","parameterTypes":["double"] }, {"name":"setOutlines","parameterTypes":["double","io.qt.gui.QColor","double","double","mousemaster.FillDirection","double","io.qt.gui.QColor","double","double","mousemaster.FillDirection"] }]
 },
 {
