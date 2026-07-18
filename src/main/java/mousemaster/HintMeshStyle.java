@@ -32,6 +32,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double subgridBorderOpacity,
                             HintFontStyle subgridFontStyle,
                             boolean subgridClosed,
+                            int subsubgridMaxRowCount,
+                            int subsubgridMaxColumnCount,
+                            List<Key> subsubgridSelectionKeys,
+                            double subsubgridBorderThickness,
+                            double subsubgridBorderLength,
+                            String subsubgridBorderHexColor,
+                            double subsubgridBorderOpacity,
+                            HintFontStyle subsubgridFontStyle,
+                            boolean subsubgridClosed,
                             boolean transitionAnimationEnabled,
                             Duration transitionAnimationDuration,
                             boolean fadeAnimationEnabled,
@@ -73,6 +82,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double subgridBorderOpacity;
         private HintFontStyle.HintFontStyleBuilder subgridFontStyle = new HintFontStyle.HintFontStyleBuilder();
         private Boolean subgridClosed;
+        private Integer subsubgridMaxRowCount;
+        private Integer subsubgridMaxColumnCount;
+        private List<Key> subsubgridSelectionKeys;
+        private Double subsubgridBorderThickness;
+        private Double subsubgridBorderLength;
+        private String subsubgridBorderHexColor;
+        private Double subsubgridBorderOpacity;
+        private HintFontStyle.HintFontStyleBuilder subsubgridFontStyle = new HintFontStyle.HintFontStyleBuilder();
+        private Boolean subsubgridClosed;
         private Boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
         private Boolean fadeAnimationEnabled;
@@ -114,6 +132,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.subgridBorderOpacity = style.subgridBorderOpacity;
             this.subgridFontStyle = style.subgridFontStyle.builder();
             this.subgridClosed = style.subgridClosed;
+            this.subsubgridMaxRowCount = style.subsubgridMaxRowCount;
+            this.subsubgridMaxColumnCount = style.subsubgridMaxColumnCount;
+            this.subsubgridSelectionKeys = style.subsubgridSelectionKeys;
+            this.subsubgridBorderThickness = style.subsubgridBorderThickness;
+            this.subsubgridBorderLength = style.subsubgridBorderLength;
+            this.subsubgridBorderHexColor = style.subsubgridBorderHexColor;
+            this.subsubgridBorderOpacity = style.subsubgridBorderOpacity;
+            this.subsubgridFontStyle = style.subsubgridFontStyle.builder();
+            this.subsubgridClosed = style.subsubgridClosed;
             this.transitionAnimationEnabled = style.transitionAnimationEnabled;
             this.transitionAnimationDuration = style.transitionAnimationDuration;
             this.fadeAnimationEnabled = style.fadeAnimationEnabled;
@@ -245,6 +272,46 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintMeshStyleBuilder subgridClosed(Boolean subgridClosed) {
             this.subgridClosed = subgridClosed;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridMaxRowCount(Integer subsubgridMaxRowCount) {
+            this.subsubgridMaxRowCount = subsubgridMaxRowCount;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridMaxColumnCount(Integer subsubgridMaxColumnCount) {
+            this.subsubgridMaxColumnCount = subsubgridMaxColumnCount;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridSelectionKeys(List<Key> subsubgridSelectionKeys) {
+            this.subsubgridSelectionKeys = subsubgridSelectionKeys;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridBorderThickness(Double subsubgridBorderThickness) {
+            this.subsubgridBorderThickness = subsubgridBorderThickness;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridBorderLength(Double subsubgridBorderLength) {
+            this.subsubgridBorderLength = subsubgridBorderLength;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridBorderHexColor(String subsubgridBorderHexColor) {
+            this.subsubgridBorderHexColor = subsubgridBorderHexColor;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridBorderOpacity(Double subsubgridBorderOpacity) {
+            this.subsubgridBorderOpacity = subsubgridBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subsubgridClosed(Boolean subsubgridClosed) {
+            this.subsubgridClosed = subsubgridClosed;
             return this;
         }
 
@@ -399,6 +466,42 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return subgridClosed;
         }
 
+        public Integer subsubgridMaxRowCount() {
+            return subsubgridMaxRowCount;
+        }
+
+        public Integer subsubgridMaxColumnCount() {
+            return subsubgridMaxColumnCount;
+        }
+
+        public List<Key> subsubgridSelectionKeys() {
+            return subsubgridSelectionKeys;
+        }
+
+        public Double subsubgridBorderThickness() {
+            return subsubgridBorderThickness;
+        }
+
+        public Double subsubgridBorderLength() {
+            return subsubgridBorderLength;
+        }
+
+        public String subsubgridBorderHexColor() {
+            return subsubgridBorderHexColor;
+        }
+
+        public Double subsubgridBorderOpacity() {
+            return subsubgridBorderOpacity;
+        }
+
+        public HintFontStyle.HintFontStyleBuilder subsubgridFontStyle() {
+            return subsubgridFontStyle;
+        }
+
+        public Boolean subsubgridClosed() {
+            return subsubgridClosed;
+        }
+
         public Boolean transitionAnimationEnabled() {
             return transitionAnimationEnabled;
         }
@@ -457,6 +560,15 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity,
                     subgridFontStyle.build(),
                     subgridClosed == null ? defaultStyle.subgridClosed : subgridClosed,
+                    subsubgridMaxRowCount == null ? defaultStyle.subsubgridMaxRowCount : subsubgridMaxRowCount,
+                    subsubgridMaxColumnCount == null ? defaultStyle.subsubgridMaxColumnCount : subsubgridMaxColumnCount,
+                    subsubgridSelectionKeys == null ? defaultStyle.subsubgridSelectionKeys : subsubgridSelectionKeys,
+                    subsubgridBorderThickness == null ? defaultStyle.subsubgridBorderThickness : subsubgridBorderThickness,
+                    subsubgridBorderLength == null ? defaultStyle.subsubgridBorderLength : subsubgridBorderLength,
+                    subsubgridBorderHexColor == null ? defaultStyle.subsubgridBorderHexColor : subsubgridBorderHexColor,
+                    subsubgridBorderOpacity == null ? defaultStyle.subsubgridBorderOpacity : subsubgridBorderOpacity,
+                    subsubgridFontStyle.build(),
+                    subsubgridClosed == null ? defaultStyle.subsubgridClosed : subsubgridClosed,
                     transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
                     transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,
                     fadeAnimationEnabled == null ? defaultStyle.fadeAnimationEnabled : fadeAnimationEnabled,

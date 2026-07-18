@@ -134,6 +134,24 @@ public class ConfigurationParser {
                             .horizontalOffset(0d)
                             .verticalOffset(0d)
                             .stackCount(1);
+        hintMeshStyleBuilder.subsubgridFontStyle().defaultFontStyle()
+                            .name("Consolas")
+                            .weight(FontWeight.NORMAL)
+                            .size(10d)
+                            .hexColor("#FFFFFF")
+                            .opacity(1d)
+                            .outlineThickness(0d)
+                            .outlineHexColor("#000000")
+                            .outlineOpacity(0.5d);
+        hintMeshStyleBuilder.subsubgridFontStyle()
+                            .spacingPercent(0.7d);
+        hintMeshStyleBuilder.subsubgridFontStyle().defaultFontStyle().shadow()
+                            .blurRadius(0d)
+                            .hexColor("#000000")
+                            .opacity(0d)
+                            .horizontalOffset(0d)
+                            .verticalOffset(0d)
+                            .stackCount(1);
         hintMeshStyleBuilder
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
@@ -168,6 +186,14 @@ public class ConfigurationParser {
                 .subgridBorderHexColor("#FFFFFF")
                 .subgridBorderOpacity(1d)
                 .subgridClosed(false)
+                .subsubgridMaxRowCount(1)
+                .subsubgridMaxColumnCount(1)
+                .subsubgridSelectionKeys(List.of())
+                .subsubgridBorderThickness(1d)
+                .subsubgridBorderLength(10_000d)
+                .subsubgridBorderHexColor("#FFFFFF")
+                .subsubgridBorderOpacity(1d)
+                .subsubgridClosed(false)
                 .transitionAnimationEnabled(true)
                 .transitionAnimationDuration(Duration.ofMillis(100))
                 .fadeAnimationEnabled(true)
@@ -2417,6 +2443,20 @@ public class ConfigurationParser {
             case "subgrid-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().defaultFontStyle().hexColor(v));
             case "subgrid-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().defaultFontStyle().opacity(v));
             case "subgrid-font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().spacingPercent(v));
+            // Style: subsubgrid (a hint grid inside each subgrid cell)
+            case "subsubgrid-max-row-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridMaxRowCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridMaxRowCount(v));
+            case "subsubgrid-max-column-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridMaxColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridMaxColumnCount(v));
+            case "subsubgrid-selection-keys" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridSelectionKeys"), v -> parseHintKeys(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(viewportFilter).subsubgridSelectionKeys(v));
+            case "subsubgrid-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderThickness(v));
+            case "subsubgrid-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderLength(v));
+            case "subsubgrid-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderHexColor(v));
+            case "subsubgrid-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderOpacity(v));
+            case "subsubgrid-closed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridClosed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).subsubgridClosed(v));
+            case "subsubgrid-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().name(v));
+            case "subsubgrid-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().size(v));
+            case "subsubgrid-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().hexColor(v));
+            case "subsubgrid-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().opacity(v));
+            case "subsubgrid-font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().spacingPercent(v));
             // Style: animation & background
             case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationEnabled(v));
             case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationDuration(v));
@@ -3180,6 +3220,45 @@ public class ConfigurationParser {
                         childStyle.subgridClosed(
                                 parentStyle.subgridClosed());
                     if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridMaxRowCount, childStyleByFilter,
+                            filter))
+                        childStyle.subsubgridMaxRowCount(parentStyle.subsubgridMaxRowCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridMaxColumnCount,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridMaxColumnCount(
+                                parentStyle.subsubgridMaxColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridSelectionKeys,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridSelectionKeys(
+                                parentStyle.subsubgridSelectionKeys());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderThickness(
+                                parentStyle.subsubgridBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderLength,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderLength(
+                                parentStyle.subsubgridBorderLength());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderHexColor,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderHexColor(
+                                parentStyle.subsubgridBorderHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderOpacity(
+                                parentStyle.subsubgridBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridClosed,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridClosed(
+                                parentStyle.subsubgridClosed());
+                    if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::transitionAnimationEnabled,
                             childStyleByFilter, filter))
                         childStyle.transitionAnimationEnabled(
@@ -3396,6 +3475,27 @@ public class ConfigurationParser {
         if (sgSpacing == null && parentX != null) sgSpacing = parentX.subgridFontStyle().spacingPercent();
         if (sgSpacing == null && parentAny != null) sgSpacing = parentAny.subgridFontStyle().spacingPercent();
         childX.subgridFontStyle().spacingPercent(sgSpacing);
+        // subsubgridFontStyle sources (independent of the main font).
+        FontStyle.FontStyleBuilder cxSsgSel = childX.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder caSsgSel = childAny == null ? null : childAny.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder pxSsgSel = parentX == null ? null : parentX.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder paSsgSel = parentAny == null ? null : parentAny.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder cxSsgDef = childX.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder caSsgDef = childAny == null ? null : childAny.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder pxSsgDef = parentX == null ? null : parentX.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder paSsgDef = parentAny == null ? null : parentAny.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder cxSsgFoc = childX.subsubgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder caSsgFoc = childAny == null ? null : childAny.subsubgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder pxSsgFoc = parentX == null ? null : parentX.subsubgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder paSsgFoc = parentAny == null ? null : parentAny.subsubgridFontStyle().focusedFontStyle();
+        cascadeFontStyle(cxSsgSel, cxSsgSel, caSsgSel, cxSsgDef, caSsgDef, pxSsgSel, paSsgSel, pxSsgDef, paSsgDef);
+        cascadeFontStyle(cxSsgFoc, cxSsgFoc, caSsgFoc, cxSsgDef, caSsgDef, pxSsgFoc, paSsgFoc, pxSsgDef, paSsgDef);
+        cascadeFontStyle(cxSsgDef, cxSsgDef, caSsgDef, pxSsgDef, paSsgDef);
+        Double ssgSpacing = childX.subsubgridFontStyle().spacingPercent();
+        if (ssgSpacing == null && childAny != null) ssgSpacing = childAny.subsubgridFontStyle().spacingPercent();
+        if (ssgSpacing == null && parentX != null) ssgSpacing = parentX.subsubgridFontStyle().spacingPercent();
+        if (ssgSpacing == null && parentAny != null) ssgSpacing = parentAny.subsubgridFontStyle().spacingPercent();
+        childX.subsubgridFontStyle().spacingPercent(ssgSpacing);
     }
 
       @SuppressWarnings("unchecked")

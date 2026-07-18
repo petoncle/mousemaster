@@ -485,11 +485,30 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1);
-            if (!hints.isEmpty())
-                hintMesh.subgrid(buildSubgridMesh(
-                        styleForFilter(hintMeshConfiguration, screenFilter),
+            if (!hints.isEmpty()) {
+                HintMeshStyle subgridStyle =
+                        styleForFilter(hintMeshConfiguration, screenFilter);
+                Subgrid subgrid = new Subgrid(subgridStyle.subgridMaxRowCount(),
+                        subgridStyle.subgridMaxColumnCount(),
+                        subgridStyle.subgridSelectionKeys(), subgridStyle.subgridFontStyle(),
+                        subgridStyle.subgridBorderHexColor(),
+                        subgridStyle.subgridBorderThickness(),
+                        subgridStyle.subgridBorderLength(),
+                        subgridStyle.subgridBorderOpacity());
+                Subgrid subsubgrid = new Subgrid(
+                        subgridStyle.subsubgridMaxRowCount(),
+                        subgridStyle.subsubgridMaxColumnCount(),
+                        subgridStyle.subsubgridSelectionKeys(),
+                        subgridStyle.subsubgridFontStyle(),
+                        subgridStyle.subsubgridBorderHexColor(),
+                        subgridStyle.subsubgridBorderThickness(),
+                        subgridStyle.subsubgridBorderLength(),
+                        subgridStyle.subsubgridBorderOpacity());
+                hintMesh.subgrid(buildSubgridMesh(subgridStyle,
                         hintCellRectangle(hints.getFirst()),
-                        screenManager.activeScreen().scale(), zoom));
+                        screenManager.activeScreen().scale(), zoom,
+                        subgrid, subsubgrid));
+            }
         }
         else if (type instanceof HintMeshType.UiHintMesh) {
             int hintCount = uiElements.size();
@@ -869,48 +888,61 @@ public class HintManager implements ModeListener, MousePositionListener {
                 ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER);
     }
 
+    /** One nested grid level's configuration (subgrid, subsubgrid, ...), so a single
+     *  method can build any depth. */
+    private record Subgrid(int maxRowCount, int maxColumnCount, List<Key> selectionKeys,
+                             HintFontStyle fontStyle, String borderHexColor,
+                             double borderThickness, double borderLength,
+                             double borderOpacity) {
+    }
+
+    /**
+     * Builds a nested grid (subgrid, subsubgrid, ...) laid out inside referenceCell.
+     * When childSubgrid is non-null, a deeper grid is built inside each cell of this one.
+     */
     private HintMesh buildSubgridMesh(HintMeshStyle style, Rectangle referenceCell,
-                                      double scale, Zoom zoom) {
-        if (style.subgridMaxRowCount() * style.subgridMaxColumnCount() <= 1)
+                                      double scale, Zoom zoom, Subgrid subgrid,
+                                      Subgrid childSubgrid) {
+        if (subgrid.maxRowCount() * subgrid.maxColumnCount() <= 1)
             return null;
         HintGridLayout subgridLayout = new HintGridLayout(
-                style.subgridMaxRowCount(), style.subgridMaxColumnCount(),
+                subgrid.maxRowCount(), subgrid.maxColumnCount(),
                 new HintCellSizing.FitToArea(),
-                style.subgridMaxRowCount(), style.subgridMaxColumnCount(), true);
-        FixedSizeHintGrid subgrid = hintGridForArea(referenceCell,
+                subgrid.maxRowCount(), subgrid.maxColumnCount(), true);
+        FixedSizeHintGrid grid = hintGridForArea(referenceCell,
                 referenceCell.center(), subgridLayout, scale);
         List<Hint> subgridHints;
         int prefixLength = -1;
-        if (style.subgridSelectionKeys().isEmpty()) {
+        if (subgrid.selectionKeys().isEmpty()) {
             // Lines only (e.g. a centered cross): positioned cells, no labels.
             subgridHints = new ArrayList<>();
-            for (int row = 0; row < subgrid.rowCount(); row++)
-                for (int column = 0; column < subgrid.columnCount(); column++)
+            for (int row = 0; row < grid.rowCount(); row++)
+                for (int column = 0; column < grid.columnCount(); column++)
                     subgridHints.add(new Hint(
-                            subgrid.hintMeshX() + (column + 0.5) * subgrid.cellWidth(),
-                            subgrid.hintMeshY() + (row + 0.5) * subgrid.cellHeight(),
-                            subgrid.cellWidth(), subgrid.cellHeight(), List.of()));
+                            grid.hintMeshX() + (column + 0.5) * grid.cellWidth(),
+                            grid.hintMeshY() + (row + 0.5) * grid.cellHeight(),
+                            grid.cellWidth(), grid.cellHeight(), List.of()));
         }
         else {
-            int layoutRowCount = Math.min(subgrid.rowCount(), subgridLayout.layoutRowCount());
-            int layoutColumnCount = Math.min(subgrid.columnCount(),
+            int layoutRowCount = Math.min(grid.rowCount(), subgridLayout.layoutRowCount());
+            int layoutColumnCount = Math.min(grid.columnCount(),
                     subgridLayout.layoutColumnCount());
-            int subgridCount = subgrid.subgridCount(layoutRowCount, layoutColumnCount);
+            int subgridCount = grid.subgridCount(layoutRowCount, layoutColumnCount);
             Set<Integer> prefixLengths = new HashSet<>();
-            subgridHints = buildHints(subgrid, style.subgridSelectionKeys(), 0,
-                    subgrid.hintCount(), 0, subgridCount, 0, layoutRowCount,
+            subgridHints = buildHints(grid, subgrid.selectionKeys(), 0,
+                    grid.hintCount(), 0, subgridCount, 0, layoutRowCount,
                     layoutColumnCount, subgridLayout.layoutRowOriented(), zoom, prefixLengths);
             prefixLength = prefixLengths.size() == 1 ?
                     prefixLengths.iterator().next() : -1;
         }
         HintMeshStyle subgridStyle = style.builder()
-                .fontStyle(style.subgridFontStyle())
-                .boxHexColor(style.subgridBorderHexColor())
+                .fontStyle(subgrid.fontStyle())
+                .boxHexColor(subgrid.borderHexColor())
                 .boxOpacity(0d)
-                .boxBorderThickness(style.subgridBorderThickness())
-                .boxBorderLength(style.subgridBorderLength())
-                .boxBorderHexColor(style.subgridBorderHexColor())
-                .boxBorderOpacity(style.subgridBorderOpacity())
+                .boxBorderThickness(subgrid.borderThickness())
+                .boxBorderLength(subgrid.borderLength())
+                .boxBorderHexColor(subgrid.borderHexColor())
+                .boxBorderOpacity(subgrid.borderOpacity())
                 .boxBorderRadius(0d)
                 .prefixInBackground(false)
                 .prefixBoxEnabled(false)
@@ -921,8 +953,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .build(style);
         ViewportFilterMap<HintMeshStyle> subgridStyleByFilter = new ViewportFilterMap<>(
                 Map.of(ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER, subgridStyle));
+        HintMesh nestedMesh = null;
+        if (childSubgrid != null) {
+            Rectangle subgridCell = new Rectangle(
+                    (int) Math.round(grid.hintMeshX()),
+                    (int) Math.round(grid.hintMeshY()),
+                    (int) Math.round(grid.cellWidth()),
+                    (int) Math.round(grid.cellHeight()));
+            nestedMesh = buildSubgridMesh(style, subgridCell, scale, zoom, childSubgrid, null);
+        }
         return new HintMesh(true, subgridHints, prefixLength, List.of(),
-                subgridStyleByFilter, referenceCell, null);
+                subgridStyleByFilter, referenceCell, nestedMesh);
     }
 
     private FixedSizeHintGrid fixedSizeHintGrid(Rectangle areaRectangle,

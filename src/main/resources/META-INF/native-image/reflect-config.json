@@ -743,6 +743,11 @@
   "methods":[{"name":"<init>","parameterTypes":["boolean","java.time.Duration"] }, {"name":"enabled","parameterTypes":[] }, {"name":"idleDuration","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.HintCellSizing$FixedCellSize",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["double","double"] }, {"name":"cellHeight","parameterTypes":[] }, {"name":"cellWidth","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.HintFontStyle",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.FontStyle","double","mousemaster.FontStyle","mousemaster.FontStyle"] }, {"name":"defaultFontStyle","parameterTypes":[] }, {"name":"focusedFontStyle","parameterTypes":[] }, {"name":"selectedFontStyle","parameterTypes":[] }, {"name":"spacingPercent","parameterTypes":[] }]
@@ -765,7 +770,7 @@
 {
   "name":"mousemaster.HintGridLayout",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["int","int","double","double","int","int","boolean"] }, {"name":"cellHeight","parameterTypes":[] }, {"name":"cellWidth","parameterTypes":[] }, {"name":"layoutColumnCount","parameterTypes":[] }, {"name":"layoutRowCount","parameterTypes":[] }, {"name":"layoutRowOriented","parameterTypes":[] }, {"name":"maxColumnCount","parameterTypes":[] }, {"name":"maxRowCount","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["int","int","double","double","int","int","boolean"] }, {"name":"<init>","parameterTypes":["int","int","mousemaster.HintCellSizing","int","int","boolean"] }, {"name":"cellHeight","parameterTypes":[] }, {"name":"cellSizing","parameterTypes":[] }, {"name":"cellWidth","parameterTypes":[] }, {"name":"layoutColumnCount","parameterTypes":[] }, {"name":"layoutRowCount","parameterTypes":[] }, {"name":"layoutRowOriented","parameterTypes":[] }, {"name":"maxColumnCount","parameterTypes":[] }, {"name":"maxRowCount","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshConfiguration",
@@ -780,7 +785,7 @@
 {
   "name":"mousemaster.HintMeshStyle",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintFontStyle","boolean","mousemaster.HintFontStyle","java.lang.String","double","double","double","java.lang.String","double","double","mousemaster.Shadow","boolean","double","double","java.lang.String","double","double","double","double","double","int","int","java.util.List","double","double","java.lang.String","double","mousemaster.HintFontStyle","boolean","boolean","java.time.Duration","boolean","java.time.Duration","java.lang.String","double"] }, {"name":"backgroundHexColor","parameterTypes":[] }, {"name":"backgroundOpacity","parameterTypes":[] }, {"name":"boxBorderHexColor","parameterTypes":[] }, {"name":"boxBorderLength","parameterTypes":[] }, {"name":"boxBorderOpacity","parameterTypes":[] }, {"name":"boxBorderRadius","parameterTypes":[] }, {"name":"boxBorderThickness","parameterTypes":[] }, {"name":"boxHeightPercent","parameterTypes":[] }, {"name":"boxHexColor","parameterTypes":[] }, {"name":"boxOpacity","parameterTypes":[] }, {"name":"boxShadow","parameterTypes":[] }, {"name":"boxWidthPercent","parameterTypes":[] }, {"name":"cellHorizontalPadding","parameterTypes":[] }, {"name":"cellVerticalPadding","parameterTypes":[] }, {"name":"fadeAnimationDuration","parameterTypes":[] }, {"name":"fadeAnimationEnabled","parameterTypes":[] }, {"name":"fontStyle","parameterTypes":[] }, {"name":"prefixBoxBorderHexColor","parameterTypes":[] }, {"name":"prefixBoxBorderLength","parameterTypes":[] }, {"name":"prefixBoxBorderOpacity","parameterTypes":[] }, {"name":"prefixBoxBorderThickness","parameterTypes":[] }, {"name":"prefixBoxEnabled","parameterTypes":[] }, {"name":"prefixFontStyle","parameterTypes":[] }, {"name":"prefixInBackground","parameterTypes":[] }, {"name":"subgridBorderHexColor","parameterTypes":[] }, {"name":"subgridBorderLength","parameterTypes":[] }, {"name":"subgridBorderOpacity","parameterTypes":[] }, {"name":"subgridBorderThickness","parameterTypes":[] }, {"name":"subgridClosed","parameterTypes":[] }, {"name":"subgridFontStyle","parameterTypes":[] }, {"name":"subgridMaxColumnCount","parameterTypes":[] }, {"name":"subgridMaxRowCount","parameterTypes":[] }, {"name":"subgridSelectionKeys","parameterTypes":[] }, {"name":"transitionAnimationDuration","parameterTypes":[] }, {"name":"transitionAnimationEnabled","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintFontStyle","boolean","mousemaster.HintFontStyle","java.lang.String","double","double","double","java.lang.String","double","double","mousemaster.Shadow","boolean","double","double","java.lang.String","double","double","double","double","double","int","int","java.util.List","double","double","java.lang.String","double","mousemaster.HintFontStyle","boolean","int","int","java.util.List","double","double","java.lang.String","double","mousemaster.HintFontStyle","boolean","boolean","java.time.Duration","boolean","java.time.Duration","java.lang.String","double"] }, {"name":"backgroundHexColor","parameterTypes":[] }, {"name":"backgroundOpacity","parameterTypes":[] }, {"name":"boxBorderHexColor","parameterTypes":[] }, {"name":"boxBorderLength","parameterTypes":[] }, {"name":"boxBorderOpacity","parameterTypes":[] }, {"name":"boxBorderRadius","parameterTypes":[] }, {"name":"boxBorderThickness","parameterTypes":[] }, {"name":"boxHeightPercent","parameterTypes":[] }, {"name":"boxHexColor","parameterTypes":[] }, {"name":"boxOpacity","parameterTypes":[] }, {"name":"boxShadow","parameterTypes":[] }, {"name":"boxWidthPercent","parameterTypes":[] }, {"name":"cellHorizontalPadding","parameterTypes":[] }, {"name":"cellVerticalPadding","parameterTypes":[] }, {"name":"fadeAnimationDuration","parameterTypes":[] }, {"name":"fadeAnimationEnabled","parameterTypes":[] }, {"name":"fontStyle","parameterTypes":[] }, {"name":"prefixBoxBorderHexColor","parameterTypes":[] }, {"name":"prefixBoxBorderLength","parameterTypes":[] }, {"name":"prefixBoxBorderOpacity","parameterTypes":[] }, {"name":"prefixBoxBorderThickness","parameterTypes":[] }, {"name":"prefixBoxEnabled","parameterTypes":[] }, {"name":"prefixFontStyle","parameterTypes":[] }, {"name":"prefixInBackground","parameterTypes":[] }, {"name":"subgridBorderHexColor","parameterTypes":[] }, {"name":"subgridBorderLength","parameterTypes":[] }, {"name":"subgridBorderOpacity","parameterTypes":[] }, {"name":"subgridBorderThickness","parameterTypes":[] }, {"name":"subgridClosed","parameterTypes":[] }, {"name":"subgridFontStyle","parameterTypes":[] }, {"name":"subgridMaxColumnCount","parameterTypes":[] }, {"name":"subgridMaxRowCount","parameterTypes":[] }, {"name":"subgridSelectionKeys","parameterTypes":[] }, {"name":"subsubgridBorderHexColor","parameterTypes":[] }, {"name":"subsubgridBorderLength","parameterTypes":[] }, {"name":"subsubgridBorderOpacity","parameterTypes":[] }, {"name":"subsubgridBorderThickness","parameterTypes":[] }, {"name":"subsubgridClosed","parameterTypes":[] }, {"name":"subsubgridFontStyle","parameterTypes":[] }, {"name":"subsubgridMaxColumnCount","parameterTypes":[] }, {"name":"subsubgridMaxRowCount","parameterTypes":[] }, {"name":"subsubgridSelectionKeys","parameterTypes":[] }, {"name":"transitionAnimationDuration","parameterTypes":[] }, {"name":"transitionAnimationEnabled","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshType$HintGrid",
@@ -927,160 +932,6 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.platform.windows.WindowsOverlay$ClearBackgroundQLabel",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"clearColor","parameterTypes":[] }, {"name":"getClearColor","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$ClearBackgroundQLabel$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$ClearBackgroundQLabel$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$FadeAnimationFinished",
-  "fields":[{"name":"arg$1"}]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$FadeAnimationValueChanged",
-  "fields":[{"name":"arg$1"}]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$GridWidget",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"lambda$animateDrawRect$65642449$1","parameterTypes":["java.lang.Object"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$GridWidget$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$GridWidget$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintBox",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintBox$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintBox$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintContainerAnimationChanged",
-  "fields":[{"name":"arg$1"}]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintContainerAnimationFinished",
-  "fields":[{"name":"arg$1"}]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintLabel",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintLabel$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintLabel$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintPaintLayer",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintPaintLayer$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$HintPaintLayer$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorLabelWidget",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"getIndicatorOutlinePadding","parameterTypes":[] }, {"name":"getLabelFontScale","parameterTypes":[] }, {"name":"indicatorOutlinePadding","parameterTypes":[] }, {"name":"labelFontScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorLabelWidget$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorLabelWidget$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorShadowEffect",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"fillColor","parameterTypes":[] }, {"name":"getFillColor","parameterTypes":[] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorShadowEffect$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorShadowEffect$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorWidget",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"color","parameterTypes":[] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"getColor","parameterTypes":[] }, {"name":"getEdgeCount","parameterTypes":[] }, {"name":"getOutlineScale","parameterTypes":[] }, {"name":"outlineScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorWidget$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$IndicatorWidget$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$ScreenshotWidget",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"getZoom","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"zoom","parameterTypes":[] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$ScreenshotWidget$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$ScreenshotWidget$WhenMappings"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$StackedShadowEffect",
-  "allDeclaredFields":true,
-  "allDeclaredClasses":true,
-  "queryAllDeclaredMethods":true,
-  "queryAllDeclaredConstructors":true,
-  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"getStackCount","parameterTypes":[] }, {"name":"getStackedOpacity","parameterTypes":[] }, {"name":"getTransparencyOnly","parameterTypes":[] }, {"name":"hasTransparencyOnly","parameterTypes":[] }, {"name":"isTransparencyOnly","parameterTypes":[] }, {"name":"redrawSourceOverShadow","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"stackCount","parameterTypes":[] }, {"name":"stackedOpacity","parameterTypes":[] }, {"name":"transparencyOnly","parameterTypes":[] }]
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$StackedShadowEffect$1"
-},
-{
-  "name":"mousemaster.platform.windows.WindowsOverlay$StackedShadowEffect$WhenMappings"
-},
-{
   "name":"mousemaster.platform.windows.WindowsScreen$1",
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
 },
@@ -1097,7 +948,153 @@
   "fields":[{"name":"arg$1"}]
 },
 {
+  "name":"mousemaster.qt.GridRenderer$GridWidget",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"lambda$animateDrawRect$65642449$1","parameterTypes":["java.lang.Object"] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.qt.GridRenderer$GridWidget$1"
+},
+{
+  "name":"mousemaster.qt.GridRenderer$GridWidget$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$ClearBackgroundQLabel",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"clearColor","parameterTypes":[] }, {"name":"getClearColor","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$ClearBackgroundQLabel$1"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$ClearBackgroundQLabel$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintBox",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintBox$1"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintBox$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintContainerAnimationChanged",
+  "fields":[{"name":"arg$1"}]
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintContainerAnimationFinished",
+  "fields":[{"name":"arg$1"}]
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintLabel",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintLabel$1"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintLabel$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintPaintLayer",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintPaintLayer$1"
+},
+{
+  "name":"mousemaster.qt.HintMeshRenderer$HintPaintLayer$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorLabelWidget",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"getIndicatorOutlinePadding","parameterTypes":[] }, {"name":"getLabelFontScale","parameterTypes":[] }, {"name":"indicatorOutlinePadding","parameterTypes":[] }, {"name":"labelFontScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorLabelWidget$1"
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorLabelWidget$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorShadowEffect",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }]
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorShadowEffect$1"
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorShadowEffect$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorWidget",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"color","parameterTypes":[] }, {"name":"edgeCount","parameterTypes":[] }, {"name":"getColor","parameterTypes":[] }, {"name":"getEdgeCount","parameterTypes":[] }, {"name":"getOutlineScale","parameterTypes":[] }, {"name":"outlineScale","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }]
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorWidget$1"
+},
+{
+  "name":"mousemaster.qt.IndicatorRenderer$IndicatorWidget$WhenMappings"
+},
+{
   "name":"mousemaster.qt.QtJambi_LibraryUtilities"
+},
+{
+  "name":"mousemaster.qt.ScreenshotWidget",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"getZoom","parameterTypes":[] }, {"name":"paintEvent","parameterTypes":["io.qt.gui.QPaintEvent"] }, {"name":"zoom","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.qt.ScreenshotWidget$1"
+},
+{
+  "name":"mousemaster.qt.ScreenshotWidget$WhenMappings"
+},
+{
+  "name":"mousemaster.qt.StackedShadowEffect",
+  "allDeclaredFields":true,
+  "allDeclaredClasses":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"draw","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"getStackCount","parameterTypes":[] }, {"name":"getTransparencyOnly","parameterTypes":[] }, {"name":"hasTransparencyOnly","parameterTypes":[] }, {"name":"isTransparencyOnly","parameterTypes":[] }, {"name":"redrawSourceOverShadow","parameterTypes":["io.qt.gui.QPainter"] }, {"name":"setColors","parameterTypes":["io.qt.gui.QColor","io.qt.gui.QColor","io.qt.gui.QColor"] }, {"name":"stackCount","parameterTypes":[] }, {"name":"transparencyOnly","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.qt.StackedShadowEffect$1"
+},
+{
+  "name":"mousemaster.qt.StackedShadowEffect$WhenMappings"
 },
 {
   "name":"mousemaster.qt.TransparentWindow",

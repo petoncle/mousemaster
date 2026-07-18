@@ -225,6 +225,12 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 style.subgridBorderHexColor(), style.subgridBorderOpacity(),
                 scaleFontSize(style.subgridFontStyle(), scale),
                 style.subgridClosed(),
+                style.subsubgridMaxRowCount(), style.subsubgridMaxColumnCount(),
+                style.subsubgridSelectionKeys(),
+                style.subsubgridBorderThickness(), style.subsubgridBorderLength(),
+                style.subsubgridBorderHexColor(), style.subsubgridBorderOpacity(),
+                scaleFontSize(style.subsubgridFontStyle(), scale),
+                style.subsubgridClosed(),
                 style.transitionAnimationEnabled(), style.transitionAnimationDuration(),
                 style.fadeAnimationEnabled(), style.fadeAnimationDuration(),
                 style.backgroundHexColor(), style.backgroundOpacity());
