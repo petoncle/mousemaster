@@ -16,6 +16,7 @@ import io.qt.widgets.QGraphicsScene;
 import io.qt.widgets.QLabel;
 import io.qt.widgets.QWidget;
 import mousemaster.qt.FadeAnimator;
+import mousemaster.qt.GridRenderer;
 import mousemaster.qt.QtColorUtil;
 import mousemaster.qt.QtFontStyle;
 import mousemaster.qt.QtHintFont;
@@ -58,10 +59,8 @@ public class WindowsOverlay implements Overlay {
     private Indicator currentIndicator;
     private int maxIndicatorShadowPadding;
     private FadeAnimator indicatorFadeAnimator;
-    private GridWindow gridWindow;
-    private FadeAnimator gridFadeAnimator;
-    private boolean showingGrid;
-    private Grid currentGrid;
+    private GridRenderer gridRenderer;
+    private WinDef.HWND gridHwnd;
     private final Map<Screen, HintMeshWindow> hintMeshWindows =
             new LinkedHashMap<>(); // Ordered for topmost handling.
     private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
@@ -212,8 +211,8 @@ public class WindowsOverlay implements Overlay {
     public void setTopmost() {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
-        if (gridWindow != null)
-            hwnds.add(gridWindow.hwnd);
+        if (gridHwnd != null)
+            hwnds.add(gridHwnd);
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
             hwnds.add(hintMeshWindow.hwnd);
         }
@@ -994,9 +993,6 @@ public class WindowsOverlay implements Overlay {
         }
     }
 
-    private record GridWindow(WinDef.HWND hwnd, GridWidget widget) {
-
-    }
 
     private record HintMeshWindow(WinDef.HWND hwnd,
                                   TransparentWindow window,
@@ -1051,185 +1047,6 @@ public class WindowsOverlay implements Overlay {
             targetRect.dispose();
             painter.end();
             painter.dispose();
-        }
-    }
-
-    /**
-     * Covers the whole virtual desktop and is never resized: the grid is drawn at an
-     * offset inside it and only the changed region is repainted. Resizing a translucent
-     * window re-composites slowly (flashing empty); a fixed window keeps its surface, so
-     * the old grid stays visible until the new one is painted over it.
-     */
-    private class GridWidget extends QWidget {
-        private int originX, originY, coveredWidth, coveredHeight;
-        private Grid grid;
-        private int lineThickness;
-        private QColor lineColor;
-        private QColor backgroundColor; // Grid fill, or null when the background is off.
-        private boolean visible;
-        private int drawX, drawY, drawW, drawH; // Current (possibly animated) grid rectangle.
-        private QRect paintedRect = new QRect(); // Last drawn grid bounds; cleared on the next paint.
-        private QVariantAnimation animation;
-        private QMetaObject.Slot1<Object> animationChanged; // Kept referenced so Qt does not GC it.
-
-        GridWidget() {
-            setWindowFlags(Qt.WindowType.FramelessWindowHint);
-            setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
-        }
-
-        void coverVirtualDesktop(Rectangle bounds) {
-            if (bounds.x() == originX && bounds.y() == originY &&
-                bounds.width() == coveredWidth && bounds.height() == coveredHeight)
-                return;
-            originX = bounds.x();
-            originY = bounds.y();
-            coveredWidth = bounds.width();
-            coveredHeight = bounds.height();
-            move(bounds.x(), bounds.y());
-            resize(bounds.width(), bounds.height());
-            // The resize reallocates (clears) the surface, so nothing is painted anymore.
-            paintedRect.dispose();
-            paintedRect = new QRect();
-        }
-
-        boolean covers(Grid grid) {
-            return grid.x() >= originX && grid.y() >= originY &&
-                   grid.x() + grid.width() <= originX + coveredWidth &&
-                   grid.y() + grid.height() <= originY + coveredHeight;
-        }
-
-        void showGrid(Grid grid, int lineThickness, QColor lineColor, QColor backgroundColor,
-                      boolean animate, Duration animationDuration) {
-            stopAnimation();
-            if (this.lineColor != null)
-                this.lineColor.dispose();
-            if (this.backgroundColor != null)
-                this.backgroundColor.dispose();
-            boolean wasVisible = visible;
-            int oldX = drawX, oldY = drawY, oldW = drawW, oldH = drawH;
-            this.grid = grid;
-            this.lineThickness = lineThickness;
-            this.lineColor = lineColor;
-            this.backgroundColor = backgroundColor;
-            this.visible = true;
-            int newX = grid.x(), newY = grid.y(), newW = grid.width(), newH = grid.height();
-            boolean geometryChanged =
-                    newX != oldX || newY != oldY || newW != oldW || newH != oldH;
-            if (animate && wasVisible && geometryChanged &&
-                animationDuration != null && !animationDuration.isZero())
-                animateDrawRect(oldX, oldY, oldW, oldH, newX, newY, newW, newH,
-                        animationDuration);
-            else
-                setDrawRect(newX, newY, newW, newH);
-        }
-
-        void hideGrid() {
-            stopAnimation();
-            visible = false;
-            repaintGrid(new QRect());
-        }
-
-        // Eases the drawn rectangle from the old grid geometry to the new one.
-        private void animateDrawRect(int oldX, int oldY, int oldW, int oldH,
-                                     int newX, int newY, int newW, int newH,
-                                     Duration duration) {
-            QRect begin = new QRect(oldX, oldY, oldW, oldH);
-            QRect end = new QRect(newX, newY, newW, newH);
-            animation = new QVariantAnimation();
-            animation.setDuration((int) duration.toMillis());
-            animation.setStartValue(begin);
-            animation.setEndValue(end);
-            animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
-            animationChanged = value -> {
-                QRect r = (QRect) value;
-                setDrawRect(r.x(), r.y(), r.width(), r.height());
-            };
-            animation.valueChanged.connect(animationChanged);
-            animation.start();
-            begin.dispose();
-            end.dispose();
-        }
-
-        private void stopAnimation() {
-            if (animation == null)
-                return;
-            animation.stop();
-            animation.dispose();
-            animation = null;
-            animationChanged = null;
-        }
-
-        private void setDrawRect(int x, int y, int w, int h) {
-            drawX = x;
-            drawY = y;
-            drawW = w;
-            drawH = h;
-            repaintGrid(new QRect(x - originX, y - originY,
-                    w + lineThickness, h + lineThickness));
-        }
-
-        // Repaints (clearing then redrawing) the union of the old and new grid bounds.
-        private void repaintGrid(QRect newRect) {
-            QRect dirty = newRect.united(paintedRect);
-            paintedRect.dispose();
-            paintedRect = newRect;
-            repaint(dirty);
-            dirty.dispose();
-        }
-
-        @Override
-        protected void paintEvent(QPaintEvent event) {
-            QPainter painter = new QPainter(this);
-            // Clear only the repainted region (the grid always fits inside it), leaving
-            // the rest of the surface untouched so the old grid persists until redrawn.
-            QColor transparent = new QColor(0, 0, 0, 0);
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
-            painter.fillRect(event.rect(), transparent);
-            transparent.dispose();
-            if (visible && grid != null)
-                drawGrid(painter);
-            painter.end();
-            painter.dispose();
-        }
-
-        private void drawGrid(QPainter painter) {
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
-            int ox = drawX - originX;
-            int oy = drawY - originY;
-            int columnCount = grid.columnCount();
-            int rowCount = grid.rowCount();
-            int width = drawW;
-            int height = drawH;
-            if (backgroundColor != null)
-                painter.fillRect(ox, oy, width, height, backgroundColor);
-            int cellWidth = width / columnCount;
-            int cellHeight = height / rowCount;
-            // A pen of width t centered at c covers [c - t/2, c + (t+1)/2 - 1], so edge
-            // lines are inset by half the thickness to stay fully inside the grid.
-            int edgeInsetLow = lineThickness / 2;
-            int edgeInsetHigh = lineThickness / 2 + lineThickness % 2;
-            QPen pen = new QPen(lineColor);
-            pen.setCapStyle(Qt.PenCapStyle.FlatCap);
-            pen.setWidth(lineThickness);
-            painter.setPen(pen);
-            for (int i = 0; i <= columnCount; i++) {
-                int x = i == columnCount ? width : i * cellWidth;
-                if (i == 0)
-                    x += edgeInsetLow;
-                else if (i == columnCount)
-                    x -= edgeInsetHigh;
-                painter.drawLine(ox + x, oy, ox + x, oy + height);
-            }
-            for (int i = 0; i <= rowCount; i++) {
-                int y = i == rowCount ? height : i * cellHeight;
-                if (i == 0)
-                    y += edgeInsetLow;
-                else if (i == rowCount)
-                    y -= edgeInsetHigh;
-                painter.drawLine(ox, oy + y, ox + width, oy + y);
-            }
-            pen.dispose();
         }
     }
 
@@ -1439,9 +1256,7 @@ public class WindowsOverlay implements Overlay {
         return currentZoom.percent();
     }
 
-    private void createGridWindow() {
-        GridWidget widget = new GridWidget();
-        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(widget.winId()));
+    private void applyOverlayExStyles(WinDef.HWND hwnd) {
         long currentStyle =
                 User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
                                .longValue();
@@ -1451,10 +1266,6 @@ public class WindowsOverlay implements Overlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
-        widget.coverVirtualDesktop(virtualDesktopBounds());
-        widget.show();
-        gridWindow = new GridWindow(hwnd, widget);
-        updateZoomExcludedWindows();
     }
 
     private Rectangle virtualDesktopBounds() {
@@ -4048,8 +3859,8 @@ public class WindowsOverlay implements Overlay {
         if (zoomWindow == null)
             return;
         List<WinDef.HWND> hwnds = new ArrayList<>();
-        if (gridWindow != null)
-            hwnds.add(gridWindow.hwnd);
+        if (gridHwnd != null)
+            hwnds.add(gridHwnd);
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values()) {
             hwnds.add(hintMeshWindow.hwnd);
         }
@@ -4108,38 +3919,16 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void setGrid(Grid grid) {
         Objects.requireNonNull(grid);
-        boolean fadingOut = gridFadeAnimator != null && gridFadeAnimator.isFadingOut();
-        if (!fadingOut && showingGrid && currentGrid != null && currentGrid.equals(grid))
-            return;
-        // While the old grid is fading out, treat this as a fresh appearance: the new
-        // grid fades in rather than morphing from the one that was disappearing.
-        boolean wasShowing = showingGrid && !fadingOut;
-        if (fadingOut)
-            gridFadeAnimator.cancel();
-        currentGrid = grid;
-        if (gridWindow == null)
-            createGridWindow();
-        else if (!gridWindow.widget.covers(grid))
-            // The grid moved outside the covered area (e.g. a monitor was reconfigured).
-            gridWindow.widget.coverVirtualDesktop(virtualDesktopBounds());
-        showingGrid = true;
-        QColor background = currentGrid.backgroundOpacity() > 0 ?
-                QtColorUtil.qColor(currentGrid.backgroundHexColor(), currentGrid.backgroundOpacity()) : null;
-        gridWindow.widget.showGrid(currentGrid, scaledPixels(currentGrid.lineThickness(), 1),
-                QtColorUtil.qColor(currentGrid.lineHexColor(), currentGrid.lineOpacity()), background,
-                currentGrid.transitionAnimationEnabled() && wasShowing,
-                currentGrid.transitionAnimationDuration());
-        if (!wasShowing) {
-            gridFadeAnimator = new FadeAnimator(
-                    opacity -> gridWindow.widget.setWindowOpacity(opacity),
-                    this::doHideGrid,
-                    currentGrid.fadeAnimationEnabled(),
-                    currentGrid.fadeAnimationDuration());
-            if (gridFadeAnimator.isEnabled()) {
-                gridWindow.widget.setWindowOpacity(0.0);
-                gridFadeAnimator.startFadeIn();
-            }
+        boolean firstCreation = gridHwnd == null;
+        if (firstCreation) {
+            gridRenderer = new GridRenderer();
+            gridHwnd = new WinDef.HWND(new Pointer(gridRenderer.widget().winId()));
+            applyOverlayExStyles(gridHwnd);
         }
+        gridRenderer.setGrid(grid, virtualDesktopBounds(),
+                scaledPixels(grid.lineThickness(), 1));
+        if (firstCreation)
+            updateZoomExcludedWindows();
     }
 
     /**
@@ -4261,19 +4050,8 @@ public class WindowsOverlay implements Overlay {
 
     @Override
     public void hideGrid() {
-        if (!showingGrid)
-            return;
-        if (gridFadeAnimator != null && gridFadeAnimator.shouldDeferHide())
-            return;
-        doHideGrid();
-    }
-
-    private void doHideGrid() {
-        showingGrid = false;
-        if (gridFadeAnimator != null)
-            gridFadeAnimator.cancel();
-        gridWindow.widget.hideGrid();
-        gridWindow.widget.setWindowOpacity(1.0);
+        if (gridRenderer != null)
+            gridRenderer.hide();
     }
 
     @Override
