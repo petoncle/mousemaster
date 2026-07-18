@@ -2030,6 +2030,16 @@ public class WindowsOverlay implements Overlay {
         QColor subgridBoxColor = qColor("#000000", 0);
         QColor subgridBoxBorderColor = qColor(style.subgridBorderHexColor(),
                 style.subgridBorderOpacity());
+        int subgridBorderThicknessPx = (int) Math.round(style.subgridBorderThickness());
+        int subgridBorderLengthPx = (int) Math.round(style.subgridBorderLength());
+        QFont subgridLabelFont = null;
+        QColor subgridLabelColor = null;
+        if (hintMesh.subgrid() != null) {
+            FontStyle subgridFont = style.subgridFontStyle().defaultFontStyle();
+            subgridLabelFont = qFont(subgridFont.name(),
+                    subgridFont.size(), subgridFont.weight());
+            subgridLabelColor = qColor(subgridFont.hexColor(), subgridFont.opacity());
+        }
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         Map<String, Integer> xAdvancesByString = new HashMap<>();
         int hintKeyMaxXAdvance = 0;
@@ -2120,12 +2130,6 @@ public class WindowsOverlay implements Overlay {
                             (int) Math.round(style.boxBorderRadius())
                     );
             hintBoxes.add(hintBox);
-            HintBox[][] subgridBoxes = addSubgridBoxes(hintBox, qtScaleFactor,
-                    subgridBoxColor,
-                    subgridBoxBorderColor,
-                    style.subgridRowCount(), style.subgridColumnCount(),
-                    style.subgridBorderLength(), style.subgridBorderThickness(),
-                    style.subgridClosed());
             int boxWidth, boxHeight;
             if (isHintPartOfGrid
                 // Exclude single-hint grids (e.g. screen selection hint) so the box
@@ -2170,20 +2174,36 @@ public class WindowsOverlay implements Overlay {
                 hintGroup.right = Math.max(hintGroup.right, hintBox.x() + hintBox.width());
                 hintGroup.bottom = Math.max(hintGroup.bottom, hintBox.y() + hintBox.height());
             }
-            for (int subgridRowIndex = 0;
-                 subgridRowIndex < style.subgridRowCount(); subgridRowIndex++) {
-                for (int subgridColumnIndex = 0; subgridColumnIndex <
-                                                 style.subgridColumnCount(); subgridColumnIndex++) {
-                    HintBox subBox =
-                            subgridBoxes[subgridRowIndex][subgridColumnIndex];
-                    // Tile the sub-boxes across the full box so the last one
-                    // reaches the box edge (no rounding gap between cells).
-                    int subBoxLeft = boxWidth * subgridColumnIndex / style.subgridColumnCount();
-                    int subBoxRight = boxWidth * (subgridColumnIndex + 1) / style.subgridColumnCount();
-                    int subBoxTop = boxHeight * subgridRowIndex / style.subgridRowCount();
-                    int subBoxBottom = boxHeight * (subgridRowIndex + 1) / style.subgridRowCount();
+            HintMesh subgridMesh = hintMesh.subgrid();
+            if (subgridMesh != null) {
+                Rectangle refCell = subgridMesh.backgroundArea();
+                for (Hint subHint : subgridMesh.hints()) {
+                    // Map the sub-hint's cell (in reference-cell coordinates) into
+                    // this box proportionally, so cells of any size tile cleanly.
+                    int subBoxLeft = (int) Math.round(
+                            (subHint.centerX() - subHint.cellWidth() / 2 - refCell.x())
+                            / refCell.width() * boxWidth);
+                    int subBoxTop = (int) Math.round(
+                            (subHint.centerY() - subHint.cellHeight() / 2 - refCell.y())
+                            / refCell.height() * boxHeight);
+                    int subBoxRight = (int) Math.round(
+                            (subHint.centerX() + subHint.cellWidth() / 2 - refCell.x())
+                            / refCell.width() * boxWidth);
+                    int subBoxBottom = (int) Math.round(
+                            (subHint.centerY() + subHint.cellHeight() / 2 - refCell.y())
+                            / refCell.height() * boxHeight);
+                    HintBox subBox = new HintBox(null, subgridBorderLengthPx,
+                            subgridBorderThicknessPx, subgridBoxColor,
+                            subgridBoxBorderColor, true,
+                            subBoxLeft == 0, subBoxTop == 0,
+                            subBoxRight == boxWidth, subBoxBottom == boxHeight,
+                            style.subgridClosed(), qtScaleFactor, 0);
                     subBox.setGeometry(subBoxLeft, subBoxTop,
                             subBoxRight - subBoxLeft, subBoxBottom - subBoxTop);
+                    subBox.setLabel(subHint.keySequence().stream()
+                                    .map(Key::hintLabel).collect(Collectors.joining()),
+                            subgridLabelFont, subgridLabelColor);
+                    hintBox.subgridBoxes.add(subBox);
                 }
             }
             if (pumpDuringHintBuild && messagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
@@ -2522,41 +2542,6 @@ public class WindowsOverlay implements Overlay {
         return trimmedHints;
     }
 
-    private HintBox[][] addSubgridBoxes(HintBox hintBox,
-                                               double qtScaleFactor, QColor subgridBoxColor,
-                                               QColor subgridBoxBorderColor,
-                                               int subgridRowCount,
-                                               int subgridColumnCount,
-                                               double subgridBorderLength,
-                                               double subgridBorderThickness,
-                                               boolean subgridClosed) {
-        HintBox[][] hintBoxes = new HintBox[subgridRowCount][subgridColumnCount];
-        for (int subgridRowIndex = 0; subgridRowIndex <
-                                      subgridRowCount; subgridRowIndex++) {
-            for (int subgridColumnIndex = 0; subgridColumnIndex <
-                                             subgridColumnCount; subgridColumnIndex++) {
-                boolean gridLeftEdge = subgridColumnIndex == 0;
-                boolean gridTopEdge = subgridRowIndex == 0;
-                boolean gridRightEdge = subgridColumnIndex == subgridColumnCount - 1;
-                boolean gridBottomEdge = subgridRowIndex == subgridRowCount - 1;
-                HintBox subBox = new HintBox(
-                        null, (int) Math.round(subgridBorderLength),
-                        (int) Math.round(subgridBorderThickness),
-                        subgridBoxColor, // Transparent.
-                        subgridBoxBorderColor,
-                        true,
-                        gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
-                        subgridClosed, // Closed subgrid draws its own perimeter; open = interior lines only.
-                        qtScaleFactor,
-                        0
-                );
-                hintBox.subgridBoxes.add(subBox);
-                hintBoxes[subgridRowIndex][subgridColumnIndex] = subBox;
-            }
-        }
-        return hintBoxes;
-    }
-
     private record PixmapAndPosition(QPixmap pixmap, int x, int y, HintMesh originalHintMesh, int windowX, int windowY) {
         @Override
         public String toString() {
@@ -2603,6 +2588,10 @@ public class WindowsOverlay implements Overlay {
         private final int borderRadius;
         private int x, y, width, height;
         final List<HintBox> subgridBoxes = new ArrayList<>();
+        // Optional centered label (used by subgrid hints).
+        private String label;
+        private QFont labelFont;
+        private QColor labelColor;
 
         public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
                        boolean isHintPartOfGrid,
@@ -2630,6 +2619,12 @@ public class WindowsOverlay implements Overlay {
             this.y = y;
             this.width = width;
             this.height = height;
+        }
+
+        public void setLabel(String label, QFont labelFont, QColor labelColor) {
+            this.label = label;
+            this.labelFont = labelFont;
+            this.labelColor = labelColor;
         }
 
         public void move(int x, int y) {
@@ -2686,6 +2681,12 @@ public class WindowsOverlay implements Overlay {
                 }
                 if (borderThickness != 0)
                     drawBorders(painter);
+            }
+            if (label != null && !label.isEmpty() && labelFont != null) {
+                painter.setFont(labelFont);
+                painter.setPen(labelColor);
+                painter.drawText(new QRect(0, 0, width, height),
+                        Qt.AlignmentFlag.AlignCenter.value(), label);
             }
             for (HintBox subBox : subgridBoxes) {
                 subBox.paint(painter);

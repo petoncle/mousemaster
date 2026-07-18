@@ -1,6 +1,7 @@
 package mousemaster;
 
 import java.time.Duration;
+import java.util.List;
 
 public record HintMeshStyle(HintFontStyle fontStyle,
                             boolean prefixInBackground,
@@ -22,12 +23,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             double boxHeightPercent,
                             double cellHorizontalPadding,
                             double cellVerticalPadding,
-                            int subgridRowCount,
-                            int subgridColumnCount,
+                            int subgridMaxRowCount,
+                            int subgridMaxColumnCount,
+                            List<Key> subgridSelectionKeys,
                             double subgridBorderThickness,
                             double subgridBorderLength,
                             String subgridBorderHexColor,
                             double subgridBorderOpacity,
+                            HintFontStyle subgridFontStyle,
                             boolean subgridClosed,
                             boolean transitionAnimationEnabled,
                             Duration transitionAnimationDuration,
@@ -61,12 +64,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Double boxHeightPercent;
         private Double cellHorizontalPadding;
         private Double cellVerticalPadding;
-        private Integer subgridRowCount;
-        private Integer subgridColumnCount;
+        private Integer subgridMaxRowCount;
+        private Integer subgridMaxColumnCount;
+        private List<Key> subgridSelectionKeys;
         private Double subgridBorderThickness;
         private Double subgridBorderLength;
         private String subgridBorderHexColor;
         private Double subgridBorderOpacity;
+        private HintFontStyle.HintFontStyleBuilder subgridFontStyle = new HintFontStyle.HintFontStyleBuilder();
         private Boolean subgridClosed;
         private Boolean transitionAnimationEnabled;
         private Duration transitionAnimationDuration;
@@ -100,12 +105,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.boxHeightPercent = style.boxHeightPercent;
             this.cellHorizontalPadding = style.cellHorizontalPadding;
             this.cellVerticalPadding = style.cellVerticalPadding;
-            this.subgridRowCount = style.subgridRowCount;
-            this.subgridColumnCount = style.subgridColumnCount;
+            this.subgridMaxRowCount = style.subgridMaxRowCount;
+            this.subgridMaxColumnCount = style.subgridMaxColumnCount;
+            this.subgridSelectionKeys = style.subgridSelectionKeys;
             this.subgridBorderThickness = style.subgridBorderThickness;
             this.subgridBorderLength = style.subgridBorderLength;
             this.subgridBorderHexColor = style.subgridBorderHexColor;
             this.subgridBorderOpacity = style.subgridBorderOpacity;
+            this.subgridFontStyle = style.subgridFontStyle.builder();
             this.subgridClosed = style.subgridClosed;
             this.transitionAnimationEnabled = style.transitionAnimationEnabled;
             this.transitionAnimationDuration = style.transitionAnimationDuration;
@@ -201,13 +208,18 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder subgridRowCount(Integer subgridRowCount) {
-            this.subgridRowCount = subgridRowCount;
+        public HintMeshStyleBuilder subgridMaxRowCount(Integer subgridMaxRowCount) {
+            this.subgridMaxRowCount = subgridMaxRowCount;
             return this;
         }
 
-        public HintMeshStyleBuilder subgridColumnCount(Integer subgridColumnCount) {
-            this.subgridColumnCount = subgridColumnCount;
+        public HintMeshStyleBuilder subgridMaxColumnCount(Integer subgridMaxColumnCount) {
+            this.subgridMaxColumnCount = subgridMaxColumnCount;
+            return this;
+        }
+
+        public HintMeshStyleBuilder subgridSelectionKeys(List<Key> subgridSelectionKeys) {
+            this.subgridSelectionKeys = subgridSelectionKeys;
             return this;
         }
 
@@ -268,6 +280,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintFontStyle.HintFontStyleBuilder fontStyle() {
             return fontStyle;
+        }
+
+        public HintMeshStyleBuilder fontStyle(HintFontStyle fontStyle) {
+            this.fontStyle = fontStyle.builder();
+            return this;
         }
 
         public Boolean prefixInBackground() {
@@ -346,12 +363,16 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return cellVerticalPadding;
         }
 
-        public Integer subgridRowCount() {
-            return subgridRowCount;
+        public Integer subgridMaxRowCount() {
+            return subgridMaxRowCount;
         }
 
-        public Integer subgridColumnCount() {
-            return subgridColumnCount;
+        public Integer subgridMaxColumnCount() {
+            return subgridMaxColumnCount;
+        }
+
+        public List<Key> subgridSelectionKeys() {
+            return subgridSelectionKeys;
         }
 
         public Double subgridBorderThickness() {
@@ -368,6 +389,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public Double subgridBorderOpacity() {
             return subgridBorderOpacity;
+        }
+
+        public HintFontStyle.HintFontStyleBuilder subgridFontStyle() {
+            return subgridFontStyle;
         }
 
         public Boolean subgridClosed() {
@@ -423,12 +448,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
                     cellHorizontalPadding == null ? defaultStyle.cellHorizontalPadding : cellHorizontalPadding,
                     cellVerticalPadding == null ? defaultStyle.cellVerticalPadding : cellVerticalPadding,
-                    subgridRowCount == null ? defaultStyle.subgridRowCount : subgridRowCount,
-                    subgridColumnCount == null ? defaultStyle.subgridColumnCount : subgridColumnCount,
+                    subgridMaxRowCount == null ? defaultStyle.subgridMaxRowCount : subgridMaxRowCount,
+                    subgridMaxColumnCount == null ? defaultStyle.subgridMaxColumnCount : subgridMaxColumnCount,
+                    subgridSelectionKeys == null ? defaultStyle.subgridSelectionKeys : subgridSelectionKeys,
                     subgridBorderThickness == null ? defaultStyle.subgridBorderThickness : subgridBorderThickness,
                     subgridBorderLength == null ? defaultStyle.subgridBorderLength : subgridBorderLength,
                     subgridBorderHexColor == null ? defaultStyle.subgridBorderHexColor : subgridBorderHexColor,
                     subgridBorderOpacity == null ? defaultStyle.subgridBorderOpacity : subgridBorderOpacity,
+                    subgridFontStyle.build(),
                     subgridClosed == null ? defaultStyle.subgridClosed : subgridClosed,
                     transitionAnimationEnabled == null ? defaultStyle.transitionAnimationEnabled : transitionAnimationEnabled,
                     transitionAnimationDuration == null ? defaultStyle.transitionAnimationDuration : transitionAnimationDuration,

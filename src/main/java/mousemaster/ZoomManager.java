@@ -192,7 +192,8 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         ViewportFilterMap<HintMeshStyle> scaledStyleByFilter = scaleFontSize(
                 mesh.styleByFilter(), scale);
         return new HintMesh(mesh.visible(), interpolatedHints, mesh.prefixLength(),
-                mesh.selectedKeySequence(), scaledStyleByFilter, interpolatedBackgroundArea);
+                mesh.selectedKeySequence(), scaledStyleByFilter, interpolatedBackgroundArea,
+                mesh.subgrid());
     }
 
     private static ViewportFilterMap<HintMeshStyle> scaleFontSize(
@@ -218,9 +219,11 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity(),
                 style.boxWidthPercent(), style.boxHeightPercent(),
                 style.cellHorizontalPadding(), style.cellVerticalPadding(),
-                style.subgridRowCount(), style.subgridColumnCount(),
+                style.subgridMaxRowCount(), style.subgridMaxColumnCount(),
+                style.subgridSelectionKeys(),
                 style.subgridBorderThickness(), style.subgridBorderLength(),
                 style.subgridBorderHexColor(), style.subgridBorderOpacity(),
+                scaleFontSize(style.subgridFontStyle(), scale),
                 style.subgridClosed(),
                 style.transitionAnimationEnabled(), style.transitionAnimationDuration(),
                 style.fadeAnimationEnabled(), style.fadeAnimationDuration(),
