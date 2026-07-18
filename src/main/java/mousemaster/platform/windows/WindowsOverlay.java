@@ -234,84 +234,20 @@ public class WindowsOverlay implements Overlay {
 
     }
 
-    private double zoomedX(double x) {
-        if (currentZoom == null)
-            return x;
-        return currentZoom.zoomedX(x);
-    }
-
-    private double zoomedY(double y) {
-        if (currentZoom == null)
-            return y;
-        return currentZoom.zoomedY(y);
-    }
-
-    private static final int indicatorEdgeThreshold = 100;
-
-    /**
-     * Returns the indicator top-left position for the given indicator size.
-     * For CENTER, the indicator is centered on the cursor's visual center.
-     * For corner positions, the indicator is placed in that corner relative to the cursor,
-     * flipping to the opposite side when near the corresponding screen edge.
-     */
-    private Point indicatorTopLeft(WinDef.POINT mousePosition,
-                                          Screen activeScreen, Indicator indicator, int visualSize) {
-        Rectangle screen = activeScreen.rectangle();
-        if (indicator.position() == IndicatorPosition.CENTER) {
-            Point cursorCenter = mouse.cursorVisualCenter();
-            double centerX = mousePosition.x + cursorCenter.x();
-            double centerY = mousePosition.y + cursorCenter.y();
-            centerX = Math.max(screen.x(), Math.min(centerX,
-                    screen.x() + screen.width()));
-            centerY = Math.max(screen.y(), Math.min(centerY,
-                    screen.y() + screen.height()));
-            return new Point(zoomedX(centerX) - visualSize / 2.0,
-                    zoomedY(centerY) - visualSize / 2.0);
-        }
-        WindowsMouseController.MouseSize mouseSize = mouse.mouseSize();
-        int mouseX = Math.max(screen.x(), Math.min(mousePosition.x,
-                screen.x() + screen.width()));
-        int mouseY = Math.max(screen.y(), Math.min(mousePosition.y,
-                screen.y() + screen.height()));
-        IndicatorPosition position = indicator.position();
-        boolean defaultRight = position == IndicatorPosition.BOTTOM_RIGHT ||
-                               position == IndicatorPosition.TOP_RIGHT;
-        boolean defaultBottom = position == IndicatorPosition.BOTTOM_RIGHT ||
-                                position == IndicatorPosition.BOTTOM_LEFT;
-        boolean nearRightEdge = mouseX >=
-                screen.x() + screen.width() - indicatorEdgeThreshold;
-        boolean nearLeftEdge = mouseX <=
-                screen.x() + indicatorEdgeThreshold;
-        boolean placeRight = defaultRight ? !nearRightEdge : nearLeftEdge;
-        int indicatorX = placeRight ?
-                mouseX + mouseSize.width() / 2 : mouseX - visualSize;
-        boolean nearBottomEdge = mouseY >=
-                screen.y() + screen.height() - indicatorEdgeThreshold;
-        boolean nearTopEdge = mouseY <=
-                screen.y() + indicatorEdgeThreshold;
-        boolean placeBottom = defaultBottom ? !nearBottomEdge : nearTopEdge;
-        int indicatorY = placeBottom ?
-                mouseY + mouseSize.height() / 2 : mouseY - visualSize;
-        return new Point(zoomedX(indicatorX), zoomedY(indicatorY));
-    }
-
     private void moveAndResizeIndicatorWindow() {
-        moveAndResizeIndicatorWindow(mouse.findMousePosition(),
-                indicatorRenderer.currentIndicator());
+        moveAndResizeIndicatorWindow(mouse.findMousePosition());
     }
 
-    private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition, Indicator indicator) {
-        Screen activeScreen = WindowsScreen.findActiveScreen(mousePosition);
-        double screenScale = activeScreen.scale();
-        double zoomPercent = zoomPercent();
-        int size = indicatorRenderer.indicatorSize(indicator, screenScale, zoomPercent);
-        int outlinePadding = indicatorRenderer.indicatorOutlinePadding(indicator, screenScale, zoomPercent);
-        int shadowPadding = indicatorRenderer.indicatorShadowPadding(indicator, screenScale * zoomPercent);
-        int visualSize = size + 2 * outlinePadding;
-        Point topLeft = indicatorTopLeft(mousePosition, activeScreen, indicator, visualSize);
-        indicatorRenderer.moveAndResize((int) Math.round(topLeft.x()),
-                (int) Math.round(topLeft.y()), size, outlinePadding, shadowPadding,
-                screenScale * zoomPercent, zoomPercent);
+    private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
+        indicatorRenderer.reposition(mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
+                WindowsScreen.findActiveScreen(mousePosition), currentZoom);
+    }
+
+    /** The cursor's bounding rectangle (position + size) at the given mouse position. */
+    private Rectangle mouseRectangle(WinDef.POINT mousePosition) {
+        WindowsMouseController.MouseSize mouseSize = mouse.mouseSize();
+        return new Rectangle(mousePosition.x, mousePosition.y,
+                mouseSize.width(), mouseSize.height());
     }
 
     private void createIndicatorWindow() {
@@ -435,46 +371,13 @@ public class WindowsOverlay implements Overlay {
             logger.warn("Unable to find mouse position for indicator");
             return;
         }
-        boolean showing = indicatorRenderer != null && indicatorRenderer.showing();
-        Indicator oldIndicator = indicatorRenderer == null ? null
-                : indicatorRenderer.currentIndicator();
-        if (showing && oldIndicator != null && oldIndicator.equals(indicator))
-            return;
-        boolean wasShowing = showing;
-        // If re-showing during a fade-out, cancel the fade-out.
-        if (indicatorRenderer != null)
-            indicatorRenderer.cancelFadeOut();
-        boolean created = indicatorHwnd == null;
-        boolean applyShadow;
-        boolean sizeOrShadowOrPositionChanged;
-        if (created) {
+        if (indicatorHwnd == null)
             createIndicatorWindow();
-            applyShadow = true;
-            sizeOrShadowOrPositionChanged = true;
-        }
-        else {
-            boolean sizeOrShadowChanged = oldIndicator == null ||
-                    indicator.size() != oldIndicator.size() ||
-                    indicator.edgeCount() != oldIndicator.edgeCount() ||
-                    indicator.outerOutline().thickness() != oldIndicator.outerOutline().thickness() ||
-                    indicator.innerOutline().thickness() != oldIndicator.innerOutline().thickness() ||
-                    !indicator.shadow().equals(oldIndicator.shadow()) ||
-                    indicator.opacity() != oldIndicator.opacity() ||
-                    indicator.outerOutline().opacity() != oldIndicator.outerOutline().opacity() ||
-                    indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity();
-            boolean positionChanged = oldIndicator == null ||
-                    indicator.position() != oldIndicator.position();
-            applyShadow = sizeOrShadowChanged;
-            sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
-        }
         WinDef.POINT mousePosition = mouse.findMousePosition();
-        // Position the (hidden) window before the renderer shows it.
-        if (created || sizeOrShadowOrPositionChanged)
-            moveAndResizeIndicatorWindow(mousePosition, indicator);
-        double shadowScale =
-                WindowsScreen.findActiveScreen(mousePosition).scale() * zoomPercent();
-        indicatorRenderer.setIndicator(indicator, applyShadow, shadowScale, wasShowing,
-                fadeAnimationEnabled, fadeAnimationDuration, allowFade);
+        indicatorRenderer.setIndicator(indicator, fadeAnimationEnabled,
+                fadeAnimationDuration, allowFade, mouseRectangle(mousePosition),
+                mouse.cursorVisualCenter(),
+                WindowsScreen.findActiveScreen(mousePosition), currentZoom);
     }
 
     private void createScreenshotWindow() {
@@ -920,7 +823,7 @@ public class WindowsOverlay implements Overlay {
         // mispositioning until setZoom() corrects it.
         if (currentZoom != null)
             return;
-        moveAndResizeIndicatorWindow(mousePosition, indicatorRenderer.currentIndicator());
+        moveAndResizeIndicatorWindow(mousePosition);
     }
 
 }

@@ -12,8 +12,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Cross-platform Qt rendering of the mouse indicator: owns the indicator widget, its
- * label widget and shadow effects, and the sizing geometry. The platform overlay hosts
- * the window (styles its native handle) and decides where to place it (mouse/screen/zoom).
+ * label widget and shadow effects, and computes where and how big to draw the indicator.
+ * The platform overlay owns the native window (styles its handle) and supplies the cursor,
+ * screen and zoom.
  */
 public final class IndicatorRenderer {
 
@@ -45,18 +46,18 @@ public final class IndicatorRenderer {
         return currentIndicator;
     }
 
-    public int indicatorSize(Indicator indicator, double screenScale, double zoomPercent) {
+    private int indicatorSize(Indicator indicator, double screenScale, double zoomPercent) {
         return (int) Math.floor(indicator.size() * screenScale * zoomPercent);
     }
 
-    public int indicatorOutlinePadding(Indicator indicator, double screenScale, double zoomPercent) {
+    private int indicatorOutlinePadding(Indicator indicator, double screenScale, double zoomPercent) {
         double scaled = Math.max(
                 indicator.outerOutline().thickness(),
                 indicator.innerOutline().thickness()) * screenScale * zoomPercent;
         return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, indicator.edgeCount()));
     }
 
-    public int indicatorShadowPadding(Indicator indicator, double scale) {
+    private int indicatorShadowPadding(Indicator indicator, double scale) {
         if (indicator.shadow().blurRadius() == 0)
             return 0;
         return (int) Math.ceil((indicator.shadow().blurRadius() +
@@ -64,11 +65,134 @@ public final class IndicatorRenderer {
                          Math.abs(indicator.shadow().verticalOffset()))) * scale);
     }
 
+    /** Shows/updates the indicator: detects what changed, repositions when needed, and
+     *  renders. The overlay supplies the cursor rectangle, its visual center, and the
+     *  active screen and zoom. */
+    public void setIndicator(Indicator indicator, boolean fadeAnimationEnabled,
+                             Duration fadeAnimationDuration, boolean allowFade,
+                             Rectangle mouseRectangle, Point cursorVisualCenter,
+                             Screen activeScreen, Zoom zoom) {
+        Indicator oldIndicator = currentIndicator;
+        if (showing && oldIndicator != null && oldIndicator.equals(indicator))
+            return;
+        boolean wasShowing = showing;
+        // If re-showing during a fade-out, cancel the fade-out.
+        cancelFadeOut();
+        boolean created = oldIndicator == null;
+        boolean applyShadow;
+        boolean sizeOrShadowOrPositionChanged;
+        if (created) {
+            applyShadow = true;
+            sizeOrShadowOrPositionChanged = true;
+        }
+        else {
+            boolean sizeOrShadowChanged = oldIndicator == null ||
+                    indicator.size() != oldIndicator.size() ||
+                    indicator.edgeCount() != oldIndicator.edgeCount() ||
+                    indicator.outerOutline().thickness() != oldIndicator.outerOutline().thickness() ||
+                    indicator.innerOutline().thickness() != oldIndicator.innerOutline().thickness() ||
+                    !indicator.shadow().equals(oldIndicator.shadow()) ||
+                    indicator.opacity() != oldIndicator.opacity() ||
+                    indicator.outerOutline().opacity() != oldIndicator.outerOutline().opacity() ||
+                    indicator.innerOutline().opacity() != oldIndicator.innerOutline().opacity();
+            boolean positionChanged = oldIndicator == null ||
+                    indicator.position() != oldIndicator.position();
+            applyShadow = sizeOrShadowChanged;
+            sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
+        }
+        // Position the (hidden) window before applyIndicator shows it.
+        if (created || sizeOrShadowOrPositionChanged)
+            reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
+        double shadowScale = activeScreen.scale() * zoomPercent(zoom);
+        applyIndicator(indicator, applyShadow, shadowScale, wasShowing,
+                fadeAnimationEnabled, fadeAnimationDuration, allowFade);
+    }
+
+    /** Repositions/resizes the current indicator for the cursor, screen and zoom. */
+    public void reposition(Rectangle mouseRectangle, Point cursorVisualCenter,
+                           Screen activeScreen, Zoom zoom) {
+        reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
+    }
+
+    private void reposition(Indicator indicator, Rectangle mouseRectangle,
+                            Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
+        double screenScale = activeScreen.scale();
+        double zoomPercent = zoomPercent(zoom);
+        int size = indicatorSize(indicator, screenScale, zoomPercent);
+        int outlinePadding = indicatorOutlinePadding(indicator, screenScale, zoomPercent);
+        int shadowPadding = indicatorShadowPadding(indicator, screenScale * zoomPercent);
+        int visualSize = size + 2 * outlinePadding;
+        Point topLeft = indicatorTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
+                zoom, indicator, visualSize);
+        moveAndResize((int) Math.round(topLeft.x()), (int) Math.round(topLeft.y()),
+                size, outlinePadding, shadowPadding, screenScale * zoomPercent, zoomPercent);
+    }
+
+    private static final int indicatorEdgeThreshold = 100;
+
+    /**
+     * Returns the indicator top-left position for the given indicator size.
+     * For CENTER, the indicator is centered on the cursor's visual center.
+     * For corner positions, the indicator is placed in that corner relative to the cursor,
+     * flipping to the opposite side when near the corresponding screen edge.
+     */
+    private Point indicatorTopLeft(Rectangle mouseRectangle, Point cursorVisualCenter,
+                                   Screen activeScreen, Zoom zoom, Indicator indicator,
+                                   int visualSize) {
+        Rectangle screen = activeScreen.rectangle();
+        if (indicator.position() == IndicatorPosition.CENTER) {
+            double centerX = mouseRectangle.x() + cursorVisualCenter.x();
+            double centerY = mouseRectangle.y() + cursorVisualCenter.y();
+            centerX = Math.max(screen.x(), Math.min(centerX,
+                    screen.x() + screen.width()));
+            centerY = Math.max(screen.y(), Math.min(centerY,
+                    screen.y() + screen.height()));
+            return new Point(zoomedX(centerX, zoom) - visualSize / 2.0,
+                    zoomedY(centerY, zoom) - visualSize / 2.0);
+        }
+        int mouseX = Math.max(screen.x(), Math.min(mouseRectangle.x(),
+                screen.x() + screen.width()));
+        int mouseY = Math.max(screen.y(), Math.min(mouseRectangle.y(),
+                screen.y() + screen.height()));
+        IndicatorPosition position = indicator.position();
+        boolean defaultRight = position == IndicatorPosition.BOTTOM_RIGHT ||
+                               position == IndicatorPosition.TOP_RIGHT;
+        boolean defaultBottom = position == IndicatorPosition.BOTTOM_RIGHT ||
+                                position == IndicatorPosition.BOTTOM_LEFT;
+        boolean nearRightEdge = mouseX >=
+                screen.x() + screen.width() - indicatorEdgeThreshold;
+        boolean nearLeftEdge = mouseX <=
+                screen.x() + indicatorEdgeThreshold;
+        boolean placeRight = defaultRight ? !nearRightEdge : nearLeftEdge;
+        int indicatorX = placeRight ?
+                mouseX + mouseRectangle.width() / 2 : mouseX - visualSize;
+        boolean nearBottomEdge = mouseY >=
+                screen.y() + screen.height() - indicatorEdgeThreshold;
+        boolean nearTopEdge = mouseY <=
+                screen.y() + indicatorEdgeThreshold;
+        boolean placeBottom = defaultBottom ? !nearBottomEdge : nearTopEdge;
+        int indicatorY = placeBottom ?
+                mouseY + mouseRectangle.height() / 2 : mouseY - visualSize;
+        return new Point(zoomedX(indicatorX, zoom), zoomedY(indicatorY, zoom));
+    }
+
+    private static double zoomedX(double x, Zoom zoom) {
+        return zoom == null ? x : zoom.zoomedX(x);
+    }
+
+    private static double zoomedY(double y, Zoom zoom) {
+        return zoom == null ? y : zoom.zoomedY(y);
+    }
+
+    private static double zoomPercent(Zoom zoom) {
+        return zoom == null ? 1 : zoom.percent();
+    }
+
     /** Applies the indicator to the widgets (shape, outlines, label, shadow) and, on first
-     *  appearance, sets up the fade-in. The host applies the shadow scale (screen * zoom). */
-    public void setIndicator(Indicator indicator, boolean applyShadow, double shadowScale,
-                             boolean wasShowing, boolean fadeAnimationEnabled,
-                             Duration fadeAnimationDuration, boolean allowFade) {
+     *  appearance, sets up the fade-in. */
+    private void applyIndicator(Indicator indicator, boolean applyShadow, double shadowScale,
+                                boolean wasShowing, boolean fadeAnimationEnabled,
+                                Duration fadeAnimationDuration, boolean allowFade) {
         currentIndicator = indicator;
         if (applyShadow)
             applyShadowEffect(shadowScale);
@@ -139,9 +263,8 @@ public final class IndicatorRenderer {
         }
     }
 
-    /** Moves and resizes the window + widgets. The host computed the visual top-left
-     *  (mouse/screen/zoom) and the sizes (from the accessors above). */
-    public void moveAndResize(int visualTopLeftX, int visualTopLeftY, int size,
+    /** Moves and resizes the window + widgets to the computed visual top-left and sizes. */
+    private void moveAndResize(int visualTopLeftX, int visualTopLeftY, int size,
                               int outlinePadding, int shadowPadding,
                               double outlineScale, double labelFontScale) {
         widget.setOutlineScale(outlineScale);
