@@ -122,6 +122,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             pendingUiHintQuery = null;
         }
         boolean hintWasJustSelected = hintJustSelected;
+        boolean sameMode =
+                currentMode != null && newMode.name().equals(currentMode.name());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory) {
             if (positionHistory.isEmpty())
@@ -133,7 +135,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                      .get(newScreenFilter)
                                      .selectionKeys();
         if (hintJustSelected) {
-            if (currentMode != null && newMode.name().equals(currentMode.name())) {
+            if (sameMode) {
                 // Same-mode mutation (e.g., variable change triggering
                 // refreshPreconditionOnlyMutations before SwitchMode runs).
                 // Skip rebuilding: the grid would get a new center (because
@@ -158,7 +160,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             // Skip for same-mode mutations (e.g. zoom toggle): lastSelectedHintPoint
             // is already correct, and a stale cache entry (from a previous visit with
             // different variable state) could overwrite it with an outdated value.
-            if (currentMode == null || !currentMode.name().equals(newMode.name())) {
+            if (!sameMode) {
                 HintMeshState hintMeshState = hintMeshStates.get(
                         new HintMeshKey(hintMeshConfiguration.type(),
                                 selectionKeys, newMode.zoom()));
@@ -168,18 +170,20 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
         }
         // Recursive grid stack: forward pushes, backward pops, other grids clear.
-        if (hintMeshConfiguration.enabled() &&
-            hintMeshConfiguration.type() instanceof HintMeshType.HintGrid cellAreaGrid &&
-            cellAreaGrid.area() instanceof LastSelectedHintCellGridArea) {
-            if (hintWasJustSelected) {
-                if (pendingSelectedCell != null)
-                    selectedCellStack.push(pendingSelectedCell);
+        if (!sameMode) {
+            if (hintMeshConfiguration.enabled() &&
+                hintMeshConfiguration.type() instanceof HintMeshType.HintGrid cellAreaGrid &&
+                cellAreaGrid.area() instanceof LastSelectedHintCellGridArea) {
+                if (hintWasJustSelected) {
+                    if (pendingSelectedCell != null)
+                        selectedCellStack.push(pendingSelectedCell);
+                }
+                else if (!selectedCellStack.isEmpty())
+                    selectedCellStack.pop();
             }
-            else if (!selectedCellStack.isEmpty())
-                selectedCellStack.pop();
+            else
+                selectedCellStack.clear();
         }
-        else
-            selectedCellStack.clear();
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
             hintMeshStates.clear();
