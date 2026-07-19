@@ -32,9 +32,13 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final List<Point> positionHistory = new ArrayList<>();
     private final int maxPositionHistorySize;
     private Point lastSelectedHintPoint;
-    // Chain of selected cells for recursive (last-selected-hint-cell) grids.
-    private final Deque<Rectangle> selectedCellStack = new ArrayDeque<>();
+    // Recursive (last-selected-hint-cell) grid levels: each holds the selected
+    // cell and the area it rendered, frozen so back navigation restores that view.
+    private final Deque<CellGridLevel> cellGridLevelStack = new ArrayDeque<>();
     private Rectangle pendingSelectedCell;
+
+    private record CellGridLevel(Rectangle cell, Rectangle area) {
+    }
     /**
      * Used for deterministic hint key sequences.
      */
@@ -165,21 +169,30 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMeshState.previousModeSelectedHintPoint;
             }
         }
-        // Recursive grid stack: forward pushes, backward pops, other grids clear.
-        if (!sameMode) {
-            if (hintMeshConfiguration.enabled() &&
-                hintMeshConfiguration.type() instanceof HintMeshType.HintGrid cellAreaGrid &&
-                cellAreaGrid.area().size() == HintGridAreaSize.LAST_SELECTED_HINT_CELL) {
-                if (hintWasJustSelected) {
-                    if (pendingSelectedCell != null)
-                        selectedCellStack.push(pendingSelectedCell);
+        // Recursive grid levels: forward pushes the new level, backward pops (which
+        // restores the parent's frozen area), a same-mode mutation re-resolves the
+        // current level's position; any non-recursive mode clears the stack.
+        if (hintMeshConfiguration.enabled() &&
+            hintMeshConfiguration.type() instanceof HintMeshType.HintGrid cellAreaGrid &&
+            cellAreaGrid.area().size() == HintGridAreaSize.LAST_SELECTED_HINT_CELL) {
+            HintGridAreaCenter center = cellAreaGrid.area().center();
+            if (sameMode) {
+                if (!cellGridLevelStack.isEmpty()) {
+                    Rectangle cell = cellGridLevelStack.pop().cell();
+                    cellGridLevelStack.push(
+                            new CellGridLevel(cell, cellGridArea(cell, center)));
                 }
-                else if (!selectedCellStack.isEmpty())
-                     selectedCellStack.pop();
             }
-            else
-                selectedCellStack.clear();
+            else if (hintWasJustSelected) {
+                if (pendingSelectedCell != null)
+                    cellGridLevelStack.push(new CellGridLevel(pendingSelectedCell,
+                            cellGridArea(pendingSelectedCell, center)));
+            }
+            else if (!cellGridLevelStack.isEmpty())
+                cellGridLevelStack.pop();
         }
+        else
+            cellGridLevelStack.clear();
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
             hintMeshStates.clear();
@@ -368,6 +381,23 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
+    /**
+     * A rectangle of the cell's size, centered on the point grid-area-center selects.
+     */
+    private Rectangle cellGridArea(Rectangle cell, HintGridAreaCenter center) {
+        Point gridCenter = switch (center) {
+            case SCREEN_CENTER -> screenManager.activeScreen().rectangle().center();
+            case MOUSE -> new Point(mouseX, mouseY);
+            case LAST_SELECTED_HINT -> cell.center();
+            case ACTIVE_WINDOW_CENTER ->
+                    overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
+        };
+        return new Rectangle(
+                (int) Math.round(gridCenter.x() - cell.width() / 2.0),
+                (int) Math.round(gridCenter.y() - cell.height() / 2.0),
+                cell.width(), cell.height());
+    }
+
     private HintMesh buildHintMesh(
             HintMeshConfiguration hintMeshConfiguration,
             ZoomConfiguration zoomConfiguration, Zoom zoom,
@@ -400,28 +430,33 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             else {
                 // Single grid: size gives the box's width/height, center gives the
-                // point the box is centered on.
-                Rectangle sizeRectangle = switch (area.size()) {
-                    case ACTIVE_SCREEN -> screenManager.activeScreen().rectangle();
-                    case ACTIVE_WINDOW -> overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
-                    case LAST_SELECTED_HINT_CELL -> selectedCellStack.isEmpty() ?
+                // point the box is centered on. A cell grid reads its frozen level
+                // instead, so back navigation reproduces the exact area it rendered.
+                Rectangle sizeRectangle;
+                Point gridCenter;
+                if (area.size() == HintGridAreaSize.LAST_SELECTED_HINT_CELL) {
+                    sizeRectangle = cellGridLevelStack.isEmpty() ?
                             screenManager.activeScreen().rectangle() :
-                            selectedCellStack.peek();
-                    case ALL_SCREENS -> throw new IllegalStateException();
-                };
-                Point gridCenter = switch (area.center()) {
-                    case SCREEN_CENTER ->
-                            screenManager.activeScreen().rectangle().center();
-                    case MOUSE -> new Point(mouseX, mouseY);
-                    // A cell grid sits on its stack cell; a screen grid follows the hint point.
-                    case LAST_SELECTED_HINT ->
-                            area.size() == HintGridAreaSize.LAST_SELECTED_HINT_CELL ?
-                                    sizeRectangle.center() :
-                                    (lastSelectedHintPoint == null ?
-                                            new Point(mouseX, mouseY) : lastSelectedHintPoint);
-                    case ACTIVE_WINDOW_CENTER ->
-                            overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
-                };
+                            cellGridLevelStack.peek().area();
+                    gridCenter = sizeRectangle.center();
+                }
+                else {
+                    sizeRectangle = switch (area.size()) {
+                        case ACTIVE_SCREEN -> screenManager.activeScreen().rectangle();
+                        case ACTIVE_WINDOW -> overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
+                        default -> throw new IllegalStateException();
+                    };
+                    gridCenter = switch (area.center()) {
+                        case SCREEN_CENTER ->
+                                screenManager.activeScreen().rectangle().center();
+                        case MOUSE -> new Point(mouseX, mouseY);
+                        case LAST_SELECTED_HINT ->
+                                lastSelectedHintPoint == null ?
+                                        new Point(mouseX, mouseY) : lastSelectedHintPoint;
+                        case ACTIVE_WINDOW_CENTER ->
+                                overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
+                    };
+                }
                 logger.trace("Grid center " + gridCenter);
                 Rectangle areaRectangle = new Rectangle(
                         (int) Math.round(gridCenter.x() - sizeRectangle.width() / 2.0),
