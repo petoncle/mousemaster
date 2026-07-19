@@ -153,7 +153,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                             selectionKeys, newMode.zoom()));
         }
         else if (hintMeshConfiguration.type() instanceof HintMeshType.HintGrid hintGrid &&
-                         hintGrid.area().size() == HintGridAreaSize.ACTIVE_SCREEN &&
+                         hintGrid.area().size().source() == HintGridAreaSizeSource.ACTIVE_SCREEN &&
                          hintGrid.area().center() == HintGridAreaCenter.LAST_SELECTED_HINT) {
             // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
             // (Because currently, last selected hint is the hint selected by hint3-2.)
@@ -174,19 +174,20 @@ public class HintManager implements ModeListener, MousePositionListener {
         // current level's position; any non-recursive mode clears the stack.
         if (hintMeshConfiguration.enabled() &&
             hintMeshConfiguration.type() instanceof HintMeshType.HintGrid cellAreaGrid &&
-            cellAreaGrid.area().size() == HintGridAreaSize.LAST_SELECTED_HINT_CELL) {
+            cellAreaGrid.area().size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
+            HintGridAreaSize size = cellAreaGrid.area().size();
             HintGridAreaCenter center = cellAreaGrid.area().center();
             if (sameMode) {
                 if (!cellGridLevelStack.isEmpty()) {
                     Rectangle cell = cellGridLevelStack.pop().cell();
                     cellGridLevelStack.push(
-                            new CellGridLevel(cell, cellGridArea(cell, center)));
+                            new CellGridLevel(cell, cellGridArea(cell, size, center)));
                 }
             }
             else if (hintWasJustSelected) {
                 if (pendingSelectedCell != null)
                     cellGridLevelStack.push(new CellGridLevel(pendingSelectedCell,
-                            cellGridArea(pendingSelectedCell, center)));
+                            cellGridArea(pendingSelectedCell, size, center)));
             }
             else if (!cellGridLevelStack.isEmpty())
                 cellGridLevelStack.pop();
@@ -352,7 +353,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private ViewportFilter screenFilter(HintMeshConfiguration hintMeshConfiguration) {
         HintMeshType type = hintMeshConfiguration.type();
         if (type instanceof HintMeshType.HintGrid hintGrid) {
-            return switch (hintGrid.area().size()) {
+            return switch (hintGrid.area().size().source()) {
                 case ACTIVE_SCREEN, LAST_SELECTED_HINT_CELL ->
                         ViewportFilter.of(screenManager.activeScreen());
                 case ALL_SCREENS ->
@@ -382,9 +383,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     /**
-     * A rectangle of the cell's size, centered on the point grid-area-center selects.
+     * The cell scaled by the size percents, centered on the point grid-area-center selects.
      */
-    private Rectangle cellGridArea(Rectangle cell, HintGridAreaCenter center) {
+    private Rectangle cellGridArea(Rectangle cell, HintGridAreaSize size,
+                                   HintGridAreaCenter center) {
         Point gridCenter = switch (center) {
             case SCREEN_CENTER -> screenManager.activeScreen().rectangle().center();
             case MOUSE -> new Point(mouseX, mouseY);
@@ -392,10 +394,17 @@ public class HintManager implements ModeListener, MousePositionListener {
             case ACTIVE_WINDOW_CENTER ->
                     overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
         };
+        return scaledArea(cell, size, gridCenter);
+    }
+
+    private static Rectangle scaledArea(Rectangle sourceRectangle, HintGridAreaSize size,
+                                        Point gridCenter) {
+        int width = (int) Math.round(sourceRectangle.width() * size.widthPercent());
+        int height = (int) Math.round(sourceRectangle.height() * size.heightPercent());
         return new Rectangle(
-                (int) Math.round(gridCenter.x() - cell.width() / 2.0),
-                (int) Math.round(gridCenter.y() - cell.height() / 2.0),
-                cell.width(), cell.height());
+                (int) Math.round(gridCenter.x() - width / 2.0),
+                (int) Math.round(gridCenter.y() - height / 2.0),
+                width, height);
     }
 
     private HintMesh buildHintMesh(
@@ -410,17 +419,19 @@ public class HintManager implements ModeListener, MousePositionListener {
         if (type instanceof HintMeshType.HintGrid hintGrid) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
             HintGridArea area = hintGrid.area();
-            if (area.size() == HintGridAreaSize.ALL_SCREENS) {
-                // The one multi-grid size: a screen-sized, screen-centered grid per
-                // screen. The center does not apply.
+            if (area.size().source() == HintGridAreaSizeSource.ALL_SCREENS) {
+                // The one multi-grid source: a screen-centered grid per screen (scaled
+                // by the size percents). The center does not apply.
                 List<Screen> sortedScreens = sortedScreens();
                 int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE;
                 int right = Integer.MIN_VALUE, bottom = Integer.MIN_VALUE;
                 for (Screen screen : sortedScreens) {
+                    Rectangle areaRectangle = scaledArea(screen.rectangle(), area.size(),
+                            screen.rectangle().center());
                     HintGridLayout gridLayout = hintGrid.layout(
                             ViewportFilter.of(screenManager.activeScreen()));
-                    fixedSizeHintGrids.add(hintGridForArea(screen.rectangle(),
-                            screen.rectangle().center(), gridLayout, screen.scale()));
+                    fixedSizeHintGrids.add(hintGridForArea(areaRectangle,
+                            areaRectangle.center(), gridLayout, screen.scale()));
                     left = Math.min(left, screen.rectangle().x());
                     top = Math.min(top, screen.rectangle().y());
                     right = Math.max(right, screen.rectangle().x() + screen.rectangle().width());
@@ -429,19 +440,19 @@ public class HintManager implements ModeListener, MousePositionListener {
                 hintMesh.backgroundArea(new Rectangle(left, top, right - left, bottom - top));
             }
             else {
-                // Single grid: size gives the box's width/height, center gives the
-                // point the box is centered on. A cell grid reads its frozen level
+                // Single grid: the source gives a rectangle, the size percents scale
+                // it, the center places it. A cell grid reads its frozen level
                 // instead, so back navigation reproduces the exact area it rendered.
-                Rectangle sizeRectangle;
+                Rectangle areaRectangle;
                 Point gridCenter;
-                if (area.size() == HintGridAreaSize.LAST_SELECTED_HINT_CELL) {
-                    sizeRectangle = cellGridLevelStack.isEmpty() ?
+                if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
+                    areaRectangle = cellGridLevelStack.isEmpty() ?
                             screenManager.activeScreen().rectangle() :
                             cellGridLevelStack.peek().area();
-                    gridCenter = sizeRectangle.center();
+                    gridCenter = areaRectangle.center();
                 }
                 else {
-                    sizeRectangle = switch (area.size()) {
+                    Rectangle sourceRectangle = switch (area.size().source()) {
                         case ACTIVE_SCREEN -> screenManager.activeScreen().rectangle();
                         case ACTIVE_WINDOW -> overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                         default -> throw new IllegalStateException();
@@ -456,19 +467,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                         case ACTIVE_WINDOW_CENTER ->
                                 overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
                     };
+                    areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter);
                 }
                 logger.trace("Grid center " + gridCenter);
-                Rectangle areaRectangle = new Rectangle(
-                        (int) Math.round(gridCenter.x() - sizeRectangle.width() / 2.0),
-                        (int) Math.round(gridCenter.y() - sizeRectangle.height() / 2.0),
-                        sizeRectangle.width(), sizeRectangle.height());
                 Screen scaleScreen = screenManager.nearestScreenContaining(
                         gridCenter.x(), gridCenter.y());
                 HintGridLayout gridLayout = hintGrid.layout(screenFilter);
                 fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridCenter,
                         gridLayout, scaleScreen.scale()));
-                hintMesh.backgroundArea(area.size() == HintGridAreaSize.ACTIVE_WINDOW ?
-                        sizeRectangle : scaleScreen.rectangle());
+                hintMesh.backgroundArea(
+                        area.size().source() == HintGridAreaSizeSource.ACTIVE_WINDOW ?
+                                areaRectangle : scaleScreen.rectangle());
             }
             int hintCountSum = fixedSizeHintGrids.stream()
                                                  .mapToInt(FixedSizeHintGrid::hintCount)

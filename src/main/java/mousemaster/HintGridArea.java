@@ -7,7 +7,9 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
     }
 
     public static class HintGridAreaBuilder {
-        private HintGridAreaSize size;
+        private HintGridAreaSizeSource source;
+        private Double widthPercent;
+        private Double heightPercent;
         private HintGridAreaCenter center;
 
         public HintGridAreaBuilder() {
@@ -15,12 +17,24 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
         }
 
         public HintGridAreaBuilder(HintGridArea gridArea) {
-            this.size = gridArea.size;
+            this.source = gridArea.size.source();
+            this.widthPercent = gridArea.size.widthPercent();
+            this.heightPercent = gridArea.size.heightPercent();
             this.center = gridArea.center;
         }
 
-        public HintGridAreaBuilder size(HintGridAreaSize size) {
-            this.size = size;
+        public HintGridAreaBuilder source(HintGridAreaSizeSource source) {
+            this.source = source;
+            return this;
+        }
+
+        public HintGridAreaBuilder widthPercent(Double widthPercent) {
+            this.widthPercent = widthPercent;
+            return this;
+        }
+
+        public HintGridAreaBuilder heightPercent(Double heightPercent) {
+            this.heightPercent = heightPercent;
             return this;
         }
 
@@ -29,8 +43,16 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
             return this;
         }
 
-        public HintGridAreaSize size() {
-            return size;
+        public HintGridAreaSizeSource source() {
+            return source;
+        }
+
+        public Double widthPercent() {
+            return widthPercent;
+        }
+
+        public Double heightPercent() {
+            return heightPercent;
         }
 
         public HintGridAreaCenter center() {
@@ -38,12 +60,14 @@ public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
         }
 
         public HintGridArea build() {
+            HintGridAreaSize size =
+                    new HintGridAreaSize(source, widthPercent, heightPercent);
             return new HintGridArea(size,
-                    center != null ? center : defaultCenter(size));
+                    center != null ? center : defaultCenter(source));
         }
 
-        private static HintGridAreaCenter defaultCenter(HintGridAreaSize size) {
-            return switch (size) {
+        private static HintGridAreaCenter defaultCenter(HintGridAreaSizeSource source) {
+            return switch (source) {
                 case ACTIVE_SCREEN, ALL_SCREENS -> HintGridAreaCenter.SCREEN_CENTER;
                 case ACTIVE_WINDOW -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
                 case LAST_SELECTED_HINT_CELL -> HintGridAreaCenter.LAST_SELECTED_HINT;

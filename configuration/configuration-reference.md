@@ -552,11 +552,16 @@ hint-mode.hint.layout-column-count=5
 The grid area is two independent settings: **`grid-area`** sets the area's *size*,
 **`grid-area-center`** sets the point the area is *centered* on.
 
-- **`grid-area`** (size of the area):
+- **`grid-area`**:
   - `active-screen`: The screen with the mouse cursor
   - `active-window`: The currently active window
   - `all-screens`: Every connected screen (one grid per screen — `grid-area-center` does not apply)
   - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
+
+- **`grid-area-width-percent`** / **`grid-area-height-percent`**: Scale the area to a
+  fraction of that region, keeping it centered on `grid-area-center` (default `1.0`).
+  E.g. `grid-area=active-screen` + `grid-area-width-percent=0.5` covers the middle 50%
+  of the screen's width. Works with both `grid-cell-sizing=fit` and `=fixed`.
 
 - **`grid-area-center`** (point the area is centered on):
   - `screen-center`: Center of the screen

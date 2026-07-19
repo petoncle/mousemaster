@@ -758,6 +758,11 @@
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridAreaSize","mousemaster.HintGridAreaCenter"] }, {"name":"size","parameterTypes":[] }, {"name":"center","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.HintGridAreaSize",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridAreaSizeSource","double","double"] }, {"name":"source","parameterTypes":[] }, {"name":"widthPercent","parameterTypes":[] }, {"name":"heightPercent","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.HintGridLayout",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["int","int","double","double","int","int","boolean"] }, {"name":"<init>","parameterTypes":["int","int","mousemaster.HintCellSizing","int","int","boolean"] }, {"name":"cellHeight","parameterTypes":[] }, {"name":"cellSizing","parameterTypes":[] }, {"name":"cellWidth","parameterTypes":[] }, {"name":"layoutColumnCount","parameterTypes":[] }, {"name":"layoutRowCount","parameterTypes":[] }, {"name":"layoutRowOriented","parameterTypes":[] }, {"name":"maxColumnCount","parameterTypes":[] }, {"name":"maxRowCount","parameterTypes":[] }]

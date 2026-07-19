@@ -213,7 +213,9 @@ public class ConfigurationParser {
                            .layoutRowOriented(true);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
-        hintGridAreaBuilder.size(HintGridAreaSize.ACTIVE_SCREEN);
+        hintGridAreaBuilder.source(HintGridAreaSizeSource.ACTIVE_SCREEN)
+                           .widthPercent(1.0)
+                           .heightPercent(1.0);
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
@@ -2267,7 +2269,9 @@ public class ConfigurationParser {
             }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
             // Grid area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
-            case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size"), v -> parseHintGridAreaSize("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().size(v));
+            case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().source(v));
+            case "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 2), v -> hintMeshBuilder.type().gridArea().widthPercent(v));
+            case "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 2), v -> hintMeshBuilder.type().gridArea().heightPercent(v));
             case "grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
             // Deprecated alias for grid-area-center.
             case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
@@ -2647,15 +2651,15 @@ public class ConfigurationParser {
         };
     }
 
-    private static HintGridAreaSize parseHintGridAreaSize(String propertyKey, String propertyValue) {
+    private static HintGridAreaSizeSource parseHintGridAreaSizeSource(String propertyKey, String propertyValue) {
         return switch (propertyValue) {
-            case "active-screen" -> HintGridAreaSize.ACTIVE_SCREEN;
-            case "active-window" -> HintGridAreaSize.ACTIVE_WINDOW;
-            case "all-screens" -> HintGridAreaSize.ALL_SCREENS;
-            case "last-selected-hint-cell" -> HintGridAreaSize.LAST_SELECTED_HINT_CELL;
+            case "active-screen" -> HintGridAreaSizeSource.ACTIVE_SCREEN;
+            case "active-window" -> HintGridAreaSizeSource.ACTIVE_WINDOW;
+            case "all-screens" -> HintGridAreaSizeSource.ALL_SCREENS;
+            case "last-selected-hint-cell" -> HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": size should be one of " +
+                    ": should be one of " +
                     List.of("active-screen", "active-window", "all-screens",
                             "last-selected-hint-cell"));
         };
@@ -2999,8 +3003,12 @@ public class ConfigurationParser {
                     builder.mouseMovement(parent.mouseMovement());
                 if (builder.type().type() == null)
                     builder.type().type(parent.type().type());
-                if (builder.type().gridArea().size() == null)
-                    builder.type().gridArea().size(parent.type().gridArea().size());
+                if (builder.type().gridArea().source() == null)
+                    builder.type().gridArea().source(parent.type().gridArea().source());
+                if (builder.type().gridArea().widthPercent() == null)
+                    builder.type().gridArea().widthPercent(parent.type().gridArea().widthPercent());
+                if (builder.type().gridArea().heightPercent() == null)
+                    builder.type().gridArea().heightPercent(parent.type().gridArea().heightPercent());
                 if (builder.type().gridArea().center() == null)
                     builder.type().gridArea().center(parent.type().gridArea().center());
                 for (var parentEntry : parent.type()
