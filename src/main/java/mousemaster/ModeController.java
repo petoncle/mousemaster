@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-public class ModeController implements ComboListener {
+public class ModeController {
 
     private static final Logger logger = LoggerFactory.getLogger(ModeController.class);
 
@@ -22,7 +22,6 @@ public class ModeController implements ComboListener {
     private final Deque<Mode> modeHistoryStack = new ArrayDeque<>();
     private double modeTimeoutTimer;
     private double hideCursorIdleTimer;
-    private boolean justCompletedCombo;
     private boolean previousTimeoutEnabled;
     private boolean previousHideCursorEnabled;
 
@@ -56,10 +55,9 @@ public class ModeController implements ComboListener {
         }
         boolean idling = !mouseState.moving() &&
                          !mouseState.leftPressing() && !mouseState.middlePressing() && !mouseState.rightPressing() &&
-                         !mouseState.wheeling() && !justCompletedCombo;
+                         !mouseState.wheeling();
         comboWatcher.setIdling(idling);
         boolean mustResetHideCursorTimeout = !idling || hintManager.showingHintMesh();
-        justCompletedCombo = false;
         boolean hideCursorEnabled = mutatedMode.hideCursor().enabled();
         if (!previousHideCursorEnabled && hideCursorEnabled)
             resetHideCursorTimer(mutatedMode);
@@ -161,11 +159,6 @@ public class ModeController implements ComboListener {
         if (mode.hideCursor().enabled())
             hideCursorIdleTimer =
                     mode.hideCursor().idleDuration().toNanos() / 1e9d;
-    }
-
-    @Override
-    public void completedCombo() {
-        justCompletedCombo = true;
     }
 
 }

@@ -228,7 +228,6 @@ public class Mousemaster {
         commandRunner.setModeController(modeController);
         commandRunner.setMacroPlayer(macroPlayer);
         hintManager.setModeController(modeController);
-        comboWatcher.setComboListeners(List.of(modeController));
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseManager, keyboardManager,
                 configuration.modeMap(),

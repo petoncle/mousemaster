@@ -30,7 +30,6 @@ public class ComboWatcher {
     private final Set<Key> unpressedComboPreconditionKeys;
     private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
     private Set<Key> currentModePressedPreconditionKeys;
-    private List<ComboListener> comboListeners;
     private List<ModeListener> modeListeners;
     private Mode baseMode;
     private Mode mutatedMode;
@@ -50,6 +49,9 @@ public class ComboWatcher {
      */
     private final Set<String> builtInVariablesReferencedByPreconditionOnlyMutations =
             new HashSet<>();
+    private final Set<String> builtInVariablesReferencedByPreconditionOnlyNonMutationCombos =
+            new HashSet<>();
+    private boolean preconditionOnlyNonMutationComboRefreshPending;
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
     private PressKeyEventProcessingSet lastProcessingSet;
@@ -199,10 +201,6 @@ public class ComboWatcher {
         this.pressedPreconditionKeysByMode = preconditionKeysByMode;
     }
 
-    public void setComboListeners(List<ComboListener> comboListeners) {
-        this.comboListeners = comboListeners;
-    }
-
     public void setModeListeners(List<ModeListener> modeListeners) {
         this.modeListeners = modeListeners;
     }
@@ -220,9 +218,14 @@ public class ComboWatcher {
         boolean changed = idling ?
                 activeVariables.add(BuiltInVariable.IS_IDLING) :
                 activeVariables.remove(BuiltInVariable.IS_IDLING);
-        if (changed && builtInVariablesReferencedByPreconditionOnlyMutations
+        if (!changed)
+            return;
+        if (builtInVariablesReferencedByPreconditionOnlyMutations
                 .contains(BuiltInVariable.IS_IDLING))
             refreshPreconditionOnlyMutations();
+        if (builtInVariablesReferencedByPreconditionOnlyNonMutationCombos
+                .contains(BuiltInVariable.IS_IDLING))
+            preconditionOnlyNonMutationComboRefreshPending = true;
     }
 
     public record ComboWatcherUpdateResult(List<ComboAndMatch> completedCombos,
@@ -236,6 +239,10 @@ public class ComboWatcher {
 
     public ComboWatcherUpdateResult update(double delta) {
         List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
+        if (preconditionOnlyNonMutationComboRefreshPending) {
+            preconditionOnlyNonMutationComboRefreshPending = false;
+            processKeyEventForCurrentMode(null, false);
+        }
         // Handle combos that should be run when active app changes (no combo move).
         App activeApp = activeAppFinder.activeApp();
         boolean activeAppChanged = !Objects.equals(activeApp, lastActiveApp);
@@ -385,9 +392,6 @@ public class ComboWatcher {
             completedComboAndCommands.add(
                     new ComboAndCommands(combo, entry.getValue(), ComboSequenceMatch.noMatch()));
             combosBlockedFromRerunningCommand.add(combo);
-        }
-        if (!completedComboAndCommands.isEmpty()) {
-            comboListeners.forEach(ComboListener::completedCombo);
         }
         List<Command> commandsToRun = new ArrayList<>(commandsWaitingForAtomicCommandToComplete);
         commandsWaitingForAtomicCommandToComplete.clear();
@@ -952,7 +956,6 @@ public class ComboWatcher {
                          summarizeCommands(completeCombosCommandsToRun));
         }
         if (!comboAndCommandsToRun.isEmpty()) {
-            comboListeners.forEach(ComboListener::completedCombo);
             // Add completed combo keys before running commands so that if a
             // SwitchMode command triggers modeChanged -> refreshPreconditionOnlyMutations,
             // the completed combo keys are available for precondition checks.
@@ -1536,11 +1539,13 @@ public class ComboWatcher {
     private void computePreconditionOnlyByPropertyPath() {
         preconditionOnlyByPropertyPath.clear();
         builtInVariablesReferencedByPreconditionOnlyMutations.clear();
+        builtInVariablesReferencedByPreconditionOnlyNonMutationCombos.clear();
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
                                                                  .commandsByCombo()
                                                                  .entrySet()) {
             Combo combo = entry.getKey();
             boolean isPreconditionOnly = combo.sequence().isEmpty();
+            boolean hasNonMutationCommand = false;
             for (Command command : entry.getValue()) {
                 if (command instanceof Command.MutateMode mutateMode) {
                     preconditionOnlyByPropertyPath.merge(mutateMode.propertyPath(),
@@ -1550,7 +1555,12 @@ public class ComboWatcher {
                         builtInVariablesReferencedByPreconditionOnlyMutations
                                 .addAll(builtInVariablesReferencedBy(combo));
                 }
+                else
+                    hasNonMutationCommand = true;
             }
+            if (isPreconditionOnly && hasNonMutationCommand)
+                builtInVariablesReferencedByPreconditionOnlyNonMutationCombos
+                        .addAll(builtInVariablesReferencedBy(combo));
         }
     }
 
