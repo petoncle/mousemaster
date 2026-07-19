@@ -1,5 +1,8 @@
 package mousemaster;
 
+// TODO: modified in commit c85df26 to fix Linux key masking (precondition keys leaking
+// to the OS with no Windows-style focus-stealing to hide it). Shared, non-platform code
+// affecting Windows too — confirm this is safe/valid here vs. Linux-specific before merge.
 public enum PressKeyEventProcessing {
 
     UNHANDLED,

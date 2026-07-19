@@ -286,6 +286,9 @@ public class KeyboardManager {
         }
     }
 
+    // TODO: this method, isRetainedByCombos, addRegurgitate, and handleDeadEatingCombos
+    // below were modified in commits c85df26/2ad3808 to fix Linux key masking. Shared,
+    // non-platform code — confirm this is safe/valid here vs. Linux-specific before merge.
     private boolean markOtherKeysOfTheseCombosAsCompleted(List<ComboAndMatch> completedCombos,
                                                           boolean forceIsComboPreparationBreaker) {
         boolean completedCombosHavePressedKeys = false;
