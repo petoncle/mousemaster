@@ -40,7 +40,6 @@ public class LinuxPlatform implements Platform {
     private final boolean isWayland;
     private Integer lastMouseX;
     private Integer lastMouseY;
-    private LinuxKeyboardSimulator keyboardSimulator;
 
     public LinuxPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
         logger.info("Initializing LinuxPlatform");
@@ -49,13 +48,6 @@ public class LinuxPlatform implements Platform {
         String sessionType = System.getenv("XDG_SESSION_TYPE");
         String waylandDisplay = System.getenv("WAYLAND_DISPLAY");
         isWayland = "wayland".equals(sessionType) || waylandDisplay != null;
-
-        if (isWayland) {
-            logger.warn("Running under Wayland - keyboard grabbing will use simulator mode");
-            logger.warn("For production use, evdev-based input handling is required");
-            keyboardSimulator = new LinuxKeyboardSimulator();
-            keyboardSimulator.start();
-        }
 
         // Open X11 display connection (works even under XWayland for rendering)
         display = LibX11.INSTANCE.XOpenDisplay(null);
@@ -100,16 +92,6 @@ public class LinuxPlatform implements Platform {
 
     @Override
     public void pumpEvents() {
-        if (isWayland && keyboardSimulator != null && keyboardSimulator.hasKeys()) {
-            String keysym = keyboardSimulator.pollKey();
-            while (keysym != null) {
-                Key key = LinuxVirtualKey.fromKeysym(keysym);
-                if (key != null && keyboardManager != null)
-                    handleKeyEvent(new KeyEvent.PressKeyEvent(Instant.now(), key));
-                keysym = keyboardSimulator.pollKey();
-            }
-        }
-
         KeyEvent event = evdev.pollEvent();
         while (event != null) {
             logger.debug("evdev: {}", event);
@@ -199,10 +181,6 @@ public class LinuxPlatform implements Platform {
     @Override
     public void shutdown() {
         logger.info("Shutting down LinuxPlatform");
-
-        if (keyboardSimulator != null) {
-            keyboardSimulator.stop();
-        }
 
         evdev.destroy();
         keyboard.destroy();
