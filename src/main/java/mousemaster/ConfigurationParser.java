@@ -371,7 +371,8 @@ public class ConfigurationParser {
                         activeKeyboardLayout :
                         forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout;
         KeyResolver keyResolver =
-                new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout);
+                new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
+                        parseVirtualKeyNames(properties));
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
@@ -617,6 +618,21 @@ public class ConfigurationParser {
                                                         KeyOrAlias.ofKey(key), false, true,
                                                         defaultComboMoveDuration, null)))))
                                 .toList();
+    }
+
+    private static Set<String> parseVirtualKeyNames(List<String> properties) {
+        Set<String> names = new HashSet<>();
+        for (String property : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(property);
+            if (!lineMatcher.matches())
+                continue;
+            if (!lineMatcher.group(1).strip().equals("virtual-keys"))
+                continue;
+            for (String name : lineMatcher.group(2).strip().split("\\s+"))
+                if (!name.isEmpty())
+                    names.add(name);
+        }
+        return names;
     }
 
     private static ForcedActiveAndConfigurationKeyboardLayouts parseForcedAndConfigurationLayouts(

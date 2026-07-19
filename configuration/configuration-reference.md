@@ -1182,6 +1182,32 @@ The output uses the following syntax:
   combo system. They can trigger other mousemaster commands (including mode switches). Use this for
   automating mousemaster itself.
 
+### Virtual keys
+
+Sometimes a macro needs a key purely as an internal signal — e.g. to bracket a region
+of the macro and gate a mode property on it — without any risk of colliding with a real
+key on the keyboard. Declare such keys with `virtual-keys` (a global, space-separated
+list):
+
+```properties
+virtual-keys=drilling
+```
+
+A virtual key has no scancode: it can never be produced by hardware, is never sent to the
+OS, and is only ever pressed/released by a macro via `#`/`~`. It can be used anywhere a
+real key can in the combo system — in a macro's `#`/`~` moves, and in `_{}`/`^{}`
+preconditions — but using it as an OS move (`+`/`-`) is a configuration error.
+
+Declaring it (rather than relying on a name that happens not to exist) keeps typo
+detection: an undeclared unknown key name is still rejected at load time.
+
+```properties
+# "drilling" is held only for the span of the macro; gate a property on it.
+virtual-keys=drilling
+some-mode.macro.example=+g -> #drilling k k ~drilling
+some-mode.hint.visible=true | _{drilling} -> false
+```
+
 ### Examples
 
 #### Simple key remapping

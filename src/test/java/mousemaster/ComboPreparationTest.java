@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -399,7 +400,7 @@ class ComboPreparationTest {
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
             new KeyboardLayout("test", "test", "test", "test", List.of()),
-            new KeyboardLayout("test", "test", "test", "test", List.of()));
+            new KeyboardLayout("test", "test", "test", "test", List.of()), Set.of());
 
     static ComboSequence parseCombo(String comboString,
                                     Map<String, KeyAlias> aliases) {

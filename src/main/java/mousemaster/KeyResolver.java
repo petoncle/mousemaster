@@ -1,5 +1,6 @@
 package mousemaster;
 
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class KeyResolver {
@@ -8,11 +9,18 @@ public class KeyResolver {
 
     private final KeyboardLayout activeKeyboardLayout;
     private final KeyboardLayout configurationKeyboardLayout;
+    private final Set<String> virtualKeyNames;
 
     public KeyResolver(KeyboardLayout activeKeyboardLayout,
-                       KeyboardLayout configurationKeyboardLayout) {
+                       KeyboardLayout configurationKeyboardLayout,
+                       Set<String> virtualKeyNames) {
         this.activeKeyboardLayout = activeKeyboardLayout;
         this.configurationKeyboardLayout = configurationKeyboardLayout;
+        this.virtualKeyNames = virtualKeyNames;
+    }
+
+    public boolean isVirtual(String keyName) {
+        return virtualKeyNames.contains(keyName);
     }
 
     /**
@@ -22,6 +30,8 @@ public class KeyResolver {
      * then the resolved key will be é.
      */
     public Key resolve(String keyName) {
+        if (virtualKeyNames.contains(keyName))
+            return new Key(keyName, null, null);
         if (configurationKeyboardLayout.equals(activeKeyboardLayout))
             return Key.ofName(keyName);
         Key keyInConfigurationLayout = Key.ofName(keyName);

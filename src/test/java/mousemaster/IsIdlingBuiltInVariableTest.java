@@ -18,7 +18,7 @@ class IsIdlingBuiltInVariableTest {
 
     private static final KeyResolver identityKeyResolver = new KeyResolver(
             new KeyboardLayout("test", "test", "test", "test", List.of()),
-            new KeyboardLayout("test", "test", "test", "test", List.of()));
+            new KeyboardLayout("test", "test", "test", "test", List.of()), Set.of());
 
     private static Set<String> parseVariableNames(String... lines) {
         return ConfigurationParser.parseVariableNames(List.of(lines), Map.of(),

@@ -121,8 +121,14 @@ public record Macro(String name, MacroSequence output,
         KeyOrAlias keyOrAlias;
         if (alias != null)
             keyOrAlias = KeyOrAlias.ofAlias(alias);
-        else
+        else {
+            if (destination == MacroMoveDestination.OS &&
+                keyResolver.isVirtual(keyOrAliasName))
+                throw new IllegalArgumentException(
+                        "Virtual key " + keyOrAliasName + " has no OS representation: " +
+                        "use #/~ (combo watcher) instead of +/-");
             keyOrAlias = KeyOrAlias.ofKey(keyResolver.resolve(keyOrAliasName));
+        }
         return new KeyMacroMove(keyOrAlias, negated, press, destination);
     }
 
