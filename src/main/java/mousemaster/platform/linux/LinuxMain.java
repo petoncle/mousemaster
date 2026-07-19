@@ -48,18 +48,6 @@ public class LinuxMain {
                 System.exit(0);
             }).start();
         }
-        Thread failsafe = new Thread(() -> {
-            try {
-                Thread.sleep(300_000);
-            } catch (InterruptedException ignored) {
-                return;
-            }
-            logger.warn("5-minute failsafe triggered — forcing exit to release keyboard grab");
-            System.exit(0);
-        }, "failsafe-shutdown");
-        failsafe.setDaemon(true);
-        failsafe.start();
-
         Platform platform = createPlatform(options.multipleInstancesAllowed(),
                 options.keyRegurgitationEnabled(), options.pauseOnError());
         logger.info("mousemaster v" + version + " (" + commitId + ") [Linux]");
