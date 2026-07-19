@@ -1226,7 +1226,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                    .map(Key::name)
                                    .toList() +
                      " selected");
-        overlay.animateHintMatch(hint);
+        if (hintMeshConfiguration.visible())
+            overlay.animateHintMatch(hint);
         hintMesh =
                 hintMesh.builder()
                         .selectedKeySequence(newSelectedKeySequence)
