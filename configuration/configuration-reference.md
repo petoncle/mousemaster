@@ -539,7 +539,7 @@ The following properties control where hints appear and how they're arranged:
 ```properties
 # Hint area configuration
 hint-mode.hint.grid-area=active-screen
-hint-mode.hint.active-screen-grid-area-center=screen-center
+hint-mode.hint.grid-area-center=screen-center
 
 # Grid layout configuration
 hint-mode.hint.grid-cell-width=74
@@ -549,15 +549,28 @@ hint-mode.hint.layout-row-count=6
 hint-mode.hint.layout-column-count=5
 ```
 
-- **`grid-area`**: Determines where hints are displayed:
-  - `active-screen`: Only on the screen with the mouse cursor
-  - `active-window`: Only in the currently active window
-  - `all-screens`: Across all connected screens
+The grid area is two independent settings: **`grid-area`** sets the area's *size*,
+**`grid-area-center`** sets the point the area is *centered* on.
 
-- **`active-screen-grid-area-center`**: Sets the center point for the hint grid:
+- **`grid-area`** (size of the area):
+  - `active-screen`: The screen with the mouse cursor
+  - `active-window`: The currently active window
+  - `all-screens`: Every connected screen (one grid per screen — `grid-area-center` does not apply)
+  - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
+
+- **`grid-area-center`** (point the area is centered on):
   - `screen-center`: Center of the screen
   - `mouse`: Current mouse position
   - `last-selected-hint`: Position of the last selected hint
+  - `active-window-center`: Center of the active window
+
+  When omitted, the center defaults per size: `active-screen`/`all-screens` →
+  `screen-center`, `active-window` → `active-window-center`, `last-selected-hint-cell` →
+  `last-selected-hint` (grid stays over the cell). The size and center compose
+  freely — e.g. an `active-window`-sized grid with `grid-area-center=mouse` is a
+  window-sized grid centered on the cursor.
+
+  `active-screen-grid-area-center` is a deprecated alias for `grid-area-center`.
 
 - **Grid dimensions**: Control the size of each hint cell:
   - `grid-cell-width`: Width of each hint cell in pixels

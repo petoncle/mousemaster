@@ -6,7 +6,6 @@ import mousemaster.ComboMove.PressComboMove;
 import mousemaster.GridArea.GridAreaType;
 import mousemaster.GridConfiguration.GridConfigurationBuilder;
 import mousemaster.HideCursor.HideCursorBuilder;
-import mousemaster.HintGridArea.HintGridAreaType;
 import mousemaster.HintGridLayout.HintGridLayoutBuilder;
 import mousemaster.HintMeshConfiguration.HintMeshConfigurationBuilder;
 import mousemaster.HintMeshKeys.HintMeshKeysBuilder;
@@ -214,9 +213,7 @@ public class ConfigurationParser {
                            .layoutRowOriented(true);
         HintGridArea.HintGridAreaBuilder hintGridAreaBuilder =
                 hintMesh.type().gridArea();
-        hintGridAreaBuilder.type(HintGridAreaType.ACTIVE_SCREEN)
-                           .activeScreenHintGridAreaCenter(
-                                   ActiveScreenHintGridAreaCenter.SCREEN_CENTER);
+        hintGridAreaBuilder.size(HintGridAreaSize.ACTIVE_SCREEN);
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
@@ -1858,27 +1855,6 @@ public class ConfigurationParser {
                 }
             }
         }
-        HintGridArea.HintGridAreaBuilder hintGridArea = hintMeshType.gridArea();
-        if (hintGridArea.type() != null) {
-            switch (hintGridArea.type()) {
-                case ACTIVE_SCREEN -> {
-                    if (hintGridArea.activeScreenHintGridAreaCenter() == null)
-                        throw new IllegalArgumentException(
-                                "Definition of active-screen hint.grid-area for " +
-                                mode.modeName + " is incomplete: expected " +
-                                List.of("active-screen-grid-area-center"));
-                }
-                case ACTIVE_WINDOW -> {
-                    // No op.
-                }
-                case ALL_SCREENS -> {
-                    // No op.
-                }
-                case LAST_SELECTED_HINT_CELL -> {
-                    // No op.
-                }
-            }
-        }
     }
 
     /**
@@ -2289,24 +2265,12 @@ public class ConfigurationParser {
                     case UI -> new HintMeshType.UiHintMesh();
                 };
             }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
-            // Grid area properties: uses Function for ACTIVE_SCREEN because it
-            // needs the current center at mutation time, not parse time.
-            case "grid-area" -> new ModePropertyHandler(prefix.append("type", "area"), v -> {
-                HintGridAreaType areaType = parseHintGridAreaType("hint.grid-area", v);
-                return switch (areaType) {
-                    case ACTIVE_SCREEN -> (Object) (Function<Object, Object>) currentArea -> {
-                        ActiveScreenHintGridAreaCenter center =
-                                currentArea instanceof HintGridArea.ActiveScreenHintGridArea activeScreen
-                                        ? activeScreen.center()
-                                        : ActiveScreenHintGridAreaCenter.MOUSE;
-                        return new HintGridArea.ActiveScreenHintGridArea(center);
-                    };
-                    case ACTIVE_WINDOW -> new HintGridArea.ActiveWindowHintGridArea();
-                    case ALL_SCREENS -> new HintGridArea.AllScreensHintGridArea();
-                    case LAST_SELECTED_HINT_CELL -> new HintGridArea.LastSelectedHintCellGridArea();
-                };
-            }, v -> hintMeshBuilder.type().gridArea().type(parseHintGridAreaType("hint.grid-area", v)));
-            case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseActiveScreenHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().activeScreenHintGridAreaCenter(v));
+            // Grid area = size + center. Mutations set the record component directly
+            // (the mutator keeps the sibling component), so no Function is needed.
+            case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size"), v -> parseHintGridAreaSize("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().size(v));
+            case "grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
+            // Deprecated alias for grid-area-center.
+            case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
             // Grid layout properties (viewport-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxRowCount(v));
             case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxColumnCount(v));
@@ -2683,15 +2647,15 @@ public class ConfigurationParser {
         };
     }
 
-    private static HintGridAreaType parseHintGridAreaType(String propertyKey, String propertyValue) {
+    private static HintGridAreaSize parseHintGridAreaSize(String propertyKey, String propertyValue) {
         return switch (propertyValue) {
-            case "active-screen" -> HintGridAreaType.ACTIVE_SCREEN;
-            case "active-window" -> HintGridAreaType.ACTIVE_WINDOW;
-            case "all-screens" -> HintGridAreaType.ALL_SCREENS;
-            case "last-selected-hint-cell" -> HintGridAreaType.LAST_SELECTED_HINT_CELL;
+            case "active-screen" -> HintGridAreaSize.ACTIVE_SCREEN;
+            case "active-window" -> HintGridAreaSize.ACTIVE_WINDOW;
+            case "all-screens" -> HintGridAreaSize.ALL_SCREENS;
+            case "last-selected-hint-cell" -> HintGridAreaSize.LAST_SELECTED_HINT_CELL;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": type should be one of " +
+                    ": size should be one of " +
                     List.of("active-screen", "active-window", "all-screens",
                             "last-selected-hint-cell"));
         };
@@ -2708,15 +2672,17 @@ public class ConfigurationParser {
         };
     }
 
-    private static ActiveScreenHintGridAreaCenter parseActiveScreenHintGridAreaCenter(
+    private static HintGridAreaCenter parseHintGridAreaCenter(
             String propertyKey, String propertyValue) {
         return switch (propertyValue) {
-            case "screen-center" -> ActiveScreenHintGridAreaCenter.SCREEN_CENTER;
-            case "mouse" -> ActiveScreenHintGridAreaCenter.MOUSE;
-            case "last-selected-hint" -> ActiveScreenHintGridAreaCenter.LAST_SELECTED_HINT;
+            case "screen-center" -> HintGridAreaCenter.SCREEN_CENTER;
+            case "mouse" -> HintGridAreaCenter.MOUSE;
+            case "last-selected-hint" -> HintGridAreaCenter.LAST_SELECTED_HINT;
+            case "active-window-center" -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
-                    ": expected one of " + List.of("screen-center", "mouse", "last-selected-hint"));
+                    ": expected one of " + List.of("screen-center", "mouse",
+                            "last-selected-hint", "active-window-center"));
         };
     }
 
@@ -3033,10 +2999,10 @@ public class ConfigurationParser {
                     builder.mouseMovement(parent.mouseMovement());
                 if (builder.type().type() == null)
                     builder.type().type(parent.type().type());
-                if (builder.type().gridArea().type() == null)
-                    builder.type().gridArea().type(parent.type().gridArea().type());
-                if (builder.type().gridArea().activeScreenHintGridAreaCenter() == null)
-                    builder.type().gridArea().activeScreenHintGridAreaCenter(parent.type().gridArea().activeScreenHintGridAreaCenter());
+                if (builder.type().gridArea().size() == null)
+                    builder.type().gridArea().size(parent.type().gridArea().size());
+                if (builder.type().gridArea().center() == null)
+                    builder.type().gridArea().center(parent.type().gridArea().center());
                 for (var parentEntry : parent.type()
                                              .gridLayoutByFilter()
                                              .map()

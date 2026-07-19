@@ -753,19 +753,9 @@
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.FontStyle","double","mousemaster.FontStyle","mousemaster.FontStyle"] }, {"name":"defaultFontStyle","parameterTypes":[] }, {"name":"focusedFontStyle","parameterTypes":[] }, {"name":"selectedFontStyle","parameterTypes":[] }, {"name":"spacingPercent","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.HintGridArea$ActiveScreenHintGridArea",
+  "name":"mousemaster.HintGridArea",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.ActiveScreenHintGridAreaCenter"] }, {"name":"center","parameterTypes":[] }]
-},
-{
-  "name":"mousemaster.HintGridArea$ActiveWindowHintGridArea",
-  "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"mousemaster.HintGridArea$AllScreensHintGridArea",
-  "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridAreaSize","mousemaster.HintGridAreaCenter"] }, {"name":"size","parameterTypes":[] }, {"name":"center","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintGridLayout",

@@ -1,87 +1,52 @@
 package mousemaster;
 
-public sealed interface HintGridArea {
+public record HintGridArea(HintGridAreaSize size, HintGridAreaCenter center) {
 
-    record ActiveScreenHintGridArea(ActiveScreenHintGridAreaCenter center)
-            implements HintGridArea {
-    }
-
-    record ActiveWindowHintGridArea()
-            implements HintGridArea {
-
-    }
-
-    record AllScreensHintGridArea()
-            implements HintGridArea {
-    }
-
-    record LastSelectedHintCellGridArea()
-            implements HintGridArea {
-    }
-
-    default HintGridAreaBuilder builder() {
+    public HintGridAreaBuilder builder() {
         return new HintGridAreaBuilder(this);
     }
 
-    enum HintGridAreaType {
-        ACTIVE_SCREEN, ACTIVE_WINDOW, ALL_SCREENS, LAST_SELECTED_HINT_CELL
-    }
-
-    class HintGridAreaBuilder {
-        private HintGridAreaType type;
-        private ActiveScreenHintGridAreaCenter activeScreenHintGridAreaCenter;
+    public static class HintGridAreaBuilder {
+        private HintGridAreaSize size;
+        private HintGridAreaCenter center;
 
         public HintGridAreaBuilder() {
 
         }
 
         public HintGridAreaBuilder(HintGridArea gridArea) {
-            switch (gridArea) {
-                case ActiveScreenHintGridArea activeScreenHintGridArea -> {
-                    this.type = HintGridAreaType.ACTIVE_SCREEN;
-                    this.activeScreenHintGridAreaCenter = activeScreenHintGridArea.center;
-                }
-                case ActiveWindowHintGridArea activeWindowHintGridArea -> {
-                    this.type = HintGridAreaType.ACTIVE_WINDOW;
-                }
-                case AllScreensHintGridArea allScreensHintGridArea -> {
-                    this.type = HintGridAreaType.ALL_SCREENS;
-                }
-                case LastSelectedHintCellGridArea lastSelectedHintCellGridArea -> {
-                    this.type = HintGridAreaType.LAST_SELECTED_HINT_CELL;
-                }
-            }
+            this.size = gridArea.size;
+            this.center = gridArea.center;
         }
 
-        public HintGridAreaBuilder type(HintGridAreaType type) {
-            this.type = type;
+        public HintGridAreaBuilder size(HintGridAreaSize size) {
+            this.size = size;
             return this;
         }
 
-        public HintGridAreaBuilder activeScreenHintGridAreaCenter(
-                ActiveScreenHintGridAreaCenter activeScreenHintGridAreaCenter) {
-            this.activeScreenHintGridAreaCenter = activeScreenHintGridAreaCenter;
+        public HintGridAreaBuilder center(HintGridAreaCenter center) {
+            this.center = center;
             return this;
         }
 
-        public HintGridAreaType type() {
-            return type;
+        public HintGridAreaSize size() {
+            return size;
         }
 
-        public ActiveScreenHintGridAreaCenter activeScreenHintGridAreaCenter() {
-            return activeScreenHintGridAreaCenter;
+        public HintGridAreaCenter center() {
+            return center;
         }
 
         public HintGridArea build() {
-            return switch (type) {
-                case ACTIVE_SCREEN ->
-                        new ActiveScreenHintGridArea(activeScreenHintGridAreaCenter);
-                case ACTIVE_WINDOW ->
-                        new ActiveWindowHintGridArea();
-                case ALL_SCREENS ->
-                        new AllScreensHintGridArea();
-                case LAST_SELECTED_HINT_CELL ->
-                        new LastSelectedHintCellGridArea();
+            return new HintGridArea(size,
+                    center != null ? center : defaultCenter(size));
+        }
+
+        private static HintGridAreaCenter defaultCenter(HintGridAreaSize size) {
+            return switch (size) {
+                case ACTIVE_SCREEN, ALL_SCREENS -> HintGridAreaCenter.SCREEN_CENTER;
+                case ACTIVE_WINDOW -> HintGridAreaCenter.ACTIVE_WINDOW_CENTER;
+                case LAST_SELECTED_HINT_CELL -> HintGridAreaCenter.LAST_SELECTED_HINT;
             };
         }
     }
