@@ -23,7 +23,7 @@ public class LibUinput {
     // Computed via _IOW('U', nr, int) and _IO('U', nr)
     static final long UI_SET_EVBIT  = 0x40045564L; // _IOW('U', 100, int)
     static final long UI_SET_KEYBIT = 0x40045565L; // _IOW('U', 101, int)
-    static final long UI_SET_RELBIT = 0x40045567L; // _IOW('U', 103, int)
+    static final long UI_SET_RELBIT = 0x40045566L; // _IOW('U', 102, int)
     static final long UI_DEV_CREATE  = 0x5501L;    // _IO('U', 1)
     static final long UI_DEV_DESTROY = 0x5502L;    // _IO('U', 2)
 
@@ -183,6 +183,12 @@ public class LibUinput {
         event.setShort(16, (short) type);
         event.setShort(18, (short) code);
         event.setInt(20, value);
-        return CLib.INSTANCE.write(fd, event, new NativeLong(INPUT_EVENT_SIZE));
+        NativeLong written = CLib.INSTANCE.write(fd, event, new NativeLong(INPUT_EVENT_SIZE));
+        if (written.longValue() != INPUT_EVENT_SIZE) {
+            int errno = Native.getLastError();
+            logger.warn("write() for input_event (type={}, code={}, value={}) wrote {} of {} bytes (errno={})",
+                    type, code, value, written.longValue(), INPUT_EVENT_SIZE, errno);
+        }
+        return written;
     }
 }

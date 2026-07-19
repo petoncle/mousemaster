@@ -19,9 +19,19 @@ public class WaylandMouse extends LinuxMouse {
 
     private static final Logger logger = LoggerFactory.getLogger(WaylandMouse.class);
 
+    // MouseManager passes wheel delta in Windows' WHEEL_DELTA convention (120 units = one
+    // notch, see WindowsMouseController), since that's the shared unit the velocity config
+    // is tuned against. uinput's REL_WHEEL has no fractional-notch concept - each event is
+    // a discrete notch - so accumulate sub-notch deltas here and only fire once a full
+    // notch's worth has built up, carrying the remainder forward (same pattern MouseManager
+    // itself uses for cursor movement's deltaDistanceX/Y).
+    private static final double WHEEL_DELTA = 120;
+
     private final LinuxScreens screens;
     private final int uinputMouseFd;
     private final LibWaylandClient.WlRegistryListener registryListener;
+    private double verticalWheelAccumulator;
+    private double horizontalWheelAccumulator;
 
     private Pointer display;
     private Pointer registry;
@@ -268,12 +278,22 @@ public class WaylandMouse extends LinuxMouse {
 
     @Override
     public void wheelVerticallyBy(boolean forward, double delta) {
-        uinputWheel(LibUinput.REL_WHEEL, forward ? 1 : -1, delta);
+        verticalWheelAccumulator += delta;
+        int notches = (int) (verticalWheelAccumulator / WHEEL_DELTA);
+        if (notches <= 0)
+            return;
+        verticalWheelAccumulator -= notches * WHEEL_DELTA;
+        uinputWheel(LibUinput.REL_WHEEL, forward ? 1 : -1, notches);
     }
 
     @Override
     public void wheelHorizontallyBy(boolean forward, double delta) {
-        uinputWheel(LibUinput.REL_HWHEEL, forward ? 1 : -1, delta);
+        horizontalWheelAccumulator += delta;
+        int notches = (int) (horizontalWheelAccumulator / WHEEL_DELTA);
+        if (notches <= 0)
+            return;
+        horizontalWheelAccumulator -= notches * WHEEL_DELTA;
+        uinputWheel(LibUinput.REL_HWHEEL, forward ? 1 : -1, notches);
     }
 
     private void uinputButton(int code, int value) {
@@ -281,9 +301,8 @@ public class WaylandMouse extends LinuxMouse {
         LibUinput.writeInputEvent(uinputMouseFd, LibUinput.EV_SYN, LibUinput.SYN_REPORT, 0);
     }
 
-    private void uinputWheel(int axisCode, int sign, double delta) {
-        int count = Math.max(1, (int) delta);
-        for (int i = 0; i < count; i++)
+    private void uinputWheel(int axisCode, int sign, int notches) {
+        for (int i = 0; i < notches; i++)
             LibUinput.writeInputEvent(uinputMouseFd, LibUinput.EV_REL, axisCode, sign);
         LibUinput.writeInputEvent(uinputMouseFd, LibUinput.EV_SYN, LibUinput.SYN_REPORT, 0);
     }
