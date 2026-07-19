@@ -29,4 +29,7 @@ public interface MouseController {
     void showCursor();
 
     void hideCursor();
+
+    default void destroy() {
+    }
 }

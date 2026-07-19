@@ -75,11 +75,11 @@ public class LinuxPlatform implements Platform {
         console = new LinuxConsole();
         keyRegurgitator = new KeyRegurgitator(keyboard);
 
-        // rootWindow must be obtained before creating LinuxMouse (mouse needs it for XWarpPointer)
+        // rootWindow must be obtained before creating X11Mouse (mouse needs it for XWarpPointer)
         rootWindow = LibX11.INSTANCE.XDefaultRootWindow(display);
         logger.info("Root window handle: {}", rootWindow);
 
-        mouse = new LinuxMouse(display, rootWindow);
+        mouse = isWayland ? new WaylandMouse(screens) : new X11Mouse(display, rootWindow);
         evdev = new LinuxEvdev();
 
         logger.info("LinuxPlatform initialized successfully");
@@ -145,19 +145,31 @@ public class LinuxPlatform implements Platform {
      * hook, so the position is polled instead.
      */
     private void notifyMousePositionListenersIfMoved() {
-        LongByReference root = new LongByReference();
-        LongByReference child = new LongByReference();
-        IntByReference rootX = new IntByReference();
-        IntByReference rootY = new IntByReference();
-        IntByReference winX = new IntByReference();
-        IntByReference winY = new IntByReference();
-        IntByReference mask = new IntByReference();
-        boolean sameScreen = LibX11.INSTANCE.XQueryPointer(display, rootWindow, root, child,
-                rootX, rootY, winX, winY, mask);
-        if (!sameScreen)
-            return;
-        int x = rootX.getValue();
-        int y = rootY.getValue();
+        int x;
+        int y;
+        // XWayland's XQueryPointer-mirrored pointer state doesn't reliably reflect motion
+        // injected via zwlr_virtual_pointer_v1 (WaylandMouse), so prefer the position we
+        // ourselves last told the compositor to move to over an XQueryPointer round-trip.
+        Integer syntheticX = mouse.lastSyntheticX();
+        Integer syntheticY = mouse.lastSyntheticY();
+        if (syntheticX != null && syntheticY != null) {
+            x = syntheticX;
+            y = syntheticY;
+        } else {
+            LongByReference root = new LongByReference();
+            LongByReference child = new LongByReference();
+            IntByReference rootX = new IntByReference();
+            IntByReference rootY = new IntByReference();
+            IntByReference winX = new IntByReference();
+            IntByReference winY = new IntByReference();
+            IntByReference mask = new IntByReference();
+            boolean sameScreen = LibX11.INSTANCE.XQueryPointer(display, rootWindow, root, child,
+                    rootX, rootY, winX, winY, mask);
+            if (!sameScreen)
+                return;
+            x = rootX.getValue();
+            y = rootY.getValue();
+        }
         boolean positionUnchanged = lastMouseX != null && lastMouseX == x &&
                                      lastMouseY != null && lastMouseY == y;
         if (positionUnchanged)

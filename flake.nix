@@ -44,6 +44,8 @@
             fontconfig
             freetype
             mesa   # provides libGL / libEGL
+
+            wayland   # libwayland-client.so, for the Wayland virtual-pointer JNA bindings
           ];
 
           shellHook = ''
@@ -66,6 +68,7 @@
               fontconfig
               freetype
               mesa
+              wayland
             ])}:$LD_LIBRARY_PATH"
             export QT_QPA_PLATFORM_PLUGIN_PATH="${pkgs68.qt6.qtbase}/lib/qt-6/plugins/platforms"
             echo "Mousemaster dev environment ready"
