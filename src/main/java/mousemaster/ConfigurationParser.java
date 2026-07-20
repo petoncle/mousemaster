@@ -2276,6 +2276,7 @@ public class ConfigurationParser {
             case "font-color" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().hexColor(v));
             case "font-opacity" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().opacity(v));
             case "font-spacing-percent" -> ModePropertyHandler.of(p.append("fontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().spacingPercent(v));
+            case "font-vertical-alignment" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "verticalAlignment"), v -> FontVerticalAlignment.of(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().verticalAlignment(v));
             case "font-outline-thickness" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().outlineThickness(v));
             case "font-outline-color" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().outlineHexColor(v));
             case "font-outline-opacity" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().outlineOpacity(v));
@@ -2350,6 +2351,7 @@ public class ConfigurationParser {
             case "font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().hexColor(v));
             case "font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().opacity(v));
             case "font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().spacingPercent(v));
+            case "font-vertical-alignment" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "verticalAlignment"), v -> FontVerticalAlignment.of(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().verticalAlignment(v));
             case "font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().outlineThickness(v));
             case "font-outline-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "outlineHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().outlineHexColor(v));
             case "font-outline-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "outlineOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().outlineOpacity(v));
@@ -2395,6 +2397,7 @@ public class ConfigurationParser {
             case "prefix-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().weight(v));
             case "prefix-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().size(v));
             case "prefix-font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().spacingPercent(v));
+            case "prefix-font-vertical-alignment" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "verticalAlignment"), v -> FontVerticalAlignment.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().verticalAlignment(v));
             case "prefix-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().hexColor(v));
             case "prefix-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().opacity(v));
             case "prefix-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().outlineThickness(v));
@@ -3331,6 +3334,7 @@ public class ConfigurationParser {
         Double shadowBlur = null, shadowOpacity = null, shadowHOff = null, shadowVOff = null;
         String shadowHexColor = null;
         Integer shadowStackCount = null;
+        FontVerticalAlignment verticalAlignment = null;
         for (FontStyle.FontStyleBuilder source : sources) {
             if (source == null) continue;
             if (name == null) name = source.name();
@@ -3341,6 +3345,7 @@ public class ConfigurationParser {
             if (outlineThickness == null) outlineThickness = source.outlineThickness();
             if (outlineHexColor == null) outlineHexColor = source.outlineHexColor();
             if (outlineOpacity == null) outlineOpacity = source.outlineOpacity();
+            if (verticalAlignment == null) verticalAlignment = source.verticalAlignment();
             Shadow.ShadowBuilder sh = source.shadow();
             if (shadowBlur == null) shadowBlur = sh.blurRadius();
             if (shadowHexColor == null) shadowHexColor = sh.hexColor();
@@ -3352,7 +3357,7 @@ public class ConfigurationParser {
         target.name(name); target.weight(weight); target.size(size);
         target.hexColor(hexColor); target.opacity(opacity);
         target.outlineThickness(outlineThickness); target.outlineHexColor(outlineHexColor);
-        target.outlineOpacity(outlineOpacity);
+        target.outlineOpacity(outlineOpacity); target.verticalAlignment(verticalAlignment);
         target.shadow().blurRadius(shadowBlur); target.shadow().hexColor(shadowHexColor);
         target.shadow().opacity(shadowOpacity); target.shadow().horizontalOffset(shadowHOff);
         target.shadow().verticalOffset(shadowVOff); target.shadow().stackCount(shadowStackCount);

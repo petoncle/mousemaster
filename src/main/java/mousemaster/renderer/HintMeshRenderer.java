@@ -775,9 +775,9 @@ public final class HintMeshRenderer {
         // One entry per tiled depth: subdecoration at index 0, subsubdecoration at index 1.
         List<DecorationStyle> subDecorationStyles = new ArrayList<>();
         if (hintMesh.subDecoration() != null) {
-            subDecorationStyles.add(decorationStyle(style.decorations().get(1)));
+            subDecorationStyles.add(decorationStyle(style.decorations().get(1), screenScale));
             if (hintMesh.subDecoration().subDecoration() != null)
-                subDecorationStyles.add(decorationStyle(style.decorations().get(2)));
+                subDecorationStyles.add(decorationStyle(style.decorations().get(2), screenScale));
         }
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         Map<String, Integer> xAdvancesByString = new HashMap<>();
@@ -857,7 +857,8 @@ public final class HintMeshRenderer {
                             hintKeyMaxXAdvance,
                             labelOverridden ? -1 :
                                     (hintMesh.selectedKeySequence().size() - 1
-                                    - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)));
+                                    - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)),
+                            style.fontStyle().defaultFontStyle().verticalAlignment());
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
@@ -993,7 +994,8 @@ public final class HintMeshRenderer {
                                 hintMesh.prefixLength(),
                                 prefixQtHintFontStyle,
                                 prefixHintKeyMaxXAdvance,
-                                hintMesh.selectedKeySequence().size() - 1);
+                                hintMesh.selectedKeySequence().size() - 1,
+                                style.prefixFontStyle().defaultFontStyle().verticalAlignment());
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, qtScaleFactor);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, qtScaleFactor);
                 int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
@@ -1103,7 +1105,7 @@ public final class HintMeshRenderer {
             areaBox.setGeometry(0, 0, containerWidth, containerHeight);
             addDecorationBoxes(areaBox, containerWidth, containerHeight,
                     hintMesh.decoration(),
-                    List.of(decorationStyle(style.decorations().get(0))), 0, qtScaleFactor);
+                    List.of(decorationStyle(style.decorations().get(0), screenScale)), 0, qtScaleFactor);
             HintPaintLayer areaDecorationLayer =
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -1115,11 +1117,12 @@ public final class HintMeshRenderer {
     private record DecorationStyle(QColor boxColor, QColor boxBorderColor,
                                    int borderThicknessPx, int borderLengthPx,
                                    int borderRadiusPx, boolean closed,
-                                   QFont labelFont, QColor labelColor,
-                                   List<Key> labelOverride) {
+                                   QtFontStyle labelStyle,
+                                   List<Key> labelOverride,
+                                   FontVerticalAlignment labelVerticalAlignment) {
     }
 
-    private DecorationStyle decorationStyle(Decoration decoration) {
+    private DecorationStyle decorationStyle(Decoration decoration, double screenScale) {
         FontStyle font = decoration.fontStyle().defaultFontStyle();
         return new DecorationStyle(
                 QtColorUtil.qColor(decoration.boxHexColor(), decoration.boxOpacity()),
@@ -1128,9 +1131,9 @@ public final class HintMeshRenderer {
                 (int) Math.round(decoration.boxBorderLength()),
                 (int) Math.round(decoration.boxBorderRadius()),
                 decoration.closed(),
-                QtHintFont.qFont(font.name(), font.size(), font.weight()),
-                QtColorUtil.qColor(font.hexColor(), font.opacity()),
-                decoration.labelOverride());
+                QtHintFont.qtFontStyle(font, screenScale),
+                decoration.labelOverride(),
+                font.verticalAlignment());
     }
 
     /** Maps a decoration mesh's cells proportionally into parentBox, recursing one depth
@@ -1169,7 +1172,8 @@ public final class HintMeshRenderer {
                     cell.keySequence() : decorationStyle.labelOverride();
             decorationBox.setDecorationLabel(labelKeys.stream()
                             .map(Key::hintLabel).collect(Collectors.joining()),
-                    decorationStyle.labelFont(), decorationStyle.labelColor());
+                    decorationStyle.labelStyle(),
+                    decorationStyle.labelVerticalAlignment());
             parentBox.decorationBoxes.add(decorationBox);
             addDecorationBoxes(decorationBox, decorationBoxRight - decorationBoxLeft,
                     decorationBoxBottom - decorationBoxTop,
@@ -1275,6 +1279,7 @@ public final class HintMeshRenderer {
         private String decorationLabel;
         private QFont decorationLabelFont;
         private QColor decorationLabelColor;
+        private int decorationLabelX, decorationLabelY;
 
         public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
                        boolean isHintPartOfGrid,
@@ -1304,10 +1309,16 @@ public final class HintMeshRenderer {
             this.height = height;
         }
 
-        public void setDecorationLabel(String label, QFont labelFont, QColor labelColor) {
+        public void setDecorationLabel(String label, QtFontStyle labelStyle,
+                                       FontVerticalAlignment verticalAlignment) {
             this.decorationLabel = label;
-            this.decorationLabelFont = labelFont;
-            this.decorationLabelColor = labelColor;
+            this.decorationLabelFont = labelStyle.font();
+            this.decorationLabelColor = labelStyle.color();
+            if (!label.isEmpty()) {
+                QFontMetrics metrics = labelStyle.metrics();
+                this.decorationLabelX = (width - metrics.horizontalAdvance(label)) / 2;
+                this.decorationLabelY = middleBaselineY(verticalAlignment, height, metrics, label);
+            }
         }
 
         public void move(int x, int y) {
@@ -1368,8 +1379,7 @@ public final class HintMeshRenderer {
             if (decorationLabel != null && !decorationLabel.isEmpty() && decorationLabelFont != null) {
                 painter.setFont(decorationLabelFont);
                 painter.setPen(decorationLabelColor);
-                painter.drawText(new QRect(0, 0, width, height),
-                        Qt.AlignmentFlag.AlignCenter.value(), decorationLabel);
+                painter.drawText(decorationLabelX, decorationLabelY, decorationLabel);
             }
             for (HintBox decorationBox : decorationBoxes) {
                 decorationBox.paint(painter);
@@ -1681,6 +1691,17 @@ public final class HintMeshRenderer {
 
     }
 
+    private static int middleBaselineY(FontVerticalAlignment verticalAlignment,
+                                       int boxHeight, QFontMetrics metrics, String text) {
+        if (verticalAlignment == FontVerticalAlignment.MIDDLE) {
+            QRect tight = metrics.tightBoundingRect(text);
+            int y = (int) Math.round(boxHeight / 2.0 - tight.y() - tight.height() / 2.0);
+            tight.dispose();
+            return y;
+        }
+        return (boxHeight + metrics.ascent() - metrics.descent()) / 2;
+    }
+
     public static class HintLabel {
 
         private final QtHintFontStyle labelFontStyle;
@@ -1697,10 +1718,13 @@ public final class HintMeshRenderer {
                          int boxWidth,
                          int boxHeight, int totalXAdvance, int prefixLength,
                          QtHintFontStyle labelFontStyle,
-                         int hintKeyMaxXAdvance, int selectedKeyEndIndex) {
+                         int hintKeyMaxXAdvance, int selectedKeyEndIndex,
+                         FontVerticalAlignment verticalAlignment) {
             this.labelFontStyle = labelFontStyle;
 
-            int y = (boxHeight + labelFontStyle.defaultStyle().metrics().ascent() - labelFontStyle.defaultStyle().metrics().descent()) / 2;
+            QFontMetrics labelMetrics = labelFontStyle.defaultStyle().metrics();
+            int y = middleBaselineY(verticalAlignment, boxHeight, labelMetrics,
+                    keySequence.stream().map(Key::hintLabel).collect(Collectors.joining()));
 
             double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
@@ -1767,7 +1791,8 @@ public final class HintMeshRenderer {
                     QtFontStyle qtFontStyle = resolveKeyQtFontStyle(isPrefix, isSelected, isFocused);
                     int actualTextWidth = qtFontStyle.metrics().horizontalAdvance(keyText);
                     textX += (textWidth - actualTextWidth) / 2;
-                    textY = (boxHeight + qtFontStyle.metrics().ascent() - qtFontStyle.metrics().descent()) / 2;
+                    if (verticalAlignment != FontVerticalAlignment.MIDDLE)
+                        textY = (boxHeight + qtFontStyle.metrics().ascent() - qtFontStyle.metrics().descent()) / 2;
                 }
                 keyTexts.add(new HintKeyText(keyText, textX, textY, keyWidth,
                         isSelected, isFocused, isPrefix));

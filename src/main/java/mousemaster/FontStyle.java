@@ -7,7 +7,7 @@ public record FontStyle(String name, FontWeight weight,
                         double opacity,
                         double outlineThickness, String outlineHexColor,
                         double outlineOpacity,
-                        Shadow shadow) {
+                        Shadow shadow, FontVerticalAlignment verticalAlignment) {
 
     public static class FontStyleBuilder {
 
@@ -20,6 +20,7 @@ public record FontStyle(String name, FontWeight weight,
         private String outlineHexColor;
         private Double outlineOpacity;
         private ShadowBuilder shadow = new ShadowBuilder();
+        private FontVerticalAlignment verticalAlignment;
 
         public FontStyleBuilder() {
 
@@ -35,6 +36,7 @@ public record FontStyle(String name, FontWeight weight,
             this.outlineHexColor = fontStyle.outlineHexColor;
             this.outlineOpacity = fontStyle.outlineOpacity;
             this.shadow = new ShadowBuilder(fontStyle.shadow);
+            this.verticalAlignment = fontStyle.verticalAlignment;
         }
 
         public String name() {
@@ -71,6 +73,15 @@ public record FontStyle(String name, FontWeight weight,
 
         public ShadowBuilder shadow() {
             return shadow;
+        }
+
+        public FontVerticalAlignment verticalAlignment() {
+            return verticalAlignment;
+        }
+
+        public FontStyleBuilder verticalAlignment(FontVerticalAlignment verticalAlignment) {
+            this.verticalAlignment = verticalAlignment;
+            return this;
         }
 
         public FontStyleBuilder name(String fontName) {
@@ -122,6 +133,7 @@ public record FontStyle(String name, FontWeight weight,
             if (outlineThickness == null) outlineThickness = defaultStyle.outlineThickness;
             if (outlineHexColor == null) outlineHexColor = defaultStyle.outlineHexColor;
             if (outlineOpacity == null) outlineOpacity = defaultStyle.outlineOpacity;
+            if (verticalAlignment == null) verticalAlignment = defaultStyle.verticalAlignment;
             shadow.extend(defaultStyle.shadow);
         }
 
@@ -135,7 +147,8 @@ public record FontStyle(String name, FontWeight weight,
                     outlineThickness,
                     outlineHexColor,
                     outlineOpacity,
-                    shadow.build()
+                    shadow.build(),
+                    verticalAlignment
             );
         }
 

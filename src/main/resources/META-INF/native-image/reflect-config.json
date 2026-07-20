@@ -720,7 +720,7 @@
 {
   "name":"mousemaster.FontStyle",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","mousemaster.FontWeight","double","java.lang.String","double","double","java.lang.String","double","mousemaster.Shadow"] }, {"name":"hexColor","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"outlineHexColor","parameterTypes":[] }, {"name":"outlineOpacity","parameterTypes":[] }, {"name":"outlineThickness","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"weight","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","mousemaster.FontWeight","double","java.lang.String","double","double","java.lang.String","double","mousemaster.Shadow","mousemaster.FontVerticalAlignment"] }, {"name":"hexColor","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"opacity","parameterTypes":[] }, {"name":"outlineHexColor","parameterTypes":[] }, {"name":"outlineOpacity","parameterTypes":[] }, {"name":"outlineThickness","parameterTypes":[] }, {"name":"shadow","parameterTypes":[] }, {"name":"size","parameterTypes":[] }, {"name":"verticalAlignment","parameterTypes":[] }, {"name":"weight","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.GridArea$ActiveScreenGridArea",

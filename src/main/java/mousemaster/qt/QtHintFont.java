@@ -33,6 +33,14 @@ public final class QtHintFont {
         return font;
     }
 
+    /** One Qt font style (font + DPI-corrected metrics + colors) for a single FontStyle,
+     *  e.g. a decoration label. */
+    public static QtFontStyle qtFontStyle(FontStyle fontStyle, double screenScale) {
+        QFont font = qFont(fontStyle.name(), fontStyle.size(), fontStyle.weight());
+        QFontMetrics metrics = correctedFontMetricsForScreenDpi(font, fontStyle.size(), screenScale);
+        return qtFontStyle(fontStyle, font, metrics, screenScale);
+    }
+
     public static QtHintFontStyle qtHintFontStyle(HintFontStyle hintFontStyle,
                                                   HintFontStyle prefixHintFontStyle,
                                                   double screenScale,

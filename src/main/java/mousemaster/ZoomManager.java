@@ -250,7 +250,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         return new FontStyle(style.name(), style.weight(),
                 style.size() * scale, style.hexColor(), style.opacity(),
                 style.outlineThickness(), style.outlineHexColor(),
-                style.outlineOpacity(), style.shadow());
+                style.outlineOpacity(), style.shadow(), style.verticalAlignment());
     }
 
     @Override
