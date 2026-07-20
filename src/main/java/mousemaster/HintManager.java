@@ -135,7 +135,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                                      .get(newScreenFilter)
                                      .selectionKeys();
         if (hintJustSelected) {
-            if (sameMode) {
+            if (sameMode &&
+                !(hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory)) {
                 // Same-mode mutation (e.g., variable change triggering
                 // refreshPreconditionOnlyMutations before SwitchMode runs).
                 // Skip rebuilding: the grid would get a new center (because
@@ -601,7 +602,8 @@ public class HintManager implements ModeListener, MousePositionListener {
         // fall through to hintMeshStates even if the live selection is empty.
         boolean selectionResolved = false;
         if (this.hintMesh != null && !this.hintMesh.hints().isEmpty() &&
-            !hintMesh.hints().isEmpty()) {
+            !hintMesh.hints().isEmpty() &&
+            !(hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory)) {
             Rectangle oldBounds = hintCenterBounds(this.hintMesh.hints(), currentZoom);
             Rectangle newBounds = hintCenterBounds(hintMesh.hints(), zoom);
             if (oldBounds.overlapRatio(newBounds) >= 0.9) {
