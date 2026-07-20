@@ -483,6 +483,19 @@ _{!isslow !iszoom !isrclick}       none of these three variables are set
 _{iszoom !isnomove}                iszoom is set AND isnomove is not set
 ```
 
+### Built-in variables
+
+Some variables are maintained automatically by mousemaster and can be used in preconditions like any other variable. They cannot be set, unset, or cleared from the configuration (attempting to `set-variable`/`unset-variable` a built-in name is a configuration error, and `clear-variables` leaves them untouched).
+
+| Variable   | Set when                                                                                                          |
+|------------|-------------------------------------------------------------------------------------------------------------------|
+| `isidling` | The mouse is idle: not moving, no mouse button pressed, not wheeling, and no combo completed on the current tick. |
+
+```
+_{isidling} +a                     combo only works while the mouse is idle
+mode.indicator.idle-color=... | _{isidling} -> gray   idle-only property value
+```
+
 ### Mode property mutation with variables
 
 Properties can have different values depending on which variables are set. The syntax uses `|` to separate branches, with `_{}` variable preconditions and `->` pointing to the value:

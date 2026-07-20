@@ -40,6 +40,8 @@ public class LinuxPlatform implements Platform {
     private final boolean isWayland;
     private Integer lastMouseX;
     private Integer lastMouseY;
+    private double timeSinceLastSetTopmost;
+    private static final double SET_TOPMOST_INTERVAL_SECONDS = 0.2;
 
     public LinuxPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled) {
         logger.info("Initializing LinuxPlatform");
@@ -61,7 +63,7 @@ public class LinuxPlatform implements Platform {
         int uinputKeyboardFd = LibUinput.createKeyboardDevice();
         keyboard = new LinuxKeyboard(uinputKeyboardFd);
         screens = new LinuxScreens(display);
-        overlay = new LinuxOverlay(display);
+        overlay = new LinuxOverlay(display, screens, this);
         uiAutomation = new LinuxUiAutomation();
         activeAppFinder = new LinuxActiveAppFinder();
         console = new LinuxConsole();
@@ -88,6 +90,14 @@ public class LinuxPlatform implements Platform {
     public void update(double delta) {
         pumpEvents();
         overlay.update(delta);
+        // Periodically re-assert overlay window stacking, in case a tiling WM (e.g.
+        // Hyprland) or another always-on-top app didn't fully respect
+        // WindowStaysOnTopHint - mirrors WindowsPlatform's own periodic setTopmost().
+        timeSinceLastSetTopmost += delta;
+        if (timeSinceLastSetTopmost >= SET_TOPMOST_INTERVAL_SECONDS) {
+            timeSinceLastSetTopmost = 0;
+            overlay.setTopmost();
+        }
     }
 
     @Override
@@ -161,6 +171,19 @@ public class LinuxPlatform implements Platform {
         for (MousePositionListener listener : mousePositionListeners) {
             listener.mouseMoved(x, y);
         }
+        // Windows notifies its overlay's indicator via the low-level mouse hook
+        // (WindowsOverlay.mouseMoved()); X11 has no such hook, so pass the polled
+        // position along the same way as for the listeners above.
+        overlay.mouseMoved(x, y);
+    }
+
+    /** The most recently polled mouse position, or null before the first poll. */
+    Integer lastMouseX() {
+        return lastMouseX;
+    }
+
+    Integer lastMouseY() {
+        return lastMouseY;
     }
 
     @Override

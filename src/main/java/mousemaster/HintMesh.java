@@ -8,7 +8,7 @@ import java.util.List;
 public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
                        List<Key> selectedKeySequence,
                        ViewportFilterMap<HintMeshStyle> styleByFilter,
-                       Rectangle backgroundArea) {
+                       Rectangle backgroundArea, HintMesh subgrid) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -21,6 +21,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         private List<Key> selectedKeySequence = List.of();
         private ViewportFilterMap<HintMeshStyle> styleByFilter;
         private Rectangle backgroundArea;
+        private HintMesh subgrid;
 
         public HintMeshBuilder() {
         }
@@ -32,6 +33,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             this.selectedKeySequence = hintMesh.selectedKeySequence;
             this.styleByFilter = hintMesh.styleByFilter;
             this.backgroundArea = hintMesh.backgroundArea;
+            this.subgrid = hintMesh.subgrid;
         }
 
 
@@ -90,9 +92,18 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             return this;
         }
 
+        public HintMesh subgrid() {
+            return subgrid;
+        }
+
+        public HintMeshBuilder subgrid(HintMesh subgrid) {
+            this.subgrid = subgrid;
+            return this;
+        }
+
         public HintMesh build() {
             return new HintMesh(visible, hints, prefixLength, selectedKeySequence,
-                    styleByFilter, backgroundArea);
+                    styleByFilter, backgroundArea, subgrid);
         }
     }
 

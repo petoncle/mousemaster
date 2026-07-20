@@ -13,7 +13,8 @@ public record ApplicationOptions(String tempDirectory,
                                  Path configurationPath,
                                  boolean multipleInstancesAllowed,
                                  boolean keyRegurgitationEnabled,
-                                 boolean graalvmAgentRun) {
+                                 boolean graalvmAgentRun,
+                                 boolean ignoreInjectedEvents) {
 
     public static ApplicationOptions parse(String[] args) {
         return new ApplicationOptions(
@@ -26,7 +27,8 @@ public record ApplicationOptions(String tempDirectory,
                         "mousemaster.properties")),
                 booleanArg(args, "--multiple-instances-allowed=", false),
                 booleanArg(args, "--key-regurgitation-enabled=", true),
-                Stream.of(args).anyMatch(Predicate.isEqual("--graalvm-agent-run"))
+                Stream.of(args).anyMatch(Predicate.isEqual("--graalvm-agent-run")),
+                booleanArg(args, "--ignore-injected-events=", false)
         );
     }
 

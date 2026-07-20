@@ -173,9 +173,16 @@ public class KeyboardManager {
             }
             boolean mustBeEaten = processingSet.mustBeEaten() ||
                                   macroPlayer.isKeyPressedByMacro(key);
+            // Forward before keyPressedNotEaten so regurgitated keys aren't delivered
+            // out of order (keyPressedNotEaten writes to uinput synchronously on Linux).
+            // TODO: shared code. Consider how this affects Windows. Is this the correct
+            // location for this solution? Is this the correct solution?
+            for (Regurgitate regurgitate : regurgitates) {
+                keyRegurgitator.regurgitate(regurgitate, !regurgitate.alsoRelease());
+            }
             if (!mustBeEaten)
                 macroPlayer.keyPressedNotEaten(key);
-            return eatAndRegurgitates(mustBeEaten, regurgitates);
+            return eatAndRegurgitates(mustBeEaten, List.of());
         }
         else { // Key release.
             if (processingSet != null) {

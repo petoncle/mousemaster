@@ -2,6 +2,7 @@ package mousemaster.platform.windows;
 
 import mousemaster.*;
 
+import com.sun.jna.platform.win32.BaseTSD;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
@@ -14,6 +15,14 @@ import java.util.*;
 public class WindowsKeyboardController implements KeyboardController {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsKeyboardController.class);
+
+    /**
+     * Written into dwExtraInfo of every keyboard event mousemaster injects via
+     * SendInput. The low-level keyboard hook uses it to recognize mousemaster's
+     * own injected events.
+     * "MMKB" = mousemaster keyboard
+     */
+    public static final long MOUSEMASTER_INJECTED_EVENT_SIGNATURE = 0x4D4D4B42L;
 
     /**
      * https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input
@@ -337,6 +346,8 @@ public class WindowsKeyboardController implements KeyboardController {
             // If KEYEVENTF_EXTENDEDKEY dwFlag is not set,
             // rightalt + f7 in IntelliJ gets stuck: it expects alt to be released (press-and-release leftalt to unstuck).
             pInputs[moveIndex].input.ki.dwFlags = new WinDef.DWORD(flag);
+            pInputs[moveIndex].input.ki.dwExtraInfo =
+                    new BaseTSD.ULONG_PTR(MOUSEMASTER_INJECTED_EVENT_SIGNATURE);
         }
         if (logger.isTraceEnabled()) {
             logger.trace("Sending " + moves + ", triggerKeyRepeating = " + triggerKeyRepeating);
@@ -375,6 +386,8 @@ public class WindowsKeyboardController implements KeyboardController {
             pInputs[downIndex].input.ki.wVk = new WinDef.WORD(0);
             pInputs[downIndex].input.ki.wScan = new WinDef.WORD(c);
             pInputs[downIndex].input.ki.dwFlags = new WinDef.DWORD(WinUser.KEYBDINPUT.KEYEVENTF_UNICODE);
+            pInputs[downIndex].input.ki.dwExtraInfo =
+                    new BaseTSD.ULONG_PTR(MOUSEMASTER_INJECTED_EVENT_SIGNATURE);
             // Key up.
             pInputs[upIndex].type = new WinDef.DWORD(WinUser.INPUT.INPUT_KEYBOARD);
             pInputs[upIndex].input.setType(WinUser.KEYBDINPUT.class);
@@ -383,6 +396,8 @@ public class WindowsKeyboardController implements KeyboardController {
             pInputs[upIndex].input.ki.dwFlags = new WinDef.DWORD(
                     WinUser.KEYBDINPUT.KEYEVENTF_UNICODE |
                     WinUser.KEYBDINPUT.KEYEVENTF_KEYUP);
+            pInputs[upIndex].input.ki.dwExtraInfo =
+                    new BaseTSD.ULONG_PTR(MOUSEMASTER_INJECTED_EVENT_SIGNATURE);
         }
         User32.INSTANCE.SendInput(new WinDef.DWORD(inputCount), pInputs,
                 pInputs[0].size());
@@ -398,6 +413,8 @@ public class WindowsKeyboardController implements KeyboardController {
         if (extendedKey)
             flags |= WinUser.KEYBDINPUT.KEYEVENTF_EXTENDEDKEY;
         pInputs[0].input.ki.dwFlags = new WinDef.DWORD(flags);
+        pInputs[0].input.ki.dwExtraInfo =
+                new BaseTSD.ULONG_PTR(MOUSEMASTER_INJECTED_EVENT_SIGNATURE);
         User32.INSTANCE.SendInput(new WinDef.DWORD(1), pInputs,
                 pInputs[0].size());
     }

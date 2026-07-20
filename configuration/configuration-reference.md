@@ -544,6 +544,7 @@ hint-mode.hint.active-screen-grid-area-center=screen-center
 # Grid layout configuration
 hint-mode.hint.grid-cell-width=74
 hint-mode.hint.grid-cell-height=36
+hint-mode.hint.grid-cell-sizing=fixed
 hint-mode.hint.layout-row-count=6
 hint-mode.hint.layout-column-count=5
 ```
@@ -561,6 +562,10 @@ hint-mode.hint.layout-column-count=5
 - **Grid dimensions**: Control the size of each hint cell:
   - `grid-cell-width`: Width of each hint cell in pixels
   - `grid-cell-height`: Height of each hint cell in pixels
+
+- **`grid-cell-sizing`**: How cell size is determined:
+  - `fixed` (default): cells are `grid-cell-width` x `grid-cell-height` pixels, and `grid-max-row-count`/`grid-max-column-count` cap how many fit.
+  - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `grid-area=last-selected-hint-cell`.
 
 - **Grid arrangement**: Control the number of rows and columns:
   - `layout-row-count`: Number of rows in the hint grid
@@ -644,6 +649,20 @@ hint-mode.hint.box-shadow-vertical-offset=2
 hint-mode.hint.box-width-percent=1.0
 hint-mode.hint.box-height-percent=1.0
 
+# Subgrid: a miniature hint grid drawn inside each hint box (a preview of the
+# next level). Set subgrid-selection-keys to label the sub-cells.
+hint-mode.hint.subgrid-max-row-count=1
+hint-mode.hint.subgrid-max-column-count=1
+hint-mode.hint.subgrid-selection-keys=
+hint-mode.hint.subgrid-border-thickness=1
+hint-mode.hint.subgrid-border-length=10000
+hint-mode.hint.subgrid-border-color=#FFFFFF
+hint-mode.hint.subgrid-border-opacity=1.0
+hint-mode.hint.subgrid-closed=false
+hint-mode.hint.subgrid-font-size=10
+hint-mode.hint.subgrid-font-color=#FFFFFF
+hint-mode.hint.subgrid-font-opacity=1.0
+
 # Cell padding for UI hints and position history hints only
 hint-mode.hint.cell-horizontal-padding=0
 hint-mode.hint.cell-vertical-padding=0
@@ -700,6 +719,13 @@ hint-mode.hint.background-opacity=0
   - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
   - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
   - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
+
+- Subgrid: draws a grid of lines inside each hint box
+  - `subgrid-max-row-count` / `subgrid-max-column-count`: How many rows/columns to divide each box into (default 1 = disabled).
+  - `subgrid-selection-keys`: Keys used to label the sub-cells (accepts a key-alias; empty = lines only, no labels). Labels are generated like the main grid, so they are 1- or 2-char depending on cell count vs. key count.
+  - `subgrid-font-size` / `subgrid-font-color` / `subgrid-font-opacity` / `subgrid-font-spacing-percent`: Font of the sub-cell labels.
+  - `subgrid-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 subgrid).
+  - `subgrid-closed`: Whether the subgrid draws its own outer perimeter (default false). When false, only interior lines are drawn (the hint box border acts as the outer edge); set true for a fully-enclosed grid that does not rely on the parent border.
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)
@@ -815,6 +841,15 @@ grid-mode.grid.column-count=2
 grid-mode.grid.line-visible=true
 grid-mode.grid.line-color=#FF0000
 grid-mode.grid.line-thickness=1
+grid-mode.grid.line-opacity=1.0
+grid-mode.grid.background-color=#FF0000
+grid-mode.grid.background-opacity=0.1
+
+# Grid transition and fade animations
+grid-mode.grid.transition-animation-enabled=true
+grid-mode.grid.transition-animation-duration-millis=100
+grid-mode.grid.fade-animation-enabled=true
+grid-mode.grid.fade-animation-duration-millis=100
 ```
 
 - **`grid-area`**: Determines where the grid is displayed:
@@ -833,6 +868,17 @@ grid-mode.grid.line-thickness=1
   - `line-visible`: Whether to show grid lines
   - `line-color`: Color of grid lines (hex format)
   - `line-thickness`: Thickness of grid lines in pixels
+  - `line-opacity`: Opacity of grid lines (0.0 = transparent, 1.0 = opaque). Default 1.0.
+  - `background-color`: Fill color of the grid area, behind the lines (default #FF0000).
+  - `background-opacity`: Opacity of the background fill (default 0.1).
+
+- Grid transition animation: eases the grid to its new position and size when it changes (e.g. after `shrink-grid` or `move-grid`):
+  - `transition-animation-enabled`: Whether to animate grid transitions. Default enabled.
+  - `transition-animation-duration-millis`: Animation duration in milliseconds. Default 100.
+
+- Grid fade animation: fades the grid in and out when it appears and disappears:
+  - `fade-animation-enabled`: Whether to fade the grid in/out. Default enabled.
+  - `fade-animation-duration-millis`: Fade duration in milliseconds. Default 100.
 
 ### Grid positioning and insets
 

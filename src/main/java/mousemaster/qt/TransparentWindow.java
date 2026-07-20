@@ -6,7 +6,6 @@ import io.qt.core.Qt;
 import io.qt.gui.QColor;
 import io.qt.gui.QPaintEvent;
 import io.qt.gui.QPainter;
-import io.qt.widgets.QApplication;
 import io.qt.widgets.QWidget;
 
 public class TransparentWindow extends QWidget {
@@ -23,11 +22,13 @@ public class TransparentWindow extends QWidget {
                 Qt.WindowType.X11BypassWindowManagerHint,
                 Qt.WindowType.WindowStaysOnTopHint);
         setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);
-    }
-
-    protected static QRect primaryScreenGeometry() {
-        var screen = QApplication.primaryScreen();
-        return screen != null ? screen.geometry() : new QRect(0, 0, 1920, 1080);
+        // Click-through: the shared renderers (GridRenderer/HintMeshRenderer) never
+        // actually unmap their windows on hide(), only clear the drawn content and rely
+        // on this being permanently click-through - Windows gets the same behavior via
+        // WS_EX_TRANSPARENT applied once at HWND creation (see WindowsOverlay). Without
+        // this, a hidden-but-still-mapped, full-desktop/full-screen overlay window
+        // silently swallows every click underneath it, forever, from first use onward.
+        setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
     }
 
     public void setBackground(QColor color, QRect rect) {

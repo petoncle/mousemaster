@@ -45,6 +45,14 @@ public class ComboWatcher {
      * field path are precondition-only (no sequence moves).
      */
     private final Map<ModePropertyPath, Boolean> preconditionOnlyByPropertyPath = new HashMap<>();
+    /**
+     * Computed once on mode change: the built-in variables referenced by some
+     * precondition-only mutation of the current mode. When a built-in variable
+     * changes but is not in here, no mutation can depend on it, so the
+     * (relatively costly) mutation refresh is skipped.
+     */
+    private final Set<String> builtInVariablesReferencedByPreconditionOnlyMutations =
+            new HashSet<>();
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
     private PressKeyEventProcessingSet lastProcessingSet;
@@ -206,6 +214,20 @@ public class ComboWatcher {
 
     public Mode getMutatedMode() {
         return mutatedMode;
+    }
+
+    /**
+     * Updates the built-in {@code isidling} variable. Called every update tick
+     * with the idle state computed by {@link ModeController}. Precondition-only
+     * mutations are refreshed only when the state actually changes.
+     */
+    public void setIdling(boolean idling) {
+        boolean changed = idling ?
+                activeVariables.add(BuiltInVariable.IS_IDLING) :
+                activeVariables.remove(BuiltInVariable.IS_IDLING);
+        if (changed && builtInVariablesReferencedByPreconditionOnlyMutations
+                .contains(BuiltInVariable.IS_IDLING))
+            refreshPreconditionOnlyMutations();
     }
 
     public record ComboWatcherUpdateResult(List<ComboAndMatch> completedCombos,
@@ -981,8 +1003,10 @@ public class ComboWatcher {
         // clear-variables + set-variable on the same combo clears first, then sets.
         for (Command command : commands) {
             if (command instanceof Command.ClearVariables) {
-                anyVariableChange |= !activeVariables.isEmpty();
-                activeVariables.clear();
+                // Built-in variables (e.g. isidling) are maintained automatically
+                // and must survive clear-variables.
+                anyVariableChange |= activeVariables.removeIf(
+                        variableName -> !BuiltInVariable.NAMES.contains(variableName));
             }
         }
         for (Command command : commands) {
@@ -1520,19 +1544,30 @@ public class ComboWatcher {
 
     private void computePreconditionOnlyByPropertyPath() {
         preconditionOnlyByPropertyPath.clear();
+        builtInVariablesReferencedByPreconditionOnlyMutations.clear();
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
                                                                  .commandsByCombo()
                                                                  .entrySet()) {
             Combo combo = entry.getKey();
+            boolean isPreconditionOnly = combo.sequence().isEmpty();
             for (Command command : entry.getValue()) {
                 if (command instanceof Command.MutateMode mutateMode) {
-                    boolean isPreconditionOnly = combo.sequence().isEmpty();
                     preconditionOnlyByPropertyPath.merge(mutateMode.propertyPath(),
                             isPreconditionOnly,
                             (existing, newVal) -> existing && newVal);
+                    if (isPreconditionOnly)
+                        builtInVariablesReferencedByPreconditionOnlyMutations
+                                .addAll(builtInVariablesReferencedBy(combo));
                 }
             }
         }
+    }
+
+    private static Set<String> builtInVariablesReferencedBy(Combo combo) {
+        return combo.precondition().variablePrecondition().conditions().stream()
+                    .map(condition -> condition.variableName())
+                    .filter(BuiltInVariable.NAMES::contains)
+                    .collect(Collectors.toSet());
     }
 
 

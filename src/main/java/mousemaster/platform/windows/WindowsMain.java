@@ -49,7 +49,8 @@ public class WindowsMain {
             }).start();
         }
         Platform platform = createPlatform(options.multipleInstancesAllowed(),
-                options.keyRegurgitationEnabled(), options.pauseOnError());
+                options.keyRegurgitationEnabled(), options.pauseOnError(),
+                options.ignoreInjectedEvents());
         logger.info("mousemaster v" + version + " (" + commitId + ")");
         if (platform == null)
             return;
@@ -66,9 +67,11 @@ public class WindowsMain {
 
     private static Platform createPlatform(boolean multipleInstancesAllowed,
                                            boolean keyRegurgitationEnabled,
-                                           boolean pauseOnError) {
+                                           boolean pauseOnError,
+                                           boolean ignoreInjectedEvents) {
         try {
-            return new WindowsPlatform(multipleInstancesAllowed, keyRegurgitationEnabled);
+            return new WindowsPlatform(multipleInstancesAllowed, keyRegurgitationEnabled,
+                    ignoreInjectedEvents);
         } catch (Exception e) {
             MousemasterApplication.shutdownAfterException(e, null, false, pauseOnError);
         }

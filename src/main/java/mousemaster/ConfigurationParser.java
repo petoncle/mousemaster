@@ -69,7 +69,14 @@ public class ConfigurationParser {
             .columnCount(2)
             .lineVisible(false)
             .lineHexColor("#FF0000")
-            .lineThickness(1);
+            .lineThickness(1)
+            .lineOpacity(1)
+            .backgroundHexColor("#FF0000")
+            .backgroundOpacity(0.1)
+            .transitionAnimationEnabled(true)
+            .transitionAnimationDuration(Duration.ofMillis(100))
+            .fadeAnimationEnabled(true)
+            .fadeAnimationDuration(Duration.ofMillis(100));
         GridArea.GridAreaBuilder gridAreaBuilder = grid.area();
         gridAreaBuilder.type(GridAreaType.ACTIVE_SCREEN)
                        .widthPercent(1)
@@ -109,6 +116,42 @@ public class ConfigurationParser {
                             .horizontalOffset(0d)
                             .verticalOffset(0d)
                             .stackCount(1);
+        hintMeshStyleBuilder.subgridFontStyle().defaultFontStyle()
+                            .name("Consolas")
+                            .weight(FontWeight.NORMAL)
+                            .size(10d)
+                            .hexColor("#FFFFFF")
+                            .opacity(1d)
+                            .outlineThickness(0d)
+                            .outlineHexColor("#000000")
+                            .outlineOpacity(0.5d);
+        hintMeshStyleBuilder.subgridFontStyle()
+                            .spacingPercent(0.7d);
+        hintMeshStyleBuilder.subgridFontStyle().defaultFontStyle().shadow()
+                            .blurRadius(0d)
+                            .hexColor("#000000")
+                            .opacity(0d)
+                            .horizontalOffset(0d)
+                            .verticalOffset(0d)
+                            .stackCount(1);
+        hintMeshStyleBuilder.subsubgridFontStyle().defaultFontStyle()
+                            .name("Consolas")
+                            .weight(FontWeight.NORMAL)
+                            .size(10d)
+                            .hexColor("#FFFFFF")
+                            .opacity(1d)
+                            .outlineThickness(0d)
+                            .outlineHexColor("#000000")
+                            .outlineOpacity(0.5d);
+        hintMeshStyleBuilder.subsubgridFontStyle()
+                            .spacingPercent(0.7d);
+        hintMeshStyleBuilder.subsubgridFontStyle().defaultFontStyle().shadow()
+                            .blurRadius(0d)
+                            .hexColor("#000000")
+                            .opacity(0d)
+                            .horizontalOffset(0d)
+                            .verticalOffset(0d)
+                            .stackCount(1);
         hintMeshStyleBuilder
                 .prefixInBackground(false)
                 .boxHexColor("#000000")
@@ -135,12 +178,22 @@ public class ConfigurationParser {
                 .boxHeightPercent(1d)
                 .cellHorizontalPadding(0d)
                 .cellVerticalPadding(0d)
-                .subgridRowCount(1)
-                .subgridColumnCount(1)
+                .subgridMaxRowCount(1)
+                .subgridMaxColumnCount(1)
+                .subgridSelectionKeys(List.of())
                 .subgridBorderThickness(1d)
                 .subgridBorderLength(10_000d)
                 .subgridBorderHexColor("#FFFFFF")
                 .subgridBorderOpacity(1d)
+                .subgridClosed(false)
+                .subsubgridMaxRowCount(1)
+                .subsubgridMaxColumnCount(1)
+                .subsubgridSelectionKeys(List.of())
+                .subsubgridBorderThickness(1d)
+                .subsubgridBorderLength(10_000d)
+                .subsubgridBorderHexColor("#FFFFFF")
+                .subsubgridBorderOpacity(1d)
+                .subsubgridClosed(false)
                 .transitionAnimationEnabled(true)
                 .transitionAnimationDuration(Duration.ofMillis(100))
                 .fadeAnimationEnabled(true)
@@ -153,6 +206,7 @@ public class ConfigurationParser {
                            .gridLayout(AnyViewportFilter.ANY_VIEWPORT_FILTER)
                            .maxRowCount(200)
                            .maxColumnCount(200)
+                           .cellSizingType(HintCellSizing.HintCellSizingType.FIXED)
                            .cellWidth(73d)
                            .cellHeight(36d)
                            .layoutRowCount(1_000_000)
@@ -1431,6 +1485,10 @@ public class ConfigurationParser {
                             "unset-variable requires a variable name: unset-variable.<name>");
                 else {
                     String variableName = keyMatcher.group(group4);
+                    if (BuiltInVariable.NAMES.contains(variableName))
+                        throw new IllegalArgumentException(
+                                "Variable name '" + variableName +
+                                "' is a built-in variable and cannot be unset");
                     setCommand(mode.comboMap.unsetVariable.builder, propertyValue,
                             new Command.UnsetVariable(variableName), propertyKey,
                             defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
@@ -1630,10 +1688,10 @@ public class ConfigurationParser {
      * First pass: scan all property lines for set-variable.X= patterns
      * and collect variable names. Also checks for collisions with key names and aliases.
      */
-    private static Set<String> parseVariableNames(List<String> properties,
-                                                  Map<String, KeyAlias> keyAliases,
-                                                  KeyResolver keyResolver) {
-        Set<String> variableNames = new HashSet<>();
+    static Set<String> parseVariableNames(List<String> properties,
+                                          Map<String, KeyAlias> keyAliases,
+                                          KeyResolver keyResolver) {
+        Set<String> variableNames = new HashSet<>(BuiltInVariable.NAMES);
         for (String line : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(line);
             if (!lineMatcher.matches())
@@ -1644,6 +1702,10 @@ public class ConfigurationParser {
             Matcher setVarMatcher = setVarPattern.matcher(propertyKey);
             if (setVarMatcher.matches()) {
                 String variableName = setVarMatcher.group(1);
+                if (BuiltInVariable.NAMES.contains(variableName))
+                    throw new IllegalArgumentException(
+                            "Variable name '" + variableName +
+                            "' is a built-in variable and cannot be set");
                 if (keyAliases.containsKey(variableName))
                     throw new IllegalArgumentException(
                             "Variable name '" + variableName +
@@ -1810,6 +1872,9 @@ public class ConfigurationParser {
                     // No op.
                 }
                 case ALL_SCREENS -> {
+                    // No op.
+                }
+                case LAST_SELECTED_HINT_CELL -> {
                     // No op.
                 }
             }
@@ -2091,6 +2156,13 @@ public class ConfigurationParser {
             case "line-visible" -> ModePropertyHandler.of(prefix.append("lineVisible"), v -> Boolean.parseBoolean(v), v -> grid.lineVisible(v));
             case "line-color" -> ModePropertyHandler.of(prefix.append("lineHexColor"), v -> checkColorFormat(v), v -> grid.lineHexColor(v));
             case "line-thickness" -> ModePropertyHandler.of(prefix.append("lineThickness"), v -> parseDouble(v, false, 0, 1000), v -> grid.lineThickness(v));
+            case "line-opacity" -> ModePropertyHandler.of(prefix.append("lineOpacity"), v -> parseDouble(v, true, 0, 1), v -> grid.lineOpacity(v));
+            case "background-color" -> ModePropertyHandler.of(prefix.append("backgroundHexColor"), v -> checkColorFormat(v), v -> grid.backgroundHexColor(v));
+            case "background-opacity" -> ModePropertyHandler.of(prefix.append("backgroundOpacity"), v -> parseDouble(v, true, 0, 1), v -> grid.backgroundOpacity(v));
+            case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> grid.transitionAnimationEnabled(v));
+            case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("transitionAnimationDuration"), v -> parseDuration(v), v -> grid.transitionAnimationDuration(v));
+            case "fade-animation-enabled" -> ModePropertyHandler.of(prefix.append("fadeAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> grid.fadeAnimationEnabled(v));
+            case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("fadeAnimationDuration"), v -> parseDuration(v), v -> grid.fadeAnimationDuration(v));
             // @formatter:on
             default -> null;
         };
@@ -2231,14 +2303,16 @@ public class ConfigurationParser {
                     };
                     case ACTIVE_WINDOW -> new HintGridArea.ActiveWindowHintGridArea();
                     case ALL_SCREENS -> new HintGridArea.AllScreensHintGridArea();
+                    case LAST_SELECTED_HINT_CELL -> new HintGridArea.LastSelectedHintCellGridArea();
                 };
             }, v -> hintMeshBuilder.type().gridArea().type(parseHintGridAreaType("hint.grid-area", v)));
             case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseActiveScreenHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().activeScreenHintGridAreaCenter(v));
             // Grid layout properties (viewport-filtered)
             case "grid-max-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxRowCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxRowCount(v));
             case "grid-max-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "maxColumnCount"), v -> parseUnsignedInteger(v, 1, 200), v -> hintMeshBuilder.type().gridLayout(viewportFilter).maxColumnCount(v));
-            case "grid-cell-width" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellWidth"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellWidth(v));
-            case "grid-cell-height" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellHeight"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellHeight(v));
+            case "grid-cell-width" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizing", "cellWidth"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellWidth(v));
+            case "grid-cell-height" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizing", "cellHeight"), v -> parseDouble(v, false, 0, 10_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellHeight(v));
+            case "grid-cell-sizing" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "cellSizingType"), v -> parseHintCellSizingType("hint.grid-cell-sizing", v), v -> hintMeshBuilder.type().gridLayout(viewportFilter).cellSizingType(v));
             case "layout-row-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutRowCount(v));
             case "layout-column-count" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000_000_000), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutColumnCount(v));
             case "layout-row-oriented" -> ModePropertyHandler.of(prefix.append("type", "gridLayoutByFilter", "layoutRowOriented"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.type().gridLayout(viewportFilter).layoutRowOriented(v));
@@ -2364,12 +2438,33 @@ public class ConfigurationParser {
             case "cell-horizontal-padding", "box-horizontal-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "cellHorizontalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).cellHorizontalPadding(v));
             case "cell-vertical-padding", "box-vertical-padding" -> ModePropertyHandler.of(prefix.append("styleByFilter", "cellVerticalPadding"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).cellVerticalPadding(v));
             // Style: subgrid
-            case "subgrid-row-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridRowCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridRowCount(v));
-            case "subgrid-column-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridColumnCount(v));
+            case "subgrid-max-row-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridMaxRowCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridMaxRowCount(v));
+            case "subgrid-max-column-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridMaxColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridMaxColumnCount(v));
+            case "subgrid-selection-keys" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridSelectionKeys"), v -> parseHintKeys(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(viewportFilter).subgridSelectionKeys(v));
             case "subgrid-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subgridBorderThickness(v));
             case "subgrid-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subgridBorderLength(v));
             case "subgrid-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subgridBorderHexColor(v));
             case "subgrid-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subgridBorderOpacity(v));
+            case "subgrid-closed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridClosed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).subgridClosed(v));
+            case "subgrid-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().defaultFontStyle().name(v));
+            case "subgrid-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().defaultFontStyle().size(v));
+            case "subgrid-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().defaultFontStyle().hexColor(v));
+            case "subgrid-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().defaultFontStyle().opacity(v));
+            case "subgrid-font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridFontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subgridFontStyle().spacingPercent(v));
+            // Style: subsubgrid (a hint grid inside each subgrid cell)
+            case "subsubgrid-max-row-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridMaxRowCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridMaxRowCount(v));
+            case "subsubgrid-max-column-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridMaxColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridMaxColumnCount(v));
+            case "subsubgrid-selection-keys" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridSelectionKeys"), v -> parseHintKeys(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(viewportFilter).subsubgridSelectionKeys(v));
+            case "subsubgrid-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderThickness(v));
+            case "subsubgrid-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderLength(v));
+            case "subsubgrid-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderHexColor(v));
+            case "subsubgrid-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subsubgridBorderOpacity(v));
+            case "subsubgrid-closed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridClosed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).subsubgridClosed(v));
+            case "subsubgrid-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().name(v));
+            case "subsubgrid-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().size(v));
+            case "subsubgrid-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().hexColor(v));
+            case "subsubgrid-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "defaultFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().defaultFontStyle().opacity(v));
+            case "subsubgrid-font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subsubgridFontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).subsubgridFontStyle().spacingPercent(v));
             // Style: animation & background
             case "transition-animation-enabled" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationEnabled(v));
             case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("styleByFilter", "transitionAnimationDuration"), v -> parseDuration(v), v -> hintMeshBuilder.style(viewportFilter).transitionAnimationDuration(v));
@@ -2593,10 +2688,23 @@ public class ConfigurationParser {
             case "active-screen" -> HintGridAreaType.ACTIVE_SCREEN;
             case "active-window" -> HintGridAreaType.ACTIVE_WINDOW;
             case "all-screens" -> HintGridAreaType.ALL_SCREENS;
+            case "last-selected-hint-cell" -> HintGridAreaType.LAST_SELECTED_HINT_CELL;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": type should be one of " +
-                    List.of("active-screen", "active-window", "all-screens"));
+                    List.of("active-screen", "active-window", "all-screens",
+                            "last-selected-hint-cell"));
+        };
+    }
+
+    private static HintCellSizing.HintCellSizingType parseHintCellSizingType(
+            String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "fixed" -> HintCellSizing.HintCellSizingType.FIXED;
+            case "fit" -> HintCellSizing.HintCellSizingType.FIT;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": should be one of " + List.of("fixed", "fit"));
         };
     }
 
@@ -2822,6 +2930,20 @@ public class ConfigurationParser {
                         builder.lineHexColor(parent.lineHexColor());
                     if (builder.lineThickness() == null)
                         builder.lineThickness(parent.lineThickness());
+                    if (builder.lineOpacity() == null)
+                        builder.lineOpacity(parent.lineOpacity());
+                    if (builder.backgroundHexColor() == null)
+                        builder.backgroundHexColor(parent.backgroundHexColor());
+                    if (builder.backgroundOpacity() == null)
+                        builder.backgroundOpacity(parent.backgroundOpacity());
+                    if (builder.transitionAnimationEnabled() == null)
+                        builder.transitionAnimationEnabled(parent.transitionAnimationEnabled());
+                    if (builder.transitionAnimationDuration() == null)
+                        builder.transitionAnimationDuration(parent.transitionAnimationDuration());
+                    if (builder.fadeAnimationEnabled() == null)
+                        builder.fadeAnimationEnabled(parent.fadeAnimationEnabled());
+                    if (builder.fadeAnimationDuration() == null)
+                        builder.fadeAnimationDuration(parent.fadeAnimationDuration());
                 }
             };
             hintMesh = new HintMeshProperty(modeName, propertyByKey);
@@ -2937,6 +3059,10 @@ public class ConfigurationParser {
                             HintGridLayoutBuilder::maxColumnCount,
                             childLayoutByFilter, filter))
                         childLayout.maxColumnCount(parentLayout.maxColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintGridLayoutBuilder::cellSizingType, childLayoutByFilter,
+                            filter))
+                        childLayout.cellSizingType(parentLayout.cellSizingType());
                     if (!childDoesNotNeedParentProperty(
                             HintGridLayoutBuilder::cellWidth, childLayoutByFilter,
                             filter))
@@ -3063,14 +3189,19 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.cellVerticalPadding(parentStyle.cellVerticalPadding());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::subgridRowCount, childStyleByFilter,
+                            HintMeshStyleBuilder::subgridMaxRowCount, childStyleByFilter,
                             filter))
-                        childStyle.subgridRowCount(parentStyle.subgridRowCount());
+                        childStyle.subgridMaxRowCount(parentStyle.subgridMaxRowCount());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::subgridColumnCount,
+                            HintMeshStyleBuilder::subgridMaxColumnCount,
                             childStyleByFilter, filter))
-                        childStyle.subgridColumnCount(
-                                parentStyle.subgridColumnCount());
+                        childStyle.subgridMaxColumnCount(
+                                parentStyle.subgridMaxColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridSelectionKeys,
+                            childStyleByFilter, filter))
+                        childStyle.subgridSelectionKeys(
+                                parentStyle.subgridSelectionKeys());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::subgridBorderThickness,
                             childStyleByFilter, filter))
@@ -3091,6 +3222,50 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.subgridBorderOpacity(
                                 parentStyle.subgridBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subgridClosed,
+                            childStyleByFilter, filter))
+                        childStyle.subgridClosed(
+                                parentStyle.subgridClosed());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridMaxRowCount, childStyleByFilter,
+                            filter))
+                        childStyle.subsubgridMaxRowCount(parentStyle.subsubgridMaxRowCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridMaxColumnCount,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridMaxColumnCount(
+                                parentStyle.subsubgridMaxColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridSelectionKeys,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridSelectionKeys(
+                                parentStyle.subsubgridSelectionKeys());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderThickness,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderThickness(
+                                parentStyle.subsubgridBorderThickness());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderLength,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderLength(
+                                parentStyle.subsubgridBorderLength());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderHexColor,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderHexColor(
+                                parentStyle.subsubgridBorderHexColor());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridBorderOpacity,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridBorderOpacity(
+                                parentStyle.subsubgridBorderOpacity());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::subsubgridClosed,
+                            childStyleByFilter, filter))
+                        childStyle.subsubgridClosed(
+                                parentStyle.subsubgridClosed());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::transitionAnimationEnabled,
                             childStyleByFilter, filter))
@@ -3287,6 +3462,48 @@ public class ConfigurationParser {
         if (fontSpacing == null && parentX != null) fontSpacing = parentX.fontStyle().spacingPercent();
         if (fontSpacing == null && parentAny != null) fontSpacing = parentAny.fontStyle().spacingPercent();
         childX.fontStyle().spacingPercent(fontSpacing);
+        // subgridFontStyle sources (independent of the main font).
+        FontStyle.FontStyleBuilder cxSgSel = childX.subgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder caSgSel = childAny == null ? null : childAny.subgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder pxSgSel = parentX == null ? null : parentX.subgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder paSgSel = parentAny == null ? null : parentAny.subgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder cxSgDef = childX.subgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder caSgDef = childAny == null ? null : childAny.subgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder pxSgDef = parentX == null ? null : parentX.subgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder paSgDef = parentAny == null ? null : parentAny.subgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder cxSgFoc = childX.subgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder caSgFoc = childAny == null ? null : childAny.subgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder pxSgFoc = parentX == null ? null : parentX.subgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder paSgFoc = parentAny == null ? null : parentAny.subgridFontStyle().focusedFontStyle();
+        cascadeFontStyle(cxSgSel, cxSgSel, caSgSel, cxSgDef, caSgDef, pxSgSel, paSgSel, pxSgDef, paSgDef);
+        cascadeFontStyle(cxSgFoc, cxSgFoc, caSgFoc, cxSgDef, caSgDef, pxSgFoc, paSgFoc, pxSgDef, paSgDef);
+        cascadeFontStyle(cxSgDef, cxSgDef, caSgDef, pxSgDef, paSgDef);
+        Double sgSpacing = childX.subgridFontStyle().spacingPercent();
+        if (sgSpacing == null && childAny != null) sgSpacing = childAny.subgridFontStyle().spacingPercent();
+        if (sgSpacing == null && parentX != null) sgSpacing = parentX.subgridFontStyle().spacingPercent();
+        if (sgSpacing == null && parentAny != null) sgSpacing = parentAny.subgridFontStyle().spacingPercent();
+        childX.subgridFontStyle().spacingPercent(sgSpacing);
+        // subsubgridFontStyle sources (independent of the main font).
+        FontStyle.FontStyleBuilder cxSsgSel = childX.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder caSsgSel = childAny == null ? null : childAny.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder pxSsgSel = parentX == null ? null : parentX.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder paSsgSel = parentAny == null ? null : parentAny.subsubgridFontStyle().selectedFontStyle();
+        FontStyle.FontStyleBuilder cxSsgDef = childX.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder caSsgDef = childAny == null ? null : childAny.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder pxSsgDef = parentX == null ? null : parentX.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder paSsgDef = parentAny == null ? null : parentAny.subsubgridFontStyle().defaultFontStyle();
+        FontStyle.FontStyleBuilder cxSsgFoc = childX.subsubgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder caSsgFoc = childAny == null ? null : childAny.subsubgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder pxSsgFoc = parentX == null ? null : parentX.subsubgridFontStyle().focusedFontStyle();
+        FontStyle.FontStyleBuilder paSsgFoc = parentAny == null ? null : parentAny.subsubgridFontStyle().focusedFontStyle();
+        cascadeFontStyle(cxSsgSel, cxSsgSel, caSsgSel, cxSsgDef, caSsgDef, pxSsgSel, paSsgSel, pxSsgDef, paSsgDef);
+        cascadeFontStyle(cxSsgFoc, cxSsgFoc, caSsgFoc, cxSsgDef, caSsgDef, pxSsgFoc, paSsgFoc, pxSsgDef, paSsgDef);
+        cascadeFontStyle(cxSsgDef, cxSsgDef, caSsgDef, pxSsgDef, paSsgDef);
+        Double ssgSpacing = childX.subsubgridFontStyle().spacingPercent();
+        if (ssgSpacing == null && childAny != null) ssgSpacing = childAny.subsubgridFontStyle().spacingPercent();
+        if (ssgSpacing == null && parentX != null) ssgSpacing = parentX.subsubgridFontStyle().spacingPercent();
+        if (ssgSpacing == null && parentAny != null) ssgSpacing = parentAny.subsubgridFontStyle().spacingPercent();
+        childX.subsubgridFontStyle().spacingPercent(ssgSpacing);
     }
 
       @SuppressWarnings("unchecked")
