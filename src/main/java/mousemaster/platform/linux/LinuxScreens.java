@@ -28,7 +28,17 @@ public class LinuxScreens implements Screens {
         long rootWindow = LibX11.INSTANCE.XDefaultRootWindow(display);
         IntByReference nmonitorsRef = new IntByReference(0);
 
+        // This is a synchronous X server round-trip called on the hot path (every
+        // Mousemaster.run() tick, uncached). If the X server ever stalls, this is the
+        // most likely place the whole single-threaded main loop would hang - log
+        // loudly (WARN, so it shows regardless of configured log level) if it ever
+        // takes unusually long, to pin down a future freeze instead of just seeing a
+        // gap in the log.
+        long callStartNanos = System.nanoTime();
         Pointer monitorsPtr = LibXRandr.INSTANCE.XRRGetMonitors(display, rootWindow, true, nmonitorsRef);
+        double callDurationSeconds = (System.nanoTime() - callStartNanos) / 1_000_000_000.0;
+        if (callDurationSeconds > 1)
+            logger.warn("XRRGetMonitors took {}s - possible X server stall", callDurationSeconds);
 
         if (monitorsPtr == null) {
             logger.warn("XRRGetMonitors returned null - no monitors detected");
