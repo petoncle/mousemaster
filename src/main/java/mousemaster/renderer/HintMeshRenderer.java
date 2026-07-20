@@ -772,18 +772,12 @@ public final class HintMeshRenderer {
         QColor boxColor = QtColorUtil.qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
-        // One entry per nested depth: subgrid at index 0, subsubgrid at index 1, ...
-        List<SubgridStyle> subgridStyles = new ArrayList<>();
-        if (hintMesh.subgrid() != null) {
-            subgridStyles.add(subgridStyle(style.subgridBorderHexColor(),
-                    style.subgridBorderOpacity(), style.subgridBorderThickness(),
-                    style.subgridBorderLength(), style.subgridClosed(),
-                    style.subgridFontStyle().defaultFontStyle()));
-            if (hintMesh.subgrid().subgrid() != null)
-                subgridStyles.add(subgridStyle(style.subsubgridBorderHexColor(),
-                        style.subsubgridBorderOpacity(), style.subsubgridBorderThickness(),
-                        style.subsubgridBorderLength(), style.subsubgridClosed(),
-                        style.subsubgridFontStyle().defaultFontStyle()));
+        // One entry per tiled depth: subdecoration at index 0, subsubdecoration at index 1.
+        List<DecorationStyle> subDecorationStyles = new ArrayList<>();
+        if (hintMesh.subDecoration() != null) {
+            subDecorationStyles.add(decorationStyle(style.decorations().get(1)));
+            if (hintMesh.subDecoration().subDecoration() != null)
+                subDecorationStyles.add(decorationStyle(style.decorations().get(2)));
         }
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         Map<String, Integer> xAdvancesByString = new HashMap<>();
@@ -926,8 +920,8 @@ public final class HintMeshRenderer {
                 hintGroup.right = Math.max(hintGroup.right, hintBox.x() + hintBox.width());
                 hintGroup.bottom = Math.max(hintGroup.bottom, hintBox.y() + hintBox.height());
             }
-            addSubgridBoxes(hintBox, boxWidth, boxHeight, hintMesh.subgrid(),
-                    subgridStyles, 0, qtScaleFactor);
+            addDecorationBoxes(hintBox, boxWidth, boxHeight, hintMesh.subDecoration(),
+                    subDecorationStyles, 0, qtScaleFactor);
             if (pumpDuringHintBuild && messagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
                 messagePump.run();
                 lastPumpTime = System.nanoTime();
@@ -1073,7 +1067,7 @@ public final class HintMeshRenderer {
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
         HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        // Layer 2: Hint boxes (with subgrid children).
+        // Layer 2: Hint boxes (with decoration children).
         HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
         boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(boxLayer, boxShadowLayer, hintBoxes, style.boxShadow(),
@@ -1099,66 +1093,87 @@ public final class HintMeshRenderer {
         applyLabelShadow(hintLabelLayer, hintLabels,
                 labelFontStyle, hasSelectedKeys,
                 containerWidth, containerHeight, screenScale);
+        // Layer 5: whole-area decoration (index 0). Anchored to the container (the
+        // rendered grid bounds), not the mesh backgroundArea — the latter will be the
+        // whole screen (or window) even when the grid is a small drilled cell.
+        if (hintMesh.decoration() != null) {
+            HintBox areaBox = new HintBox(null, 0, 0,
+                    QtColorUtil.qColor("#000000", 0), QtColorUtil.qColor("#000000", 0),
+                    true, false, false, false, false, false, qtScaleFactor, 0);
+            areaBox.setGeometry(0, 0, containerWidth, containerHeight);
+            addDecorationBoxes(areaBox, containerWidth, containerHeight,
+                    hintMesh.decoration(),
+                    List.of(decorationStyle(style.decorations().get(0))), 0, qtScaleFactor);
+            HintPaintLayer areaDecorationLayer =
+                    new HintPaintLayer(container, List.of(areaBox), List.of());
+            areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        }
         return hintBoxGeometries;
     }
 
-    /** The Qt drawing resources for one nested grid depth (subgrid, subsubgrid, ...). */
-    private record SubgridStyle(QColor boxColor, QColor boxBorderColor,
-                                int borderThicknessPx, int borderLengthPx, boolean closed,
-                                QFont labelFont, QColor labelColor) {
+    /** The Qt drawing resources for one decoration. */
+    private record DecorationStyle(QColor boxColor, QColor boxBorderColor,
+                                   int borderThicknessPx, int borderLengthPx,
+                                   int borderRadiusPx, boolean closed,
+                                   QFont labelFont, QColor labelColor,
+                                   List<Key> labelOverride) {
     }
 
-    private SubgridStyle subgridStyle(String borderHexColor, double borderOpacity,
-                                      double borderThickness, double borderLength,
-                                      boolean closed, FontStyle font) {
-        return new SubgridStyle(
-                QtColorUtil.qColor("#000000", 0),
-                QtColorUtil.qColor(borderHexColor, borderOpacity),
-                (int) Math.round(borderThickness),
-                (int) Math.round(borderLength),
-                closed,
+    private DecorationStyle decorationStyle(Decoration decoration) {
+        FontStyle font = decoration.fontStyle().defaultFontStyle();
+        return new DecorationStyle(
+                QtColorUtil.qColor(decoration.boxHexColor(), decoration.boxOpacity()),
+                QtColorUtil.qColor(decoration.boxBorderHexColor(), decoration.boxBorderOpacity()),
+                (int) Math.round(decoration.boxBorderThickness()),
+                (int) Math.round(decoration.boxBorderLength()),
+                (int) Math.round(decoration.boxBorderRadius()),
+                decoration.closed(),
                 QtHintFont.qFont(font.name(), font.size(), font.weight()),
-                QtColorUtil.qColor(font.hexColor(), font.opacity()));
+                QtColorUtil.qColor(font.hexColor(), font.opacity()),
+                decoration.labelOverride());
     }
 
-    /** Maps a nested mesh's cells proportionally into parentBox, recursing one depth deeper
-     *  for each cell (subgrid boxes, then subsubgrid boxes inside those, ...). */
-    private void addSubgridBoxes(HintBox parentBox, int parentWidth, int parentHeight,
-                                 HintMesh subgridMesh, List<SubgridStyle> subgridStyles,
-                                 int depth, double qtScaleFactor) {
-        if (subgridMesh == null || depth >= subgridStyles.size())
+    /** Maps a decoration mesh's cells proportionally into parentBox, recursing one depth
+     *  deeper for each cell (subdecoration boxes, then subsubdecoration boxes, ...). */
+    private void addDecorationBoxes(HintBox parentBox, int parentWidth, int parentHeight,
+                                    HintMesh decorationMesh, List<DecorationStyle> decorationStyles,
+                                    int depth, double qtScaleFactor) {
+        if (decorationMesh == null || depth >= decorationStyles.size())
             return;
-        SubgridStyle subgridStyle = subgridStyles.get(depth);
-        Rectangle refCell = subgridMesh.backgroundArea();
-        for (Hint subHint : subgridMesh.hints()) {
-            // Map the sub-hint's cell (in reference-cell coordinates) into the parent
-            // box proportionally, so cells of any size tile cleanly.
-            int subBoxLeft = (int) Math.round(
-                    (subHint.centerX() - subHint.cellWidth() / 2 - refCell.x())
-                    / refCell.width() * parentWidth);
-            int subBoxTop = (int) Math.round(
-                    (subHint.centerY() - subHint.cellHeight() / 2 - refCell.y())
-                    / refCell.height() * parentHeight);
-            int subBoxRight = (int) Math.round(
-                    (subHint.centerX() + subHint.cellWidth() / 2 - refCell.x())
-                    / refCell.width() * parentWidth);
-            int subBoxBottom = (int) Math.round(
-                    (subHint.centerY() + subHint.cellHeight() / 2 - refCell.y())
-                    / refCell.height() * parentHeight);
-            HintBox subBox = new HintBox(null, subgridStyle.borderLengthPx(),
-                    subgridStyle.borderThicknessPx(), subgridStyle.boxColor(),
-                    subgridStyle.boxBorderColor(), true,
-                    subBoxLeft == 0, subBoxTop == 0,
-                    subBoxRight == parentWidth, subBoxBottom == parentHeight,
-                    subgridStyle.closed(), qtScaleFactor, 0);
-            subBox.setGeometry(subBoxLeft, subBoxTop,
-                    subBoxRight - subBoxLeft, subBoxBottom - subBoxTop);
-            subBox.setLabel(subHint.keySequence().stream()
+        DecorationStyle decorationStyle = decorationStyles.get(depth);
+        Rectangle area = decorationMesh.backgroundArea();
+        for (Hint cell : decorationMesh.hints()) {
+            // Map the cell (in area coordinates) into the parent box proportionally,
+            // so cells of any size tile cleanly.
+            int decorationBoxLeft = (int) Math.round(
+                    (cell.centerX() - cell.cellWidth() / 2 - area.x())
+                    / area.width() * parentWidth);
+            int decorationBoxTop = (int) Math.round(
+                    (cell.centerY() - cell.cellHeight() / 2 - area.y())
+                    / area.height() * parentHeight);
+            int decorationBoxRight = (int) Math.round(
+                    (cell.centerX() + cell.cellWidth() / 2 - area.x())
+                    / area.width() * parentWidth);
+            int decorationBoxBottom = (int) Math.round(
+                    (cell.centerY() + cell.cellHeight() / 2 - area.y())
+                    / area.height() * parentHeight);
+            HintBox decorationBox = new HintBox(null, decorationStyle.borderLengthPx(),
+                    decorationStyle.borderThicknessPx(), decorationStyle.boxColor(),
+                    decorationStyle.boxBorderColor(), true,
+                    decorationBoxLeft == 0, decorationBoxTop == 0,
+                    decorationBoxRight == parentWidth, decorationBoxBottom == parentHeight,
+                    decorationStyle.closed(), qtScaleFactor, decorationStyle.borderRadiusPx());
+            decorationBox.setGeometry(decorationBoxLeft, decorationBoxTop,
+                    decorationBoxRight - decorationBoxLeft, decorationBoxBottom - decorationBoxTop);
+            List<Key> labelKeys = decorationStyle.labelOverride().isEmpty() ?
+                    cell.keySequence() : decorationStyle.labelOverride();
+            decorationBox.setDecorationLabel(labelKeys.stream()
                             .map(Key::hintLabel).collect(Collectors.joining()),
-                    subgridStyle.labelFont(), subgridStyle.labelColor());
-            parentBox.subgridBoxes.add(subBox);
-            addSubgridBoxes(subBox, subBoxRight - subBoxLeft, subBoxBottom - subBoxTop,
-                    subgridMesh.subgrid(), subgridStyles, depth + 1, qtScaleFactor);
+                    decorationStyle.labelFont(), decorationStyle.labelColor());
+            parentBox.decorationBoxes.add(decorationBox);
+            addDecorationBoxes(decorationBox, decorationBoxRight - decorationBoxLeft,
+                    decorationBoxBottom - decorationBoxTop,
+                    decorationMesh.subDecoration(), decorationStyles, depth + 1, qtScaleFactor);
         }
     }
 
@@ -1256,11 +1271,10 @@ public final class HintMeshRenderer {
         private final QColor borderColor;
         private final int borderRadius;
         private int x, y, width, height;
-        final List<HintBox> subgridBoxes = new ArrayList<>();
-        // Optional centered label (used by subgrid hints).
-        private String label;
-        private QFont labelFont;
-        private QColor labelColor;
+        final List<HintBox> decorationBoxes = new ArrayList<>();
+        private String decorationLabel;
+        private QFont decorationLabelFont;
+        private QColor decorationLabelColor;
 
         public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
                        boolean isHintPartOfGrid,
@@ -1290,10 +1304,10 @@ public final class HintMeshRenderer {
             this.height = height;
         }
 
-        public void setLabel(String label, QFont labelFont, QColor labelColor) {
-            this.label = label;
-            this.labelFont = labelFont;
-            this.labelColor = labelColor;
+        public void setDecorationLabel(String label, QFont labelFont, QColor labelColor) {
+            this.decorationLabel = label;
+            this.decorationLabelFont = labelFont;
+            this.decorationLabelColor = labelColor;
         }
 
         public void move(int x, int y) {
@@ -1351,14 +1365,14 @@ public final class HintMeshRenderer {
                 if (borderThickness != 0)
                     drawBorders(painter);
             }
-            if (label != null && !label.isEmpty() && labelFont != null) {
-                painter.setFont(labelFont);
-                painter.setPen(labelColor);
+            if (decorationLabel != null && !decorationLabel.isEmpty() && decorationLabelFont != null) {
+                painter.setFont(decorationLabelFont);
+                painter.setPen(decorationLabelColor);
                 painter.drawText(new QRect(0, 0, width, height),
-                        Qt.AlignmentFlag.AlignCenter.value(), label);
+                        Qt.AlignmentFlag.AlignCenter.value(), decorationLabel);
             }
-            for (HintBox subBox : subgridBoxes) {
-                subBox.paint(painter);
+            for (HintBox decorationBox : decorationBoxes) {
+                decorationBox.paint(painter);
             }
             painter.restore();
         }

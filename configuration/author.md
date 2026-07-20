@@ -74,7 +74,7 @@ smaller area centered on the selection, with finer-grained hints.
 
 ### Level 1 — large grid (~6x6 cells covering the screen)
 - Grid cells: 320x180px (scaled per screen DPI).
-- Each cell has a 2x2 subgrid with visible borders.
+- Each cell has a 2x2 subdecoration with visible borders.
 - Hint keys: _i_, _j_, _k_, _l_, _m_, _o_ (right hand only).
 - Font: Consolas 72pt, yellow on semi-transparent black boxes.
 - Selecting a hint key → level 2.

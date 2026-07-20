@@ -2,6 +2,7 @@ package mousemaster;
 
 import mousemaster.platform.Overlay;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -193,7 +194,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 mesh.styleByFilter(), scale);
         return new HintMesh(mesh.visible(), interpolatedHints, mesh.prefixLength(),
                 mesh.selectedKeySequence(), scaledStyleByFilter, interpolatedBackgroundArea,
-                mesh.subgrid());
+                mesh.decoration(), mesh.subDecoration());
     }
 
     private static ViewportFilterMap<HintMeshStyle> scaleFontSize(
@@ -206,6 +207,17 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     }
 
     private static HintMeshStyle scaleFontSize(HintMeshStyle style, double scale) {
+        List<Decoration> scaledDecorations = new ArrayList<>();
+        for (Decoration decoration : style.decorations())
+            scaledDecorations.add(new Decoration(
+                    decoration.maxRowCount(), decoration.maxColumnCount(),
+                    decoration.labelKeys(), decoration.labelOverride(),
+                    decoration.boxHexColor(), decoration.boxOpacity(),
+                    decoration.boxBorderThickness(), decoration.boxBorderLength(),
+                    decoration.boxBorderHexColor(), decoration.boxBorderOpacity(),
+                    decoration.boxBorderRadius(),
+                    scaleFontSize(decoration.fontStyle(), scale),
+                    decoration.closed()));
         return new HintMeshStyle(
                 scaleFontSize(style.fontStyle(), scale),
                 style.prefixInBackground(),
@@ -219,18 +231,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity(),
                 style.boxWidthPercent(), style.boxHeightPercent(),
                 style.cellHorizontalPadding(), style.cellVerticalPadding(),
-                style.subgridMaxRowCount(), style.subgridMaxColumnCount(),
-                style.subgridSelectionKeys(),
-                style.subgridBorderThickness(), style.subgridBorderLength(),
-                style.subgridBorderHexColor(), style.subgridBorderOpacity(),
-                scaleFontSize(style.subgridFontStyle(), scale),
-                style.subgridClosed(),
-                style.subsubgridMaxRowCount(), style.subsubgridMaxColumnCount(),
-                style.subsubgridSelectionKeys(),
-                style.subsubgridBorderThickness(), style.subsubgridBorderLength(),
-                style.subsubgridBorderHexColor(), style.subsubgridBorderOpacity(),
-                scaleFontSize(style.subsubgridFontStyle(), scale),
-                style.subsubgridClosed(),
+                scaledDecorations,
                 style.transitionAnimationEnabled(), style.transitionAnimationDuration(),
                 style.fadeAnimationEnabled(), style.fadeAnimationDuration(),
                 style.backgroundHexColor(), style.backgroundOpacity(),

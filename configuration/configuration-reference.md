@@ -669,19 +669,21 @@ hint-mode.hint.box-shadow-vertical-offset=2
 hint-mode.hint.box-width-percent=1.0
 hint-mode.hint.box-height-percent=1.0
 
-# Subgrid: a miniature hint grid drawn inside each hint box (a preview of the
-# next level). Set subgrid-selection-keys to label the sub-cells.
-hint-mode.hint.subgrid-max-row-count=1
-hint-mode.hint.subgrid-max-column-count=1
-hint-mode.hint.subgrid-selection-keys=
-hint-mode.hint.subgrid-border-thickness=1
-hint-mode.hint.subgrid-border-length=10000
-hint-mode.hint.subgrid-border-color=#FFFFFF
-hint-mode.hint.subgrid-border-opacity=1.0
-hint-mode.hint.subgrid-closed=false
-hint-mode.hint.subgrid-font-size=10
-hint-mode.hint.subgrid-font-color=#FFFFFF
-hint-mode.hint.subgrid-font-opacity=1.0
+# Decorations: purely visual grids drawn over the hints. subdecoration is drawn inside
+# each hint cell (a preview of the next level; was subgrid), subsubdecoration inside each
+# of those (was subsubgrid), and decoration spans the whole hint grid as one big cell.
+# Set subdecoration-label-keys to label the cells.
+hint-mode.hint.subdecoration-max-row-count=1
+hint-mode.hint.subdecoration-max-column-count=1
+hint-mode.hint.subdecoration-label-keys=
+hint-mode.hint.subdecoration-box-border-thickness=1
+hint-mode.hint.subdecoration-box-border-length=10000
+hint-mode.hint.subdecoration-box-border-color=#FFFFFF
+hint-mode.hint.subdecoration-box-border-opacity=1.0
+hint-mode.hint.subdecoration-closed=false
+hint-mode.hint.subdecoration-font-size=10
+hint-mode.hint.subdecoration-font-color=#FFFFFF
+hint-mode.hint.subdecoration-font-opacity=1.0
 
 # Cell padding for UI hints and position history hints only
 hint-mode.hint.cell-horizontal-padding=0
@@ -740,12 +742,18 @@ hint-mode.hint.background-opacity=0
   - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
   - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
 
-- Subgrid: draws a grid of lines inside each hint box
-  - `subgrid-max-row-count` / `subgrid-max-column-count`: How many rows/columns to divide each box into (default 1 = disabled).
-  - `subgrid-selection-keys`: Keys used to label the sub-cells (accepts a key-alias; empty = lines only, no labels). Labels are generated like the main grid, so they are 1- or 2-char depending on cell count vs. key count.
-  - `subgrid-font-size` / `subgrid-font-color` / `subgrid-font-opacity` / `subgrid-font-spacing-percent`: Font of the sub-cell labels.
-  - `subgrid-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 subgrid).
-  - `subgrid-closed`: Whether the subgrid draws its own outer perimeter (default false). When false, only interior lines are drawn (the hint box border acts as the outer edge); set true for a fully-enclosed grid that does not rely on the parent border.
+- Decorations: purely visual grids drawn over the hints. Three levels share one set of
+  properties, prefixed by how deep they sit: `decoration-` spans the whole hint grid as one
+  big cell; `subdecoration-` is drawn inside each hint cell (a preview of the next level);
+  `subsubdecoration-` is drawn inside each subdecoration cell. All levels can be used at the same time.
+  - `<level>-max-row-count` / `<level>-max-column-count`: How many rows/columns to divide the area into (default 1 = disabled).
+  - `<level>-label-keys`: Keys whose hint-style labels are drawn in the cells (accepts a key-alias; empty = lines only, no labels). Labels are generated like the main grid, so they are 1- or 2-char depending on cell count vs. key count. (These are previews, not a selection.)
+  - `<level>-label-override`: A fixed label drawn in every cell (e.g. `plus` for a `+`), overriding label-keys.
+  - `<level>-font-size` / `<level>-font-color` / `<level>-font-opacity` / `<level>-font-spacing-percent` (and `-font-name`, `-font-weight`, `-font-outline-*`, `-font-shadow-*`): Font of the cell labels.
+  - `<level>-box-color` / `<level>-box-opacity`: Cell fill.
+  - `<level>-box-border-thickness` / `<level>-box-border-color` / `<level>-box-border-opacity` / `<level>-box-border-radius`: The lines. (Names mirror the top-level `box-border-*`.)
+  - `<level>-box-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 decoration).
+  - `<level>-closed`: Whether the decoration draws its own outer perimeter (default false). When false, only interior lines are drawn (the hint box border acts as the outer edge); set true for a fully-enclosed grid that does not rely on the parent border.
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)

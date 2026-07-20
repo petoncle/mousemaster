@@ -4,11 +4,16 @@ import java.util.List;
 
 /**
  * Unlike a grid, it does not necessarily have fixed-size cells.
+ *
+ * decoration = the whole-area decoration (the grid drawn as one big cell).
+ * subDecoration = the per-cell decoration tiled into each cell (its own
+ * subDecoration is the next depth: subsubdecoration).
  */
 public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
                        List<Key> selectedKeySequence,
                        ViewportFilterMap<HintMeshStyle> styleByFilter,
-                       Rectangle backgroundArea, HintMesh subgrid) {
+                       Rectangle backgroundArea, HintMesh decoration,
+                       HintMesh subDecoration) {
 
     public HintMeshBuilder builder() {
         return new HintMeshBuilder(this);
@@ -21,7 +26,8 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         private List<Key> selectedKeySequence = List.of();
         private ViewportFilterMap<HintMeshStyle> styleByFilter;
         private Rectangle backgroundArea;
-        private HintMesh subgrid;
+        private HintMesh decoration;
+        private HintMesh subDecoration;
 
         public HintMeshBuilder() {
         }
@@ -33,7 +39,8 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             this.selectedKeySequence = hintMesh.selectedKeySequence;
             this.styleByFilter = hintMesh.styleByFilter;
             this.backgroundArea = hintMesh.backgroundArea;
-            this.subgrid = hintMesh.subgrid;
+            this.decoration = hintMesh.decoration;
+            this.subDecoration = hintMesh.subDecoration;
         }
 
 
@@ -92,18 +99,27 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             return this;
         }
 
-        public HintMesh subgrid() {
-            return subgrid;
+        public HintMesh decoration() {
+            return decoration;
         }
 
-        public HintMeshBuilder subgrid(HintMesh subgrid) {
-            this.subgrid = subgrid;
+        public HintMeshBuilder decoration(HintMesh decoration) {
+            this.decoration = decoration;
+            return this;
+        }
+
+        public HintMesh subDecoration() {
+            return subDecoration;
+        }
+
+        public HintMeshBuilder subDecoration(HintMesh subDecoration) {
+            this.subDecoration = subDecoration;
             return this;
         }
 
         public HintMesh build() {
             return new HintMesh(visible, hints, prefixLength, selectedKeySequence,
-                    styleByFilter, backgroundArea, subgrid);
+                    styleByFilter, backgroundArea, decoration, subDecoration);
         }
     }
 
