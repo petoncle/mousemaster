@@ -314,67 +314,26 @@ public class WindowsMouseController implements MouseController {
     private final Map<Long, GlyphImage> glyphByCursorId = new HashMap<>();
 
     /**
-     * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor,
-     * with each cursor's original glyph composited on top so shape semantics are preserved.
-     * The OS keeps switching cursors by context; we just replace each slot's image.
+     * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor.
+     * When includeGlyph is set, each cursor's original glyph is composited on top so shape
+     * semantics are preserved; hide-cursor omits the glyph. Either way the indicator is
+     * anchored to the glyph's visual center and the glyph's real hotspot is kept, so toggling
+     * the glyph does not shift the indicator. The OS keeps switching cursors by context; we
+     * just replace each slot's image.
      */
     public void setIndicatorCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight,
                                    boolean includeGlyph) {
-        if (includeGlyph) {
-            if (glyphByCursorId.isEmpty())
-                snapshotSystemGlyphs();
-            for (long cursorId : SYSTEM_CURSOR_IDS) {
-                GlyphImage glyph = glyphByCursorId.get(cursorId);
-                if (glyph == null)
-                    continue;
-                installCompositeCursor(cursorId, indicatorArgb, indicatorWidth, indicatorHeight, glyph);
-            }
-        }
-        else {
-            // hide-cursor: the indicator IS the cursor, without the original glyph.
-            installIndicatorOnlyCursor(indicatorArgb, indicatorWidth, indicatorHeight);
+        if (glyphByCursorId.isEmpty())
+            snapshotSystemGlyphs();
+        for (long cursorId : SYSTEM_CURSOR_IDS) {
+            GlyphImage glyph = glyphByCursorId.get(cursorId);
+            if (glyph == null)
+                continue;
+            installCompositeCursor(cursorId, indicatorArgb, indicatorWidth, indicatorHeight,
+                    glyph, includeGlyph);
         }
         cursorHidden = false;
         indicatorCursorInstalled = true;
-    }
-
-    /** Installs the indicator alone (centered on the hotspot) as every system cursor. */
-    private void installIndicatorOnlyCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight) {
-        byte[] bgra = new byte[indicatorWidth * indicatorHeight * 4];
-        for (int i = 0; i < indicatorArgb.length; i++) {
-            int p = indicatorArgb[i];
-            int a = (p >>> 24) & 0xFF;
-            int o = i * 4;
-            if (a == 0)
-                continue;
-            // indicatorArgb is premultiplied; store straight color for CreateIconIndirect.
-            bgra[o] = (byte) Math.min(255, (p & 0xFF) * 255 / a);
-            bgra[o + 1] = (byte) Math.min(255, ((p >>> 8) & 0xFF) * 255 / a);
-            bgra[o + 2] = (byte) Math.min(255, ((p >>> 16) & 0xFF) * 255 / a);
-            bgra[o + 3] = (byte) a;
-        }
-        WinDef.HBITMAP colorBitmap = create32bppDib(indicatorWidth, indicatorHeight, bgra);
-        if (colorBitmap == null)
-            return;
-        WinDef.HBITMAP mask =
-                ExtendedGDI32.INSTANCE.CreateBitmap(indicatorWidth, indicatorHeight, 1, 1, null);
-        WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
-        iconInfo.fIcon = false;
-        iconInfo.xHotspot = indicatorWidth / 2;
-        iconInfo.yHotspot = indicatorHeight / 2;
-        iconInfo.hbmMask = mask;
-        iconInfo.hbmColor = colorBitmap;
-        WinDef.HICON icon = ExtendedUser32.INSTANCE.CreateIconIndirect(iconInfo);
-        GDI32.INSTANCE.DeleteObject(colorBitmap);
-        GDI32.INSTANCE.DeleteObject(mask);
-        if (icon == null)
-            return;
-        for (long cursorId : SYSTEM_CURSOR_IDS) {
-            WinNT.HANDLE copy = ExtendedUser32.INSTANCE.CopyImage(icon,
-                    new WinDef.UINT(ExtendedUser32.IMAGE_CURSOR), 0, 0, new WinDef.UINT(0));
-            ExtendedUser32.INSTANCE.SetSystemCursor(copy, new WinDef.UINT(cursorId));
-        }
-        ExtendedUser32.INSTANCE.DestroyIcon(icon);
     }
 
     /**
@@ -534,9 +493,12 @@ public class WindowsMouseController implements MouseController {
 
     /** Composites the indicator (centered on the glyph's visual center) under the glyph and
      *  installs the result as the system cursor for the given id, keeping the glyph's
-     *  real hotspot so clicks still land correctly. */
+     *  real hotspot so clicks still land correctly. When includeGlyph is false the glyph
+     *  pixels are omitted (hide-cursor), but its hotspot and visual center still anchor the
+     *  indicator, so the indicator stays put when the glyph is toggled. */
     private void installCompositeCursor(long cursorId, int[] indicatorArgb, int indicatorWidth,
-                                        int indicatorHeight, GlyphImage glyph) {
+                                        int indicatorHeight, GlyphImage glyph,
+                                        boolean includeGlyph) {
         int indicatorCenterX = indicatorWidth / 2;
         int indicatorCenterY = indicatorHeight / 2;
         // Extents relative to the hotspot; the indicator is centered on the glyph's visual
@@ -570,7 +532,7 @@ public class WindowsMouseController implements MouseController {
                 }
                 int glyphPremB = 0, glyphPremG = 0, glyphPremR = 0, glyphA = 0;
                 int gx = x - glyphOriginX, gy = y - glyphOriginY;
-                if (gx >= 0 && gx < glyph.width && gy >= 0 && gy < glyph.height) {
+                if (includeGlyph && gx >= 0 && gx < glyph.width && gy >= 0 && gy < glyph.height) {
                     int p = glyph.argbPremultiplied[gy * glyph.width + gx];
                     glyphA = (p >>> 24) & 0xFF;
                     glyphPremR = (p >>> 16) & 0xFF;
