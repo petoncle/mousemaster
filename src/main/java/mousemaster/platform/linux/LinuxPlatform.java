@@ -74,7 +74,7 @@ public class LinuxPlatform implements Platform {
         logger.info("Root window handle: {}", rootWindow);
 
         mouse = isWayland ? new WaylandMouse(screens) : new X11Mouse(display, rootWindow);
-        evdev = new LinuxEvdev();
+        evdev = new LinuxEvdev(uinputKeyboardFd);
 
         logger.info("LinuxPlatform initialized successfully");
 
