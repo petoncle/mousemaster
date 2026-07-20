@@ -2241,6 +2241,8 @@ public final class HintMeshRenderer {
         if (!showingHintMesh) // Invisible hint mesh.
             return;
         Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(List.of(hint), screens);
+        if (hintsByScreen.isEmpty()) // Matched hint is off-screen (grid drilled past an edge): nothing to animate.
+            return;
         Screen screen = hintsByScreen.keySet().iterator().next();
         HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
         HintMesh lastHintMeshKey = hintMeshWindow.lastHintMeshKeyReference().get();
