@@ -1,0 +1,80 @@
+name: nightly
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:       # allow forcing a nightly from the Actions tab
+concurrency:
+  group: nightly
+  cancel-in-progress: true   # a newer push supersedes an in-flight build
+permissions:
+  contents: write
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+  publish:
+    name: Publish nightly prerelease
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Download executable
+        uses: actions/download-artifact@v4
+        with:
+          name: mousemaster-exe
+          path: target
+      - name: Move the rolling 'nightly' prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          COMMIT_URL="https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          cat > nightly-notes.md <<EOF
+          Automated **bleeding-edge** build from the latest commit on \`main\`.
+
+          > [!WARNING]
+          > This is a nightly build, not a tagged release. It may include incomplete changes, regressions, or experimental behavior. For a stable build, use the [latest release](https://github.com/petoncle/mousemaster/releases/latest).
+
+          ### Build details
+          - **Version:** mousemaster v${{ needs.build.outputs.version }}
+          - **Commit:** [\`$SHORT_SHA\`]($COMMIT_URL)
+
+          ### Installation
+          Download **mousemaster.exe** and one configuration file (e.g. **neo-mousekeys-ijkl.properties**), put them in the same folder, rename the config to **mousemaster.properties**, then run **mousemaster.exe** (as administrator so the overlay draws on top).
+
+          ### Feedback
+          Found a bug? Please include the commit above when filing an issue on [GitHub](https://github.com/petoncle/mousemaster/issues) or the [Discord](https://discord.gg/GSB6MaKb2R).
+          EOF
+
+          # Move the rolling 'nightly' tag to this commit.
+          git tag -f nightly "$GITHUB_SHA"
+          git push origin refs/tags/nightly:refs/tags/nightly --force
+
+          # Edit the existing prerelease in place (keeps its URL and stats), or create it the first time.
+          if gh release view nightly &>/dev/null; then
+            gh release edit nightly \
+              --target "$GITHUB_SHA" \
+              --notes-file nightly-notes.md \
+              --prerelease \
+              --latest=false
+          else
+            gh release create nightly \
+              --target "$GITHUB_SHA" \
+              --title "mousemaster nightly" \
+              --notes-file nightly-notes.md \
+              --prerelease \
+              --latest=false
+          fi
+
+          # Refresh assets; --clobber overwrites the previous build's files.
+          gh release upload nightly \
+            "target/mousemaster.exe" \
+            "configuration/author.properties" \
+            "configuration/mouseable.properties" \
+            "configuration/neo-mousekeys-ijkl.properties" \
+            "configuration/neo-mousekeys-wasd.properties" \
+            "configuration/warpd.properties" \
+            --clobber
