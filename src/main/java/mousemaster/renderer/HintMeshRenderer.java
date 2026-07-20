@@ -788,8 +788,10 @@ public final class HintMeshRenderer {
         int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         Map<String, Integer> xAdvancesByString = new HashMap<>();
         int hintKeyMaxXAdvance = 0;
+        List<Key> labelOverride = style.labelOverride();
+        boolean labelOverridden = labelOverride != null && !labelOverride.isEmpty();
         for (Hint hint : hints) {
-            for (Key key : hint.keySequence()) {
+            for (Key key : labelOverridden ? labelOverride : hint.keySequence()) {
                 hintKeyMaxXAdvance = Math.max(hintKeyMaxXAdvance,
                         xAdvancesByString.computeIfAbsent(key.hintLabel(),
                                 labelFontStyle.defaultStyle().metrics()::horizontalAdvance));
@@ -803,9 +805,10 @@ public final class HintMeshRenderer {
             Hint hint = hints.get(hintIndex);
             if (!hint.startsWith(hintMesh.selectedKeySequence()))
                 continue;
+            List<Key> labelKeys = labelOverridden ? labelOverride : hint.keySequence();
             int totalXAdvance = labelFontStyle.defaultStyle()
                                               .metrics()
-                                              .horizontalAdvance(hint.keySequence()
+                                              .horizontalAdvance(labelKeys
                                                                      .stream()
                                                                      .map(Key::hintLabel)
                                                                      .collect(
@@ -843,20 +846,24 @@ public final class HintMeshRenderer {
                    > y + fullBoxHeight) {
                 fullBoxHeight++;
             }
-            List<Key> prefix = hintMesh.prefixLength() == -1 ?
+            List<Key> prefix = (labelOverridden || hintMesh.prefixLength() == -1) ?
                     List.of() : hint.keySequence().subList(0,
                     hintMesh.prefixLength());
-            List<Key> suffix = hint.keySequence().subList(prefix.size(), hint.keySequence().size());
+            List<Key> suffix = labelOverridden ? labelKeys :
+                    hint.keySequence().subList(prefix.size(), hint.keySequence().size());
             HintLabel hintLabel =
                     new HintLabel(
-                            style.prefixInBackground() ? suffix : hint.keySequence(),
+                            labelOverridden ? labelKeys :
+                                    (style.prefixInBackground() ? suffix : hint.keySequence()),
                             xAdvancesByString, fullBoxWidth,
                             fullBoxHeight, totalXAdvance,
-                            style.prefixInBackground() ? -1 : hintMesh.prefixLength(),
+                            labelOverridden ? -1 :
+                                    (style.prefixInBackground() ? -1 : hintMesh.prefixLength()),
                             labelFontStyle,
                             hintKeyMaxXAdvance,
-                            hintMesh.selectedKeySequence().size() - 1
-                            - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0));
+                            labelOverridden ? -1 :
+                                    (hintMesh.selectedKeySequence().size() - 1
+                                    - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)));
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;

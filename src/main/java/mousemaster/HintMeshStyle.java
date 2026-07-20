@@ -46,7 +46,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             boolean fadeAnimationEnabled,
                             Duration fadeAnimationDuration,
                             String backgroundHexColor,
-                            double backgroundOpacity) {
+                            double backgroundOpacity,
+                            List<Key> labelOverride) {
 
     public HintMeshStyleBuilder builder() {
         return new HintMeshStyleBuilder(this);
@@ -97,6 +98,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private Duration fadeAnimationDuration;
         private String backgroundHexColor;
         private Double backgroundOpacity;
+        private List<Key> labelOverride;
 
         public HintMeshStyleBuilder() {
 
@@ -147,6 +149,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.fadeAnimationDuration = style.fadeAnimationDuration;
             this.backgroundHexColor = style.backgroundHexColor;
             this.backgroundOpacity = style.backgroundOpacity;
+            this.labelOverride = style.labelOverride;
         }
 
         public HintMeshStyleBuilder prefixInBackground(
@@ -345,6 +348,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
+        public HintMeshStyleBuilder labelOverride(List<Key> labelOverride) {
+            this.labelOverride = labelOverride;
+            return this;
+        }
+
         public HintFontStyle.HintFontStyleBuilder fontStyle() {
             return fontStyle;
         }
@@ -526,6 +534,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return backgroundOpacity;
         }
 
+        public List<Key> labelOverride() {
+            return labelOverride;
+        }
+
         public HintMeshStyle build(HintMeshStyle defaultStyle) {
             if (defaultStyle != null) {
                 boxShadow.extend(new Shadow.ShadowBuilder(defaultStyle.boxShadow));
@@ -574,7 +586,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     fadeAnimationEnabled == null ? defaultStyle.fadeAnimationEnabled : fadeAnimationEnabled,
                     fadeAnimationDuration == null ? defaultStyle.fadeAnimationDuration : fadeAnimationDuration,
                     backgroundHexColor == null ? defaultStyle.backgroundHexColor : backgroundHexColor,
-                    backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity
+                    backgroundOpacity == null ? defaultStyle.backgroundOpacity : backgroundOpacity,
+                    labelOverride == null ? defaultStyle.labelOverride : labelOverride
             );
         }
 

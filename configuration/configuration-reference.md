@@ -630,6 +630,7 @@ hint-mode.hint.undo=backspace
 hint-mode.to.normal-mode=+selectionkey
 hint-mode.hint.mouse-movement=mouse-follows-selected-hint
 hint-mode.hint.eat-unused-selection-keys=true
+hint-mode.hint.label-override=plus
 ```
 
 - **`selection-keys`**: Keys that can be pressed to select hints
@@ -642,6 +643,7 @@ hint-mode.hint.eat-unused-selection-keys=true
   - `mouse-follows-hint-grid-center`: Mouse moves to the center of the hint grid
   - Use `no-movement` when the next mode will be another hint grid
 - **`eat-unused-selection-keys`**: If `false`, selection keys not used in the current hint display can be used in combos
+- **`label-override`**: Draws a fixed marker in every hint cell instead of each hint's own keys — visual only, you still press the real keys to select. The value is a key sequence rendered as the label: `plus` shows `+`, `plus plus` shows `++`. Useful for positional grids (e.g. a 3×3 recursive grid) where the per-cell letters are just clutter. Default: unset (each hint shows its own key sequence).
 
 ### Hint appearance
 

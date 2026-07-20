@@ -198,7 +198,8 @@ public class ConfigurationParser {
                 .fadeAnimationEnabled(true)
                 .fadeAnimationDuration(Duration.ofMillis(100))
                 .backgroundHexColor("#000000")
-                .backgroundOpacity(0d);
+                .backgroundOpacity(0d)
+                .labelOverride(List.of());
         hintMesh.eatUnusedSelectionKeys(true);
         HintMeshType.HintMeshTypeBuilder hintMeshTypeBuilder = hintMesh.type();
         hintMeshTypeBuilder.type(HintMeshType.HintMeshTypeType.GRID)
@@ -2424,6 +2425,7 @@ public class ConfigurationParser {
             // Style: subgrid
             case "subgrid-max-row-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridMaxRowCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridMaxRowCount(v));
             case "subgrid-max-column-count" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridMaxColumnCount"), v -> parseUnsignedInteger(v, 1, 1_000), v -> hintMeshBuilder.style(viewportFilter).subgridMaxColumnCount(v));
+            case "label-override" -> ModePropertyHandler.of(prefix.append("styleByFilter", "labelOverride"), v -> parseKeyList(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(viewportFilter).labelOverride(v));
             case "subgrid-selection-keys" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridSelectionKeys"), v -> parseHintKeys(v, keyAliases, keyResolver), v -> hintMeshBuilder.style(viewportFilter).subgridSelectionKeys(v));
             case "subgrid-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subgridBorderThickness(v));
             case "subgrid-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "subgridBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(viewportFilter).subgridBorderLength(v));
@@ -2637,14 +2639,20 @@ public class ConfigurationParser {
         return percent;
     }
 
-    private static List<Key> parseHintKeys(String propertyValue,
-                                           Map<String, KeyAlias> keyAliases,
-                                           KeyResolver keyResolver) {
+    private static List<Key> parseKeyList(String propertyValue,
+                                          Map<String, KeyAlias> keyAliases,
+                                          KeyResolver keyResolver) {
         KeyAlias alias = keyAliases.get(propertyValue);
         if (alias != null)
             return List.copyOf(alias.keys());
         String[] split = propertyValue.split("\\s+");
-        List<Key> hintKeys = Arrays.stream(split).map(keyResolver::resolve).toList();
+        return Arrays.stream(split).map(keyResolver::resolve).toList();
+    }
+
+    private static List<Key> parseHintKeys(String propertyValue,
+                                           Map<String, KeyAlias> keyAliases,
+                                           KeyResolver keyResolver) {
+        List<Key> hintKeys = parseKeyList(propertyValue, keyAliases, keyResolver);
         if (hintKeys.size() <= 1)
             // Even 1 key is not enough because we use fixed-length hints.
             throw new IllegalArgumentException(
@@ -3187,6 +3195,11 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.subgridMaxColumnCount(
                                 parentStyle.subgridMaxColumnCount());
+                    if (!childDoesNotNeedParentProperty(
+                            HintMeshStyleBuilder::labelOverride,
+                            childStyleByFilter, filter))
+                        childStyle.labelOverride(
+                                parentStyle.labelOverride());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::subgridSelectionKeys,
                             childStyleByFilter, filter))

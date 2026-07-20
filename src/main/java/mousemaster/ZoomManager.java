@@ -233,7 +233,8 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 style.subsubgridClosed(),
                 style.transitionAnimationEnabled(), style.transitionAnimationDuration(),
                 style.fadeAnimationEnabled(), style.fadeAnimationDuration(),
-                style.backgroundHexColor(), style.backgroundOpacity());
+                style.backgroundHexColor(), style.backgroundOpacity(),
+                style.labelOverride());
     }
 
     private static HintFontStyle scaleFontSize(HintFontStyle style, double scale) {
