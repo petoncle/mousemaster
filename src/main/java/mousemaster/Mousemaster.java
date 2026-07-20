@@ -185,26 +185,9 @@ public class Mousemaster {
         HintManager hintManager = new HintManager(configuration.maxPositionHistorySize(),
                 screenManager, mouseManager, platform.overlay(), platform.uiAutomation());
         commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
-        Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
-        Set<Key> pressedComboPreconditionKeys = new HashSet<>();
-        for (Mode mode : configuration.modeMap().modes()) {
-            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
-                unpressedComboPreconditionKeys.addAll(combo.precondition()
-                                                           .keyPrecondition()
-                                                           .unpressedKeySet()
-                                                           .stream()
-                                                           .toList());
-                pressedComboPreconditionKeys.addAll(combo.precondition()
-                                                         .keyPrecondition()
-                                                         .pressedKeyPrecondition()
-                                                         .allKeys());
-            }
-        }
         ComboWatcher comboWatcher =
                 new ComboWatcher(commandRunner, hintManager, platform.activeAppFinder(),
-                        platform.clock(),
-                        unpressedComboPreconditionKeys,
-                        pressedComboPreconditionKeys, configuration.logRedactKeys(),
+                        platform.clock(), configuration.logRedactKeys(),
                         configuration.modeMap());
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());

@@ -25,11 +25,14 @@ public class ComboWatcher {
     private final HintManager hintManager;
     private final ActiveAppFinder activeAppFinder;
     private final Clock clock;
-    private final Set<Key> pressedComboPreconditionKeys;
     private final boolean logRedactKeys;
-    private final Set<Key> unpressedComboPreconditionKeys;
+    // TODO: this class was modified in commits c85df26/2ad3808 (plus this session,
+    // uncommitted) to fix Linux key masking. Shared, non-platform code — confirm
+    // safe/valid here vs. Linux-specific before merge.
     private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
+    private final Map<Mode, Set<Key>> unpressedPreconditionKeysByMode;
     private Set<Key> currentModePressedPreconditionKeys;
+    private Set<Key> currentModeUnpressedPreconditionKeys;
     private List<ComboListener> comboListeners;
     private List<ModeListener> modeListeners;
     private Mode baseMode;
@@ -160,17 +163,12 @@ public class ComboWatcher {
     public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
                         ActiveAppFinder activeAppFinder,
                         Clock clock,
-                        Set<Key> unpressedComboPreconditionKeys,
-                        Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
+                        boolean logRedactKeys,
                         ModeMap modeMap) {
         this.commandRunner = commandRunner;
         this.hintManager = hintManager;
         this.activeAppFinder = activeAppFinder;
         this.clock = clock;
-        this.unpressedComboPreconditionKeys =
-                unpressedComboPreconditionKeys;
-        this.pressedComboPreconditionKeys =
-                pressedComboPreconditionKeys;
         this.logRedactKeys = logRedactKeys;
         this.comboPreparationRetainDurationByMode = comboPreparationRetainDurationByMode(modeMap);
         this.comboPreparationMinRetainEventCountByMode = comboPreparationMinRetainEventCountByMode(modeMap);
@@ -186,17 +184,24 @@ public class ComboWatcher {
         }
         this.comboPreparation = ComboPreparation.empty();
         Map<Mode, Set<Key>> preconditionKeysByMode = new HashMap<>();
+        Map<Mode, Set<Key>> unpressedPreconditionKeysByMode = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
             Set<Key> keys = new HashSet<>();
+            Set<Key> unpressedKeys = new HashSet<>();
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 keys.addAll(combo.precondition()
                                  .keyPrecondition()
                                  .pressedKeyPrecondition()
                                  .allKeys());
+                unpressedKeys.addAll(combo.precondition()
+                                          .keyPrecondition()
+                                          .unpressedKeySet());
             }
             preconditionKeysByMode.put(mode, keys);
+            unpressedPreconditionKeysByMode.put(mode, unpressedKeys);
         }
         this.pressedPreconditionKeysByMode = preconditionKeysByMode;
+        this.unpressedPreconditionKeysByMode = unpressedPreconditionKeysByMode;
     }
 
     public void setComboListeners(List<ComboListener> comboListeners) {
@@ -489,9 +494,9 @@ public class ComboWatcher {
         }
         modeJustTimedOut = false;
         boolean isUnpressedComboPreconditionKey =
-                unpressedComboPreconditionKeys.contains(event.key());
+                currentModeUnpressedPreconditionKeys.contains(event.key());
         boolean isPressedComboPreconditionKey =
-                pressedComboPreconditionKeys.contains(event.key());
+                currentModePressedPreconditionKeys.contains(event.key());
         boolean isComboPreconditionKey =
                 isUnpressedComboPreconditionKey ||
                 isPressedComboPreconditionKey;
@@ -601,8 +606,10 @@ public class ComboWatcher {
                 if (isIgnoredByLeadingWait)
                     processing = PressKeyEventProcessing.ignoredByLeadingWait(leadingWaitEatsEvents);
                 else // isComboPreconditionKey must be true
+                    // Eaten speculatively; regurgitated on release if no combo ends up
+                    // using it (see KeyboardManager's eatenKeys handling).
                     processing = isPressedComboPreconditionKey ?
-                            PressKeyEventProcessing.partOfPressedComboPreconditionOnly() :
+                            PressKeyEventProcessing.partOfPressedComboPreconditionOnly(true) :
                             PressKeyEventProcessing.partOfUnpressedComboPreconditionOnly();
                 processingSet = new PressKeyEventProcessingSet(
                         new HashMap<>(Map.of(PressKeyEventProcessingSet.dummyCombo, processing)),
@@ -852,8 +859,8 @@ public class ComboWatcher {
                                     comboPreparationBreaker);
                     // This processingByCombo does not need to have entries about
                     // non-combo sequences (i.e. combo preconditions).
-                    // That is because preconditions are managed by the caller (keyEvent)
-                    // which checks across all modes, not just the current one. (isComboPreconditionKey)
+                    // That is because preconditions are managed by the caller (keyEvent),
+                    // scoped to the current mode's precondition keys. (isComboPreconditionKey)
                     processingByCombo.put(combo, processing);
                     matchByCombo.put(combo, match);
                 }
@@ -1405,6 +1412,8 @@ public class ComboWatcher {
         activeMutations.clear();
         currentModePressedPreconditionKeys =
                 pressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
+        currentModeUnpressedPreconditionKeys =
+                unpressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
         computePreconditionOnlyByPropertyPath();
         if (!refreshPreconditionOnlyMutations())
             notifyMutatedMode();

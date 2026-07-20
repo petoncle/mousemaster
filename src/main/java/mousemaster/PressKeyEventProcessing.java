@@ -1,5 +1,8 @@
 package mousemaster;
 
+// TODO: modified in commit c85df26 to fix Linux key masking (precondition keys leaking
+// to the OS with no Windows-style focus-stealing to hide it). Shared, non-platform code
+// affecting Windows too — confirm this is safe/valid here vs. Linux-specific before merge.
 public enum PressKeyEventProcessing {
 
     UNHANDLED,
@@ -8,6 +11,7 @@ public enum PressKeyEventProcessing {
     PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_NOT_BE_EATEN,
     PART_OF_COMPLETED_COMBO_SEQUENCE_MUST_BE_EATEN,
     PART_OF_PRESSED_COMBO_PRECONDITION_ONLY, // "Only" means it is not part of a combo sequence (it is just part of a combo precondition).
+    PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN, // Same as above, but the key must be eaten speculatively (e.g. space held down for a chord whose other key hasn't been pressed yet).
     PART_OF_UNPRESSED_COMBO_PRECONDITION_ONLY,
     IGNORED_BY_LEADING_WAIT_MUST_NOT_BE_EATEN,
     IGNORED_BY_LEADING_WAIT_MUST_BE_EATEN,
@@ -25,7 +29,8 @@ public enum PressKeyEventProcessing {
                this == IGNORED_BY_LEADING_WAIT_MUST_BE_EATEN ||
                this == HINT_UNDO_MUST_BE_EATEN ||
                this == UNSWALLOWED_HINT_END_MUST_BE_EATEN ||
-               this == UNUSED_HINT_SELECTION_KEY_MUST_BE_EATEN;
+               this == UNUSED_HINT_SELECTION_KEY_MUST_BE_EATEN ||
+               this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
     }
 
     public boolean handled() {
@@ -40,10 +45,16 @@ public enum PressKeyEventProcessing {
                this == UNSWALLOWED_HINT_END_MUST_BE_EATEN ||
                this == UNUSED_HINT_SELECTION_KEY_MUST_BE_EATEN ||
                this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY ||
+               this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN ||
                this == IGNORED_BY_LEADING_WAIT_MUST_NOT_BE_EATEN ||
                this == IGNORED_BY_LEADING_WAIT_MUST_BE_EATEN;
     }
 
+    // PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN is deliberately NOT part of
+    // isPartOfComboSequence(): it is tracked under the empty dummyCombo sequence, which
+    // can never match, so ComboWatcher.update()'s prefix check would immediately
+    // force-regurgitate the key. KeyboardManager instead handles it via
+    // isPartOfPressedComboPreconditionOnly() in clearFullyCompletedEatenKeys/buildRegurgitates.
     public boolean isPartOfComboSequence() {
         return this == PART_OF_COMBO_SEQUENCE_MUST_NOT_BE_EATEN ||
                this == PART_OF_COMBO_SEQUENCE_MUST_BE_EATEN ||
@@ -62,7 +73,8 @@ public enum PressKeyEventProcessing {
     }
 
     public boolean isPartOfPressedComboPreconditionOnly() {
-        return this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY;
+        return this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY ||
+               this == PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN;
     }
 
     public boolean isPartOfUnpressedComboPreconditionOnly() {
@@ -149,8 +161,9 @@ public enum PressKeyEventProcessing {
                 IGNORED_BY_LEADING_WAIT_MUST_NOT_BE_EATEN;
     }
 
-    public static PressKeyEventProcessing partOfPressedComboPreconditionOnly() {
-        return PART_OF_PRESSED_COMBO_PRECONDITION_ONLY;
+    public static PressKeyEventProcessing partOfPressedComboPreconditionOnly(boolean mustBeEaten) {
+        return mustBeEaten ? PART_OF_PRESSED_COMBO_PRECONDITION_ONLY_MUST_BE_EATEN :
+                PART_OF_PRESSED_COMBO_PRECONDITION_ONLY;
     }
 
     public static PressKeyEventProcessing partOfUnpressedComboPreconditionOnly() {

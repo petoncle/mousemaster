@@ -49,11 +49,31 @@ public class ScreenshotWidget extends QWidget {
         QPainter painter = new QPainter(this);
         painter.fillRect(0, 0, width(), height(), new QColor(0, 0, 0));
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, true);
-        QRectF sourceRect = new QRectF(sourceX, sourceY, sourceWidth, sourceHeight);
-        QRectF targetRect = new QRectF(0, 0, width(), height());
-        painter.drawPixmap(targetRect, pixmap, sourceRect);
-        sourceRect.dispose();
-        targetRect.dispose();
+
+        // Near a screen edge/corner, the ideal source rect can extend past the
+        // captured pixmap's bounds. Clamp it and shrink the target rect by the same
+        // scale so the valid pixels still land in the right place, and the region
+        // with no captured pixels stays as the black fill above instead of leaving
+        // a gap where drawPixmap would otherwise paint nothing (transparent, letting
+        // whatever is behind this widget show through).
+        double clampedSourceX = Math.max(sourceX, 0);
+        double clampedSourceY = Math.max(sourceY, 0);
+        double clampedSourceRight = Math.min(sourceX + sourceWidth, pixmap.width());
+        double clampedSourceBottom = Math.min(sourceY + sourceHeight, pixmap.height());
+        double clampedSourceWidth = Math.max(0, clampedSourceRight - clampedSourceX);
+        double clampedSourceHeight = Math.max(0, clampedSourceBottom - clampedSourceY);
+
+        if (clampedSourceWidth > 0 && clampedSourceHeight > 0) {
+            double targetX = (clampedSourceX - sourceX) * zoomPercent;
+            double targetY = (clampedSourceY - sourceY) * zoomPercent;
+            QRectF sourceRect = new QRectF(clampedSourceX, clampedSourceY,
+                    clampedSourceWidth, clampedSourceHeight);
+            QRectF targetRect = new QRectF(targetX, targetY,
+                    clampedSourceWidth * zoomPercent, clampedSourceHeight * zoomPercent);
+            painter.drawPixmap(targetRect, pixmap, sourceRect);
+            sourceRect.dispose();
+            targetRect.dispose();
+        }
         painter.end();
         painter.dispose();
     }

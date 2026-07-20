@@ -1,0 +1,156 @@
+package mousemaster.platform.linux;
+
+import com.sun.jna.Pointer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+// X11-only implementation. See WaylandMouse for the zwlr_virtual_pointer_v1-based
+// implementation used under Wayland.
+public class X11Mouse extends LinuxMouse {
+
+    private static final Logger logger = LoggerFactory.getLogger(X11Mouse.class);
+
+    // X11 button numbers
+    private static final int BTN_LEFT   = 1;
+    private static final int BTN_MIDDLE = 2;
+    private static final int BTN_RIGHT  = 3;
+    // Vertical scroll: 4 = up, 5 = down
+    // Horizontal scroll: 6 = left, 7 = right
+
+    // MouseManager passes wheel delta in Windows' WHEEL_DELTA convention (120 units = one
+    // notch, see WindowsMouseController), since that's the shared unit the velocity config
+    // is tuned against. X11 has no fractional-notch concept - button4/5/6/7 are discrete
+    // click events - so accumulate sub-notch deltas here and only fire once a full notch's
+    // worth has built up, carrying the remainder forward (same pattern MouseManager itself
+    // uses for cursor movement's deltaDistanceX/Y).
+    private static final double WHEEL_DELTA = 120;
+
+    private final Pointer display;
+    private final long rootWindow;
+    private long hiddenCursor = 0;
+    private double verticalWheelAccumulator;
+    private double horizontalWheelAccumulator;
+
+    public X11Mouse(Pointer display, long rootWindow) {
+        this.display = display;
+        this.rootWindow = rootWindow;
+    }
+
+    @Override
+    public void destroy() {
+        if (hiddenCursor != 0) {
+            LibX11.INSTANCE.XFreeCursor(display, hiddenCursor);
+            hiddenCursor = 0;
+        }
+    }
+
+    @Override
+    public void beginMove() {
+    }
+
+    @Override
+    public void endMove() {
+        LibX11.INSTANCE.XFlush(display);
+    }
+
+    @Override
+    public void moveBy(boolean xForward, double dx, boolean yForward, double dy) {
+        int ix = (int) dx * (xForward ? 1 : -1);
+        int iy = (int) dy * (yForward ? 1 : -1);
+        if (ix == 0 && iy == 0) return;
+        // dest_window = None (0) → coords are relative to current pointer position
+        LibX11.INSTANCE.XWarpPointer(display, 0, 0, 0, 0, 0, 0, ix, iy);
+    }
+
+    @Override
+    public void synchronousMoveTo(int x, int y) {
+        LibX11.INSTANCE.XWarpPointer(display, 0, rootWindow, 0, 0, 0, 0, x, y);
+        LibX11.INSTANCE.XFlush(display);
+    }
+
+    @Override
+    public void pressLeft() {
+        buttonEvent(BTN_LEFT, true);
+    }
+
+    @Override
+    public void releaseLeft() {
+        buttonEvent(BTN_LEFT, false);
+    }
+
+    @Override
+    public void pressMiddle() {
+        buttonEvent(BTN_MIDDLE, true);
+    }
+
+    @Override
+    public void releaseMiddle() {
+        buttonEvent(BTN_MIDDLE, false);
+    }
+
+    @Override
+    public void pressRight() {
+        buttonEvent(BTN_RIGHT, true);
+    }
+
+    @Override
+    public void releaseRight() {
+        buttonEvent(BTN_RIGHT, false);
+    }
+
+    @Override
+    public void wheelVerticallyBy(boolean forward, double delta) {
+        // forward = away from user = scroll up = button 4
+        int button = forward ? 4 : 5;
+        verticalWheelAccumulator += delta;
+        int notches = (int) (verticalWheelAccumulator / WHEEL_DELTA);
+        if (notches <= 0)
+            return;
+        verticalWheelAccumulator -= notches * WHEEL_DELTA;
+        for (int i = 0; i < notches; i++) {
+            buttonEvent(button, true);
+            buttonEvent(button, false);
+        }
+        LibX11.INSTANCE.XFlush(display);
+    }
+
+    @Override
+    public void wheelHorizontallyBy(boolean forward, double delta) {
+        // forward = right = button 7
+        int button = forward ? 7 : 6;
+        horizontalWheelAccumulator += delta;
+        int notches = (int) (horizontalWheelAccumulator / WHEEL_DELTA);
+        if (notches <= 0)
+            return;
+        horizontalWheelAccumulator -= notches * WHEEL_DELTA;
+        for (int i = 0; i < notches; i++) {
+            buttonEvent(button, true);
+            buttonEvent(button, false);
+        }
+        LibX11.INSTANCE.XFlush(display);
+    }
+
+    @Override
+    public void hideCursor() {
+        if (hiddenCursor == 0) {
+            byte[] blankData = {0};
+            long pixmap = LibX11.INSTANCE.XCreateBitmapFromData(display, rootWindow, blankData, 1, 1);
+            LibX11.XColor black = new LibX11.XColor();
+            hiddenCursor = LibX11.INSTANCE.XCreatePixmapCursor(display, pixmap, pixmap, black, black, 0, 0);
+            LibX11.INSTANCE.XFreePixmap(display, pixmap);
+        }
+        LibX11.INSTANCE.XDefineCursor(display, rootWindow, hiddenCursor);
+        LibX11.INSTANCE.XFlush(display);
+    }
+
+    @Override
+    public void showCursor() {
+        LibX11.INSTANCE.XUndefineCursor(display, rootWindow);
+        LibX11.INSTANCE.XFlush(display);
+    }
+
+    private void buttonEvent(int button, boolean press) {
+        LibXTest.INSTANCE.XTestFakeButtonEvent(display, button, press ? 1 : 0, 0);
+        LibX11.INSTANCE.XFlush(display);
+    }
+}
