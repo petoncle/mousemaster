@@ -8,6 +8,7 @@ import java.util.List;
 public record IndicatorConfiguration(boolean enabled,
                                      boolean fadeAnimationEnabled,
                                      Duration fadeAnimationDuration,
+                                     boolean renderAsCursor,
                                      Indicator idleIndicator,
                                      Indicator moveIndicator,
                                      Indicator wheelIndicator,
@@ -37,6 +38,7 @@ public record IndicatorConfiguration(boolean enabled,
         private Boolean enabled;
         private Boolean fadeAnimationEnabled;
         private Duration fadeAnimationDuration;
+        private Boolean renderAsCursor;
         private IndicatorBuilder idleIndicator = new IndicatorBuilder();
         private IndicatorBuilder moveIndicator = new IndicatorBuilder();
         private IndicatorBuilder wheelIndicator = new IndicatorBuilder();
@@ -71,6 +73,15 @@ public record IndicatorConfiguration(boolean enabled,
 
         public Duration fadeAnimationDuration() {
             return fadeAnimationDuration;
+        }
+
+        public IndicatorConfigurationBuilder renderAsCursor(boolean renderAsCursor) {
+            this.renderAsCursor = renderAsCursor;
+            return this;
+        }
+
+        public Boolean renderAsCursor() {
+            return renderAsCursor;
         }
 
         public IndicatorBuilder idleIndicator() {
@@ -109,6 +120,7 @@ public record IndicatorConfiguration(boolean enabled,
             if (enabled == null) enabled = parent.enabled;
             if (fadeAnimationEnabled == null) fadeAnimationEnabled = parent.fadeAnimationEnabled;
             if (fadeAnimationDuration == null) fadeAnimationDuration = parent.fadeAnimationDuration;
+            if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
             idleIndicator.extend(parent.idleIndicator);
             moveIndicator.extend(parent.moveIndicator);
             wheelIndicator.extend(parent.wheelIndicator);
@@ -140,6 +152,7 @@ public record IndicatorConfiguration(boolean enabled,
             return new IndicatorConfiguration(enabled,
                     fadeAnimationEnabled,
                     fadeAnimationDuration,
+                    renderAsCursor,
                     idleIndicator.build(),
                     moveIndicator.build(),
                     wheelIndicator.build(),

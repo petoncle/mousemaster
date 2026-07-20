@@ -91,6 +91,15 @@ public interface ExtendedUser32 extends User32 {
                          int nHeight, byte[] pvANDPlane, byte[] pvXORPlane);
     HANDLE CopyImage(HANDLE hImage, UINT uType, int cxDesired, int cyDesired, UINT fuFlags);
 
+    HANDLE LoadImageW(WinDef.HINSTANCE hInst, Pointer name, int uType, int cx, int cy,
+                      int fuLoad);
+
+    int LR_SHARED = 0x00008000;
+
+    WinDef.HICON CreateIconIndirect(WinGDI.ICONINFO piconinfo);
+
+    boolean DestroyIcon(WinDef.HICON hIcon);
+
     int IMAGE_CURSOR = 2;
 
     boolean SetSystemCursor(HANDLE hcur, UINT id);

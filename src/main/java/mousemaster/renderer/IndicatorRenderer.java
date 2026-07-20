@@ -102,11 +102,11 @@ public final class IndicatorRenderer {
             applyShadow = sizeOrShadowChanged;
             sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
         }
-        // Position the (hidden) window before applyIndicator shows it.
+        // Position the (hidden) window before showIndicator shows it.
         if (created || sizeOrShadowOrPositionChanged)
             reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
         double shadowScale = activeScreen.scale() * zoomPercent(zoom);
-        applyIndicator(indicator, applyShadow, shadowScale, wasShowing,
+        showIndicator(indicator, applyShadow, shadowScale, wasShowing,
                 fadeAnimationEnabled, fadeAnimationDuration, allowFade);
     }
 
@@ -190,11 +190,94 @@ public final class IndicatorRenderer {
         return zoom == null ? 1 : zoom.percent();
     }
 
-    /** Applies the indicator to the widgets (shape, outlines, label, shadow) and, on first
-     *  appearance, sets up the fade-in. */
-    private void applyIndicator(Indicator indicator, boolean applyShadow, double shadowScale,
-                                boolean wasShowing, boolean fadeAnimationEnabled,
-                                Duration fadeAnimationDuration, boolean allowFade) {
+    /** An offscreen-rendered indicator: premultiplied ARGB (0xAARRGGBB), row-major. */
+    public record CursorImage(int[] argb, int width, int height) {}
+
+    /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
+     *  system cursor, centered on the indicator's visual center. */
+    public CursorImage renderCursorImage(Indicator indicator, double scale) {
+        int size = indicatorSize(indicator, scale, 1);
+        if (size <= 0)
+            return null;
+        int outlinePadding = indicatorOutlinePadding(indicator, scale, 1);
+        int shadowPadding = indicatorShadowPadding(indicator, scale);
+        int imageSize = size + 2 * (outlinePadding + shadowPadding);
+        window();
+        applyIndicator(indicator, true, scale);
+        sizeWidgetsForRender(size, outlinePadding, shadowPadding, scale);
+        QImage image = new QImage(imageSize, imageSize,
+                QImage.Format.Format_ARGB32_Premultiplied);
+        image.fill(0);
+        // The label's point-size font resolves against the image's DPI; match the target
+        // screen so it renders at the right size on any screen. QImage exposes only
+        // dots-per-meter, hence the inch-to-meter conversion.
+        int dotsPerMeter = (int) Math.round(scale * 96.0 / 0.0254);
+        image.setDotsPerMeterX(dotsPerMeter);
+        image.setDotsPerMeterY(dotsPerMeter);
+        window.render(image);
+        int total = imageSize * imageSize * 4;
+        byte[] bytes = new byte[total];
+        ByteBuffer buffer = image.bits();
+        buffer.position(0);
+        buffer.get(bytes);
+        image.dispose();
+        int[] argb = new int[imageSize * imageSize];
+        for (int i = 0; i < argb.length; i++) {
+            int o = i * 4;
+            argb[i] = ((bytes[o + 3] & 0xFF) << 24) | ((bytes[o + 2] & 0xFF) << 16) |
+                      ((bytes[o + 1] & 0xFF) << 8) | (bytes[o] & 0xFF);
+        }
+        return new CursorImage(argb, imageSize, imageSize);
+    }
+
+    /** Sizes the window and widgets for an offscreen render: widget/label sit inside the
+     *  shadow padding, matching moveAndResize's layout but without on-screen positioning. */
+    private void sizeWidgetsForRender(int size, int outlinePadding, int shadowPadding,
+                                      double scale) {
+        widget.setOutlineScale(scale);
+        int widgetSize = size + 2 * outlinePadding;
+        int windowSize = size + 2 * (outlinePadding + shadowPadding);
+        window.resize(windowSize, windowSize);
+        widget.move(shadowPadding, shadowPadding);
+        widget.resize(widgetSize, widgetSize);
+        labelWidget.move(shadowPadding, shadowPadding);
+        labelWidget.resize(widgetSize, widgetSize);
+        labelWidget.setIndicatorOutlinePadding(outlinePadding);
+        labelWidget.setLabelFontScale(1);
+    }
+
+    /** Draws label text centered at (centerX, centerY): outline (if any) then fill, using the
+     *  caller's already-sized font. Shared by the on-screen label widget and the cursor. */
+    static void drawLabelText(QPainter painter, String text, QFont font, double centerX,
+                              double centerY, int outlineThickness, QColor outlineColor,
+                              QColor labelColor) {
+        QFontMetrics fontMetrics = new QFontMetrics(font);
+        int textX = (int) Math.round(centerX - fontMetrics.horizontalAdvance(text) / 2.0);
+        QRect tightRect = fontMetrics.tightBoundingRect(text);
+        int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
+        tightRect.dispose();
+        fontMetrics.dispose();
+        if (outlineThickness != 0 && outlineColor != null && outlineColor.alpha() != 0) {
+            QPen outlinePen = new QPen(outlineColor);
+            outlinePen.setWidth(outlineThickness);
+            outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
+            painter.setPen(outlinePen);
+            painter.setBrush(Qt.BrushStyle.NoBrush);
+            QPainterPath textPath = new QPainterPath();
+            textPath.addText(textX, textY, font, text);
+            painter.drawPath(textPath);
+            textPath.dispose();
+            outlinePen.dispose();
+        }
+        if (labelColor != null && labelColor.alpha() != 0) {
+            painter.setPen(labelColor);
+            painter.drawText(textX, textY, text);
+        }
+    }
+
+    /** Applies the indicator to the widgets (shape, outlines, shadow effect, label) without
+     *  showing or positioning. Shared by the on-screen path and the offscreen cursor render. */
+    private void applyIndicator(Indicator indicator, boolean applyShadow, double shadowScale) {
         currentIndicator = indicator;
         if (applyShadow)
             applyShadowEffect(shadowScale);
@@ -249,6 +332,13 @@ public final class IndicatorRenderer {
             labelWidget.setGraphicsEffect(null);
             labelWidget.hide();
         }
+    }
+
+    /** Applies the indicator, then shows the window (with a fade-in on first appearance). */
+    private void showIndicator(Indicator indicator, boolean applyShadow, double shadowScale,
+                               boolean wasShowing, boolean fadeAnimationEnabled,
+                               Duration fadeAnimationDuration, boolean allowFade) {
+        applyIndicator(indicator, applyShadow, shadowScale);
         window.show();
         widget.repaint();
         showing = true;
@@ -951,35 +1041,13 @@ public final class IndicatorRenderer {
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setFont(labelFont);
-            QFontMetrics fm = new QFontMetrics(labelFont);
             double availableSize = Math.min(width(), height()) - 2 * indicatorOutlinePadding;
             IndicatorWidget.PolygonLayout polygonLayout =
                     IndicatorWidget.polygonLayout(availableSize, edgeCount);
             double centerX = width() / 2.0 + polygonLayout.offsetX();
             double centerY = height() / 2.0 + polygonLayout.offsetY();
-            int textX = (int) Math.round(centerX - fm.horizontalAdvance(labelText) / 2.0);
-            QRect tightRect = fm.tightBoundingRect(labelText);
-            int textY = (int) Math.round(centerY - tightRect.y() - tightRect.height() / 2.0);
-            tightRect.dispose();
-            // Outline: draw text path with outline pen.
-            if (outlineThickness != 0 && outlineColor != null && outlineColor.alpha() != 0) {
-                QPen outlinePen = new QPen(outlineColor);
-                outlinePen.setWidth(outlineThickness);
-                outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
-                painter.setPen(outlinePen);
-                painter.setBrush(Qt.BrushStyle.NoBrush);
-                QPainterPath textPath = new QPainterPath();
-                textPath.addText(textX, textY, labelFont, labelText);
-                painter.drawPath(textPath);
-                textPath.dispose();
-                outlinePen.dispose();
-            }
-            // Fill: draw text on top of outline.
-            if (labelColor.alpha() != 0) {
-                painter.setPen(labelColor);
-                painter.drawText(textX, textY, labelText);
-            }
-            fm.dispose();
+            drawLabelText(painter, labelText, labelFont, centerX, centerY,
+                    outlineThickness, outlineColor, labelColor);
             painter.end();
             painter.dispose();
         }

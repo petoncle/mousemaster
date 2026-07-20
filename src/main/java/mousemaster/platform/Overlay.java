@@ -30,7 +30,8 @@ public interface Overlay {
                                     int leftInset, int rightInset);
 
     void setIndicator(Indicator indicator, boolean fadeAnimationEnabled,
-                      Duration fadeAnimationDuration, boolean allowFade);
+                      Duration fadeAnimationDuration, boolean allowFade,
+                      boolean renderAsCursor, boolean includeCursorGlyph);
 
     void hideIndicator(boolean allowFade);
 

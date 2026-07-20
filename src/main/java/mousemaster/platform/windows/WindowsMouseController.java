@@ -5,6 +5,7 @@ import mousemaster.*;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.ptr.PointerByReference;
 import mousemaster.platform.MouseController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -248,13 +249,27 @@ public class WindowsMouseController implements MouseController {
         return User32.INSTANCE.SetCursorPos(mousePosition.x, mousePosition.y);
     }
 
+    // 32640 (OCR_SIZE) and 32641 (OCR_ICON) are excluded: they are obsolete
+    // cursors that SPI_SETCURSORS does not reload from the registry, so
+    // SetSystemCursor for them leaks a GDI handle on every hide/show cycle.
+    private static final long[] SYSTEM_CURSOR_IDS = {32512, 32513, 32514, 32515, 32516,
+            32642, 32643, 32644, 32645, 32646, 32648, 32649, 32650, 32651};
+
+    // A cursor glyph's XOR/inversion pixels (e.g. the mono I-beam) can't invert a static
+    // bitmap, so they are drawn as a white core with a 1px black outline -- readable on any
+    // background, the same trick the arrow cursor uses.
+    private static final int INVERT_CORE = 255;   // white
+    private static final int INVERT_OUTLINE = 0;  // black
+
     private boolean cursorHidden = false;
+    private boolean indicatorCursorInstalled = false;
 
     @Override
     public void showCursor() {
-        if (!cursorHidden)
+        if (!cursorHidden && !indicatorCursorInstalled)
             return;
         cursorHidden = false;
+        indicatorCursorInstalled = false;
         ExtendedUser32.INSTANCE.SystemParametersInfoA(
                 new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
                 new WinDef.UINT(0));
@@ -279,12 +294,7 @@ public class WindowsMouseController implements MouseController {
             cursorHidden = false;
             return;
         }
-        // 32640 (OCR_SIZE) and 32641 (OCR_ICON) are excluded: they are obsolete
-        // cursors that SPI_SETCURSORS does not reload from the registry, so
-        // SetSystemCursor for them leaks a GDI handle on every hide/show cycle.
-        long[] cursorIds = {32512, 32513, 32514, 32515, 32516,
-                32642, 32643, 32644, 32645, 32646, 32648, 32649, 32650, 32651};
-        for (long cursorId : cursorIds) {
+        for (long cursorId : SYSTEM_CURSOR_IDS) {
             WinNT.HANDLE imageHandle =
                     ExtendedUser32.INSTANCE.CopyImage(transparentCursor,
                             new WinDef.UINT(ExtendedUser32.IMAGE_CURSOR), 0, 0,
@@ -293,6 +303,337 @@ public class WindowsMouseController implements MouseController {
                     new WinDef.UINT(cursorId));
         }
         ExtendedUser32.INSTANCE.DestroyCursor(transparentCursor);
+    }
+
+    /** A snapshot of an original system cursor glyph: premultiplied ARGB, hotspot, and
+     *  the center of its opaque bounding box (where the indicator is centered). */
+    private record GlyphImage(int width, int height, int hotspotX, int hotspotY,
+                              int visualCenterX, int visualCenterY,
+                              int[] argbPremultiplied) {}
+
+    private final Map<Long, GlyphImage> glyphByCursorId = new HashMap<>();
+
+    /**
+     * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor,
+     * with each cursor's original glyph composited on top so shape semantics are preserved.
+     * The OS keeps switching cursors by context; we just replace each slot's image.
+     */
+    public void setIndicatorCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight,
+                                   boolean includeGlyph) {
+        if (includeGlyph) {
+            if (glyphByCursorId.isEmpty())
+                snapshotSystemGlyphs();
+            for (long cursorId : SYSTEM_CURSOR_IDS) {
+                GlyphImage glyph = glyphByCursorId.get(cursorId);
+                if (glyph == null)
+                    continue;
+                installCompositeCursor(cursorId, indicatorArgb, indicatorWidth, indicatorHeight, glyph);
+            }
+        }
+        else {
+            // hide-cursor: the indicator IS the cursor, without the original glyph.
+            installIndicatorOnlyCursor(indicatorArgb, indicatorWidth, indicatorHeight);
+        }
+        cursorHidden = false;
+        indicatorCursorInstalled = true;
+    }
+
+    /** Installs the indicator alone (centered on the hotspot) as every system cursor. */
+    private void installIndicatorOnlyCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight) {
+        byte[] bgra = new byte[indicatorWidth * indicatorHeight * 4];
+        for (int i = 0; i < indicatorArgb.length; i++) {
+            int p = indicatorArgb[i];
+            int a = (p >>> 24) & 0xFF;
+            int o = i * 4;
+            if (a == 0)
+                continue;
+            // indicatorArgb is premultiplied; store straight color for CreateIconIndirect.
+            bgra[o] = (byte) Math.min(255, (p & 0xFF) * 255 / a);
+            bgra[o + 1] = (byte) Math.min(255, ((p >>> 8) & 0xFF) * 255 / a);
+            bgra[o + 2] = (byte) Math.min(255, ((p >>> 16) & 0xFF) * 255 / a);
+            bgra[o + 3] = (byte) a;
+        }
+        WinDef.HBITMAP colorBitmap = create32bppDib(indicatorWidth, indicatorHeight, bgra);
+        if (colorBitmap == null)
+            return;
+        WinDef.HBITMAP mask =
+                ExtendedGDI32.INSTANCE.CreateBitmap(indicatorWidth, indicatorHeight, 1, 1, null);
+        WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+        iconInfo.fIcon = false;
+        iconInfo.xHotspot = indicatorWidth / 2;
+        iconInfo.yHotspot = indicatorHeight / 2;
+        iconInfo.hbmMask = mask;
+        iconInfo.hbmColor = colorBitmap;
+        WinDef.HICON icon = ExtendedUser32.INSTANCE.CreateIconIndirect(iconInfo);
+        GDI32.INSTANCE.DeleteObject(colorBitmap);
+        GDI32.INSTANCE.DeleteObject(mask);
+        if (icon == null)
+            return;
+        for (long cursorId : SYSTEM_CURSOR_IDS) {
+            WinNT.HANDLE copy = ExtendedUser32.INSTANCE.CopyImage(icon,
+                    new WinDef.UINT(ExtendedUser32.IMAGE_CURSOR), 0, 0, new WinDef.UINT(0));
+            ExtendedUser32.INSTANCE.SetSystemCursor(copy, new WinDef.UINT(cursorId));
+        }
+        ExtendedUser32.INSTANCE.DestroyIcon(icon);
+    }
+
+    /**
+     * Snapshots every system cursor's glyph once. Restores the pristine system cursors
+     * first, so the snapshot captures the real glyphs even if a hidden/composite cursor is
+     * currently installed.
+     */
+    private void snapshotSystemGlyphs() {
+        ExtendedUser32.INSTANCE.SystemParametersInfoA(
+                new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
+                new WinDef.UINT(0));
+        for (long cursorId : SYSTEM_CURSOR_IDS) {
+            WinNT.HANDLE cursor = ExtendedUser32.INSTANCE.LoadImageW(null,
+                    new Pointer(cursorId), ExtendedUser32.IMAGE_CURSOR, 0, 0,
+                    ExtendedUser32.LR_SHARED);
+            if (cursor == null)
+                continue;
+            WinDef.HICON icon = new WinDef.HICON(cursor.getPointer());
+            WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+            if (!ExtendedUser32.INSTANCE.GetIconInfo(icon, iconInfo))
+                continue;
+            try {
+                WinGDI.BITMAP bmp = new WinGDI.BITMAP();
+                WinNT.HANDLE sizingBitmap =
+                        iconInfo.hbmColor != null ? iconInfo.hbmColor : iconInfo.hbmMask;
+                GDI32.INSTANCE.GetObject(sizingBitmap, bmp.size(), bmp.getPointer());
+                bmp.read();
+                int width = bmp.bmWidth.intValue();
+                int height = bmp.bmHeight.intValue();
+                // Monochrome cursor: mask is double-height (top AND, bottom XOR).
+                if (iconInfo.hbmColor == null)
+                    height /= 2;
+                if (width <= 0 || height <= 0)
+                    continue;
+                int[] argb = rasterizeGlyph(icon, width, height);
+                if (argb != null) {
+                    int[] center = opaqueBoundsCenter(argb, width, height);
+                    glyphByCursorId.put(cursorId, new GlyphImage(width, height,
+                            iconInfo.xHotspot, iconInfo.yHotspot,
+                            center[0], center[1], argb));
+                }
+            }
+            finally {
+                if (iconInfo.hbmColor != null)
+                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
+                if (iconInfo.hbmMask != null)
+                    GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
+            }
+        }
+    }
+
+    /**
+     * Rasterizes a cursor glyph to premultiplied ARGB. Draws it onto a white and a black
+     * background and recovers per-pixel alpha (alpha = 255 - (onWhite - onBlack), color =
+     * onBlack). XOR/inversion pixels (brighter over black than white, e.g. the mono I-beam)
+     * can't invert a static bitmap, so they are drawn as a white core with a black outline.
+     */
+    private int[] rasterizeGlyph(WinDef.HICON icon, int width, int height) {
+        WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
+        bitmapInfo.bmiHeader.biSize = bitmapInfo.bmiHeader.size();
+        bitmapInfo.bmiHeader.biWidth = width;
+        bitmapInfo.bmiHeader.biHeight = -height; // Top-down.
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biBitCount = 32;
+        bitmapInfo.bmiHeader.biCompression = WinGDI.BI_RGB;
+        WinDef.HDC dc = GDI32.INSTANCE.CreateCompatibleDC(null);
+        PointerByReference bitsRef = new PointerByReference();
+        WinDef.HBITMAP dib = ExtendedGDI32.INSTANCE.CreateDIBSection(
+                dc, bitmapInfo, WinGDI.DIB_RGB_COLORS, bitsRef, null, 0);
+        if (dib == null) {
+            GDI32.INSTANCE.DeleteDC(dc);
+            return null;
+        }
+        WinNT.HANDLE previous = GDI32.INSTANCE.SelectObject(dc, dib);
+        Pointer bits = bitsRef.getValue();
+        long byteCount = (long) width * height * 4;
+        byte[] onWhite = drawGlyphOnBackground(dc, icon, bits, byteCount, (byte) 0xFF);
+        byte[] onBlack = drawGlyphOnBackground(dc, icon, bits, byteCount, (byte) 0x00);
+        GDI32.INSTANCE.SelectObject(dc, previous);
+        GDI32.INSTANCE.DeleteObject(dib);
+        GDI32.INSTANCE.DeleteDC(dc);
+        int[] argb = new int[width * height];
+        boolean[] invert = new boolean[width * height];
+        for (int i = 0; i < argb.length; i++) {
+            int o = i * 4;
+            int wB = onWhite[o] & 0xFF, wG = onWhite[o + 1] & 0xFF, wR = onWhite[o + 2] & 0xFF;
+            int bB = onBlack[o] & 0xFF, bG = onBlack[o + 1] & 0xFF, bR = onBlack[o + 2] & 0xFF;
+            if (bB + bG + bR > wB + wG + wR + 16) {
+                invert[i] = true;
+                argb[i] = (255 << 24) | (INVERT_CORE << 16) | (INVERT_CORE << 8) | INVERT_CORE;
+            }
+            else {
+                int a = Math.max(Math.max(255 - (wB - bB), 255 - (wG - bG)), 255 - (wR - bR));
+                a = Math.max(0, Math.min(255, a));
+                int r = Math.min(bR, a), g = Math.min(bG, a), b = Math.min(bB, a);
+                argb[i] = (a << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+        outlineInvertPixels(argb, invert, width, height);
+        return argb;
+    }
+
+    /** Paints a 1px outline around invert pixels: any clear pixel touching the invert core
+     *  becomes opaque outline ink, so an uninvertable glyph reads on any background. */
+    private void outlineInvertPixels(int[] argb, boolean[] invert, int width, int height) {
+        int outline = (255 << 24) | (INVERT_OUTLINE << 16) | (INVERT_OUTLINE << 8) | INVERT_OUTLINE;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int i = y * width + x;
+                if (invert[i] || ((argb[i] >>> 24) & 0xFF) != 0)
+                    continue;
+                if (hasInvertNeighbor(invert, x, y, width, height))
+                    argb[i] = outline;
+            }
+        }
+    }
+
+    private boolean hasInvertNeighbor(boolean[] invert, int x, int y, int width, int height) {
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0)
+                    continue;
+                int nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height && invert[ny * width + nx])
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /** Center of the glyph's opaque bounding box, or the geometric center if fully clear. */
+    private int[] opaqueBoundsCenter(int[] argb, int width, int height) {
+        int minX = width, maxX = -1, minY = height, maxY = -1;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (((argb[y * width + x] >>> 24) & 0xFF) != 0) {
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y);
+                    maxY = Math.max(maxY, y);
+                }
+            }
+        }
+        if (maxX < minX)
+            return new int[]{width / 2, height / 2};
+        return new int[]{(minX + maxX + 1) / 2, (minY + maxY + 1) / 2};
+    }
+
+    private byte[] drawGlyphOnBackground(WinDef.HDC dc, WinDef.HICON icon, Pointer bits,
+                                         long byteCount, byte fill) {
+        bits.setMemory(0, byteCount, fill);
+        ExtendedUser32.INSTANCE.DrawIconEx(dc, 0, 0, icon, 0, 0, 0, null,
+                ExtendedUser32.DI_NORMAL);
+        ExtendedGDI32.INSTANCE.GdiFlush();
+        return bits.getByteArray(0, (int) byteCount);
+    }
+
+    /** Composites the indicator (centered on the glyph's visual center) under the glyph and
+     *  installs the result as the system cursor for the given id, keeping the glyph's
+     *  real hotspot so clicks still land correctly. */
+    private void installCompositeCursor(long cursorId, int[] indicatorArgb, int indicatorWidth,
+                                        int indicatorHeight, GlyphImage glyph) {
+        int indicatorCenterX = indicatorWidth / 2;
+        int indicatorCenterY = indicatorHeight / 2;
+        // Extents relative to the hotspot; the indicator is centered on the glyph's visual
+        // center so it sits where the window overlay would place it.
+        int indicatorCenterRelX = glyph.visualCenterX - glyph.hotspotX;
+        int indicatorCenterRelY = glyph.visualCenterY - glyph.hotspotY;
+        int minX = Math.min(-glyph.hotspotX, indicatorCenterRelX - indicatorCenterX);
+        int minY = Math.min(-glyph.hotspotY, indicatorCenterRelY - indicatorCenterY);
+        int maxX = Math.max(glyph.width - glyph.hotspotX, indicatorCenterRelX + (indicatorWidth - indicatorCenterX));
+        int maxY = Math.max(glyph.height - glyph.hotspotY, indicatorCenterRelY + (indicatorHeight - indicatorCenterY));
+        int canvasWidth = maxX - minX;
+        int canvasHeight = maxY - minY;
+        int left = -minX;
+        int top = -minY;
+        int indicatorOriginX = left + indicatorCenterRelX - indicatorCenterX;
+        int indicatorOriginY = top + indicatorCenterRelY - indicatorCenterY;
+        int glyphOriginX = left - glyph.hotspotX;
+        int glyphOriginY = top - glyph.hotspotY;
+        byte[] bgra = new byte[canvasWidth * canvasHeight * 4];
+        for (int y = 0; y < canvasHeight; y++) {
+            for (int x = 0; x < canvasWidth; x++) {
+                int indicatorPremB = 0, indicatorPremG = 0, indicatorPremR = 0, indicatorA = 0;
+                int dx = x - indicatorOriginX, dy = y - indicatorOriginY;
+                if (dx >= 0 && dx < indicatorWidth && dy >= 0 && dy < indicatorHeight) {
+                    // indicatorArgb is already premultiplied.
+                    int p = indicatorArgb[dy * indicatorWidth + dx];
+                    indicatorA = (p >>> 24) & 0xFF;
+                    indicatorPremR = (p >>> 16) & 0xFF;
+                    indicatorPremG = (p >>> 8) & 0xFF;
+                    indicatorPremB = p & 0xFF;
+                }
+                int glyphPremB = 0, glyphPremG = 0, glyphPremR = 0, glyphA = 0;
+                int gx = x - glyphOriginX, gy = y - glyphOriginY;
+                if (gx >= 0 && gx < glyph.width && gy >= 0 && gy < glyph.height) {
+                    int p = glyph.argbPremultiplied[gy * glyph.width + gx];
+                    glyphA = (p >>> 24) & 0xFF;
+                    glyphPremR = (p >>> 16) & 0xFF;
+                    glyphPremG = (p >>> 8) & 0xFF;
+                    glyphPremB = p & 0xFF;
+                }
+                int inv = 255 - glyphA;
+                int outPremB = glyphPremB + indicatorPremB * inv / 255;
+                int outPremG = glyphPremG + indicatorPremG * inv / 255;
+                int outPremR = glyphPremR + indicatorPremR * inv / 255;
+                int outA = glyphA + indicatorA * inv / 255;
+                int o = (y * canvasWidth + x) * 4;
+                // Composite in premultiplied space, then store STRAIGHT (un-premultiplied)
+                // color: CreateIconIndirect alpha-blends the DIB as straight alpha, so
+                // premultiplied color would darken every semi-transparent pixel to black.
+                if (outA == 0) {
+                    bgra[o] = 0;
+                    bgra[o + 1] = 0;
+                    bgra[o + 2] = 0;
+                    bgra[o + 3] = 0;
+                }
+                else {
+                    bgra[o] = (byte) Math.min(255, outPremB * 255 / outA);
+                    bgra[o + 1] = (byte) Math.min(255, outPremG * 255 / outA);
+                    bgra[o + 2] = (byte) Math.min(255, outPremR * 255 / outA);
+                    bgra[o + 3] = (byte) outA;
+                }
+            }
+        }
+        WinDef.HBITMAP colorBitmap = create32bppDib(canvasWidth, canvasHeight, bgra);
+        if (colorBitmap == null)
+            return;
+        WinDef.HBITMAP mask =
+                ExtendedGDI32.INSTANCE.CreateBitmap(canvasWidth, canvasHeight, 1, 1, null);
+        WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
+        iconInfo.fIcon = false;
+        iconInfo.xHotspot = left;
+        iconInfo.yHotspot = top;
+        iconInfo.hbmMask = mask;
+        iconInfo.hbmColor = colorBitmap;
+        WinDef.HICON composite = ExtendedUser32.INSTANCE.CreateIconIndirect(iconInfo);
+        GDI32.INSTANCE.DeleteObject(colorBitmap);
+        GDI32.INSTANCE.DeleteObject(mask);
+        // SetSystemCursor takes ownership of and destroys the icon we pass.
+        if (composite != null)
+            ExtendedUser32.INSTANCE.SetSystemCursor(composite, new WinDef.UINT(cursorId));
+    }
+
+    /** Creates a top-down 32bpp BGRA DIB section and fills it with the given pixels. */
+    private WinDef.HBITMAP create32bppDib(int width, int height, byte[] bgra) {
+        WinGDI.BITMAPINFO bitmapInfo = new WinGDI.BITMAPINFO();
+        bitmapInfo.bmiHeader.biSize = bitmapInfo.bmiHeader.size();
+        bitmapInfo.bmiHeader.biWidth = width;
+        bitmapInfo.bmiHeader.biHeight = -height;
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biBitCount = 32;
+        bitmapInfo.bmiHeader.biCompression = WinGDI.BI_RGB;
+        PointerByReference bitsRef = new PointerByReference();
+        WinDef.HBITMAP dib = ExtendedGDI32.INSTANCE.CreateDIBSection(
+                null, bitmapInfo, WinGDI.DIB_RGB_COLORS, bitsRef, null, 0);
+        if (dib != null)
+            bitsRef.getValue().write(0, bgra, 0, bgra.length);
+        return dib;
     }
 
     public WinDef.POINT findMousePosition() {

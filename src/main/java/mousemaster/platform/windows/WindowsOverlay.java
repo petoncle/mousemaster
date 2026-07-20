@@ -26,6 +26,10 @@ public class WindowsOverlay implements Overlay {
     private boolean waitForZoom;
     private IndicatorRenderer indicatorRenderer;
     private WinDef.HWND indicatorHwnd;
+    private boolean indicatorIsCursor;
+    private Indicator currentCursorIndicator;
+    private double currentCursorScale;
+    private boolean currentCursorIncludeGlyph;
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
@@ -252,7 +256,8 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void createIndicatorWindow() {
-        indicatorRenderer = new IndicatorRenderer();
+        if (indicatorRenderer == null)
+            indicatorRenderer = new IndicatorRenderer();
         indicatorHwnd = new WinDef.HWND(new Pointer(indicatorRenderer.window().winId()));
         applyOverlayExStyles(indicatorHwnd);
         updateZoomExcludedWindows();
@@ -366,15 +371,43 @@ public class WindowsOverlay implements Overlay {
     public void setIndicator(Indicator indicator,
                                     boolean fadeAnimationEnabled,
                                     Duration fadeAnimationDuration,
-                                    boolean allowFade) {
+                                    boolean allowFade,
+                                    boolean renderAsCursor, boolean includeCursorGlyph) {
         Objects.requireNonNull(indicator);
         if (mouse.tryFindMousePosition() == null) {
             logger.warn("Unable to find mouse position for indicator");
             return;
         }
+        WinDef.POINT mousePosition = mouse.findMousePosition();
+        if (renderAsCursor) {
+            double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
+            if (indicatorIsCursor && indicator.equals(currentCursorIndicator) &&
+                scale == currentCursorScale &&
+                includeCursorGlyph == currentCursorIncludeGlyph)
+                return;
+            if (indicatorRenderer != null && indicatorRenderer.showing())
+                indicatorRenderer.hide(false);
+            if (indicatorRenderer == null)
+                indicatorRenderer = new IndicatorRenderer();
+            IndicatorRenderer.CursorImage image =
+                    indicatorRenderer.renderCursorImage(indicator, scale);
+            if (image == null)
+                return;
+            mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
+                    includeCursorGlyph);
+            indicatorIsCursor = true;
+            currentCursorIndicator = indicator;
+            currentCursorScale = scale;
+            currentCursorIncludeGlyph = includeCursorGlyph;
+            return;
+        }
+        if (indicatorIsCursor) {
+            mouse.showCursor();
+            indicatorIsCursor = false;
+            currentCursorIndicator = null;
+        }
         if (indicatorHwnd == null)
             createIndicatorWindow();
-        WinDef.POINT mousePosition = mouse.findMousePosition();
         indicatorRenderer.setIndicator(indicator, fadeAnimationEnabled,
                 fadeAnimationDuration, allowFade, mouseRectangle(mousePosition),
                 mouse.cursorVisualCenter(),
@@ -757,6 +790,12 @@ public class WindowsOverlay implements Overlay {
 
     @Override
     public void hideIndicator(boolean allowFade) {
+        if (indicatorIsCursor) {
+            mouse.showCursor();
+            indicatorIsCursor = false;
+            currentCursorIndicator = null;
+            return;
+        }
         if (indicatorRenderer != null)
             indicatorRenderer.hide(allowFade);
     }
@@ -816,6 +855,21 @@ public class WindowsOverlay implements Overlay {
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {
+        if (indicatorIsCursor) {
+            // The OS moves the cursor; only re-install when the screen scale changes
+            // (cursors don't auto-scale per-monitor DPI).
+            double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
+            if (scale != currentCursorScale && currentCursorIndicator != null) {
+                IndicatorRenderer.CursorImage image =
+                        indicatorRenderer.renderCursorImage(currentCursorIndicator, scale);
+                if (image != null) {
+                    mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
+                            currentCursorIncludeGlyph);
+                    currentCursorScale = scale;
+                }
+            }
+            return;
+        }
         if (indicatorHwnd == null)
              return;
         // During zoom, currentZoom still has the previous frame's zoom center

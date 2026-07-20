@@ -38,7 +38,9 @@ public class IndicatorManager implements ModeListener {
                 overlay.setIndicator(indicator,
                         currentMode.indicator().fadeAnimationEnabled(),
                         currentMode.indicator().fadeAnimationDuration(),
-                        allowFade);
+                        allowFade,
+                        currentMode.indicator().renderAsCursor(),
+                        !currentMode.hideCursor().enabled());
         }
         else
             overlay.hideIndicator(allowFade);

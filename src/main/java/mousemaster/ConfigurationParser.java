@@ -192,7 +192,8 @@ public class ConfigurationParser {
                 new IndicatorConfigurationBuilder();
         indicator.enabled(false)
                  .fadeAnimationEnabled(true)
-                 .fadeAnimationDuration(Duration.ofMillis(100));
+                 .fadeAnimationDuration(Duration.ofMillis(100))
+                 .renderAsCursor(false);
         // Defaults are set on idle indicator; other states inherit during build.
         IndicatorBuilder idleIndicator = indicator.idleIndicator();
         idleIndicator.size(26)
@@ -1083,6 +1084,10 @@ public class ConfigurationParser {
                     else if (stateOrKey.equals("fade-animation-duration-millis")) {
                         mode.indicator.builder.fadeAnimationDuration(
                                 Duration.ofMillis(Integer.parseInt(propertyValue)));
+                    }
+                    else if (stateOrKey.equals("render-as-cursor")) {
+                        mode.indicator.builder.renderAsCursor(
+                                Boolean.parseBoolean(propertyValue));
                     }
                     else {
                         String subKey = keyMatcher.group(group5);

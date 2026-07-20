@@ -58,7 +58,10 @@ public class ModeController {
                          !mouseState.wheeling();
         comboWatcher.setIdling(idling);
         boolean mustResetHideCursorTimeout = !idling || hintManager.showingHintMesh();
-        boolean hideCursorEnabled = mutatedMode.hideCursor().enabled();
+        // render-as-cursor also owns the system cursor; when both are on it takes
+        // precedence and hide-cursor is deferred (the indicator is the cursor).
+        boolean hideCursorEnabled = !mutatedMode.indicator().renderAsCursor() &&
+                                    mutatedMode.hideCursor().enabled();
         if (!previousHideCursorEnabled && hideCursorEnabled)
             resetHideCursorTimer(mutatedMode);
         else if (previousHideCursorEnabled && !hideCursorEnabled)
@@ -134,6 +137,10 @@ public class ModeController {
     }
 
     private void resetCurrentModeCursorHidden(Mode mode) {
+        if (mode.indicator().renderAsCursor()) {
+            currentModeCursorHidden = false;
+            return;
+        }
         if (currentModeCursorHidden) {
             if (!mode.hideCursor().enabled() ||
                 !mode.hideCursor().idleDuration().equals(Duration.ZERO)) {
