@@ -1078,16 +1078,46 @@ public class ConfigurationParser {
                             handler.modeBuilderSetter().accept(propertyValue);
                     }
                     else if (stateOrKey.equals("fade-animation-enabled")) {
-                        mode.indicator.builder.fadeAnimationEnabled(
-                                Boolean.parseBoolean(propertyValue));
+                        ModePropertyHandler handler = ModePropertyHandler.of(
+                                new ModePropertyPath(List.of("indicator", "fadeAnimationEnabled")),
+                                Boolean::parseBoolean,
+                                v -> mode.indicator.builder.fadeAnimationEnabled(v));
+                        if (!tryParseComboProperty(propertyValue, modeName,
+                                handler.propertyPath(), handler.valueParser(),
+                                handler.modeBuilderSetter(),
+                                mode.indicator.mutateModeCommands,
+                                mode.indicator.setPropertyPaths,
+                                defaultComboMoveDuration, keyAliases, appAliases,
+                                keyResolver, allVariableNames, null))
+                            handler.modeBuilderSetter().accept(propertyValue);
                     }
                     else if (stateOrKey.equals("fade-animation-duration-millis")) {
-                        mode.indicator.builder.fadeAnimationDuration(
-                                Duration.ofMillis(Integer.parseInt(propertyValue)));
+                        ModePropertyHandler handler = ModePropertyHandler.of(
+                                new ModePropertyPath(List.of("indicator", "fadeAnimationDuration")),
+                                ConfigurationParser::parseDuration,
+                                v -> mode.indicator.builder.fadeAnimationDuration(v));
+                        if (!tryParseComboProperty(propertyValue, modeName,
+                                handler.propertyPath(), handler.valueParser(),
+                                handler.modeBuilderSetter(),
+                                mode.indicator.mutateModeCommands,
+                                mode.indicator.setPropertyPaths,
+                                defaultComboMoveDuration, keyAliases, appAliases,
+                                keyResolver, allVariableNames, null))
+                            handler.modeBuilderSetter().accept(propertyValue);
                     }
                     else if (stateOrKey.equals("render-as-cursor")) {
-                        mode.indicator.builder.renderAsCursor(
-                                Boolean.parseBoolean(propertyValue));
+                        ModePropertyHandler handler = ModePropertyHandler.of(
+                                new ModePropertyPath(List.of("indicator", "renderAsCursor")),
+                                Boolean::parseBoolean,
+                                v -> mode.indicator.builder.renderAsCursor(v));
+                        if (!tryParseComboProperty(propertyValue, modeName,
+                                handler.propertyPath(), handler.valueParser(),
+                                handler.modeBuilderSetter(),
+                                mode.indicator.mutateModeCommands,
+                                mode.indicator.setPropertyPaths,
+                                defaultComboMoveDuration, keyAliases, appAliases,
+                                keyResolver, allVariableNames, null))
+                            handler.modeBuilderSetter().accept(propertyValue);
                     }
                     else {
                         String subKey = keyMatcher.group(group5);
