@@ -89,6 +89,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void update(double delta) {
+        mouse.processPendingCursorRestore();
         overlay.setWaitForZoomBeforeRepainting(false);
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);

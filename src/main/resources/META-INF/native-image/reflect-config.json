@@ -86,6 +86,11 @@
   "methods":[{"name":"callback","parameterTypes":["java.lang.Object[]"] }]
 },
 {
+  "name":"com.sun.jna.CallbackReference$AttachOptions",
+  "allDeclaredFields":true,
+  "allDeclaredConstructors":true
+},
+{
   "name":"com.sun.jna.NativeLong",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -344,6 +349,12 @@
   "queryAllPublicConstructors":true,
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}],
   "methods":[{"name":"<init>","parameterTypes":["com.sun.jna.Pointer"] }]
+},
+{
+  "name":"mousemaster.platform.windows.ExtendedKernel32$PhandlerRoutine",
+  "queryAllDeclaredMethods":true,
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"callback","parameterTypes":["int"] }]
 },
 {
   "name":"com.sun.jna.platform.win32.WinUser$LowLevelKeyboardProc",

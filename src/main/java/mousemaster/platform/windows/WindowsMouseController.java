@@ -3,6 +3,7 @@ package mousemaster.platform.windows;
 import mousemaster.*;
 
 import com.sun.jna.Memory;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.PointerByReference;
@@ -10,6 +11,7 @@ import mousemaster.platform.MouseController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.concurrent.Executor;
@@ -263,6 +265,9 @@ public class WindowsMouseController implements MouseController {
 
     private boolean cursorHidden = false;
     private boolean indicatorCursorInstalled = false;
+    private ExtendedKernel32.PhandlerRoutine consoleCtrlHandler;
+    private volatile boolean cursorRestoreRequested;
+    private volatile boolean cursorRestoreDone;
 
     @Override
     public void showCursor() {
@@ -270,9 +275,55 @@ public class WindowsMouseController implements MouseController {
             return;
         cursorHidden = false;
         indicatorCursorInstalled = false;
-        ExtendedUser32.INSTANCE.SystemParametersInfoA(
+        reloadSystemCursors();
+    }
+
+    private boolean reloadSystemCursors() {
+        return ExtendedUser32.INSTANCE.SystemParametersInfoA(
                 new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
                 new WinDef.UINT(0));
+    }
+
+    /**
+     * SetSystemCursor persists after the process dies. The native-image shutdown hook does not
+     * run on a console close / Ctrl+C, so a console control handler restores the cursor instead.
+     */
+    private void ensureConsoleCtrlHandler() {
+        if (consoleCtrlHandler != null)
+            return;
+        consoleCtrlHandler = this::consoleCtrlEvent;
+        boolean registered =
+                ExtendedKernel32.INSTANCE.SetConsoleCtrlHandler(consoleCtrlHandler, true);
+        logger.info("Registered cursor-restore console control handler: " + registered +
+                    (registered ? "" : " (error " + Native.getLastError() + ")"));
+    }
+
+    private boolean consoleCtrlEvent(int dwCtrlType) {
+        // SPI_SETCURSORS from this OS-created thread is unreliable; let the main thread restore
+        // and block until it has (or times out) before the process terminates.
+        cursorRestoreRequested = true;
+        long deadlineNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        while (!cursorRestoreDone && System.nanoTime() < deadlineNanos) {
+            try {
+                Thread.sleep(5);
+            }
+            catch (InterruptedException e) {
+                break;
+            }
+        }
+        if (!cursorRestoreDone)
+            reloadSystemCursors(); // Last resort if the main thread did not respond.
+        logger.info("Console control event " + dwCtrlType +
+                    ": restored system cursors (main-thread done: " + cursorRestoreDone + ")");
+        return false; // Let the default handler proceed with termination.
+    }
+
+    /** Runs the restore requested by consoleCtrlEvent; called every frame from the main loop. */
+    public void processPendingCursorRestore() {
+        if (cursorRestoreRequested && !cursorRestoreDone) {
+            reloadSystemCursors();
+            cursorRestoreDone = true;
+        }
     }
 
     @Override
@@ -280,6 +331,7 @@ public class WindowsMouseController implements MouseController {
         // User32 ShowCursor(false) always returns -1 and does not hide the cursor.
         if (cursorHidden)
             return;
+        ensureConsoleCtrlHandler();
         cursorHidden = true;
         int cursorWidth = mouseSize().width();
         int cursorHeight = mouseSize().height();
@@ -323,6 +375,7 @@ public class WindowsMouseController implements MouseController {
      */
     public void setIndicatorCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight,
                                    boolean includeGlyph) {
+        ensureConsoleCtrlHandler();
         if (glyphByCursorId.isEmpty())
             snapshotSystemGlyphs();
         for (long cursorId : SYSTEM_CURSOR_IDS) {

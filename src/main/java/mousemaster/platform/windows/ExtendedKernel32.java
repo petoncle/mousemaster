@@ -16,4 +16,10 @@ public interface ExtendedKernel32 extends StdCallLibrary {
     String GetCommandLineA();
 
     int GetCurrentDirectoryW(int nBufferLength, char[] lpBuffer);
+
+    boolean SetConsoleCtrlHandler(PhandlerRoutine handlerRoutine, boolean add);
+
+    interface PhandlerRoutine extends StdCallCallback {
+        boolean callback(int dwCtrlType);
+    }
 }
