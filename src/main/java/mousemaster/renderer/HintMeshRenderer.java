@@ -675,36 +675,42 @@ public final class HintMeshRenderer {
                 oldContainer.show();
                 newContainer.setParent(window);
                 newContainer.show();
-                QRect beginRect =
-                        new QRect(0, 0,
-                                oldContainer.width(),
-                                oldContainer.height());
-                QRect endRect =
-                        new QRect(newContainer.x() - oldContainer.x(),
-                                newContainer.y() - oldContainer.y(),
-                                newContainer.width(),
-                                newContainer.height());
-                QVariantAnimation animation =
-                        hintContainerAnimation(beginRect, endRect, animationDuration);
-                beginRect.dispose();
-                HintContainerAnimationChanged animationChanged = new HintContainerAnimationChanged(
-                        oldContainer);
-                animation.valueChanged.connect(animationChanged);
-                HintContainerAnimationFinished animationFinished =
-                        new HintContainerAnimationFinished(oldContainer, oldContainer,
-                                endRect, this);
-                animation.finished.connect(animationFinished);
-                // It may be necessary to save those instances somewhere (HintMeshWindow),
-                // because they could get GC'd while they are still used by Qt (?).
-                // Same for HintContainerAnimationFinished.
-                hintMeshWindow.animations.add(animation);
-                hintMeshWindow.animationCallbacks.add(animationChanged);
-                hintMeshWindow.animationCallbacks.add(animationFinished);
-                if (containersEqual)
-                    // Screen selection hint end.
-                    animationFinished.invoke();
-                else
+                if (containersEqual) {
+                    // Same-size swap (a color change, or a screen-selection hint end): the new
+                    // container is already on top. Keep the old one beneath it until it is deleted
+                    // (no detach), so it backs a still-painting uncached container instead of leaving
+                    // a blank frame.
+                    oldContainer.disposeLater();
+                    hintContainerAnimationEnded();
+                }
+                else {
+                    QRect beginRect =
+                            new QRect(0, 0,
+                                    oldContainer.width(),
+                                    oldContainer.height());
+                    QRect endRect =
+                            new QRect(newContainer.x() - oldContainer.x(),
+                                    newContainer.y() - oldContainer.y(),
+                                    newContainer.width(),
+                                    newContainer.height());
+                    QVariantAnimation animation =
+                            hintContainerAnimation(beginRect, endRect, animationDuration);
+                    beginRect.dispose();
+                    HintContainerAnimationChanged animationChanged = new HintContainerAnimationChanged(
+                            oldContainer);
+                    animation.valueChanged.connect(animationChanged);
+                    HintContainerAnimationFinished animationFinished =
+                            new HintContainerAnimationFinished(oldContainer, oldContainer,
+                                    endRect, this);
+                    animation.finished.connect(animationFinished);
+                    // It may be necessary to save those instances somewhere (HintMeshWindow),
+                    // because they could get GC'd while they are still used by Qt (?).
+                    // Same for HintContainerAnimationFinished.
+                    hintMeshWindow.animations.add(animation);
+                    hintMeshWindow.animationCallbacks.add(animationChanged);
+                    hintMeshWindow.animationCallbacks.add(animationFinished);
                     animation.start();
+                }
             }
             else if (animateTransition && newContainsOld) {
                 // Initially show new container with the position and size of old.
@@ -1534,7 +1540,7 @@ public final class HintMeshRenderer {
         image.setDotsPerMeterY(dotsPerMeter);
     }
 
-    private void cacheQtHintWindowIntoPixmap(TransparentWindow window, QWidget container,
+    private void cacheQtHintWindowIntoPixmap(TransparentWindow window, ClearBackgroundQLabel container,
                                                     HintMesh hintMeshKey, HintMesh hintMesh,
                                                     List<HintBox> boxes) {
         long before = System.nanoTime();
@@ -1548,19 +1554,15 @@ public final class HintMeshRenderer {
                      hintMeshPixmaps.size() + ")");
 //         pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
-        // Swap the live container for a pixmap label so a later crop clips it instead of masking a
-        // live widget. Border morph layer is separate and stays on top.
-        ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel();
-        pixmapLabel.setPixmap(pixmap);
-        pixmapLabel.setGeometry(container.x(), container.y(), pixmap.width(), pixmap.height());
-        pixmapLabel.setParent(window);
-        pixmapLabel.show();
-        pixmapLabel.repaint();
-        LineMorph morph = lineMorphByWindow.get(window);
-        if (morph != null && morph.layer != null)
-            morph.layer.raise();
-        container.setParent(null);
-        container.disposeLater();
+        // Turn the live container into a pixmap label in place, so a later crop clips the pixmap
+        // (smooth) rather than masking the live widget. In place means the shown widget never
+        // changes, so there is no blank frame. The label layers are now in the pixmap, so drop them.
+        container.setPixmap(pixmap);
+        for (QObject child : List.copyOf(container.children()))
+            if (child instanceof HintPaintLayer layer) {
+                layer.setParent(null);
+                layer.disposeLater();
+            }
     }
 
     private List<Hint> trimmedHints(List<Hint> hints,
