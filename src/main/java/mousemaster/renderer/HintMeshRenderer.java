@@ -49,6 +49,9 @@ public final class HintMeshRenderer {
     /** The live, morphing box layer per window, kept out of the cropped screenshot. */
     private final Map<TransparentWindow, LineMorph> lineMorphByWindow = new HashMap<>();
     private boolean showingHintMesh;
+    /** Set by a window that dropped a match crop for a differently-sized fresh grid, so the mesh
+     *  fades in (rather than pops) even though it was showing the crop. */
+    private boolean freshFadeThisRender;
     private HintMesh currentHintMesh;
     private FadeAnimator hintMeshFadeAnimator;
     /** Creates a styled native window — the single platform primitive the renderer needs. */
@@ -147,6 +150,7 @@ public final class HintMeshRenderer {
         }
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return false;
+        freshFadeThisRender = false;
         boolean wasShowing = showingHintMesh;
         // If re-showing during a fade-out, cancel the fade-out.
         if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.isFadingOut()) {
@@ -176,7 +180,7 @@ public final class HintMeshRenderer {
         currentHintMesh = hintMesh;
         createOrUpdateHintMeshWindows(currentHintMesh, zoom, screens);
         showingHintMesh = true;
-        if (!wasShowing && !hintMeshWindows.isEmpty()) {
+        if ((!wasShowing || freshFadeThisRender) && !hintMeshWindows.isEmpty()) {
             // Resolve fade settings from first screen's style.
             Map.Entry<Screen, HintMeshWindow> firstEntry =
                     hintMeshWindows.entrySet().iterator().next();
@@ -382,10 +386,11 @@ public final class HintMeshRenderer {
         setUncachedHintMeshWindowRunnable = null;
         cacheQtHintWindowIntoPixmapRunnable = null;
         TransparentWindow window = hintMeshWindow.window;
-        // A forced (hint match) crop is always followed at once by its same-target content render, so
-        // that render continues it from the current on-screen extent. Any other in-progress transition
-        // is insta-finished to its target and the new one starts fresh from there.
-        boolean continueFromCurrentExtent = hintMeshWindow.lastTransitionForced.get();
+        // A forced (hint match) crop is followed either by its same-target content render (a drill,
+        // which continues it from the current on-screen extent) or by a differently-sized fresh grid
+        // (e.g. the top-level grid after a click, which must not morph from the crop). Any other
+        // in-progress transition is a reversal: insta-finish it to its target and start from there.
+        boolean forcedCrop = hintMeshWindow.lastTransitionForced.get();
         hintMeshWindow.lastTransitionForced.set(forcedPixmapAndPosition != null);
         // The new animation inherits the interrupted one's velocity by finishing in the time that one
         // had left (its own remaining duration, which is already shortened if it too was interrupted).
@@ -399,7 +404,21 @@ public final class HintMeshRenderer {
                                          .orElse(style.transitionAnimationDuration());
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
-        if (continueFromCurrentExtent) {
+        boolean continueFromCurrentExtent =
+                forcedCrop && coversInProgressTarget(hintMeshWindow, contentContainers(window));
+        if (forcedCrop && !continueFromCurrentExtent) {
+            // Fresh grid after a match crop (different target): drop the crop and its morph so the new
+            // mesh fades in instead of morphing from the selected cell.
+            for (QWidget container : contentContainers(window)) {
+                container.setParent(null);
+                container.disposeLater();
+            }
+            LineMorph morph = lineMorphByWindow.get(window);
+            if (morph != null)
+                stopLineMorph(morph);
+            freshFadeThisRender = true;
+        }
+        else if (continueFromCurrentExtent) {
             List<QWidget> containers = contentContainers(window);
             if (containers.size() >= 2) {
                 QWidget veryOldContainer = containers.getFirst();
@@ -784,6 +803,31 @@ public final class HintMeshRenderer {
             if (child instanceof QWidget widget && widget != lineLayer)
                 containers.add(widget);
         return containers;
+    }
+
+    /** Whether the incoming mesh covers about the same extent as the in-progress crop's target (its
+     *  newest container), i.e. it drills into the same cell and should continue the crop rather than
+     *  replace it with a fresh grid. */
+    private boolean coversInProgressTarget(HintMeshWindow hintMeshWindow, List<QWidget> containers) {
+        if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
+            return false;
+        QRect inProgressTarget = containers.getLast().geometry();
+        double left = Double.MAX_VALUE, top = Double.MAX_VALUE;
+        double right = -Double.MAX_VALUE, bottom = -Double.MAX_VALUE;
+        for (Hint hint : hintMeshWindow.hints()) {
+            left = Math.min(left, hint.centerX() - hint.cellWidth() / 2.0);
+            right = Math.max(right, hint.centerX() + hint.cellWidth() / 2.0);
+            top = Math.min(top, hint.centerY() - hint.cellHeight() / 2.0);
+            bottom = Math.max(bottom, hint.centerY() + hint.cellHeight() / 2.0);
+        }
+        boolean same = closeInSize(inProgressTarget.width(), right - left) &&
+                       closeInSize(inProgressTarget.height(), bottom - top);
+        inProgressTarget.dispose();
+        return same;
+    }
+
+    private static boolean closeInSize(double a, double b) {
+        return Math.min(a, b) > 0.75 * Math.max(a, b);
     }
 
     /** A container's currently visible rectangle in window coordinates: its mask bounds when it is
