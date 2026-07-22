@@ -52,6 +52,9 @@ public final class HintMeshRenderer {
     /** Set by a window that dropped a match crop for a differently-sized fresh grid, so the mesh
      *  fades in (rather than pops) even though it was showing the crop. */
     private boolean freshFadeThisRender;
+    /** A transition resuming an interrupted one from its current extent (drill or reversal); its
+     *  crop/morph ease out only, so the motion does not restart at the handoff. */
+    private boolean continuationTransition;
     private HintMesh currentHintMesh;
     private FadeAnimator hintMeshFadeAnimator;
     /** Creates a styled native window — the single platform primitive the renderer needs. */
@@ -428,12 +431,11 @@ public final class HintMeshRenderer {
         setUncachedHintMeshWindowRunnable = null;
         cacheQtHintWindowIntoPixmapRunnable = null;
         TransparentWindow window = hintMeshWindow.window;
-        // A forced (hint match) crop is followed either by its same-target content render (a drill,
-        // which continues it from the current on-screen extent) or by a differently-sized fresh grid
-        // (e.g. the top-level grid after a click, which must not morph from the crop). Any other
-        // in-progress transition is a reversal: insta-finish it to its target and start from there.
-        boolean forcedCrop = hintMeshWindow.lastTransitionForced.get();
-        hintMeshWindow.lastTransitionForced.set(forcedPixmapAndPosition != null);
+        // forcedBefore marks the previous render as a hint-match crop, forcedNow marks this one; a crop
+        // and the content render that follows it form a drill.
+        boolean forcedBefore = hintMeshWindow.lastTransitionForced.get();
+        boolean forcedNow = forcedPixmapAndPosition != null;
+        hintMeshWindow.lastTransitionForced.set(forcedNow);
         // The new animation inherits the interrupted one's velocity by finishing in the time that one
         // had left (its own remaining duration, which is already shortened if it too was interrupted).
         Duration transitionAnimationDuration =
@@ -446,9 +448,19 @@ public final class HintMeshRenderer {
                                          .orElse(style.transitionAnimationDuration());
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
-        boolean continueFromCurrentExtent =
-                forcedCrop && coversInProgressTarget(hintMeshWindow, contentContainers(window));
-        if (forcedCrop && !continueFromCurrentExtent) {
+        List<QWidget> interruptedContainers = contentContainers(window);
+        // A drill continues from the current extent toward a same-sized or contained target; a
+        // differently-sized fresh grid after a click fades. A reversal continues back out to a grid
+        // that contains the target (3->2->1); anything else insta-finishes.
+        boolean partOfDrill = forcedBefore || forcedNow;
+        boolean coversTarget = coversInProgressTarget(hintMeshWindow, interruptedContainers);
+        boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, interruptedContainers);
+        boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, interruptedContainers);
+        boolean continueFromCurrentExtent = partOfDrill
+                ? coversTarget || targetContainsNew
+                : showingHintMesh && newContainsTarget && !coversTarget;
+        continuationTransition = continueFromCurrentExtent;
+        if (forcedBefore && !continueFromCurrentExtent) {
             // Fresh grid after a match crop (different target): drop the crop and its morph so the new
             // mesh fades in instead of morphing from the selected cell.
             for (QWidget container : contentContainers(window)) {
@@ -461,33 +473,29 @@ public final class HintMeshRenderer {
             freshFadeThisRender = true;
         }
         else if (continueFromCurrentExtent) {
+            // Consolidate multiple old containers (a mid-drill interruption) into one at their union
+            // visible extent, so the next transition has a single "old" to animate from. A lone
+            // container is left as is, keeping its clip-capable pixmap.
             List<QWidget> containers = contentContainers(window);
             if (containers.size() >= 2) {
-                QWidget veryOldContainer = containers.getFirst();
-                // oldContainer is the container we were animating to (but a new container replaced it).
-                QWidget oldContainer = containers.getLast();
-                veryOldContainer.setParent(null);
-                oldContainer.setParent(null);
+                int mergedX = Integer.MAX_VALUE, mergedY = Integer.MAX_VALUE;
+                int mergedRight = Integer.MIN_VALUE, mergedBottom = Integer.MIN_VALUE;
+                for (QWidget container : containers) {
+                    container.setParent(null);
+                    QRect visible = visibleRect(container);
+                    mergedX = Math.min(mergedX, visible.x());
+                    mergedY = Math.min(mergedY, visible.y());
+                    mergedRight = Math.max(mergedRight, visible.right());
+                    mergedBottom = Math.max(mergedBottom, visible.bottom());
+                    visible.dispose();
+                }
                 QWidget mergedContainer = new QWidget(window);
-                // Union the currently visible (masked) extents, not the full geometries: this keeps the
-                // merged "old" at what is actually on screen, so the next transition (a reversal in
-                // particular) animates from there instead of snapping.
-                QRect veryOldGeom = visibleRect(veryOldContainer);
-                QRect oldGeom = visibleRect(oldContainer);
-                int mergedContainerX = Math.min(veryOldGeom.x(), oldGeom.x());
-                int mergedContainerY = Math.min(veryOldGeom.y(), oldGeom.y());
-                mergedContainer.setGeometry(
-                        mergedContainerX,
-                        mergedContainerY,
-                        Math.max(veryOldGeom.right(), oldGeom.right()) - mergedContainerX,
-                        Math.max(veryOldGeom.bottom(), oldGeom.bottom()) - mergedContainerY
-                );
-                veryOldGeom.dispose();
-                oldGeom.dispose();
-                veryOldContainer.move(veryOldContainer.x() - mergedContainerX, veryOldContainer.y() - mergedContainerY);
-                oldContainer.move(oldContainer.x() - mergedContainerX, oldContainer.y() - mergedContainerY);
-                veryOldContainer.setParent(mergedContainer);
-                oldContainer.setParent(mergedContainer);
+                mergedContainer.setGeometry(mergedX, mergedY,
+                        mergedRight - mergedX, mergedBottom - mergedY);
+                for (QWidget container : containers) {
+                    container.move(container.x() - mergedX, container.y() - mergedY);
+                    container.setParent(mergedContainer);
+                }
                 mergedContainer.show();
             }
         }
@@ -703,11 +711,15 @@ public final class HintMeshRenderer {
                 // Then grow new container until it reaches its final position and size.
                 newContainer.setParent(window);
                 newContainer.show();
+                // Start from the old container's visible (cropped) extent, not its full geometry, so a
+                // mid-animation reversal grows from where it is instead of snapping.
+                QRect oldVisible = visibleRect(oldContainer);
                 QRect beginRect =
-                        new QRect(oldContainer.x() - newContainer.x(),
-                                oldContainer.y() - newContainer.y(),
-                                oldContainer.width(),
-                                oldContainer.height());
+                        new QRect(oldVisible.x() - newContainer.x(),
+                                oldVisible.y() - newContainer.y(),
+                                oldVisible.width(),
+                                oldVisible.height());
+                oldVisible.dispose();
                 QRect endRect =
                         new QRect(0, 0,
                                 newContainer.width(), newContainer.height());
@@ -806,7 +818,8 @@ public final class HintMeshRenderer {
         animation.setDuration(Math.max(1, (int) duration.toMillis()));
         animation.setStartValue(0d);
         animation.setEndValue(1d);
-        animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
+        animation.setEasingCurve(continuationTransition ? QEasingCurve.Type.OutQuad :
+                QEasingCurve.Type.InOutQuad);
         QMetaObject.Slot1<Object> callback = value -> {
             double progress = (Double) value;
             for (int i = 0; i < boxCount; i++) {
@@ -857,6 +870,46 @@ public final class HintMeshRenderer {
         if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
             return false;
         QRect inProgressTarget = containers.getLast().geometry();
+        QRect bounds = newMeshBounds(hintMeshWindow);
+        boolean same = closeInSize(inProgressTarget.width(), bounds.width()) &&
+                       closeInSize(inProgressTarget.height(), bounds.height());
+        inProgressTarget.dispose();
+        bounds.dispose();
+        return same;
+    }
+
+    /** Whether the crop's target contains the incoming mesh: a drill going deeper (not a larger fresh
+     *  grid after a click), so the crop keeps going toward it. */
+    private boolean targetContainsNewMesh(HintMeshWindow hintMeshWindow, List<QWidget> containers) {
+        if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
+            return false;
+        QRect target = containers.getLast().geometry();
+        QRect paddedTarget = paddedRect(target);
+        QRect bounds = newMeshBounds(hintMeshWindow);
+        boolean contains = paddedTarget.contains(bounds);
+        target.dispose();
+        paddedTarget.dispose();
+        bounds.dispose();
+        return contains;
+    }
+
+    /** Whether the incoming mesh contains the target: going back out (a reversal), so the crop grows
+     *  toward the new mesh instead of insta-finishing. */
+    private boolean newMeshContainsTarget(HintMeshWindow hintMeshWindow, List<QWidget> containers) {
+        if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
+            return false;
+        QRect target = containers.getLast().geometry();
+        QRect bounds = newMeshBounds(hintMeshWindow);
+        QRect paddedBounds = paddedRect(bounds);
+        boolean contains = paddedBounds.contains(target);
+        target.dispose();
+        bounds.dispose();
+        paddedBounds.dispose();
+        return contains;
+    }
+
+    /** Bounding rectangle of the incoming mesh's cells, in window coordinates. */
+    private QRect newMeshBounds(HintMeshWindow hintMeshWindow) {
         double left = Double.MAX_VALUE, top = Double.MAX_VALUE;
         double right = -Double.MAX_VALUE, bottom = -Double.MAX_VALUE;
         for (Hint hint : hintMeshWindow.hints()) {
@@ -865,10 +918,9 @@ public final class HintMeshRenderer {
             top = Math.min(top, hint.centerY() - hint.cellHeight() / 2.0);
             bottom = Math.max(bottom, hint.centerY() + hint.cellHeight() / 2.0);
         }
-        boolean same = closeInSize(inProgressTarget.width(), right - left) &&
-                       closeInSize(inProgressTarget.height(), bottom - top);
-        inProgressTarget.dispose();
-        return same;
+        return new QRect((int) Math.round(left - hintMeshWindow.window.x()),
+                (int) Math.round(top - hintMeshWindow.window.y()),
+                (int) Math.round(right - left), (int) Math.round(bottom - top));
     }
 
     private static boolean closeInSize(double a, double b) {
@@ -981,7 +1033,8 @@ public final class HintMeshRenderer {
         animation.setDuration((int) animationDuration.toMillis());
         animation.setStartValue(beginRect);
         animation.setEndValue(endRect);
-        animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
+        animation.setEasingCurve(continuationTransition ? QEasingCurve.Type.OutQuad :
+                QEasingCurve.Type.InOutQuad);
         return animation;
     }
 
