@@ -333,9 +333,9 @@ public class ComboWatcher {
         combosWaitingForLastMoveToComplete.removeIf(
                 comboWaitingForLastMoveToComplete -> !comboWaitingForLastMoveToComplete.comboMode.equals(
                         baseMode));
+        Instant waitCheckTime = clock.now();
         for (ComboWaitingForLastMoveToComplete comboWaitingForLastMoveToComplete : combosWaitingForLastMoveToComplete) {
-            comboWaitingForLastMoveToComplete.remainingWait -= delta;
-            if (comboWaitingForLastMoveToComplete.remainingWait < 0) {
+            if (!waitCheckTime.isBefore(comboWaitingForLastMoveToComplete.deadline)) {
                 completedCombosWaitingForLastMoveToComplete.add(comboWaitingForLastMoveToComplete);
                 Combo combo = comboWaitingForLastMoveToComplete.comboAndCommands.combo;
                 ComboSequenceMatch waitingMatch = comboWaitingForLastMoveToComplete.comboAndCommands.match;
@@ -874,14 +874,14 @@ public class ComboWatcher {
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(baseMode, comboAndCommands,
-                                waitMove.duration().min().toNanos() / 1e9d));
+                                clock.now().plus(waitMove.duration().min())));
             }
             else if (lastMoveIsWaitingMove) {
                 List<Command> commands = comboCommands;
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
                 combosWaitingForLastMoveToComplete.add(
                         new ComboWaitingForLastMoveToComplete(baseMode, comboAndCommands,
-                                comboLastMove.duration().min().toNanos() / 1e9d));
+                                clock.now().plus(comboLastMove.duration().min())));
             }
             else {
                 List<Command> commands = comboCommands;
@@ -1652,14 +1652,16 @@ public class ComboWatcher {
      private static final class ComboWaitingForLastMoveToComplete {
          private final Mode comboMode;
          private final ComboAndCommands comboAndCommands;
-         private double remainingWait;
+         /** Wall-clock time the last move's wait elapses, so the countdown is unaffected by
+          *  how long update() went without running (a delta could predate this combo). */
+         private final Instant deadline;
 
          private ComboWaitingForLastMoveToComplete(Mode baseMode,
                                                    ComboAndCommands comboAndCommands,
-                                                   double remainingWait) {
+                                                   Instant deadline) {
              comboMode = baseMode;
              this.comboAndCommands = comboAndCommands;
-             this.remainingWait = remainingWait;
+             this.deadline = deadline;
          }
 
          /** Returns the wait move if the last MoveSet is a wait, null otherwise. */
@@ -1676,7 +1678,7 @@ public class ComboWatcher {
         @Override
         public String toString() {
             return "ComboWaitingForLastMoveToComplete[" + "comboAndCommands=" +
-                   comboAndCommands + ", remainingWait=" + remainingWait + ']';
+                   comboAndCommands + ", deadline=" + deadline + ']';
         }
     }
 
