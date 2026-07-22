@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -61,7 +62,8 @@ public final class HintMeshRenderer {
                                  Zoom zoom,
                                  List<QVariantAnimation> animations,
                                  List<QMetaObject.AbstractSlot> animationCallbacks,
-                                 AtomicReference<HintMesh> lastHintMeshKeyReference) {
+                                 AtomicReference<HintMesh> lastHintMeshKeyReference,
+                                 AtomicBoolean lastTransitionForced) {
     }
 
     /** Holds the current box line layer and its running morph so the next transition continues from it. */
@@ -69,6 +71,7 @@ public final class HintMeshRenderer {
         private HintPaintLayer layer;
         private QVariantAnimation animation;
         private QMetaObject.AbstractSlot callback; // Kept referenced so Qt does not GC it.
+        private int originX, originY; // Content container offset of layer, to settle its boxes to their target.
     }
 
     public HintMeshRenderer(Supplier<TransparentWindow> windowFactory,
@@ -274,7 +277,8 @@ public final class HintMeshRenderer {
                 HintMeshWindow hintMeshWindow = new HintMeshWindow(existingWindow.window(),
                         hintsInScreen, zoom, existingWindow.animations(),
                         existingWindow.animationCallbacks(),
-                        existingWindow.lastHintMeshKeyReference());
+                        existingWindow.lastHintMeshKeyReference(),
+                        existingWindow.lastTransitionForced());
                 boolean zoomChanged = existingWindow.zoom() == null || !existingWindow.zoom().equals(zoom);
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
@@ -325,7 +329,8 @@ public final class HintMeshRenderer {
         window.move(screen.rectangle().x(), screen.rectangle().y());
         window.resize(screen.rectangle().width(), screen.rectangle().height());
         return new HintMeshWindow(window, hints, zoom,
-                new ArrayList<>(), new ArrayList<>(), new AtomicReference<>());
+                new ArrayList<>(), new ArrayList<>(), new AtomicReference<>(),
+                new AtomicBoolean());
     }
 
     public void preWarmHintMeshWindows(Set<Screen> screens) {
@@ -376,45 +381,68 @@ public final class HintMeshRenderer {
                                           PixmapAndPosition forcedPixmapAndPosition) {
         setUncachedHintMeshWindowRunnable = null;
         cacheQtHintWindowIntoPixmapRunnable = null;
-        int transitionAnimationCurrentTime =
+        TransparentWindow window = hintMeshWindow.window;
+        // A forced (hint match) crop is always followed at once by its same-target content render, so
+        // that render continues it from the current on-screen extent. Any other in-progress transition
+        // is insta-finished to its target and the new one starts fresh from there.
+        boolean continueFromCurrentExtent = hintMeshWindow.lastTransitionForced.get();
+        hintMeshWindow.lastTransitionForced.set(forcedPixmapAndPosition != null);
+        int transitionAnimationCurrentTime = !continueFromCurrentExtent ? 0 :
                 hintMeshWindow.animations.stream()
                                          .filter(animation -> animation.getState() ==
                                                               QAbstractAnimation.State.Running)
                                          .map(QAbstractAnimation::getCurrentTime)
                                          .findFirst()
                                          .orElse(0);
-        TransparentWindow window = hintMeshWindow.window;
-        for (QVariantAnimation animation : hintMeshWindow.animations) {
-            List<QWidget> containers = contentContainers(window);
-            if (containers.size() < 2)
-                continue;
+        for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
-            QWidget veryOldContainer = containers.getFirst();
-            // oldContainer is the container we were animating to (but a new container replaced it).
-            QWidget oldContainer = containers.getLast();
-            veryOldContainer.setParent(null);
-            oldContainer.setParent(null);
-            QWidget mergedContainer = new QWidget(window);
-            // Union the currently visible (masked) extents, not the full geometries: this keeps the
-            // merged "old" at what is actually on screen, so the next transition (a reversal in
-            // particular) animates from there instead of snapping.
-            QRect veryOldGeom = visibleRect(veryOldContainer);
-            QRect oldGeom = visibleRect(oldContainer);
-            int mergedContainerX = Math.min(veryOldGeom.x(), oldGeom.x());
-            int mergedContainerY = Math.min(veryOldGeom.y(), oldGeom.y());
-            mergedContainer.setGeometry(
-                    mergedContainerX,
-                    mergedContainerY,
-                    Math.max(veryOldGeom.right(), oldGeom.right()) - mergedContainerX,
-                    Math.max(veryOldGeom.bottom(), oldGeom.bottom()) - mergedContainerY
-            );
-            veryOldGeom.dispose();
-            oldGeom.dispose();
-            veryOldContainer.move(veryOldContainer.x() - mergedContainerX, veryOldContainer.y() - mergedContainerY);
-            oldContainer.move(oldContainer.x() - mergedContainerX, oldContainer.y() - mergedContainerY);
-            veryOldContainer.setParent(mergedContainer);
-            oldContainer.setParent(mergedContainer);
-            mergedContainer.show();
+        if (continueFromCurrentExtent) {
+            List<QWidget> containers = contentContainers(window);
+            if (containers.size() >= 2) {
+                QWidget veryOldContainer = containers.getFirst();
+                // oldContainer is the container we were animating to (but a new container replaced it).
+                QWidget oldContainer = containers.getLast();
+                veryOldContainer.setParent(null);
+                oldContainer.setParent(null);
+                QWidget mergedContainer = new QWidget(window);
+                // Union the currently visible (masked) extents, not the full geometries: this keeps the
+                // merged "old" at what is actually on screen, so the next transition (a reversal in
+                // particular) animates from there instead of snapping.
+                QRect veryOldGeom = visibleRect(veryOldContainer);
+                QRect oldGeom = visibleRect(oldContainer);
+                int mergedContainerX = Math.min(veryOldGeom.x(), oldGeom.x());
+                int mergedContainerY = Math.min(veryOldGeom.y(), oldGeom.y());
+                mergedContainer.setGeometry(
+                        mergedContainerX,
+                        mergedContainerY,
+                        Math.max(veryOldGeom.right(), oldGeom.right()) - mergedContainerX,
+                        Math.max(veryOldGeom.bottom(), oldGeom.bottom()) - mergedContainerY
+                );
+                veryOldGeom.dispose();
+                oldGeom.dispose();
+                veryOldContainer.move(veryOldContainer.x() - mergedContainerX, veryOldContainer.y() - mergedContainerY);
+                oldContainer.move(oldContainer.x() - mergedContainerX, oldContainer.y() - mergedContainerY);
+                veryOldContainer.setParent(mergedContainer);
+                oldContainer.setParent(mergedContainer);
+                mergedContainer.show();
+            }
+        }
+        else {
+            // Insta-finish: keep the newest container fully shown at its target, drop the rest.
+            List<QWidget> containers = contentContainers(window);
+            for (int i = 0; i < containers.size() - 1; i++) {
+                containers.get(i).setParent(null);
+                containers.get(i).disposeLater();
+            }
+            if (!containers.isEmpty())
+                containers.getLast().clearMask();
+            // Settle the border morph to its target too, so the boxes start the reversal from where
+            // the crop does.
+            LineMorph morph = lineMorphByWindow.get(window);
+            if (morph != null && morph.layer != null)
+                for (HintBox box : morph.layer.boxes)
+                    box.setGeometry(box.baseX + morph.originX, box.baseY + morph.originY,
+                            box.baseWidth, box.baseHeight);
         }
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.dispose();
@@ -699,6 +727,8 @@ public final class HintMeshRenderer {
         layer.raise();
         layer.show();
         morph.layer = layer;
+        morph.originX = originX;
+        morph.originY = originY;
         window.show();
         if (!doAnimate)
             return;
