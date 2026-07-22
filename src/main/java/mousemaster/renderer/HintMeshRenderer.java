@@ -43,6 +43,10 @@ public final class HintMeshRenderer {
     private boolean pumpDuringHintBuild;
     private final Runnable hintMeshEndAnimationEndedCallback;
     private final Map<Screen, HintMeshWindow> hintMeshWindows = new LinkedHashMap<>(); // Ordered for topmost handling.
+    /** When true, box lines morph while labels/shadows crop; when false, the whole mesh crops (old behavior). */
+    private final boolean morphingAnimationEnabled = true;
+    /** The live, morphing box layer per window, kept out of the cropped screenshot. */
+    private final Map<TransparentWindow, LineMorph> lineMorphByWindow = new HashMap<>();
     private boolean showingHintMesh;
     private HintMesh currentHintMesh;
     private FadeAnimator hintMeshFadeAnimator;
@@ -58,6 +62,13 @@ public final class HintMeshRenderer {
                                  List<QVariantAnimation> animations,
                                  List<QMetaObject.AbstractSlot> animationCallbacks,
                                  AtomicReference<HintMesh> lastHintMeshKeyReference) {
+    }
+
+    /** Holds the current box line layer and its running morph so the next transition continues from it. */
+    private static final class LineMorph {
+        private HintPaintLayer layer;
+        private QVariantAnimation animation;
+        private QMetaObject.AbstractSlot callback; // Kept referenced so Qt does not GC it.
     }
 
     public HintMeshRenderer(Supplier<TransparentWindow> windowFactory,
@@ -213,6 +224,9 @@ public final class HintMeshRenderer {
             }
             hintMeshWindow.animations().clear();
             hintMeshWindow.animationCallbacks().clear();
+            LineMorph lineMorph = lineMorphByWindow.remove(hintMeshWindow.window());
+            if (lineMorph != null)
+                stopLineMorph(lineMorph);
             hintMeshWindow.window().setBackground(null, null);
             hintMeshWindow.window().hideChildren();
             hintMeshWindow.window().repaint();
@@ -371,12 +385,13 @@ public final class HintMeshRenderer {
                                          .orElse(0);
         TransparentWindow window = hintMeshWindow.window;
         for (QVariantAnimation animation : hintMeshWindow.animations) {
-            if (window.children().size() < 2)
+            List<QWidget> containers = contentContainers(window);
+            if (containers.size() < 2)
                 continue;
             animation.stop();
-            QWidget veryOldContainer = (QWidget) window.children().getFirst();
+            QWidget veryOldContainer = containers.getFirst();
             // oldContainer is the container we were animating to (but a new container replaced it).
-            QWidget oldContainer = (QWidget) window.children().getLast();
+            QWidget oldContainer = containers.getLast();
             veryOldContainer.setParent(null);
             oldContainer.setParent(null);
             QWidget mergedContainer = new QWidget(window);
@@ -405,9 +420,8 @@ public final class HintMeshRenderer {
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
-        QWidget oldContainer =
-                window.children().isEmpty() ? null :
-                        (QWidget) window.children().getFirst();
+        List<QWidget> oldContainers = contentContainers(window);
+        QWidget oldContainer = oldContainers.isEmpty() ? null : oldContainers.getFirst();
         boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
         window.clearWindow();
         // Compute background color for both the window and the container clear.
@@ -459,7 +473,7 @@ public final class HintMeshRenderer {
         QWidget newContainer;
         if (pixmapAndPosition != null) {
             logger.trace("Using cached pixmap " + pixmapAndPosition);
-            QLabel pixmapLabel = new ClearBackgroundQLabel();
+            ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel();
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
             Hint originalFirstHint = pixmapAndPosition.originalHintMesh.hints().getFirst();
             int originalWindowX = pixmapAndPosition.windowX;
@@ -471,11 +485,13 @@ public final class HintMeshRenderer {
                     pixmapAndPosition.y() + (int) Math.round(newFirstHint.centerY() - window.y() - (originalFirstHint.centerY() - originalWindowY)),
                     pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             newContainer = pixmapLabel;
-            transitionHintContainers(
-                    style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged,
-                    oldContainer, newContainer,
+            boolean animate = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+            transitionHintContainers(animate, oldContainer, newContainer,
                     window, hintMeshWindow,
                     style.transitionAnimationDuration(), transitionAnimationCurrentTime);
+            if (pixmapAndPosition.boxes() != null)
+                morphLines(window, pixmapLabel, pixmapAndPosition.boxes(), animate,
+                        style.transitionAnimationDuration());
         }
         else {
             // Uses ClearBackgroundQLabel because when in the mergedContainer,
@@ -488,7 +504,7 @@ public final class HintMeshRenderer {
             setUncachedHintMeshWindowRunnable =
                     () -> {
                         long before = System.nanoTime();
-                        Map<List<Key>, QRect> hintBoxGeometries =
+                        BuiltGrid built =
                                 setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
                                         screenScale,
                                         style, qtScaleFactor,
@@ -496,18 +512,23 @@ public final class HintMeshRenderer {
                                 );
                         logger.debug("Built hint mesh window in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
                         hintBoxGeometriesByHintMeshKey.put(hintMeshKey,
-                                hintBoxGeometries);
-                        transitionHintContainers(
-                                style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged,
+                                built.boxGeometries());
+                        boolean animate = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+                        transitionHintContainers(animate,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow,
                                 style.transitionAnimationDuration(), transitionAnimationCurrentTime);
+                        boolean morphGrid = morphingAnimationEnabled && isHintGrid;
+                        if (morphGrid)
+                            morphLines(window, container, built.boxes(), animate,
+                                    style.transitionAnimationDuration());
                         if (isHintGrid) {
+                            List<HintBox> cacheBoxes = morphGrid ? built.boxes() : null;
                             // Defer the pixmap cache grab to the next frame so the hint mesh
                             // is shown immediately. The grab is expensive (~370ms at 4K) but
                             // only needed for caching subsequent renders.
                             cacheQtHintWindowIntoPixmapRunnable = () ->
-                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh);
+                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, cacheBoxes);
                         }
                     };
             // Run immediately when hints are already visible (to avoid a
@@ -631,6 +652,109 @@ public final class HintMeshRenderer {
         window.show();
     }
 
+    /** Shows the new grid's boxes in a live layer above the content and, if animating, morphs each box
+     *  from its old counterpart (matched by key) to its new geometry while the labels crop underneath. */
+    private void morphLines(TransparentWindow window, QWidget contentContainer,
+                            List<HintBox> newBoxes, boolean animate, Duration duration) {
+        LineMorph morph = lineMorphByWindow.computeIfAbsent(window, w -> new LineMorph());
+        QRect containerGeometry = contentContainer.geometry();
+        int originX = containerGeometry.x();
+        int originY = containerGeometry.y();
+        containerGeometry.dispose();
+        // Start each box from where it currently is, so a chained morph continues smoothly
+        // from the mid-flight position instead of jumping.
+        Map<List<Key>, int[]> startByKey = new HashMap<>();
+        if (animate && morph.layer != null)
+            for (HintBox oldBox : morph.layer.boxes)
+                startByKey.put(oldBox.hint.keySequence(),
+                        new int[]{oldBox.x(), oldBox.y(), oldBox.width(), oldBox.height()});
+        stopLineMorph(morph);
+        int boxCount = newBoxes.size();
+        int[][] start = new int[boxCount][], end = new int[boxCount][];
+        boolean anyMove = false;
+        for (int i = 0; i < boxCount; i++) {
+            HintBox box = newBoxes.get(i);
+            end[i] = new int[]{box.baseX + originX, box.baseY + originY, box.baseWidth, box.baseHeight};
+            int[] mapped = startByKey.get(box.hint.keySequence());
+            start[i] = mapped != null ? mapped : end[i];
+            anyMove |= mapped != null && (mapped[0] != end[i][0] || mapped[1] != end[i][1] ||
+                                          mapped[2] != end[i][2] || mapped[3] != end[i][3]);
+        }
+        boolean doAnimate = !startByKey.isEmpty() && anyMove;
+        // Place the boxes at their starting geometry before showing, so there is no flash of the
+        // final layout on the first frame.
+        for (int i = 0; i < boxCount; i++) {
+            int[] initial = doAnimate ? start[i] : end[i];
+            newBoxes.get(i).setGeometry(initial[0], initial[1], initial[2], initial[3]);
+        }
+        HintPaintLayer layer = new HintPaintLayer(window, newBoxes, List.of());
+        layer.setBoxPaint(BoxPaint.BORDER);
+        layer.setGeometry(0, 0, window.width(), window.height());
+        layer.raise();
+        layer.show();
+        morph.layer = layer;
+        window.show();
+        if (!doAnimate)
+            return;
+        // Bounding region the boxes travel through, so each frame repaints only that area.
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+        for (int i = 0; i < boxCount; i++)
+            for (int[] rect : new int[][]{start[i], end[i]}) {
+                minX = Math.min(minX, rect[0]);
+                minY = Math.min(minY, rect[1]);
+                maxX = Math.max(maxX, rect[0] + rect[2]);
+                maxY = Math.max(maxY, rect[1] + rect[3]);
+            }
+        int dirtyX = minX, dirtyY = minY, dirtyWidth = maxX - minX, dirtyHeight = maxY - minY;
+        QVariantAnimation animation = new QVariantAnimation();
+        animation.setDuration((int) duration.toMillis());
+        animation.setStartValue(0d);
+        animation.setEndValue(1d);
+        animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
+        QMetaObject.Slot1<Object> callback = value -> {
+            double progress = (Double) value;
+            for (int i = 0; i < boxCount; i++) {
+                int[] s = start[i], e = end[i];
+                newBoxes.get(i).setGeometry(
+                        (int) Math.round(s[0] + (e[0] - s[0]) * progress),
+                        (int) Math.round(s[1] + (e[1] - s[1]) * progress),
+                        (int) Math.round(s[2] + (e[2] - s[2]) * progress),
+                        (int) Math.round(s[3] + (e[3] - s[3]) * progress));
+            }
+            layer.update(dirtyX, dirtyY, dirtyWidth, dirtyHeight);
+        };
+        animation.valueChanged.connect(callback);
+        morph.animation = animation;
+        morph.callback = callback;
+        animation.start();
+    }
+
+    private void stopLineMorph(LineMorph morph) {
+        if (morph.animation != null) {
+            morph.animation.stop();
+            morph.animation.disposeLater();
+            morph.animation = null;
+        }
+        morph.callback = null;
+        if (morph.layer != null) {
+            morph.layer.setParent(null);
+            morph.layer.disposeLater();
+            morph.layer = null;
+        }
+    }
+
+    /** Window children that are content containers, i.e. everything but the live box line layer. */
+    private List<QWidget> contentContainers(TransparentWindow window) {
+        LineMorph morph = lineMorphByWindow.get(window);
+        QWidget lineLayer = morph == null ? null : morph.layer;
+        List<QWidget> containers = new ArrayList<>();
+        for (QObject child : window.children())
+            if (child instanceof QWidget widget && widget != lineLayer)
+                containers.add(widget);
+        return containers;
+    }
+
     private QRect paddedRect(QRect rect) {
         int extraWidth = (int) (rect.width() * 0.05d);
         int extraHeight = (int) (rect.height() * 0.05d);
@@ -730,7 +854,11 @@ public final class HintMeshRenderer {
 
     }
 
-    private Map<List<Key>, QRect> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
+    /** The hint boxes (for the morphing line layer) and their geometries (for the match animation). */
+    private record BuiltGrid(List<HintBox> boxes, Map<List<Key>, QRect> boxGeometries) {
+    }
+
+    private BuiltGrid setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
                                                               QWidget container) {
@@ -1041,6 +1169,7 @@ public final class HintMeshRenderer {
             hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
+            hintBox.snapshotBase();
             if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
                 hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
             }
@@ -1069,9 +1198,19 @@ public final class HintMeshRenderer {
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
         HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        // Layer 2: Hint boxes (with decoration children).
-        HintPaintLayer boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
-        boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        // Layer 2: Hint boxes (with decoration children). When morphing, the borders are drawn by
+        // the live line layer (kept out of the screenshot so they can move); the fill and
+        // decorations stay here in the cropped content.
+        HintPaintLayer boxLayer = null;
+        if (!morphingAnimationEnabled) {
+            boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
+            boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        }
+        else {
+            HintPaintLayer fillLayer = new HintPaintLayer(container, hintBoxes, List.of());
+            fillLayer.setBoxPaint(BoxPaint.FILL);
+            fillLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        }
         applyBoxShadow(boxLayer, boxShadowLayer, hintBoxes, style.boxShadow(),
                 boxColor, boxBorderColor,
                 (int) Math.round(style.boxBorderThickness()),
@@ -1110,7 +1249,7 @@ public final class HintMeshRenderer {
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
         }
-        return hintBoxGeometries;
+        return new BuiltGrid(hintBoxes, hintBoxGeometries);
     }
 
     /** The Qt drawing resources for one decoration. */
@@ -1194,11 +1333,13 @@ public final class HintMeshRenderer {
     }
 
     private void cacheQtHintWindowIntoPixmap(TransparentWindow window, QWidget container,
-                                                    HintMesh hintMeshKey, HintMesh hintMesh) {
+                                                    HintMesh hintMeshKey, HintMesh hintMesh,
+                                                    List<HintBox> boxes) {
         long before = System.nanoTime();
+        // When morphing, the boxes are not in the container, so this grabs labels/shadows only.
         QPixmap pixmap = container.grab();
         PixmapAndPosition pixmapAndPosition =
-                new PixmapAndPosition(pixmap, container.x(), container.y(), hintMesh,
+                new PixmapAndPosition(pixmap, container.x(), container.y(), boxes, hintMesh,
                         window.x(), window.y());
         logger.debug("Cached " + pixmapAndPosition + " in " +
                      (long) ((System.nanoTime() - before) / 1e6) + "ms (cache size is " +
@@ -1230,7 +1371,9 @@ public final class HintMeshRenderer {
         return trimmedHints;
     }
 
-    private record PixmapAndPosition(QPixmap pixmap, int x, int y, HintMesh originalHintMesh, int windowX, int windowY) {
+    /** boxes is the live box layer's boxes for a morphing grid, redrawn on a cache hit; null otherwise. */
+    private record PixmapAndPosition(QPixmap pixmap, int x, int y, List<HintBox> boxes,
+                                     HintMesh originalHintMesh, int windowX, int windowY) {
         @Override
         public String toString() {
             return "PixmapAndPosition[" + x + ", " + y + ", "
@@ -1275,6 +1418,7 @@ public final class HintMeshRenderer {
         private final QColor borderColor;
         private final int borderRadius;
         private int x, y, width, height;
+        private int baseX, baseY, baseWidth, baseHeight; // Container-relative geometry, morph interpolates from it.
         final List<HintBox> decorationBoxes = new ArrayList<>();
         private String decorationLabel;
         private QFont decorationLabelFont;
@@ -1324,6 +1468,13 @@ public final class HintMeshRenderer {
         public void move(int x, int y) {
             this.x = x;
             this.y = y;
+        }
+
+        void snapshotBase() {
+            baseX = x;
+            baseY = y;
+            baseWidth = width;
+            baseHeight = height;
         }
 
         public int x() { return x; }
@@ -1383,6 +1534,58 @@ public final class HintMeshRenderer {
             }
             for (HintBox decorationBox : decorationBoxes) {
                 decorationBox.paint(painter);
+            }
+            painter.restore();
+        }
+
+        /** Fill and decorations at the base geometry — the cropped part of a morphing grid. */
+        void paintFillAndDecorations(QPainter painter) {
+            painter.save();
+            painter.translate(baseX, baseY);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            if (color.alpha() != 0) {
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, borderRadius > 0);
+                QBrush brush = new QBrush(color);
+                painter.setBrush(brush);
+                painter.setPen(Qt.PenStyle.NoPen);
+                painter.drawRoundedRect(0, 0, baseWidth, baseHeight, borderRadius, borderRadius);
+                brush.dispose();
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+            }
+            if (decorationLabel != null && !decorationLabel.isEmpty() && decorationLabelFont != null) {
+                painter.setFont(decorationLabelFont);
+                painter.setPen(decorationLabelColor);
+                painter.drawText(decorationLabelX, decorationLabelY, decorationLabel);
+            }
+            for (HintBox decorationBox : decorationBoxes)
+                decorationBox.paint(painter);
+            painter.restore();
+        }
+
+        /** Borders only at the current geometry — the morphing part of a morphing grid. */
+        void paintBorders(QPainter painter) {
+            if (borderThickness == 0)
+                return;
+            painter.save();
+            painter.translate(x, y);
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            if (borderRadius > 0) {
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+                QBrush brush = new QBrush(Qt.BrushStyle.NoBrush);
+                painter.setBrush(brush);
+                QPen pen = createPen(borderColor, borderThickness);
+                painter.setPen(pen);
+                int offset = borderThickness / 2;
+                painter.drawRoundedRect(offset, offset,
+                        width - borderThickness, height - borderThickness,
+                        borderRadius, borderRadius);
+                pen.dispose();
+                brush.dispose();
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+            }
+            else {
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
+                drawBorders(painter);
             }
             painter.restore();
         }
@@ -2018,7 +2221,9 @@ public final class HintMeshRenderer {
         }
         boolean opaqueBox = boxColor.alpha() == 255 &&
                             (boxBorderThickness == 0 || boxBorderColor.alpha() == 255);
-        if (opaqueBox && boxShadow.stackCount() == 1) {
+        // No boxLayer (morphing) means the fast path has no widget to attach the effect to, so
+        // pre-render the shadow into the shadow layer, which stays with the cropped content.
+        if (boxLayer != null && opaqueBox && boxShadow.stackCount() == 1) {
             logger.debug("Box shadow: opaque box, applying effect directly");
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(boxShadow.blurRadius());
@@ -2229,10 +2434,14 @@ public final class HintMeshRenderer {
         }
     }
 
+    /** How a layer paints its boxes: whole box, fill+decorations only, or borders only. */
+    private enum BoxPaint { ALL, FILL, BORDER }
+
     private class HintPaintLayer extends QWidget {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
+        private BoxPaint boxPaint = BoxPaint.ALL;
         // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
@@ -2241,6 +2450,10 @@ public final class HintMeshRenderer {
             super(parent);
             this.boxes = boxes;
             this.labels = labels;
+        }
+
+        void setBoxPaint(BoxPaint boxPaint) {
+            this.boxPaint = boxPaint;
         }
 
         void setShadowPixmap(QPixmap shadowPixmap, int x, int y) {
@@ -2255,7 +2468,11 @@ public final class HintMeshRenderer {
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
             for (HintBox box : boxes) {
-                box.paint(painter);
+                switch (boxPaint) {
+                    case ALL -> box.paint(painter);
+                    case FILL -> box.paintFillAndDecorations(painter);
+                    case BORDER -> box.paintBorders(painter);
+                }
             }
             if (shadowPixmap != null) {
                 painter.drawPixmap(shadowPixmapX, shadowPixmapY, shadowPixmap);
@@ -2305,19 +2522,31 @@ public final class HintMeshRenderer {
         hintMeshEndAnimation = true;
         QRect hintBoxGeometry =
                 hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint.keySequence());
-        QWidget container = (QWidget) hintMeshWindow.window.children().getLast();
-        QPixmap pixmap = container.grab(hintBoxGeometry); // This is an expensive operation.
+        QWidget container = contentContainers(hintMeshWindow.window).getLast();
+        QRect containerGeom = container.geometry();
+        int boxWindowX = containerGeom.x() + hintBoxGeometry.x();
+        int boxWindowY = containerGeom.y() + hintBoxGeometry.y();
+        containerGeom.dispose();
+        QPixmap pixmap; // This grab is an expensive operation.
+        if (morphingAnimationEnabled) {
+            // The boxes live in the line layer, so grab the composited box+label from the window.
+            // The line layer is left in place: an intermediate drill morphs from it, and a terminal
+            // selection disposes it via hideHintMesh when the match animation ends.
+            QRect windowBoxRect = new QRect(boxWindowX, boxWindowY,
+                    hintBoxGeometry.width(), hintBoxGeometry.height());
+            pixmap = hintMeshWindow.window.grab(windowBoxRect);
+            windowBoxRect.dispose();
+        }
+        else {
+            pixmap = container.grab(hintBoxGeometry);
+        }
 //         pixmap.save("screenshot.png", "PNG");
         HintMesh hintMesh =
                 new HintMesh.HintMeshBuilder(lastHintMeshKey).hints(List.of(hint))
                                                              .build();
-        QRect containerGeom = container.geometry();
         PixmapAndPosition pixmapAndPosition =
-                new PixmapAndPosition(pixmap,
-                        containerGeom.x() + hintBoxGeometry.x(),
-                        containerGeom.y() + hintBoxGeometry.y(), hintMesh,
+                new PixmapAndPosition(pixmap, boxWindowX, boxWindowY, null, hintMesh,
                         hintMeshWindow.window.x(), hintMeshWindow.window.y());
-        containerGeom.dispose();
         setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, false, pixmapAndPosition);
     }
 
