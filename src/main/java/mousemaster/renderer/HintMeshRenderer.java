@@ -350,6 +350,9 @@ public final class HintMeshRenderer {
 
     private class ClearBackgroundQLabel extends QLabel {
         private QColor clearColor = new QColor(0, 0, 0, 0);
+        /** Crop region, clipped in paintEvent instead of via setMask (which recomposites the whole
+         *  window). Null paints the full pixmap. */
+        private QRect crop;
 
         void setClearColor(QColor clearColor) {
             if (this.clearColor != null)
@@ -357,8 +360,47 @@ public final class HintMeshRenderer {
             this.clearColor = clearColor;
         }
 
+        boolean cropCapable() {
+            return pixmap() != null && !pixmap().isNull();
+        }
+
+        /** Crops to {@code r}, repainting the union of the old and new crop (the whole label on the
+         *  first crop, to clear any full paint before it). */
+        void setCrop(QRect r) {
+            QRect newCrop = new QRect(r);
+            QRect dirty = crop != null ? newCrop.united(crop) : rect();
+            if (crop != null)
+                crop.dispose();
+            crop = newCrop;
+            repaint(dirty);
+            dirty.dispose();
+        }
+
+        /** Drops the crop so the full pixmap shows again. */
+        void clearCrop() {
+            if (crop == null)
+                return;
+            crop.dispose();
+            crop = null;
+            repaint();
+        }
+
         @Override
         protected void paintEvent(QPaintEvent event) {
+            if (crop != null) {
+                QPainter painter = new QPainter(this);
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
+                painter.fillRect(event.rect(), clearColor);
+                QRect drawRegion = crop.intersected(event.rect());
+                if (!drawRegion.isEmpty()) {
+                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+                    painter.drawPixmap(drawRegion, pixmap(), drawRegion);
+                }
+                drawRegion.dispose();
+                painter.end();
+                painter.dispose();
+                return;
+            }
             QPainter painter = new QPainter(this);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
             // Clear what's behind (when we're drawing the old container behind).
@@ -456,8 +498,13 @@ public final class HintMeshRenderer {
                 containers.get(i).setParent(null);
                 containers.get(i).disposeLater();
             }
-            if (!containers.isEmpty())
-                containers.getLast().clearMask();
+            if (!containers.isEmpty()) {
+                QWidget lastContainer = containers.getLast();
+                if (lastContainer instanceof ClearBackgroundQLabel label && label.cropCapable())
+                    label.clearCrop();
+                else
+                    lastContainer.clearMask();
+            }
             // Settle the border morph to its target too, so the boxes start the reversal from where
             // the crop does.
             LineMorph morph = lineMorphByWindow.get(window);
@@ -664,9 +711,7 @@ public final class HintMeshRenderer {
                 QRect endRect =
                         new QRect(0, 0,
                                 newContainer.width(), newContainer.height());
-                QRegion beginRegion = new QRegion(beginRect);
-                newContainer.setMask(beginRegion);
-                beginRegion.dispose();
+                cropOrMask(newContainer, beginRect);
                 QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
                         animationDuration);
                 beginRect.dispose();
@@ -830,10 +875,17 @@ public final class HintMeshRenderer {
         return Math.min(a, b) > 0.75 * Math.max(a, b);
     }
 
-    /** A container's currently visible rectangle in window coordinates: its mask bounds when it is
+    /** A container's currently visible rectangle in window coordinates: its crop or mask bounds when
      *  mid-crop, otherwise its full geometry. Lets an interruption continue from what is on screen. */
     private QRect visibleRect(QWidget container) {
         QRect geometry = container.geometry();
+        if (container instanceof ClearBackgroundQLabel label && label.crop != null) {
+            QRect visible = new QRect(geometry.x() + label.crop.x(),
+                    geometry.y() + label.crop.y(),
+                    label.crop.width(), label.crop.height());
+            geometry.dispose();
+            return visible;
+        }
         QRegion mask = container.mask();
         if (mask.isEmpty())
             return geometry;
@@ -856,6 +908,17 @@ public final class HintMeshRenderer {
         );
     }
 
+    /** Crops a pixmap label to {@code r} by clipping (smooth), else masks the widget. */
+    private static void cropOrMask(QWidget container, QRect r) {
+        if (container instanceof ClearBackgroundQLabel label && label.cropCapable())
+            label.setCrop(r);
+        else {
+            QRegion region = new QRegion(r);
+            container.setMask(region);
+            region.dispose();
+        }
+    }
+
     public static class HintContainerAnimationChanged implements QMetaObject.Slot1<Object> {
 
         private final QWidget container;
@@ -866,10 +929,7 @@ public final class HintMeshRenderer {
 
         @Override
         public void invoke(Object arg) {
-            QRect r = (QRect) arg;
-            QRegion region = new QRegion(r);
-            container.setMask(region);
-            region.dispose();
+            cropOrMask(container, (QRect) arg);
         }
     }
 
@@ -890,9 +950,7 @@ public final class HintMeshRenderer {
 
         @Override
         public void invoke() {
-            QRegion region = new QRegion(endRect);
-            animatedContainer.setMask(region); // animatedContainer can be the oldContainer.
-            region.dispose();
+            cropOrMask(animatedContainer, endRect); // animatedContainer can be the oldContainer.
             endRect.dispose();
             if (oldContainer != null) {
                 oldContainer.setParent(null);
@@ -1429,6 +1487,19 @@ public final class HintMeshRenderer {
                      hintMeshPixmaps.size() + ")");
 //         pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
+        // Swap the live container for a pixmap label so a later crop clips it instead of masking a
+        // live widget. Border morph layer is separate and stays on top.
+        ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel();
+        pixmapLabel.setPixmap(pixmap);
+        pixmapLabel.setGeometry(container.x(), container.y(), pixmap.width(), pixmap.height());
+        pixmapLabel.setParent(window);
+        pixmapLabel.show();
+        pixmapLabel.repaint();
+        LineMorph morph = lineMorphByWindow.get(window);
+        if (morph != null && morph.layer != null)
+            morph.layer.raise();
+        container.setParent(null);
+        container.disposeLater();
     }
 
     private List<Hint> trimmedHints(List<Hint> hints,
