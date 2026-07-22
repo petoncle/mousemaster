@@ -395,8 +395,11 @@ public final class HintMeshRenderer {
             veryOldContainer.setParent(null);
             oldContainer.setParent(null);
             QWidget mergedContainer = new QWidget(window);
-            QRect veryOldGeom = veryOldContainer.geometry();
-            QRect oldGeom = oldContainer.geometry();
+            // Union the currently visible (masked) extents, not the full geometries: this keeps the
+            // merged "old" at what is actually on screen, so the next transition (a reversal in
+            // particular) animates from there instead of snapping.
+            QRect veryOldGeom = visibleRect(veryOldContainer);
+            QRect oldGeom = visibleRect(oldContainer);
             int mergedContainerX = Math.min(veryOldGeom.x(), oldGeom.x());
             int mergedContainerY = Math.min(veryOldGeom.y(), oldGeom.y());
             mergedContainer.setGeometry(
@@ -564,6 +567,11 @@ public final class HintMeshRenderer {
             paddedNew.dispose();
             oldRect.dispose();
             newRect.dispose();
+            // Finish in the time left, so an interrupted crop catches up from its current extent
+            // instead of replaying the full duration (matching the border morph).
+            Duration remainingDuration = animationDuration.minusMillis(animationCurrentTime);
+            if (remainingDuration.isNegative() || remainingDuration.isZero())
+                remainingDuration = Duration.ofMillis(1);
             if (animateTransition && oldContainsNew) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
@@ -580,7 +588,7 @@ public final class HintMeshRenderer {
                                 newContainer.width(),
                                 newContainer.height());
                 QVariantAnimation animation =
-                        hintContainerAnimation(beginRect, endRect, animationDuration);
+                        hintContainerAnimation(beginRect, endRect, remainingDuration);
                 beginRect.dispose();
                 HintContainerAnimationChanged animationChanged = new HintContainerAnimationChanged(
                         oldContainer);
@@ -598,10 +606,8 @@ public final class HintMeshRenderer {
                 if (containersEqual)
                     // Screen selection hint end.
                     animationFinished.invoke();
-                else {
+                else
                     animation.start();
-                    animation.setCurrentTime(animationCurrentTime);
-                }
             }
             else if (animateTransition && newContainsOld) {
                 // Initially show new container with the position and size of old.
@@ -620,7 +626,7 @@ public final class HintMeshRenderer {
                 newContainer.setMask(beginRegion);
                 beginRegion.dispose();
                 QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
-                        animationDuration);
+                        remainingDuration);
                 beginRect.dispose();
                 HintContainerAnimationChanged animationChanged =
                         new HintContainerAnimationChanged(newContainer);
@@ -633,7 +639,6 @@ public final class HintMeshRenderer {
                 hintMeshWindow.animationCallbacks.add(animationChanged);
                 hintMeshWindow.animationCallbacks.add(animationFinished);
                 animation.start();
-                animation.setCurrentTime(animationCurrentTime);
                 oldContainer.setParent(null);
                 oldContainer.disposeLater();
             }
@@ -755,6 +760,21 @@ public final class HintMeshRenderer {
             if (child instanceof QWidget widget && widget != lineLayer)
                 containers.add(widget);
         return containers;
+    }
+
+    /** A container's currently visible rectangle in window coordinates: its mask bounds when it is
+     *  mid-crop, otherwise its full geometry. Lets an interruption continue from what is on screen. */
+    private QRect visibleRect(QWidget container) {
+        QRect geometry = container.geometry();
+        QRegion mask = container.mask();
+        if (mask.isEmpty())
+            return geometry;
+        QRect maskBounds = mask.boundingRect();
+        QRect visible = new QRect(geometry.x() + maskBounds.x(), geometry.y() + maskBounds.y(),
+                maskBounds.width(), maskBounds.height());
+        geometry.dispose();
+        maskBounds.dispose();
+        return visible;
     }
 
     private QRect paddedRect(QRect rect) {
