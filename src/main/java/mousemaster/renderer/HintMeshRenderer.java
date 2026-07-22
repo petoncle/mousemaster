@@ -387,13 +387,16 @@ public final class HintMeshRenderer {
         // is insta-finished to its target and the new one starts fresh from there.
         boolean continueFromCurrentExtent = hintMeshWindow.lastTransitionForced.get();
         hintMeshWindow.lastTransitionForced.set(forcedPixmapAndPosition != null);
-        int transitionAnimationCurrentTime = !continueFromCurrentExtent ? 0 :
+        // The new animation inherits the interrupted one's velocity by finishing in the time that one
+        // had left (its own remaining duration, which is already shortened if it too was interrupted).
+        Duration transitionAnimationDuration =
                 hintMeshWindow.animations.stream()
                                          .filter(animation -> animation.getState() ==
                                                               QAbstractAnimation.State.Running)
-                                         .map(QAbstractAnimation::getCurrentTime)
+                                         .map(animation -> Duration.ofMillis(Math.max(1,
+                                                 animation.getDuration() - animation.getCurrentTime())))
                                          .findFirst()
-                                         .orElse(0);
+                                         .orElse(style.transitionAnimationDuration());
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
         if (continueFromCurrentExtent) {
@@ -518,11 +521,10 @@ public final class HintMeshRenderer {
             newContainer = pixmapLabel;
             boolean animate = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
             transitionHintContainers(animate, oldContainer, newContainer,
-                    window, hintMeshWindow,
-                    style.transitionAnimationDuration(), transitionAnimationCurrentTime);
+                    window, hintMeshWindow, transitionAnimationDuration);
             if (pixmapAndPosition.boxes() != null)
                 morphLines(window, pixmapLabel, pixmapAndPosition.boxes(), animate,
-                        style.transitionAnimationDuration(), transitionAnimationCurrentTime);
+                        transitionAnimationDuration);
         }
         else {
             // Uses ClearBackgroundQLabel because when in the mergedContainer,
@@ -547,12 +549,11 @@ public final class HintMeshRenderer {
                         boolean animate = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
                         transitionHintContainers(animate,
                                 oldContainer, newContainer,
-                                window, hintMeshWindow,
-                                style.transitionAnimationDuration(), transitionAnimationCurrentTime);
+                                window, hintMeshWindow, transitionAnimationDuration);
                         boolean morphGrid = morphingAnimationEnabled && isHintGrid;
                         if (morphGrid)
                             morphLines(window, container, built.boxes(), animate,
-                                    style.transitionAnimationDuration(), transitionAnimationCurrentTime);
+                                    transitionAnimationDuration);
                         if (isHintGrid) {
                             List<HintBox> cacheBoxes = morphGrid ? built.boxes() : null;
                             // Defer the pixmap cache grab to the next frame so the hint mesh
@@ -579,8 +580,7 @@ public final class HintMeshRenderer {
     private void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
                                                  QWidget newContainer, TransparentWindow window,
                                                  HintMeshWindow hintMeshWindow,
-                                                 Duration animationDuration,
-                                                 int animationCurrentTime) {
+                                                 Duration animationDuration) {
         // TODO Should use .geometry() instead of .rect() which is relative to the widget
         //  itself, where geometry() is relative to the parent.
         if (oldContainer != null) {
@@ -595,11 +595,6 @@ public final class HintMeshRenderer {
             paddedNew.dispose();
             oldRect.dispose();
             newRect.dispose();
-            // Finish in the time left, so an interrupted crop catches up from its current extent
-            // instead of replaying the full duration (matching the border morph).
-            Duration remainingDuration = animationDuration.minusMillis(animationCurrentTime);
-            if (remainingDuration.isNegative() || remainingDuration.isZero())
-                remainingDuration = Duration.ofMillis(1);
             if (animateTransition && oldContainsNew) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
@@ -616,7 +611,7 @@ public final class HintMeshRenderer {
                                 newContainer.width(),
                                 newContainer.height());
                 QVariantAnimation animation =
-                        hintContainerAnimation(beginRect, endRect, remainingDuration);
+                        hintContainerAnimation(beginRect, endRect, animationDuration);
                 beginRect.dispose();
                 HintContainerAnimationChanged animationChanged = new HintContainerAnimationChanged(
                         oldContainer);
@@ -654,7 +649,7 @@ public final class HintMeshRenderer {
                 newContainer.setMask(beginRegion);
                 beginRegion.dispose();
                 QVariantAnimation animation = hintContainerAnimation(beginRect, endRect,
-                        remainingDuration);
+                        animationDuration);
                 beginRect.dispose();
                 HintContainerAnimationChanged animationChanged =
                         new HintContainerAnimationChanged(newContainer);
@@ -688,15 +683,14 @@ public final class HintMeshRenderer {
     /** Shows the new grid's boxes in a live layer above the content and, if animating, morphs each box
      *  from its old counterpart (matched by key) to its new geometry while the labels crop underneath. */
     private void morphLines(TransparentWindow window, QWidget contentContainer,
-                            List<HintBox> newBoxes, boolean animate, Duration duration,
-                            int animationCurrentTime) {
+                            List<HintBox> newBoxes, boolean animate, Duration duration) {
         LineMorph morph = lineMorphByWindow.computeIfAbsent(window, w -> new LineMorph());
         QRect containerGeometry = contentContainer.geometry();
         int originX = containerGeometry.x();
         int originY = containerGeometry.y();
         containerGeometry.dispose();
-        // Start each box from where it currently is (no jump); the shortened duration below makes
-        // it catch up to finish alongside the crop, which also resumes from its current state.
+        // Start each box from where it currently is (no jump), finishing alongside the crop, which
+        // also resumes from its current state.
         Map<List<Key>, int[]> startByKey = new HashMap<>();
         if (animate && morph.layer != null)
             for (HintBox oldBox : morph.layer.boxes)
@@ -744,8 +738,8 @@ public final class HintMeshRenderer {
             }
         int dirtyX = minX, dirtyY = minY, dirtyWidth = maxX - minX, dirtyHeight = maxY - minY;
         QVariantAnimation animation = new QVariantAnimation();
-        // Finish in the time the crop has left, so an interrupted morph speeds up to stay with it.
-        animation.setDuration(Math.max(1, (int) duration.toMillis() - animationCurrentTime));
+        // Same duration as the crop, so the morph stays in lockstep with it.
+        animation.setDuration(Math.max(1, (int) duration.toMillis()));
         animation.setStartValue(0d);
         animation.setEndValue(1d);
         animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
