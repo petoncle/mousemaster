@@ -491,7 +491,7 @@ public final class HintMeshRenderer {
                     style.transitionAnimationDuration(), transitionAnimationCurrentTime);
             if (pixmapAndPosition.boxes() != null)
                 morphLines(window, pixmapLabel, pixmapAndPosition.boxes(), animate,
-                        style.transitionAnimationDuration());
+                        style.transitionAnimationDuration(), transitionAnimationCurrentTime);
         }
         else {
             // Uses ClearBackgroundQLabel because when in the mergedContainer,
@@ -521,7 +521,7 @@ public final class HintMeshRenderer {
                         boolean morphGrid = morphingAnimationEnabled && isHintGrid;
                         if (morphGrid)
                             morphLines(window, container, built.boxes(), animate,
-                                    style.transitionAnimationDuration());
+                                    style.transitionAnimationDuration(), transitionAnimationCurrentTime);
                         if (isHintGrid) {
                             List<HintBox> cacheBoxes = morphGrid ? built.boxes() : null;
                             // Defer the pixmap cache grab to the next frame so the hint mesh
@@ -655,14 +655,15 @@ public final class HintMeshRenderer {
     /** Shows the new grid's boxes in a live layer above the content and, if animating, morphs each box
      *  from its old counterpart (matched by key) to its new geometry while the labels crop underneath. */
     private void morphLines(TransparentWindow window, QWidget contentContainer,
-                            List<HintBox> newBoxes, boolean animate, Duration duration) {
+                            List<HintBox> newBoxes, boolean animate, Duration duration,
+                            int animationCurrentTime) {
         LineMorph morph = lineMorphByWindow.computeIfAbsent(window, w -> new LineMorph());
         QRect containerGeometry = contentContainer.geometry();
         int originX = containerGeometry.x();
         int originY = containerGeometry.y();
         containerGeometry.dispose();
-        // Start each box from where it currently is, so a chained morph continues smoothly
-        // from the mid-flight position instead of jumping.
+        // Start each box from where it currently is (no jump); the shortened duration below makes
+        // it catch up to finish alongside the crop, which also resumes from its current state.
         Map<List<Key>, int[]> startByKey = new HashMap<>();
         if (animate && morph.layer != null)
             for (HintBox oldBox : morph.layer.boxes)
@@ -708,7 +709,8 @@ public final class HintMeshRenderer {
             }
         int dirtyX = minX, dirtyY = minY, dirtyWidth = maxX - minX, dirtyHeight = maxY - minY;
         QVariantAnimation animation = new QVariantAnimation();
-        animation.setDuration((int) duration.toMillis());
+        // Finish in the time the crop has left, so an interrupted morph speeds up to stay with it.
+        animation.setDuration(Math.max(1, (int) duration.toMillis() - animationCurrentTime));
         animation.setStartValue(0d);
         animation.setEndValue(1d);
         animation.setEasingCurve(QEasingCurve.Type.InOutQuad);
