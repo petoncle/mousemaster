@@ -898,11 +898,14 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static Rectangle hintCellRectangle(Hint hint) {
-        return new Rectangle(
-                (int) Math.round(hint.centerX() - hint.cellWidth() / 2),
-                (int) Math.round(hint.centerY() - hint.cellHeight() / 2),
-                (int) Math.round(hint.cellWidth()),
-                (int) Math.round(hint.cellHeight()));
+        // Round the cell's edges (not its center and width independently) so this matches the
+        // renderer's box geometry. Otherwise the drilled-into area can be a pixel narrower than the
+        // box the crop reveals, leaving a seam on the grid's right/bottom during the transition.
+        int left = (int) Math.round(hint.centerX() - hint.cellWidth() / 2);
+        int top = (int) Math.round(hint.centerY() - hint.cellHeight() / 2);
+        return new Rectangle(left, top,
+                (int) Math.round(hint.centerX() + hint.cellWidth() / 2) - left,
+                (int) Math.round(hint.centerY() + hint.cellHeight() / 2) - top);
     }
 
     private static HintMeshStyle styleForFilter(HintMeshConfiguration configuration,

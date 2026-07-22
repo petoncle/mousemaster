@@ -997,7 +997,6 @@ public final class HintMeshRenderer {
             if (hintMesh.subDecoration().subDecoration() != null)
                 subDecorationStyles.add(decorationStyle(style.decorations().get(2), screenScale));
         }
-        int hintGridColumnCount = isHintPartOfGrid ? hintGridColumnCount(hintMeshWindow.hints()) : -1;
         Map<String, Integer> xAdvancesByString = new HashMap<>();
         int hintKeyMaxXAdvance = 0;
         List<Key> labelOverride = style.labelOverride();
@@ -1040,23 +1039,17 @@ public final class HintMeshRenderer {
                     (isHintPartOfGrid ? hint.cellHeight() :
                             Math.max(lineHeight, hint.cellHeight())) :
                     lineHeight) + 2 * cellVerticalPadding;
-            int fullBoxWidth = (int) cellWidth;
-            int fullBoxHeight = (int) cellHeight;
             int x = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
             int y = hintRoundedY(hint.centerY(), cellHeight, qtScaleFactor);
-            if (isHintPartOfGrid
-                && hintIndex + 1 < hints.size()
-                && hintRoundedX(hints.get(hintIndex + 1).centerX(),
-                    hints.get(hintIndex + 1).cellWidth(), qtScaleFactor)
-                   > x + fullBoxWidth)
-                fullBoxWidth++;
-            if (isHintPartOfGrid
-                && hintIndex + hintGridColumnCount < hints.size()
-                && hintRoundedY(hints.get(hintIndex + hintGridColumnCount).centerY(),
-                    hints.get(hintIndex + hintGridColumnCount).cellHeight(),
-                    qtScaleFactor)
-                   > y + fullBoxHeight) {
-                fullBoxHeight++;
+            int fullBoxWidth = (int) cellWidth;
+            int fullBoxHeight = (int) cellHeight;
+            if (isHintPartOfGrid) {
+                // Size each box by its rounded cell boundaries so columns and rows tile exactly and
+                // the last column/row reaches the cell's edge. Otherwise the grid falls a pixel short
+                // of the cell it is cropped into, and the uncovered strip shows as a seam on the
+                // right/bottom during the transition.
+                fullBoxWidth = hintRoundedRight(hint.centerX(), cellWidth, qtScaleFactor) - x;
+                fullBoxHeight = hintRoundedBottom(hint.centerY(), cellHeight, qtScaleFactor) - y;
             }
             List<Key> prefix = (labelOverridden || hintMesh.prefixLength() == -1) ?
                     List.of() : hint.keySequence().subList(0,
@@ -1471,17 +1464,6 @@ public final class HintMeshRenderer {
         }
     }
 
-    private int hintGridColumnCount(List<Hint> hints) {
-        if (hints.size() == 1)
-            return 1;
-        double left = hints.getFirst().centerX();
-        for (int i = 1; i < hints.size(); i++) {
-            if (Math.abs(left - hints.get(i).centerX()) < 0.01)
-                return i;
-        }
-        return hints.size();
-    }
-
     private int hintRoundedX(double centerX, double cellWidth,
                                     double qtScaleFactor) {
         return (int) Math.round((centerX - cellWidth / 2) / qtScaleFactor);
@@ -1490,6 +1472,16 @@ public final class HintMeshRenderer {
     private int hintRoundedY(double centerY, double cellHeight,
                                     double qtScaleFactor) {
         return (int) Math.round((centerY - cellHeight / 2) / qtScaleFactor);
+    }
+
+    private int hintRoundedRight(double centerX, double cellWidth,
+                                    double qtScaleFactor) {
+        return (int) Math.round((centerX + cellWidth / 2) / qtScaleFactor);
+    }
+
+    private int hintRoundedBottom(double centerY, double cellHeight,
+                                    double qtScaleFactor) {
+        return (int) Math.round((centerY + cellHeight / 2) / qtScaleFactor);
     }
 
     public static class HintBox {
