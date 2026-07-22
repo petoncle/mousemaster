@@ -1191,7 +1191,7 @@ public final class HintMeshRenderer {
                 hintGroup.bottom = Math.max(hintGroup.bottom, hintBox.y() + hintBox.height());
             }
             addDecorationBoxes(hintBox, boxWidth, boxHeight, hintMesh.subDecoration(),
-                    subDecorationStyles, 0, qtScaleFactor);
+                    subDecorationStyles, 0, qtScaleFactor, true);
             if (pumpDuringHintBuild && messagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
                 messagePump.run();
                 lastPumpTime = System.nanoTime();
@@ -1385,7 +1385,8 @@ public final class HintMeshRenderer {
             areaBox.setGeometry(0, 0, containerWidth, containerHeight);
             addDecorationBoxes(areaBox, containerWidth, containerHeight,
                     hintMesh.decoration(),
-                    List.of(decorationStyle(style.decorations().get(0), screenScale)), 0, qtScaleFactor);
+                    List.of(decorationStyle(style.decorations().get(0), screenScale)), 0,
+                    qtScaleFactor, false);
             HintPaintLayer areaDecorationLayer =
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -1420,7 +1421,7 @@ public final class HintMeshRenderer {
      *  deeper for each cell (subdecoration boxes, then subsubdecoration boxes, ...). */
     private void addDecorationBoxes(HintBox parentBox, int parentWidth, int parentHeight,
                                     HintMesh decorationMesh, List<DecorationStyle> decorationStyles,
-                                    int depth, double qtScaleFactor) {
+                                    int depth, double qtScaleFactor, boolean parentHasLabel) {
         if (decorationMesh == null || depth >= decorationStyles.size())
             return;
         DecorationStyle decorationStyle = decorationStyles.get(depth);
@@ -1440,6 +1441,14 @@ public final class HintMeshRenderer {
             int decorationBoxBottom = (int) Math.round(
                     (cell.centerY() + cell.cellHeight() / 2 - area.y())
                     / area.height() * parentHeight);
+            List<Key> labelKeys = decorationStyle.labelOverride().isEmpty() ?
+                    cell.keySequence() : decorationStyle.labelOverride();
+            // A labelled cell centered in a labelled parent (a hint, or a shallower decoration cell)
+            // would draw its label on top of the parent's; skip it. Tolerance absorbs rounding.
+            if (parentHasLabel && !labelKeys.isEmpty()
+                && Math.abs(decorationBoxLeft + decorationBoxRight - parentWidth) <= 1
+                && Math.abs(decorationBoxTop + decorationBoxBottom - parentHeight) <= 1)
+                continue;
             HintBox decorationBox = new HintBox(null, decorationStyle.borderLengthPx(),
                     decorationStyle.borderThicknessPx(), decorationStyle.boxColor(),
                     decorationStyle.boxBorderColor(), true,
@@ -1448,8 +1457,6 @@ public final class HintMeshRenderer {
                     decorationStyle.closed(), qtScaleFactor, decorationStyle.borderRadiusPx());
             decorationBox.setGeometry(decorationBoxLeft, decorationBoxTop,
                     decorationBoxRight - decorationBoxLeft, decorationBoxBottom - decorationBoxTop);
-            List<Key> labelKeys = decorationStyle.labelOverride().isEmpty() ?
-                    cell.keySequence() : decorationStyle.labelOverride();
             decorationBox.setDecorationLabel(labelKeys.stream()
                             .map(Key::hintLabel).collect(Collectors.joining()),
                     decorationStyle.labelStyle(),
@@ -1457,7 +1464,8 @@ public final class HintMeshRenderer {
             parentBox.decorationBoxes.add(decorationBox);
             addDecorationBoxes(decorationBox, decorationBoxRight - decorationBoxLeft,
                     decorationBoxBottom - decorationBoxTop,
-                    decorationMesh.subDecoration(), decorationStyles, depth + 1, qtScaleFactor);
+                    decorationMesh.subDecoration(), decorationStyles, depth + 1, qtScaleFactor,
+                    !labelKeys.isEmpty());
         }
     }
 
