@@ -459,16 +459,16 @@ public final class HintMeshRenderer {
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
         List<QWidget> interruptedContainers = containers(window);
-        // A drill continues from the current extent toward a same-sized or contained target; a
-        // differently-sized fresh grid after a click fades. A reversal continues back out to a grid
-        // that contains the target (3->2->1); anything else insta-finishes.
+        // A drill continues from the current extent toward a same-sized or contained target. A prefix
+        // select/deselect continues whenever the new mesh nests with the target either way (growing
+        // back out or shrinking back in); a same-sized change (recolor, fresh grid) resolves instantly.
         boolean partOfDrill = matchCropBefore || matchCropNow;
-        boolean coversTarget = coversInProgressTarget(hintMeshWindow, interruptedContainers);
-        boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, interruptedContainers);
-        boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, interruptedContainers);
+        boolean coversTarget = coversInProgressTarget(hintMeshWindow, hintMesh, interruptedContainers);
+        boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, hintMesh, interruptedContainers);
+        boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, hintMesh, interruptedContainers);
         boolean continueFromCurrentExtent = partOfDrill
                 ? coversTarget || targetContainsNew
-                : showingHintMesh && newContainsTarget && !coversTarget;
+                : showingHintMesh && (newContainsTarget || targetContainsNew) && !coversTarget;
         resumedTransition = continueFromCurrentExtent;
         if (matchCropBefore && !continueFromCurrentExtent) {
             // Fresh grid after a match crop (different target): drop the crop and its morph so the new
@@ -684,15 +684,21 @@ public final class HintMeshRenderer {
                     hintContainerAnimationEnded();
                 }
                 else {
+                    // Start from the old container's visible (cropped) extent, not its full geometry,
+                    // so a shrink that continues an interrupted crop resumes from where it is.
+                    QRect oldVisible = visibleRect(oldContainer);
                     QRect beginRect =
-                            new QRect(0, 0,
-                                    oldContainer.width(),
-                                    oldContainer.height());
+                            new QRect(oldVisible.x() - oldContainer.x(),
+                                    oldVisible.y() - oldContainer.y(),
+                                    oldVisible.width(),
+                                    oldVisible.height());
+                    oldVisible.dispose();
                     QRect endRect =
                             new QRect(newContainer.x() - oldContainer.x(),
                                     newContainer.y() - oldContainer.y(),
                                     newContainer.width(),
                                     newContainer.height());
+                    cropOrMask(oldContainer, beginRect);
                     QVariantAnimation animation =
                             hintContainerAnimation(beginRect, endRect, animationDuration);
                     beginRect.dispose();
@@ -906,11 +912,11 @@ public final class HintMeshRenderer {
     /** Whether the incoming mesh covers about the same extent as the in-progress crop's target (its
      *  newest container), i.e. it drills into the same cell and should continue the crop rather than
      *  replace it with a fresh grid. */
-    private boolean coversInProgressTarget(HintMeshWindow hintMeshWindow, List<QWidget> containers) {
+    private boolean coversInProgressTarget(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers) {
         if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
             return false;
         QRect inProgressTarget = containers.getLast().geometry();
-        QRect bounds = newMeshBounds(hintMeshWindow);
+        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh);
         boolean same = closeInSize(inProgressTarget.width(), bounds.width()) &&
                        closeInSize(inProgressTarget.height(), bounds.height());
         inProgressTarget.dispose();
@@ -920,12 +926,12 @@ public final class HintMeshRenderer {
 
     /** Whether the crop's target contains the incoming mesh: a drill going deeper (not a larger fresh
      *  grid after a click), so the crop keeps going toward it. */
-    private boolean targetContainsNewMesh(HintMeshWindow hintMeshWindow, List<QWidget> containers) {
+    private boolean targetContainsNewMesh(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers) {
         if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
             return false;
         QRect target = containers.getLast().geometry();
         QRect paddedTarget = paddedRect(target);
-        QRect bounds = newMeshBounds(hintMeshWindow);
+        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh);
         boolean contains = paddedTarget.contains(bounds);
         target.dispose();
         paddedTarget.dispose();
@@ -935,11 +941,11 @@ public final class HintMeshRenderer {
 
     /** Whether the incoming mesh contains the target: going back out (a reversal), so the crop grows
      *  toward the new mesh instead of insta-finishing. */
-    private boolean newMeshContainsTarget(HintMeshWindow hintMeshWindow, List<QWidget> containers) {
+    private boolean newMeshContainsTarget(HintMeshWindow hintMeshWindow, HintMesh hintMesh, List<QWidget> containers) {
         if (containers.isEmpty() || hintMeshWindow.hints().isEmpty())
             return false;
         QRect target = containers.getLast().geometry();
-        QRect bounds = newMeshBounds(hintMeshWindow);
+        QRect bounds = newMeshBounds(hintMeshWindow, hintMesh);
         QRect paddedBounds = paddedRect(bounds);
         boolean contains = paddedBounds.contains(target);
         target.dispose();
@@ -948,11 +954,13 @@ public final class HintMeshRenderer {
         return contains;
     }
 
-    /** Bounding rectangle of the incoming mesh's cells, in window coordinates. */
-    private QRect newMeshBounds(HintMeshWindow hintMeshWindow) {
+    /** Bounding rectangle of the incoming mesh's selected (narrowed) cells, in window coordinates. */
+    private QRect newMeshBounds(HintMeshWindow hintMeshWindow, HintMesh hintMesh) {
         double left = Double.MAX_VALUE, top = Double.MAX_VALUE;
         double right = -Double.MAX_VALUE, bottom = -Double.MAX_VALUE;
         for (Hint hint : hintMeshWindow.hints()) {
+            if (!hint.startsWith(hintMesh.selectedKeySequence()))
+                continue;
             left = Math.min(left, hint.centerX() - hint.cellWidth() / 2.0);
             right = Math.max(right, hint.centerX() + hint.cellWidth() / 2.0);
             top = Math.min(top, hint.centerY() - hint.cellHeight() / 2.0);
