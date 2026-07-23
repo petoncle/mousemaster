@@ -377,15 +377,18 @@ public final class HintMeshRenderer {
             return pixmap() != null && !pixmap().isNull();
         }
 
-        /** Crops to {@code r}, repainting the union of the old and new crop (the whole label on the
-         *  first crop, to clear any full paint before it). */
+        /** Crops to {@code r}, scheduling a paint of the union of the old and new crop (the whole
+         *  label on the first crop, to clear any full paint before it). Uses update(), not repaint():
+         *  repaint() flushes immediately, so a container's CompositionMode_Clear would reach the
+         *  screen before the border layer repaints on top, blanking the border lines for a frame.
+         *  update() coalesces the container and border paints into one composite (border on top). */
         void setCrop(QRect r) {
             QRect newCrop = new QRect(r);
             QRect dirty = crop != null ? newCrop.united(crop) : rect();
             if (crop != null)
                 crop.dispose();
             crop = newCrop;
-            repaint(dirty);
+            update(dirty);
             dirty.dispose();
         }
 
@@ -2683,7 +2686,9 @@ public final class HintMeshRenderer {
             if (crop != null)
                 crop.dispose();
             crop = newCrop;
-            repaint(dirty);
+            // update(), not repaint(): coalesce with the container's paint so the container's Clear
+            // and this border repaint reach the screen in one composite (border on top).
+            update(dirty);
             dirty.dispose();
         }
 
