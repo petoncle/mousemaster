@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -44,21 +45,18 @@ public final class HintMeshRenderer {
     private boolean pumpDuringHintBuild;
     private final Runnable hintMeshEndAnimationEndedCallback;
     private final Map<Screen, HintMeshWindow> hintMeshWindows = new LinkedHashMap<>(); // Ordered for topmost handling.
-    /** When true, box lines morph while labels/shadows crop; when false, the whole mesh crops (old behavior). */
-    private final boolean morphingAnimationEnabled = true;
-    /** The live, morphing box layer per window, kept out of the cropped screenshot. */
-    private final Map<TransparentWindow, LineMorph> lineMorphByWindow = new HashMap<>();
-    /** The in-flight container crop and the container it animates, so a non-morphing grid clips its
-     *  border layer in lockstep. Set by transitionHintContainers, consumed by morphLines. */
+    /** The live border layer per window (drawn above the cropped content so it can move). */
+    private final Map<TransparentWindow, BorderMorph> borderMorphByWindow = new HashMap<>();
+    /** The in-flight container crop and the container it animates, so a grid whose boxes cannot
+     *  morph clips its border layer in lockstep with it. */
     private QVariantAnimation cropAnimation;
     private QWidget croppedContainer;
     private boolean showingHintMesh;
-    /** Set by a window that dropped a match crop for a differently-sized fresh grid, so the mesh
-     *  fades in (rather than pops) even though it was showing the crop. */
-    private boolean freshFadeThisRender;
-    /** A transition resuming an interrupted one from its current extent (drill or reversal); its
-     *  crop/morph ease out only, so the motion does not restart at the handoff. */
-    private boolean continuationTransition;
+    /** Set when a crop that was zooming into a selected hint's box is abandoned because the incoming
+     *  grid does not continue that drill; the incoming grid then fades in instead of popping. */
+    private boolean fadeIn;
+    /** A transition resuming an interrupted one; it eases out only, so the motion does not restart. */
+    private boolean resumedTransition;
     private HintMesh currentHintMesh;
     private FadeAnimator hintMeshFadeAnimator;
     /** Creates a styled native window — the single platform primitive the renderer needs. */
@@ -73,15 +71,23 @@ public final class HintMeshRenderer {
                                  List<QVariantAnimation> animations,
                                  List<QMetaObject.AbstractSlot> animationCallbacks,
                                  AtomicReference<HintMesh> lastHintMeshKeyReference,
-                                 AtomicBoolean lastTransitionForced) {
+                                 AtomicBoolean lastWasMatchCrop) {
     }
 
-    /** Holds the current box line layer and its running morph so the next transition continues from it. */
-    private static final class LineMorph {
+    /** The current border layer and its running morph, so the next transition continues from it. */
+    private static final class BorderMorph {
         private HintPaintLayer layer;
         private QVariantAnimation animation;
         private QMetaObject.AbstractSlot callback; // Kept referenced so Qt does not GC it.
-        private int originX, originY; // Content container offset of layer, to settle its boxes to their target.
+        private List<Rectangle> targets; // Each layer box's target rect, to settle to on interruption.
+    }
+
+    private static Rectangle lerp(Rectangle from, Rectangle to, double t) {
+        return new Rectangle(
+                (int) Math.round(from.x() + (to.x() - from.x()) * t),
+                (int) Math.round(from.y() + (to.y() - from.y()) * t),
+                (int) Math.round(from.width() + (to.width() - from.width()) * t),
+                (int) Math.round(from.height() + (to.height() - from.height()) * t));
     }
 
     public HintMeshRenderer(Supplier<TransparentWindow> windowFactory,
@@ -157,7 +163,7 @@ public final class HintMeshRenderer {
         }
         if (showingHintMesh && currentHintMesh != null && currentHintMesh.equals(hintMesh))
             return false;
-        freshFadeThisRender = false;
+        fadeIn = false;
         boolean wasShowing = showingHintMesh;
         // If re-showing during a fade-out, cancel the fade-out.
         if (hintMeshFadeAnimator != null && hintMeshFadeAnimator.isFadingOut()) {
@@ -187,7 +193,7 @@ public final class HintMeshRenderer {
         currentHintMesh = hintMesh;
         createOrUpdateHintMeshWindows(currentHintMesh, zoom, screens);
         showingHintMesh = true;
-        if ((!wasShowing || freshFadeThisRender) && !hintMeshWindows.isEmpty()) {
+        if ((!wasShowing || fadeIn) && !hintMeshWindows.isEmpty()) {
             // Resolve fade settings from first screen's style.
             Map.Entry<Screen, HintMeshWindow> firstEntry =
                     hintMeshWindows.entrySet().iterator().next();
@@ -238,9 +244,9 @@ public final class HintMeshRenderer {
             }
             hintMeshWindow.animations().clear();
             hintMeshWindow.animationCallbacks().clear();
-            LineMorph lineMorph = lineMorphByWindow.remove(hintMeshWindow.window());
+            BorderMorph lineMorph = borderMorphByWindow.remove(hintMeshWindow.window());
             if (lineMorph != null)
-                stopLineMorph(lineMorph);
+                stopBorderMorph(lineMorph);
             hintMeshWindow.window().setBackground(null, null);
             hintMeshWindow.window().hideChildren();
             hintMeshWindow.window().repaint();
@@ -289,7 +295,7 @@ public final class HintMeshRenderer {
                         hintsInScreen, zoom, existingWindow.animations(),
                         existingWindow.animationCallbacks(),
                         existingWindow.lastHintMeshKeyReference(),
-                        existingWindow.lastTransitionForced());
+                        existingWindow.lastWasMatchCrop());
                 boolean zoomChanged = existingWindow.zoom() == null || !existingWindow.zoom().equals(zoom);
                 hintMeshWindows.put(screen, hintMeshWindow);
 //                TransparentWindow window = existingWindow.window;
@@ -431,15 +437,15 @@ public final class HintMeshRenderer {
                                           HintMesh hintMesh, double screenScale,
                                           HintMeshStyle style,
                                           boolean zoomChanged,
-                                          PixmapAndPosition forcedPixmapAndPosition) {
+                                          PixmapAndPosition matchBoxPixmap) {
         setUncachedHintMeshWindowRunnable = null;
         cacheQtHintWindowIntoPixmapRunnable = null;
         TransparentWindow window = hintMeshWindow.window;
-        // forcedBefore marks the previous render as a hint-match crop, forcedNow marks this one; a crop
-        // and the content render that follows it form a drill.
-        boolean forcedBefore = hintMeshWindow.lastTransitionForced.get();
-        boolean forcedNow = forcedPixmapAndPosition != null;
-        hintMeshWindow.lastTransitionForced.set(forcedNow);
+        // A match crop zooms into a just-typed hint's box (animateHintMatch seeds it with that box's
+        // screenshot); it plus the content render that follows form a drill. Was this render one, or the last?
+        boolean matchCropBefore = hintMeshWindow.lastWasMatchCrop.get();
+        boolean matchCropNow = matchBoxPixmap != null;
+        hintMeshWindow.lastWasMatchCrop.set(matchCropNow);
         // The new animation inherits the interrupted one's velocity by finishing in the time that one
         // had left (its own remaining duration, which is already shortened if it too was interrupted).
         Duration transitionAnimationDuration =
@@ -452,39 +458,38 @@ public final class HintMeshRenderer {
                                          .orElse(style.transitionAnimationDuration());
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
-        List<QWidget> interruptedContainers = contentContainers(window);
+        List<QWidget> interruptedContainers = containers(window);
         // A drill continues from the current extent toward a same-sized or contained target; a
         // differently-sized fresh grid after a click fades. A reversal continues back out to a grid
         // that contains the target (3->2->1); anything else insta-finishes.
-        boolean partOfDrill = forcedBefore || forcedNow;
+        boolean partOfDrill = matchCropBefore || matchCropNow;
         boolean coversTarget = coversInProgressTarget(hintMeshWindow, interruptedContainers);
         boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, interruptedContainers);
         boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, interruptedContainers);
         boolean continueFromCurrentExtent = partOfDrill
                 ? coversTarget || targetContainsNew
                 : showingHintMesh && newContainsTarget && !coversTarget;
-        continuationTransition = continueFromCurrentExtent;
-        if (forcedBefore && !continueFromCurrentExtent) {
+        resumedTransition = continueFromCurrentExtent;
+        if (matchCropBefore && !continueFromCurrentExtent) {
             // Fresh grid after a match crop (different target): drop the crop and its morph so the new
             // mesh fades in instead of morphing from the selected cell.
-            for (QWidget container : contentContainers(window)) {
+            for (QWidget container : interruptedContainers) {
                 container.setParent(null);
                 container.disposeLater();
             }
-            LineMorph morph = lineMorphByWindow.get(window);
+            BorderMorph morph = borderMorphByWindow.get(window);
             if (morph != null)
-                stopLineMorph(morph);
-            freshFadeThisRender = true;
+                stopBorderMorph(morph);
+            fadeIn = true;
         }
         else if (continueFromCurrentExtent) {
             // Consolidate multiple old containers (a mid-drill interruption) into one at their union
-            // visible extent, so the next transition has a single "old" to animate from. A lone
+            // visible extent, so the next transition has a single "old" to grow/shrink from. A lone
             // container is left as is, keeping its clip-capable pixmap.
-            List<QWidget> containers = contentContainers(window);
-            if (containers.size() >= 2) {
+            if (interruptedContainers.size() >= 2) {
                 int mergedX = Integer.MAX_VALUE, mergedY = Integer.MAX_VALUE;
                 int mergedRight = Integer.MIN_VALUE, mergedBottom = Integer.MIN_VALUE;
-                for (QWidget container : containers) {
+                for (QWidget container : interruptedContainers) {
                     container.setParent(null);
                     QRect visible = visibleRect(container);
                     mergedX = Math.min(mergedX, visible.x());
@@ -496,7 +501,7 @@ public final class HintMeshRenderer {
                 QWidget mergedContainer = new QWidget(window);
                 mergedContainer.setGeometry(mergedX, mergedY,
                         mergedRight - mergedX, mergedBottom - mergedY);
-                for (QWidget container : containers) {
+                for (QWidget container : interruptedContainers) {
                     container.move(container.x() - mergedX, container.y() - mergedY);
                     container.setParent(mergedContainer);
                 }
@@ -505,13 +510,12 @@ public final class HintMeshRenderer {
         }
         else {
             // Insta-finish: keep the newest container fully shown at its target, drop the rest.
-            List<QWidget> containers = contentContainers(window);
-            for (int i = 0; i < containers.size() - 1; i++) {
-                containers.get(i).setParent(null);
-                containers.get(i).disposeLater();
+            for (int i = 0; i < interruptedContainers.size() - 1; i++) {
+                interruptedContainers.get(i).setParent(null);
+                interruptedContainers.get(i).disposeLater();
             }
-            if (!containers.isEmpty()) {
-                QWidget lastContainer = containers.getLast();
+            if (!interruptedContainers.isEmpty()) {
+                QWidget lastContainer = interruptedContainers.getLast();
                 if (lastContainer instanceof ClearBackgroundQLabel label && label.cropCapable())
                     label.clearCrop();
                 else
@@ -519,11 +523,10 @@ public final class HintMeshRenderer {
             }
             // Settle the border morph to its target too, so the boxes start the reversal from where
             // the crop does.
-            LineMorph morph = lineMorphByWindow.get(window);
-            if (morph != null && morph.layer != null)
-                for (HintBox box : morph.layer.boxes)
-                    box.setGeometry(box.baseX + morph.originX, box.baseY + morph.originY,
-                            box.baseWidth, box.baseHeight);
+            BorderMorph morph = borderMorphByWindow.get(window);
+            if (morph != null && morph.layer != null && morph.targets != null)
+                for (int i = 0; i < morph.layer.boxes.size(); i++)
+                    morph.layer.boxes.get(i).setGeometry(morph.targets.get(i));
         }
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.dispose();
@@ -532,7 +535,7 @@ public final class HintMeshRenderer {
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
-        List<QWidget> oldContainers = contentContainers(window);
+        List<QWidget> oldContainers = containers(window);
         QWidget oldContainer = oldContainers.isEmpty() ? null : oldContainers.getFirst();
         boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
         window.clearWindow();
@@ -572,14 +575,14 @@ public final class HintMeshRenderer {
             window.show();
             return;
         }
-        HintMesh hintMeshKey = forcedPixmapAndPosition != null ? null :
+        HintMesh hintMeshKey = matchBoxPixmap != null ? null :
                 new HintMesh.HintMeshBuilder(hintMesh)
                         .hints(trimmedHints(hintMeshWindow.hints(),
                                 hintMesh.selectedKeySequence()))
                         .build();
         hintMeshWindow.lastHintMeshKeyReference.set(hintMeshKey); // Will be used by animateHintMatch.
         PixmapAndPosition pixmapAndPosition =
-                forcedPixmapAndPosition != null ? forcedPixmapAndPosition :
+                matchBoxPixmap != null ? matchBoxPixmap :
                         hintMeshPixmaps.get(hintMeshKey);
         boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         QWidget newContainer;
@@ -597,11 +600,11 @@ public final class HintMeshRenderer {
                     pixmapAndPosition.y() + (int) Math.round(newFirstHint.centerY() - window.y() - (originalFirstHint.centerY() - originalWindowY)),
                     pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
             newContainer = pixmapLabel;
-            boolean animate = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
-            transitionHintContainers(animate, oldContainer, newContainer,
+            boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+            transitionHintContainers(animateTransition, oldContainer, newContainer,
                     window, hintMeshWindow, transitionAnimationDuration);
             if (pixmapAndPosition.boxes() != null)
-                morphLines(window, hintMeshWindow, pixmapLabel, pixmapAndPosition.boxes(), animate,
+                morphBorders(window, hintMeshWindow, pixmapLabel, pixmapAndPosition.boxes(), animateTransition,
                         transitionAnimationDuration);
         }
         else {
@@ -615,30 +618,21 @@ public final class HintMeshRenderer {
             setUncachedHintMeshWindowRunnable =
                     () -> {
                         long before = System.nanoTime();
-                        BuiltGrid built =
-                                setUncachedHintMeshWindow(hintMeshWindow, hintMesh,
-                                        screenScale,
-                                        style, qtScaleFactor,
-                                        container
-                                );
+                        List<HintBox> boxes =
+                                setUncachedHintMeshWindow(hintMeshWindow, hintMeshKey, hintMesh,
+                                        screenScale, style, qtScaleFactor, container);
                         logger.debug("Built hint mesh window in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
-                        hintBoxGeometriesByHintMeshKey.put(hintMeshKey,
-                                built.boxGeometries());
-                        boolean animate = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
-                        transitionHintContainers(animate,
+                        boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+                        transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, transitionAnimationDuration);
-                        boolean morphGrid = morphingAnimationEnabled && isHintGrid;
-                        if (morphGrid)
-                            morphLines(window, hintMeshWindow, container, built.boxes(), animate,
-                                    transitionAnimationDuration);
                         if (isHintGrid) {
-                            List<HintBox> cacheBoxes = morphGrid ? built.boxes() : null;
-                            // Defer the pixmap cache grab to the next frame so the hint mesh
-                            // is shown immediately. The grab is expensive (~370ms at 4K) but
-                            // only needed for caching subsequent renders.
+                            morphBorders(window, hintMeshWindow, container, boxes, animateTransition,
+                                    transitionAnimationDuration);
+                            // Defer the pixmap cache grab to the next frame so the hint mesh is shown
+                            // immediately; the grab is expensive (~370ms at 4K).
                             cacheQtHintWindowIntoPixmapRunnable = () ->
-                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, cacheBoxes);
+                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, boxes);
                         }
                     };
             // Run immediately when hints are already visible (to avoid a
@@ -772,56 +766,53 @@ public final class HintMeshRenderer {
         window.show();
     }
 
-    /** Shows the new grid's boxes in a live layer above the content and, if animating, morphs each box
-     *  from its old counterpart (matched by key) to its new geometry while the labels crop underneath. */
-    private void morphLines(TransparentWindow window, HintMeshWindow hintMeshWindow,
+    /** Draws the new grid's borders on a live layer above the cropped content. If the boxes map to the
+     *  old grid's and move, it morphs them there; otherwise it clips the layer in lockstep with the crop. */
+    private void morphBorders(TransparentWindow window, HintMeshWindow hintMeshWindow,
                             QWidget contentContainer,
-                            List<HintBox> newBoxes, boolean animate, Duration duration) {
-        LineMorph morph = lineMorphByWindow.computeIfAbsent(window, w -> new LineMorph());
+                            List<HintBox> newBoxes, boolean animateTransition, Duration duration) {
+        BorderMorph morph = borderMorphByWindow.computeIfAbsent(window, w -> new BorderMorph());
         QRect containerGeometry = contentContainer.geometry();
-        int originX = containerGeometry.x();
-        int originY = containerGeometry.y();
+        int originX = containerGeometry.x(), originY = containerGeometry.y();
         containerGeometry.dispose();
-        // Start each box from where it currently is (no jump), finishing alongside the crop, which
-        // also resumes from its current state.
-        Map<List<Key>, int[]> startByKey = new HashMap<>();
-        if (animate && morph.layer != null)
+        // Where each old border sits now (window coords), so its box resumes from there without a jump.
+        Map<List<Key>, Rectangle> startByKey = new HashMap<>();
+        if (animateTransition && morph.layer != null)
             for (HintBox oldBox : morph.layer.boxes)
-                startByKey.put(oldBox.hint.keySequence(),
-                        new int[]{oldBox.x(), oldBox.y(), oldBox.width(), oldBox.height()});
+                startByKey.put(oldBox.hint.keySequence(), oldBox.rectangle());
         int boxCount = newBoxes.size();
-        int[][] start = new int[boxCount][], end = new int[boxCount][];
-        boolean anyMove = false;
-        for (int i = 0; i < boxCount; i++) {
-            HintBox box = newBoxes.get(i);
-            end[i] = new int[]{box.baseX + originX, box.baseY + originY, box.baseWidth, box.baseHeight};
-            int[] mapped = startByKey.get(box.hint.keySequence());
-            start[i] = mapped != null ? mapped : end[i];
-            anyMove |= mapped != null && (mapped[0] != end[i][0] || mapped[1] != end[i][1] ||
-                                          mapped[2] != end[i][2] || mapped[3] != end[i][3]);
+        List<Rectangle> starts = new ArrayList<>(boxCount);
+        List<Rectangle> targets = new ArrayList<>(boxCount);
+        boolean boxesMove = false;
+        for (HintBox box : newBoxes) {
+            Rectangle target = new Rectangle(box.x() + originX, box.y() + originY, box.width(), box.height());
+            Rectangle start = startByKey.getOrDefault(box.hint.keySequence(), target);
+            targets.add(target);
+            starts.add(start);
+            boxesMove |= !start.equals(target);
         }
-        boolean doAnimate = !startByKey.isEmpty() && anyMove;
-        // A crop is running but the boxes can't morph: clip the border layer in lockstep with it, the
-        // outgoing layer as the old container shrinks, the incoming one as the new grows.
+        // The boxes cannot morph (no matching old borders, or none moved): clip the border layer in
+        // lockstep with the crop instead — the outgoing layer as the old container shrinks, the
+        // incoming one as the new container grows.
         boolean growCrop = cropAnimation != null && croppedContainer == contentContainer;
-        boolean lockstepCrop = !doAnimate && cropAnimation != null && (growCrop || morph.layer != null);
+        boolean lockstepCrop = !boxesMove && cropAnimation != null && (growCrop || morph.layer != null);
         HintPaintLayer oldLayer = morph.layer;
         if (lockstepCrop && !growCrop)
             morph.layer = null;
-        stopLineMorph(morph);
-        // Place the boxes at their starting geometry so the first frame is not the final layout.
+        stopBorderMorph(morph);
+        // The layer animates its own copies, so the container's boxes keep their layout geometry.
+        List<HintBox> borderBoxes = new ArrayList<>(boxCount);
         for (int i = 0; i < boxCount; i++) {
-            int[] initial = doAnimate ? start[i] : end[i];
-            newBoxes.get(i).setGeometry(initial[0], initial[1], initial[2], initial[3]);
+            HintBox copy = new HintBox(newBoxes.get(i));
+            copy.setGeometry(boxesMove ? starts.get(i) : targets.get(i));
+            borderBoxes.add(copy);
         }
-        HintPaintLayer layer = new HintPaintLayer(window, newBoxes, List.of());
-        layer.setBoxPaint(BoxPaint.BORDER);
+        HintPaintLayer layer = new HintPaintLayer(window, borderBoxes, List.of(), HintBox::paintBorder);
         layer.setGeometry(0, 0, window.width(), window.height());
         layer.raise();
         layer.show();
         morph.layer = layer;
-        morph.originX = originX;
-        morph.originY = originY;
+        morph.targets = targets;
         window.show();
         if (lockstepCrop) {
             HintPaintLayer clipped = growCrop ? layer : oldLayer;
@@ -860,36 +851,27 @@ public final class HintMeshRenderer {
             hintMeshWindow.animationCallbacks.add(finish);
             return;
         }
-        if (!doAnimate)
+        if (!boxesMove)
             return;
-        // Bounding region the boxes travel through, so each frame repaints only that area.
+        // Region the borders travel through, so each frame repaints only that area.
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
-        for (int i = 0; i < boxCount; i++)
-            for (int[] rect : new int[][]{start[i], end[i]}) {
-                minX = Math.min(minX, rect[0]);
-                minY = Math.min(minY, rect[1]);
-                maxX = Math.max(maxX, rect[0] + rect[2]);
-                maxY = Math.max(maxY, rect[1] + rect[3]);
-            }
+        for (Rectangle r : starts) { minX = Math.min(minX, r.x()); minY = Math.min(minY, r.y());
+                                     maxX = Math.max(maxX, r.x() + r.width()); maxY = Math.max(maxY, r.y() + r.height()); }
+        for (Rectangle r : targets) { minX = Math.min(minX, r.x()); minY = Math.min(minY, r.y());
+                                      maxX = Math.max(maxX, r.x() + r.width()); maxY = Math.max(maxY, r.y() + r.height()); }
         int dirtyX = minX, dirtyY = minY, dirtyWidth = maxX - minX, dirtyHeight = maxY - minY;
         QVariantAnimation animation = new QVariantAnimation();
         // Same duration as the crop, so the morph stays in lockstep with it.
         animation.setDuration(Math.max(1, (int) duration.toMillis()));
         animation.setStartValue(0d);
         animation.setEndValue(1d);
-        animation.setEasingCurve(continuationTransition ? QEasingCurve.Type.OutQuad :
+        animation.setEasingCurve(resumedTransition ? QEasingCurve.Type.OutQuad :
                 QEasingCurve.Type.InOutQuad);
         QMetaObject.Slot1<Object> callback = value -> {
             double progress = (Double) value;
-            for (int i = 0; i < boxCount; i++) {
-                int[] s = start[i], e = end[i];
-                newBoxes.get(i).setGeometry(
-                        (int) Math.round(s[0] + (e[0] - s[0]) * progress),
-                        (int) Math.round(s[1] + (e[1] - s[1]) * progress),
-                        (int) Math.round(s[2] + (e[2] - s[2]) * progress),
-                        (int) Math.round(s[3] + (e[3] - s[3]) * progress));
-            }
+            for (int i = 0; i < boxCount; i++)
+                borderBoxes.get(i).setGeometry(lerp(starts.get(i), targets.get(i), progress));
             layer.update(dirtyX, dirtyY, dirtyWidth, dirtyHeight);
         };
         animation.valueChanged.connect(callback);
@@ -898,7 +880,7 @@ public final class HintMeshRenderer {
         animation.start();
     }
 
-    private void stopLineMorph(LineMorph morph) {
+    private void stopBorderMorph(BorderMorph morph) {
         if (morph.animation != null) {
             morph.animation.stop();
             morph.animation.disposeLater();
@@ -912,13 +894,13 @@ public final class HintMeshRenderer {
         }
     }
 
-    /** Window children that are content containers, i.e. everything but the live box line layer. */
-    private List<QWidget> contentContainers(TransparentWindow window) {
-        List<QWidget> containers = new ArrayList<>();
+    /** Window children that hold rendered content — everything but the live border layer. */
+    private List<QWidget> containers(TransparentWindow window) {
+        List<QWidget> result = new ArrayList<>();
         for (QObject child : window.children())
             if (child instanceof QWidget widget && !(widget instanceof HintPaintLayer))
-                containers.add(widget);
-        return containers;
+                result.add(widget);
+        return result;
     }
 
     /** Whether the incoming mesh covers about the same extent as the in-progress crop's target (its
@@ -1091,7 +1073,7 @@ public final class HintMeshRenderer {
         animation.setDuration((int) animationDuration.toMillis());
         animation.setStartValue(beginRect);
         animation.setEndValue(endRect);
-        animation.setEasingCurve(continuationTransition ? QEasingCurve.Type.OutQuad :
+        animation.setEasingCurve(resumedTransition ? QEasingCurve.Type.OutQuad :
                 QEasingCurve.Type.InOutQuad);
         return animation;
     }
@@ -1113,11 +1095,8 @@ public final class HintMeshRenderer {
 
     }
 
-    /** The hint boxes (for the morphing line layer) and their geometries (for the match animation). */
-    private record BuiltGrid(List<HintBox> boxes, Map<List<Key>, QRect> boxGeometries) {
-    }
-
-    private BuiltGrid setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMesh,
+    private List<HintBox> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMeshKey,
+                                                              HintMesh hintMesh,
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
                                                               QWidget container) {
@@ -1421,7 +1400,6 @@ public final class HintMeshRenderer {
             hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
-            hintBox.snapshotBase();
             if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
                 hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
             }
@@ -1450,22 +1428,12 @@ public final class HintMeshRenderer {
         // Layer 1: Box shadow (painted underneath boxes; empty unless shadow is active).
         HintPaintLayer boxShadowLayer = new HintPaintLayer(container, List.of(), List.of());
         boxShadowLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        // Layer 2: Hint boxes (with decoration children). When morphing, the borders are drawn by
-        // the live line layer (kept out of the screenshot so they can move); the fill and
-        // decorations stay here in the cropped content.
-        HintPaintLayer boxLayer = null;
-        if (!morphingAnimationEnabled) {
-            boxLayer = new HintPaintLayer(container, hintBoxes, List.of());
-            boxLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        }
-        else {
-            HintPaintLayer fillLayer = new HintPaintLayer(container, hintBoxes, List.of());
-            fillLayer.setBoxPaint(BoxPaint.FILL);
-            fillLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        }
-        applyBoxShadow(boxLayer, boxShadowLayer, hintBoxes, style.boxShadow(),
-                boxColor, boxBorderColor,
-                (int) Math.round(style.boxBorderThickness()),
+        // Layer 2: the hint boxes without their border. The border is drawn on the live border layer
+        // so it can move; the rest (background, label, decorations) crops with the container.
+        HintPaintLayer hintBoxLayer =
+                new HintPaintLayer(container, hintBoxes, List.of(), HintBox::paintWithoutBorder);
+        hintBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        applyBoxShadow(boxShadowLayer, hintBoxes, style.boxShadow(),
                 containerWidth, containerHeight);
         // Layer 3: Prefix boxes.
         HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
@@ -1502,7 +1470,8 @@ public final class HintMeshRenderer {
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
         }
-        return new BuiltGrid(hintBoxes, hintBoxGeometries);
+        hintBoxGeometriesByHintMeshKey.put(hintMeshKey, hintBoxGeometries);
+        return hintBoxes;
     }
 
     /** The Qt drawing resources for one decoration. */
@@ -1686,7 +1655,6 @@ public final class HintMeshRenderer {
         private final QColor borderColor;
         private final int borderRadius;
         private int x, y, width, height;
-        private int baseX, baseY, baseWidth, baseHeight; // Container-relative geometry, morph interpolates from it.
         final List<HintBox> decorationBoxes = new ArrayList<>();
         private String decorationLabel;
         private QFont decorationLabelFont;
@@ -1714,11 +1682,23 @@ public final class HintMeshRenderer {
             this.borderRadius = borderRadius;
         }
 
+        /** A geometry-only copy (style + geometry, no labels/decorations) for the border layer to animate. */
+        HintBox(HintBox other) {
+            this(other.hint, other.borderLength, other.borderThickness, other.color, other.borderColor,
+                    other.isHintPartOfGrid, other.gridLeftEdge, other.gridTopEdge, other.gridRightEdge,
+                    other.gridBottomEdge, other.drawGridEdgeBorders, other.qtScaleFactor, other.borderRadius);
+            setGeometry(other.x, other.y, other.width, other.height);
+        }
+
         public void setGeometry(int x, int y, int width, int height) {
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
+        }
+
+        void setGeometry(Rectangle r) {
+            setGeometry(r.x(), r.y(), r.width(), r.height());
         }
 
         public void setDecorationLabel(String label, QtFontStyle labelStyle,
@@ -1738,13 +1718,6 @@ public final class HintMeshRenderer {
             this.y = y;
         }
 
-        void snapshotBase() {
-            baseX = x;
-            baseY = y;
-            baseWidth = width;
-            baseHeight = height;
-        }
-
         public int x() { return x; }
         public int y() { return y; }
         public int width() { return width; }
@@ -1752,6 +1725,10 @@ public final class HintMeshRenderer {
 
         public QRect geometry() {
             return new QRect(x, y, width, height);
+        }
+
+        Rectangle rectangle() {
+            return new Rectangle(x, y, width, height);
         }
 
         public void paint(QPainter painter) {
@@ -1806,17 +1783,17 @@ public final class HintMeshRenderer {
             painter.restore();
         }
 
-        /** Fill and decorations at the base geometry — the cropped part of a morphing grid. */
-        void paintFillAndDecorations(QPainter painter) {
+        /** Everything but the box's own border — the part that crops with the container. */
+        void paintWithoutBorder(QPainter painter) {
             painter.save();
-            painter.translate(baseX, baseY);
+            painter.translate(x, y);
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (color.alpha() != 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, borderRadius > 0);
                 QBrush brush = new QBrush(color);
                 painter.setBrush(brush);
                 painter.setPen(Qt.PenStyle.NoPen);
-                painter.drawRoundedRect(0, 0, baseWidth, baseHeight, borderRadius, borderRadius);
+                painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
                 brush.dispose();
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
@@ -1830,8 +1807,8 @@ public final class HintMeshRenderer {
             painter.restore();
         }
 
-        /** Borders only at the current geometry — the morphing part of a morphing grid. */
-        void paintBorders(QPainter painter) {
+        /** The box's own border only — the part the border layer draws and animates. */
+        void paintBorder(QPainter painter) {
             if (borderThickness == 0)
                 return;
             painter.save();
@@ -2468,18 +2445,10 @@ public final class HintMeshRenderer {
 
     }
 
-    /**
-     * Applies shadow to the box layer. When boxes are fully opaque and
-     * stackCount == 1, uses Qt's effect directly (fast path). Otherwise,
-     * pre-renders the shadow off-screen into a separate layer.
-     */
-    private void applyBoxShadow(HintPaintLayer boxLayer,
-                                       HintPaintLayer boxShadowLayer,
+    /** Pre-renders the box shadow off-screen into the shadow layer, which crops with the content. */
+    private void applyBoxShadow(HintPaintLayer boxShadowLayer,
                                        List<HintBox> hintBoxes,
                                        Shadow boxShadow,
-                                       QColor boxColor,
-                                       QColor boxBorderColor,
-                                       int boxBorderThickness,
                                        int containerWidth,
                                        int containerHeight) {
         QColor shadowColor = QtColorUtil.shadow(boxShadow);
@@ -2487,49 +2456,25 @@ public final class HintMeshRenderer {
             shadowColor.dispose();
             return;
         }
-        boolean opaqueBox = boxColor.alpha() == 255 &&
-                            (boxBorderThickness == 0 || boxBorderColor.alpha() == 255);
-        // No boxLayer (morphing) means the fast path has no widget to attach the effect to, so
-        // pre-render the shadow into the shadow layer, which stays with the cropped content.
-        if (boxLayer != null && opaqueBox && boxShadow.stackCount() == 1) {
-            logger.debug("Box shadow: opaque box, applying effect directly");
-            StackedShadowEffect effect = new StackedShadowEffect();
-            effect.setBlurRadius(boxShadow.blurRadius());
-            effect.setOffset(boxShadow.horizontalOffset(), boxShadow.verticalOffset());
-            effect.setColor(shadowColor);
-            effect.setStackCount(1);
-            boxLayer.setGraphicsEffect(effect);
-            shadowColor.dispose();
-        }
-        else {
-            if (boxShadow.stackCount() != 1)
-                logger.debug("Box shadow: shadow stack count is " +
-                             boxShadow.stackCount() +
-                             ", pre-rendering off-screen");
-            else
-                logger.debug("Box shadow: transparent box, pre-rendering off-screen");
-            QImage sourceImage = new QImage(containerWidth, containerHeight,
-                    QImage.Format.Format_ARGB32_Premultiplied);
-            QColor fillColor = new QColor(0, 0, 0, 0);
-            sourceImage.fill(fillColor);
-            fillColor.dispose();
-            QPainter srcPainter = new QPainter(sourceImage);
-            for (HintBox box : hintBoxes) {
-                box.paintOpaque(srcPainter);
-            }
-            srcPainter.end();
-            srcPainter.dispose();
-            StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
-                    boxShadow.blurRadius(), boxShadow.horizontalOffset(),
-                    boxShadow.verticalOffset(), containerWidth, containerHeight);
-            shadowColor.dispose();
-            QImage shadowImage = StackedShadowEffect.bakeStacking(
-                    shadow.image(), boxShadow.stackCount());
-            QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
-            boxShadowLayer.setShadowPixmap(shadowPixmap,
-                    shadow.x(), shadow.y());
-            shadowImage.dispose();
-        }
+        QImage sourceImage = new QImage(containerWidth, containerHeight,
+                QImage.Format.Format_ARGB32_Premultiplied);
+        QColor fillColor = new QColor(0, 0, 0, 0);
+        sourceImage.fill(fillColor);
+        fillColor.dispose();
+        QPainter srcPainter = new QPainter(sourceImage);
+        for (HintBox box : hintBoxes)
+            box.paintOpaque(srcPainter);
+        srcPainter.end();
+        srcPainter.dispose();
+        StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
+                boxShadow.blurRadius(), boxShadow.horizontalOffset(),
+                boxShadow.verticalOffset(), containerWidth, containerHeight);
+        shadowColor.dispose();
+        QImage shadowImage = StackedShadowEffect.bakeStacking(
+                shadow.image(), boxShadow.stackCount());
+        QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
+        boxShadowLayer.setShadowPixmap(shadowPixmap, shadow.x(), shadow.y());
+        shadowImage.dispose();
     }
 
     /**
@@ -2702,27 +2647,26 @@ public final class HintMeshRenderer {
         }
     }
 
-    /** How a layer paints its boxes: whole box, fill+decorations only, or borders only. */
-    private enum BoxPaint { ALL, FILL, BORDER }
-
     private class HintPaintLayer extends QWidget {
 
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
-        private BoxPaint boxPaint = BoxPaint.ALL;
+        private final BiConsumer<HintBox, QPainter> boxPainter;
         // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
         private QRect crop;
 
         HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels) {
+            this(parent, boxes, labels, HintBox::paint);
+        }
+
+        HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels,
+                       BiConsumer<HintBox, QPainter> boxPainter) {
             super(parent);
             this.boxes = boxes;
             this.labels = labels;
-        }
-
-        void setBoxPaint(BoxPaint boxPaint) {
-            this.boxPaint = boxPaint;
+            this.boxPainter = boxPainter;
         }
 
         void setCrop(QRect r) {
@@ -2759,19 +2703,12 @@ public final class HintMeshRenderer {
                 painter.setClipRect(clip);
                 clip.dispose();
             }
-            for (HintBox box : boxes) {
-                switch (boxPaint) {
-                    case ALL -> box.paint(painter);
-                    case FILL -> box.paintFillAndDecorations(painter);
-                    case BORDER -> box.paintBorders(painter);
-                }
-            }
-            if (shadowPixmap != null) {
+            for (HintBox box : boxes)
+                boxPainter.accept(box, painter);
+            if (shadowPixmap != null)
                 painter.drawPixmap(shadowPixmapX, shadowPixmapY, shadowPixmap);
-            }
-            for (HintLabel label : labels) {
+            for (HintLabel label : labels)
                 label.paint(painter);
-            }
             painter.end();
             painter.dispose();
         }
@@ -2796,7 +2733,7 @@ public final class HintMeshRenderer {
         if (!showingHintMesh) // Invisible hint mesh.
             return;
         Map<Screen, List<Hint>> hintsByScreen = hintsByScreen(List.of(hint), screens);
-        if (hintsByScreen.isEmpty()) // Matched hint is off-screen (grid drilled past an edge): nothing to animate.
+        if (hintsByScreen.isEmpty()) // Matched hint is off-screen (grid drilled past an edge): nothing to animateTransition.
             return;
         Screen screen = hintsByScreen.keySet().iterator().next();
         HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
@@ -2814,25 +2751,18 @@ public final class HintMeshRenderer {
         hintMeshEndAnimation = true;
         QRect hintBoxGeometry =
                 hintBoxGeometriesByHintMeshKey.get(lastHintMeshKey).get(hint.keySequence());
-        QWidget container = contentContainers(hintMeshWindow.window).getLast();
+        QWidget container = containers(hintMeshWindow.window).getLast();
         QRect containerGeom = container.geometry();
         int boxWindowX = containerGeom.x() + hintBoxGeometry.x();
         int boxWindowY = containerGeom.y() + hintBoxGeometry.y();
         containerGeom.dispose();
-        QPixmap pixmap; // This grab is an expensive operation.
-        if (morphingAnimationEnabled) {
-            // The boxes live in the line layer, so grab the composited box+label from the window.
-            // The line layer is left in place: an intermediate drill morphs from it, and a terminal
-            // selection disposes it via hideHintMesh when the match animation ends.
-            QRect windowBoxRect = new QRect(boxWindowX, boxWindowY,
-                    hintBoxGeometry.width(), hintBoxGeometry.height());
-            pixmap = hintMeshWindow.window.grab(windowBoxRect);
-            windowBoxRect.dispose();
-        }
-        else {
-            pixmap = container.grab(hintBoxGeometry);
-        }
-//         pixmap.save("screenshot.png", "PNG");
+        // The border lives on the live layer, so grab the composited box+label from the window. That
+        // layer is left in place: an intermediate drill morphs from it, a terminal selection disposes
+        // it via hideHintMesh when the match animation ends.
+        QRect windowBoxRect = new QRect(boxWindowX, boxWindowY,
+                hintBoxGeometry.width(), hintBoxGeometry.height());
+        QPixmap pixmap = hintMeshWindow.window.grab(windowBoxRect); // Expensive.
+        windowBoxRect.dispose();
         HintMesh hintMesh =
                 new HintMesh.HintMeshBuilder(lastHintMeshKey).hints(List.of(hint))
                                                              .build();
