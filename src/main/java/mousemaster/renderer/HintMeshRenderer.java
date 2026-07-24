@@ -1228,7 +1228,8 @@ public final class HintMeshRenderer {
                             labelOverridden ? -1 :
                                     (hintMesh.selectedKeySequence().size() - 1
                                     - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)),
-                            style.fontStyle().defaultFontStyle().verticalAlignment());
+                            style.fontStyle().defaultFontStyle().verticalAlignment(),
+                            isHintPartOfGrid);
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
@@ -1365,7 +1366,8 @@ public final class HintMeshRenderer {
                                 prefixQtHintFontStyle,
                                 prefixHintKeyMaxXAdvance,
                                 hintMesh.selectedKeySequence().size() - 1,
-                                style.prefixFontStyle().defaultFontStyle().verticalAlignment());
+                                style.prefixFontStyle().defaultFontStyle().verticalAlignment(),
+                                isHintPartOfGrid);
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, qtScaleFactor);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, qtScaleFactor);
                 int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
@@ -2190,7 +2192,8 @@ public final class HintMeshRenderer {
                          int boxHeight, int totalXAdvance, int prefixLength,
                          QtHintFontStyle labelFontStyle,
                          int hintKeyMaxXAdvance, int selectedKeyEndIndex,
-                         FontVerticalAlignment verticalAlignment) {
+                         FontVerticalAlignment verticalAlignment,
+                         boolean isHintPartOfGrid) {
             this.labelFontStyle = labelFontStyle;
 
             QFontMetrics labelMetrics = labelFontStyle.defaultStyle().metrics();
@@ -2214,6 +2217,8 @@ public final class HintMeshRenderer {
             int xAdvance = 0;
             int smallestHintBoxLeft = 0;
             int smallestHintBoxWidth = 0;
+            int tightLeft = Integer.MAX_VALUE;
+            int tightRight = Integer.MIN_VALUE;
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
                 Key key = keySequence.get(keyIndex);
                 String keyText = key.hintLabel();
@@ -2258,15 +2263,30 @@ public final class HintMeshRenderer {
                 boolean isFocused = keyIndex == selectedKeyEndIndex + 1;
                 int textX = x;
                 int textY = y;
+                QFontMetrics keyMetrics = labelMetrics;
                 if (labelFontStyle.perKeyFont()) {
-                    QtFontStyle qtFontStyle = resolveKeyQtFontStyle(isPrefix, isSelected, isFocused);
-                    int actualTextWidth = qtFontStyle.metrics().horizontalAdvance(keyText);
+                    keyMetrics = resolveKeyQtFontStyle(isPrefix, isSelected, isFocused).metrics();
+                    int actualTextWidth = keyMetrics.horizontalAdvance(keyText);
                     textX += (textWidth - actualTextWidth) / 2;
                     if (verticalAlignment != FontVerticalAlignment.MIDDLE)
-                        textY = (boxHeight + qtFontStyle.metrics().ascent() - qtFontStyle.metrics().descent()) / 2;
+                        textY = (boxHeight + keyMetrics.ascent() - keyMetrics.descent()) / 2;
+                }
+                if (!isHintPartOfGrid) {
+                    QRect tight = keyMetrics.tightBoundingRect(keyText);
+                    tightLeft = Math.min(tightLeft, textX + tight.x());
+                    tightRight = Math.max(tightRight, textX + tight.x() + tight.width());
+                    tight.dispose();
                 }
                 keyTexts.add(new HintKeyText(keyText, textX, textY, keyWidth,
                         isSelected, isFocused, isPrefix));
+            }
+            // No columns to align to: center the label's tight bounds instead of per-key slots.
+            int shiftX = !isHintPartOfGrid && tightRight > tightLeft ?
+                    (int) Math.round(boxWidth / 2.0 - (tightLeft + tightRight) / 2.0) : 0;
+            if (shiftX != 0) {
+                keyTexts.replaceAll(k -> new HintKeyText(k.text(), k.x() + shiftX, k.y(),
+                        k.width(), k.isSelected(), k.isFocused(), k.isPrefix()));
+                smallestHintBoxLeft += shiftX;
             }
             int smallestHintBoxTop = y - labelFontStyle.defaultStyle().metrics().ascent();
             int smallestHintBoxHeight = labelFontStyle.defaultStyle().metrics().height();
