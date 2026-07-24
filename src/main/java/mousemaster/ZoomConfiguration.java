@@ -1,10 +1,23 @@
 package mousemaster;
 
-public record ZoomConfiguration(double percent, ZoomCenter center,
+public record ZoomConfiguration(double percent, ZoomAreaSize areaSize, ZoomCenter center,
                                 boolean animationEnabled, Easing animationEasing,
                                 double animationDurationMillis) {
+
+    /** The effective zoom, given the last selected hint cell (null if none). PERCENT uses percent;
+     *  LAST_SELECTED_HINT_CELL fits the cell scaled by width/heightPercent into the screen. */
+    public double percent(Rectangle cell, Rectangle screen) {
+        if (areaSize.source() != ZoomAreaSizeSource.LAST_SELECTED_HINT_CELL || cell == null)
+            return percent;
+        return Math.min(screen.width() / (cell.width() * areaSize.widthPercent()),
+                        screen.height() / (cell.height() * areaSize.heightPercent()));
+    }
+
     public static class ZoomConfigurationBuilder {
         private Double percent;
+        private ZoomAreaSizeSource areaSizeSource;
+        private Double areaWidthPercent;
+        private Double areaHeightPercent;
         private ZoomCenter center;
         private Boolean animationEnabled;
         private Easing animationEasing;
@@ -12,6 +25,21 @@ public record ZoomConfiguration(double percent, ZoomCenter center,
 
         public ZoomConfigurationBuilder percent(double percent) {
             this.percent = percent;
+            return this;
+        }
+
+        public ZoomConfigurationBuilder areaSizeSource(ZoomAreaSizeSource areaSizeSource) {
+            this.areaSizeSource = areaSizeSource;
+            return this;
+        }
+
+        public ZoomConfigurationBuilder areaWidthPercent(double areaWidthPercent) {
+            this.areaWidthPercent = areaWidthPercent;
+            return this;
+        }
+
+        public ZoomConfigurationBuilder areaHeightPercent(double areaHeightPercent) {
+            this.areaHeightPercent = areaHeightPercent;
             return this;
         }
 
@@ -39,6 +67,18 @@ public record ZoomConfiguration(double percent, ZoomCenter center,
             return percent;
         }
 
+        public ZoomAreaSizeSource areaSizeSource() {
+            return areaSizeSource;
+        }
+
+        public Double areaWidthPercent() {
+            return areaWidthPercent;
+        }
+
+        public Double areaHeightPercent() {
+            return areaHeightPercent;
+        }
+
         public ZoomCenter center() {
             return center;
         }
@@ -56,8 +96,9 @@ public record ZoomConfiguration(double percent, ZoomCenter center,
         }
 
         public ZoomConfiguration build() {
-            return new ZoomConfiguration(percent, center,
-                    animationEnabled, animationEasing, animationDurationMillis);
+            return new ZoomConfiguration(percent,
+                    new ZoomAreaSize(areaSizeSource, areaWidthPercent, areaHeightPercent),
+                    center, animationEnabled, animationEasing, animationDurationMillis);
         }
 
     }

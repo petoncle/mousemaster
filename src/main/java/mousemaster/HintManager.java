@@ -32,6 +32,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final List<Point> positionHistory = new ArrayList<>();
     private final int maxPositionHistorySize;
     private Point lastSelectedHintPoint;
+    private Rectangle lastSelectedHintCell;
     // Recursive (last-selected-hint-cell) grid levels: each holds the selected
     // cell and the area it rendered, frozen so back navigation restores that view.
     private final Deque<CellGridLevel> cellGridLevelStack = new ArrayDeque<>();
@@ -98,6 +99,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     public Point lastSelectedHintPoint() {
         logger.trace("Zoom " + lastSelectedHintPoint);
         return lastSelectedHintPoint;
+    }
+
+    public Rectangle lastSelectedHintCell() {
+        return lastSelectedHintCell;
     }
 
     public void moveToLastSelectedHint() {
@@ -212,9 +217,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         Point zoomCenterPoint = newMode.zoom().center().centerPoint(
                 screenManager.activeScreen().rectangle(), mouseX, mouseY,
                 lastSelectedHintPoint);
-        Zoom newZoom = new Zoom(newMode.zoom().percent(),
-                zoomCenterPoint, screenManager.screenContaining(zoomCenterPoint.x(),
-                zoomCenterPoint.y()).rectangle());
+        Rectangle zoomScreen = screenManager.screenContaining(zoomCenterPoint.x(),
+                zoomCenterPoint.y()).rectangle();
+        Zoom newZoom = new Zoom(newMode.zoom().percent(lastSelectedHintCell, zoomScreen),
+                zoomCenterPoint, zoomScreen);
         HintMesh newHintMesh;
         if (hintMeshConfiguration.type() instanceof HintMeshType.UiHintMesh) {
             // Do not recompute UI elements when switching between two UI hint modes.
@@ -1167,6 +1173,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
             pendingSelectedCell = exactMatchHint.cellWidth() > 0 ?
                     hintCellRectangle(exactMatchHint) : null;
+            lastSelectedHintCell = pendingSelectedCell;
              if (hintMeshConfiguration.mouseMovement() != HintMouseMovement.NO_MOVEMENT) {
                  moveMouse(new Point(exactMatchHint.centerX(), exactMatchHint.centerY()));
              }

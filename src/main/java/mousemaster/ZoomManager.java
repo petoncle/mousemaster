@@ -44,10 +44,17 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         this.currentMode = newMode;
         if (previousMode != null && previousMode.zoom().equals(newMode.zoom()))
             return;
-        endIsNoZoom = newMode.zoom().percent() == 1
+        Point targetCenter = newMode.zoom().center().centerPoint(
+                screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                hintManager.lastSelectedHintPoint());
+        Rectangle targetScreen = screenManager.nearestScreenContaining(
+                targetCenter.x(), targetCenter.y()).rectangle();
+        double targetPercent = newMode.zoom().percent(
+                hintManager.lastSelectedHintCell(), targetScreen);
+        endIsNoZoom = targetPercent == 1
                 && newMode.zoom().center() == ZoomCenter.SCREEN_CENTER;
         beginPercent = currentPercent;
-        endPercent = endIsNoZoom ? 1.0 : newMode.zoom().percent();
+        endPercent = endIsNoZoom ? 1.0 : targetPercent;
         // When transitioning to no-zoom, use previous mode's animation configuration.
         ZoomConfiguration animationConfig =
                 (endIsNoZoom && previousMode != null) ? previousMode.zoom() : newMode.zoom();
@@ -269,7 +276,8 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             currentCenterPoint = centerPoint;
             Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                     centerPoint.y());
-            overlay.setZoom(new Zoom(currentMode.zoom().percent(),
+            overlay.setZoom(new Zoom(currentMode.zoom().percent(
+                    hintManager.lastSelectedHintCell(), screen.rectangle()),
                     centerPoint, screen.rectangle()));
         }
     }

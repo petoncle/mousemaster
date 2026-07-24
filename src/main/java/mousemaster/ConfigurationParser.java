@@ -263,6 +263,9 @@ public class ConfigurationParser {
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
         zoom.percent(1.0)
+            .areaSizeSource(ZoomAreaSizeSource.PERCENT)
+            .areaWidthPercent(1.0)
+            .areaHeightPercent(1.0)
             .center(ZoomCenter.SCREEN_CENTER)
             .animationEnabled(false)
             .animationEasing(new Easing.Smootherstep())
@@ -2200,6 +2203,9 @@ public class ConfigurationParser {
         return switch (key) {
             // @formatter:off
             case "percent" -> ModePropertyHandler.of(prefix.append("percent"), v -> parseDouble(v, true, 1, 100), v -> zoom.percent(v));
+            case "area-size-source" -> ModePropertyHandler.of(prefix.append("areaSizeSource"), v -> parseZoomAreaSizeSource("zoom.area-size-source", v), v -> zoom.areaSizeSource(v));
+            case "area-width-percent" -> ModePropertyHandler.of(prefix.append("areaWidthPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaWidthPercent(v));
+            case "area-height-percent" -> ModePropertyHandler.of(prefix.append("areaHeightPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaHeightPercent(v));
             case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseZoomCenter("zoom.center", v), v -> zoom.center(v));
             case "animation-enabled" -> ModePropertyHandler.of(prefix.append("animationEnabled"), v -> Boolean.parseBoolean(v), v -> zoom.animationEnabled(v));
             case "animation-easing" -> ModePropertyHandler.of(prefix.append("animationEasing"), v -> parseEasing(v), v -> zoom.animationEasing(v));
@@ -2362,8 +2368,8 @@ public class ConfigurationParser {
             // Grid area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
             case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().source(v));
-            case "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 2), v -> hintMeshBuilder.type().gridArea().widthPercent(v));
-            case "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 2), v -> hintMeshBuilder.type().gridArea().heightPercent(v));
+            case "grid-area-width-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().gridArea().widthPercent(v));
+            case "grid-area-height-percent" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> hintMeshBuilder.type().gridArea().heightPercent(v));
             case "grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
             // Deprecated alias for grid-area-center.
             case "active-screen-grid-area-center" -> ModePropertyHandler.of(prefix.append("type", "area", "center"), v -> parseHintGridAreaCenter("hint.active-screen-grid-area-center", v), v -> hintMeshBuilder.type().gridArea().center(v));
@@ -2800,6 +2806,17 @@ public class ConfigurationParser {
         };
     }
 
+    private static ZoomAreaSizeSource parseZoomAreaSizeSource(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "percent" -> ZoomAreaSizeSource.PERCENT;
+            case "last-selected-hint-cell" -> ZoomAreaSizeSource.LAST_SELECTED_HINT_CELL;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " +
+                    List.of("percent", "last-selected-hint-cell"));
+        };
+    }
+
     private static void extendVelocity(
             VelocityConfiguration.VelocityConfigurationBuilder builder,
             VelocityConfiguration.VelocityConfigurationBuilder parent) {
@@ -3032,6 +3049,12 @@ public class ConfigurationParser {
                     ZoomConfigurationBuilder parent = (ZoomConfigurationBuilder) parent_;
                     if (builder.percent() == null)
                         builder.percent(parent.percent());
+                    if (builder.areaSizeSource() == null)
+                        builder.areaSizeSource(parent.areaSizeSource());
+                    if (builder.areaWidthPercent() == null)
+                        builder.areaWidthPercent(parent.areaWidthPercent());
+                    if (builder.areaHeightPercent() == null)
+                        builder.areaHeightPercent(parent.areaHeightPercent());
                     if (builder.center() == null)
                         builder.center(parent.center());
                     if (builder.animationEnabled() == null)
