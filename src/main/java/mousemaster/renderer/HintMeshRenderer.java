@@ -459,19 +459,22 @@ public final class HintMeshRenderer {
                                                  animation.getDuration() - animation.getCurrentTime())))
                                          .findFirst()
                                          .orElse(style.transitionAnimationDuration());
+        boolean cropAnimating = hintMeshWindow.animations.stream()
+                .anyMatch(animation -> animation.getState() == QAbstractAnimation.State.Running);
         for (QVariantAnimation animation : hintMeshWindow.animations)
             animation.stop();
         List<QWidget> interruptedContainers = containers(window);
         // A drill continues from the current extent toward a same-sized or contained target. A prefix
-        // select/deselect continues whenever the new mesh nests with the target either way (growing
-        // back out or shrinking back in); a same-sized change (recolor, fresh grid) resolves instantly.
+        // select/deselect continues whenever the new mesh nests with the target either way (growing back
+        // out or shrinking back in). A same-sized change (recolor, fresh grid) resolves instantly, unless
+        // a crop is still animating — then it continues too, so a mid-crop recolor is not cut short.
         boolean partOfDrill = matchCropBefore || matchCropNow;
         boolean coversTarget = coversInProgressTarget(hintMeshWindow, hintMesh, interruptedContainers);
         boolean targetContainsNew = targetContainsNewMesh(hintMeshWindow, hintMesh, interruptedContainers);
         boolean newContainsTarget = newMeshContainsTarget(hintMeshWindow, hintMesh, interruptedContainers);
         boolean continueFromCurrentExtent = partOfDrill
                 ? coversTarget || targetContainsNew
-                : showingHintMesh && (newContainsTarget || targetContainsNew) && !coversTarget;
+                : showingHintMesh && (newContainsTarget || targetContainsNew) && (!coversTarget || cropAnimating);
         resumedTransition = continueFromCurrentExtent;
         if (matchCropBefore && !continueFromCurrentExtent) {
             // Fresh grid after a match crop (different target): drop the crop and its morph so the new
