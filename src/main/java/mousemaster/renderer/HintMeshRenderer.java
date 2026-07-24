@@ -1590,6 +1590,18 @@ public final class HintMeshRenderer {
         // (smooth) rather than masking the live widget. In place means the shown widget never
         // changes, so there is no blank frame. The label layers are now in the pixmap, so drop them.
         container.setPixmap(pixmap);
+        // If this grab happened mid-grow, the container was clipped with setMask (no pixmap yet, so
+        // not crop-capable). With a pixmap it is crop-capable, so the remaining grow frames clip with
+        // setCrop, which never touches the mask. Carry the mask's bounds over to the crop and clear
+        // the mask, else it stays applied at the extent the grow had reached, clipping the pixmap to
+        // only that region (the rest of the grid stays blank).
+        QRegion mask = container.mask();
+        if (!mask.isEmpty()) {
+            QRect maskBounds = mask.boundingRect();
+            container.setCrop(maskBounds);
+            container.clearMask();
+            maskBounds.dispose();
+        }
         for (QObject child : List.copyOf(container.children()))
             if (child instanceof HintPaintLayer layer) {
                 layer.setParent(null);
