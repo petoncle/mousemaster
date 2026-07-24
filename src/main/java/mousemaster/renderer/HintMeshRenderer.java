@@ -2784,8 +2784,13 @@ public final class HintMeshRenderer {
         // The border lives on the live layer, so grab the composited box+label from the window. That
         // layer is left in place: an intermediate drill morphs from it, a terminal selection disposes
         // it via hideHintMesh when the match animation ends.
+        // A grid cell draws only its own top and left border lines; its right and bottom lines belong
+        // to the neighbouring cells and sit just past this cell's rect. Grab that much extra on the
+        // right and bottom so the box keeps all four borders in the crop, not just top and left.
+        int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
         QRect windowBoxRect = new QRect(boxWindowX, boxWindowY,
-                hintBoxGeometry.width(), hintBoxGeometry.height());
+                hintBoxGeometry.width() + boxBorderThickness,
+                hintBoxGeometry.height() + boxBorderThickness);
         QPixmap pixmap = hintMeshWindow.window.grab(windowBoxRect); // Expensive.
         windowBoxRect.dispose();
         HintMesh hintMesh =
