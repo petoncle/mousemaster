@@ -609,6 +609,10 @@ public final class HintMeshRenderer {
             if (pixmapAndPosition.boxes() != null)
                 morphBorders(window, hintMeshWindow, pixmapLabel, pixmapAndPosition.boxes(), animateTransition,
                         transitionAnimationDuration);
+            else
+                // A match crop carries no boxes, so morphBorders is skipped; clip the old border
+                // layer in lockstep so the starting grid's borders shrink into the selected box too.
+                clipMatchCropBorderLayer(window, hintMeshWindow);
         }
         else {
             // Uses ClearBackgroundQLabel because when in the mergedContainer,
@@ -835,19 +839,7 @@ public final class HintMeshRenderer {
                 layer.hide();
             }
             clipped.raise();
-            int ox = croppedContainer.x(), oy = croppedContainer.y();
-            QMetaObject.Slot1<Object> clip = value -> {
-                QRect v = (QRect) value;
-                QRect r = new QRect(v.x() + ox, v.y() + oy, v.width(), v.height());
-                clipped.setCrop(r);
-                r.dispose();
-            };
-            QRect begin = (QRect) cropAnimation.startValue();
-            QRect beginClip = new QRect(begin.x() + ox, begin.y() + oy, begin.width(), begin.height());
-            clipped.setCrop(beginClip);
-            beginClip.dispose();
-            begin.dispose();
-            cropAnimation.valueChanged.connect(clip);
+            clipToCrop(clipped, hintMeshWindow);
             QMetaObject.Slot0 finish = () -> {
                 if (growCrop)
                     clipped.clearCrop();
@@ -858,7 +850,6 @@ public final class HintMeshRenderer {
                 }
             };
             cropAnimation.finished.connect(finish);
-            hintMeshWindow.animationCallbacks.add(clip);
             hintMeshWindow.animationCallbacks.add(finish);
             return;
         }
@@ -889,6 +880,39 @@ public final class HintMeshRenderer {
         morph.animation = animation;
         morph.callback = callback;
         animation.start();
+    }
+
+    /** Clips {@code clipped} to the in-flight container crop, following it each frame. The crop
+     *  values are container-local and the layer is window-level, so each is offset by the cropped
+     *  container's position. */
+    private void clipToCrop(HintPaintLayer clipped, HintMeshWindow hintMeshWindow) {
+        int ox = croppedContainer.x(), oy = croppedContainer.y();
+        QMetaObject.Slot1<Object> clip = value -> {
+            QRect v = (QRect) value;
+            QRect r = new QRect(v.x() + ox, v.y() + oy, v.width(), v.height());
+            clipped.setCrop(r);
+            r.dispose();
+        };
+        QRect begin = (QRect) cropAnimation.startValue();
+        QRect beginClip = new QRect(begin.x() + ox, begin.y() + oy, begin.width(), begin.height());
+        clipped.setCrop(beginClip);
+        beginClip.dispose();
+        begin.dispose();
+        cropAnimation.valueChanged.connect(clip);
+        hintMeshWindow.animationCallbacks.add(clip);
+    }
+
+    /** A match crop skips morphBorders, so re-attach the (clearWindow-detached) old border layer and
+     *  clip it to the crop here, else the starting grid's borders vanish instead of shrinking into
+     *  the selected box. hideHintMesh drops the layer when the crop ends. */
+    private void clipMatchCropBorderLayer(TransparentWindow window, HintMeshWindow hintMeshWindow) {
+        BorderMorph morph = borderMorphByWindow.get(window);
+        if (morph == null || morph.layer == null || cropAnimation == null)
+            return;
+        morph.layer.setParent(window);
+        morph.layer.raise();
+        morph.layer.show();
+        clipToCrop(morph.layer, hintMeshWindow);
     }
 
     private void stopBorderMorph(BorderMorph morph) {
