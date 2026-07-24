@@ -107,10 +107,10 @@ public class GridManager implements MousePositionListener, ModeListener {
             // We want the grid center in screen.
             Screen activeScreen = screenManager.activeScreen();
             gridCenterX = Math.max(activeScreen.rectangle().x(), Math.min(
-                    activeScreen.rectangle().x() + activeScreen.rectangle().width(),
+                    activeScreen.rectangle().x() + activeScreen.rectangle().width() - 1,
                     gridCenterX));
             gridCenterY = Math.max(activeScreen.rectangle().y(), Math.min(
-                    activeScreen.rectangle().y() + activeScreen.rectangle().height(),
+                    activeScreen.rectangle().y() + activeScreen.rectangle().height() - 1,
                     gridCenterY));
             x = gridCenterX - grid.width() / 2;
             y = gridCenterY - grid.height() / 2;
@@ -188,10 +188,10 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (screenManager.screenContaining(x, y) == null) {
             Screen activeScreen = screenManager.activeScreen();
             x = Math.max(activeScreen.rectangle().x(), Math.min(
-                    activeScreen.rectangle().x() + activeScreen.rectangle().width(),
+                    activeScreen.rectangle().x() + activeScreen.rectangle().width() - 1,
                     x));
             y = Math.max(activeScreen.rectangle().y(), Math.min(
-                    activeScreen.rectangle().y() + activeScreen.rectangle().height(),
+                    activeScreen.rectangle().y() + activeScreen.rectangle().height() - 1,
                     y));
         }
         moveMouseTo(x, y);
@@ -202,7 +202,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (mouseColumn <= 0)
             x = grid.x();
         else if (mouseColumn >= grid.columnCount())
-            x = grid.x() + grid.width();
+            x = grid.x() + grid.width() - 1;
         else
             x = grid.x() + mouseColumn * cellWidth;
         return x;
@@ -213,7 +213,7 @@ public class GridManager implements MousePositionListener, ModeListener {
         if (mouseRow <= 0)
             y = grid.y();
         else if (mouseRow >= grid.rowCount())
-            y = grid.y() + grid.height();
+            y = grid.y() + grid.height() - 1;
         else
             y = grid.y() + mouseRow * cellHeight;
         return y;

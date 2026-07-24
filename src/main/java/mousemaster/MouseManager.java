@@ -41,6 +41,10 @@ public class MouseManager implements ModeListener, MousePositionListener {
     private boolean lastWheelXActive, lastWheelXForward;
     private boolean lastWheelYActive, lastWheelYForward;
 
+    // Grace period past a jump's expected duration before giving up on it, so a jump
+    // whose target the platform never confirms can't stall mouse input forever.
+    private static final double JUMP_ARRIVAL_TIMEOUT_SECONDS = 0.5;
+
     private int mouseX, mouseY;
     private boolean jumping;
     private double jumpDuration;
@@ -190,31 +194,38 @@ public class MouseManager implements ModeListener, MousePositionListener {
             double jumpTotalDuration =
                     Math.hypot(jumpEndX - jumpBeginX, jumpEndY - jumpBeginY) /
                     jumpVelocity;
-            double percent = Math.min(1, jumpDuration / jumpTotalDuration);
-            percent = new Easing.Smootherstep().apply(percent);
-            int nextJumpX = (int) (jumpBeginX + (jumpEndX - jumpBeginX) * percent);
-            int nextJumpY = (int) (jumpBeginY + (jumpEndY - jumpBeginY) * percent);
-            // Merge the user movement in.
-            if (percent != 1) {
-                if (jumpX == jumpEndX) {
-                    int movingDeltaX = xMoveForwardStack.isEmpty() ? 0 :
-                            (int) (deltaDistanceX * (xMoveForwardStack.peek() ? 1 : -1));
-                    deltaDistanceX -= (int) deltaDistanceX;
-                    nextJumpX += movingDeltaX;
-                    jumpEndX += movingDeltaX;
-                }
-                if (jumpY == jumpEndY) {
-                    int movingDeltaY = yMoveForwardStack.isEmpty() ? 0 :
-                            (int) (deltaDistanceY * (yMoveForwardStack.peek() ? 1 : -1));
-                    deltaDistanceY -= (int) deltaDistanceY;
-                    nextJumpY += movingDeltaY;
-                    jumpEndY += movingDeltaY;
-                }
+            if (jumpDuration > jumpTotalDuration + JUMP_ARRIVAL_TIMEOUT_SECONDS) {
+                // Timed out waiting for mouseMoved() to confirm arrival - give up.
+                jumping = false;
+                jumpDuration = 0;
             }
-            if (nextJumpX != jumpX || nextJumpY != jumpY) {
-                mouseController.synchronousMoveTo(nextJumpX, nextJumpY);
-                jumpX = nextJumpX;
-                jumpY = nextJumpY;
+            else {
+                double percent = Math.min(1, jumpDuration / jumpTotalDuration);
+                percent = new Easing.Smootherstep().apply(percent);
+                int nextJumpX = (int) (jumpBeginX + (jumpEndX - jumpBeginX) * percent);
+                int nextJumpY = (int) (jumpBeginY + (jumpEndY - jumpBeginY) * percent);
+                // Merge the user movement in.
+                if (percent != 1) {
+                    if (jumpX == jumpEndX) {
+                        int movingDeltaX = xMoveForwardStack.isEmpty() ? 0 :
+                                (int) (deltaDistanceX * (xMoveForwardStack.peek() ? 1 : -1));
+                        deltaDistanceX -= (int) deltaDistanceX;
+                        nextJumpX += movingDeltaX;
+                        jumpEndX += movingDeltaX;
+                    }
+                    if (jumpY == jumpEndY) {
+                        int movingDeltaY = yMoveForwardStack.isEmpty() ? 0 :
+                                (int) (deltaDistanceY * (yMoveForwardStack.peek() ? 1 : -1));
+                        deltaDistanceY -= (int) deltaDistanceY;
+                        nextJumpY += movingDeltaY;
+                        jumpEndY += movingDeltaY;
+                    }
+                }
+                if (nextJumpX != jumpX || nextJumpY != jumpY) {
+                    mouseController.synchronousMoveTo(nextJumpX, nextJumpY);
+                    jumpX = nextJumpX;
+                    jumpY = nextJumpY;
+                }
             }
         }
         if (activelyWheeling()) {
