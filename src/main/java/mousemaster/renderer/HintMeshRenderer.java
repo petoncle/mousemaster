@@ -629,9 +629,11 @@ public final class HintMeshRenderer {
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, transitionAnimationDuration);
+                        // Borders are drawn on the layer morphBorders builds, so non-grid hints
+                        // (which never animate or cache) still need it created.
+                        morphBorders(window, hintMeshWindow, container, boxes, animateTransition,
+                                transitionAnimationDuration);
                         if (isHintGrid) {
-                            morphBorders(window, hintMeshWindow, container, boxes, animateTransition,
-                                    transitionAnimationDuration);
                             // Defer the pixmap cache grab to the next frame so the hint mesh is shown
                             // immediately; the grab is expensive (~370ms at 4K).
                             cacheQtHintWindowIntoPixmapRunnable = () ->
@@ -1818,7 +1820,17 @@ public final class HintMeshRenderer {
                 QBrush brush = new QBrush(color);
                 painter.setBrush(brush);
                 painter.setPen(Qt.PenStyle.NoPen);
-                painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
+                if (borderRadius > 0 && borderThickness != 0) {
+                    // The border strokes this same inset rect on its own layer; filling it (not the
+                    // full box) keeps the background from bleeding past the rounded border, the way
+                    // paint() does by drawing both in one call.
+                    int offset = borderThickness / 2;
+                    painter.drawRoundedRect(offset, offset,
+                            width - borderThickness, height - borderThickness,
+                            borderRadius, borderRadius);
+                }
+                else
+                    painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
                 brush.dispose();
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
