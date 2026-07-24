@@ -46,7 +46,7 @@ public class LinuxScreens implements Screens {
         }
 
         int nmonitors = nmonitorsRef.getValue();
-        logger.debug("Detected {} monitor(s)", nmonitors);
+        logger.trace("Detected {} monitor(s)", nmonitors);
 
         XRRMonitorInfo monitorInfo = new XRRMonitorInfo(monitorsPtr);
         XRRMonitorInfo[] monitorArray = (XRRMonitorInfo[]) monitorInfo.toArray(nmonitors);
@@ -64,7 +64,7 @@ public class LinuxScreens implements Screens {
             int dpi = calculateDpi(monitor.width, monitor.mwidth);
             double scale = dpi / 96.0;
 
-            logger.debug("Monitor {}: {}x{} at ({},{}), {}mm x {}mm, DPI={}, scale={}",
+            logger.trace("Monitor {}: {}x{} at ({},{}), {}mm x {}mm, DPI={}, scale={}",
                     i, monitor.width, monitor.height, monitor.x, monitor.y,
                     monitor.mwidth, monitor.mheight, dpi, scale);
 

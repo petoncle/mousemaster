@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -56,6 +58,9 @@ public class LinuxOverlay implements Overlay {
     private Zoom pendingCaptureZoom;
     private boolean pendingCaptureGridWasVisible;
     private boolean pendingCaptureHintWasVisible;
+
+    /** Windows awaiting a click-through shape once their real geometry is set (see applyX11OverlayFlags). */
+    private final List<QWidget> pendingClickThroughWidgets = new ArrayList<>();
 
     public LinuxOverlay(Pointer display, Screens screens, LinuxPlatform platform) {
         this.display = display;
@@ -128,6 +133,7 @@ public class LinuxOverlay implements Overlay {
 
     @Override
     public void setTopmost() {
+        applyPendingClickThrough();
         // Mirrors WindowsOverlay's z-order (topmost first: grid, then hint windows,
         // then indicator, then the zoom/screenshot backdrop at the back). Qt's raise()
         // brings a top-level window to the front of the stack, so raise in the reverse
@@ -396,18 +402,22 @@ public class LinuxOverlay implements Overlay {
                 Qt.WindowType.X11BypassWindowManagerHint,
                 Qt.WindowType.WindowStaysOnTopHint);
         widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents);
-        makeClickThrough(widget);
+        // Deferred to setTopmost(): makeClickThrough() forces the native X11 window to
+        // be created via winId(), and at this point the widget still has its default
+        // pre-resize size. Applying it here would create the window at the wrong size.
+        pendingClickThroughWidgets.add(widget);
+    }
+
+    private void applyPendingClickThrough() {
+        for (QWidget widget : pendingClickThroughWidgets)
+            makeClickThrough(widget);
+        pendingClickThroughWidgets.clear();
     }
 
     /**
-     * Clears the window's X11 input shape so it accepts no mouse/keyboard input
-     * anywhere and every click passes through to whatever is behind it. Qt's
-     * WA_TransparentForMouseEvents attribute does not reliably achieve this for
-     * frameless, override-redirect (X11BypassWindowManagerHint) windows on every
-     * window manager - confirmed via hardware testing that it alone was not enough -
-     * so the input shape is cleared directly via the XShape extension instead, the
-     * same mechanism compositors and other click-through overlay tools rely on.
-     * winId() forces the underlying native X11 window to be created if it isn't yet.
+     * Clears the window's X11 input shape so every click passes through to whatever is
+     * behind it - WA_TransparentForMouseEvents alone isn't enough for frameless,
+     * override-redirect windows on every window manager.
      */
     private void makeClickThrough(QWidget widget) {
         LibXShape.INSTANCE.XShapeCombineRectangles(display, widget.winId(),
