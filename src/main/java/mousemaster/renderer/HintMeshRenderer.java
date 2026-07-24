@@ -2303,15 +2303,14 @@ public final class HintMeshRenderer {
                 boolean isSelected = keyIndex <= selectedKeyEndIndex;
                 boolean isFocused = keyIndex == selectedKeyEndIndex + 1;
                 int textX = x;
-                int textY = y;
                 QFontMetrics keyMetrics = labelMetrics;
                 if (labelFontStyle.perKeyFont()) {
                     keyMetrics = resolveKeyQtFontStyle(isPrefix, isSelected, isFocused).metrics();
                     int actualTextWidth = keyMetrics.horizontalAdvance(keyText);
                     textX += (textWidth - actualTextWidth) / 2;
-                    if (verticalAlignment != FontVerticalAlignment.MIDDLE)
-                        textY = (boxHeight + keyMetrics.ascent() - keyMetrics.descent()) / 2;
                 }
+                // MIDDLE centers each key on its own tight bounds, not the whole label as one block.
+                int textY = middleBaselineY(verticalAlignment, boxHeight, keyMetrics, keyText);
                 if (!isHintPartOfGrid) {
                     QRect tight = keyMetrics.tightBoundingRect(keyText);
                     tightLeft = Math.min(tightLeft, textX + tight.x());
