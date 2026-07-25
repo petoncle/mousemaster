@@ -19,6 +19,9 @@
 ### Hints Demo
 https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
 
+### Recursive Hints Demo
+https://github.com/user-attachments/assets/9140b3be-6109-4a90-a842-0a22c7e0e562
+
 ### Hint Styling Showcase
 <p align="center">
   <img src="https://github.com/user-attachments/assets/6b2fb130-3213-4338-bda5-0c7c4969a433" style="width: 100%; height: 100%;" />
