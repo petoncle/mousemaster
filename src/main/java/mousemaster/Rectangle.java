@@ -26,6 +26,11 @@ public record Rectangle(int x, int y, int width, int height) {
         return rectangleContains(x, y, width, height, pointX, pointY);
     }
 
+    public boolean contains(Rectangle other) {
+        return contains(other.x, other.y) &&
+               contains(other.x + other.width, other.y + other.height);
+    }
+
     public double overlapRatio(Rectangle other) {
         int intersectX = Math.max(this.x, other.x);
         int intersectY = Math.max(this.y, other.y);

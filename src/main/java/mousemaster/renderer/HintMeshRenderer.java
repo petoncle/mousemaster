@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -80,6 +81,24 @@ public final class HintMeshRenderer {
         private QVariantAnimation animation;
         private QMetaObject.AbstractSlot callback; // Kept referenced so Qt does not GC it.
         private List<Rectangle> targets; // Each layer box's target rect, to settle to on interruption.
+    }
+
+    /** A previous grid's borders, still drawn while its content shrinks, minus where the grid that
+     *  superseded it draws its own: both colors are translucent, so drawing both on the outline they
+     *  share would add up their opacity. A drill interrupted more than once stacks several of these. */
+    private record OutgoingBorders(List<HintBox> boxes, Rectangle bounds, Rectangle covered) {
+    }
+
+    private static Rectangle bounds(List<Rectangle> rectangles) {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+        for (Rectangle rectangle : rectangles) {
+            minX = Math.min(minX, rectangle.x());
+            minY = Math.min(minY, rectangle.y());
+            maxX = Math.max(maxX, rectangle.x() + rectangle.width());
+            maxY = Math.max(maxY, rectangle.y() + rectangle.height());
+        }
+        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
     }
 
     private static Rectangle lerp(Rectangle from, Rectangle to, double t) {
@@ -679,9 +698,17 @@ public final class HintMeshRenderer {
             QRect paddedNew = paddedRect(newRect);
             boolean newContainsOld = paddedNew.contains(oldRect);
             paddedNew.dispose();
+            // A crop leaves the container its full size, so a same-sized change (a recolor) lands on
+            // the instant swap below even mid-crop. The new container continues the crop instead, from
+            // what is visible of the old one, so the change does not cut a growing crop short.
+            QRect oldVisibleRect = visibleRect(oldContainer);
+            boolean continueCropIntoNew = containersEqual
+                                          && (oldVisibleRect.width() < oldRect.width()
+                                              || oldVisibleRect.height() < oldRect.height());
+            oldVisibleRect.dispose();
             oldRect.dispose();
             newRect.dispose();
-            if (animateTransition && oldContainsNew) {
+            if (animateTransition && oldContainsNew && !continueCropIntoNew) {
                 // Shrink old container until it reaches the position and size of new.
                 oldContainer.setParent(window);
                 oldContainer.show();
@@ -732,7 +759,7 @@ public final class HintMeshRenderer {
                     animation.start();
                 }
             }
-            else if (animateTransition && newContainsOld) {
+            else if (animateTransition && (newContainsOld || continueCropIntoNew)) {
                 // Initially show new container with the position and size of old.
                 // Then grow new container until it reaches its final position and size.
                 newContainer.setParent(window);
@@ -809,14 +836,25 @@ public final class HintMeshRenderer {
             starts.add(start);
             boxesMove |= !start.equals(target);
         }
-        // The boxes cannot morph (no matching old borders, or none moved): clip the border layer in
-        // lockstep with the crop instead — the outgoing layer as the old container shrinks, the
-        // incoming one as the new container grows.
+        // The boxes cannot morph (no matching old borders, or none moved): the borders follow their
+        // content instead, clipped to the crop the way their content is.
         boolean growCrop = cropAnimation != null && croppedContainer == contentContainer;
-        boolean lockstepCrop = !boxesMove && cropAnimation != null && (growCrop || morph.layer != null);
-        HintPaintLayer oldLayer = morph.layer;
-        if (lockstepCrop && !growCrop)
-            morph.layer = null;
+        List<OutgoingBorders> outgoing = List.of();
+        if (!boxesMove && cropAnimation != null && !growCrop && morph.layer != null) {
+            // Carry over the borders of every grid whose content is still shrinking, dropping the ones
+            // this grid covers: it draws their area itself now, and backing out of a drill returns to a
+            // grid that is in the list, whose borders would then be drawn twice.
+            Rectangle newBounds = bounds(targets);
+            Rectangle previousBounds = bounds(morph.targets);
+            outgoing = new ArrayList<>();
+            for (OutgoingBorders previous : morph.layer.outgoing)
+                if (!newBounds.contains(previous.bounds()))
+                    outgoing.add(previous);
+            if (!newBounds.contains(previousBounds))
+                outgoing.add(new OutgoingBorders(morph.layer.boxes, previousBounds, newBounds));
+        }
+        boolean lockstepCrop =
+                !boxesMove && cropAnimation != null && (growCrop || !outgoing.isEmpty());
         stopBorderMorph(morph);
         // The layer animates its own copies, so the container's boxes keep their layout geometry.
         List<HintBox> borderBoxes = new ArrayList<>(boxCount);
@@ -833,25 +871,16 @@ public final class HintMeshRenderer {
         morph.targets = targets;
         window.show();
         if (lockstepCrop) {
-            HintPaintLayer clipped = growCrop ? layer : oldLayer;
-            if (!growCrop) {
-                // clearWindow detached the outgoing layer; re-attach it above the containers, and
-                // hide the incoming borders (they duplicate the shrinking ones) until the crop ends.
-                clipped.setParent(window);
-                clipped.show();
-                layer.hide();
+            QMetaObject.Slot0 finish;
+            if (growCrop) {
+                followContentCrop(layer::setCrop, hintMeshWindow);
+                finish = layer::clearCrop;
             }
-            clipped.raise();
-            clipToCrop(clipped, hintMeshWindow);
-            QMetaObject.Slot0 finish = () -> {
-                if (growCrop)
-                    clipped.clearCrop();
-                else {
-                    clipped.setParent(null);
-                    clipped.disposeLater();
-                    layer.show();
-                }
-            };
+            else {
+                layer.setOutgoing(outgoing);
+                followContentCrop(layer::setOutgoingCrop, hintMeshWindow);
+                finish = () -> layer.setOutgoing(List.of());
+            }
             cropAnimation.finished.connect(finish);
             hintMeshWindow.animationCallbacks.add(finish);
             return;
@@ -859,13 +888,9 @@ public final class HintMeshRenderer {
         if (!boxesMove)
             return;
         // Region the borders travel through, so each frame repaints only that area.
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
-        for (Rectangle r : starts) { minX = Math.min(minX, r.x()); minY = Math.min(minY, r.y());
-                                     maxX = Math.max(maxX, r.x() + r.width()); maxY = Math.max(maxY, r.y() + r.height()); }
-        for (Rectangle r : targets) { minX = Math.min(minX, r.x()); minY = Math.min(minY, r.y());
-                                      maxX = Math.max(maxX, r.x() + r.width()); maxY = Math.max(maxY, r.y() + r.height()); }
-        int dirtyX = minX, dirtyY = minY, dirtyWidth = maxX - minX, dirtyHeight = maxY - minY;
+        List<Rectangle> startsAndTargets = new ArrayList<>(starts);
+        startsAndTargets.addAll(targets);
+        Rectangle dirty = bounds(startsAndTargets);
         QVariantAnimation animation = new QVariantAnimation();
         // Same duration as the crop, so the morph stays in lockstep with it.
         animation.setDuration(Math.max(1, (int) duration.toMillis()));
@@ -877,7 +902,7 @@ public final class HintMeshRenderer {
             double progress = (Double) value;
             for (int i = 0; i < boxCount; i++)
                 borderBoxes.get(i).setGeometry(lerp(starts.get(i), targets.get(i), progress));
-            layer.update(dirtyX, dirtyY, dirtyWidth, dirtyHeight);
+            layer.update(dirty.x(), dirty.y(), dirty.width(), dirty.height());
         };
         animation.valueChanged.connect(callback);
         morph.animation = animation;
@@ -885,29 +910,27 @@ public final class HintMeshRenderer {
         animation.start();
     }
 
-    /** Clips {@code clipped} to the in-flight container crop, following it each frame. The crop
-     *  values are container-local and the layer is window-level, so each is offset by the cropped
-     *  container's position. */
-    private void clipToCrop(HintPaintLayer clipped, HintMeshWindow hintMeshWindow) {
-        int ox = croppedContainer.x(), oy = croppedContainer.y();
-        QMetaObject.Slot1<Object> clip = value -> {
-            QRect v = (QRect) value;
-            QRect r = new QRect(v.x() + ox, v.y() + oy, v.width(), v.height());
-            clipped.setCrop(r);
-            r.dispose();
+    /** Hands the cropped container's visible region, in window coordinates, to {@code clip} each frame.
+     *  Read from the container, not rebuilt from the animation's rects, so the borders clip to exactly
+     *  what their content shows even when the crop animates a container consolidated from an
+     *  interrupted drill, whose extent and position are not the grid's. The container is cropped first,
+     *  its animation callback being connected first. */
+    private void followContentCrop(Consumer<QRect> clip, HintMeshWindow hintMeshWindow) {
+        QWidget container = croppedContainer;
+        Runnable clipToVisible = () -> {
+            QRect visible = visibleRect(container);
+            clip.accept(visible);
+            visible.dispose();
         };
-        QRect begin = (QRect) cropAnimation.startValue();
-        QRect beginClip = new QRect(begin.x() + ox, begin.y() + oy, begin.width(), begin.height());
-        clipped.setCrop(beginClip);
-        beginClip.dispose();
-        begin.dispose();
-        cropAnimation.valueChanged.connect(clip);
-        hintMeshWindow.animationCallbacks.add(clip);
+        clipToVisible.run();
+        QMetaObject.Slot1<Object> follow = value -> clipToVisible.run();
+        cropAnimation.valueChanged.connect(follow);
+        hintMeshWindow.animationCallbacks.add(follow);
     }
 
-    /** A match crop skips morphBorders, so re-attach the (clearWindow-detached) old border layer and
-     *  clip it to the crop here, else the starting grid's borders vanish instead of shrinking into
-     *  the selected box. hideHintMesh drops the layer when the crop ends. */
+    /** A match crop skips morphBorders, so re-attach the (clearWindow-detached) border layer and clip
+     *  it to the crop here, else the starting grid's borders vanish instead of shrinking into the
+     *  selected box. hideHintMesh drops the layer when the crop ends. */
     private void clipMatchCropBorderLayer(TransparentWindow window, HintMeshWindow hintMeshWindow) {
         BorderMorph morph = borderMorphByWindow.get(window);
         if (morph == null || morph.layer == null || cropAnimation == null)
@@ -915,7 +938,9 @@ public final class HintMeshRenderer {
         morph.layer.setParent(window);
         morph.layer.raise();
         morph.layer.show();
-        clipToCrop(morph.layer, hintMeshWindow);
+        // A transition interrupted by the match leaves the previous grids' borders still shrinking:
+        // they follow this crop too, so they keep shrinking into the selected box instead of vanishing.
+        followContentCrop(morph.layer::clipAll, hintMeshWindow);
     }
 
     private void stopBorderMorph(BorderMorph morph) {
@@ -2750,6 +2775,10 @@ public final class HintMeshRenderer {
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
         private QRect crop;
+        // The interrupted grids' borders, drawn beneath this layer's own so they can shrink with their
+        // content (their own crop) while these boxes stay put.
+        private List<OutgoingBorders> outgoing = List.of();
+        private QRect outgoingCrop;
 
         HintPaintLayer(QWidget parent, List<HintBox> boxes, List<HintLabel> labels) {
             this(parent, boxes, labels, HintBox::paint);
@@ -2763,16 +2792,42 @@ public final class HintMeshRenderer {
             this.boxPainter = boxPainter;
         }
 
+        void setOutgoing(List<OutgoingBorders> outgoing) {
+            this.outgoing = outgoing;
+            if (outgoing.isEmpty() && outgoingCrop != null) {
+                outgoingCrop.dispose();
+                outgoingCrop = null;
+            }
+            update();
+        }
+
+        /** Clips everything this layer draws, its own borders and the outgoing ones, to {@code r}. */
+        void clipAll(QRect r) {
+            setCrop(r);
+            if (!outgoing.isEmpty())
+                setOutgoingCrop(r);
+        }
+
+        void setOutgoingCrop(QRect r) {
+            outgoingCrop = replaceCrop(outgoingCrop, r);
+        }
+
         void setCrop(QRect r) {
+            crop = replaceCrop(crop, r);
+        }
+
+        /** Disposes {@code current} and returns a copy of {@code r}, repainting the area either covers
+         *  (the whole layer on the first crop, to clear any full paint before it). update(), not
+         *  repaint(): repaint() flushes immediately, so a container's Clear would reach the screen
+         *  before the border layer repaints on top, blanking the border lines for a frame. */
+        private QRect replaceCrop(QRect current, QRect r) {
             QRect newCrop = new QRect(r);
-            QRect dirty = crop != null ? newCrop.united(crop) : rect();
-            if (crop != null)
-                crop.dispose();
-            crop = newCrop;
-            // update(), not repaint(): coalesce with the container's paint so the container's Clear
-            // and this border repaint reach the screen in one composite (border on top).
+            QRect dirty = current != null ? newCrop.united(current) : rect();
+            if (current != null)
+                current.dispose();
             update(dirty);
             dirty.dispose();
+            return newCrop;
         }
 
         void clearCrop() {
@@ -2794,6 +2849,25 @@ public final class HintMeshRenderer {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
+            if (!outgoing.isEmpty() && outgoingCrop != null) {
+                QRect outgoingDirty = outgoingCrop.intersected(event.rect());
+                QRegion dirtyRegion = new QRegion(outgoingDirty);
+                for (OutgoingBorders outgoingBorders : outgoing) {
+                    Rectangle c = outgoingBorders.covered();
+                    QRect coveredRect = new QRect(c.x(), c.y(), c.width(), c.height());
+                    QRegion covered = new QRegion(coveredRect);
+                    QRegion visible = dirtyRegion.subtracted(covered);
+                    painter.setClipRegion(visible);
+                    for (HintBox box : outgoingBorders.boxes())
+                        box.paintBorder(painter);
+                    visible.dispose();
+                    covered.dispose();
+                    coveredRect.dispose();
+                }
+                painter.setClipping(false);
+                dirtyRegion.dispose();
+                outgoingDirty.dispose();
+            }
             if (crop != null) {
                 QRect clip = crop.intersected(event.rect());
                 painter.setClipRect(clip);
