@@ -8,6 +8,8 @@ public record Hint(double centerX, double centerY, double cellWidth, double cell
     public boolean startsWith(List<Key> selectedHintKeySequence) {
         if (selectedHintKeySequence.isEmpty())
             return true;
+        if (keySequence.size() < selectedHintKeySequence.size())
+            return false;
         return keySequence.subList(0, selectedHintKeySequence.size())
                           .equals(selectedHintKeySequence);
     }

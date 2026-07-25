@@ -603,9 +603,15 @@ public class HintManager implements ModeListener, MousePositionListener {
             !(hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory)) {
             Rectangle oldBounds = hintCenterBounds(this.hintMesh.hints(), currentZoom);
             Rectangle newBounds = hintCenterBounds(hintMesh.hints(), zoom);
-            if (oldBounds.overlapRatio(newBounds) >= 0.9) {
-                hintMesh.selectedKeySequence(
-                        this.hintMesh.selectedKeySequence());
+            List<Key> selectedKeySequence = this.hintMesh.selectedKeySequence();
+            // Only carry the selection over to hints it can still select: a mesh covering the same
+            // area can label it with fewer keys, and a selection longer than its labels then matches
+            // nothing and grows with every keypress.
+            if (oldBounds.overlapRatio(newBounds) >= 0.9 &&
+                hintMesh.hints()
+                        .stream()
+                        .anyMatch(hint -> hint.startsWith(selectedKeySequence))) {
+                hintMesh.selectedKeySequence(selectedKeySequence);
                 selectionResolved = true;
             }
         }
