@@ -67,7 +67,6 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
         painter.setWorldTransform(savedTransform);
         savedTransform.dispose();
         identity.dispose();
-        sourceImage.dispose();
         sourcePixmap.dispose();
         sourceOffset.dispose();
         drawSource(painter);
@@ -83,7 +82,8 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
     /**
      * Intensifies an image by computing the closed-form result of compositing
      * it on top of itself stackCount times (premultiplied alpha geometric series).
-     * Returns a new QImage (caller must dispose the original if different).
+     * Consumes {@code image}: it is returned as is, or disposed and replaced by the
+     * intensified one. Dispose the returned image, never the argument.
      */
     public static QImage bakeStacking(QImage image, int stackCount) {
         if (stackCount <= 1)
@@ -117,6 +117,10 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
         return new QImage(pixels, w, h, QImage.Format.Format_ARGB32_Premultiplied);
     }
 
+    /**
+     * Renders the shadow {@code sourceImage} casts, with the source itself subtracted out.
+     * Consumes {@code sourceImage}. Dispose the returned image, never the argument.
+     */
     public static ShadowImage renderShadowOnly(
             QImage sourceImage, QColor shadowColor, double blurRadius,
             double horizontalOffset, double verticalOffset,

@@ -167,6 +167,9 @@ public final class HintMeshRenderer {
         for (PixmapAndPosition pixmapAndPosition : hintMeshPixmaps.values())
             pixmapAndPosition.pixmap().dispose();
         hintMeshPixmaps.clear();
+        for (Map<List<Key>, QRect> hintBoxGeometries : hintBoxGeometriesByHintMeshKey.values())
+            for (QRect hintBoxGeometry : hintBoxGeometries.values())
+                hintBoxGeometry.dispose();
         hintBoxGeometriesByHintMeshKey.clear();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.lastHintMeshKeyReference().set(null);
@@ -1044,9 +1047,12 @@ public final class HintMeshRenderer {
             return visible;
         }
         QRegion mask = container.mask();
-        if (mask.isEmpty())
+        if (mask.isEmpty()) {
+            mask.dispose();
             return geometry;
+        }
         QRect maskBounds = mask.boundingRect();
+        mask.dispose();
         QRect visible = new QRect(geometry.x() + maskBounds.x(), geometry.y() + maskBounds.y(),
                 maskBounds.width(), maskBounds.height());
         geometry.dispose();
@@ -1662,6 +1668,7 @@ public final class HintMeshRenderer {
             container.clearMask();
             maskBounds.dispose();
         }
+        mask.dispose();
         for (QObject child : List.copyOf(container.children()))
             if (child instanceof HintPaintLayer layer) {
                 layer.setParent(null);
