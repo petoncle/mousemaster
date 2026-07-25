@@ -26,7 +26,7 @@
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a left button click by holding _leftshift_ while selecting a hint.
-- Trigger a second hint pass with a smaller hint grid centered around the mouse by holding _leftctrl_ while selecting a hint.
+- Trigger a second hint pass, subdividing the cell you selected into a finer grid, by holding _leftctrl_ while selecting a hint.
 - A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [mouseable.properties](mouseable.properties).
 - Exit with _leftalt_, _esc_, or _backspace_.
 
