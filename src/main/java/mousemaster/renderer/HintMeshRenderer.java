@@ -1355,8 +1355,7 @@ public final class HintMeshRenderer {
                 hintGroup.bottom = Math.max(hintGroup.bottom, hintBox.y() + hintBox.height());
             }
             addDecorationBoxes(hintBox, boxWidth, boxHeight, hintMesh.subDecoration(),
-                    subDecorationStyles, 0, qtScaleFactor,
-                    style.fontStyle().defaultFontStyle().opacity() != 0);
+                    subDecorationStyles, 0, qtScaleFactor);
             if (pumpDuringHintBuild && messagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
                 messagePump.run();
                 lastPumpTime = System.nanoTime();
@@ -1537,23 +1536,52 @@ public final class HintMeshRenderer {
         // Layer 5: whole-area decoration (index 0). Anchored to the container (the
         // rendered grid bounds), not the mesh backgroundArea — the latter will be the
         // whole screen (or window) even when the grid is a small drilled cell.
+        HintBox areaBox = null;
+        List<DecorationStyle> areaDecorationStyles = List.of();
         if (hintMesh.decoration() != null) {
-            HintBox areaBox = new HintBox(null, 0, 0,
+            areaBox = new HintBox(null, 0, 0,
                     QtColorUtil.qColor("#000000", 0), QtColorUtil.qColor("#000000", 0),
                     true, false, false, false, false, false, qtScaleFactor, 0);
             areaBox.setGeometry(0, 0, containerWidth, containerHeight);
-            List<DecorationStyle> areaDecorationStyles =
+            areaDecorationStyles =
                     List.of(decorationStyle(style.decorations().get(0), screenScale));
             addDecorationBoxes(areaBox, containerWidth, containerHeight,
-                    hintMesh.decoration(), areaDecorationStyles, 0, qtScaleFactor, false);
+                    hintMesh.decoration(), areaDecorationStyles, 0, qtScaleFactor);
             HintPaintLayer areaDecorationLayer =
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
             addDecorationLabelLayers(container, List.of(areaBox), areaDecorationStyles,
                     containerWidth, containerHeight);
         }
+        dropOverlappingDecorationLabels(hintBoxes, areaBox,
+                style.fontStyle().defaultFontStyle().opacity() != 0,
+                subDecorationStyles, areaDecorationStyles, containerWidth, containerHeight);
         hintBoxGeometriesByHintMeshKey.put(hintMeshKey, hintBoxGeometries);
         return hintBoxes;
+    }
+
+    /** A decoration label is not drawn where a label already is. Labels are centered in their box, so
+     *  only a concentric box's label can hide one: an ancestor's, or the whole-area decoration's at the
+     *  container center, which is settled only once the container is padded and sized. */
+    private void dropOverlappingDecorationLabels(List<HintBox> hintBoxes, HintBox areaBox,
+                                                 boolean hintLabelVisible,
+                                                 List<DecorationStyle> subDecorationStyles,
+                                                 List<DecorationStyle> areaDecorationStyles,
+                                                 int containerWidth, int containerHeight) {
+        boolean areaLabelVisible = areaBox != null && !areaDecorationStyles.isEmpty()
+                                   && areaDecorationStyles.getFirst().labelVisible();
+        for (HintBox hintBox : hintBoxes)
+            hintBox.dropDecorationLabelsOnOccupiedCenter(
+                    hintLabelVisible || (areaLabelVisible
+                                         && concentric(hintBox, containerWidth, containerHeight)),
+                    subDecorationStyles, 0);
+    }
+
+    /** Whether the box shares its parent's center, and so the position of its label. Tolerance absorbs
+     *  the rounding of the cell rects. */
+    private static boolean concentric(HintBox box, int parentWidth, int parentHeight) {
+        return Math.abs(2 * box.x() + box.width() - parentWidth) <= 1
+               && Math.abs(2 * box.y() + box.height() - parentHeight) <= 1;
     }
 
     /** The Qt drawing resources for one decoration. */
@@ -1585,8 +1613,7 @@ public final class HintMeshRenderer {
      *  deeper for each cell (subdecoration boxes, then subsubdecoration boxes, ...). */
     private void addDecorationBoxes(HintBox parentBox, int parentWidth, int parentHeight,
                                     HintMesh decorationMesh, List<DecorationStyle> decorationStyles,
-                                    int depth, double qtScaleFactor,
-                                    boolean parentLabelVisible) {
+                                    int depth, double qtScaleFactor) {
         if (decorationMesh == null || depth >= decorationStyles.size())
             return;
         DecorationStyle decorationStyle = decorationStyles.get(depth);
@@ -1608,14 +1635,6 @@ public final class HintMeshRenderer {
                     / area.height() * parentHeight);
             List<Key> labelKeys = decorationStyle.labelOverride().isEmpty() ?
                     cell.keySequence() : decorationStyle.labelOverride();
-            boolean labelVisible = decorationStyle.labelVisible() && !labelKeys.isEmpty();
-            // A cell centered in its parent (a hint, or a shallower decoration cell) would draw its
-            // label on top of the parent's; skip it, unless either label is invisible and there is
-            // nothing to collide with. Tolerance absorbs rounding.
-            if (parentLabelVisible && labelVisible
-                && Math.abs(decorationBoxLeft + decorationBoxRight - parentWidth) <= 1
-                && Math.abs(decorationBoxTop + decorationBoxBottom - parentHeight) <= 1)
-                continue;
             HintBox decorationBox = new HintBox(null, decorationStyle.borderLengthPx(),
                     decorationStyle.borderThicknessPx(), decorationStyle.boxColor(),
                     decorationStyle.boxBorderColor(), true,
@@ -1631,8 +1650,8 @@ public final class HintMeshRenderer {
             parentBox.decorationBoxes.add(decorationBox);
             addDecorationBoxes(decorationBox, decorationBoxRight - decorationBoxLeft,
                     decorationBoxBottom - decorationBoxTop,
-                    decorationMesh.subDecoration(), decorationStyles, depth + 1, qtScaleFactor,
-                    labelVisible);
+                    decorationMesh.subDecoration(), decorationStyles, depth + 1,
+                    qtScaleFactor);
         }
     }
 
@@ -1876,6 +1895,26 @@ public final class HintMeshRenderer {
                 decorationBox.paint(painter);
             }
             painter.restore();
+        }
+
+        /** Drops the decoration labels that would land on the center of this box when a label already
+         *  occupies it, recursing so that each level's own label occupies its center for the level
+         *  below. */
+        void dropDecorationLabelsOnOccupiedCenter(boolean centerOccupied,
+                                                  List<DecorationStyle> decorationStyles,
+                                                  int depth) {
+            if (depth >= decorationStyles.size())
+                return;
+            boolean labelVisible = decorationStyles.get(depth).labelVisible();
+            for (HintBox decorationBox : decorationBoxes) {
+                boolean onCenter = concentric(decorationBox, width, height);
+                if (centerOccupied && onCenter && labelVisible)
+                    decorationBox.decorationLabel = null;
+                boolean labelDrawn = labelVisible && decorationBox.decorationLabel != null
+                                     && !decorationBox.decorationLabel.isEmpty();
+                decorationBox.dropDecorationLabelsOnOccupiedCenter(
+                        labelDrawn || (centerOccupied && onCenter), decorationStyles, depth + 1);
+            }
         }
 
         /** Draws the decoration labels nested {@code depth} levels down. They are painted on their own
