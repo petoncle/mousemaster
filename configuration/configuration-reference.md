@@ -261,8 +261,8 @@ hint-mode.zoom.percent=1 | _{iszoom} -> 30
 ```
 
 A variable starts false. `variable.<name>` (a global property) gives it the value it starts with, and
-declares it, so a variable that only a `variable.` line ever sets can still be tested. Reloading the
-configuration returns every variable to the value it starts with.
+declares it, so a variable that only a `variable.` line ever sets can still be tested. `reset-variables`
+and reloading the configuration both return every variable to the value it starts with.
 
 ```properties
 variable.iszoom=true

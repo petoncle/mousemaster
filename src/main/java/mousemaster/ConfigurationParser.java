@@ -307,7 +307,7 @@ public class ConfigurationParser {
                 new Property<>("mutate-mode", Map.of()),
                 new Property<>("set-variable", Map.of()),
                 new Property<>("unset-variable", Map.of()),
-                new Property<>("clear-variables", Map.of()),
+                new Property<>("reset-variables", Map.of()),
                 new Property<>("noop", Map.of())
         ).collect(Collectors.toMap(property -> property.propertyKey.propertyName, Function.identity()));
         // @formatter:on
@@ -1530,9 +1530,9 @@ public class ConfigurationParser {
                             allVariableNames);
                 }
             }
-            case "clear-variables" -> {
-                mode.comboMap.clearVariables.parseReferenceOr(propertyKey, propertyValue,
-                        commandsByCombo -> setCommand(mode.comboMap.clearVariables.builder, propertyValue, new Command.ClearVariables(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
+            case "reset-variables" -> {
+                mode.comboMap.resetVariables.parseReferenceOr(propertyKey, propertyValue,
+                        commandsByCombo -> setCommand(mode.comboMap.resetVariables.builder, propertyValue, new Command.ResetVariables(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames),
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             // @formatter:on
@@ -3568,7 +3568,7 @@ public class ConfigurationParser {
         Property<Map<Combo, List<Command>>> noop;
         Property<Map<Combo, List<Command>>> setVariable;
         Property<Map<Combo, List<Command>>> unsetVariable;
-        Property<Map<Combo, List<Command>>> clearVariables;
+        Property<Map<Combo, List<Command>>> resetVariables;
 
         List<Combo> hintSelectCombos;
         List<Combo> hintUnselectCombos;
@@ -3600,7 +3600,7 @@ public class ConfigurationParser {
             noop = new ComboMapProperty("noop", modeName, propertyByKey);
             setVariable = new ComboMapProperty("set-variable", modeName, propertyByKey);
             unsetVariable = new ComboMapProperty("unset-variable", modeName, propertyByKey);
-            clearVariables = new ComboMapProperty("clear-variables", modeName, propertyByKey);
+            resetVariables = new ComboMapProperty("reset-variables", modeName, propertyByKey);
         }
 
           public void hintSelectCombos(List<Combo> combos) {
@@ -3689,7 +3689,7 @@ public class ConfigurationParser {
             add(commandsByCombo, noop.builder);
             add(commandsByCombo, setVariable.builder);
             add(commandsByCombo, unsetVariable.builder);
-            add(commandsByCombo, clearVariables.builder);
+            add(commandsByCombo, resetVariables.builder);
             return commandsByCombo;
         }
 

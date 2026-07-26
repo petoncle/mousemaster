@@ -435,12 +435,12 @@ Variables are boolean flags that persist across mode switches. They allow combos
 
 ### Setting and unsetting variables
 
-Variables are managed with `set-variable`, `unset-variable`, and `clear-variables` commands. Each takes a combo expression.
+Variables are managed with `set-variable`, `unset-variable`, and `reset-variables` commands. Each takes a combo expression.
 
 ```properties
 mode.set-variable.iszoom=combo           set iszoom when combo matches
 mode.unset-variable.iszoom=combo         unset iszoom when combo matches
-mode.clear-variables=combo               unset all variables when combo matches
+mode.reset-variables=combo               return all variables to the values they start with
 ```
 
 A common pattern is toggling a variable on/off with the same key:
@@ -485,7 +485,7 @@ _{iszoom !isnomove}                iszoom is set AND isnomove is not set
 
 ### Built-in variables
 
-Some variables are maintained automatically by mousemaster and can be used in preconditions like any other variable. They cannot be set, unset, or cleared from the configuration (attempting to `set-variable`/`unset-variable` a built-in name is a configuration error, and `clear-variables` leaves them untouched).
+Some variables are maintained automatically by mousemaster and can be used in preconditions like any other variable. They cannot be set, unset, or reset from the configuration (attempting to `set-variable`/`unset-variable` a built-in name is a configuration error, and `reset-variables` leaves them untouched).
 
 | Variable   | Set when                                                                                                          |
 |------------|-------------------------------------------------------------------------------------------------------------------|
@@ -902,7 +902,7 @@ Breakdown:
 | `_{!variable}` | Precondition: variable must NOT be set |
 | `set-variable.variable=combo` | Set variable when combo matches |
 | `unset-variable.variable=combo` | Unset variable when combo matches |
-| `clear-variables=combo` | Unset all variables when combo matches |
+| `reset-variables=combo` | Return all variables to the values they start with |
 | `val \| _{variable} -> val2` | Variable-conditional property value |
 | `combo1 \| combo2` | Alternative combos |
 | `combo -> output` | Macro output |

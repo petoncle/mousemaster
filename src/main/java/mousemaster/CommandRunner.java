@@ -103,7 +103,7 @@ public class CommandRunner {
             // Handled by ComboWatcher directly (it holds the variable state).
             case SetVariable setVariable -> {}
             case UnsetVariable unsetVariable -> {}
-            case ClearVariables clearVariables -> {}
+            case ResetVariables resetVariables -> {}
 
             case BreakMacro breakMacro -> macroPlayer.breakMacro();
 

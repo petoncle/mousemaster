@@ -36,6 +36,7 @@ public class ComboWatcher {
     private record ActiveModeMutation(Object newPropertyValue, Combo combo) {}
     private final Map<ModePropertyPath, ActiveModeMutation> activeMutations = new LinkedHashMap<>();
     private final Set<String> activeVariables;
+    private final Set<String> initiallySetVariables;
     /**
      * Computed once on mode change: true if ALL MutateMode combos for this
      * field path are precondition-only (no sequence moves).
@@ -166,6 +167,7 @@ public class ComboWatcher {
                         Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
                         ModeMap modeMap, Set<String> initiallySetVariables) {
         this.activeVariables = new HashSet<>(initiallySetVariables);
+        this.initiallySetVariables = initiallySetVariables;
         this.commandRunner = commandRunner;
         this.hintManager = hintManager;
         this.activeAppFinder = activeAppFinder;
@@ -996,14 +998,17 @@ public class ComboWatcher {
         // Batch all mutations so the mode is rebuilt only once.
         boolean anyMutation = false;
         boolean anyVariableChange = false;
-        // Process ClearVariables before Set/UnsetVariable so that
-        // clear-variables + set-variable on the same combo clears first, then sets.
+        // Process ResetVariables before Set/UnsetVariable so that
+        // reset-variables + set-variable on the same combo resets first, then sets.
         for (Command command : commands) {
-            if (command instanceof Command.ClearVariables) {
-                // Built-in variables (e.g. isidling) are maintained automatically
-                // and must survive clear-variables.
+            if (command instanceof Command.ResetVariables) {
+                // Back to the values the variables start with, not to nothing: a variable.<name>=true
+                // is a configured value, not runtime state. Built-in variables (e.g. isidling) are
+                // maintained automatically and survive too.
                 anyVariableChange |= activeVariables.removeIf(
-                        variableName -> !BuiltInVariable.NAMES.contains(variableName));
+                        variableName -> !BuiltInVariable.NAMES.contains(variableName)
+                                        && !initiallySetVariables.contains(variableName));
+                anyVariableChange |= activeVariables.addAll(initiallySetVariables);
             }
         }
         for (Command command : commands) {
@@ -1022,7 +1027,7 @@ public class ComboWatcher {
         }
         commands.removeIf(c -> c instanceof Command.SetVariable ||
                                c instanceof Command.UnsetVariable ||
-                               c instanceof Command.ClearVariables);
+                               c instanceof Command.ResetVariables);
         if (anyMutation) {
             commands.removeIf(Command.MutateMode.class::isInstance);
             Mode previousMutatedMode = mutatedMode;
