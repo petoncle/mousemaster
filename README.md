@@ -3,7 +3,7 @@
 <a href="https://discord.gg/GSB6MaKb2R"><img src="https://img.shields.io/discord/854326924402622474?color=%235865F2&label=discord" alt="Join Discord Chat"></a>
 
 - Keyboard driven mouseless mouse control and advanced keyboard customization
-- Heavily inspired by [warpd](https://github.com/rvaiya/warpd), [mouseable](https://github.com/wirekang/mouseable/) and [kanata](https://github.com/jtroo/kanata)
+- Heavily inspired by [warpd](https://github.com/rvaiya/warpd), [mouseable](https://github.com/wirekang/mouseable/), [neru](https://github.com/y3owk1n/neru) and [kanata](https://github.com/jtroo/kanata)
 
 <p align="center">
 <a href="#demo">Demo</a> •
