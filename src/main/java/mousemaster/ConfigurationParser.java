@@ -1802,7 +1802,7 @@ public class ConfigurationParser {
     private static KeyboardLayout parseKeyboardLayout(String layoutName) {
         KeyboardLayout layout = KeyboardLayout.keyboardLayoutByShortName.get(layoutName);
         if (layout == null) {
-            layout = KeyboardLayout.keyboardLayoutByIdentifier.get(layoutName);
+            layout = KeyboardLayout.keyboardLayout(layoutName, null);
             if (layout == null)
                 throw new IllegalArgumentException(
                         "Invalid keyboard layout: " + layoutName +

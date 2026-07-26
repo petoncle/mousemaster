@@ -399,8 +399,8 @@ class ComboPreparationTest {
     // --- Alias expansion tests ---
 
     static final KeyResolver identityKeyResolver = new KeyResolver(
-            new KeyboardLayout("test", "test", "test", "test", List.of()),
-            new KeyboardLayout("test", "test", "test", "test", List.of()), Set.of());
+            new KeyboardLayout("test", "test", "test", "test", null, List.of()),
+            new KeyboardLayout("test", "test", "test", "test", null, List.of()), Set.of());
 
     static ComboSequence parseCombo(String comboString,
                                     Map<String, KeyAlias> aliases) {

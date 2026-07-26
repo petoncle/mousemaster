@@ -19,7 +19,7 @@ public final class KeyboardLayout {
 
     private static final Logger logger = LoggerFactory.getLogger(KeyboardLayout.class);
 
-    public static final Map<String, KeyboardLayout> keyboardLayoutByIdentifier = new HashMap<>();
+    private static final Map<KeyboardIdentifierAndType, KeyboardLayout> keyboardLayoutByKeyboardIdentifierAndType = new HashMap<>();
     public static final Map<String, KeyboardLayout> keyboardLayoutByShortName = new HashMap<>();
 
     static {
@@ -35,13 +35,26 @@ public final class KeyboardLayout {
         long before = System.nanoTime();
         List<KeyboardLayout> keyboardLayouts = gson.fromJson(reader, listType);
         for (KeyboardLayout keyboardLayout : keyboardLayouts) {
-            keyboardLayoutByIdentifier.put(keyboardLayout.identifier, keyboardLayout);
+            if (keyboardLayout.identifier != null)
+                keyboardLayoutByKeyboardIdentifierAndType.put(
+                        new KeyboardIdentifierAndType(keyboardLayout.identifier,
+                                keyboardLayout.keyboardType), keyboardLayout);
             if (keyboardLayout.shortName != null)
                 keyboardLayoutByShortName.put(keyboardLayout.shortName, keyboardLayout);
         }
         long after = System.nanoTime();
         logger.trace("Loaded " + keyboardLayouts.size() + " keyboard layouts in " +
                      (after - before) / 1000_000 + "ms");
+    }
+
+    public static KeyboardLayout keyboardLayout(String keyboardIdentifier,
+                                                Integer keyboardType) {
+        KeyboardLayout keyboardLayout = keyboardLayoutByKeyboardIdentifierAndType.get(
+                new KeyboardIdentifierAndType(keyboardIdentifier, keyboardType));
+        if (keyboardLayout != null)
+            return keyboardLayout;
+        return keyboardLayoutByKeyboardIdentifierAndType.get(
+                new KeyboardIdentifierAndType(keyboardIdentifier, null));
     }
 
     public static class KeyDeserializer implements JsonDeserializer<Key> {
@@ -69,18 +82,28 @@ public final class KeyboardLayout {
                                     String text, String name) {
     }
 
+    /**
+     * A null keyboardType matches any keyboard type.
+     */
+    private record KeyboardIdentifierAndType(String keyboardIdentifier,
+                                             Integer keyboardType) {
+    }
+
     private final String identifier;
     private final String displayName;
     private final String driverName;
     private final String shortName;
+    private final Integer keyboardType;
     private final List<KeyboardLayoutKey> keys;
 
     public KeyboardLayout(String identifier, String displayName, String driverName,
-                          String shortName, List<KeyboardLayoutKey> keys) {
+                          String shortName, Integer keyboardType,
+                          List<KeyboardLayoutKey> keys) {
         this.identifier = identifier;
         this.displayName = displayName;
         this.driverName = driverName;
         this.shortName = shortName;
+        this.keyboardType = keyboardType;
         this.keys = keys;
     }
 
@@ -98,6 +121,10 @@ public final class KeyboardLayout {
 
     public String shortName() {
         return shortName;
+    }
+
+    public Integer keyboardType() {
+        return keyboardType;
     }
 
     public List<KeyboardLayoutKey> keys() {
@@ -149,12 +176,13 @@ public final class KeyboardLayout {
         return Objects.equals(this.identifier, that.identifier) &&
                Objects.equals(this.displayName, that.displayName) &&
                Objects.equals(this.driverName, that.driverName) &&
+               Objects.equals(this.keyboardType, that.keyboardType) &&
                Objects.equals(this.keys, that.keys);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(identifier, displayName, driverName, keys);
+        return Objects.hash(identifier, displayName, driverName, keyboardType, keys);
     }
 
     @Override
@@ -163,6 +191,7 @@ public final class KeyboardLayout {
                "identifier=" + identifier + ", " +
                "displayName=" + displayName + ", " +
                "driverName=" + driverName + ", " +
-               "shortName=" + shortName + ']';
+               "shortName=" + shortName + ", " +
+               "keyboardType=" + keyboardType + ']';
     }
 }

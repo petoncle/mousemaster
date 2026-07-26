@@ -1301,7 +1301,8 @@ The following keyboard layouts are currently exposed and can be referenced in th
 - fr-azerty
 - de-qwertz
 - it-qwerty
-- jp-kana
+- jp-kana-jis
+- jp-kana-ansi
 - pt-qwerty-abnt2
 - ru-jcuken
 - es-qwerty

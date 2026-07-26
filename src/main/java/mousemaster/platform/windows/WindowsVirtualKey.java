@@ -347,6 +347,8 @@ public enum WindowsVirtualKey {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsVirtualKey.class);
 
+    private static final int keyboardType = ExtendedUser32.INSTANCE.GetKeyboardType(0);
+
     static {
         WindowsVirtualKey[] valueArrayWithDuplicateCodes = values();
         Map<Integer, WindowsVirtualKey> valueMap = new HashMap<>();
@@ -446,8 +448,8 @@ public enum WindowsVirtualKey {
             // We call ActivateKeyboardLayout to change the layout of the command line window.
             ExtendedUser32.INSTANCE.ActivateKeyboardLayout(hkl, 0);
             int languageIdentifier = hkl.getLanguageIdentifier();
-            KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayoutByIdentifier.get(
-                    String.format("%08X", languageIdentifier));
+            KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayout(
+                    String.format("%08X", languageIdentifier), keyboardType);
 //            logger.debug("Found active window keyboard layout: " + keyboardLayout);
             return keyboardLayout;
         }
@@ -467,8 +469,8 @@ public enum WindowsVirtualKey {
                 break;
             }
         }
-        return KeyboardLayout.keyboardLayoutByIdentifier.get(
-                new String(nameBuffer, 0, nameLength));
+        return KeyboardLayout.keyboardLayout(new String(nameBuffer, 0, nameLength),
+                keyboardType);
     }
 
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode,
