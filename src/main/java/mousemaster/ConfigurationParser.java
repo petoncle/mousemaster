@@ -166,7 +166,7 @@ public class ConfigurationParser {
                       .outlineOpacity(0.5d);
             decoration.fontStyle().spacingPercent(0.7d);
             decoration.fontStyle().defaultFontStyle().shadow()
-                      .blurRadius(0d).hexColor("#000000").opacity(0d)
+                      .blurRadius(10d).hexColor("#FFFFFF").opacity(0d)
                       .horizontalOffset(0d).verticalOffset(0d).stackCount(1);
         }
         hintMesh.eatUnusedSelectionKeys(true);

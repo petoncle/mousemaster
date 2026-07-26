@@ -1513,6 +1513,8 @@ public final class HintMeshRenderer {
         hintBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(boxShadowLayer, hintBoxes, style.boxShadow(),
                 containerWidth, containerHeight);
+        addDecorationLabelLayers(container, hintBoxes, subDecorationStyles,
+                containerWidth, containerHeight);
         // Layer 3: Prefix boxes.
         HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -1540,13 +1542,15 @@ public final class HintMeshRenderer {
                     QtColorUtil.qColor("#000000", 0), QtColorUtil.qColor("#000000", 0),
                     true, false, false, false, false, false, qtScaleFactor, 0);
             areaBox.setGeometry(0, 0, containerWidth, containerHeight);
+            List<DecorationStyle> areaDecorationStyles =
+                    List.of(decorationStyle(style.decorations().get(0), screenScale));
             addDecorationBoxes(areaBox, containerWidth, containerHeight,
-                    hintMesh.decoration(),
-                    List.of(decorationStyle(style.decorations().get(0), screenScale)), 0,
-                    qtScaleFactor, false);
+                    hintMesh.decoration(), areaDecorationStyles, 0, qtScaleFactor, false);
             HintPaintLayer areaDecorationLayer =
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
+            addDecorationLabelLayers(container, List.of(areaBox), areaDecorationStyles,
+                    containerWidth, containerHeight);
         }
         hintBoxGeometriesByHintMeshKey.put(hintMeshKey, hintBoxGeometries);
         return hintBoxes;
@@ -1868,14 +1872,28 @@ public final class HintMeshRenderer {
                 if (borderThickness != 0)
                     drawBorders(painter);
             }
-            if (decorationLabel != null && !decorationLabel.isEmpty() && decorationLabelFont != null) {
-                painter.setFont(decorationLabelFont);
-                painter.setPen(decorationLabelColor);
-                painter.drawText(decorationLabelX, decorationLabelY, decorationLabel);
-            }
             for (HintBox decorationBox : decorationBoxes) {
                 decorationBox.paint(painter);
             }
+            painter.restore();
+        }
+
+        /** Draws the decoration labels nested {@code depth} levels down. They are painted on their own
+         *  layer, one per depth, so a depth's shadow applies to the layer as hint label shadows do. */
+        void paintDecorationLabels(QPainter painter, int depth) {
+            painter.save();
+            painter.translate(x, y);
+            if (depth == 0) {
+                if (decorationLabel != null && !decorationLabel.isEmpty()
+                    && decorationLabelFont != null) {
+                    painter.setFont(decorationLabelFont);
+                    painter.setPen(decorationLabelColor);
+                    painter.drawText(decorationLabelX, decorationLabelY, decorationLabel);
+                }
+            }
+            else
+                for (HintBox decorationBox : decorationBoxes)
+                    decorationBox.paintDecorationLabels(painter, depth - 1);
             painter.restore();
         }
 
@@ -1902,11 +1920,6 @@ public final class HintMeshRenderer {
                     painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
                 brush.dispose();
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
-            }
-            if (decorationLabel != null && !decorationLabel.isEmpty() && decorationLabelFont != null) {
-                painter.setFont(decorationLabelFont);
-                painter.setPen(decorationLabelColor);
-                painter.drawText(decorationLabelX, decorationLabelY, decorationLabel);
             }
             for (HintBox decorationBox : decorationBoxes)
                 decorationBox.paint(painter);
@@ -2607,6 +2620,29 @@ public final class HintMeshRenderer {
         QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
         boxShadowLayer.setShadowPixmap(shadowPixmap, shadow.x(), shadow.y());
         shadowImage.dispose();
+    }
+
+    /** One layer per decoration depth, drawing that depth's labels above the boxes carrying them, so
+     *  its shadow applies to the whole layer at once the way a hint label shadow does. */
+    private void addDecorationLabelLayers(QWidget container, List<HintBox> boxes,
+                                          List<DecorationStyle> decorationStyles,
+                                          int containerWidth, int containerHeight) {
+        for (int depth = 0; depth < decorationStyles.size(); depth++) {
+            int labelDepth = depth + 1;
+            HintPaintLayer layer = new HintPaintLayer(container, boxes, List.of(),
+                    (box, painter) -> box.paintDecorationLabels(painter, labelDepth));
+            layer.setGeometry(0, 0, containerWidth, containerHeight);
+            QtFontStyle labelStyle = decorationStyles.get(depth).labelStyle();
+            if (labelStyle.shadowColor().alpha() == 0)
+                continue;
+            StackedShadowEffect effect = new StackedShadowEffect();
+            effect.setBlurRadius(labelStyle.shadowBlurRadius());
+            effect.setOffset(labelStyle.shadowHorizontalOffset(),
+                    labelStyle.shadowVerticalOffset());
+            effect.setColor(labelStyle.shadowColor());
+            effect.setStackCount(labelStyle.shadowStackCount());
+            layer.setGraphicsEffect(effect);
+        }
     }
 
     /**
