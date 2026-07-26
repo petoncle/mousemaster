@@ -24,6 +24,12 @@ public interface Platform extends ModeListener {
 
     void shutdown();
 
+    /**
+     * Shuts down, then kills the process instead of exiting it: Qt's and the CRT's teardown
+     * warns and can hang for seconds when it runs off the main thread.
+     */
+    void killProcess(int exitCode);
+
     KeyRegurgitator keyRegurgitator();
 
     Clock clock();

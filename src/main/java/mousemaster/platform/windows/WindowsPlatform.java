@@ -18,6 +18,7 @@ import mousemaster.KeyEvent.ReleaseKeyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -72,6 +73,8 @@ public class WindowsPlatform implements Platform {
     private final Set<Key> keysPressedInHook = new HashSet<>();
     private Mode currentMode;
     private double stuckKeyCheckTimer;
+    private ExtendedKernel32.PhandlerRoutine consoleCtrlHandler;
+    private volatile boolean killProcessRequested;
 
     public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled,
                            boolean ignoreInjectedEvents) {
@@ -89,7 +92,8 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void update(double delta) {
-        mouse.processPendingCursorRestore();
+        if (killProcessRequested)
+            killProcess(0);
         overlay.setWaitForZoomBeforeRepainting(false);
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
@@ -225,6 +229,7 @@ public class WindowsPlatform implements Platform {
         Thread mouseHookThread = new Thread(this::mouseHook);
         mouseHookThread.setName("mouse-hook");
         mouseHookThread.start();
+        addConsoleCtrlHandler();
         addJvmShutdownHook();
     }
 
@@ -248,7 +253,48 @@ public class WindowsPlatform implements Platform {
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
     }
 
+    /**
+     * Closing the console window (alt+f4), Ctrl+C, and a logoff all terminate the process
+     * through Qt's and the CRT's teardown, which runs on the thread that received the event.
+     * Qt then destroys its objects off the main thread ("QObject::killTimer: Timers cannot be
+     * stopped from another thread") and can wait on a lock the terminated main thread held,
+     * until Windows kills the process seconds later. So we shut down (SetSystemCursor also
+     * outlives the process) and kill the process ourselves, before that teardown starts.
+     */
+    private void addConsoleCtrlHandler() {
+        consoleCtrlHandler = this::consoleCtrlEvent;
+        boolean registered =
+                ExtendedKernel32.INSTANCE.SetConsoleCtrlHandler(consoleCtrlHandler, true);
+        logger.info("Registered console control handler: " + registered +
+                    (registered ? "" : " (error " + Native.getLastError() + ")"));
+    }
+
+    private boolean consoleCtrlEvent(int dwCtrlType) {
+        logger.info("Received console control event " + dwCtrlType);
+        // The main thread does the killing: SPI_SETCURSORS (cursor restore) from this
+        // OS-created thread is unreliable. The process normally dies during the wait below.
+        killProcessRequested = true;
+        long deadlineNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+        while (System.nanoTime() < deadlineNanos) {
+            try {
+                Thread.sleep(5);
+            }
+            catch (InterruptedException e) {
+                break;
+            }
+        }
+        logger.warn("Main thread is not responding, killing the process from the console control handler");
+        killProcess(0);
+        return false; // Only reached if TerminateProcess failed: let the default handler proceed.
+    }
+
     private static boolean shutdown = false;
+
+    @Override
+    public void killProcess(int exitCode) {
+        shutdown();
+        Kernel32.INSTANCE.TerminateProcess(Kernel32.INSTANCE.GetCurrentProcess(), exitCode);
+    }
 
     @Override
     public void shutdown() {

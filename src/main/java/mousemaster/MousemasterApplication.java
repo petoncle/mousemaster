@@ -58,7 +58,9 @@ public class MousemasterApplication {
                     "An error has occurred. The details of the error should be right above this message. Press Enter in this window to close mousemaster.");
             new Scanner(System.in).nextLine();
         }
-        System.exit(1);
+        if (platform == null)
+            System.exit(1); // Qt was never initialized: exiting cannot hang.
+        platform.killProcess(1);
     }
 
     public static void enableLogToFile() {
