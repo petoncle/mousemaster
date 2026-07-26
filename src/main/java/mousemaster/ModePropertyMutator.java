@@ -30,12 +30,16 @@ public class ModePropertyMutator {
             return newPropertyValue;
         }
         String fieldName = fieldNames.getFirst();
-        Object child = getField(obj, fieldName);
         List<String> remaining = fieldNames.subList(1, fieldNames.size());
-        if (child == null)
+        if (!hasField(obj, fieldName))
             // A decoration is named by its depth (decoration0, decoration1, ...) but held in a list.
             return mutateDecoration(obj, fieldName, remaining, newPropertyValue,
                     targetViewportFilter);
+        Object child = getField(obj, fieldName);
+        // A null field can be replaced, since the path ends on it and the new value just takes its
+        // place, but it cannot be descended into to reach a field deeper in the path.
+        if (child == null && !remaining.isEmpty())
+            return obj;
         Object mutatedChild;
         if (child instanceof ViewportFilterMap<?> viewportFilterMap) {
             Map<ViewportFilter, Object> mutatedMap = new LinkedHashMap<>();
@@ -93,10 +97,16 @@ public class ModePropertyMutator {
         }
     }
 
-    /**
-     * Returns the value of the named field, or {@code null} if the field does
-     * not exist on this record type (a sealed type that does not declare this field).
-     */
+    private static boolean hasField(Object obj, String fieldName) {
+        for (RecordComponent component : getComponents(obj.getClass()))
+            if (component.getName().equals(fieldName))
+                return true;
+        return false;
+    }
+
+    /** Returns the value of the named field, or {@code null} if it is unset or not a field of this
+     *  record type (a sealed type that does not declare it): ask {@link #hasField} to tell those
+     *  apart. */
     private static Object getField(Object obj, String fieldName) {
         try {
             RecordComponent[] components = getComponents(obj.getClass());
