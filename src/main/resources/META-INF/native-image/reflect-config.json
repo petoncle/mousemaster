@@ -851,7 +851,7 @@
 {
   "name":"mousemaster.Mode",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.Mouse","mousemaster.Wheel","mousemaster.GridConfiguration","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration"] }, {"name":"comboMap","parameterTypes":[] }, {"name":"grid","parameterTypes":[] }, {"name":"hideCursor","parameterTypes":[] }, {"name":"hintMesh","parameterTypes":[] }, {"name":"indicator","parameterTypes":[] }, {"name":"modeAfterUnhandledKeyPress","parameterTypes":[] }, {"name":"mouse","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"pushModeToHistoryStack","parameterTypes":[] }, {"name":"stopCommandsFromPreviousMode","parameterTypes":[] }, {"name":"timeout","parameterTypes":[] }, {"name":"wheel","parameterTypes":[] }, {"name":"zoom","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.Mouse","mousemaster.Wheel","mousemaster.GridConfiguration","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration"] }, {"name":"<init>","parameterTypes":["java.lang.String","boolean","boolean","java.lang.String","mousemaster.ComboMap","mousemaster.Mouse","mousemaster.Wheel","mousemaster.GridConfiguration","mousemaster.HintMeshConfiguration","mousemaster.ModeTimeout","mousemaster.IndicatorConfiguration","mousemaster.HideCursor","mousemaster.ZoomConfiguration","double"] }, {"name":"comboMap","parameterTypes":[] }, {"name":"cursorScale","parameterTypes":[] }, {"name":"grid","parameterTypes":[] }, {"name":"hideCursor","parameterTypes":[] }, {"name":"hintMesh","parameterTypes":[] }, {"name":"indicator","parameterTypes":[] }, {"name":"modeAfterUnhandledKeyPress","parameterTypes":[] }, {"name":"mouse","parameterTypes":[] }, {"name":"name","parameterTypes":[] }, {"name":"pushModeToHistoryStack","parameterTypes":[] }, {"name":"stopCommandsFromPreviousMode","parameterTypes":[] }, {"name":"timeout","parameterTypes":[] }, {"name":"wheel","parameterTypes":[] }, {"name":"zoom","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.ModeTimeout",
@@ -887,7 +887,7 @@
 {
   "name":"mousemaster.ZoomConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"animationDurationMillis","parameterTypes":[] }, {"name":"animationEasing","parameterTypes":[] }, {"name":"animationEnabled","parameterTypes":[] }, {"name":"center","parameterTypes":[] }, {"name":"percent","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.ZoomAreaSize","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"<init>","parameterTypes":["double","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"animationDurationMillis","parameterTypes":[] }, {"name":"animationEasing","parameterTypes":[] }, {"name":"animationEnabled","parameterTypes":[] }, {"name":"areaSize","parameterTypes":[] }, {"name":"center","parameterTypes":[] }, {"name":"percent","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.platform.windows.ExtendedGDI32",
