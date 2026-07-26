@@ -1355,7 +1355,8 @@ public final class HintMeshRenderer {
                 hintGroup.bottom = Math.max(hintGroup.bottom, hintBox.y() + hintBox.height());
             }
             addDecorationBoxes(hintBox, boxWidth, boxHeight, hintMesh.subDecoration(),
-                    subDecorationStyles, 0, qtScaleFactor, true);
+                    subDecorationStyles, 0, qtScaleFactor,
+                    style.fontStyle().defaultFontStyle().opacity() != 0);
             if (pumpDuringHintBuild && messagePump != null && (System.nanoTime() - lastPumpTime) > 30_000_000L) {
                 messagePump.run();
                 lastPumpTime = System.nanoTime();
@@ -1555,6 +1556,7 @@ public final class HintMeshRenderer {
     private record DecorationStyle(QColor boxColor, QColor boxBorderColor,
                                    int borderThicknessPx, int borderLengthPx,
                                    int borderRadiusPx, boolean closed,
+                                   boolean labelVisible,
                                    QtFontStyle labelStyle,
                                    List<Key> labelOverride,
                                    FontVerticalAlignment labelVerticalAlignment) {
@@ -1569,6 +1571,7 @@ public final class HintMeshRenderer {
                 (int) Math.round(decoration.boxBorderLength()),
                 (int) Math.round(decoration.boxBorderRadius()),
                 decoration.closed(),
+                font.opacity() != 0,
                 QtHintFont.qtFontStyle(font, screenScale),
                 decoration.labelOverride(),
                 font.verticalAlignment());
@@ -1578,7 +1581,8 @@ public final class HintMeshRenderer {
      *  deeper for each cell (subdecoration boxes, then subsubdecoration boxes, ...). */
     private void addDecorationBoxes(HintBox parentBox, int parentWidth, int parentHeight,
                                     HintMesh decorationMesh, List<DecorationStyle> decorationStyles,
-                                    int depth, double qtScaleFactor, boolean parentHasLabel) {
+                                    int depth, double qtScaleFactor,
+                                    boolean parentLabelVisible) {
         if (decorationMesh == null || depth >= decorationStyles.size())
             return;
         DecorationStyle decorationStyle = decorationStyles.get(depth);
@@ -1600,9 +1604,11 @@ public final class HintMeshRenderer {
                     / area.height() * parentHeight);
             List<Key> labelKeys = decorationStyle.labelOverride().isEmpty() ?
                     cell.keySequence() : decorationStyle.labelOverride();
-            // A labelled cell centered in a labelled parent (a hint, or a shallower decoration cell)
-            // would draw its label on top of the parent's; skip it. Tolerance absorbs rounding.
-            if (parentHasLabel && !labelKeys.isEmpty()
+            boolean labelVisible = decorationStyle.labelVisible() && !labelKeys.isEmpty();
+            // A cell centered in its parent (a hint, or a shallower decoration cell) would draw its
+            // label on top of the parent's; skip it, unless either label is invisible and there is
+            // nothing to collide with. Tolerance absorbs rounding.
+            if (parentLabelVisible && labelVisible
                 && Math.abs(decorationBoxLeft + decorationBoxRight - parentWidth) <= 1
                 && Math.abs(decorationBoxTop + decorationBoxBottom - parentHeight) <= 1)
                 continue;
@@ -1622,7 +1628,7 @@ public final class HintMeshRenderer {
             addDecorationBoxes(decorationBox, decorationBoxRight - decorationBoxLeft,
                     decorationBoxBottom - decorationBoxTop,
                     decorationMesh.subDecoration(), decorationStyles, depth + 1, qtScaleFactor,
-                    !labelKeys.isEmpty());
+                    labelVisible);
         }
     }
 
