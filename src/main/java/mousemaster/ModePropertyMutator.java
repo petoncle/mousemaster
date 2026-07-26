@@ -1,6 +1,7 @@
 package mousemaster;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.lang.reflect.RecordComponent;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,9 +31,11 @@ public class ModePropertyMutator {
         }
         String fieldName = fieldNames.getFirst();
         Object child = getField(obj, fieldName);
-        if (child == null)
-            return obj; // Field not found on this sealed type, skip mutation.
         List<String> remaining = fieldNames.subList(1, fieldNames.size());
+        if (child == null)
+            // A decoration is named by its depth (decoration0, decoration1, ...) but held in a list.
+            return mutateDecoration(obj, fieldName, remaining, newPropertyValue,
+                    targetViewportFilter);
         Object mutatedChild;
         if (child instanceof ViewportFilterMap<?> viewportFilterMap) {
             Map<ViewportFilter, Object> mutatedMap = new LinkedHashMap<>();
@@ -54,6 +57,19 @@ public class ModePropertyMutator {
                     newPropertyValue, targetViewportFilter);
         }
         return createWithField(obj, fieldName, mutatedChild);
+    }
+
+    private static Object mutateDecoration(Object obj, String fieldName,
+                                           List<String> remaining, Object newPropertyValue,
+                                           ViewportFilter targetViewportFilter) {
+        if (!fieldName.startsWith("decoration")
+            || !(getField(obj, "decorations") instanceof List<?> decorations))
+            return obj;
+        int index = Integer.parseInt(fieldName.substring("decoration".length()));
+        List<Object> mutatedDecorations = new ArrayList<>(decorations);
+        mutatedDecorations.set(index, mutateModeProperty(decorations.get(index), remaining,
+                newPropertyValue, targetViewportFilter));
+        return createWithField(obj, "decorations", List.copyOf(mutatedDecorations));
     }
 
     static Object createWithField(Object record, String fieldName,
