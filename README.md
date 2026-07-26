@@ -66,6 +66,15 @@ mousemaster lets you control your mouse from the keyboard and remap your keys.
    configuration. If you have ideas for a better configuration that
    you would like to share, I'd love to hear from you.
 
+### Optional Windows GUI configurator
+
+A community-maintained WinForms configurator is available in
+[`configurator/`](configurator/README.md). It can edit 37 keyboard and mouse actions,
+mouse and wheel motion values, focus-mode input swallowing, and Alt-Tab centering while
+preserving any properties and comments it does not manage. The UI is available in
+Simplified Chinese and English. The configurator builds with the .NET Framework C#
+compiler only (no NuGet packages) and is not part of the official MouseMaster release.
+
 ## Usage
 
 ### Default Configuration (neo-mousekeys-ijkl)

@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Windows configurator ###
+/MouseMasterConfigurator.exe
+/MouseMasterConfigurator.pdb
+/MouseMasterConfigurator.*.log
+/mousemaster.properties
+/mousemaster.properties.gui-backup
+/configurator/build/
