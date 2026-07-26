@@ -35,7 +35,7 @@ public class ComboWatcher {
     private Mode mutatedMode;
     private record ActiveModeMutation(Object newPropertyValue, Combo combo) {}
     private final Map<ModePropertyPath, ActiveModeMutation> activeMutations = new LinkedHashMap<>();
-    private final Set<String> activeVariables = new HashSet<>();
+    private final Set<String> activeVariables;
     /**
      * Computed once on mode change: true if ALL MutateMode combos for this
      * field path are precondition-only (no sequence moves).
@@ -164,7 +164,8 @@ public class ComboWatcher {
                         Clock clock,
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
-                        ModeMap modeMap) {
+                        ModeMap modeMap, Set<String> initiallySetVariables) {
+        this.activeVariables = new HashSet<>(initiallySetVariables);
         this.commandRunner = commandRunner;
         this.hintManager = hintManager;
         this.activeAppFinder = activeAppFinder;

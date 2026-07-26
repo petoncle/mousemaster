@@ -361,6 +361,7 @@ public class ConfigurationParser {
         ComboMoveDuration defaultComboMoveDuration =
                 new ComboMoveDuration(Duration.ZERO, null);
         int maxPositionHistorySize = 16;
+        Set<String> initiallySetVariables = new HashSet<>();
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Map<PropertyKey, Property<?>> propertyByKey = new HashMap<>();
         Set<PropertyKey> nonRootPropertyKeys = new HashSet<>();
@@ -401,6 +402,16 @@ public class ConfigurationParser {
             }
             else if (propertyKey.equals("hide-console")) {
                 hideConsole = Boolean.parseBoolean(propertyValue);
+                continue;
+            }
+            else if (propertyKey.startsWith("variable.")) {
+                if (!propertyValue.equals("true") && !propertyValue.equals("false"))
+                    throw new IllegalArgumentException(
+                            "Invalid property value in " + propertyKey + "=" +
+                            propertyValue + ": should be true or false");
+                if (propertyValue.equals("true"))
+                    initiallySetVariables.add(
+                            propertyKey.substring("variable.".length()));
                 continue;
             }
             // a-mode.hint.grid-cell-width
@@ -564,7 +575,8 @@ public class ConfigurationParser {
                                     .collect(Collectors.toSet());
         return new Configuration(maxPositionHistorySize,
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
-                forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout);
+                forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
+                Set.copyOf(initiallySetVariables));
     }
 
     private static List<Combo> deriveSelectCombosFromHintSelectionKeys(ModeBuilder mode,
@@ -1723,24 +1735,32 @@ public class ConfigurationParser {
             // Match: <mode-name>.set-variable.<variable-name>=...
             Pattern setVarPattern = Pattern.compile("[^.]+-mode\\.set-variable\\.([^.]+)");
             Matcher setVarMatcher = setVarPattern.matcher(propertyKey);
-            if (setVarMatcher.matches()) {
-                String variableName = setVarMatcher.group(1);
-                if (BuiltInVariable.NAMES.contains(variableName))
-                    throw new IllegalArgumentException(
-                            "Variable name '" + variableName +
-                            "' is a built-in variable and cannot be set");
-                if (keyAliases.containsKey(variableName))
-                    throw new IllegalArgumentException(
-                            "Variable name '" + variableName +
-                            "' collides with a key alias name");
-                if (Key.tryOfName(variableName) != null)
-                    throw new IllegalArgumentException(
-                            "Variable name '" + variableName +
-                            "' collides with a key name");
-                variableNames.add(variableName);
-            }
+            if (setVarMatcher.matches())
+                variableNames.add(checkedVariableName(setVarMatcher.group(1), keyAliases));
+            // variable.<name>=true|false declares one too, so a variable no combo ever sets is still
+            // a variable a precondition can test.
+            else if (propertyKey.startsWith("variable."))
+                variableNames.add(checkedVariableName(
+                        propertyKey.substring("variable.".length()), keyAliases));
         }
         return variableNames;
+    }
+
+    private static String checkedVariableName(String variableName,
+                                              Map<String, KeyAlias> keyAliases) {
+        if (BuiltInVariable.NAMES.contains(variableName))
+            throw new IllegalArgumentException(
+                    "Variable name '" + variableName +
+                    "' is a built-in variable and cannot be set");
+        if (keyAliases.containsKey(variableName))
+            throw new IllegalArgumentException(
+                    "Variable name '" + variableName +
+                    "' collides with a key alias name");
+        if (Key.tryOfName(variableName) != null)
+            throw new IllegalArgumentException(
+                    "Variable name '" + variableName +
+                    "' collides with a key name");
+        return variableName;
     }
 
     private static Aliases parseAliases(List<String> properties) {

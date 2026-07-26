@@ -260,6 +260,14 @@ hint-mode.unset-variable.iszoom=_{iszoom} +z
 hint-mode.zoom.percent=1 | _{iszoom} -> 30
 ```
 
+A variable starts false. `variable.<name>` (a global property) gives it the value it starts with, and
+declares it, so a variable that only a `variable.` line ever sets can still be tested. Reloading the
+configuration returns every variable to the value it starts with.
+
+```properties
+variable.iszoom=true
+```
+
 When mutating an indicator or hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration). Mutating `indicator.idle.color` also mutates `move`, `wheel`, `mouse-press`, etc.
 
 ### Mouse properties

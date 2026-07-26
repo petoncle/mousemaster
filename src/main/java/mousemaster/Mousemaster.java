@@ -205,7 +205,7 @@ public class Mousemaster {
                         platform.clock(),
                         unpressedComboPreconditionKeys,
                         pressedComboPreconditionKeys, configuration.logRedactKeys(),
-                        configuration.modeMap());
+                        configuration.modeMap(), configuration.initiallySetVariables());
         keyboardManager = new KeyboardManager(comboWatcher, hintManager,
                 platform.keyRegurgitator());
         macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager, platform.keyboard());
