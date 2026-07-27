@@ -167,6 +167,10 @@ public class Mousemaster {
             activeKeyboardLayout = forcedActiveKeyboardLayout;
         if (configuration.logLevel() != null)
             MousemasterApplication.setLogLevel(configuration.logLevel());
+        MousemasterApplication.setModeColumnWidth(
+                configuration.modeMap().modes().stream()
+                             .mapToInt(mode -> mode.name().length())
+                             .max().orElse(0));
         if (configuration.logToFile())
             MousemasterApplication.enableLogToFile();
         else

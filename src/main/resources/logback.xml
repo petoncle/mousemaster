@@ -1,7 +1,9 @@
 <configuration>
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %-26X{mode} %-16logger{0} %msg%n</pattern>
+            <!-- Until the configuration is loaded, no mode is set. The width of the
+            mode column is then set by MousemasterApplication.setModeColumnWidth. -->
+            <pattern>%d{HH:mm:ss.SSS} %-5level %X{mode}%-16logger{0} %msg%n</pattern>
         </encoder>
     </appender>
 

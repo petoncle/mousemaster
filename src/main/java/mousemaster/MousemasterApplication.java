@@ -7,9 +7,11 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.core.OutputStreamAppender;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import java.util.Iterator;
 import java.util.Scanner;
 import java.util.logging.LogManager;
 
@@ -17,6 +19,7 @@ public class MousemasterApplication {
 
     private static final Logger logger;
     public static String tempDirectory;
+    private static int modeColumnWidth;
 
     static {
         System.setProperty("slf4j.internal.verbosity", "WARN");
@@ -70,8 +73,7 @@ public class MousemasterApplication {
             return;
         PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         encoder.setContext(context);
-        encoder.setPattern("%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%thread] %-5level %logger{36} - %msg%n");
-        encoder.start();
+        startWithCurrentPattern(encoder);
         FileAppender<ILoggingEvent> fileAppender = new FileAppender<>();
         fileAppender.setName("FILE");
         fileAppender.setContext(context);
@@ -95,6 +97,30 @@ public class MousemasterApplication {
     public static void setLogLevel(String level) {
         Logger logger = (Logger) LoggerFactory.getLogger("mousemaster");
         logger.setLevel(Level.valueOf(level));
+    }
+
+    /**
+     * The mode column is only as wide as the longest mode name of the loaded
+     * configuration.
+     */
+    public static void setModeColumnWidth(int width) {
+        modeColumnWidth = width;
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+        for (Iterator<Appender<ILoggingEvent>> appenders =
+             rootLogger.iteratorForAppenders(); appenders.hasNext(); ) {
+            Appender<ILoggingEvent> appender = appenders.next();
+            if (appender instanceof OutputStreamAppender<ILoggingEvent> outputStreamAppender &&
+                outputStreamAppender.getEncoder() instanceof PatternLayoutEncoder encoder)
+                startWithCurrentPattern(encoder);
+        }
+    }
+
+    private static void startWithCurrentPattern(PatternLayoutEncoder encoder) {
+        encoder.stop();
+        encoder.setPattern("%d{HH:mm:ss.SSS} %-5level %-" + modeColumnWidth +
+                           "X{mode} %-16logger{0} %msg%n");
+        encoder.start();
     }
 
 }
