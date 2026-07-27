@@ -265,12 +265,15 @@ public class WindowsPlatform implements Platform {
         consoleCtrlHandler = this::consoleCtrlEvent;
         boolean registered =
                 ExtendedKernel32.INSTANCE.SetConsoleCtrlHandler(consoleCtrlHandler, true);
-        logger.info("Registered console control handler: " + registered +
-                    (registered ? "" : " (error " + Native.getLastError() + ")"));
+        if (registered)
+            logger.trace("Registered console control handler");
+        else
+            logger.warn("Unable to register the console control handler (error " +
+                        Native.getLastError() + ")");
     }
 
     private boolean consoleCtrlEvent(int dwCtrlType) {
-        logger.info("Received console control event " + dwCtrlType);
+        logger.debug("Received console control event " + dwCtrlType);
         // The main thread does the killing: SPI_SETCURSORS (cursor restore) from this
         // OS-created thread is unreliable. The process normally dies during the wait below.
         killProcessRequested = true;
