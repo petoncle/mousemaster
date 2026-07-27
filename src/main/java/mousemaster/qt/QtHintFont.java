@@ -75,9 +75,20 @@ public final class QtHintFont {
     public static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
         QFont font = new QFont(fontName, (int) Math.round(fontSize),
                 fontWeight.qtWeight().value());
-        font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
+        antialiasing(font);
         font.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
         return font;
+    }
+
+    /**
+     * Greyscale antialiasing rather than subpixel: ClearType bakes the display's stripe layout
+     * and an opaque backdrop into the pixels, and the overlay this text is drawn on is
+     * translucent and composited over anything. Replaces PreferAntialias rather than joining it,
+     * QtJambi's StyleStrategy being a plain enum, so the quality request falls back to the
+     * system font smoothing setting.
+     */
+    private static void antialiasing(QFont font) {
+        font.setStyleStrategy(QFont.StyleStrategy.NoSubpixelAntialias);
     }
 
     /** One Qt font style (font + DPI-corrected metrics + colors) for a single FontStyle,
@@ -223,7 +234,7 @@ public final class QtHintFont {
                     QFont metricsFont = new QFont(renderFont.family());
                     metricsFont.setPixelSize(correctedPixelSize);
                     metricsFont.setWeight(renderFont.weight());
-                    metricsFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
+                    antialiasing(metricsFont);
                     metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
                     QFontMetrics metrics = new QFontMetrics(metricsFont);
                     metricsFont.dispose();

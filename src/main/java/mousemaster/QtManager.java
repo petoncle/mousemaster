@@ -82,6 +82,10 @@ public class QtManager {
             throw e2;
         }
         QtUtilities.putenv("QT_ENABLE_HIGHDPI_SCALING", "0"); // Only works on Windows?
+        // Qt's raster engine caches glyph masks only below this size and otherwise falls back to
+        // filling a path per glyph, ~50x slower. The default 64 is reached by a 16pt font at 300%
+        // scaling, well within what a hint mesh uses.
+        QtUtilities.putenv("QT_MAX_CACHED_GLYPH_SIZE", "256");
         logger.trace("High DPI scale factor rounding policy is " + QApplication.highDpiScaleFactorRoundingPolicy());
         // Default font engine on Windows is directwrite. Antialiasing seems better with gdi.
         QApplication.initialize(new String[] { "-platform", "windows:fontengine=gdi" });
