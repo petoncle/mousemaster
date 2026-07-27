@@ -34,6 +34,17 @@ public final class QtColorUtil {
         return brushByRgba.computeIfAbsent(color.rgba(), rgba -> new QBrush(color));
     }
 
+    private static final Map<Integer, QColor> opaqueByRgba = new HashMap<>();
+
+    /** The colour at full alpha. Shadow sources are drawn opaque so the shadow keeps its strength,
+     *  which asks for the same few variants once per label. */
+    public static QColor opaque(QColor color) {
+        if (color.alpha() == 255)
+            return color;
+        return opaqueByRgba.computeIfAbsent(color.rgba(),
+                rgba -> new QColor(color.red(), color.green(), color.blue(), 255));
+    }
+
     public static QBrush noBrush() {
         if (noBrush == null)
             noBrush = new QBrush(Qt.BrushStyle.NoBrush);

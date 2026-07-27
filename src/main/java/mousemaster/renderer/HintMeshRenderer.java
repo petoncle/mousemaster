@@ -2463,7 +2463,7 @@ public final class HintMeshRenderer {
         }
 
         private static QColor opaqueColor(QColor c) {
-            return c.alpha() == 255 ? c : new QColor(c.red(), c.green(), c.blue(), 255);
+            return QtColorUtil.opaque(c);
         }
 
         private QtFontStyle resolveKeyQtFontStyle(boolean isPrefix, boolean isSelected, boolean isFocused) {
@@ -2519,15 +2519,7 @@ public final class HintMeshRenderer {
                     continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
-                if (forceOpaque) {
-                    QColor opaque = opaqueColor(color);
-                    painter.setPen(opaque);
-                    if (opaque != color)
-                        opaque.dispose();
-                }
-                else {
-                    painter.setPen(color);
-                }
+                painter.setPen(forceOpaque ? opaqueColor(color) : color);
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.restore();
@@ -2574,8 +2566,6 @@ public final class HintMeshRenderer {
             });
             if (outline != null)
                 painter.drawImage(outline.x(), outline.y(), outline.image());
-            if (forceOpaque && outlineColor != qtFontStyle.outlineColor())
-                outlineColor.dispose();
         }
 
         /** Rasterizes the stroked path onto a transparent image, offset by whole pixels so the
@@ -2653,10 +2643,7 @@ public final class HintMeshRenderer {
                     continue;
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
-                QColor opaque = opaqueColor(color);
-                painter.setPen(opaque);
-                if (opaque != color)
-                    opaque.dispose();
+                painter.setPen(opaqueColor(color));
                 painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
             }
             painter.restore();
