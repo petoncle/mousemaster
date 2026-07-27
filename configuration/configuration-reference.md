@@ -842,7 +842,7 @@ hint1-mode.hint.mouse-movement=no-movement
 hint2-mode.hint.type=grid
 hint2-mode.hint.grid-area=active-screen
 # Center on last selected hint
-hint2-mode.hint.active-screen-grid-area-center=last-selected-hint
+hint2-mode.hint.grid-area-center=last-selected-hint
 # 3x8 grid
 hint2-mode.hint.grid-max-row-count=3
 hint2-mode.hint.grid-max-column-count=8
