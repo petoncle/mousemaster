@@ -42,7 +42,7 @@ f g h      (g = center)
 v b n
 ```
 
-- Each cell previews the next level's keys, so you can plan several presses ahead.
+- Each cell shows a 3×3 of dots where the next level's cells will fall, under a `+` spanning the whole region. Set `variable.showrecursivehintkeys=true` in [neru.properties](neru.properties) to label those cells with the next level's keys instead.
 - Five levels deep; the fifth keypress lands on the target.
 - The cursor tracks the current region's center as you drill; `` ` `` (backtick) toggles that off/on.
 - `Space` resets to the full screen, `Backspace` steps back one level (and exits at the top), `Esc` exits.
