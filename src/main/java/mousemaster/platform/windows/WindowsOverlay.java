@@ -331,6 +331,7 @@ public class WindowsOverlay implements Overlay {
             return;
         long before = System.nanoTime();
         createIndicatorWindow();
+        indicatorRenderer.preWarm();
         logger.info("Pre-warmed the indicator window in " +
                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
