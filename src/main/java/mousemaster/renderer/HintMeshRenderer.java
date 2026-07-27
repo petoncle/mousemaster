@@ -1836,22 +1836,22 @@ public final class HintMeshRenderer {
             }
         }
 
-        /** Where this depth's decoration labels put ink, in the coordinates they are painted in. */
-        void collectDecorationLabelBounds(int depth, List<Rectangle> bounds) {
+        /** Where this depth's decoration labels put ink, in the coordinates they are painted in.
+         *  Descends accumulating the offset paintDecorationLabels translates by. */
+        void collectDecorationLabelBounds(int depth, int offsetX, int offsetY,
+                                          List<Rectangle> bounds) {
             if (depth == 0) {
                 if (decorationLabel != null && !decorationLabel.isEmpty()
                     && decorationLabelFont != null)
-                    bounds.add(new Rectangle(x + decorationLabelX,
-                            y + decorationLabelY - decorationLabelAscent,
+                    bounds.add(new Rectangle(offsetX + x + decorationLabelX,
+                            offsetY + y + decorationLabelY - decorationLabelAscent,
                             decorationLabelWidth,
                             decorationLabelAscent + decorationLabelDescent));
                 return;
             }
-            for (HintBox decorationBox : decorationBoxes) {
-                decorationBox.move(decorationBox.x + x, decorationBox.y + y);
-                decorationBox.collectDecorationLabelBounds(depth - 1, bounds);
-                decorationBox.move(decorationBox.x - x, decorationBox.y - y);
-            }
+            for (HintBox decorationBox : decorationBoxes)
+                decorationBox.collectDecorationLabelBounds(depth - 1, offsetX + x,
+                        offsetY + y, bounds);
         }
 
         public void move(int x, int y) {
@@ -2673,7 +2673,7 @@ public final class HintMeshRenderer {
                 continue;
             List<Rectangle> ink = new ArrayList<>();
             for (HintBox box : boxes)
-                box.collectDecorationLabelBounds(labelDepth, ink);
+                box.collectDecorationLabelBounds(labelDepth, 0, 0, ink);
             layer.fitToInk(ink, shadowPadding(labelStyle), containerWidth, containerHeight);
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(labelStyle.shadowBlurRadius());
