@@ -691,7 +691,7 @@ public class WindowsPlatform implements Platform {
                 keysPressedInHook.add(Key.leftctrl);
         }
         if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
-            logger.info("Key event ignored because it is equal to the last event: " + keyEvent);
+            logger.debug("Key event ignored because it is equal to the last event: " + keyEvent);
             lastKeyEvent = keyEvent;
             return false;
         }

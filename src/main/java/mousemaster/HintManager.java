@@ -1229,7 +1229,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             mouseX = (int) Math.round(point.x());
             mouseY = (int) Math.round(point.y());
         }
-        logger.info("Moving mouse to " + mouseX + ", " + mouseY);
+        logger.debug("Moving mouse to (" + mouseX + ", " + mouseY + ")");
         mouseManager.moveTo(mouseX, mouseY);
     }
 
@@ -1291,7 +1291,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         positionHistory.add(point);
         positionCycleIndex = positionHistory.size() - 1;
         logger.debug(
-                "Saved position " + point.x() + "," + point.y() + " to history");
+                "Saved position (" + point.x() + ", " + point.y() + ") to history");
     }
 
     public void clearPositionHistory() {

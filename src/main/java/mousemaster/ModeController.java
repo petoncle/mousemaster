@@ -2,6 +2,7 @@ package mousemaster;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import java.time.Duration;
 import java.util.ArrayDeque;
@@ -75,8 +76,7 @@ public class ModeController {
             if (hideCursorEnabled && !currentModeCursorHidden) {
                 hideCursorIdleTimer -= delta;
                 if (hideCursorIdleTimer <= 0) {
-                    logger.debug("Hide cursor timer for " + currentMode.name() +
-                                 " has elapsed");
+                    logger.debug("Hide cursor timer has elapsed");
                     currentModeCursorHidden = true;
                     mouseManager.hideCursor();
                 }
@@ -95,8 +95,7 @@ public class ModeController {
             if (timeoutEnabled) {
                 modeTimeoutTimer -= delta;
                 if (modeTimeoutTimer <= 0) {
-                    logger.debug("Current " + mutatedMode.name() +
-                                 " has timed out, switching to " +
+                    logger.debug("Timed out, switching to " +
                                  mutatedMode.timeout().modeName());
                     comboWatcher.modeTimedOut();
                     switchMode(mutatedMode.timeout().modeName());
@@ -127,6 +126,8 @@ public class ModeController {
                  !modeHistoryStack.contains(currentMode))
             modeHistoryStack.push(currentMode);
         currentMode = newMode;
+        logger.debug("Switching to " + newMode.name());
+        MDC.put("mode", newMode.name());
         comboWatcher.modeChanged(newMode);
         Mode mutatedMode = comboWatcher.getMutatedMode();
         resetCurrentModeCursorHidden(mutatedMode);

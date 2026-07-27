@@ -54,8 +54,8 @@ public class WindowsActiveAppFinder implements ActiveAppFinder {
             if (!executableName.equals(lastIgnoredExecutableName)) {
                 logger.debug(
                         "Ignoring active app change from " + lastExecutableName + " to " +
-                        executableName + " because " + executableName + " is zero-sized: " +
-                        windowRect);
+                        executableName + ", zero-sized window " +
+                        windowSizeAndPosition(windowRect));
                 lastIgnoredExecutableName = executableName;
             }
             return new App(lastExecutableName);
@@ -69,18 +69,26 @@ public class WindowsActiveAppFinder implements ActiveAppFinder {
             if (!executableName.equals(lastIgnoredExecutableName)) {
                 logger.debug(
                         "Ignoring active app change from " + lastExecutableName + " to " +
-                        executableName + " because " + executableName + " is minimized: " +
-                        windowRect);
+                        executableName + ", minimized window " +
+                        windowSizeAndPosition(windowRect));
                 lastIgnoredExecutableName = executableName;
             }
             return new App(lastExecutableName);
         }
         lastIgnoredExecutableName = null;
         if (!Objects.equals(executableName, lastExecutableName)) {
-            logger.debug("Detected active app change from " + lastExecutableName + " to " + executableName + " " + windowRect);
+            logger.debug((lastExecutableName == null ?
+                    "Detected active app " + executableName :
+                    "Detected active app change from " + lastExecutableName + " to " +
+                    executableName) + ", window " + windowSizeAndPosition(windowRect));
             lastExecutableName = executableName;
         }
         return new App(executableName);
+    }
+
+    private static String windowSizeAndPosition(WinDef.RECT rect) {
+        return (rect.right - rect.left) + "x" + (rect.bottom - rect.top) +
+               " at (" + rect.left + ", " + rect.top + ")";
     }
 
 }

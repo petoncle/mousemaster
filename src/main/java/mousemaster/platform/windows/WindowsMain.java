@@ -14,6 +14,10 @@ import java.util.Properties;
 
 public class WindowsMain {
 
+    static {
+        System.setProperty("slf4j.internal.verbosity", "WARN");
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(WindowsMain.class);
 
     public static void main(String[] args) throws InterruptedException, IOException {

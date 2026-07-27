@@ -236,9 +236,8 @@ public class WindowsKeyboardController implements KeyboardController {
         if (moveWaitingForKeyboardHookCallbackAcknowledgment != null) {
             ticksWaitingForAcknowledgment++;
             if (ticksWaitingForAcknowledgment >= 5) {
-                logger.info("Acknowledgment timeout for " +
-                            moveWaitingForKeyboardHookCallbackAcknowledgment +
-                            " after " + ticksWaitingForAcknowledgment + " ticks");
+                logger.debug("Gave up waiting for keyboard hook acknowledgment of " +
+                             moveWaitingForKeyboardHookCallbackAcknowledgment);
                 moveWaitingForKeyboardHookCallbackAcknowledgment = null;
             }
             else

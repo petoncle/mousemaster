@@ -21,6 +21,9 @@ public class ComboWatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(ComboWatcher.class);
 
+    private static final long SLOW_KEY_EVENT_MS = 5;
+    private static final long SLOW_COMMANDS_MS = 25;
+
     private final CommandRunner commandRunner;
     private final HintManager hintManager;
     private final ActiveAppFinder activeAppFinder;
@@ -244,7 +247,7 @@ public class ComboWatcher {
         List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
         if (preconditionOnlyNonMutationComboRefreshPending) {
             preconditionOnlyNonMutationComboRefreshPending = false;
-            processKeyEventForCurrentMode(null, false);
+            processKeyEventForCurrentMode(null, false, LogTrigger.PRECONDITION_REFRESH);
         }
         // Handle combos that should be run when active app changes (no combo move).
         App activeApp = activeAppFinder.activeApp();
@@ -404,16 +407,13 @@ public class ComboWatcher {
                 completedComboAndCommands.stream()
                                          .map(cac -> new ComboAndMatch(cac.combo, cac.match))
                                          .collect(Collectors.toCollection(ArrayList::new));
-        if (!completedCombosCommands.isEmpty() && logger.isDebugEnabled()) {
-            logger.debug(
-                    "Completed asynchronous combos, mode = " +
-                    baseMode.name() + ", completedCombos = " +
-                    completedCombos.stream()
-                                   .map(ComboAndMatch::combo)
-                                   .map(combo -> logger.isTraceEnabled() ?
-                                           combo.toString() : combo.label())
-                                   .toList() +
-                    ", commandsToRun = " + summarizeCommands(commandsToRun));
+        if (!commandsToRun.isEmpty() && logger.isDebugEnabled()) {
+            StringBuilder message = new StringBuilder("Asynchronous combos");
+            appendCombos(message, "completed", completedCombos.stream()
+                                                              .map(ComboAndMatch::combo)
+                                                              .toList(), baseMode);
+            message.append(" → ").append(summarizeCommands(commandsToRun));
+            logger.debug(message.toString());
         }
         boolean hasComboPreparationBreaker =
                 // Can be from a combo finishing with a wait move.
@@ -430,7 +430,7 @@ public class ComboWatcher {
         if (hasAsyncSelfSwitch) {
             breakComboPreparation();
             comboPreparationAlreadyBroken = true;
-            processKeyEventForCurrentMode(null, false);
+            processKeyEventForCurrentMode(null, false, LogTrigger.MODE_SWITCHED);
         }
         else if (baseMode != beforeMode) {
             if (hasComboPreparationBreaker) {
@@ -438,7 +438,7 @@ public class ComboWatcher {
                 comboPreparationAlreadyBroken = true;
             }
             PressKeyEventProcessingSet processingSet =
-                    processKeyEventForCurrentMode(null, true);
+                    processKeyEventForCurrentMode(null, true, LogTrigger.MODE_SWITCHED);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         refreshPreconditionOnlyMutations();
@@ -457,7 +457,7 @@ public class ComboWatcher {
                     .allMatch(ms -> ms instanceof WaitMoveSet);
             if (allWait) {
                 // All-wait combos: always reset (they fire continuously from update()).
-                logger.debug("Resetting leading wait (all-wait, non-ignored key " + event.key().name() +
+                logger.trace("Resetting leading wait (all-wait, non-ignored key " + event.key().name() +
                         "): " + combo.label());
                 entry.setValue(event.time());
             }
@@ -468,7 +468,7 @@ public class ComboWatcher {
                 // subsequent move. Reset for all others (unrelated keys).
                 Instant beginTime = entry.getValue();
                 if (beginTime.plus(waitMove.duration().min()).isAfter(event.time())) {
-                    logger.debug("Resetting leading wait (min not elapsed, non-ignored key " +
+                    logger.trace("Resetting leading wait (min not elapsed, non-ignored key " +
                             event.key().name() + "): " + combo.label());
                     entry.setValue(event.time());
                 }
@@ -487,7 +487,7 @@ public class ComboWatcher {
                         break;
                     }
                     if (!couldMatchNextMove) {
-                        logger.debug("Resetting leading wait (unrelated key " +
+                        logger.trace("Resetting leading wait (unrelated key " +
                                 event.key().name() + "): " + combo.label());
                         entry.setValue(event.time());
                     }
@@ -564,10 +564,11 @@ public class ComboWatcher {
         }
         Mode beforeMode = baseMode;
         PressKeyEventProcessingSet processingSet =
-                processKeyEventForCurrentMode(event, false);
+                processKeyEventForCurrentMode(event, false, LogTrigger.KEY_EVENT);
         if (baseMode != beforeMode && !processingSet.isComboPreparationBreaker()) {
             // Second pass to give a chance to new mode's combos to run now.
-            PressKeyEventProcessingSet secondPass = processKeyEventForCurrentMode(event, true);
+            PressKeyEventProcessingSet secondPass =
+                    processKeyEventForCurrentMode(event, true, LogTrigger.SECOND_PASS);
             processingSet.processingByCombo().putAll(secondPass.processingByCombo());
             processingSet.matchByCombo().putAll(secondPass.matchByCombo());
         }
@@ -633,9 +634,26 @@ public class ComboWatcher {
         return processingSet;
     }
 
+    private enum LogTrigger {
+
+        KEY_EVENT(null),
+        SECOND_PASS("second pass in new mode"),
+        MODE_SWITCHED("Mode switched"),
+        MODE_TIMED_OUT("Mode timed out"),
+        PRECONDITION_REFRESH("Precondition refresh");
+
+        private final String description;
+
+        LogTrigger(String description) {
+            this.description = description;
+        }
+
+    }
+
     private PressKeyEventProcessingSet processKeyEventForCurrentMode(
             KeyEvent event,
-            boolean ignoreSwitchModeAndHintCommands) {
+            boolean ignoreSwitchModeAndHintCommands,
+            LogTrigger logTrigger) {
         long beforeNanos = System.nanoTime();
         Mode beforeCommandsMode = baseMode;
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
@@ -898,11 +916,10 @@ public class ComboWatcher {
                     commands.stream()
                             .anyMatch(switchModeOrHintPredicate)) {
                     if (logger.isDebugEnabled())
-                        logger.debug(
-                                "Ignoring the following commands because the mode was just changed to " +
-                                baseMode.name() + ": " + commands.stream()
-                                                                    .filter(switchModeOrHintPredicate)
-                                                                    .toList());
+                        logger.debug("Ignoring commands (mode just changed): " +
+                                     summarizeCommands(commands.stream()
+                                                               .filter(switchModeOrHintPredicate)
+                                                               .toList()));
                     commands = commands.stream()
                                        .filter(Predicate.not(
                                                switchModeOrHintPredicate))
@@ -930,33 +947,49 @@ public class ComboWatcher {
         long loopMs = (long) ((afterLoopNanos - beforeNanos) / 1e6);
         long deduplicateMs = (long) ((afterDeduplicateNanos - afterLoopNanos) / 1e6);
         if (logger.isDebugEnabled()) {
-            List<String> comboStrings = processingByCombo.entrySet().stream()
-                                                         .filter(e -> e.getValue()
-                                                                       .isPartOfComboSequence())
-                                                         .map(Map.Entry::getKey)
-                                                         .map(combo ->
-                                                                 logger.isTraceEnabled() ?
-                                                                         combo.toString() :
-                                                                         combo.label())
-                                                         .toList();
-            String comboPreparationString = logRedactKeys ? "<redacted>" :
-                    logger.isTraceEnabled() ? comboPreparation.toString() :
-                    comboPreparation.events().size() + " events";
-            long totalMatchMs = (long) (totalMatchNanos / 1e6);
-            long preMatchMs = (long) (totalPreMatchNanos / 1e6);
-            long postMatchMs = (long) (totalPostMatchNanos / 1e6);
-            logger.debug("processKeyEventForCurrentMode ran in " + processKeyEventDurationMs +
-                         "ms (loop=" + loopMs + "ms, activeApp=" + activeAppMs + "ms, pre=" + preMatchMs + "ms, match=" + totalMatchMs + "ms, post=" + postMatchMs + "ms, deduplicate=" + deduplicateMs + "ms)" +
-                         ", mode = " + beforeCommandsMode.name() +
-                         ", comboCount = " + beforeCommandsMode.comboMap().commandsByCombo().size() +
-                         ", matchCalls = " + matchCallCount +
-                         ", event = " + (logRedactKeys ? "<redacted>" : event) +
-                         ", currentlyPressedComboKeys = " + (logRedactKeys ? "<redacted>" : currentlyPressedComboKeys) +
-                         ", comboPreparation = " + comboPreparationString +
-                         ", partOfComboSequence = " + processingSet.isPartOfComboSequence() +
-                         ", combos = " + comboStrings +
-                         ", mustBeEaten = " + processingSet.mustBeEaten() + ", commandsToRun = " +
-                         summarizeCommands(completeCombosCommandsToRun));
+            StringBuilder message = new StringBuilder();
+            if (event == null)
+                message.append(logTrigger.description);
+            else {
+                message.append("Key ").append(logRedactKeys ? "<redacted>" : event);
+                if (logTrigger.description != null)
+                    message.append(" (").append(logTrigger.description).append(')');
+            }
+            if (processingSet.mustBeEaten())
+                message.append(", eaten");
+            if (!logRedactKeys && !currentlyPressedComboKeys.isEmpty())
+                message.append(", pressed ").append(currentlyPressedComboKeys);
+            if (!logRedactKeys) {
+                if (logger.isTraceEnabled())
+                    message.append(", buffered ").append(comboPreparation);
+                else if (!comboPreparation.events().isEmpty())
+                    message.append(", buffered ").append(comboPreparation.events());
+            }
+            appendCombos(message, "matching", processingByCombo.entrySet().stream()
+                                                               .filter(e -> e.getValue()
+                                                                             .isPartOfComboSequence())
+                                                               .map(Map.Entry::getKey)
+                                                               .toList(), beforeCommandsMode);
+            // Includes commands deferred from an earlier event.
+            if (!commandsToRun.isEmpty())
+                message.append(" → ").append(summarizeCommands(commandsToRun));
+            if (processKeyEventDurationMs >= SLOW_KEY_EVENT_MS) {
+                long totalMatchMs = (long) (totalMatchNanos / 1e6);
+                long preMatchMs = (long) (totalPreMatchNanos / 1e6);
+                long postMatchMs = (long) (totalPostMatchNanos / 1e6);
+                message.append(", ran in ").append(processKeyEventDurationMs)
+                       .append("ms(combosTested=").append(matchCallCount)
+                       .append('/')
+                       .append(beforeCommandsMode.comboMap().commandsByCombo().size())
+                       .append(" loop=").append(loopMs)
+                       .append(" activeApp=").append(activeAppMs)
+                       .append(" preMatch=").append(preMatchMs)
+                       .append(" match=").append(totalMatchMs)
+                       .append(" postMatch=").append(postMatchMs)
+                       .append(" deduplicate=").append(deduplicateMs)
+                       .append(')');
+            }
+            logger.debug(message.toString());
         }
         if (!comboAndCommandsToRun.isEmpty()) {
             // Add completed combo keys before running commands so that if a
@@ -970,8 +1003,8 @@ public class ComboWatcher {
         long beforeRunCommandsNanos = System.nanoTime();
         runCommands(commandsToRun);
         long runCommandsMs = (long) ((System.nanoTime() - beforeRunCommandsNanos) / 1e6);
-        if (runCommandsMs > 0 && logger.isDebugEnabled())
-            logger.debug("runCommands took " + runCommandsMs + "ms");
+        if (runCommandsMs >= SLOW_COMMANDS_MS && logger.isDebugEnabled())
+            logger.debug("Ran commands in " + runCommandsMs + "ms");
         return processingSet;
     }
 
@@ -1192,9 +1225,23 @@ public class ComboWatcher {
         RUN_LAST;
     }
 
+    private static void appendCombos(StringBuilder message, String label, List<Combo> combos,
+                                     Mode mode) {
+        if (combos.isEmpty())
+            return;
+        String modePrefix = mode.name() + ".";
+        message.append(", ").append(label).append(" [");
+        for (Combo combo : combos) {
+            if (combo != combos.getFirst())
+                message.append(", ");
+            String comboString = logger.isTraceEnabled() ? combo.toString() : combo.label();
+            message.append(comboString.startsWith(modePrefix) ?
+                    comboString.substring(modePrefix.length()) : comboString);
+        }
+        message.append(']');
+    }
+
     private static String summarizeCommands(List<Command> commands) {
-        if (commands.isEmpty())
-            return "[]";
         List<String> parts = new ArrayList<>();
         Map<String, int[]> mutationCounts = new LinkedHashMap<>();
         for (Command command : commands) {
@@ -1213,7 +1260,7 @@ public class ComboWatcher {
             parts.add("MutateMode[" + entry.getKey() +
                        (count > 1 ? " ×" + count : "") + "]");
         }
-        return parts.toString();
+        return String.join(", ", parts);
     }
 
     private static CommandOrder commandOrder(Command command) {
@@ -1373,12 +1420,12 @@ public class ComboWatcher {
 
     public void breakComboPreparation() {
         if (logger.isDebugEnabled())
-            logger.debug("Breaking combos, comboPreparation = " +
+            logger.debug("Breaking combos, buffered " +
                          (logRedactKeys ? "<redacted>" :
                                  logger.isTraceEnabled() ? comboPreparation.toString() :
-                                 comboPreparation.events().size() + " events") +
-                         ", combosWaitingForLastMoveToComplete = " +
-                         combosWaitingForLastMoveToComplete);
+                                 comboPreparation.events().toString()) +
+                         (combosWaitingForLastMoveToComplete.isEmpty() ? "" :
+                                 ", waitingForLastMove = " + combosWaitingForLastMoveToComplete));
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
         leadingWaitBeginTimeByCombo.clear();
@@ -1424,7 +1471,7 @@ public class ComboWatcher {
         combosBlockedFromRerunningCommand.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
-            processKeyEventForCurrentMode(null, false);
+            processKeyEventForCurrentMode(null, false, LogTrigger.MODE_TIMED_OUT);
         }
     }
 

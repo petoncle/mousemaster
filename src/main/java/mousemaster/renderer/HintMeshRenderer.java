@@ -615,7 +615,7 @@ public final class HintMeshRenderer {
         boolean isHintGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         QWidget newContainer;
         if (pixmapAndPosition != null) {
-            logger.trace("Using cached pixmap " + pixmapAndPosition);
+            logger.trace("Using cached hint mesh pixmap " + pixmapAndPosition);
             ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel();
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
             Hint originalFirstHint = pixmapAndPosition.originalHintMesh.hints().getFirst();
@@ -1676,11 +1676,11 @@ public final class HintMeshRenderer {
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap, container.x(), container.y(), boxes, hintMesh,
                         window.x(), window.y());
-        logger.debug("Cached " + pixmapAndPosition + " in " +
-                     (long) ((System.nanoTime() - before) / 1e6) + "ms (cache size is " +
-                     hintMeshPixmaps.size() + ")");
 //         pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
+        logger.debug("Cached hint mesh pixmap " + pixmapAndPosition + " in " +
+                     (long) ((System.nanoTime() - before) / 1e6) + "ms, cache size is " +
+                     hintMeshPixmaps.size());
         // Turn the live container into a pixmap label in place, so a later crop clips the pixmap
         // (smooth) rather than masking the live widget. In place means the shown widget never
         // changes, so there is no blank frame. The label layers are now in the pixmap, so drop them.
@@ -1733,8 +1733,7 @@ public final class HintMeshRenderer {
                                      HintMesh originalHintMesh, int windowX, int windowY) {
         @Override
         public String toString() {
-            return "PixmapAndPosition[" + x + ", " + y + ", "
-                   + pixmap.width() + ", " + pixmap.height() + "]";
+            return pixmap.width() + "x" + pixmap.height() + " at (" + x + ", " + y + ")";
         }
     }
 

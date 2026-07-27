@@ -46,6 +46,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"ch.qos.logback.classic.pattern.MDCConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"ch.qos.logback.classic.pattern.MessageConverter",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },

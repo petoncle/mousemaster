@@ -16,9 +16,9 @@ public class KeyRegurgitator {
     }
 
     public void regurgitate(KeyboardManager.Regurgitate regurgitate, boolean startRepeat) {
-        logger.debug(
-                "Regurgitating " + regurgitate.key() + ", startRepeat = " + startRepeat +
-                ", release = " + regurgitate.alsoRelease());
+        logger.debug("Regurgitating +" + regurgitate.key() +
+                     (regurgitate.alsoRelease() ? " -" + regurgitate.key() : "") +
+                     (startRepeat ? ", starting repeat" : ""));
         Key key = regurgitate.key();
         keyboard.sendInputMoves(
                 !regurgitate.alsoRelease()
