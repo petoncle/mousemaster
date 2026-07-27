@@ -10,8 +10,8 @@
     <!--
     See https://graalvm.github.io/native-build-tools/latest/maven-plugin-quickstart.html
     JAVA_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ ./mvnw clean package
-    JAVA_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ ./mvnw -Pnative -Dagent exec:exec@java-agent
-    JAVA_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ ./mvnw -Pnative -Dagent package -DskipTests
+    GRAALVM_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ JAVA_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ ./mvnw -Pnative -Dagent exec:exec@java-agent
+    GRAALVM_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ JAVA_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ ./mvnw -Pnative -Dagent package -DskipTests
     The GRAALVM_HOME environment variable takes precedence over JAVA_HOME for native-maven-plugin.
     https://github.com/oracle/graal/issues/1762#issuecomment-1297370039
     ./pefrmdllembed/pefrmdllembed.exe -impinj target/mousemaster.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster-with-vcruntime140.exe
