@@ -17,6 +17,13 @@ public record QtFontStyle(QFont font, QFontMetrics metrics,
         QtHintFont.addTextPath(path, metrics, font, text, x, y);
     }
 
+    /** Whether this style puts no ink on its layer, so a shadow of it would be a shadow of
+     *  nothing. */
+    public boolean invisible() {
+        return color.alpha() == 0 &&
+               (outlineThickness == 0 || outlineColor.alpha() == 0);
+    }
+
     public boolean hasTransparency() {
         if (outlineThickness != 0 &&
             outlineColor.alpha() < 255 &&

@@ -10,6 +10,18 @@ public record QtHintFontStyle(QtFontStyle defaultStyle,
                               boolean perKeyShadow,
                               double fontSpacingPercent) {
 
+    /** Whether every state this mesh can draw is invisible, so the layer stays empty. */
+    public boolean invisible(boolean hasSelectedKeys) {
+        if (!defaultStyle.invisible() || !focusedStyle.invisible() ||
+            (hasSelectedKeys && !selectedStyle.invisible()))
+            return false;
+        if (prefixDefaultStyle != null &&
+            (!prefixDefaultStyle.invisible() || !prefixFocusedStyle.invisible() ||
+             (hasSelectedKeys && !prefixSelectedStyle.invisible())))
+            return false;
+        return true;
+    }
+
     public boolean hasTransparency(boolean hasSelectedKeys) {
         if (defaultStyle.hasTransparency() ||
             (hasSelectedKeys && selectedStyle.hasTransparency()) ||

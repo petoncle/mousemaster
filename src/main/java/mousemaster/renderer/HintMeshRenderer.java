@@ -2646,7 +2646,7 @@ public final class HintMeshRenderer {
                     (box, painter) -> box.paintDecorationLabels(painter, labelDepth));
             layer.setGeometry(0, 0, containerWidth, containerHeight);
             QtFontStyle labelStyle = decorationStyles.get(depth).labelStyle();
-            if (labelStyle.shadowColor().alpha() == 0)
+            if (labelStyle.shadowColor().alpha() == 0 || labelStyle.invisible())
                 continue;
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(labelStyle.shadowBlurRadius());
@@ -2671,6 +2671,10 @@ public final class HintMeshRenderer {
                                          int containerWidth,
                                          int containerHeight,
                                          double screenScale) {
+        // Shadowing a layer that draws nothing still costs a blur of the whole layer, which for a
+        // screen-sized hint mesh is tens of milliseconds.
+        if (style.invisible(hasSelectedKeys))
+            return;
         if (style.perKeyShadow()) {
             logger.debug("Hint label shadow: per-key shadow, pre-rendering per group");
             preRenderLabelShadow(layer, labels, style,
