@@ -269,7 +269,7 @@ public class KbdlayoutinfoParser {
                                 Element dkResult = (Element) dkResults.item(m);
                                 String dkText = dkResult.getAttribute("Text");
                                 String dkWith = dkResult.getAttribute("With");
-                                log("      DeadKey Result: " + dkWith + " → " +
+                                log("      DeadKey Result: " + dkWith + " -> " +
                                     dkText);
                                 if (dkWith.isBlank() && with.isEmpty())
                                     text = dkText;

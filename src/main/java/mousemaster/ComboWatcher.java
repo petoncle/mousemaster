@@ -412,7 +412,7 @@ public class ComboWatcher {
             appendCombos(message, "completed", completedCombos.stream()
                                                               .map(ComboAndMatch::combo)
                                                               .toList(), baseMode);
-            message.append(" → ").append(summarizeCommands(commandsToRun));
+            message.append(" -> ").append(summarizeCommands(commandsToRun));
             logger.debug(message.toString());
         }
         boolean hasComboPreparationBreaker =
@@ -972,7 +972,7 @@ public class ComboWatcher {
                                                                .toList(), beforeCommandsMode);
             // Includes commands deferred from an earlier event.
             if (!commandsToRun.isEmpty())
-                message.append(" → ").append(summarizeCommands(commandsToRun));
+                message.append(" -> ").append(summarizeCommands(commandsToRun));
             if (processKeyEventDurationMs >= SLOW_KEY_EVENT_MS) {
                 long totalMatchMs = (long) (totalMatchNanos / 1e6);
                 long preMatchMs = (long) (totalPreMatchNanos / 1e6);
@@ -1258,7 +1258,7 @@ public class ComboWatcher {
         for (Map.Entry<String, int[]> entry : mutationCounts.entrySet()) {
             int count = entry.getValue()[0];
             parts.add("MutateMode[" + entry.getKey() +
-                       (count > 1 ? " ×" + count : "") + "]");
+                       (count > 1 ? " x" + count : "") + "]");
         }
         return String.join(", ", parts);
     }
