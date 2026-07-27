@@ -1778,6 +1778,7 @@ public final class HintMeshRenderer {
         private QFont decorationLabelFont;
         private QColor decorationLabelColor;
         private int decorationLabelX, decorationLabelY;
+        private int decorationLabelWidth, decorationLabelAscent, decorationLabelDescent;
 
         public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
                        boolean isHintPartOfGrid,
@@ -1826,8 +1827,30 @@ public final class HintMeshRenderer {
             this.decorationLabelColor = labelStyle.color();
             if (!label.isEmpty()) {
                 QFontMetrics metrics = labelStyle.metrics();
-                this.decorationLabelX = (width - metrics.horizontalAdvance(label)) / 2;
+                int advance = metrics.horizontalAdvance(label);
+                this.decorationLabelX = (width - advance) / 2;
                 this.decorationLabelY = middleBaselineY(verticalAlignment, height, metrics, label);
+                this.decorationLabelWidth = advance;
+                this.decorationLabelAscent = metrics.ascent();
+                this.decorationLabelDescent = metrics.descent();
+            }
+        }
+
+        /** Where this depth's decoration labels put ink, in the coordinates they are painted in. */
+        void collectDecorationLabelBounds(int depth, List<Rectangle> bounds) {
+            if (depth == 0) {
+                if (decorationLabel != null && !decorationLabel.isEmpty()
+                    && decorationLabelFont != null)
+                    bounds.add(new Rectangle(x + decorationLabelX,
+                            y + decorationLabelY - decorationLabelAscent,
+                            decorationLabelWidth,
+                            decorationLabelAscent + decorationLabelDescent));
+                return;
+            }
+            for (HintBox decorationBox : decorationBoxes) {
+                decorationBox.move(decorationBox.x + x, decorationBox.y + y);
+                decorationBox.collectDecorationLabelBounds(depth - 1, bounds);
+                decorationBox.move(decorationBox.x - x, decorationBox.y - y);
             }
         }
 
@@ -2648,6 +2671,10 @@ public final class HintMeshRenderer {
             QtFontStyle labelStyle = decorationStyles.get(depth).labelStyle();
             if (labelStyle.shadowColor().alpha() == 0 || labelStyle.invisible())
                 continue;
+            List<Rectangle> ink = new ArrayList<>();
+            for (HintBox box : boxes)
+                box.collectDecorationLabelBounds(labelDepth, ink);
+            layer.fitToInk(ink, shadowPadding(labelStyle), containerWidth, containerHeight);
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(labelStyle.shadowBlurRadius());
             effect.setOffset(labelStyle.shadowHorizontalOffset(),
@@ -2687,6 +2714,10 @@ public final class HintMeshRenderer {
         if (!style.hasTransparency(hasSelectedKeys) &&
             defaultStyle.shadowStackCount() == 1) {
             logger.debug("Hint label shadow: opaque text, applying effect directly");
+            List<Rectangle> ink = new ArrayList<>();
+            for (HintLabel label : labels)
+                ink.add(new Rectangle(label.x, label.y, label.width, label.height));
+            layer.fitToInk(ink, shadowPadding(defaultStyle), containerWidth, containerHeight);
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setBlurRadius(defaultStyle.shadowBlurRadius());
             effect.setOffset(defaultStyle.shadowHorizontalOffset(),
@@ -2707,6 +2738,13 @@ public final class HintMeshRenderer {
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight, screenScale);
         }
+    }
+
+    /** How far the shadow of a glyph reaches past it: the blur, plus how far it is offset. */
+    private static int shadowPadding(QtFontStyle style) {
+        return (int) Math.ceil(style.shadowBlurRadius()) +
+               (int) Math.ceil(Math.max(Math.abs(style.shadowHorizontalOffset()),
+                       Math.abs(style.shadowVerticalOffset()))) + 2;
     }
 
     private void preRenderLabelShadow(HintPaintLayer layer,
@@ -2837,6 +2875,8 @@ public final class HintMeshRenderer {
         private final List<HintBox> boxes;
         private final List<HintLabel> labels;
         private final BiConsumer<HintBox, QPainter> boxPainter;
+        /** Where the layer sits when it covers only its ink; everything it paints shifts by it. */
+        private int originX, originY;
         // Pre-rendered shadow-only pixmap (null if no shadow or opaque text).
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
@@ -2856,6 +2896,29 @@ public final class HintMeshRenderer {
             this.boxes = boxes;
             this.labels = labels;
             this.boxPainter = boxPainter;
+        }
+
+        /**
+         * Covers {@code ink} (in container coordinates, padded) instead of the whole container,
+         * and shifts what it paints to match. A drop shadow effect blurs the layer's whole
+         * surface, and a hint mesh spanning a screen puts very little ink on most of it.
+         * Returns whether the layer was fitted: it is not when there is no ink to fit to.
+         */
+        boolean fitToInk(List<Rectangle> ink, int padding, int containerWidth,
+                         int containerHeight) {
+            if (ink.isEmpty())
+                return false;
+            Rectangle bounds = bounds(ink);
+            int left = Math.max(0, bounds.x() - padding);
+            int top = Math.max(0, bounds.y() - padding);
+            int right = Math.min(containerWidth, bounds.x() + bounds.width() + padding);
+            int bottom = Math.min(containerHeight, bounds.y() + bounds.height() + padding);
+            if (right <= left || bottom <= top)
+                return false;
+            originX = left;
+            originY = top;
+            setGeometry(left, top, right - left, bottom - top);
+            return true;
         }
 
         void setOutgoing(List<OutgoingBorders> outgoing) {
@@ -2915,6 +2978,8 @@ public final class HintMeshRenderer {
         @Override
         protected void paintEvent(QPaintEvent event) {
             QPainter painter = new QPainter(this);
+            if (originX != 0 || originY != 0)
+                painter.translate(-originX, -originY);
             if (!outgoing.isEmpty() && outgoingCrop != null) {
                 QRect outgoingDirty = outgoingCrop.intersected(event.rect());
                 QRegion dirtyRegion = new QRegion(outgoingDirty);
