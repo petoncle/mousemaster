@@ -2305,6 +2305,10 @@ public final class HintMeshRenderer {
 
         /** Refilled by every outline paint; painting is single-threaded. */
         private static final QPainterPath outlinePath = new QPainterPath();
+        private static final Map<String, OutlineImage> outlineImages = new HashMap<>();
+
+        private record OutlineImage(QImage image, int x, int y) {
+        }
 
         private final QtHintFontStyle labelFontStyle;
         private final List<HintKeyText> keyTexts;
@@ -2545,20 +2549,64 @@ public final class HintMeshRenderer {
                 return;
             QColor outlineColor = forceOpaque ?
                     opaqueColor(qtFontStyle.outlineColor()) : qtFontStyle.outlineColor();
-            painter.setPen(QtColorUtil.qPen(outlineColor, qtFontStyle.outlineThickness(),
-                    Qt.PenCapStyle.SquareCap, Qt.PenJoinStyle.RoundJoin));
-            painter.setBrush(Qt.BrushStyle.NoBrush);
-            // One path, stroked once: a path per key would stroke overlapping glyphs twice.
-            outlinePath.clear();
+            StringBuilder key = new StringBuilder();
             for (HintKeyText keyText : keyTexts) {
                 if (!filter.test(keyText))
                     continue;
-                qtFontStyle.addTextPath(outlinePath, keyText.text(),
-                        keyText.x() - left, keyText.y() - top);
+                key.append(keyText.text()).append('@').append(keyText.x() - left)
+                   .append(',').append(keyText.y() - top).append(';');
             }
-            painter.drawPath(outlinePath);
+            key.append(outlineColor.rgba()).append('/')
+               .append(qtFontStyle.outlineThickness());
+            // Building and stroking a glyph outline costs ~85us, and a hint mesh draws the same
+            // handful of labels over and over, so each is rasterized once and blitted after.
+            OutlineImage outline = outlineImages.computeIfAbsent(key.toString(), k -> {
+                // One path, stroked once: a path per key would stroke overlapping glyphs twice.
+                outlinePath.clear();
+                for (HintKeyText keyText : keyTexts) {
+                    if (!filter.test(keyText))
+                        continue;
+                    qtFontStyle.addTextPath(outlinePath, keyText.text(),
+                            keyText.x() - left, keyText.y() - top);
+                }
+                return renderOutline(outlinePath, outlineColor,
+                        qtFontStyle.outlineThickness());
+            });
+            if (outline != null)
+                painter.drawImage(outline.x(), outline.y(), outline.image());
             if (forceOpaque && outlineColor != qtFontStyle.outlineColor())
                 outlineColor.dispose();
+        }
+
+        /** Rasterizes the stroked path onto a transparent image, offset by whole pixels so the
+         *  stroke lands on the same subpixel phase as painting it directly would. */
+        private static OutlineImage renderOutline(QPainterPath path, QColor color,
+                                                   int thickness) {
+            QRectF strokeBounds = path.boundingRect();
+            int left = (int) Math.floor(strokeBounds.x()) - thickness - 1;
+            int top = (int) Math.floor(strokeBounds.y()) - thickness - 1;
+            int width = (int) Math.ceil(strokeBounds.x() + strokeBounds.width()) - left +
+                        thickness + 1;
+            int height = (int) Math.ceil(strokeBounds.y() + strokeBounds.height()) - top +
+                         thickness + 1;
+            strokeBounds.dispose();
+            if (width <= 0 || height <= 0)
+                return null;
+            QImage image = new QImage(width, height,
+                    QImage.Format.Format_ARGB32_Premultiplied);
+            QColor transparent = new QColor(0, 0, 0, 0);
+            image.fill(transparent);
+            transparent.dispose();
+            QPainter painter = new QPainter(image);
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
+            painter.translate(-left, -top);
+            painter.setPen(QtColorUtil.qPen(color, thickness, Qt.PenCapStyle.SquareCap,
+                    Qt.PenJoinStyle.RoundJoin));
+            painter.setBrush(Qt.BrushStyle.NoBrush);
+            painter.drawPath(path);
+            painter.end();
+            painter.dispose();
+            return new OutlineImage(image, left, top);
         }
 
         ShadowGroupKey shadowGroupKey(HintKeyText keyText) {
