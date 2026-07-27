@@ -1858,34 +1858,27 @@ public final class HintMeshRenderer {
                 // the background does not bleed outside the border at corners.
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
                 if (borderThickness != 0) {
-                    QBrush brush = color.alpha() != 0 ? new QBrush(color) : new QBrush(Qt.BrushStyle.NoBrush);
-                    painter.setBrush(brush);
-                    QPen pen = createPen(borderColor, borderThickness);
-                    painter.setPen(pen);
+                    painter.setBrush(color.alpha() != 0 ? QtColorUtil.qBrush(color) :
+                            QtColorUtil.noBrush());
+                    painter.setPen(createPen(borderColor, borderThickness));
                     int offset = borderThickness / 2;
                     painter.drawRoundedRect(offset, offset,
                             width - borderThickness, height - borderThickness,
                             borderRadius, borderRadius);
-                    pen.dispose();
-                    brush.dispose();
                 }
                 else if (color.alpha() != 0) {
-                    QBrush brush = new QBrush(color);
-                    painter.setBrush(brush);
+                    painter.setBrush(QtColorUtil.qBrush(color));
                     painter.setPen(Qt.PenStyle.NoPen);
                     painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
-                    brush.dispose();
                 }
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             else {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
                 if (color.alpha() != 0) {
-                    QBrush brush = new QBrush(color);
-                    painter.setBrush(brush);
+                    painter.setBrush(QtColorUtil.qBrush(color));
                     painter.setPen(Qt.PenStyle.NoPen);
                     painter.drawRoundedRect(0, 0, width, height, 0, 0);
-                    brush.dispose();
                 }
                 if (borderThickness != 0)
                     drawBorders(painter);
@@ -1942,8 +1935,7 @@ public final class HintMeshRenderer {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (color.alpha() != 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, borderRadius > 0);
-                QBrush brush = new QBrush(color);
-                painter.setBrush(brush);
+                painter.setBrush(QtColorUtil.qBrush(color));
                 painter.setPen(Qt.PenStyle.NoPen);
                 if (borderRadius > 0 && borderThickness != 0) {
                     // The border strokes this same inset rect on its own layer; filling it (not the
@@ -1956,7 +1948,6 @@ public final class HintMeshRenderer {
                 }
                 else
                     painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
-                brush.dispose();
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             for (HintBox decorationBox : decorationBoxes)
@@ -1973,16 +1964,12 @@ public final class HintMeshRenderer {
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (borderRadius > 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-                QBrush brush = new QBrush(Qt.BrushStyle.NoBrush);
-                painter.setBrush(brush);
-                QPen pen = createPen(borderColor, borderThickness);
-                painter.setPen(pen);
+                painter.setBrush(QtColorUtil.noBrush());
+                painter.setPen(createPen(borderColor, borderThickness));
                 int offset = borderThickness / 2;
                 painter.drawRoundedRect(offset, offset,
                         width - borderThickness, height - borderThickness,
                         borderRadius, borderRadius);
-                pen.dispose();
-                brush.dispose();
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             else {
@@ -2000,9 +1987,7 @@ public final class HintMeshRenderer {
         public void paintOpaque(QPainter painter) {
             painter.save();
             painter.translate(x, y);
-            QColor opaque = new QColor(255, 255, 255, 255);
-            QBrush opaqueBrush = new QBrush(opaque);
-            painter.setBrush(opaqueBrush);
+            painter.setBrush(QtColorUtil.opaqueWhiteBrush());
             painter.setPen(Qt.PenStyle.NoPen);
             if (borderRadius > 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
@@ -2012,8 +1997,6 @@ public final class HintMeshRenderer {
             else {
                 painter.drawRect(0, 0, width, height);
             }
-            opaqueBrush.dispose();
-            opaque.dispose();
             painter.restore();
         }
 
@@ -2228,8 +2211,6 @@ public final class HintMeshRenderer {
                     bottomRightStart,
                     right + 1
             );
-            edgePen.dispose();
-            insidePen.dispose();
         }
 
         private void drawVerticalGridLine(
@@ -2248,13 +2229,10 @@ public final class HintMeshRenderer {
                 return;
             if (y1 > y2)
                 return;
-            painter.setPen(isEdge ? edgePen : insidePen);
-            QPen currentPen = painter.pen();
-            if (currentPen.width() == 0) {
-                currentPen.dispose();
+            QPen pen = isEdge ? edgePen : insidePen;
+            if (pen.width() == 0)
                 return;
-            }
-            currentPen.dispose();
+            painter.setPen(pen);
             int x = xBase + (isEdge ? edgeOffset : insideOffset);
             painter.drawLine(x, y1, x, y2);
         }
@@ -2275,23 +2253,18 @@ public final class HintMeshRenderer {
                 return;
             if (x1 > x2)
                 return;
-            painter.setPen(isEdge ? edgePen : insidePen);
-            QPen currentPen = painter.pen();
-            if (currentPen.width() == 0) {
-                currentPen.dispose();
+            QPen pen = isEdge ? edgePen : insidePen;
+            if (pen.width() == 0)
                 return;
-            }
-            currentPen.dispose();
+            painter.setPen(pen);
             int y = yBase + (isEdge ? edgeOffset : insideOffset);
             painter.drawLine(x1, y, x2, y);
         }
 
         private QPen createPen(QColor color, int penWidth) {
-            QPen pen = new QPen(color);
             // Default is square cap.
-            pen.setCapStyle(Qt.PenCapStyle.FlatCap);
-            pen.setWidth(penWidth);
-            return pen;
+            return QtColorUtil.qPen(color, penWidth, Qt.PenCapStyle.FlatCap,
+                    Qt.PenJoinStyle.BevelJoin);
         }
 
     }
@@ -2299,18 +2272,21 @@ public final class HintMeshRenderer {
     private static int middleBaselineY(FontVerticalAlignment verticalAlignment,
                                        int boxHeight, QFontMetrics metrics, String text) {
         if (verticalAlignment == FontVerticalAlignment.MIDDLE) {
-            QRect tight = metrics.tightBoundingRect(text);
-            int y = (int) Math.round(boxHeight / 2.0 - tight.y() - tight.height() / 2.0);
-            tight.dispose();
-            return y;
+            Rectangle tight = QtHintFont.tightBounds(metrics, text);
+            return (int) Math.round(boxHeight / 2.0 - tight.y() - tight.height() / 2.0);
         }
         return (boxHeight + metrics.ascent() - metrics.descent()) / 2;
     }
 
     public static class HintLabel {
 
+        /** Refilled by every outline paint; painting is single-threaded. */
+        private static final QPainterPath outlinePath = new QPainterPath();
+
         private final QtHintFontStyle labelFontStyle;
         private final List<HintKeyText> keyTexts;
+        /** Only a non-grid hint's box is sized and placed to fit its label; a grid hint's box is its
+         *  cell, so its left and top are left at 0. */
         final int tightHintBoxLeft;
         final int tightHintBoxTop;
         final int tightHintBoxWidth;
@@ -2330,9 +2306,6 @@ public final class HintMeshRenderer {
             this.labelFontStyle = labelFontStyle;
 
             QFontMetrics labelMetrics = labelFontStyle.defaultStyle().metrics();
-            int y = middleBaselineY(verticalAlignment, boxHeight, labelMetrics,
-                    keySequence.stream().map(Key::hintLabel).collect(Collectors.joining()));
-
             double smallestColAlignedFontBoxWidth = hintKeyMaxXAdvance * keySequence.size();
             double smallestColAlignedFontBoxWidthPercent =
                     Math.min(1, smallestColAlignedFontBoxWidth / boxWidth);
@@ -2404,10 +2377,9 @@ public final class HintMeshRenderer {
                 // MIDDLE centers each key on its own tight bounds, not the whole label as one block.
                 int textY = middleBaselineY(verticalAlignment, boxHeight, keyMetrics, keyText);
                 if (!isHintPartOfGrid) {
-                    QRect tight = keyMetrics.tightBoundingRect(keyText);
+                    Rectangle tight = QtHintFont.tightBounds(keyMetrics, keyText);
                     tightLeft = Math.min(tightLeft, textX + tight.x());
                     tightRight = Math.max(tightRight, textX + tight.x() + tight.width());
-                    tight.dispose();
                 }
                 keyTexts.add(new HintKeyText(keyText, textX, textY, keyWidth,
                         isSelected, isFocused, isPrefix));
@@ -2428,12 +2400,15 @@ public final class HintMeshRenderer {
                 }
             }
             this.centeredBoxWidth = centeredBoxWidth;
-            int smallestHintBoxTop = y - labelFontStyle.defaultStyle().metrics().ascent();
-            int smallestHintBoxHeight = labelFontStyle.defaultStyle().metrics().height();
             this.tightHintBoxLeft = smallestHintBoxLeft;
-            this.tightHintBoxTop = smallestHintBoxTop;
+            this.tightHintBoxTop = isHintPartOfGrid ? 0 :
+                    middleBaselineY(verticalAlignment, boxHeight, labelMetrics,
+                            keySequence.stream()
+                                       .map(Key::hintLabel)
+                                       .collect(Collectors.joining()))
+                    - labelMetrics.ascent();
             this.tightHintBoxWidth = smallestHintBoxWidth;
-            this.tightHintBoxHeight = smallestHintBoxHeight;
+            this.tightHintBoxHeight = labelMetrics.height();
         }
 
         public void setFixedSize(int width, int height) {
@@ -2547,21 +2522,18 @@ public final class HintMeshRenderer {
                 return;
             QColor outlineColor = forceOpaque ?
                     opaqueColor(qtFontStyle.outlineColor()) : qtFontStyle.outlineColor();
-            QPen outlinePen = new QPen(outlineColor);
-            outlinePen.setWidth(qtFontStyle.outlineThickness());
-            outlinePen.setJoinStyle(Qt.PenJoinStyle.RoundJoin);
-            painter.setPen(outlinePen);
+            painter.setPen(QtColorUtil.qPen(outlineColor, qtFontStyle.outlineThickness(),
+                    Qt.PenCapStyle.SquareCap, Qt.PenJoinStyle.RoundJoin));
             painter.setBrush(Qt.BrushStyle.NoBrush);
-            QPainterPath outlinePath = new QPainterPath();
+            // One path, stroked once: a path per key would stroke overlapping glyphs twice.
+            outlinePath.clear();
             for (HintKeyText keyText : keyTexts) {
                 if (!filter.test(keyText))
                     continue;
-                outlinePath.addText(keyText.x() - left, keyText.y() - top,
-                        qtFontStyle.font(), keyText.text());
+                qtFontStyle.addTextPath(outlinePath, keyText.text(),
+                        keyText.x() - left, keyText.y() - top);
             }
             painter.drawPath(outlinePath);
-            outlinePath.dispose();
-            outlinePen.dispose();
             if (forceOpaque && outlineColor != qtFontStyle.outlineColor())
                 outlineColor.dispose();
         }
@@ -2576,6 +2548,9 @@ public final class HintMeshRenderer {
 
         void paintOpaqueFiltered(QPainter painter,
                                  Predicate<HintKeyText> filter) {
+            // Every label is offered to every shadow group, and most belong to none.
+            if (keyTexts.stream().noneMatch(filter))
+                return;
             painter.save();
             painter.translate(x, y);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);

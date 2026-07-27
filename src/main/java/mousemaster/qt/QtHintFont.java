@@ -1,18 +1,24 @@
 package mousemaster.qt;
 
+import io.qt.core.QRect;
 import io.qt.gui.QFont;
 import io.qt.gui.QFontMetrics;
+import io.qt.gui.QPainterPath;
 import io.qt.widgets.QApplication;
 import mousemaster.FontStyle;
 import mousemaster.FontWeight;
 import mousemaster.HintFontStyle;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.HintMeshStyle;
+import mousemaster.Rectangle;
 import mousemaster.Shadow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -23,6 +29,47 @@ public final class QtHintFont {
     private static final Logger logger = LoggerFactory.getLogger(QtHintFont.class);
 
     private QtHintFont() {
+    }
+
+    private record FontKey(String name, int weight, double size, double screenScale,
+                           double primaryScreenDpi) {
+    }
+
+    private static final Map<FontKey, QFontMetrics> metricsByFont = new HashMap<>();
+    private static final Map<QFontMetrics, Map<String, Rectangle>>
+            tightBoundsByTextByMetrics = new IdentityHashMap<>();
+
+    /** The ink bounds of the text, kept once measured: ~100us a query under the GDI font engine. */
+    public static Rectangle tightBounds(QFontMetrics metrics, String text) {
+        return tightBoundsByTextByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
+                                         .computeIfAbsent(text, t -> {
+                                             QRect tight = metrics.tightBoundingRect(t);
+                                             Rectangle bounds =
+                                                     new Rectangle(tight.x(), tight.y(),
+                                                             tight.width(), tight.height());
+                                             tight.dispose();
+                                             return bounds;
+                                         });
+    }
+
+    private static final Map<QFontMetrics, Map<String, QPainterPath>> textPathsByMetrics =
+            new IdentityHashMap<>();
+
+    /** Adds the text's glyph outline to {@code path}, baseline origin at (x, y). Outlines are kept
+     *  at the origin and copied into place: ~90us to build one under the GDI font engine. Keyed by
+     *  the metrics, which are cached per font, unlike the QFont, which callers may resize. */
+    static void addTextPath(QPainterPath path, QFontMetrics metrics, QFont font, String text,
+                            int x, int y) {
+        QPainterPath glyphs =
+                textPathsByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
+                                  .computeIfAbsent(text, t -> {
+                                      QPainterPath origin = new QPainterPath();
+                                      origin.addText(0, 0, font, t);
+                                      return origin;
+                                  });
+        glyphs.translate(x, y);
+        path.addPath(glyphs);
+        glyphs.translate(-x, -y);
     }
 
     public static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
@@ -160,21 +207,28 @@ public final class QtHintFont {
                                                                  double fontSizePoints,
                                                                  double screenScale) {
         double primaryScreenDpi = QApplication.primaryScreen().logicalDotsPerInchX();
-        double targetDpi = screenScale * 96.0;
-        if (Math.abs(primaryScreenDpi - targetDpi) < 1) {
-            // QFontMetrics already matches the target DPI, no correction needed.
-            return new QFontMetrics(renderFont);
-        }
-        // Create a metrics-only font with the pixel size that GDI will use.
-        int correctedPixelSize = (int) Math.round(fontSizePoints * targetDpi / 72.0);
-        QFont metricsFont = new QFont(renderFont.family());
-        metricsFont.setPixelSize(correctedPixelSize);
-        metricsFont.setWeight(renderFont.weight());
-        metricsFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
-        metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
-        QFontMetrics metrics = new QFontMetrics(metricsFont);
-        metricsFont.dispose();
-        return metrics;
+        // Kept per font so rebuilds share one instance, and with it everything measured through it.
+        return metricsByFont.computeIfAbsent(
+                new FontKey(renderFont.family(), renderFont.weight().value(), fontSizePoints,
+                        screenScale, primaryScreenDpi),
+                key -> {
+                    double targetDpi = screenScale * 96.0;
+                    if (Math.abs(primaryScreenDpi - targetDpi) < 1) {
+                        // QFontMetrics already matches the target DPI, no correction needed.
+                        return new QFontMetrics(renderFont);
+                    }
+                    // Create a metrics-only font with the pixel size that GDI will use.
+                    int correctedPixelSize =
+                            (int) Math.round(fontSizePoints * targetDpi / 72.0);
+                    QFont metricsFont = new QFont(renderFont.family());
+                    metricsFont.setPixelSize(correctedPixelSize);
+                    metricsFont.setWeight(renderFont.weight());
+                    metricsFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias);
+                    metricsFont.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
+                    QFontMetrics metrics = new QFontMetrics(metricsFont);
+                    metricsFont.dispose();
+                    return metrics;
+                });
     }
 
     public static void preWarm(Set<HintMeshConfiguration> hintMeshConfigurations) {

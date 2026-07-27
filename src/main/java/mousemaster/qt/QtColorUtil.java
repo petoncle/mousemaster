@@ -1,7 +1,13 @@
 package mousemaster.qt;
 
+import io.qt.core.Qt;
+import io.qt.gui.QBrush;
 import io.qt.gui.QColor;
+import io.qt.gui.QPen;
 import mousemaster.Shadow;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public final class QtColorUtil {
 
@@ -10,6 +16,46 @@ public final class QtColorUtil {
 
     public static QColor qColor(String hexColor, double opacity) {
         return QColor.fromRgba(rgba(hexColor, opacity));
+    }
+
+    /** Constructing a QtJambi object costs ~10us and a screen-sized hint grid paints tens of
+     *  thousands of boxes sharing a few appearances. QPainter copies the state it is given, so one
+     *  brush or pen can back any number of paints. */
+    private static final Map<Integer, QBrush> brushByRgba = new HashMap<>();
+    private static final Map<PenKey, QPen> penByKey = new HashMap<>();
+    private static QBrush noBrush;
+    private static QBrush opaqueWhiteBrush;
+
+    private record PenKey(int rgba, int width, Qt.PenCapStyle capStyle,
+                          Qt.PenJoinStyle joinStyle) {
+    }
+
+    public static QBrush qBrush(QColor color) {
+        return brushByRgba.computeIfAbsent(color.rgba(), rgba -> new QBrush(color));
+    }
+
+    public static QBrush noBrush() {
+        if (noBrush == null)
+            noBrush = new QBrush(Qt.BrushStyle.NoBrush);
+        return noBrush;
+    }
+
+    public static QBrush opaqueWhiteBrush() {
+        if (opaqueWhiteBrush == null)
+            opaqueWhiteBrush = new QBrush(new QColor(255, 255, 255, 255));
+        return opaqueWhiteBrush;
+    }
+
+    public static QPen qPen(QColor color, int width, Qt.PenCapStyle capStyle,
+                            Qt.PenJoinStyle joinStyle) {
+        return penByKey.computeIfAbsent(
+                new PenKey(color.rgba(), width, capStyle, joinStyle), key -> {
+                    QPen pen = new QPen(color);
+                    pen.setCapStyle(capStyle);
+                    pen.setJoinStyle(joinStyle);
+                    pen.setWidth(width);
+                    return pen;
+                });
     }
 
     public static QColor shadow(Shadow shadow) {

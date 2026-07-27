@@ -3,6 +3,7 @@ package mousemaster.qt;
 import io.qt.gui.QColor;
 import io.qt.gui.QFont;
 import io.qt.gui.QFontMetrics;
+import io.qt.gui.QPainterPath;
 
 public record QtFontStyle(QFont font, QFontMetrics metrics,
                           QColor color,
@@ -10,6 +11,11 @@ public record QtFontStyle(QFont font, QFontMetrics metrics,
                           QColor shadowColor, int shadowStackCount,
                           double shadowBlurRadius,
                           double shadowHorizontalOffset, double shadowVerticalOffset) {
+
+    /** Adds the text's glyph outline to {@code path}, its baseline origin at (x, y). */
+    public void addTextPath(QPainterPath path, String text, int x, int y) {
+        QtHintFont.addTextPath(path, metrics, font, text, x, y);
+    }
 
     public boolean hasTransparency() {
         if (outlineThickness != 0 &&
