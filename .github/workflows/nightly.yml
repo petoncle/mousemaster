@@ -76,5 +76,6 @@ jobs:
             "configuration/mouseable.properties" \
             "configuration/neo-mousekeys-ijkl.properties" \
             "configuration/neo-mousekeys-wasd.properties" \
+            "configuration/neru.properties" \
             "configuration/warpd.properties" \
             --clobber

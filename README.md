@@ -1,13 +1,16 @@
 # mousemaster
 
-<a href="https://discord.gg/GSB6MaKb2R"><img src="https://img.shields.io/discord/854326924402622474?color=%235865F2&label=discord" alt="Join Discord Chat"></a>
-
-- Keyboard driven mouseless mouse control and advanced keyboard customization
+- Control your mouse from the keyboard and remap your keys
 - Heavily inspired by [warpd](https://github.com/rvaiya/warpd), [mouseable](https://github.com/wirekang/mouseable/), [neru](https://github.com/y3owk1n/neru) and [kanata](https://github.com/jtroo/kanata)
+
+<div align="center">
+  <a href="https://discord.gg/GSB6MaKb2R">
+    <img src="https://img.shields.io/badge/Join%20%20The%20%20Discord%20%20Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join the mousemaster Discord Server"/>
+  </a>
+</div>
 
 <p align="center">
 <a href="#demo">Demo</a> •
-<a href="#overview">Overview</a> •
 <a href="#installation">Installation</a> •
 <a href="#usage">Usage</a> •
 <a href="#features">Features</a> •
@@ -16,43 +19,27 @@
 
 ## Demo
 
-### Hints Demo
+### Hints
 https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
 
-### Recursive Hints Demo
+### Recursive hints
 https://github.com/user-attachments/assets/9140b3be-6109-4a90-a842-0a22c7e0e562
 
-### Hint Styling Showcase
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/6b2fb130-3213-4338-bda5-0c7c4969a433" style="width: 100%; height: 100%;" />
-</p>
+### UI hints
+https://github.com/user-attachments/assets/91eef554-bf68-44a7-8d16-5e4d5d353fe0
 
-### UI Hints Demo
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/adada1bb-faaa-4946-bacc-aaa6b1807597" style="width: 100%; height: 100%;" />
-</p>
+### Recursive grid
+https://github.com/user-attachments/assets/b395505e-9a06-4ec8-b361-81323c7b3fb4
 
-### Grid Demo
-https://github.com/petoncle/mousemaster/assets/39304282/12677e9e-3126-4694-b4bc-5a18e9438bc9
-
-### Mouse Movements Demo
+### Continuous mouse movement
 https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
-
-## Overview
-
-mousemaster lets you control your mouse from the keyboard and remap your keys.
-
-- **Continuous mouse movement**: Move the cursor with keyboard keys (IJKL by default), click, scroll, and drag
-- **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there
-- **UI hint navigation**: Label buttons, links, and text fields in the active window
-- **Grid navigation**: Divide the screen into a grid that you progressively refine to narrow down to a specific area
-- **Key remapping**: Define combos to remap keys, send key sequences, or type text
 
 ## Installation
 
 1. Download **mousemaster.exe** (a portable executable) from the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build it from source.
 2. In the same Release page, choose and download one of the existing configuration files:
    - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))
+   - **neru.properties**: a recursive hint configuration ([see documentation](configuration/neru.md))
    - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](configuration/neo-mousekeys-wasd.md))
    - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))
    - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))
@@ -68,7 +55,7 @@ mousemaster lets you control your mouse from the keyboard and remap your keys.
 
 ## Usage
 
-### Default Configuration (neo-mousekeys-ijkl)
+### Default configuration (neo-mousekeys-ijkl)
 
 The recommended configuration uses the following key bindings:
 
@@ -87,16 +74,17 @@ For a complete reference, see the [neo-mousekeys-ijkl documentation](configurati
 
 ## Features
 
-1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands or remap keys. See the [combo reference](configuration/combo-reference.md).
-2. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
-3. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.
-4. **UI hint navigation**: Label buttons, links, and text fields in the active window.
-5. **Grid navigation**: Divide the screen into 2x2 sections, shrink with each key press to reach a precise position.
-6. **Zoom**.
-7. **App-specific modes**: Auto-switch modes based on the focused app.
-8. **Cursor indicator**: Custom shape, color, outline, shadow, text label, changes per mouse state.
-9. **Position history**: Save cursor positions, jump back to them later.
-10. **Live configuration**: All configuration lives in a single file that is automatically reloaded when saved.
+1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands, switch modes, or remap keys. See the [combo reference](configuration/combo-reference.md).
+2. **Modes**: Each mode has its own combos and its own hint, grid, indicator and zoom settings, and can inherit properties from other modes.
+3. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
+4. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.
+5. **UI hint navigation**: Label buttons, links, and text fields in the active window.
+6. **Recursive grid navigation**: Divide the screen into 2x2 sections, shrink with each key press or snap to the grid's edges to reach a precise position.
+7. **Zoom**.
+8. **App-specific behavior**: Restrict combos to specific apps, so the same keys behave differently depending on the focused app.
+9. **Cursor indicator**: Custom shape, color, outline, shadow, text label, changes per mouse state.
+10. **Position history**: Save cursor positions, jump back to them later.
+11. **Live configuration**: All configuration lives in a single file that is automatically reloaded when saved.
 
 mousemaster provides low-level primitives (modes, combos, commands, macros, key aliases) that you compose to build the exact behavior you want. See the [configuration reference](configuration/configuration-reference.md).
 
@@ -106,7 +94,7 @@ Contributions to mousemaster are welcome!
 
 - **Share a configuration**: If you have ideas for a new or improved configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
 
-- **Cross-platform support:** mousemaster currently supports Windows only. That said, most of the overlay has been reimplemented to be cross-platform. The remaining work is keyboard/mouse input handling and sending inputs on macOS and Linux.  
+- **Cross-platform support:** mousemaster currently supports Windows only. That said, the overlay has already been reimplemented to be cross-platform. The remaining work is keyboard/mouse input handling and sending inputs on macOS and Linux.  
   If you're interested in helping extend mousemaster to these platforms, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
 If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!

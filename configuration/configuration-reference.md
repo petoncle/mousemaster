@@ -1013,9 +1013,9 @@ grid-mode.move-to-grid-center=+space
   - Useful for quick centering after grid manipulation
   - Example: `move-to-grid-center` places the mouse at the grid's center point
 
-### Grid navigation workflow
+### Recursive grid navigation workflow
 
-A typical grid navigation workflow:
+A typical recursive grid navigation workflow:
 
 1. Enter grid mode (divides screen into a 2×2 grid)
 2. Use shrink commands to narrow down to the target area
@@ -1028,7 +1028,7 @@ A typical grid navigation workflow:
 # Enter grid mode from normal mode
 normal-mode.to.grid-mode=+g
 
-# Option 1: Grid navigation with WASD keys
+# Option 1: Recursive grid navigation with WASD keys
 grid-mode.shrink-grid.up=+w
 grid-mode.shrink-grid.down=+s
 grid-mode.shrink-grid.left=+a
@@ -1054,7 +1054,7 @@ grid-mode.to.normal-mode=+escape
 Alternatively, you could use arrow keys instead of WASD:
 
 ```properties
-# Option 2: Grid navigation with arrow keys
+# Option 2: Recursive grid navigation with arrow keys
 grid-mode.shrink-grid.up=+uparrow
 grid-mode.shrink-grid.down=+downarrow
 grid-mode.shrink-grid.left=+leftarrow

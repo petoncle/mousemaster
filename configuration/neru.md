@@ -2,7 +2,9 @@
 
 (See [configuration-reference.md](configuration-reference.md) for the full list of properties.)
 
-A keyboard-only mouse driven by hints: launch a mode, jump the cursor onto a target, click. The pattern is always **Ctrl+Shift** to start a mode, **letters** to aim, **Shift** to click.
+Designed to mimic the features of the [neru](https://github.com/y3owk1n/neru) project.
+
+A keyboard-only mouse driven by hints: launch a mode, jump the cursor onto a target, click. The pattern is always **Ctrl+Shift** to start a mode, then **unmodified keys** to pick a cell, and **Shift+L/R/M** to click.
 
 ## Launch
 
@@ -24,7 +26,9 @@ From idle — or to switch between modes — hold **Ctrl+Shift** and press:
 - **Click**: `Shift+L` left, `Shift+R` right, `Shift+M` middle.
 - **Drag**: hold `Shift+L` while moving — or `Shift+I` to press the left button and `Shift+U` to release it.
 
-Clicks use Shift so they don't clash with the letters used to pick hints. A small dot marks the cursor state: red idle/moving, yellow scrolling, green pressing.
+Clicks use Shift so they don't clash with the keys used to pick hints.
+
+The indicator is a translucent disc centered on the cursor, ringed in the same color: red idle and moving, yellow scrolling, and while a button is held, green for left, magenta for middle, cyan for right — the last three also cast a glow in their color. The hint modes hide it while you pick, so only the hints are on screen, and show it again while a button is held.
 
 ## Recursive hints — Ctrl+Shift+C
 
@@ -51,7 +55,7 @@ Hold to keep scrolling (speeds up while held): `k` up, `j` down, `h` left, `l` r
 
 https://github.com/user-attachments/assets/bed8750a-928a-4989-8e5a-0bad420c4e42
 
-Two grids, so a few keystrokes reach any pixel.
+Two grids, so three keystrokes land the cursor within a few pixels of anything on screen; the arrow keys cover the rest.
 
 1. A labeled grid covers the screen — type a cell's label (two keys on most screens). Density and label length adapt to your resolution; after the first key the grid narrows to a sub-grid, with the typed key shown large behind it.
 2. That cell immediately fills with a 3×8 sub-grid. One more key lands the cursor:
