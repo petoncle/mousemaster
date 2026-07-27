@@ -244,6 +244,10 @@ public class WindowsOverlay implements Overlay {
     }
 
     private void moveAndResizeIndicatorWindow(WinDef.POINT mousePosition) {
+        // The window is created before the first indicator is set, so that the mode the user
+        // switches into does not pay for it: there is nothing to place until then.
+        if (indicatorRenderer.currentIndicator() == null)
+            return;
         indicatorRenderer.reposition(mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom);
     }
@@ -317,6 +321,18 @@ public class WindowsOverlay implements Overlay {
     public void preWarmHintMeshWindows() {
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
         updateZoomExcludedWindows();
+    }
+
+    /** Creating the indicator window costs as much as the first hint mesh window, and the mode
+     *  the user switches into pays it before its hints are built. */
+    @Override
+    public void preWarmIndicatorWindow() {
+        if (indicatorHwnd != null)
+            return;
+        long before = System.nanoTime();
+        createIndicatorWindow();
+        logger.info("Pre-warmed the indicator window in " +
+                    (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
     /**

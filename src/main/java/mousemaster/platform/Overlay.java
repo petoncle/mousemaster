@@ -25,6 +25,8 @@ public interface Overlay {
 
     void preWarmHintMeshWindows();
 
+    void preWarmIndicatorWindow();
+
     Rectangle activeWindowRectangle(double widthPct, double heightPct,
                                     int topInset, int bottomInset,
                                     int leftInset, int rightInset);
