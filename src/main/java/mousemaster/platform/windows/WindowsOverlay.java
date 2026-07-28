@@ -391,6 +391,10 @@ public class WindowsOverlay implements Overlay {
                                     boolean allowFade,
                                     boolean renderAsCursor, boolean includeCursorGlyph) {
         Objects.requireNonNull(indicator);
+        if (!renderAsCursor && !indicatorIsCursor && indicatorRenderer != null &&
+            indicatorRenderer.showing() &&
+            indicator.equals(indicatorRenderer.currentIndicator()))
+            return;
         if (mouse.tryFindMousePosition() == null) {
             logger.warn("Unable to find mouse position for indicator");
             return;
