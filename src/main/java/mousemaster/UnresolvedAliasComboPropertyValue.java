@@ -15,4 +15,12 @@ import java.util.Set;
  */
 public record UnresolvedAliasComboPropertyValue(List<String> names,
                                                 Set<String> nameNegatedSet,
-                                                Map<String, AliasRemap<String>> remapByName) {}
+                                                Map<String, AliasRemap<String>> remapByName) {
+
+    @Override
+    public String toString() {
+        return names + (nameNegatedSet.isEmpty() ? "" : " negated " + nameNegatedSet) +
+               (remapByName.isEmpty() ? "" : " remapped " + remapByName.keySet());
+    }
+
+}

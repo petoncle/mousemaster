@@ -1420,13 +1420,18 @@ public class ComboWatcher {
     }
 
     public void breakComboPreparation() {
-        if (logger.isDebugEnabled())
-            logger.debug("Breaking combos, buffered " +
-                         (logRedactKeys ? "<redacted>" :
-                                 logger.isTraceEnabled() ? comboPreparation.toString() :
-                                 comboPreparation.events().toString()) +
-                         (combosWaitingForLastMoveToComplete.isEmpty() ? "" :
-                                 ", waitingForLastMove = " + combosWaitingForLastMoveToComplete));
+        if (logger.isDebugEnabled()) {
+            StringBuilder message = new StringBuilder("Breaking combos, buffered ");
+            message.append(logRedactKeys ? "<redacted>" :
+                    logger.isTraceEnabled() ? comboPreparation.toString() :
+                    comboPreparation.events().toString());
+            appendCombos(message, "waiting for last move",
+                    combosWaitingForLastMoveToComplete.stream()
+                                                      .map(waiting -> waiting.comboAndCommands()
+                                                                             .combo())
+                                                      .toList(), baseMode);
+            logger.debug(message.toString());
+        }
         comboPreparation = ComboPreparation.empty();
         combosWaitingForLastMoveToComplete.clear();
         leadingWaitBeginTimeByCombo.clear();
@@ -1744,8 +1749,7 @@ public class ComboWatcher {
 
         @Override
         public String toString() {
-            return "ComboWaitingForLastMoveToComplete[" + "comboAndCommands=" +
-                   comboAndCommands + ", deadline=" + deadline + ']';
+            return comboAndCommands.combo.label() + " until " + deadline;
         }
     }
 
