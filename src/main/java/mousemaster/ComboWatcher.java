@@ -441,7 +441,7 @@ public class ComboWatcher {
                     processKeyEventForCurrentMode(null, true, LogTrigger.MODE_SWITCHED);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
-        refreshPreconditionOnlyMutations();
+        refreshPreconditionOnlyMutations(activeApp);
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey, expiredCombos);
     }
 
@@ -1626,7 +1626,11 @@ public class ComboWatcher {
 
 
     private boolean refreshPreconditionOnlyMutations() {
-        App activeApp = activeAppFinder.activeApp();
+        return refreshPreconditionOnlyMutations(activeAppFinder.activeApp());
+    }
+
+    private boolean refreshPreconditionOnlyMutations(App activeApp) {
+        boolean activeMutationsChanged = false;
         // Revert unsatisfied precondition-only mutations.
         Iterator<Map.Entry<ModePropertyPath, ActiveModeMutation>> activeMutationIterator =
                 activeMutations.entrySet().iterator();
@@ -1636,8 +1640,10 @@ public class ComboWatcher {
             if (!preconditionOnlyByPropertyPath.getOrDefault(path, false))
                 continue;
             ActiveModeMutation mutation = entry.getValue();
-            if (!isMutationComboPreconditionSatisfied(mutation.combo(), activeApp))
+            if (!isMutationComboPreconditionSatisfied(mutation.combo(), activeApp)) {
                 activeMutationIterator.remove();
+                activeMutationsChanged = true;
+            }
         }
         // Activate newly satisfied precondition-only mutations.
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
@@ -1650,12 +1656,17 @@ public class ComboWatcher {
                 continue;
             for (Command command : entry.getValue()) {
                 if (command instanceof Command.MutateMode mutateMode) {
-                    activeMutations.put(mutateMode.propertyPath(),
-                            new ActiveModeMutation(mutateMode.newPropertyValue(),
-                                    combo));
+                    ActiveModeMutation mutation =
+                            new ActiveModeMutation(mutateMode.newPropertyValue(), combo);
+                    activeMutationsChanged |= !mutation.equals(
+                            activeMutations.put(mutateMode.propertyPath(), mutation));
                 }
             }
         }
+        // The mutated mode is a function of the base mode and the active mutations,
+        // and the base mode only changes through modeChanged, which clears them.
+        if (!activeMutationsChanged)
+            return false;
         Mode previousMutatedMode = mutatedMode;
         rebuildMutatedMode();
         boolean notified = !mutatedMode.equals(previousMutatedMode);

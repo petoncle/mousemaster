@@ -1,0 +1,84 @@
+package mousemaster;
+
+import mousemaster.platform.ActiveAppFinder;
+import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * A precondition-only mutation is applied and reverted as its variable toggles,
+ * across the update() ticks that run in between. The refresh rebuilds the mutated
+ * mode only when the active mutations change, so a tick must not leave it stale.
+ */
+class PreconditionOnlyMutationTest {
+
+    private final List<Mode> notifiedModes = new ArrayList<>();
+    private ComboWatcher comboWatcher;
+
+    private void load(String... lines) {
+        Configuration configuration = ConfigurationParser.parse(List.of(lines),
+                KeyboardLayout.keyboardLayout("00000409", null));
+        ModeMap modeMap = configuration.modeMap();
+        ActiveAppFinder noApp = () -> new App("test.exe");
+        Clock clock = Instant::now;
+        comboWatcher = new ComboWatcher(null, null, noApp, clock, Set.of(), Set.of(),
+                false, modeMap, configuration.initiallySetVariables());
+        comboWatcher.setModeListeners(List.of(new ModeListener() {
+            @Override
+            public void modeChanged(Mode newMode) {
+                notifiedModes.add(newMode);
+            }
+
+            @Override
+            public void modeTimedOut() {
+            }
+        }));
+        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
+    }
+
+    private void tick() {
+        comboWatcher.update(0.01);
+    }
+
+    private boolean renderAsCursor() {
+        return comboWatcher.getMutatedMode().indicator().renderAsCursor();
+    }
+
+    @Test
+    void mutationFollowsItsVariableAcrossTicks() {
+        load("idle-mode.indicator.render-as-cursor=false | _{isidling} -> true");
+        tick();
+        assertFalse(renderAsCursor());
+
+        comboWatcher.setIdling(true);
+        assertTrue(renderAsCursor());
+        for (int i = 0; i < 5; i++)
+            tick();
+        assertTrue(renderAsCursor(), "a tick must not revert an applied mutation");
+
+        comboWatcher.setIdling(false);
+        assertFalse(renderAsCursor());
+        for (int i = 0; i < 5; i++)
+            tick();
+        assertFalse(renderAsCursor(), "a tick must not re-apply a reverted mutation");
+    }
+
+    @Test
+    void ticksWithoutAChangeDoNotNotifyListeners() {
+        load("idle-mode.indicator.render-as-cursor=false | _{isidling} -> true");
+        tick();
+        notifiedModes.clear();
+        for (int i = 0; i < 5; i++)
+            tick();
+        assertEquals(List.of(), notifiedModes);
+
+        comboWatcher.setIdling(true);
+        assertEquals(1, notifiedModes.size());
+        assertTrue(notifiedModes.getFirst().indicator().renderAsCursor());
+    }
+}
