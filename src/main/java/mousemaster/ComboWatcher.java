@@ -245,12 +245,13 @@ public class ComboWatcher {
 
     public ComboWatcherUpdateResult update(double delta) {
         List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
+        App activeApp = activeAppFinder.activeApp();
         if (preconditionOnlyNonMutationComboRefreshPending) {
             preconditionOnlyNonMutationComboRefreshPending = false;
-            processKeyEventForCurrentMode(null, false, LogTrigger.PRECONDITION_REFRESH);
+            processKeyEventForCurrentMode(null, false, LogTrigger.PRECONDITION_REFRESH,
+                    activeApp);
         }
         // Handle combos that should be run when active app changes (no combo move).
-        App activeApp = activeAppFinder.activeApp();
         boolean activeAppChanged = !Objects.equals(activeApp, lastActiveApp);
         if (activeAppChanged) {
             lastActiveApp = activeApp;
@@ -430,7 +431,7 @@ public class ComboWatcher {
         if (hasAsyncSelfSwitch) {
             breakComboPreparation();
             comboPreparationAlreadyBroken = true;
-            processKeyEventForCurrentMode(null, false, LogTrigger.MODE_SWITCHED);
+            processKeyEventForCurrentMode(null, false, LogTrigger.MODE_SWITCHED, activeApp);
         }
         else if (baseMode != beforeMode) {
             if (hasComboPreparationBreaker) {
@@ -438,7 +439,8 @@ public class ComboWatcher {
                 comboPreparationAlreadyBroken = true;
             }
             PressKeyEventProcessingSet processingSet =
-                    processKeyEventForCurrentMode(null, true, LogTrigger.MODE_SWITCHED);
+                    processKeyEventForCurrentMode(null, true, LogTrigger.MODE_SWITCHED,
+                            activeApp);
             completedCombos.addAll(processingSet.partOfCompletedComboSequenceCombosWithMatches());
         }
         refreshPreconditionOnlyMutations(activeApp);
@@ -446,6 +448,7 @@ public class ComboWatcher {
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
+        App activeApp = activeAppFinder.activeApp();
         lastKeyEvent = event;
         // Update wait begin times: only reset for non-ignored key events.
         for (Map.Entry<Combo, Instant> entry : leadingWaitBeginTimeByCombo.entrySet()) {
@@ -564,11 +567,12 @@ public class ComboWatcher {
         }
         Mode beforeMode = baseMode;
         PressKeyEventProcessingSet processingSet =
-                processKeyEventForCurrentMode(event, false, LogTrigger.KEY_EVENT);
+                processKeyEventForCurrentMode(event, false, LogTrigger.KEY_EVENT, activeApp);
         if (baseMode != beforeMode && !processingSet.isComboPreparationBreaker()) {
             // Second pass to give a chance to new mode's combos to run now.
             PressKeyEventProcessingSet secondPass =
-                    processKeyEventForCurrentMode(event, true, LogTrigger.SECOND_PASS);
+                    processKeyEventForCurrentMode(event, true, LogTrigger.SECOND_PASS,
+                            activeApp);
             processingSet.processingByCombo().putAll(secondPass.processingByCombo());
             processingSet.matchByCombo().putAll(secondPass.matchByCombo());
         }
@@ -630,7 +634,7 @@ public class ComboWatcher {
         else
             lastReleaseEventTime = event.time();
         lastProcessingSet = processingSet;
-        refreshPreconditionOnlyMutations();
+        refreshPreconditionOnlyMutations(activeApp);
         return processingSet;
     }
 
@@ -653,7 +657,8 @@ public class ComboWatcher {
     private PressKeyEventProcessingSet processKeyEventForCurrentMode(
             KeyEvent event,
             boolean ignoreSwitchModeAndHintCommands,
-            LogTrigger logTrigger) {
+            LogTrigger logTrigger,
+            App activeApp) {
         long beforeNanos = System.nanoTime();
         Mode beforeCommandsMode = baseMode;
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
@@ -670,9 +675,6 @@ public class ComboWatcher {
         long totalPreMatchNanos = 0;
         long totalPostMatchNanos = 0;
         Instant now = clock.now();
-        long activeAppBeforeNanos = System.nanoTime();
-        App activeApp = activeAppFinder.activeApp();
-        long activeAppMs = (long) ((System.nanoTime() - activeAppBeforeNanos) / 1e6);
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
                                                              .commandsByCombo()
                                                              .entrySet()) {
@@ -982,7 +984,6 @@ public class ComboWatcher {
                        .append('/')
                        .append(beforeCommandsMode.comboMap().commandsByCombo().size())
                        .append(" loop=").append(loopMs)
-                       .append(" activeApp=").append(activeAppMs)
                        .append(" preMatch=").append(preMatchMs)
                        .append(" match=").append(totalMatchMs)
                        .append(" postMatch=").append(postMatchMs)
@@ -1456,13 +1457,14 @@ public class ComboWatcher {
     }
 
     public void modeChanged(Mode newMode) {
+        App activeApp = activeAppFinder.activeApp();
         baseMode = newMode;
         mutatedMode = newMode;
         activeMutations.clear();
         currentModePressedPreconditionKeys =
                 pressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
         computePreconditionOnlyByPropertyPath();
-        if (!refreshPreconditionOnlyMutations())
+        if (!refreshPreconditionOnlyMutations(activeApp))
             notifyMutatedMode();
         leadingWaitBeginTimeByCombo.clear();
         lastEventTimeByKey.clear();
@@ -1471,7 +1473,7 @@ public class ComboWatcher {
         combosBlockedFromRerunningCommand.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
-            processKeyEventForCurrentMode(null, false, LogTrigger.MODE_TIMED_OUT);
+            processKeyEventForCurrentMode(null, false, LogTrigger.MODE_TIMED_OUT, activeApp);
         }
     }
 
