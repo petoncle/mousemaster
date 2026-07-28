@@ -41,8 +41,7 @@ public record ComboPreparation(List<KeyEvent> events) {
             return new ComboSequenceMatch(List.of(), true, 0, -1, false, Set.of(), new AliasResolution(Map.of()));
         // A sequence that is only wait moves (e.g. "wait-2000") has no event-based moves.
         // It is "complete" with 0 matched events: ComboWatcher handles the wait duration.
-        boolean allWait = moveSets.stream().allMatch(ms -> ms instanceof WaitMoveSet);
-        if (allWait)
+        if (sequence.allWaitMoveSets())
             return new ComboSequenceMatch(List.of(), true, moveSets.size(), -1, false, Set.of(), new AliasResolution(Map.of()));
         if (events.isEmpty())
             return ComboSequenceMatch.noMatch();
@@ -52,7 +51,7 @@ public record ComboPreparation(List<KeyEvent> events) {
         for (int k = moveSets.size(); k >= 1; k--) {
             List<MoveSet> subMoveSets = moveSets.subList(0, k);
             // Skip if all subMoveSets are wait-only (no events to match).
-            if (subMoveSets.stream().allMatch(ms -> ms instanceof WaitMoveSet))
+            if (ComboSequence.allWaitMoveSets(subMoveSets))
                 continue;
             int minTotalEventCount = 0, maxTotalEventCount = 0;
             boolean hasAbsorbingWait = false;

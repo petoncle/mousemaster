@@ -17,6 +17,17 @@ public record ComboSequence(List<MoveSet> moveSets) {
         return moveSets.isEmpty();
     }
 
+    public boolean allWaitMoveSets() {
+        return allWaitMoveSets(moveSets);
+    }
+
+    static boolean allWaitMoveSets(List<MoveSet> moveSets) {
+        for (MoveSet moveSet : moveSets)
+            if (!(moveSet instanceof WaitMoveSet))
+                return false;
+        return true;
+    }
+
     public Set<Key> allKeys() {
         Set<Key> keys = new HashSet<>();
         for (MoveSet moveSet : moveSets) {

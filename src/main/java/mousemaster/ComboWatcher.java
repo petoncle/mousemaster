@@ -100,8 +100,7 @@ public class ComboWatcher {
             boolean unbounded = false;
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 List<MoveSet> moveSets = combo.sequence().moveSets();
-                if (moveSets.stream()
-                            .allMatch(ms -> ms instanceof WaitMoveSet))
+                if (ComboSequence.allWaitMoveSets(moveSets))
                     continue;
                 Duration waitDurationSum = Duration.ZERO;
                 for (int i = 0; i < moveSets.size(); i++) {
@@ -372,8 +371,7 @@ public class ComboWatcher {
             if (comboSequence.isEmpty())
                 continue;
             // Check: are all MoveSets wait moves (no key moves)?
-            boolean allWait = comboSequence.moveSets().stream()
-                    .allMatch(ms -> ms instanceof WaitMoveSet);
+            boolean allWait = comboSequence.allWaitMoveSets();
             if (!allWait)
                 continue;
             // Preconditions must be satisfied.
@@ -456,8 +454,7 @@ public class ComboWatcher {
             WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
             if (waitMove.matchesEvent(event))
                 continue;
-            boolean allWait = combo.sequence().moveSets().stream()
-                    .allMatch(ms -> ms instanceof WaitMoveSet);
+            boolean allWait = combo.sequence().allWaitMoveSets();
             if (allWait) {
                 // All-wait combos: always reset (they fire continuously from update()).
                 logger.trace("Resetting leading wait (all-wait, non-ignored key " + event.key().name() +
@@ -702,8 +699,7 @@ public class ComboWatcher {
                     continue;
             }
             // Bare wait combos (all MoveSets are wait) are handled in update().
-            if (!combo.sequence().isEmpty() &&
-                combo.sequence().moveSets().stream().allMatch(ms -> ms instanceof WaitMoveSet))
+            if (!combo.sequence().isEmpty() && combo.sequence().allWaitMoveSets())
                 continue;
             // Leading wait: skip until the wait duration has elapsed.
             if (!combo.sequence().isEmpty() &&
