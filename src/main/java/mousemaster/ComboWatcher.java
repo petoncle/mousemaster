@@ -365,7 +365,7 @@ public class ComboWatcher {
                                                              .commandsByCombo()
                                                              .entrySet()) {
             Combo combo = entry.getKey();
-            if (!combo.precondition().appPrecondition().satisfied(activeAppFinder.activeApp()))
+            if (!combo.precondition().appPrecondition().satisfied(activeApp))
                 continue;
             ComboSequence comboSequence = combo.sequence();
             if (comboSequence.isEmpty())
@@ -1626,6 +1626,7 @@ public class ComboWatcher {
 
 
     private boolean refreshPreconditionOnlyMutations() {
+        App activeApp = activeAppFinder.activeApp();
         // Revert unsatisfied precondition-only mutations.
         Iterator<Map.Entry<ModePropertyPath, ActiveModeMutation>> activeMutationIterator =
                 activeMutations.entrySet().iterator();
@@ -1635,7 +1636,7 @@ public class ComboWatcher {
             if (!preconditionOnlyByPropertyPath.getOrDefault(path, false))
                 continue;
             ActiveModeMutation mutation = entry.getValue();
-            if (!isMutationComboPreconditionSatisfied(mutation.combo()))
+            if (!isMutationComboPreconditionSatisfied(mutation.combo(), activeApp))
                 activeMutationIterator.remove();
         }
         // Activate newly satisfied precondition-only mutations.
@@ -1645,7 +1646,7 @@ public class ComboWatcher {
             Combo combo = entry.getKey();
             if (!combo.sequence().isEmpty())
                 continue;
-            if (!isMutationComboPreconditionSatisfied(combo))
+            if (!isMutationComboPreconditionSatisfied(combo, activeApp))
                 continue;
             for (Command command : entry.getValue()) {
                 if (command instanceof Command.MutateMode mutateMode) {
@@ -1663,8 +1664,8 @@ public class ComboWatcher {
         return notified;
     }
 
-    private boolean isMutationComboPreconditionSatisfied(Combo combo) {
-        if (!combo.precondition().appPrecondition().satisfied(activeAppFinder.activeApp()))
+    private boolean isMutationComboPreconditionSatisfied(Combo combo, App activeApp) {
+        if (!combo.precondition().appPrecondition().satisfied(activeApp))
             return false;
         PressedKeyPrecondition pressedPrecondition =
                 combo.precondition().keyPrecondition().pressedKeyPrecondition();
