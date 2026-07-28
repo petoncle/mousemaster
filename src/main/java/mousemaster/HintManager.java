@@ -33,12 +33,12 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final int maxPositionHistorySize;
     private Point lastSelectedHintPoint;
     private Rectangle lastSelectedHintCell;
-    // Recursive (last-selected-hint-cell) grid levels: each holds the selected
-    // cell and the area it rendered, frozen so back navigation restores that view.
+    // One level per last-selected-hint-cell drill-down step. The area is frozen at push
+    // time so going back restores the view that step rendered.
     private final Deque<CellGridLevel> cellGridLevelStack = new ArrayDeque<>();
     private Rectangle pendingSelectedCell;
 
-    private record CellGridLevel(Rectangle cell, Rectangle area) {
+    private record CellGridLevel(String modeName, Rectangle cell, Rectangle area) {
     }
     /**
      * Used for deterministic hint key sequences.
@@ -175,28 +175,21 @@ public class HintManager implements ModeListener, MousePositionListener {
                             hintMeshState.previousModeSelectedHintPoint;
             }
         }
-        // Recursive grid levels: forward pushes the new level, backward pops (which
-        // restores the parent's frozen area), a same-mode mutation re-resolves the
-        // current level's position; any non-recursive mode clears the stack.
+        // Selecting drills one step deeper, going back drops the steps above, staying on a
+        // step recomputes its area, leaving the recursion clears the stack.
         if (hintMeshConfiguration.enabled() &&
             hintMeshConfiguration.type() instanceof HintMeshType.HintGrid cellAreaGrid &&
             cellAreaGrid.area().size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
             HintGridAreaSize size = cellAreaGrid.area().size();
             HintGridAreaCenter center = cellAreaGrid.area().center();
-            if (sameMode) {
-                if (!cellGridLevelStack.isEmpty()) {
-                    Rectangle cell = cellGridLevelStack.pop().cell();
-                    cellGridLevelStack.push(
-                            new CellGridLevel(cell, cellGridArea(cell, size, center)));
-                }
-            }
-            else if (hintWasJustSelected) {
+            if (hintWasJustSelected) {
                 if (pendingSelectedCell != null)
-                    cellGridLevelStack.push(new CellGridLevel(pendingSelectedCell,
-                            cellGridArea(pendingSelectedCell, size, center)));
+                    cellGridLevelStack.push(
+                            new CellGridLevel(newMode.name(), pendingSelectedCell,
+                                    cellGridArea(pendingSelectedCell, size, center)));
             }
-            else if (!cellGridLevelStack.isEmpty())
-                cellGridLevelStack.pop();
+            else if (!popLevelsAbove(newMode.name()))
+                recomputeTopLevelArea(size, center);
         }
         else
             cellGridLevelStack.clear();
@@ -387,6 +380,33 @@ public class HintManager implements ModeListener, MousePositionListener {
                             positionHistory.getFirst().y());
             return ViewportFilter.of(firstHintScreen);
         }
+    }
+
+    /**
+     * Drops the levels above the one modeName owns. Nothing is dropped when it owns the
+     * top level, or owns none at all (a mode that renders a level without being a step).
+     */
+    private boolean popLevelsAbove(String modeName) {
+        int popCount = 0;
+        for (CellGridLevel level : cellGridLevelStack) {
+            if (level.modeName().equals(modeName))
+                break;
+            popCount++;
+        }
+        if (popCount == cellGridLevelStack.size())
+            return false;
+        for (int levelIndex = 0; levelIndex < popCount; levelIndex++)
+            cellGridLevelStack.pop();
+        return popCount != 0;
+    }
+
+    /** Same cell, but size and center may have changed with the mode or a variable. */
+    private void recomputeTopLevelArea(HintGridAreaSize size, HintGridAreaCenter center) {
+        if (cellGridLevelStack.isEmpty())
+            return;
+        CellGridLevel level = cellGridLevelStack.pop();
+        cellGridLevelStack.push(new CellGridLevel(level.modeName(), level.cell(),
+                cellGridArea(level.cell(), size, center)));
     }
 
     /**
