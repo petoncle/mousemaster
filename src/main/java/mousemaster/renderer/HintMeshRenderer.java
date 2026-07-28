@@ -2305,7 +2305,15 @@ public final class HintMeshRenderer {
 
         /** Refilled by every outline paint; painting is single-threaded. */
         private static final QPainterPath outlinePath = new QPainterPath();
-        private static final Map<String, OutlineImage> outlineImages = new HashMap<>();
+        private static final Map<OutlineKey, OutlineImage> outlineImages = new HashMap<>();
+
+        /** A glyph and where it sits in the label it belongs to. */
+        private record GlyphPlacement(String text, int x, int y) {
+        }
+
+        /** Everything the rasterized outline of a label depends on. */
+        private record OutlineKey(List<GlyphPlacement> glyphs, int rgba, int thickness) {
+        }
 
         private record OutlineImage(QImage image, int x, int y) {
         }
@@ -2541,29 +2549,26 @@ public final class HintMeshRenderer {
                 return;
             QColor outlineColor = forceOpaque ?
                     opaqueColor(qtFontStyle.outlineColor()) : qtFontStyle.outlineColor();
-            StringBuilder key = new StringBuilder();
-            for (HintKeyText keyText : keyTexts) {
-                if (!filter.test(keyText))
-                    continue;
-                key.append(keyText.text()).append('@').append(keyText.x() - left)
-                   .append(',').append(keyText.y() - top).append(';');
-            }
-            key.append(outlineColor.rgba()).append('/')
-               .append(qtFontStyle.outlineThickness());
+            List<GlyphPlacement> glyphs = new ArrayList<>(keyTexts.size());
+            for (HintKeyText keyText : keyTexts)
+                if (filter.test(keyText))
+                    glyphs.add(new GlyphPlacement(keyText.text(), keyText.x() - left,
+                            keyText.y() - top));
             // Building and stroking a glyph outline costs ~85us, and a hint mesh draws the same
             // handful of labels over and over, so each is rasterized once and blitted after.
-            OutlineImage outline = outlineImages.computeIfAbsent(key.toString(), k -> {
-                // One path, stroked once: a path per key would stroke overlapping glyphs twice.
-                outlinePath.clear();
-                for (HintKeyText keyText : keyTexts) {
-                    if (!filter.test(keyText))
-                        continue;
-                    qtFontStyle.addTextPath(outlinePath, keyText.text(),
-                            keyText.x() - left, keyText.y() - top);
-                }
-                return renderOutline(outlinePath, outlineColor,
-                        qtFontStyle.outlineThickness());
-            });
+            OutlineImage outline = outlineImages.computeIfAbsent(
+                    new OutlineKey(glyphs, outlineColor.rgba(),
+                            qtFontStyle.outlineThickness()),
+                    key -> {
+                        // One path, stroked once: a path per glyph would stroke overlapping
+                        // glyphs twice.
+                        outlinePath.clear();
+                        for (GlyphPlacement glyph : key.glyphs())
+                            qtFontStyle.addTextPath(outlinePath, glyph.text(), glyph.x(),
+                                    glyph.y());
+                        return renderOutline(outlinePath, outlineColor,
+                                qtFontStyle.outlineThickness());
+                    });
             if (outline != null)
                 painter.drawImage(outline.x(), outline.y(), outline.image());
         }
