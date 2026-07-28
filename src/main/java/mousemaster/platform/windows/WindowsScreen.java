@@ -18,7 +18,7 @@ public class WindowsScreen {
             public int apply(WinUser.HMONITOR hMonitor, WinDef.HDC hdcMonitor,
                              WinDef.RECT lprcMonitor, WinDef.LPARAM dwData) {
                 int scaledDpi = findScreenDpi(hMonitor, true);
-                double scale = findScreenScale(hMonitor);
+                double scale = screenScale(scaledDpi);
                 int dpi = (int) (scaledDpi / scale);
                 screens.add(new Screen(new Rectangle(lprcMonitor.left, lprcMonitor.top,
                         lprcMonitor.right - lprcMonitor.left,
@@ -37,7 +37,7 @@ public class WindowsScreen {
         WinUser.MONITORINFO monitorInfo = new WinUser.MONITORINFO();
         User32.INSTANCE.GetMonitorInfo(hMonitor, monitorInfo);
         int scaledDpi = findScreenDpi(hMonitor, true);
-        double scale = findScreenScale(hMonitor);
+        double scale = screenScale(scaledDpi);
         int dpi = (int) (scaledDpi / scale);
         return new Screen(
                 new Rectangle(monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
@@ -60,16 +60,12 @@ public class WindowsScreen {
         return dpiX.getValue();
     }
 
-    private static double findScreenScale(WinUser.HMONITOR hMonitor) {
-        // https://stackoverflow.com/questions/63692872/is-getscalefactorformonitor-winapi-returning-incorrect-scaling-factor
-        // When running with GraalVM, and with a Display scale of 150%, GetScaleFactorForMonitor returns 140.
-        // When running with Temurin, GetScaleFactorForMonitor returns 150.
-        // This is apparently due to process DPI awareness, which is set to unaware when running with Temurin (??).
-//        IntByReference scaleFactor = new IntByReference();
-//        Shcore.INSTANCE.GetScaleFactorForMonitor(hMonitor, scaleFactor);
-//        return scaleFactor.getValue() / 100d;
-        double scale = findScreenDpi(hMonitor, true) / 96d;
-        return scale;
+    // https://stackoverflow.com/questions/63692872/is-getscalefactorformonitor-winapi-returning-incorrect-scaling-factor
+    // When running with GraalVM, and with a Display scale of 150%, GetScaleFactorForMonitor returns 140.
+    // When running with Temurin, GetScaleFactorForMonitor returns 150.
+    // This is apparently due to process DPI awareness, which is set to unaware when running with Temurin (??).
+    private static double screenScale(int scaledDpi) {
+        return scaledDpi / 96d;
     }
 
 }
