@@ -94,15 +94,11 @@ public final class HintMeshRenderer {
      *  gap between them, not the average frame rate, is what reads as a stutter. */
     private static final class TransitionMetrics {
 
-        /** A frame later than this missed a refresh on a 60Hz display. */
-        private static final long hitchMillis = 25;
-
         private int frameCount;
         private long startNanos;
         private long previousFrameNanos;
         private long maxGapMillis;
-        private int hitchCount;
-        private long dirtyPixels;
+        private long paintMaxNanos;
         private int durationMillis;
         private String clipping;
         private final StringBuilder gaps = new StringBuilder();
@@ -110,8 +106,7 @@ public final class HintMeshRenderer {
         void started(int durationMillis, String clipping) {
             frameCount = 0;
             maxGapMillis = 0;
-            hitchCount = 0;
-            dirtyPixels = 0;
+            paintMaxNanos = 0;
             gaps.setLength(0);
             this.durationMillis = durationMillis;
             this.clipping = clipping;
@@ -125,13 +120,12 @@ public final class HintMeshRenderer {
             previousFrameNanos = now;
             frameCount++;
             maxGapMillis = Math.max(maxGapMillis, gapMillis);
-            if (gapMillis > hitchMillis)
-                hitchCount++;
             gaps.append(gaps.isEmpty() ? "" : ",").append(gapMillis);
         }
 
-        void repainted(long pixels) {
-            dirtyPixels += pixels;
+        /** The frame's paint; what is left of its gap is Qt's and DWM's, not ours. */
+        void painted(long nanos) {
+            paintMaxNanos = Math.max(paintMaxNanos, nanos);
         }
 
         void log() {
@@ -140,9 +134,12 @@ public final class HintMeshRenderer {
             long elapsedMillis = (long) ((System.nanoTime() - startNanos) / 1e6);
             logger.debug("Hint transition: " + frameCount + " frames over " + elapsedMillis +
                          "ms (" + durationMillis + "ms requested), max gap " + maxGapMillis +
-                         "ms, " + hitchCount + " hitches >" + hitchMillis + "ms, " +
-                         dirtyPixels / 1_000_000 + "MP repainted via " + clipping +
-                         ", gaps " + gaps);
+                         "ms, " + clipping + ", paint " + millis(paintMaxNanos) +
+                         "ms max, gaps " + gaps);
+        }
+
+        private static String millis(long nanos) {
+            return String.format("%.1f", nanos / 1e6);
         }
     }
 
@@ -475,7 +472,6 @@ public final class HintMeshRenderer {
             if (crop != null)
                 crop.dispose();
             crop = newCrop;
-            transitionMetrics.repainted((long) dirty.width() * dirty.height());
             update(dirty);
             dirty.dispose();
         }
@@ -491,6 +487,12 @@ public final class HintMeshRenderer {
 
         @Override
         protected void paintEvent(QPaintEvent event) {
+            long before = System.nanoTime();
+            paint(event);
+            transitionMetrics.painted(System.nanoTime() - before);
+        }
+
+        private void paint(QPaintEvent event) {
             if (crop != null) {
                 QPainter painter = new QPainter(this);
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear);
@@ -1201,9 +1203,9 @@ public final class HintMeshRenderer {
     /** Why a container clips the way it does: a pixmap is cropped (cheap), anything else is masked
      *  (recomposites the whole window every frame). */
     private static String clipping(QWidget container) {
-        if (!(container instanceof ClearBackgroundQLabel label))
-            return "mask (" + container.getClass().getSimpleName() + ")";
-        return label.cropCapable() ? "crop" : "mask (label without pixmap)";
+        if (container instanceof ClearBackgroundQLabel label && label.cropCapable())
+            return "cropped";
+        return "masked";
     }
 
     private void hintContainerAnimationEnded() {
