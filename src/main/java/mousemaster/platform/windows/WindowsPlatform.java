@@ -140,10 +140,13 @@ public class WindowsPlatform implements Platform {
             overlay.mouseMoved(lastMousePosition);
         }
         pumpEvents();
+        // A hint transition's frames are painted once per iteration, so this sleep is what its
+        // first frame waits on.
+        long sleepMillis = overlay.hintTransitionAnimating() ? 1 : 10;
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();
-            if ((currentTime - beforeTime) / 1e6 >= 10)
+            if ((currentTime - beforeTime) / 1e6 >= sleepMillis)
                 break;
             Thread.sleep(1);
             pumpEvents();
