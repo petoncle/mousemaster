@@ -27,6 +27,8 @@ public final class HintMeshRenderer {
 
     private static final Logger logger = LoggerFactory.getLogger(HintMeshRenderer.class);
 
+    private static final long SLOW_PAINT_MS = 5;
+
     private final Map<HintMesh, PixmapAndPosition> hintMeshPixmaps = new HashMap<>();
     private final Map<HintMesh, Map<List<Key>, QRect>> hintBoxGeometriesByHintMeshKey = new HashMap<>();
     private boolean hintMeshEndAnimation;
@@ -2850,7 +2852,7 @@ public final class HintMeshRenderer {
                                          double screenScale) {
         // Shadowing a layer that draws nothing still costs a blur of the whole layer, which for a
         // screen-sized hint mesh is tens of milliseconds.
-        if (style.invisible(hasSelectedKeys))
+        if (labels.isEmpty() || style.invisible(hasSelectedKeys))
             return;
         if (style.perKeyShadow()) {
             logger.debug("Hint label shadow: per-key shadow, pre-rendering per group");
@@ -3127,6 +3129,16 @@ public final class HintMeshRenderer {
 
         @Override
         protected void paintEvent(QPaintEvent event) {
+            long before = System.nanoTime();
+            paintLayer(event);
+            long durationMillis = (System.nanoTime() - before) / 1000000;
+            if (durationMillis >= SLOW_PAINT_MS)
+                logger.debug("Painted a " + width() + "x" + height() + " hint layer of " +
+                             boxes.size() + " boxes and " + labels.size() +
+                             " labels in " + durationMillis + "ms");
+        }
+
+        private void paintLayer(QPaintEvent event) {
             QPainter painter = new QPainter(this);
             if (originX != 0 || originY != 0)
                 painter.translate(-originX, -originY);

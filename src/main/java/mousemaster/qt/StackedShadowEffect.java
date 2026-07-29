@@ -12,6 +12,8 @@ import io.qt.gui.QTransform;
 import io.qt.widgets.QGraphicsDropShadowEffect;
 import io.qt.widgets.QGraphicsPixmapItem;
 import io.qt.widgets.QGraphicsScene;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 
@@ -21,6 +23,10 @@ import java.nio.ByteBuffer;
  * baking helpers are shared by the indicator and the hint labels.
  */
 public class StackedShadowEffect extends QGraphicsDropShadowEffect {
+
+    private static final Logger logger = LoggerFactory.getLogger(StackedShadowEffect.class);
+
+    private static final long SLOW_DRAW_MS = 5;
 
     private int stackCount;
     private boolean transparencyOnly;
@@ -35,6 +41,14 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
 
     @Override
     protected void draw(QPainter painter) {
+        long before = System.nanoTime();
+        drawShadow(painter);
+        long durationMillis = (System.nanoTime() - before) / 1000000;
+        if (durationMillis >= SLOW_DRAW_MS)
+            logger.debug("Blurred a shadow in " + durationMillis + "ms");
+    }
+
+    private void drawShadow(QPainter painter) {
         if (transparencyOnly) {
             redrawSourceOverShadow(painter);
             return;
