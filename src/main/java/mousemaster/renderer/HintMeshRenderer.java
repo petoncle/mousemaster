@@ -588,8 +588,8 @@ public final class HintMeshRenderer {
                     QRect visible = visibleRect(container);
                     mergedX = Math.min(mergedX, visible.x());
                     mergedY = Math.min(mergedY, visible.y());
-                    mergedRight = Math.max(mergedRight, visible.right());
-                    mergedBottom = Math.max(mergedBottom, visible.bottom());
+                    mergedRight = Math.max(mergedRight, visible.x() + visible.width());
+                    mergedBottom = Math.max(mergedBottom, visible.y() + visible.height());
                     visible.dispose();
                 }
                 QWidget mergedContainer = new QWidget(window);
