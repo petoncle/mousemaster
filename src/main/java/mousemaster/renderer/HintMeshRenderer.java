@@ -52,6 +52,7 @@ public final class HintMeshRenderer {
      *  morph clips its border layer in lockstep with it. */
     private QVariantAnimation cropAnimation;
     private QWidget croppedContainer;
+    private final TransitionMetrics transitionMetrics = new TransitionMetrics();
     private boolean showingHintMesh;
     /** Set when a crop that was zooming into a selected hint's box is abandoned because the incoming
      *  grid does not continue that drill; the incoming grid then fades in instead of popping. */
@@ -87,6 +88,62 @@ public final class HintMeshRenderer {
      *  superseded it draws its own: both colors are translucent, so drawing both on the outline they
      *  share would add up their opacity. A drill interrupted more than once stacks several of these. */
     private record OutgoingBorders(List<HintBox> boxes, Rectangle bounds, Rectangle covered) {
+    }
+
+    /** What one transition's crop cost. Work on the main thread drops whole frames, so the largest
+     *  gap between them, not the average frame rate, is what reads as a stutter. */
+    private static final class TransitionMetrics {
+
+        /** A frame later than this missed a refresh on a 60Hz display. */
+        private static final long hitchMillis = 25;
+
+        private int frameCount;
+        private long startNanos;
+        private long previousFrameNanos;
+        private long maxGapMillis;
+        private int hitchCount;
+        private long dirtyPixels;
+        private int durationMillis;
+        private String clipping;
+        private final StringBuilder gaps = new StringBuilder();
+
+        void started(int durationMillis, String clipping) {
+            frameCount = 0;
+            maxGapMillis = 0;
+            hitchCount = 0;
+            dirtyPixels = 0;
+            gaps.setLength(0);
+            this.durationMillis = durationMillis;
+            this.clipping = clipping;
+            startNanos = System.nanoTime();
+            previousFrameNanos = startNanos;
+        }
+
+        void frameDrawn() {
+            long now = System.nanoTime();
+            long gapMillis = (long) ((now - previousFrameNanos) / 1e6);
+            previousFrameNanos = now;
+            frameCount++;
+            maxGapMillis = Math.max(maxGapMillis, gapMillis);
+            if (gapMillis > hitchMillis)
+                hitchCount++;
+            gaps.append(gaps.isEmpty() ? "" : ",").append(gapMillis);
+        }
+
+        void repainted(long pixels) {
+            dirtyPixels += pixels;
+        }
+
+        void log() {
+            if (!logger.isDebugEnabled())
+                return;
+            long elapsedMillis = (long) ((System.nanoTime() - startNanos) / 1e6);
+            logger.debug("Hint transition: " + frameCount + " frames over " + elapsedMillis +
+                         "ms (" + durationMillis + "ms requested), max gap " + maxGapMillis +
+                         "ms, " + hitchCount + " hitches >" + hitchMillis + "ms, " +
+                         dirtyPixels / 1_000_000 + "MP repainted via " + clipping +
+                         ", gaps " + gaps);
+        }
     }
 
     private static Rectangle bounds(List<Rectangle> rectangles) {
@@ -129,6 +186,14 @@ public final class HintMeshRenderer {
 
     public boolean showing() {
         return showingHintMesh;
+    }
+
+    public boolean transitionAnimating() {
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            for (QVariantAnimation animation : hintMeshWindow.animations())
+                if (animation.getState() == QAbstractAnimation.State.Running)
+                    return true;
+        return false;
     }
 
     /** The Qt windows, for the platform's magnification and capture-exclusion loops. */
@@ -399,7 +464,7 @@ public final class HintMeshRenderer {
             return pixmap() != null && !pixmap().isNull();
         }
 
-        /** Crops to {@code r}, scheduling a paint of the union of the old and new crop (the whole
+        /** Crops to {@code r}, scheduling a paint of the band between the old and new crop (the whole
          *  label on the first crop, to clear any full paint before it). Uses update(), not repaint():
          *  repaint() flushes immediately, so a container's CompositionMode_Clear would reach the
          *  screen before the border layer repaints on top, blanking the border lines for a frame.
@@ -410,6 +475,7 @@ public final class HintMeshRenderer {
             if (crop != null)
                 crop.dispose();
             crop = newCrop;
+            transitionMetrics.repainted((long) dirty.width() * dirty.height());
             update(dirty);
             dirty.dispose();
         }
@@ -664,7 +730,7 @@ public final class HintMeshRenderer {
                                 transitionAnimationDuration);
                         if (isHintGrid) {
                             // Defer the pixmap cache grab to the next frame so the hint mesh is shown
-                            // immediately; the grab is expensive (~370ms at 4K).
+                            // immediately; the grab is expensive (~90ms at 4K when cold).
                             cacheQtHintWindowIntoPixmapRunnable = () ->
                                 cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, boxes);
                         }
@@ -745,7 +811,7 @@ public final class HintMeshRenderer {
                             hintContainerAnimation(beginRect, endRect, animationDuration);
                     beginRect.dispose();
                     HintContainerAnimationChanged animationChanged = new HintContainerAnimationChanged(
-                            oldContainer);
+                            oldContainer, this);
                     animation.valueChanged.connect(animationChanged);
                     HintContainerAnimationFinished animationFinished =
                             new HintContainerAnimationFinished(oldContainer, oldContainer,
@@ -759,7 +825,7 @@ public final class HintMeshRenderer {
                     hintMeshWindow.animationCallbacks.add(animationFinished);
                     cropAnimation = animation;
                     croppedContainer = oldContainer;
-                    animation.start();
+                    startCropAnimation(animation, oldContainer);
                 }
             }
             else if (animateTransition && (newContainsOld || continueCropIntoNew)) {
@@ -784,7 +850,7 @@ public final class HintMeshRenderer {
                         animationDuration);
                 beginRect.dispose();
                 HintContainerAnimationChanged animationChanged =
-                        new HintContainerAnimationChanged(newContainer);
+                        new HintContainerAnimationChanged(newContainer, this);
                 animation.valueChanged.connect(animationChanged);
                 HintContainerAnimationFinished animationFinished =
                         new HintContainerAnimationFinished(null, newContainer,
@@ -795,7 +861,7 @@ public final class HintMeshRenderer {
                 hintMeshWindow.animationCallbacks.add(animationFinished);
                 cropAnimation = animation;
                 croppedContainer = newContainer;
-                animation.start();
+                startCropAnimation(animation, newContainer);
                 oldContainer.setParent(null);
                 oldContainer.disposeLater();
             }
@@ -1085,13 +1151,16 @@ public final class HintMeshRenderer {
     public static class HintContainerAnimationChanged implements QMetaObject.Slot1<Object> {
 
         private final QWidget container;
+        private final HintMeshRenderer renderer;
 
-        public HintContainerAnimationChanged(QWidget container) {
+        public HintContainerAnimationChanged(QWidget container, HintMeshRenderer renderer) {
             this.container = container;
+            this.renderer = renderer;
         }
 
         @Override
         public void invoke(Object arg) {
+            renderer.transitionMetrics.frameDrawn();
             cropOrMask(container, (QRect) arg);
         }
     }
@@ -1119,8 +1188,22 @@ public final class HintMeshRenderer {
                 oldContainer.setParent(null);
                 oldContainer.disposeLater();
             }
+            renderer.transitionMetrics.log();
             renderer.hintContainerAnimationEnded();
         }
+    }
+
+    private void startCropAnimation(QVariantAnimation animation, QWidget container) {
+        transitionMetrics.started(animation.getDuration(), clipping(container));
+        animation.start();
+    }
+
+    /** Why a container clips the way it does: a pixmap is cropped (cheap), anything else is masked
+     *  (recomposites the whole window every frame). */
+    private static String clipping(QWidget container) {
+        if (!(container instanceof ClearBackgroundQLabel label))
+            return "mask (" + container.getClass().getSimpleName() + ")";
+        return label.cropCapable() ? "crop" : "mask (label without pixmap)";
     }
 
     private void hintContainerAnimationEnded() {
@@ -2985,8 +3068,8 @@ public final class HintMeshRenderer {
             crop = replaceCrop(crop, r);
         }
 
-        /** Disposes {@code current} and returns a copy of {@code r}, repainting the area either covers
-         *  (the whole layer on the first crop, to clear any full paint before it). update(), not
+        /** Disposes {@code current} and returns a copy of {@code r}, repainting the band between the
+         *  two (the whole layer on the first crop, to clear any full paint before it). update(), not
          *  repaint(): repaint() flushes immediately, so a container's Clear would reach the screen
          *  before the border layer repaints on top, blanking the border lines for a frame. */
         private QRect replaceCrop(QRect current, QRect r) {

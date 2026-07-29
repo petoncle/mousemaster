@@ -98,8 +98,8 @@ public class WindowsPlatform implements Platform {
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         enforceWindowsTopmostTimer -= delta;
-        if (enforceWindowsTopmostTimer < 0) {
-            // Every 200ms.
+        // Every 200ms, but not during a transition: SetWindowPos would cost it a frame.
+        if (enforceWindowsTopmostTimer < 0 && !overlay.hintTransitionAnimating()) {
             enforceWindowsTopmostTimer = 0.2;
             overlay.setTopmost();
         }

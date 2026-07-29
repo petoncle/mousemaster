@@ -176,6 +176,14 @@ public class WindowsOverlay implements Overlay {
 
     @Override
     public void setTopmost() {
+        long before = System.nanoTime();
+        enforceTopmost();
+        long durationMillis = (long) ((System.nanoTime() - before) / 1e6);
+        if (durationMillis >= 3)
+            logger.debug("Enforced topmost in " + durationMillis + "ms");
+    }
+
+    private void enforceTopmost() {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
         if (gridHwnd != null)
@@ -873,6 +881,11 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void hideHintMesh() {
         hintMeshRenderer.hideHintMesh();
+    }
+
+    @Override
+    public boolean hintTransitionAnimating() {
+        return hintMeshRenderer.transitionAnimating();
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {

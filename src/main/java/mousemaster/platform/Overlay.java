@@ -47,6 +47,8 @@ public interface Overlay {
 
     void hideHintMesh();
 
+    boolean hintTransitionAnimating();
+
     void animateHintMatch(Hint hint);
 
     void setZoom(Zoom zoom);
