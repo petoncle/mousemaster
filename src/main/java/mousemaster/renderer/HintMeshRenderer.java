@@ -449,7 +449,13 @@ public final class HintMeshRenderer {
         for (Screen screen : screens) {
             if (hintMeshWindows.containsKey(screen))
                 continue;
-            hintMeshWindows.put(screen, createHintMeshWindow(screen, new ArrayList<>(), null));
+            HintMeshWindow hintMeshWindow =
+                    createHintMeshWindow(screen, new ArrayList<>(), null);
+            // A screen-sized translucent window costs Qt its native surface on the first show,
+            // which the first hints would otherwise pay. It holds nothing to display yet.
+            hintMeshWindow.window.show();
+            hintMeshWindow.window.hide();
+            hintMeshWindows.put(screen, hintMeshWindow);
         }
         logger.info("Pre-warmed hint mesh windows for " + screens.size() +
                 " screens in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
