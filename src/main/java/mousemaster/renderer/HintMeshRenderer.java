@@ -328,6 +328,7 @@ public final class HintMeshRenderer {
             }
             hintMeshWindow.animations().clear();
             hintMeshWindow.animationCallbacks().clear();
+            cropAnimation = null;
             BorderMorph lineMorph = borderMorphByWindow.remove(hintMeshWindow.window());
             if (lineMorph != null)
                 stopBorderMorph(lineMorph);
@@ -628,6 +629,7 @@ public final class HintMeshRenderer {
             animation.dispose();
         hintMeshWindow.animations.clear();
         hintMeshWindow.animationCallbacks.clear();
+        cropAnimation = null;
         // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
         // devicePixelRatio will be the screen's scale.
         double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
