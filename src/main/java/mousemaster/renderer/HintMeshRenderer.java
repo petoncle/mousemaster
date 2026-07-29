@@ -39,6 +39,7 @@ public final class HintMeshRenderer {
      */
     private Runnable setUncachedHintMeshWindowRunnable;
     private Runnable cacheQtHintWindowIntoPixmapRunnable;
+    private boolean preWarming;
     private Runnable messagePump;
     /**
      * True when the build is running from update() (deferred), meaning we are
@@ -244,6 +245,24 @@ public final class HintMeshRenderer {
         HintLabel.clearOutlineCache();
         QtHintFont.clearCaches();
         QtColorUtil.clearCaches();
+    }
+
+    public void preWarmHintMesh(HintMesh hintMesh, Zoom zoom, Set<Screen> screens) {
+        if (!hintMesh.visible() || hintMesh.hints().isEmpty())
+            return;
+        long before = System.nanoTime();
+        preWarming = true;
+        try {
+            createOrUpdateHintMeshWindows(hintMesh, zoom, screens);
+            runPendingWork();
+        }
+        finally {
+            preWarming = false;
+        }
+        for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
+            hintMeshWindow.hints().clear();
+        logger.info("Pre-warmed a hint mesh of " + hintMesh.hints().size() + " hints in " +
+                    (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
     public boolean setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
@@ -739,6 +758,13 @@ public final class HintMeshRenderer {
                                 setUncachedHintMeshWindow(hintMeshWindow, hintMeshKey, hintMesh,
                                         screenScale, style, qtScaleFactor, container);
                         logger.debug("Built hint mesh window in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
+                        if (preWarming) {
+                            cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh,
+                                    boxes);
+                            container.setParent(null);
+                            container.disposeLater();
+                            return;
+                        }
                         boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,

@@ -237,6 +237,7 @@ public class Mousemaster {
                 configuration.modeMap(),
                 List.of(mouseManager, gridManager, hintManager, screenManager,
                         zoomManager), activeKeyboardLayout);
+        hintManager.preWarmHintMeshes(configuration.modeMap());
     }
 
 }

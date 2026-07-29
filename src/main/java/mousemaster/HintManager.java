@@ -92,6 +92,41 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.modeController = modeController;
     }
 
+    /**
+     * Builds and caches the hint mesh of every mode whose mesh depends on nothing but the
+     * configuration and the screens, so entering such a mode does not pay for its build. The
+     * cache holds one screen-sized pixmap per mesh, so only meshes worth their memory are
+     * pre-warmed; every other mesh is still cached the first time it is shown.
+     */
+    public void preWarmHintMeshes(ModeMap modeMap) {
+        Set<HintMeshConfiguration> preWarmed = new HashSet<>();
+        for (Mode mode : modeMap.modes()) {
+            HintMeshConfiguration configuration = mode.hintMesh();
+            if (!isVisibleScreenHintMesh(configuration) || !preWarmed.add(configuration))
+                continue;
+            for (Screen screen : screenManager.screens()) {
+                Rectangle screenRectangle = screen.rectangle();
+                // The zoom a mode with a screen-centered grid resolves to, which like the mesh
+                // depends on the screen alone.
+                Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
+                        screenRectangle.center(), screenRectangle);
+                overlay.preWarmHintMesh(buildHintMesh(configuration, mode.zoom(), zoom,
+                        ViewportFilter.of(screen), null), zoom);
+            }
+        }
+    }
+
+    private static boolean isVisibleScreenHintMesh(HintMeshConfiguration configuration) {
+        if (!configuration.enabled() || !configuration.visible())
+            return false;
+        if (!(configuration.type() instanceof HintMeshType.HintGrid hintGrid))
+            return false;
+        HintGridAreaSizeSource source = hintGrid.area().size().source();
+        return (source == HintGridAreaSizeSource.ACTIVE_SCREEN ||
+                source == HintGridAreaSizeSource.ALL_SCREENS) &&
+               hintGrid.area().center() == HintGridAreaCenter.SCREEN_CENTER;
+    }
+
     public HintMesh hintMesh() {
         return hintMesh;
     }

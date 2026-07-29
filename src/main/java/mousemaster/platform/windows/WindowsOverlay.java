@@ -863,6 +863,11 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
+    public void preWarmHintMesh(HintMesh hintMesh, Zoom zoom) {
+        hintMeshRenderer.preWarmHintMesh(hintMesh, zoom, WindowsScreen.findScreens());
+    }
+
+    @Override
     public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
         int windowsBefore = hintMeshRenderer.windows().size();
         boolean nonMatchShown = hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch,
