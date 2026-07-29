@@ -51,6 +51,7 @@ public final class HintMeshRenderer {
     /** The in-flight container crop and the container it animates, so a grid whose boxes cannot
      *  morph clips its border layer in lockstep with it. */
     private QVariantAnimation cropAnimation;
+    private long cropAnimationStartNanos;
     private QWidget croppedContainer;
     private final TransitionMetrics transitionMetrics = new TransitionMetrics();
     private boolean showingHintMesh;
@@ -204,6 +205,7 @@ public final class HintMeshRenderer {
     /** Runs one unit of deferred work per frame: the build this frame, the pixmap cache the
      *  next. The platform overlay drives this once per frame. */
     public void runPendingWork() {
+        advanceCropAnimationToFirstFrame();
         if (setUncachedHintMeshWindowRunnable != null) {
             pumpDuringHintBuild = true;
             setUncachedHintMeshWindowRunnable.run();
@@ -1199,7 +1201,19 @@ public final class HintMeshRenderer {
 
     private void startCropAnimation(QVariantAnimation animation, QWidget container) {
         transitionMetrics.started(animation.getDuration(), clipping(container));
+        cropAnimationStartNanos = System.nanoTime();
         animation.start();
+    }
+
+    /** Qt holds a newly started animation for about two timer intervals before its first value,
+     *  so the transition sits still for ~30ms. Advancing the clock ourselves moves the first frame
+     *  to the next iteration; Qt's timer carries it from there. */
+    private void advanceCropAnimationToFirstFrame() {
+        if (cropAnimation == null || cropAnimation.getCurrentTime() != 0 ||
+            cropAnimation.getState() != QAbstractAnimation.State.Running)
+            return;
+        cropAnimation.setCurrentTime(
+                (int) ((System.nanoTime() - cropAnimationStartNanos) / 1_000_000));
     }
 
     /** Why a container clips the way it does: a pixmap is cropped (cheap), anything else is masked
