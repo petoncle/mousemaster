@@ -180,7 +180,7 @@ public class WindowsOverlay implements Overlay {
         enforceTopmost();
         long durationMillis = (long) ((System.nanoTime() - before) / 1e6);
         if (durationMillis >= 3)
-            logger.debug("Enforced topmost in " + durationMillis + "ms");
+            logger.trace("Enforced topmost in " + durationMillis + "ms");
     }
 
     private void enforceTopmost() {

@@ -130,10 +130,10 @@ public final class HintMeshRenderer {
         }
 
         void log() {
-            if (!logger.isDebugEnabled())
+            if (!logger.isTraceEnabled())
                 return;
             long elapsedMillis = (long) ((System.nanoTime() - startNanos) / 1e6);
-            logger.debug("Hint transition: " + frameCount + " frames over " + elapsedMillis +
+            logger.trace("Hint transition: " + frameCount + " frames over " + elapsedMillis +
                          "ms (" + durationMillis + "ms requested), max gap " + maxGapMillis +
                          "ms, " + clipping + ", paint " + millis(paintMaxNanos) +
                          "ms max, gaps " + gaps);
