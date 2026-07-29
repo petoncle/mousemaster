@@ -28,6 +28,11 @@ public final class IndicatorRenderer {
     private FadeAnimator fadeAnimator;
     private boolean showing;
 
+    public void advanceAnimationsToFirstFrame() {
+        if (fadeAnimator != null)
+            fadeAnimator.advanceToFirstFrame();
+    }
+
     /** Lazily creates the window and its widgets; the host styles winId() afterwards. */
     public TransparentWindow window() {
         if (window == null) {

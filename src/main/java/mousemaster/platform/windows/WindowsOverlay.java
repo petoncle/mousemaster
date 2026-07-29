@@ -88,6 +88,10 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void update(double delta) {
         hintMeshRenderer.runPendingWork();
+        if (gridRenderer != null)
+            gridRenderer.advanceAnimationsToFirstFrame();
+        if (indicatorRenderer != null)
+            indicatorRenderer.advanceAnimationsToFirstFrame();
         updateZoomWindow();
         // Deferred screenshot hide: the magnifier was shown by updateZoomWindow
         // on the previous frame (or by setZoom inside endScreenshotZoomAnimation).

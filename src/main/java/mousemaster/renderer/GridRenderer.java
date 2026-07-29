@@ -2,6 +2,7 @@ package mousemaster.renderer;
 
 import mousemaster.qt.*;
 
+import io.qt.core.QAbstractAnimation;
 import io.qt.core.QEasingCurve;
 import io.qt.core.QMetaObject;
 import io.qt.core.QRect;
@@ -23,6 +24,12 @@ public final class GridRenderer {
     private FadeAnimator fadeAnimator;
     private boolean showing;
     private Grid currentGrid;
+
+    public void advanceAnimationsToFirstFrame() {
+        widget.advanceToFirstFrame();
+        if (fadeAnimator != null)
+            fadeAnimator.advanceToFirstFrame();
+    }
 
     public QWidget widget() {
         return widget;
@@ -91,7 +98,17 @@ public final class GridRenderer {
         private int drawX, drawY, drawW, drawH; // Current (possibly animated) grid rectangle.
         private QRect paintedRect = new QRect(); // Last drawn grid bounds; cleared on the next paint.
         private QVariantAnimation animation;
+        private long animationStartNanos;
         private QMetaObject.Slot1<Object> animationChanged; // Kept referenced so Qt does not GC it.
+
+        /** Qt withholds a newly started animation's first value for about two timer intervals. */
+        void advanceToFirstFrame() {
+            if (animation == null || animation.getCurrentTime() != 0 ||
+                animation.getState() != QAbstractAnimation.State.Running)
+                return;
+            animation.setCurrentTime(
+                    (int) ((System.nanoTime() - animationStartNanos) / 1_000_000));
+        }
 
         GridWidget() {
             setWindowFlags(Qt.WindowType.FramelessWindowHint);
@@ -166,6 +183,7 @@ public final class GridRenderer {
                 setDrawRect(r.x(), r.y(), r.width(), r.height());
             };
             animation.valueChanged.connect(animationChanged);
+            animationStartNanos = System.nanoTime();
             animation.start();
             begin.dispose();
             end.dispose();

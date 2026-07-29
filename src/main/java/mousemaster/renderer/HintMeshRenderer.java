@@ -206,6 +206,8 @@ public final class HintMeshRenderer {
      *  next. The platform overlay drives this once per frame. */
     public void runPendingWork() {
         advanceCropAnimationToFirstFrame();
+        if (hintMeshFadeAnimator != null)
+            hintMeshFadeAnimator.advanceToFirstFrame();
         if (setUncachedHintMeshWindowRunnable != null) {
             pumpDuringHintBuild = true;
             setUncachedHintMeshWindowRunnable.run();
@@ -1205,9 +1207,7 @@ public final class HintMeshRenderer {
         animation.start();
     }
 
-    /** Qt holds a newly started animation for about two timer intervals before its first value,
-     *  so the transition sits still for ~30ms. Advancing the clock ourselves moves the first frame
-     *  to the next iteration; Qt's timer carries it from there. */
+    /** Qt withholds a newly started animation's first value for about two timer intervals. */
     private void advanceCropAnimationToFirstFrame() {
         if (cropAnimation == null || cropAnimation.getCurrentTime() != 0 ||
             cropAnimation.getState() != QAbstractAnimation.State.Running)
