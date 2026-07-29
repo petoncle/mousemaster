@@ -239,6 +239,9 @@ public final class HintMeshRenderer {
         hintBoxGeometriesByHintMeshKey.clear();
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.lastHintMeshKeyReference().set(null);
+        HintLabel.clearOutlineCache();
+        QtHintFont.clearCaches();
+        QtColorUtil.clearCaches();
     }
 
     public boolean setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
@@ -2407,6 +2410,12 @@ public final class HintMeshRenderer {
         /** Refilled by every outline paint; painting is single-threaded. */
         private static final QPainterPath outlinePath = new QPainterPath();
         private static final Map<OutlineKey, OutlineImage> outlineImages = new HashMap<>();
+
+        static void clearOutlineCache() {
+            for (OutlineImage outline : outlineImages.values())
+                outline.image().dispose();
+            outlineImages.clear();
+        }
 
         /** A glyph and where it sits in the label it belongs to. */
         private record GlyphPlacement(String text, int x, int y) {

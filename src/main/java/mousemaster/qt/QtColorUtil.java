@@ -34,6 +34,14 @@ public final class QtColorUtil {
         return brushByRgba.computeIfAbsent(color.rgba(), rgba -> new QBrush(color));
     }
 
+    /** Dropped rather than freed outright: shown hint boxes hold these, so Qt frees each only once
+     *  nothing refers to it. */
+    public static void clearCaches() {
+        brushByRgba.clear();
+        penByKey.clear();
+        opaqueByRgba.clear();
+    }
+
     private static final Map<Integer, QColor> opaqueByRgba = new HashMap<>();
 
     /** The colour at full alpha. Shadow sources are drawn opaque so the shadow keeps its strength,

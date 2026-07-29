@@ -179,12 +179,11 @@ public class WindowsPlatform implements Platform {
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());
         }
+        if (oldModeMap != null) {
+            logger.debug("Flushing overlay cache because the configuration was reloaded");
+            overlay.flushCache();
+        }
         if (!newHintMeshConfigurations.equals(oldHintMeshConfigurations)) {
-            if (oldModeMap != null) {
-                logger.debug(
-                        "Flushing overlay cache because hint mesh configurations have changed");
-                overlay.flushCache();
-            }
             overlay.preWarmFontStyles(newHintMeshConfigurations);
             overlay.preWarmHintMeshWindows();
             overlay.preWarmIndicatorWindow();
