@@ -22,11 +22,6 @@ public record QtHintFontStyle(QtFontStyle defaultStyle,
         return true;
     }
 
-    /**
-     * Whether any state this mesh can draw is transparent. Selecting a key does not enter into it:
-     * it picks between two shadow renderings that do not agree on antialiased glyph edges, so
-     * letting it change halfway through a hint session changes how the shadows look.
-     */
     public boolean hasTransparency() {
         if (defaultStyle.hasTransparency() || selectedStyle.hasTransparency() ||
             focusedStyle.hasTransparency())

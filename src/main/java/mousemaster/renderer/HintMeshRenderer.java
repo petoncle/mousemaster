@@ -1342,7 +1342,7 @@ public final class HintMeshRenderer {
         // Background prefix is on a different layer.
         boolean hasForegroundPrefixKeys = !style.prefixInBackground() && hintMesh.prefixLength() != -1;
         HintFontStyle prefixFontStyle = hasForegroundPrefixKeys ? style.prefixFontStyle() : null;
-        QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale, hasSelectedKeys);
+        QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale);
         QColor boxColor = QtColorUtil.qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
@@ -1537,7 +1537,7 @@ public final class HintMeshRenderer {
         }
         QtHintFontStyle prefixQtHintFontStyle = null;
         if (style.prefixInBackground()) {
-            prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale, hasSelectedKeys);
+            prefixQtHintFontStyle = QtHintFont.qtHintFontStyle(style.prefixFontStyle(), null, screenScale);
             Map<String, Integer> prefixXAdvancesByString = new HashMap<>();
             int prefixHintKeyMaxXAdvance = 0;
             for (List<Key> prefix : hintGroupByPrefix.keySet()) {

@@ -111,27 +111,26 @@ public final class QtHintFont {
 
     public static QtHintFontStyle qtHintFontStyle(HintFontStyle hintFontStyle,
                                                   HintFontStyle prefixHintFontStyle,
-                                                  double screenScale,
-                                                  boolean hasSelectedKeys) {
+                                                  double screenScale) {
         FontStyle defaultFontStyle = hintFontStyle.defaultFontStyle();
         FontStyle selectedFontStyle = hintFontStyle.selectedFontStyle();
         FontStyle focusedFontStyle = hintFontStyle.focusedFontStyle();
-        boolean perKeyFont = (hasSelectedKeys && !fontShapeEquals(defaultFontStyle, selectedFontStyle)) ||
+        boolean perKeyFont = !fontShapeEquals(defaultFontStyle, selectedFontStyle) ||
                              !fontShapeEquals(defaultFontStyle, focusedFontStyle);
         if (prefixHintFontStyle != null) {
             perKeyFont = perKeyFont ||
                          !fontShapeEquals(defaultFontStyle, prefixHintFontStyle.defaultFontStyle()) ||
-                         (hasSelectedKeys && !fontShapeEquals(defaultFontStyle, prefixHintFontStyle.selectedFontStyle())) ||
+                         !fontShapeEquals(defaultFontStyle, prefixHintFontStyle.selectedFontStyle()) ||
                          !fontShapeEquals(defaultFontStyle, prefixHintFontStyle.focusedFontStyle());
         }
         Shadow defaultShadow = defaultFontStyle.shadow();
         boolean perKeyShadow =
-                (hasSelectedKeys && shadowsNeedPerKeyProcessing(defaultShadow, selectedFontStyle.shadow())) ||
+                shadowsNeedPerKeyProcessing(defaultShadow, selectedFontStyle.shadow()) ||
                 shadowsNeedPerKeyProcessing(defaultShadow, focusedFontStyle.shadow());
         if (prefixHintFontStyle != null) {
             perKeyShadow = perKeyShadow ||
                            shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.defaultFontStyle().shadow()) ||
-                           (hasSelectedKeys && shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.selectedFontStyle().shadow())) ||
+                           shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.selectedFontStyle().shadow()) ||
                            shadowsNeedPerKeyProcessing(defaultShadow, prefixHintFontStyle.focusedFontStyle().shadow());
         }
         QFont defaultFont = qFont(defaultFontStyle.name(), defaultFontStyle.size(), defaultFontStyle.weight());
