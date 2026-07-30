@@ -2896,7 +2896,7 @@ public final class HintMeshRenderer {
         QtFontStyle defaultStyle = style.defaultStyle();
         if (defaultStyle.shadowColor().alpha() == 0)
             return;
-        if (!style.hasTransparency(hasSelectedKeys) &&
+        if (!style.hasTransparency() &&
             defaultStyle.shadowStackCount() == 1) {
             if (!preWarming)
                 logger.debug("Hint label shadow: opaque text, applying effect directly");
