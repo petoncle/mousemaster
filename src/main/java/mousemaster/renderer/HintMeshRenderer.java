@@ -2946,14 +2946,22 @@ public final class HintMeshRenderer {
             return;
         }
         QtFontStyle shadowStyle = style.defaultStyle();
+        List<Rectangle> ink = new ArrayList<>();
+        for (HintLabel label : labels)
+            ink.add(new Rectangle(label.x, label.y, label.width, label.height));
+        if (!layer.fitToInk(ink, shadowPadding(shadowStyle), containerWidth, containerHeight))
+            return;
+        int left = layer.originX, top = layer.originY;
+        int width = layer.width(), height = layer.height();
         // Render labels into a source image with forced opaque colors.
-        QImage sourceImage = new QImage(containerWidth, containerHeight,
+        QImage sourceImage = new QImage(width, height,
                 QImage.Format.Format_ARGB32_Premultiplied);
         setQImageDpiForScreen(sourceImage, screenScale);
         QColor fillColor = new QColor(0, 0, 0, 0);
         sourceImage.fill(fillColor);
         fillColor.dispose();
         QPainter srcPainter = new QPainter(sourceImage);
+        srcPainter.translate(-left, -top);
         for (HintLabel label : labels) {
             label.paintOpaque(srcPainter);
         }
@@ -2961,11 +2969,11 @@ public final class HintMeshRenderer {
         srcPainter.dispose();
         StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowStyle.shadowColor(),
                 shadowStyle.shadowBlurRadius(), shadowStyle.shadowHorizontalOffset(),
-                shadowStyle.shadowVerticalOffset(), containerWidth, containerHeight);
+                shadowStyle.shadowVerticalOffset(), width, height);
         QImage shadowImage = StackedShadowEffect.bakeStacking(shadow.image(), shadowStyle.shadowStackCount());
         QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
         layer.setShadowPixmap(shadowPixmap,
-                shadow.x(), shadow.y());
+                left + shadow.x(), top + shadow.y());
         shadowImage.dispose();
     }
 
