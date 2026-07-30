@@ -93,36 +93,33 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static final int maxHintMeshVariantBranchCount = 12;
+    private static final int minPreWarmedHintCount = 1000;
 
+    /** Builds and caches the meshes that are slow to build. */
     public void preWarmHintMeshes(ModeMap modeMap) {
         long before = System.nanoTime();
-        Set<HintMesh> preWarmed = new HashSet<>();
-        int hintCount = 0;
+        Set<HintMesh> warmed = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
             if (!isVisibleScreenHintMesh(mode.hintMesh()))
                 continue;
             for (Screen screen : screenManager.screens()) {
                 Rectangle screenRectangle = screen.rectangle();
-                // The zoom a screen-centered grid resolves to.
                 Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
                         screenRectangle.center(), screenRectangle);
                 for (HintMeshConfiguration configuration : hintMeshVariants(mode)) {
                     HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
                             ViewportFilter.of(screen), null, screen);
-                    if (!hintMesh.visible() || hintMesh.hints().isEmpty())
+                    if (!hintMesh.visible() ||
+                        hintMesh.hints().size() < minPreWarmedHintCount)
                         continue;
-                    // Identical screens, and variants differing only in what is not drawn,
-                    // resolve to the same mesh.
-                    if (preWarmed.add(hintMesh)) {
+                    if (warmed.add(hintMesh))
                         overlay.preWarmHintMesh(hintMesh, zoom);
-                        hintCount += hintMesh.hints().size();
-                    }
                 }
             }
         }
-        if (!preWarmed.isEmpty())
-            logger.info("Pre-warmed " + preWarmed.size() + " hint meshes of " + hintCount +
-                        " hints in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
+        if (!warmed.isEmpty())
+            logger.info("Pre-warmed " + warmed.size() + " hint meshes in " +
+                        (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
     /** The mode's hint mesh configuration and every distinct one its precondition-only
