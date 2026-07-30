@@ -187,12 +187,15 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
         int srcOffY = -boundsY;
         int overlapW = Math.min(containerWidth, boundsW - srcOffX);
         int overlapH = Math.min(containerHeight, boundsH - srcOffY);
+        // A row of the source at a time: taking it byte by byte out of its buffer costs more than
+        // the subtraction itself, there being tens of millions of them.
+        byte[] sourceRow = new byte[overlapW * 4];
         for (int py = 0; py < overlapH; py++) {
             int resultRowStart = (py + srcOffY) * resultBytesPerLine + srcOffX * 4;
-            int sourceRowStart = py * sourceBytesPerLine;
-            for (int i = 0; i < overlapW * 4; i++) {
+            sourceBuf.get(py * sourceBytesPerLine, sourceRow, 0, sourceRow.length);
+            for (int i = 0; i < sourceRow.length; i++) {
                 int c = shadowBytes[resultRowStart + i] & 0xFF;
-                int s = sourceBuf.get(sourceRowStart + i) & 0xFF;
+                int s = sourceRow[i] & 0xFF;
                 shadowBytes[resultRowStart + i] = (byte) Math.max(0, c - s);
             }
         }
