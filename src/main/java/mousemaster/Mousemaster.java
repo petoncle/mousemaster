@@ -27,10 +27,13 @@ public class Mousemaster {
     private List<String> configurationProperties;
     private KeyboardLayout activeKeyboardLayout;
     private KeyboardLayout forcedActiveKeyboardLayout;
+    private final boolean preWarmHints;
 
-    public Mousemaster(Path configurationPath, Platform platform) throws IOException {
+    public Mousemaster(Path configurationPath, Platform platform, boolean preWarmHints)
+            throws IOException {
         this.configurationPath = configurationPath;
         this.platform = platform;
+        this.preWarmHints = preWarmHints;
         this.activeKeyboardLayout = platform.activeKeyboardLayout();
         QtManager.initialize();
         loadConfiguration(true);
@@ -237,7 +240,8 @@ public class Mousemaster {
                 configuration.modeMap(),
                 List.of(mouseManager, gridManager, hintManager, screenManager,
                         zoomManager), activeKeyboardLayout);
-        hintManager.preWarmHintMeshes(configuration.modeMap());
+        if (preWarmHints)
+            hintManager.preWarmHintMeshes(configuration.modeMap());
     }
 
 }

@@ -62,7 +62,8 @@ public class WindowsMain {
             Native.setCallbackExceptionHandler((c, e) ->
                     MousemasterApplication.shutdownAfterException(e, platform, true,
                             options.pauseOnError()));
-            new Mousemaster(options.configurationPath(), platform).run();
+            new Mousemaster(options.configurationPath(), platform,
+                    options.preWarmHints()).run();
         } catch (Throwable e) {
             MousemasterApplication.shutdownAfterException(e, platform, false,
                     options.pauseOnError());
