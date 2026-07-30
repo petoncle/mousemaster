@@ -99,18 +99,19 @@ public class HintManager implements ModeListener, MousePositionListener {
         for (Mode mode : modeMap.modes()) {
             if (!isVisibleScreenHintMesh(mode.hintMesh()))
                 continue;
-            // Built for whichever screen is active; another screen builds its own on first use.
-            Screen screen = screenManager.activeScreen();
-            Rectangle screenRectangle = screen.rectangle();
-            // The zoom a screen-centered grid resolves to.
-            Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
-                    screenRectangle.center(), screenRectangle);
-            for (HintMeshConfiguration configuration : hintMeshVariants(mode)) {
-                HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
-                        ViewportFilter.of(screen), null);
-                // Variants differing only in what is not drawn resolve to the same mesh.
-                if (preWarmed.add(hintMesh))
-                    overlay.preWarmHintMesh(hintMesh, zoom);
+            for (Screen screen : screenManager.screens()) {
+                Rectangle screenRectangle = screen.rectangle();
+                // The zoom a screen-centered grid resolves to.
+                Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
+                        screenRectangle.center(), screenRectangle);
+                for (HintMeshConfiguration configuration : hintMeshVariants(mode)) {
+                    HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
+                            ViewportFilter.of(screen), null, screen);
+                    // Identical screens, and variants differing only in what is not drawn,
+                    // resolve to the same mesh.
+                    if (preWarmed.add(hintMesh))
+                        overlay.preWarmHintMesh(hintMesh, zoom);
+                }
             }
         }
     }
@@ -337,12 +338,12 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
             else {
                 newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
-                        newScreenFilter, lastUiElements);
+                        newScreenFilter, lastUiElements, screenManager.activeScreen());
             }
         }
         else {
             newHintMesh = buildHintMesh(hintMeshConfiguration, newMode.zoom(), newZoom,
-                    newScreenFilter, null);
+                    newScreenFilter, null, screenManager.activeScreen());
         }
         if (currentMode != null && newMode.hintMesh().equals(currentMode.hintMesh()) &&
             newHintMesh.equals(hintMesh))
@@ -443,7 +444,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         ZoomConfiguration zoom = currentMode.zoom();
         HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration,
                 zoom, pending.zoom(), screenFilter,
-                uiElements);
+                uiElements, screenManager.activeScreen());
         activateHintMesh(currentMode, newHintMesh, hintMeshConfiguration, screenFilter,
                 currentZoom);
     }
@@ -536,7 +537,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             HintMeshConfiguration hintMeshConfiguration,
             ZoomConfiguration zoomConfiguration, Zoom zoom,
             ViewportFilter screenFilter,
-            List<UiElement> uiElements) {
+            List<UiElement> uiElements, Screen activeScreen) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
                 .styleByFilter(hintMeshConfiguration.styleByFilter());
@@ -554,7 +555,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     Rectangle areaRectangle = scaledArea(screen.rectangle(), area.size(),
                             screen.rectangle().center());
                     HintGridLayout gridLayout = hintGrid.layout(
-                            ViewportFilter.of(screenManager.activeScreen()));
+                            ViewportFilter.of(activeScreen));
                     fixedSizeHintGrids.add(hintGridForArea(areaRectangle,
                             areaRectangle.center(), gridLayout, screen.scale()));
                     left = Math.min(left, screen.rectangle().x());
@@ -572,19 +573,19 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Point gridCenter;
                 if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
                     areaRectangle = cellGridLevelStack.isEmpty() ?
-                            screenManager.activeScreen().rectangle() :
+                            activeScreen.rectangle() :
                             cellGridLevelStack.peek().area();
                     gridCenter = areaRectangle.center();
                 }
                 else {
                     Rectangle sourceRectangle = switch (area.size().source()) {
-                        case ACTIVE_SCREEN -> screenManager.activeScreen().rectangle();
+                        case ACTIVE_SCREEN -> activeScreen.rectangle();
                         case ACTIVE_WINDOW -> overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
                         default -> throw new IllegalStateException();
                     };
                     gridCenter = switch (area.center()) {
                         case SCREEN_CENTER ->
-                                screenManager.activeScreen().rectangle().center();
+                                activeScreen.rectangle().center();
                         case MOUSE -> new Point(mouseX, mouseY);
                         case LAST_SELECTED_HINT ->
                                 lastSelectedHintPoint == null ?
@@ -647,7 +648,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 HintMeshStyle style =
                         styleForFilter(hintMeshConfiguration, screenFilter);
                 List<Decoration> decorations = style.decorations();
-                double scale = screenManager.activeScreen().scale();
+                double scale = activeScreen.scale();
                 // Tiled: subdecoration (index 1) in each cell, subsubdecoration
                 // (index 2) inside each of those.
                 hintMesh.subDecoration(buildDecorationMesh(style,
