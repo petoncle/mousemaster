@@ -92,28 +92,91 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.modeController = modeController;
     }
 
-    /**
-     * Builds and caches the hint mesh of every mode whose mesh depends on nothing but the
-     * configuration and the screens, so entering such a mode does not pay for its build. The
-     * cache holds one screen-sized pixmap per mesh, so only meshes worth their memory are
-     * pre-warmed; every other mesh is still cached the first time it is shown.
-     */
+    private static final int maxHintMeshVariantBranchCount = 12;
+
     public void preWarmHintMeshes(ModeMap modeMap) {
-        Set<HintMeshConfiguration> preWarmed = new HashSet<>();
+        Set<HintMesh> preWarmed = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
-            HintMeshConfiguration configuration = mode.hintMesh();
-            if (!isVisibleScreenHintMesh(configuration) || !preWarmed.add(configuration))
+            if (!isVisibleScreenHintMesh(mode.hintMesh()))
                 continue;
-            for (Screen screen : screenManager.screens()) {
-                Rectangle screenRectangle = screen.rectangle();
-                // The zoom a mode with a screen-centered grid resolves to, which like the mesh
-                // depends on the screen alone.
-                Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
-                        screenRectangle.center(), screenRectangle);
-                overlay.preWarmHintMesh(buildHintMesh(configuration, mode.zoom(), zoom,
-                        ViewportFilter.of(screen), null), zoom);
+            // Built for whichever screen is active; another screen builds its own on first use.
+            Screen screen = screenManager.activeScreen();
+            Rectangle screenRectangle = screen.rectangle();
+            // The zoom a screen-centered grid resolves to.
+            Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
+                    screenRectangle.center(), screenRectangle);
+            for (HintMeshConfiguration configuration : hintMeshVariants(mode)) {
+                HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
+                        ViewportFilter.of(screen), null);
+                // Variants differing only in what is not drawn resolve to the same mesh.
+                if (preWarmed.add(hintMesh))
+                    overlay.preWarmHintMesh(hintMesh, zoom);
             }
         }
+    }
+
+    /** The mode's hint mesh configuration and every distinct one its precondition-only
+     *  mutations produce. */
+    private static List<HintMeshConfiguration> hintMeshVariants(Mode mode) {
+        List<Combo> mutatingCombos = new ArrayList<>();
+        Set<String> variableNames = new TreeSet<>();
+        List<ComboPrecondition.ComboKeyPrecondition> keyPreconditions = new ArrayList<>();
+        for (var entry : mode.comboMap().commandsByCombo().entrySet()) {
+            Combo combo = entry.getKey();
+            if (!combo.sequence().isEmpty())
+                continue;
+            for (Command command : entry.getValue()) {
+                if (!(command instanceof Command.MutateMode mutateMode) ||
+                    !mutateMode.propertyPath().fieldNames().getFirst().equals("hintMesh"))
+                    continue;
+                mutatingCombos.add(combo);
+                combo.precondition().variablePrecondition().conditions()
+                     .forEach(condition -> variableNames.add(condition.variableName()));
+                ComboPrecondition.ComboKeyPrecondition keyPrecondition =
+                        combo.precondition().keyPrecondition();
+                if (!keyPrecondition.isEmpty() && !keyPreconditions.contains(keyPrecondition))
+                    keyPreconditions.add(keyPrecondition);
+                break;
+            }
+        }
+        List<String> variables = new ArrayList<>(variableNames);
+        int branchCount = variables.size() + keyPreconditions.size();
+        if (branchCount == 0)
+            return List.of(mode.hintMesh());
+        if (branchCount > maxHintMeshVariantBranchCount) {
+            logger.info("Not pre-warming the mutated hint meshes of " + mode.name() + ": " +
+                        branchCount + " branches drive them");
+            return List.of(mode.hintMesh());
+        }
+        Set<HintMeshConfiguration> variants = new LinkedHashSet<>();
+        variants.add(mode.hintMesh());
+        for (int branchBits = 0; branchBits < (1 << branchCount); branchBits++) {
+            Set<String> activeVariables = new HashSet<>();
+            for (int i = 0; i < variables.size(); i++)
+                if ((branchBits & (1 << i)) != 0)
+                    activeVariables.add(variables.get(i));
+            Set<ComboPrecondition.ComboKeyPrecondition> satisfiedKeyPreconditions = new HashSet<>();
+            for (int i = 0; i < keyPreconditions.size(); i++)
+                if ((branchBits & (1 << (variables.size() + i))) != 0)
+                    satisfiedKeyPreconditions.add(keyPreconditions.get(i));
+            Mode mutatedMode = mode;
+            for (Combo combo : mutatingCombos) {
+                if (!combo.precondition().variablePrecondition().satisfiedBy(activeVariables))
+                    continue;
+                ComboPrecondition.ComboKeyPrecondition keyPrecondition =
+                        combo.precondition().keyPrecondition();
+                if (!keyPrecondition.isEmpty() &&
+                    !satisfiedKeyPreconditions.contains(keyPrecondition))
+                    continue;
+                for (Command command : mode.comboMap().commandsByCombo().get(combo))
+                    if (command instanceof Command.MutateMode mutateMode &&
+                        mutateMode.propertyPath().fieldNames().getFirst().equals("hintMesh"))
+                        mutatedMode = mutatedMode.mutate(mutateMode.propertyPath(),
+                                mutateMode.newPropertyValue());
+            }
+            variants.add(mutatedMode.hintMesh());
+        }
+        return List.copyOf(variants);
     }
 
     private static boolean isVisibleScreenHintMesh(HintMeshConfiguration configuration) {
