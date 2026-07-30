@@ -250,7 +250,6 @@ public final class HintMeshRenderer {
     public void preWarmHintMesh(HintMesh hintMesh, Zoom zoom, Set<Screen> screens) {
         if (!hintMesh.visible() || hintMesh.hints().isEmpty())
             return;
-        long before = System.nanoTime();
         preWarming = true;
         try {
             createOrUpdateHintMeshWindows(hintMesh, zoom, screens);
@@ -261,8 +260,6 @@ public final class HintMeshRenderer {
         }
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.hints().clear();
-        logger.info("Pre-warmed a hint mesh of " + hintMesh.hints().size() + " hints in " +
-                    (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
     public boolean setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
@@ -476,7 +473,7 @@ public final class HintMeshRenderer {
             hintMeshWindow.window.hide();
             hintMeshWindows.put(screen, hintMeshWindow);
         }
-        logger.info("Pre-warmed hint mesh windows for " + screens.size() +
+        logger.debug("Pre-warmed hint mesh windows for " + screens.size() +
                 " screens in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
@@ -757,7 +754,9 @@ public final class HintMeshRenderer {
                         List<HintBox> boxes =
                                 setUncachedHintMeshWindow(hintMeshWindow, hintMeshKey, hintMesh,
                                         screenScale, style, qtScaleFactor, container);
-                        logger.debug("Built hint mesh window in " + (long) ((System.nanoTime() - before) / 1e6) + "ms");
+                        if (!preWarming)
+                            logger.debug("Built hint mesh window in " +
+                                    (long) ((System.nanoTime() - before) / 1e6) + "ms");
                         if (preWarming) {
                             cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh,
                                     boxes);
@@ -1816,7 +1815,8 @@ public final class HintMeshRenderer {
                         window.x(), window.y());
 //         pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
-        logger.debug("Cached hint mesh pixmap " + pixmapAndPosition + " in " +
+        if (!preWarming)
+            logger.debug("Cached hint mesh pixmap " + pixmapAndPosition + " in " +
                      (long) ((System.nanoTime() - before) / 1e6) + "ms, cache size is " +
                      hintMeshPixmaps.size());
         // Turn the live container into a pixmap label in place, so a later crop clips the pixmap
@@ -2887,7 +2887,8 @@ public final class HintMeshRenderer {
         if (labels.isEmpty() || style.invisible(hasSelectedKeys))
             return;
         if (style.perKeyShadow()) {
-            logger.debug("Hint label shadow: per-key shadow, pre-rendering per group");
+            if (!preWarming)
+                logger.debug("Hint label shadow: per-key shadow, pre-rendering per group");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight, screenScale);
             return;
@@ -2897,12 +2898,14 @@ public final class HintMeshRenderer {
             return;
         if (!style.hasTransparency(hasSelectedKeys) &&
             defaultStyle.shadowStackCount() == 1) {
-            logger.debug("Hint label shadow: opaque text, applying effect directly");
+            if (!preWarming)
+                logger.debug("Hint label shadow: opaque text, applying effect directly");
             List<Rectangle> ink = new ArrayList<>();
             for (HintLabel label : labels)
                 ink.add(new Rectangle(label.x, label.y, label.width, label.height));
             layer.fitToInk(ink, shadowPadding(defaultStyle), containerWidth, containerHeight);
             StackedShadowEffect effect = new StackedShadowEffect();
+            effect.setPreWarming(preWarming);
             effect.setBlurRadius(defaultStyle.shadowBlurRadius());
             effect.setOffset(defaultStyle.shadowHorizontalOffset(),
                     defaultStyle.shadowVerticalOffset());
@@ -2918,7 +2921,8 @@ public final class HintMeshRenderer {
                              defaultStyle.shadowStackCount() +
                              ", pre-rendering off-screen");
             else
-                logger.debug("Hint label shadow: transparent text, pre-rendering off-screen");
+                if (!preWarming)
+                    logger.debug("Hint label shadow: transparent text, pre-rendering off-screen");
             preRenderLabelShadow(layer, labels, style,
                     containerWidth, containerHeight, screenScale);
         }
@@ -3164,7 +3168,7 @@ public final class HintMeshRenderer {
             long before = System.nanoTime();
             paintLayer(event);
             long durationMillis = (System.nanoTime() - before) / 1000000;
-            if (durationMillis >= SLOW_PAINT_MS)
+            if (durationMillis >= SLOW_PAINT_MS && !preWarming)
                 logger.debug("Painted a " + width() + "x" + height() + " hint layer of " +
                              boxes.size() + " boxes and " + labels.size() +
                              " labels in " + durationMillis + "ms");

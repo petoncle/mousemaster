@@ -30,6 +30,11 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
 
     private int stackCount;
     private boolean transparencyOnly;
+    private boolean preWarming;
+
+    public void setPreWarming(boolean preWarming) {
+        this.preWarming = preWarming;
+    }
 
     public void setStackCount(int stackCount) {
         this.stackCount = stackCount;
@@ -44,7 +49,7 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
         long before = System.nanoTime();
         drawShadow(painter);
         long durationMillis = (System.nanoTime() - before) / 1000000;
-        if (durationMillis >= SLOW_DRAW_MS)
+        if (durationMillis >= SLOW_DRAW_MS && !preWarming)
             logger.debug("Blurred a shadow in " + durationMillis + "ms");
     }
 
