@@ -183,11 +183,8 @@ public class WindowsPlatform implements Platform {
             logger.debug("Flushing overlay cache because the configuration was reloaded");
             overlay.flushCache();
         }
-        if (!newHintMeshConfigurations.equals(oldHintMeshConfigurations)) {
-            overlay.preWarmFontStyles(newHintMeshConfigurations);
-            overlay.preWarmHintMeshWindows();
-            overlay.preWarmIndicatorWindow();
-        }
+        if (!newHintMeshConfigurations.equals(oldHintMeshConfigurations))
+            overlay.preWarmFontsAndWindows(newHintMeshConfigurations);
         this.modeMap = newModeMap;
         WinDef.POINT mousePosition = mouse.findMousePosition();
         mousePositionListeners.forEach(

@@ -330,15 +330,10 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void preWarmHintMeshWindows() {
+    public void preWarmFontsAndWindows(Set<HintMeshConfiguration> hintMeshConfigurations) {
+        QtHintFont.preWarm(hintMeshConfigurations);
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
         updateZoomExcludedWindows();
-    }
-
-    /** Creating the indicator window costs as much as the first hint mesh window, and the mode
-     *  the user switches into pays it before its hints are built. */
-    @Override
-    public void preWarmIndicatorWindow() {
         if (indicatorHwnd != null)
             return;
         long before = System.nanoTime();
@@ -346,17 +341,6 @@ public class WindowsOverlay implements Overlay {
         indicatorRenderer.preWarm();
         logger.debug("Pre-warmed the indicator window in " +
                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
-    }
-
-    /**
-     * Pre-warms the GDI font engine with all hint fonts from the configuration.
-     * The first QFontMetrics.horizontalAdvance() call for a given font triggers lazy
-     * GDI font engine initialization (~130ms). By doing this at startup, we shift that
-     * cost away from the first hint mesh render.
-     */
-    @Override
-    public void preWarmFontStyles(Set<HintMeshConfiguration> hintMeshConfigurations) {
-        QtHintFont.preWarm(hintMeshConfigurations);
     }
 
     private WinDef.HWND createZoomWindow() {

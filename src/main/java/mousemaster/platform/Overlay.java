@@ -21,13 +21,9 @@ public interface Overlay {
 
     void setMessagePump(Runnable pump);
 
-    void preWarmFontStyles(Set<HintMeshConfiguration> configs);
-
-    void preWarmHintMeshWindows();
+    void preWarmFontsAndWindows(Set<HintMeshConfiguration> hintMeshConfigurations);
 
     void preWarmHintMesh(HintMesh hintMesh, Zoom zoom);
-
-    void preWarmIndicatorWindow();
 
     Rectangle activeWindowRectangle(double widthPct, double heightPct,
                                     int topInset, int bottomInset,
