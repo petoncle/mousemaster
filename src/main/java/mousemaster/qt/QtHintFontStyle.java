@@ -22,13 +22,12 @@ public record QtHintFontStyle(QtFontStyle defaultStyle,
         return true;
     }
 
+    /** The selected states are left out: they dim individual labels rather than the layer. */
     public boolean hasTransparency() {
-        if (defaultStyle.hasTransparency() || selectedStyle.hasTransparency() ||
-            focusedStyle.hasTransparency())
+        if (defaultStyle.hasTransparency() || focusedStyle.hasTransparency())
             return true;
         if (prefixDefaultStyle != null) {
-            if (prefixDefaultStyle.hasTransparency() || prefixSelectedStyle.hasTransparency() ||
-                prefixFocusedStyle.hasTransparency())
+            if (prefixDefaultStyle.hasTransparency() || prefixFocusedStyle.hasTransparency())
                 return true;
         }
         return false;
