@@ -118,8 +118,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             }
         }
         if (!warmed.isEmpty())
-            logger.info("Pre-warmed " + warmed.size() + " hint meshes in " +
-                        (long) ((System.nanoTime() - before) / 1e6) + "ms");
+            logger.debug("Pre-warmed " + warmed.size() + " hint meshes in " +
+                         (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
     /** The mode's hint mesh configuration and every distinct one its precondition-only
