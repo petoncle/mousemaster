@@ -190,11 +190,12 @@ public class WindowsOverlay implements Overlay {
     private void enforceTopmost() {
         List<WinDef.HWND> hwnds = new ArrayList<>();
         // First in the hwnds list means drawn on top.
-        if (gridHwnd != null)
+        if (gridHwnd != null && gridRenderer.showing())
             hwnds.add(gridHwnd);
-        for (TransparentWindow window : hintMeshRenderer.windows())
-            hwnds.add(hwnd(window));
-        if (indicatorHwnd != null)
+        if (hintMeshRenderer.showing())
+            for (TransparentWindow window : hintMeshRenderer.windows())
+                hwnds.add(hwnd(window));
+        if (indicatorHwnd != null && indicatorRenderer.showing())
             hwnds.add(indicatorHwnd);
         if (screenshotAnimating) {
             if (screenshotHwnd != null)
@@ -220,7 +221,7 @@ public class WindowsOverlay implements Overlay {
                         WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
             return;
         }
-        setWindowTopmost(hwnds.getFirst(), ExtendedUser32.HWND_TOPMOST);
+        setWindowTopmost(hwnds.getFirst());
         boolean allOtherWindowsAreBelowInOrder = true;
         for (int windowIndex = 0; windowIndex < hwnds.size() - 1; windowIndex++) {
             if (windowBelow(hwnds.get(windowIndex)).equals(hwnds.get(windowIndex + 1)))
@@ -232,7 +233,7 @@ public class WindowsOverlay implements Overlay {
         if (allOtherWindowsAreBelowInOrder)
             return;
         for (int windowIndex = hwnds.size() - 1; windowIndex >= 0; windowIndex--)
-            setWindowTopmost(hwnds.get(windowIndex), ExtendedUser32.HWND_TOPMOST);
+            setWindowTopmost(hwnds.get(windowIndex));
     }
 
     private WinDef.HWND windowBelow(WinDef.HWND hwnd) {
@@ -241,9 +242,9 @@ public class WindowsOverlay implements Overlay {
         return nextHwnd;
     }
 
-    private void setWindowTopmost(WinDef.HWND hwnd, WinDef.HWND hwndTopmost) {
-        User32.INSTANCE.SetWindowPos(hwnd, hwndTopmost, 0, 0, 0, 0,
-                WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE);
+    private void setWindowTopmost(WinDef.HWND hwnd) {
+        User32.INSTANCE.SetWindowPos(hwnd, ExtendedUser32.HWND_TOPMOST, 0, 0, 0, 0,
+                WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
     }
 
 
@@ -299,6 +300,8 @@ public class WindowsOverlay implements Overlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
+        // enforceTopmost skips windows that are not showing.
+        setWindowTopmost(hwnd);
     }
 
     private Rectangle virtualDesktopBounds() {
@@ -317,15 +320,7 @@ public class WindowsOverlay implements Overlay {
     /** The window factory the renderer uses: a styled, transparent, click-through window. */
     private TransparentWindow createStyledHintMeshWindow() {
         TransparentWindow window = new TransparentWindow();
-        WinDef.HWND hwnd = new WinDef.HWND(new Pointer(window.winId()));
-        long currentStyle =
-                User32.INSTANCE.GetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE)
-                               .longValue();
-        long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
-                        ExtendedUser32.WS_EX_TOOLWINDOW |
-                        ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
-        User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
-                new Pointer(newStyle));
+        applyOverlayExStyles(hwnd(window));
         return window;
     }
 
@@ -425,10 +420,13 @@ public class WindowsOverlay implements Overlay {
         }
         if (indicatorHwnd == null)
             createIndicatorWindow();
+        boolean wasShowing = indicatorRenderer.showing();
         indicatorRenderer.setIndicator(indicator, fadeAnimationEnabled,
                 fadeAnimationDuration, allowFade, mouseRectangle(mousePosition),
                 mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom);
+        if (!wasShowing)
+            setTopmost();
     }
 
     private void createScreenshotWindow() {
@@ -826,8 +824,11 @@ public class WindowsOverlay implements Overlay {
             gridHwnd = new WinDef.HWND(new Pointer(gridRenderer.widget().winId()));
             applyOverlayExStyles(gridHwnd);
         }
+        boolean wasShowing = gridRenderer.showing();
         gridRenderer.setGrid(grid, virtualDesktopBounds(),
                 scaledPixels(grid.lineThickness(), 1));
+        if (!wasShowing)
+            setTopmost();
         if (firstCreation)
             updateZoomExcludedWindows();
     }
@@ -854,8 +855,11 @@ public class WindowsOverlay implements Overlay {
     @Override
     public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
         int windowsBefore = hintMeshRenderer.windows().size();
+        boolean wasShowing = hintMeshRenderer.showing();
         boolean nonMatchShown = hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch,
                 WindowsScreen.findScreens());
+        if (!wasShowing)
+            setTopmost();
         if (nonMatchShown && zoomAfterHintMeshEndAnimation) {
             zoomAfterHintMeshEndAnimation = false;
             setZoom(afterHintMeshEndAnimationZoom);
