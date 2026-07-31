@@ -40,7 +40,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
-            <version>2.0.13</version>
+            <version>2.0.15</version>
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
@@ -164,6 +164,7 @@
                                     <filtering>true</filtering>
                                     <excludes>
                                         <exclude>**/*.dll</exclude> <!-- Exclude DLLs from filtering. -->
+                                        <exclude>licenses/**</exclude> <!-- Exclude license texts from filtering. -->
                                     </excludes>
                                 </resource>
                             </resources>

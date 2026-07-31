@@ -1,7 +1,6 @@
 package mousemaster.qt;
 
 import io.qt.core.QPoint;
-import io.qt.core.QPointF;
 import io.qt.core.QRect;
 import io.qt.core.QRectF;
 import io.qt.core.Qt;
@@ -10,7 +9,6 @@ import io.qt.gui.QImage;
 import io.qt.gui.QPainter;
 import io.qt.gui.QPixmap;
 import io.qt.gui.QTransform;
-import io.qt.widgets.QGraphicsDropShadowEffect;
 import io.qt.widgets.QGraphicsPixmapItem;
 import io.qt.widgets.QGraphicsScene;
 import org.slf4j.Logger;
@@ -23,7 +21,7 @@ import java.nio.ByteBuffer;
  * stronger effect) and lets subclasses redraw the source over the shadow. The shadow
  * baking helpers are shared by the indicator and the hint labels.
  */
-public class StackedShadowEffect extends QGraphicsDropShadowEffect {
+public class StackedShadowEffect extends QtDropShadowEffect {
 
     private static final Logger logger = LoggerFactory.getLogger(StackedShadowEffect.class);
 
@@ -91,95 +89,6 @@ public class StackedShadowEffect extends QGraphicsDropShadowEffect {
         sourceOffset.dispose();
         drawSource(painter);
         redrawSourceOverShadow(painter);
-    }
-
-    /**
-     * QGraphicsDropShadowEffect::draw and QPixmapDropShadowFilter::draw, with the blur replaced by
-     * the ported one. Qt still pads the source, upscales the halved blur, colours the shadow and
-     * composites it, so only the blur itself has to be kept bit-exact.
-     */
-    private void drawBlurredShadow(QPainter painter) {
-        if (blurRadius() <= 0 && xOffset() == 0 && yOffset() == 0) {
-            drawSource(painter);
-            return;
-        }
-        QPoint sourceOffset = new QPoint();
-        QPixmap sourcePixmap = sourcePixmap(Qt.CoordinateSystem.DeviceCoordinates, sourceOffset,
-                PixmapPadMode.PadToEffectiveBoundingRect);
-        if (sourcePixmap.isNull()) {
-            sourcePixmap.dispose();
-            sourceOffset.dispose();
-            return;
-        }
-        int width = sourcePixmap.width(), height = sourcePixmap.height();
-        QImage shifted = transparentImage(width, height);
-        QPainter shiftPainter = new QPainter(shifted);
-        shiftPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source);
-        QPointF shadowOffset = new QPointF(xOffset(), yOffset());
-        shiftPainter.drawPixmap(shadowOffset, sourcePixmap);
-        shadowOffset.dispose();
-        shiftPainter.end();
-        shiftPainter.dispose();
-
-        byte[] pixels = new byte[width * height * 4];
-        shifted.bits().get(0, pixels, 0, pixels.length);
-        shifted.dispose();
-        byte[] plane = ExpBlur.alphaPlane(pixels, width, height);
-        double radius = blurRadius();
-        double scale = 1;
-        int blurWidth = width, blurHeight = height;
-        // qt_blurImage halves the image once the radius reaches 4, and scales it back afterwards.
-        if (radius >= 4 && width >= 2 && height >= 2) {
-            plane = ExpBlur.halfScaledPlane(plane, width, height);
-            blurWidth = width / 2;
-            blurHeight = height / 2;
-            scale = 2;
-            radius *= 0.5;
-        }
-        ExpBlur.blurPlane(plane, blurWidth, blurHeight, radius);
-
-        QImage blurredImage = new QImage(ExpBlur.planeAsImage(plane, blurWidth, blurHeight),
-                blurWidth, blurHeight, QImage.Format.Format_ARGB32_Premultiplied);
-        QImage shadow = transparentImage(width, height);
-        QPainter blurPainter = new QPainter(shadow);
-        blurPainter.scale(scale, scale);
-        blurPainter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform);
-        QRect blurredRect = new QRect(0, 0, blurWidth, blurHeight);
-        blurPainter.drawImage(blurredRect, blurredImage);
-        blurredRect.dispose();
-        blurPainter.end();
-        blurPainter.dispose();
-        blurredImage.dispose();
-
-        QPainter colorPainter = new QPainter(shadow);
-        colorPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn);
-        QColor shadowColor = color();
-        QRect shadowRect = shadow.rect();
-        colorPainter.fillRect(shadowRect, shadowColor);
-        shadowRect.dispose();
-        shadowColor.dispose();
-        colorPainter.end();
-        colorPainter.dispose();
-
-        QTransform savedTransform = painter.worldTransform();
-        QTransform identity = new QTransform();
-        painter.setWorldTransform(identity);
-        painter.drawImage(sourceOffset, shadow);
-        painter.drawPixmap(sourceOffset, sourcePixmap);
-        painter.setWorldTransform(savedTransform);
-        savedTransform.dispose();
-        identity.dispose();
-        shadow.dispose();
-        sourcePixmap.dispose();
-        sourceOffset.dispose();
-    }
-
-    private static QImage transparentImage(int width, int height) {
-        QImage image = new QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied);
-        QColor transparent = new QColor(0, 0, 0, 0);
-        image.fill(transparent);
-        transparent.dispose();
-        return image;
     }
 
     protected void redrawSourceOverShadow(QPainter painter) {

@@ -43,6 +43,8 @@ jobs:
           $releaseNotes += "5. Run **mousemaster.exe**: make sure to run it as administrator if you want the mousemaster overlay to be displayed on top of everything else.`n"
           $releaseNotes += "6. Feel free to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues) or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own configuration. If you have ideas for a better configuration that you would like to share, I'd love to hear from you.`n"
           $releaseNotes += "7. If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!`n"
+          $releaseNotes += "### License`n"
+          $releaseNotes += "mousemaster.exe embeds Qt and QtJambi, used under the GNU Lesser General Public License. Run ``mousemaster.exe --licenses`` for the third-party notices and the full license texts.`n"
           Set-Content -Path ./release-notes.txt -Value $releaseNotes
       - name: Create release
         env:

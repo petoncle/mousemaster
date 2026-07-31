@@ -35,6 +35,8 @@
   }, {
     "pattern":"\\Qkeyboard-layouts.json\\E"
   }, {
+    "pattern":"licenses/.*"
+  }, {
     "pattern":"\\Qlogback-test.scmo\\E"
   }, {
     "pattern":"\\Qlogback-test.xml\\E"

@@ -2,6 +2,7 @@ package mousemaster.platform.windows;
 
 import com.sun.jna.Native;
 import mousemaster.ApplicationOptions;
+import mousemaster.Licenses;
 import mousemaster.Mousemaster;
 import mousemaster.MousemasterApplication;
 import mousemaster.Platform;
@@ -39,6 +40,10 @@ public class WindowsMain {
         }
         if (options.showVersion()) {
             System.out.println("mousemaster v" + version + " (" + commitId + ")");
+            return;
+        }
+        if (options.showLicenses()) {
+            Licenses.print();
             return;
         }
         if (options.graalvmAgentRun()) {

@@ -1,3 +1,11 @@
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LGPL-3.0-only
+//
+// A Java port, made in 2026, of expblur, qt_blurrow, qt_blurImage and qt_halfScaled, from
+// qtbase/src/gui/painting/qimageeffects.cpp, and of qt_memrotate90 and qt_memrotate270, from
+// qtbase/src/gui/painting/qmemrotate.cpp, both at Qt 6.8.2. Upstream is available under
+// LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only; this port elects
+// LGPL-3.0-only. See THIRD-PARTY-NOTICES.md.
 package mousemaster.qt;
 
 import java.util.ArrayList;
@@ -14,9 +22,6 @@ import java.util.concurrent.Future;
  * <p>The blur is a pair of one-dimensional passes with a transpose between them, and every row of a
  * pass is independent of the others, so spreading rows over threads computes exactly what one
  * thread would. Only the alpha channel takes part, so it runs on a one-byte-per-pixel plane.
- *
- * <p>Ported from qtbase/src/gui/painting/qimageeffects.cpp and qmemrotate.cpp (v6.8.2), which are
- * LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only.
  */
 public final class ExpBlur {
 
