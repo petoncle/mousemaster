@@ -293,11 +293,20 @@ public class HintManager implements ModeListener, MousePositionListener {
                             new CellGridLevel(newMode.name(), pendingSelectedCell,
                                     cellGridArea(pendingSelectedCell, size, center)));
             }
-            else if (!popLevelsAbove(newMode.name()))
+            else if (popLevelsAbove(newMode.name())) {
+                // The anchors still point at the level left behind, which is one deeper.
+                Rectangle cell = cellGridLevelStack.peek().cell();
+                lastSelectedHintCell = cell;
+                lastSelectedHintPoint = cell.center();
+            }
+            else
                 recomputeTopLevelArea(size, center);
         }
-        else
+        else if (!sameMode) {
             cellGridLevelStack.clear();
+            // No level left for a zoom anchored on the selection to take its depth from.
+            lastSelectedHintCell = null;
+        }
         if (!hintMeshConfiguration.enabled()) {
             currentMode = newMode;
             hintMeshStates.clear();
