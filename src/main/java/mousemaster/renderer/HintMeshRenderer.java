@@ -603,7 +603,7 @@ public final class HintMeshRenderer {
             // mesh fades in instead of morphing from the selected cell.
             for (QWidget container : interruptedContainers) {
                 container.setParent(null);
-                container.disposeLater();
+                disposeWidget(container);
             }
             BorderMorph morph = borderMorphByWindow.get(window);
             if (morph != null)
@@ -640,7 +640,7 @@ public final class HintMeshRenderer {
             // Insta-finish: keep the newest container fully shown at its target, drop the rest.
             for (int i = 0; i < interruptedContainers.size() - 1; i++) {
                 interruptedContainers.get(i).setParent(null);
-                interruptedContainers.get(i).disposeLater();
+                disposeWidget(interruptedContainers.get(i));
             }
             if (!interruptedContainers.isEmpty()) {
                 QWidget lastContainer = interruptedContainers.getLast();
@@ -761,7 +761,7 @@ public final class HintMeshRenderer {
                             cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh,
                                     boxes);
                             container.setParent(null);
-                            container.disposeLater();
+                            disposeWidget(container);
                             return;
                         }
                         boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
@@ -832,7 +832,7 @@ public final class HintMeshRenderer {
                     // container is already on top. Keep the old one beneath it until it is deleted
                     // (no detach), so it backs a still-painting uncached container instead of leaving
                     // a blank frame.
-                    oldContainer.disposeLater();
+                    disposeWidget(oldContainer);
                     hintContainerAnimationEnded();
                 }
                 else {
@@ -907,11 +907,11 @@ public final class HintMeshRenderer {
                 croppedContainer = newContainer;
                 startCropAnimation(animation, newContainer);
                 oldContainer.setParent(null);
-                oldContainer.disposeLater();
+                disposeWidget(oldContainer);
             }
             else {
                 oldContainer.setParent(null);
-                oldContainer.disposeLater();
+                disposeWidget(oldContainer);
                 newContainer.setParent(window);
                 newContainer.show();
                 hintContainerAnimationEnded();
@@ -1065,12 +1065,22 @@ public final class HintMeshRenderer {
         morph.callback = null;
         if (morph.layer != null) {
             morph.layer.setParent(null);
-            morph.layer.disposeLater();
+            disposeWidget(morph.layer);
             morph.layer = null;
         }
     }
 
     /** Window children that hold rendered content — everything but the live border layer. */
+    /** A shadow pixmap is a screen sized buffer that its widget does not own, so destroying
+     *  the widget leaves it behind. */
+    private static void disposeWidget(QWidget widget) {
+        if (widget instanceof HintPaintLayer layer)
+            layer.disposeShadowPixmap();
+        for (HintPaintLayer layer : widget.findChildren(HintPaintLayer.class))
+            layer.disposeShadowPixmap();
+        widget.disposeLater();
+    }
+
     private List<QWidget> containers(TransparentWindow window) {
         List<QWidget> result = new ArrayList<>();
         for (QObject child : window.children())
@@ -1230,7 +1240,7 @@ public final class HintMeshRenderer {
             endRect.dispose();
             if (oldContainer != null) {
                 oldContainer.setParent(null);
-                oldContainer.disposeLater();
+                disposeWidget(oldContainer);
             }
             renderer.transitionMetrics.log();
             renderer.hintContainerAnimationEnded();
@@ -1839,7 +1849,7 @@ public final class HintMeshRenderer {
         for (QObject child : List.copyOf(container.children()))
             if (child instanceof HintPaintLayer layer) {
                 layer.setParent(null);
-                layer.disposeLater();
+                disposeWidget(layer);
             }
     }
 
@@ -3169,6 +3179,13 @@ public final class HintMeshRenderer {
             this.shadowPixmap = shadowPixmap;
             this.shadowPixmapX = x;
             this.shadowPixmapY = y;
+        }
+
+        void disposeShadowPixmap() {
+            if (shadowPixmap == null)
+                return;
+            shadowPixmap.dispose();
+            shadowPixmap = null;
         }
 
         @Override
