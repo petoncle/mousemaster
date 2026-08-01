@@ -98,8 +98,9 @@ public class WindowsPlatform implements Platform {
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
         enforceWindowsTopmostTimer -= delta;
-        // Every 200ms, but not during a transition: SetWindowPos would cost it a frame.
-        if (enforceWindowsTopmostTimer < 0 && !overlay.hintTransitionAnimating()) {
+        // Every 200ms, but not during an animation: SetWindowPos would cost it a frame.
+        if (enforceWindowsTopmostTimer < 0 && !overlay.hintTransitionAnimating() &&
+            !overlay.zoomAnimating()) {
             enforceWindowsTopmostTimer = 0.2;
             overlay.setTopmost();
         }
@@ -140,9 +141,10 @@ public class WindowsPlatform implements Platform {
             overlay.mouseMoved(lastMousePosition);
         }
         pumpEvents();
-        // A hint transition's frames are painted once per iteration, so this sleep is what its
-        // first frame waits on.
-        long sleepMillis = overlay.hintTransitionAnimating() ? 1 : 10;
+        // A hint transition's and a zoom animation's frames are painted once per iteration,
+        // so this sleep is what their first frame waits on.
+        long sleepMillis =
+                overlay.hintTransitionAnimating() || overlay.zoomAnimating() ? 1 : 10;
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();

@@ -1,13 +1,7 @@
 package mousemaster.platform.windows;
 
-import com.sun.jna.Memory;
-import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
-import io.qt.gui.QImage;
-import io.qt.gui.QPainter;
-import io.qt.gui.QPixmap;
-import io.qt.widgets.QApplication;
 import mousemaster.*;
 import mousemaster.platform.Overlay;
 import mousemaster.qt.*;
@@ -34,17 +28,13 @@ public class WindowsOverlay implements Overlay {
     private WinDef.HWND gridHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
     private final HintMeshRenderer hintMeshRenderer;
-    private boolean zoomAfterHintMeshEndAnimation;
-    private Zoom afterHintMeshEndAnimationZoom;
-    private ZoomWindow zoomWindow, standByZoomWindow;
+    private WinDef.HWND zoomHwnd;
+    private WinUser.WindowProc zoomWindowProc;
+    private WindowsZoomRenderer zoomRenderer;
     private Zoom currentZoom;
-    private boolean mustUpdateMagnifierSource;
-    // Screenshot-based zoom animation fields.
-    private ScreenshotWidget screenshotWidget;
-    private WinDef.HWND screenshotHwnd;
-    private QPixmap screenshotPixmap;
-    private boolean screenshotAnimating;
-    private boolean screenshotPendingHide;
+    private boolean zoomWindowShowing;
+    private boolean overlaysExcludedFromCapture;
+    private boolean zoomAnimating;
     private Runnable messagePump;
 
     public WindowsOverlay(WindowsMouseController mouse) {
@@ -74,15 +64,8 @@ public class WindowsOverlay implements Overlay {
         return new WinDef.HWND(new Pointer(window.winId()));
     }
 
-    /** Runs when the hint container end-animation finishes: hides the hint mesh, then
-     *  applies any zoom that was deferred until the animation finished. */
     private void hintMeshEndAnimationEndedCallback() {
         hideHintMesh();
-        if (zoomAfterHintMeshEndAnimation) {
-            zoomAfterHintMeshEndAnimation = false;
-            setZoom(afterHintMeshEndAnimationZoom);
-            afterHintMeshEndAnimationZoom = null;
-        }
     }
 
     @Override
@@ -93,51 +76,25 @@ public class WindowsOverlay implements Overlay {
         if (indicatorRenderer != null)
             indicatorRenderer.advanceAnimationsToFirstFrame();
         updateZoomWindow();
-        // Deferred screenshot hide: the magnifier was shown by updateZoomWindow
-        // on the previous frame (or by setZoom inside endScreenshotZoomAnimation).
-        // Wait one frame so DWM composites the magnifier before removing
-        // the screenshot that covers it.
-        if (screenshotPendingHide) {
-            screenshotPendingHide = false;
-            // Don't hide() the widget: showing a hidden layered window
-            // briefly exposes its stale surface. Instead, clear its content
-            // so it becomes transparent (WA_TranslucentBackground).
-            screenshotWidget.setZoom(null);
-            screenshotWidget.repaint();
-            if (screenshotPixmap != null) {
-                screenshotWidget.setScreenshot(null, null);
-                screenshotPixmap = null;
-            }
-        }
     }
 
     private void updateZoomWindow() {
-        if (screenshotAnimating)
-            return;
         if (currentZoom == null)
             return;
-        if (mustUpdateMagnifierSource) {
-            mustUpdateMagnifierSource = false;
-            WinDef.RECT sourceRect = new WinDef.RECT();
-            Zoom zoom = currentZoom;
-            Rectangle screenRectangle = zoom.screenRectangle();
-            double zoomPercent = zoom.percent();
-            sourceRect.left = (int) (zoom.center().x() - screenRectangle.width() / zoomPercent / 2);
-            sourceRect.top = (int) (zoom.center().y() - screenRectangle.height() / zoomPercent / 2);
-            sourceRect.right = (int) (zoom.center().x() + screenRectangle.width() / zoomPercent / 2);
-            sourceRect.bottom = (int) (zoom.center().y() + screenRectangle.height() / zoomPercent / 2);
-            // Calls to MagSetWindowSource are expensive and last about 10-20ms.
-            if (!Magnification.INSTANCE.MagSetWindowSource(zoomWindow.hwnd(),
-                    sourceRect)) {
-                logger.error("Failed MagSetWindowSource: " +
-                             Integer.toHexString(Native.getLastError()));
-            }
+        if (!zoomRenderer.prepare(zoomHwnd, currentZoom.screenRectangle()))
+            return;
+        if (!zoomRenderer.render(currentZoom))
+            return; // nothing presented yet, so nothing to reveal
+        // Not per frame: enforceTopmost issues a SetWindowPos per overlay, which flickers
+        // the layered hint windows.
+        if (!zoomWindowShowing) {
+            zoomWindowShowing = true;
+            // The present is queued: revealing before it is composited would show what the
+            // window last held, the final frame of the previous zoom.
+            Dwmapi.INSTANCE.DwmFlush();
+            setZoomWindowVisible(true);
+            setTopmost();
         }
-        User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_SHOWNORMAL);
-        if (standByZoomWindow != null)
-            User32.INSTANCE.ShowWindow(standByZoomWindow.hostHwnd(), WinUser.SW_HIDE);
-        User32.INSTANCE.InvalidateRect(zoomWindow.hwnd(), null, true);
-        setTopmost();
     }
 
     @Override
@@ -197,21 +154,11 @@ public class WindowsOverlay implements Overlay {
                 hwnds.add(hwnd(window));
         if (indicatorHwnd != null && indicatorRenderer.showing())
             hwnds.add(indicatorHwnd);
-        if (screenshotAnimating) {
-            if (screenshotHwnd != null)
-                hwnds.add(screenshotHwnd);
-        }
-        else {
-            // During pending hide, keep screenshot above magnifier so it covers
-            // the magnifier while it renders its first frame.
-            if (screenshotPendingHide && screenshotHwnd != null)
-                hwnds.add(screenshotHwnd);
-            if (zoomWindow != null)
-                hwnds.add(zoomWindow.hostHwnd);
-        }
+        if (zoomHwnd != null)
+            hwnds.add(zoomHwnd);
         if (hwnds.isEmpty())
             return;
-        if (currentZoom != null || screenshotAnimating) {
+        if (currentZoom != null) {
             // During zoom, use relative positioning to maintain z-order.
             // Avoid SetWindowPos(hwnd, HWND_TOPMOST) which causes a DWM
             // recomposition glitch visible as a brief indicator flicker.
@@ -248,10 +195,6 @@ public class WindowsOverlay implements Overlay {
     }
 
 
-    private record ZoomWindow(WinDef.HWND hwnd, WinDef.HWND hostHwnd, WinUser.WindowProc callback) {
-
-    }
-
     private void moveAndResizeIndicatorWindow() {
         moveAndResizeIndicatorWindow(mouse.findMousePosition());
     }
@@ -277,17 +220,7 @@ public class WindowsOverlay implements Overlay {
             indicatorRenderer = new IndicatorRenderer();
         indicatorHwnd = new WinDef.HWND(new Pointer(indicatorRenderer.window().winId()));
         applyOverlayExStyles(indicatorHwnd);
-        updateZoomExcludedWindows();
-    }
-
-    private int scaledPixels(double originalInPixels, double scale) {
-        return (int) Math.floor(originalInPixels * scale * zoomPercent());
-    }
-
-    private double zoomPercent() {
-        if (currentZoom == null)
-            return 1;
-        return currentZoom.percent();
+        updateCaptureExclusions();
     }
 
     private void applyOverlayExStyles(WinDef.HWND hwnd) {
@@ -328,7 +261,8 @@ public class WindowsOverlay implements Overlay {
     public void preWarmFontsAndWindows(Set<HintMeshConfiguration> hintMeshConfigurations) {
         QtHintFont.preWarm(hintMeshConfigurations);
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
-        updateZoomExcludedWindows();
+        updateCaptureExclusions();
+        preWarmZoomWindow();
         if (indicatorHwnd != null)
             return;
         long before = System.nanoTime();
@@ -338,41 +272,55 @@ public class WindowsOverlay implements Overlay {
                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
-    private WinDef.HWND createZoomWindow() {
-        if (!Magnification.INSTANCE.MagInitialize())
-            logger.error("Failed MagInitialize: " +
-                         Integer.toHexString(Native.getLastError()));
+    /** A full-screen swapchain window appearing for the first time makes DWM rearrange how
+     *  it composites the desktop, which costs a frame. */
+    private void preWarmZoomWindow() {
+        if (zoomHwnd != null)
+            return;
+        long before = System.nanoTime();
+        createZoomWindow();
+        Rectangle screen =
+                WindowsScreen.findActiveScreen(mouse.findMousePosition()).rectangle();
+        placeZoomWindow(screen);
+        if (zoomRenderer.prepare(zoomHwnd, screen))
+            zoomRenderer.render(new Zoom(1, screen.center(), screen));
+        logger.debug("Pre-warmed the zoom window in " +
+                     (System.nanoTime() - before) / 1_000_000 + "ms");
+    }
+
+    /** Through the alpha, never by hiding: a concealed window still composites, so its
+     *  swapchain stays presentable. */
+    private void setZoomWindowVisible(boolean visible) {
+        User32.INSTANCE.SetLayeredWindowAttributes(zoomHwnd, 0,
+                (byte) (visible ? 255 : 0), WinUser.LWA_ALPHA);
+    }
+
+    private void placeZoomWindow(Rectangle screenRectangle) {
+        User32.INSTANCE.SetWindowPos(zoomHwnd, null, screenRectangle.x(),
+                screenRectangle.y(), screenRectangle.width(), screenRectangle.height(),
+                User32.SWP_NOZORDER | WinUser.SWP_SHOWWINDOW);
+    }
+
+    private void createZoomWindow() {
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
-        WinUser.WindowProc callback = this::zoomWindowCallback;
-        wClass.hbrBackground = null;
-        String WC_MAGNIFIER = "Magnifier";
-        wClass.lpszClassName = "MagnifierWindow";
-        wClass.lpfnWndProc = callback;
-        WinDef.ATOM registerClassExResult = User32.INSTANCE.RegisterClassEx(wClass);
-        int MS_SHOWMAGNIFIEDCURSOR = 0x0001;
-        WinDef.HMODULE hInstance = Kernel32.INSTANCE.GetModuleHandle(null);
-        WinDef.HWND hostHwnd = User32.INSTANCE.CreateWindowEx(
-                User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_LAYERED |
-                ExtendedUser32.WS_EX_TOOLWINDOW | ExtendedUser32.WS_EX_NOACTIVATE |
+        // In a field: Windows keeps calling it after this method returns.
+        zoomWindowProc = this::zoomWindowCallback;
+        wClass.lpszClassName = "MousemasterZoomWindow";
+        wClass.lpfnWndProc = zoomWindowProc;
+        User32.INSTANCE.RegisterClassEx(wClass);
+        zoomHwnd = User32.INSTANCE.CreateWindowEx(
+                User32.WS_EX_TOPMOST | ExtendedUser32.WS_EX_TOOLWINDOW |
+                ExtendedUser32.WS_EX_NOACTIVATE | ExtendedUser32.WS_EX_LAYERED |
                 ExtendedUser32.WS_EX_TRANSPARENT,
-                wClass.lpszClassName, "MousemasterMagnifierHostName",
-                WinUser.WS_POPUP,
+                wClass.lpszClassName, "MousemasterZoom", WinUser.WS_POPUP,
                 0, 0, 10, 10, null, null,
-                hInstance, null);
-        // When uncommenting this SetLayeredWindowAttributes call, a black frame is
-        // drawn the first time the zoom is used.
-//        User32.INSTANCE.SetLayeredWindowAttributes(hostHwnd, 0, (byte) 255,
-//                WinUser.LWA_ALPHA);
-        WinDef.HWND hwnd = User32.INSTANCE.CreateWindowEx(
-                0,
-                WC_MAGNIFIER, "MagnifierWindow",
-                User32.WS_CHILD | MS_SHOWMAGNIFIEDCURSOR | ExtendedUser32.WS_VISIBLE,
-                0, 0, 10, 10,
-                hostHwnd, null,
-                hInstance, null);
-        zoomWindow = new ZoomWindow(hwnd, hostHwnd, callback);
-        updateZoomExcludedWindows();
-        return hostHwnd;
+                Kernel32.INSTANCE.GetModuleHandle(null), null);
+        // Layered and transparent is what makes it click-through for other processes.
+        setZoomWindowVisible(false);
+        // Without this the duplicated frame contains the zoom window: infinite mirror.
+        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(zoomHwnd,
+                ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+        zoomRenderer = new WindowsZoomRenderer(new WindowsDesktopDuplication());
     }
 
     @Override
@@ -429,334 +377,43 @@ public class WindowsOverlay implements Overlay {
             setTopmost();
     }
 
-    private void createScreenshotWindow() {
-        screenshotWidget = new ScreenshotWidget();
-        screenshotHwnd = new WinDef.HWND(new Pointer(screenshotWidget.winId()));
-        long currentStyle =
-                User32.INSTANCE.GetWindowLongPtr(screenshotHwnd, WinUser.GWL_EXSTYLE)
-                               .longValue();
-        long newStyle = currentStyle | ExtendedUser32.WS_EX_NOACTIVATE |
-                        ExtendedUser32.WS_EX_TOOLWINDOW |
-                        ExtendedUser32.WS_EX_LAYERED |
-                        ExtendedUser32.WS_EX_TRANSPARENT;
-        User32.INSTANCE.SetWindowLongPtr(screenshotHwnd, WinUser.GWL_EXSTYLE,
-                new Pointer(newStyle));
-        // Make topmost so it's in the same z-band as the magnifier.
-        User32.INSTANCE.SetWindowPos(screenshotHwnd, ExtendedUser32.HWND_TOPMOST,
-                0, 0, 0, 0,
-                WinUser.SWP_NOMOVE | WinUser.SWP_NOSIZE | WinUser.SWP_NOACTIVATE);
-    }
-
     @Override
-    public void startScreenshotZoomAnimation(Rectangle screenRect,
-                                                      Zoom beginZoom) {
-        boolean interruptingMidAnimation = screenshotAnimating;
-        if (screenshotAnimating || screenshotPendingHide) {
-            screenshotAnimating = false;
-            screenshotPendingHide = false;
-        }
-        if (screenshotWidget == null)
-            createScreenshotWindow();
-        screenshotAnimating = true;
-        screenshotWidget.move(screenRect.x(), screenRect.y());
-        screenshotWidget.resize(screenRect.width(), screenRect.height());
-        if (interruptingMidAnimation && screenshotPixmap != null) {
-            // Reuse existing pixmap only during mid-animation interruption:
-            // the screenshot widget is already visible with the correct
-            // 1x desktop content.
-            return;
-        }
-        // Exclude all our windows from capture via WDA so grabWindow
-        // sees only the desktop content underneath.
-        boolean magnifierVisible = zoomWindow != null && currentZoom != null;
-        if (magnifierVisible) {
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    zoomWindow.hostHwnd(),
-                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
-            if (standByZoomWindow != null)
-                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                        standByZoomWindow.hostHwnd(),
-                        ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
-        }
-        if (indicatorRenderer != null && indicatorRenderer.showing())
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    indicatorHwnd,
-                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
-        for (TransparentWindow window : hintMeshRenderer.windows())
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    hwnd(window),
-                    ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
-        if (screenshotHwnd != null)
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    screenshotHwnd, ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
-        QPixmap capture = QApplication.primaryScreen().grabWindow(
-                0, screenRect.x(), screenRect.y(),
-                screenRect.width(), screenRect.height());
-        // Restore WDA on all windows.
-        if (magnifierVisible) {
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    zoomWindow.hostHwnd(), ExtendedUser32.WDA_NONE);
-            if (standByZoomWindow != null)
-                ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                        standByZoomWindow.hostHwnd(), ExtendedUser32.WDA_NONE);
-        }
-        if (indicatorRenderer != null && indicatorRenderer.showing())
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    indicatorHwnd, ExtendedUser32.WDA_NONE);
-        for (TransparentWindow window : hintMeshRenderer.windows())
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    hwnd(window), ExtendedUser32.WDA_NONE);
-        if (screenshotHwnd != null)
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(
-                    screenshotHwnd, ExtendedUser32.WDA_NONE);
-        drawCursorOnto(capture, screenRect);
-        screenshotPixmap = capture;
-        screenshotWidget.setScreenshot(capture, screenRect);
-        currentZoom = beginZoom;
-        screenshotWidget.setZoom(beginZoom);
-        if (!screenshotWidget.isVisible())
-            screenshotWidget.show();
-        screenshotWidget.repaint();
-        setTopmost();
-    }
-
-    private void drawCursorOnto(QPixmap pixmap, Rectangle screenRect) {
-        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
-        if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) ||
-            cursorInfo.hCursor == null)
-            return;
-        WinGDI.ICONINFO iconInfo = new WinGDI.ICONINFO();
-        if (!User32.INSTANCE.GetIconInfo(
-                new WinDef.HICON(cursorInfo.hCursor), iconInfo))
-            return;
-        try {
-            WinGDI.BITMAP bmpInfo = new WinGDI.BITMAP();
-            WinDef.HBITMAP sizeBmp = iconInfo.hbmColor != null
-                    ? iconInfo.hbmColor : iconInfo.hbmMask;
-            GDI32.INSTANCE.GetObject(sizeBmp, bmpInfo.size(),
-                    bmpInfo.getPointer());
-            bmpInfo.read();
-            int width = bmpInfo.bmWidth.intValue();
-            int height = bmpInfo.bmHeight.intValue();
-            if (iconInfo.hbmColor == null)
-                height /= 2; // Monochrome: double-height (AND + XOR).
-            if (width <= 0 || height <= 0)
-                return;
-            int drawX = cursorInfo.ptScreenPos.x - iconInfo.xHotspot
-                    - screenRect.x();
-            int drawY = cursorInfo.ptScreenPos.y - iconInfo.yHotspot
-                    - screenRect.y();
-            if (iconInfo.hbmColor != null) {
-                // Read color bitmap as 32-bit BGRA.
-                byte[] colorData = readBitmap32(iconInfo.hbmColor, width, height);
-                if (colorData == null)
-                    return;
-                // Check if this is a standard alpha cursor or an XOR cursor.
-                boolean hasAlpha = false;
-                for (int i = 3; i < colorData.length; i += 4) {
-                    if (colorData[i] != 0) {
-                        hasAlpha = true;
-                        break;
-                    }
-                }
-                if (hasAlpha) {
-                    // Standard alpha cursor — draw directly.
-                    QImage cursorImage = new QImage(colorData, width, height,
-                            QImage.Format.Format_ARGB32);
-                    QPainter painter = new QPainter(pixmap);
-                    painter.drawImage(drawX, drawY, cursorImage);
-                    painter.end();
-                    painter.dispose();
-                    cursorImage.dispose();
-                }
-                else {
-                    // XOR cursor (e.g. I-beam): alpha=0, non-black RGB is XOR mask.
-                    // Read AND mask to determine opaque vs XOR pixels.
-                    byte[] maskData = iconInfo.hbmMask != null
-                            ? readBitmap32(iconInfo.hbmMask, width, height)
-                            : null;
-                    // Read background from pixmap for XOR blending.
-                    QImage bgImage = pixmap.toImage();
-                    byte[] resultData = new byte[width * height * 4];
-                    for (int y = 0; y < height; y++) {
-                        for (int x = 0; x < width; x++) {
-                            int idx = (y * width + x) * 4;
-                            int cB = colorData[idx] & 0xFF;
-                            int cG = colorData[idx + 1] & 0xFF;
-                            int cR = colorData[idx + 2] & 0xFF;
-                            // AND mask: 0x000000=opaque, 0xFFFFFF=transparent/XOR.
-                            boolean andTransparent = true;
-                            if (maskData != null) {
-                                andTransparent =
-                                        (maskData[idx] & 0xFF) != 0 ||
-                                        (maskData[idx + 1] & 0xFF) != 0 ||
-                                        (maskData[idx + 2] & 0xFF) != 0;
-                            }
-                            if (!andTransparent) {
-                                // AND=0: opaque pixel, use color directly.
-                                resultData[idx] = (byte) cB;
-                                resultData[idx + 1] = (byte) cG;
-                                resultData[idx + 2] = (byte) cR;
-                                resultData[idx + 3] = (byte) 0xFF;
-                            }
-                            else if (cB != 0 || cG != 0 || cR != 0) {
-                                // AND=1, color!=0: XOR with background.
-                                int px = drawX + x;
-                                int py = drawY + y;
-                                if (px >= 0 && px < bgImage.width() &&
-                                    py >= 0 && py < bgImage.height()) {
-                                    int bgPixel = bgImage.pixel(px, py);
-                                    int bgR = (bgPixel >> 16) & 0xFF;
-                                    int bgG = (bgPixel >> 8) & 0xFF;
-                                    int bgB = bgPixel & 0xFF;
-                                    resultData[idx] = (byte) (bgB ^ cB);
-                                    resultData[idx + 1] = (byte) (bgG ^ cG);
-                                    resultData[idx + 2] = (byte) (bgR ^ cR);
-                                    resultData[idx + 3] = (byte) 0xFF;
-                                }
-                            }
-                            // else AND=1, color=0: transparent, leave as zero.
-                        }
-                    }
-                    QImage resultImage = new QImage(resultData, width, height,
-                            QImage.Format.Format_ARGB32);
-                    QPainter painter = new QPainter(pixmap);
-                    painter.drawImage(drawX, drawY, resultImage);
-                    painter.end();
-                    painter.dispose();
-                    resultImage.dispose();
-                    bgImage.dispose();
-                }
-            }
-            // else: mask-only (monochrome) cursor — skip for now.
-        }
-        finally {
-            if (iconInfo.hbmColor != null)
-                GDI32.INSTANCE.DeleteObject(iconInfo.hbmColor);
-            if (iconInfo.hbmMask != null)
-                GDI32.INSTANCE.DeleteObject(iconInfo.hbmMask);
-        }
-    }
-
-    private byte[] readBitmap32(WinDef.HBITMAP bitmap, int width,
-                                       int height) {
-        WinGDI.BITMAPINFO bi = new WinGDI.BITMAPINFO();
-        bi.bmiHeader.biWidth = width;
-        bi.bmiHeader.biHeight = -height; // Top-down.
-        bi.bmiHeader.biPlanes = 1;
-        bi.bmiHeader.biBitCount = 32;
-        Memory pixels = new Memory((long) width * height * 4);
-        WinDef.HDC hdc = GDI32.INSTANCE.CreateCompatibleDC(null);
-        int result = GDI32.INSTANCE.GetDIBits(hdc, bitmap, 0, height,
-                pixels, bi, WinGDI.DIB_RGB_COLORS);
-        GDI32.INSTANCE.DeleteDC(hdc);
-        if (result == 0)
-            return null;
-        return pixels.getByteArray(0, width * height * 4);
-    }
-
-    @Override
-    public void updateScreenshotZoom(Zoom zoom) {
-        if (!screenshotAnimating)
-            return;
-        currentZoom = zoom;
-        screenshotWidget.setZoom(zoom);
-        screenshotWidget.repaint();
-        if (indicatorHwnd != null)
-            moveAndResizeIndicatorWindow();
-        setTopmost();
-    }
-
-    @Override
-    public void endScreenshotZoomAnimation(Zoom finalZoom) {
-        if (!screenshotAnimating)
-            return;
-        screenshotAnimating = false;
-        // Reset so setZoom(null) doesn't early-return with stale currentZoom.
-        currentZoom = null;
-        if (finalZoom != null) {
-            // Defer screenshot hide by one frame so magnifier renders first.
-            screenshotPendingHide = true;
-            setZoom(finalZoom);
-        }
-        else {
-            setZoom(null);
-            // Don't hide() the widget: showing a hidden layered window
-            // briefly exposes its stale surface. Instead, clear its content
-            // so it becomes transparent (WA_TranslucentBackground).
-            screenshotWidget.setZoom(null);
-            screenshotWidget.repaint();
-            if (screenshotPixmap != null) {
-                screenshotWidget.setScreenshot(null, null);
-                screenshotPixmap = null;
-            }
-        }
+    public void setZoomAnimating(boolean zoomAnimating) {
+        this.zoomAnimating = zoomAnimating;
     }
 
     @Override
     public void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
-        if (hintMeshRenderer.isHintMeshEndAnimation()) {
-            if (!zoomAfterHintMeshEndAnimation) {
-                zoomAfterHintMeshEndAnimation = true;
-                afterHintMeshEndAnimationZoom = zoom;
-                return;
-            }
-            else {
-                // We skip the enqueued zoom.
-                zoomAfterHintMeshEndAnimation = false;
-                afterHintMeshEndAnimationZoom = null;
-            }
-        }
-        if (zoomWindow == null) {
+        if (zoomHwnd == null) {
             if (zoom == null)
                 return;
             createZoomWindow();
         }
-        Zoom oldZoom = currentZoom;
+        Zoom previousZoom = currentZoom;
         currentZoom = zoom;
-        mustUpdateMagnifierSource = true;
         if (currentZoom == null) {
-            User32.INSTANCE.ShowWindow(zoomWindow.hostHwnd(), WinUser.SW_HIDE);
+            zoomWindowShowing = false;
+            setZoomWindowVisible(false);
         }
-        else {
-            // We use a second zoom window to keep the already open zoom window visible,
-            // until the second zoom is ready.
-            // Because MagSetWindowTransform() will immediately show the new zoom area,
-            // except only the zoom percent has been set so far (the new source will be updated by
-            // MagSetWindowSource, next frame only).
-            Rectangle screenRectangle = zoom.screenRectangle();
-            if (oldZoom == null || oldZoom.percent() != zoom.percent()) {
-                if (standByZoomWindow == null) {
-                    standByZoomWindow = zoomWindow;
-                    createZoomWindow();
-                }
-                else {
-                    ZoomWindow newStandByZoomWindow = zoomWindow;
-                    zoomWindow = standByZoomWindow;
-                    standByZoomWindow = newStandByZoomWindow;
-                    updateZoomExcludedWindows();
-                }
-                // MagSetWindowTransform() can take 10-20ms.
-                if (!Magnification.INSTANCE.MagSetWindowTransform(zoomWindow.hwnd(),
-                        new Magnification.MAGTRANSFORM.ByReference(
-                                (float) zoomPercent())))
-                    logger.error("Failed MagSetWindowTransform: " +
-                                 Integer.toHexString(Native.getLastError()));
+        else if (previousZoom == null ||
+                 !previousZoom.screenRectangle().equals(currentZoom.screenRectangle()))
+            // Still transparent: updateZoomWindow reveals it once it holds a frame.
+            placeZoomWindow(currentZoom.screenRectangle());
+        // Only on the transition: setZoom runs on every mouse move when the zoom follows
+        // the mouse, and re-composing every overlay that often flickers them.
+        if ((currentZoom != null) != overlaysExcludedFromCapture) {
+            updateCaptureExclusions();
+            if (currentZoom != null) {
+                // Duplication hands over an already composed frame, so the exclusions
+                // only reach it once composited.
+                Dwmapi.INSTANCE.DwmFlush();
+                zoomRenderer.discardFrame();
             }
-            User32.INSTANCE.SetWindowPos(zoomWindow.hostHwnd(), null,
-                    screenRectangle.x(), screenRectangle.y(),
-                    screenRectangle.width(), screenRectangle.height(),
-                    User32.SWP_NOZORDER);
-            User32.INSTANCE.SetWindowPos(zoomWindow.hwnd(), null,
-                    0, 0,
-                    screenRectangle.width(), screenRectangle.height(),
-                    User32.SWP_NOZORDER);
         }
-        if (indicatorHwnd != null) {
+        if (indicatorHwnd != null)
             moveAndResizeIndicatorWindow();
-        }
         if (hintMeshRenderer.showing()) {
             for (TransparentWindow window : hintMeshRenderer.windows())
                 User32.INSTANCE.InvalidateRect(hwnd(window), null, true);
@@ -764,42 +421,26 @@ public class WindowsOverlay implements Overlay {
         updateZoomWindow();
     }
 
-    private void updateZoomExcludedWindows() {
-        if (zoomWindow == null)
-            return;
-        List<WinDef.HWND> hwnds = new ArrayList<>();
+    /**
+     * Keeps the overlays out of the duplicated frame, which would otherwise magnify them.
+     * This hides them from every capture, not just ours, so it is cleared with the zoom.
+     * Each call re-composes the windows it touches: never call it per frame.
+     */
+    private void updateCaptureExclusions() {
+        overlaysExcludedFromCapture = currentZoom != null;
+        int affinity = overlaysExcludedFromCapture ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
+                                                   : ExtendedUser32.WDA_NONE;
         if (gridHwnd != null)
-            hwnds.add(gridHwnd);
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(gridHwnd, affinity);
         for (TransparentWindow window : hintMeshRenderer.windows())
-            hwnds.add(hwnd(window));
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window), affinity);
         if (indicatorHwnd != null)
-            hwnds.add(indicatorHwnd);
-        if (standByZoomWindow != null)
-            hwnds.add(standByZoomWindow.hwnd);
-        if (screenshotHwnd != null)
-            hwnds.add(screenshotHwnd);
-        if (hwnds.isEmpty())
-            return;
-        if (!Magnification.INSTANCE.MagSetWindowFilterList(zoomWindow.hwnd(),
-                Magnification.MW_FILTERMODE_EXCLUDE, hwnds.size(),
-                hwnds.toArray(new WinDef.HWND[0])))
-            logger.error("Failed to set the zoom excluded window list: " +
-                         Integer.toHexString(Native.getLastError()));
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(indicatorHwnd, affinity);
     }
 
     private WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
                                                      WinDef.WPARAM wParam,
                                                      WinDef.LPARAM lParam) {
-//        switch (uMsg) {
-//            case WinUser.WM_PAINT:
-//                if (currentZoom == null) {
-//                    ExtendedUser32.PAINTSTRUCT ps = new ExtendedUser32.PAINTSTRUCT();
-//                    WinDef.HDC hdc = ExtendedUser32.INSTANCE.BeginPaint(hwnd, ps);
-//                    clearWindow(hdc, ps.rcPaint, 0);
-//                    ExtendedUser32.INSTANCE.EndPaint(hwnd, ps);
-//                }
-//                break;
-//        }
         return User32.INSTANCE.DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
@@ -825,12 +466,13 @@ public class WindowsOverlay implements Overlay {
             applyOverlayExStyles(gridHwnd);
         }
         boolean wasShowing = gridRenderer.showing();
+        // Screen pixels: the configured thickness does not change with the zoom.
         gridRenderer.setGrid(grid, virtualDesktopBounds(),
-                scaledPixels(grid.lineThickness(), 1));
+                (int) Math.floor(grid.lineThickness()));
         if (!wasShowing)
             setTopmost();
         if (firstCreation)
-            updateZoomExcludedWindows();
+            updateCaptureExclusions();
     }
 
     /**
@@ -856,17 +498,12 @@ public class WindowsOverlay implements Overlay {
     public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
         int windowsBefore = hintMeshRenderer.windows().size();
         boolean wasShowing = hintMeshRenderer.showing();
-        boolean nonMatchShown = hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch,
+        hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch,
                 WindowsScreen.findScreens());
         if (!wasShowing)
             setTopmost();
-        if (nonMatchShown && zoomAfterHintMeshEndAnimation) {
-            zoomAfterHintMeshEndAnimation = false;
-            setZoom(afterHintMeshEndAnimationZoom);
-            afterHintMeshEndAnimationZoom = null;
-        }
         if (hintMeshRenderer.windows().size() > windowsBefore)
-            updateZoomExcludedWindows();
+            updateCaptureExclusions();
     }
 
     @Override
@@ -883,6 +520,11 @@ public class WindowsOverlay implements Overlay {
     @Override
     public boolean hintTransitionAnimating() {
         return hintMeshRenderer.transitionAnimating();
+    }
+
+    @Override
+    public boolean zoomAnimating() {
+        return zoomAnimating;
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {

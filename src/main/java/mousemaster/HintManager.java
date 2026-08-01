@@ -514,6 +514,20 @@ public class HintManager implements ModeListener, MousePositionListener {
                 cellGridArea(level.cell(), size, center)));
     }
 
+    /** A desktop region as it appears on screen. */
+    private static Rectangle zoomedRectangle(Rectangle rectangle, Zoom zoom) {
+        int left = (int) Math.round(zoom.zoomedX(rectangle.x()));
+        int top = (int) Math.round(zoom.zoomedY(rectangle.y()));
+        return new Rectangle(left, top,
+                (int) Math.round(zoom.zoomedX(rectangle.x() + rectangle.width())) - left,
+                (int) Math.round(zoom.zoomedY(rectangle.y() + rectangle.height())) - top);
+    }
+
+    private static Point zoomedPoint(Point point, Zoom zoom) {
+        return new Point((int) Math.round(zoom.zoomedX(point.x())),
+                (int) Math.round(zoom.zoomedY(point.y())));
+    }
+
     /**
      * The cell scaled by the size percents, centered on the point grid-area-center selects.
      */
@@ -577,27 +591,32 @@ public class HintManager implements ModeListener, MousePositionListener {
                 // instead, so back navigation reproduces the exact area it rendered.
                 Rectangle areaRectangle;
                 Point gridCenter;
+                // Areas resolve to screen space: a viewport source is already there, a
+                // desktop region is mapped through the zoom.
                 if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
                     areaRectangle = cellGridLevelStack.isEmpty() ?
                             activeScreen.rectangle() :
-                            cellGridLevelStack.peek().area();
+                            zoomedRectangle(cellGridLevelStack.peek().area(), zoom);
                     gridCenter = areaRectangle.center();
                 }
                 else {
                     Rectangle sourceRectangle = switch (area.size().source()) {
                         case ACTIVE_SCREEN -> activeScreen.rectangle();
-                        case ACTIVE_WINDOW -> overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
+                        case ACTIVE_WINDOW -> zoomedRectangle(
+                                overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0), zoom);
                         default -> throw new IllegalStateException();
                     };
                     gridCenter = switch (area.center()) {
                         case SCREEN_CENTER ->
                                 activeScreen.rectangle().center();
-                        case MOUSE -> new Point(mouseX, mouseY);
+                        case MOUSE -> zoomedPoint(new Point(mouseX, mouseY), zoom);
                         case LAST_SELECTED_HINT ->
-                                lastSelectedHintPoint == null ?
-                                        new Point(mouseX, mouseY) : lastSelectedHintPoint;
-                        case ACTIVE_WINDOW_CENTER ->
-                                overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
+                                zoomedPoint(lastSelectedHintPoint == null ?
+                                        new Point(mouseX, mouseY) : lastSelectedHintPoint,
+                                        zoom);
+                        case ACTIVE_WINDOW_CENTER -> zoomedRectangle(
+                                overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0), zoom)
+                                .center();
                     };
                     areaRectangle = scaledArea(sourceRectangle, area.size(), gridCenter);
                 }
@@ -693,12 +712,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                         -1, -1,
                         -1, -1,
                         -1, -1, false, prefixLengths);
-                Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
-                if (zoom1.screenRectangle().contains(point.x(), point.y()))
-                    hints.add(new Hint(zoom1.zoomedX(point.x()), zoom1.zoomedY(point.y()),
-                            -1, -1, keySequence));
-                else
-                    hints.add(new Hint(point.x(), point.y(), -1, -1, keySequence));
+                hints.add(new Hint(zoom.zoomedX(point.x()), zoom.zoomedY(point.y()),
+                        -1, -1, keySequence));
             }
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
@@ -807,21 +822,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                                          Zoom zoom, Set<Integer> prefixLengths) {
         int rowCount = fixedSizeHintGrid.rowCount();
         int columnCount = fixedSizeHintGrid.columnCount();
-        Zoom zoom1 = new Zoom(1, zoom.center(), zoom.screenRectangle());
-        double hintMeshX;
-        double hintMeshY;
-        if (zoom1.screenRectangle()
-                 .contains(fixedSizeHintGrid.hintMeshX() +
-                           fixedSizeHintGrid.hintMeshWidth / 2,
-                         fixedSizeHintGrid.hintMeshY() +
-                         fixedSizeHintGrid.hintMeshHeight / 2)) {
-            hintMeshX = zoom1.zoomedX(fixedSizeHintGrid.hintMeshX());
-            hintMeshY = zoom1.zoomedY(fixedSizeHintGrid.hintMeshY());
-        }
-        else {
-            hintMeshX = fixedSizeHintGrid.hintMeshX();
-            hintMeshY = fixedSizeHintGrid.hintMeshY();
-        }
+        // The area is already in screen coordinates, so configured cell and font sizes are
+        // screen pixels whatever the zoom. Only what a hint points at follows it, through
+        // the unzoomedX that resolves a selection.
+        double hintMeshX = fixedSizeHintGrid.hintMeshX();
+        double hintMeshY = fixedSizeHintGrid.hintMeshY();
         double cellWidth = fixedSizeHintGrid.cellWidth;
         double cellHeight = fixedSizeHintGrid.cellHeight;
         int gridHintCount = rowCount * columnCount;
@@ -1034,6 +1039,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                 cellWidth, cellHeight);
     }
 
+    /** The desktop region a hint's cell covers. */
+    private static Rectangle unzoomedHintCell(Hint hint, Zoom zoom) {
+        int left = (int) Math.round(zoom.unzoomedX(hint.centerX() - hint.cellWidth() / 2));
+        int top = (int) Math.round(zoom.unzoomedY(hint.centerY() - hint.cellHeight() / 2));
+        return new Rectangle(left, top,
+                (int) Math.round(zoom.unzoomedX(hint.centerX() + hint.cellWidth() / 2)) -
+                left,
+                (int) Math.round(zoom.unzoomedY(hint.centerY() + hint.cellHeight() / 2)) -
+                top);
+    }
+
     private static Rectangle hintCellRectangle(Hint hint) {
         // Round the cell's edges (not its center and width independently) so this matches the
         // renderer's box geometry. Otherwise the drilled-into area can be a pixel narrower than the
@@ -1095,7 +1111,8 @@ public class HintManager implements ModeListener, MousePositionListener {
             Set<Integer> prefixLengths = new HashSet<>();
             decorationHints = buildHints(grid, decoration.labelKeys(), 0,
                     grid.hintCount(), 0, subgridCount, 0, layoutRowCount,
-                    layoutColumnCount, decorationLayout.layoutRowOriented(), zoom, prefixLengths);
+                    layoutColumnCount, decorationLayout.layoutRowOriented(), zoom,
+                    prefixLengths);
             prefixLength = prefixLengths.size() == 1 ?
                     prefixLengths.iterator().next() : -1;
         }
@@ -1302,8 +1319,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                                 Math.round(exactMatchHint.centerY()));
             }
             logger.trace("Saving lastSelectedHintPoint " + lastSelectedHintPoint);
+            // Unzoomed, like lastSelectedHintPoint: a cell in screen units could not
+            // compound, so zooming into it twice would magnify by the same factor.
             pendingSelectedCell = exactMatchHint.cellWidth() > 0 ?
-                    hintCellRectangle(exactMatchHint) : null;
+                    unzoomedHintCell(exactMatchHint, currentZoom) : null;
             lastSelectedHintCell = pendingSelectedCell;
              if (hintMeshConfiguration.mouseMovement() != HintMouseMovement.NO_MOVEMENT) {
                  moveMouse(new Point(exactMatchHint.centerX(), exactMatchHint.centerY()));

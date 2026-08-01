@@ -51,46 +51,59 @@ public class Mousemaster {
             previousIterationBeginTime = iterationBeginTime;
             double delta = deltaNanos / 1e9d;
             long timeBeforeOp = iterationBeginTime;
+            long pumpEventsNanos = 0;
             updateConfiguration();
             long timeAfterOp = System.nanoTime();
             long updateConfigurationDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             updateActiveKeyboardLayout(delta);
             timeAfterOp = System.nanoTime();
             long updateActiveKeyboardLayoutDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             QtManager.processEvents();
+            timeAfterOp = System.nanoTime();
+            long qtDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
+            timeBeforeOp = timeAfterOp;
             platform.update(delta);
             timeAfterOp = System.nanoTime();
             long platformDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             modeController.update(delta);
             timeAfterOp = System.nanoTime();
             long modeControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             mouseManager.update(delta);
             timeAfterOp = System.nanoTime();
             long mouseControllerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             keyboardManager.update(delta);
             timeAfterOp = System.nanoTime();
             long keyboardManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             indicatorManager.update(delta);
             timeAfterOp = System.nanoTime();
             long indicatorManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             zoomManager.update(delta);
             timeAfterOp = System.nanoTime();
+            long zoomManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
-            timeBeforeOp = timeAfterOp;
+            timeBeforeOp = System.nanoTime();
+            pumpEventsNanos += timeBeforeOp - timeAfterOp;
             macroPlayer.update(delta);
             timeAfterOp = System.nanoTime();
             long macroPlayerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
@@ -101,11 +114,14 @@ public class Mousemaster {
                 logger.trace("Long iteration duration: " + iterationDuration + "ms, " +
                              "updateConfigurationDuration = " + updateConfigurationDuration + "ms, " +
                              "updateActiveKeyboardLayoutDuration = " + updateActiveKeyboardLayoutDuration + "ms, " +
+                             "pumpEventsDuration = " + pumpEventsNanos / 1_000_000 + "ms, " +
+                             "qtDuration = " + qtDuration + "ms, " +
                              "platformDuration = " + platformDuration + "ms, " +
                              "modeControllerDuration = " + modeControllerDuration + "ms, " +
                              "mouseControllerDuration = " + mouseControllerDuration + "ms, " +
                              "keyboardManagerDuration = " + keyboardManagerDuration + "ms, " +
                              "indicatorManagerDuration = " + indicatorManagerDuration + "ms, " +
+                             "zoomManagerDuration = " + zoomManagerDuration + "ms, " +
                              "macroPlayerDuration = " + macroPlayerDuration + "ms");
             }
             platform.sleep();

@@ -2,11 +2,6 @@ package mousemaster;
 
 import mousemaster.platform.Overlay;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class ZoomManager implements ModeListener, MousePositionListener {
 
     private final ScreenManager screenManager;
@@ -26,10 +21,8 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     private ZoomCenter endCenter;
     private Easing animationEasing;
     private double animationTotalDuration;
-    // Hint mesh to interpolate during animation (null if no hints).
+    /** Hidden while the image moves, shown again when it settles. */
     private HintMesh endHintMesh;
-    // The zoom center used to build endHintMesh.
-    private Point endHintZoomCenter;
 
     public ZoomManager(ScreenManager screenManager, HintManager hintManager,
                        Overlay overlay) {
@@ -77,8 +70,24 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             }
         }
         else {
-            // startScreenshotZoomAnimation handles the interruption if
-            // screenshotAnimating is still true — no need to end here.
+            beginCenterPoint = currentCenterPoint != null
+                    ? currentCenterPoint
+                    : screenManager.activeScreen().rectangle().center();
+            endCenter = endIsNoZoom
+                    ? ZoomCenter.SCREEN_CENTER
+                    : newMode.zoom().center();
+            Point endCenterPoint = endCenter.centerPoint(
+                    screenManager.activeScreen().rectangle(), mouseX, mouseY,
+                    hintManager.lastSelectedHintPoint());
+            if (beginPercent == endPercent && beginCenterPoint.equals(endCenterPoint)) {
+                // Zoom configurations differing only in their animation settings.
+                currentPercent = endPercent;
+                if (endIsNoZoom) {
+                    currentCenterPoint = null;
+                    overlay.setZoom(null);
+                }
+                return;
+            }
             animating = true;
             animationDuration = 0;
             animationEasing = animationConfig.animationEasing();
@@ -90,39 +99,19 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             double durationScale = fullRange > 0 ? Math.min(1.0, actualRange / fullRange) : 1.0;
             animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0
                     * durationScale;
-            beginCenterPoint = currentCenterPoint != null
-                    ? currentCenterPoint
-                    : screenManager.activeScreen().rectangle().center();
-            endCenter = endIsNoZoom
-                    ? ZoomCenter.SCREEN_CENTER
-                    : newMode.zoom().center();
-            // Capture hint mesh for interpolation during animation,
-            // only if the new mode has hints enabled.
+            // The mesh built for the new zoom is a different grid, not the same one at
+            // another scale, so there is nothing coherent to show while the image moves.
             HintMesh hintMesh = hintManager.hintMesh();
             if (newMode.hintMesh().enabled() && hintMesh != null && hintMesh.visible()) {
                 endHintMesh = hintMesh;
-                endHintZoomCenter = newMode.zoom().center().centerPoint(
-                        screenManager.activeScreen().rectangle(), mouseX, mouseY,
-                        hintManager.lastSelectedHintPoint());
-                // Override the final hint mesh that HintManager just displayed
-                // with the t=0 interpolated mesh.
-                Screen screen = screenManager.nearestScreenContaining(
-                        beginCenterPoint.x(), beginCenterPoint.y());
-                HintMesh interpolatedMesh = interpolateHintMesh(endHintMesh,
-                        endHintZoomCenter, beginCenterPoint,
-                        screen.rectangle().center(), endPercent, beginPercent);
-                overlay.setHintMesh(interpolatedMesh,
-                        new Zoom(beginPercent, beginCenterPoint, screen.rectangle()));
+                overlay.hideHintMesh();
             }
-            else {
+            else
                 endHintMesh = null;
-                endHintZoomCenter = null;
-            }
-            // Start screenshot-based zoom animation.
+            overlay.setZoomAnimating(true);
             Screen screen = screenManager.nearestScreenContaining(
                     beginCenterPoint.x(), beginCenterPoint.y());
-            Zoom beginZoom = new Zoom(beginPercent, beginCenterPoint, screen.rectangle());
-            overlay.startScreenshotZoomAnimation(screen.rectangle(), beginZoom);
+            overlay.setZoom(new Zoom(beginPercent, beginCenterPoint, screen.rectangle()));
         }
     }
 
@@ -145,119 +134,22 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
                 centerPoint.y());
         Zoom currentZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
-        overlay.updateScreenshotZoom(currentZoom);
-        if (endHintMesh != null) {
-            HintMesh interpolatedMesh = interpolateHintMesh(endHintMesh,
-                    endHintZoomCenter, centerPoint,
-                    screen.rectangle().center(), endPercent, currentPercent);
-            overlay.setHintMesh(interpolatedMesh, currentZoom);
-        }
+        overlay.setZoom(currentZoom);
         if (t >= 1.0) {
             animating = false;
+            overlay.setZoomAnimating(false);
             Zoom endZoom = endIsNoZoom ? null :
                     new Zoom(currentPercent, centerPoint, screen.rectangle());
-            overlay.endScreenshotZoomAnimation(endZoom);
+            overlay.setZoom(endZoom);
             if (endHintMesh != null) {
-                // Restore the final hint mesh.
                 if (endZoom == null)
                     endZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
                 overlay.setHintMesh(endHintMesh, endZoom);
                 endHintMesh = null;
-                endHintZoomCenter = null;
             }
             if (endIsNoZoom)
                 currentCenterPoint = null;
         }
-    }
-
-    private static HintMesh interpolateHintMesh(HintMesh mesh,
-            Point endCenter, Point currentCenter,
-            Point screenCenter, double endPercent, double currentPercent) {
-        // unzoomedX = (h.centerX - screenCenter) / endPercent + endCenter
-        // interpolatedX = screenCenter + (unzoomedX - currentCenter) * currentPercent
-        double scale = currentPercent / endPercent;
-        List<Hint> interpolatedHints = mesh.hints().stream()
-                .map(h -> {
-                    double unzoomedX = (h.centerX() - screenCenter.x()) / endPercent + endCenter.x();
-                    double unzoomedY = (h.centerY() - screenCenter.y()) / endPercent + endCenter.y();
-                    return new Hint(
-                            screenCenter.x() + (unzoomedX - currentCenter.x()) * currentPercent,
-                            screenCenter.y() + (unzoomedY - currentCenter.y()) * currentPercent,
-                            h.cellWidth() * scale, h.cellHeight() * scale,
-                            h.keySequence());
-                })
-                .toList();
-        Rectangle backgroundArea = mesh.backgroundArea();
-        Rectangle interpolatedBackgroundArea = null;
-        if (backgroundArea != null) {
-            double backgroundUnzoomedX = (backgroundArea.x() - screenCenter.x()) / endPercent + endCenter.x();
-            double backgroundUnzoomedY = (backgroundArea.y() - screenCenter.y()) / endPercent + endCenter.y();
-            interpolatedBackgroundArea = new Rectangle(
-                    (int) (screenCenter.x() + (backgroundUnzoomedX - currentCenter.x()) * currentPercent),
-                    (int) (screenCenter.y() + (backgroundUnzoomedY - currentCenter.y()) * currentPercent),
-                    (int) (backgroundArea.width() * scale), (int) (backgroundArea.height() * scale));
-        }
-        ViewportFilterMap<HintMeshStyle> scaledStyleByFilter = scaleFontSize(
-                mesh.styleByFilter(), scale);
-        return new HintMesh(mesh.visible(), interpolatedHints, mesh.prefixLength(),
-                mesh.selectedKeySequence(), scaledStyleByFilter, interpolatedBackgroundArea,
-                mesh.decoration(), mesh.subDecoration());
-    }
-
-    private static ViewportFilterMap<HintMeshStyle> scaleFontSize(
-            ViewportFilterMap<HintMeshStyle> styleByFilter, double scale) {
-        Map<ViewportFilter, HintMeshStyle> scaledMap = new HashMap<>();
-        for (Map.Entry<ViewportFilter, HintMeshStyle> entry : styleByFilter.map().entrySet()) {
-            scaledMap.put(entry.getKey(), scaleFontSize(entry.getValue(), scale));
-        }
-        return new ViewportFilterMap<>(scaledMap);
-    }
-
-    private static HintMeshStyle scaleFontSize(HintMeshStyle style, double scale) {
-        List<Decoration> scaledDecorations = new ArrayList<>();
-        for (Decoration decoration : style.decorations())
-            scaledDecorations.add(new Decoration(
-                    decoration.maxRowCount(), decoration.maxColumnCount(),
-                    decoration.labelKeys(), decoration.labelOverride(),
-                    decoration.boxHexColor(), decoration.boxOpacity(),
-                    decoration.boxBorderThickness(), decoration.boxBorderLength(),
-                    decoration.boxBorderHexColor(), decoration.boxBorderOpacity(),
-                    decoration.boxBorderRadius(),
-                    scaleFontSize(decoration.fontStyle(), scale),
-                    decoration.closed()));
-        return new HintMeshStyle(
-                scaleFontSize(style.fontStyle(), scale),
-                style.prefixInBackground(),
-                scaleFontSize(style.prefixFontStyle(), scale),
-                style.boxHexColor(), style.boxOpacity(),
-                style.boxBorderThickness(), style.boxBorderLength(),
-                style.boxBorderHexColor(), style.boxBorderOpacity(),
-                style.boxBorderRadius(), style.boxShadow(),
-                style.prefixBoxEnabled(),
-                style.prefixBoxBorderThickness(), style.prefixBoxBorderLength(),
-                style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity(),
-                style.boxWidthPercent(), style.boxHeightPercent(),
-                style.cellHorizontalPadding(), style.cellVerticalPadding(),
-                scaledDecorations,
-                style.transitionAnimationEnabled(), style.transitionAnimationDuration(),
-                style.fadeAnimationEnabled(), style.fadeAnimationDuration(),
-                style.backgroundHexColor(), style.backgroundOpacity(),
-                style.labelOverride());
-    }
-
-    private static HintFontStyle scaleFontSize(HintFontStyle style, double scale) {
-        return new HintFontStyle(
-                scaleFontSize(style.defaultFontStyle(), scale),
-                style.spacingPercent(),
-                scaleFontSize(style.selectedFontStyle(), scale),
-                scaleFontSize(style.focusedFontStyle(), scale));
-    }
-
-    private static FontStyle scaleFontSize(FontStyle style, double scale) {
-        return new FontStyle(style.name(), style.weight(),
-                style.size() * scale, style.hexColor(), style.opacity(),
-                style.outlineThickness(), style.outlineHexColor(),
-                style.outlineOpacity(), style.shadow(), style.verticalAlignment());
     }
 
     @Override

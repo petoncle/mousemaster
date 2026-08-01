@@ -12,6 +12,8 @@ public interface Dwmapi extends StdCallLibrary {
 
     boolean DwmGetWindowAttribute(WinDef.HWND hwnd, int dwAttribute, WinDef.RECT pRect, int cbAttribute);
 
+    void DwmFlush();
+
     int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
 
 }

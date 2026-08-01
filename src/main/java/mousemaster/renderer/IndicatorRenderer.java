@@ -61,14 +61,14 @@ public final class IndicatorRenderer {
         return currentIndicator;
     }
 
-    private int indicatorSize(Indicator indicator, double screenScale, double zoomPercent) {
-        return (int) Math.floor(indicator.size() * screenScale * zoomPercent);
+    private int indicatorSize(Indicator indicator, double screenScale) {
+        return (int) Math.floor(indicator.size() * screenScale);
     }
 
-    private int indicatorOutlinePadding(Indicator indicator, double screenScale, double zoomPercent) {
+    private int indicatorOutlinePadding(Indicator indicator, double screenScale) {
         double scaled = Math.max(
                 indicator.outerOutline().thickness(),
-                indicator.innerOutline().thickness()) * screenScale * zoomPercent;
+                indicator.innerOutline().thickness()) * screenScale;
         return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, indicator.edgeCount()));
     }
 
@@ -118,7 +118,7 @@ public final class IndicatorRenderer {
         // Position the (hidden) window before showIndicator shows it.
         if (created || sizeOrShadowOrPositionChanged)
             reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
-        double shadowScale = activeScreen.scale() * zoomPercent(zoom);
+        double shadowScale = activeScreen.scale();
         showIndicator(indicator, applyShadow, shadowScale, wasShowing,
                 fadeAnimationEnabled, fadeAnimationDuration, allowFade);
     }
@@ -132,15 +132,16 @@ public final class IndicatorRenderer {
     private void reposition(Indicator indicator, Rectangle mouseRectangle,
                             Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
         double screenScale = activeScreen.scale();
-        double zoomPercent = zoomPercent(zoom);
-        int size = indicatorSize(indicator, screenScale, zoomPercent);
-        int outlinePadding = indicatorOutlinePadding(indicator, screenScale, zoomPercent);
-        int shadowPadding = indicatorShadowPadding(indicator, screenScale * zoomPercent);
+        // Screen pixels: the configured size does not change with the zoom. Only the
+        // position does, because the cursor it marks is a desktop point.
+        int size = indicatorSize(indicator, screenScale);
+        int outlinePadding = indicatorOutlinePadding(indicator, screenScale);
+        int shadowPadding = indicatorShadowPadding(indicator, screenScale);
         int visualSize = size + 2 * outlinePadding;
         Point topLeft = indicatorTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
                 zoom, indicator, visualSize);
         moveAndResize((int) Math.round(topLeft.x()), (int) Math.round(topLeft.y()),
-                size, outlinePadding, shadowPadding, screenScale * zoomPercent, zoomPercent);
+                size, outlinePadding, shadowPadding, screenScale);
     }
 
     private static final int indicatorEdgeThreshold = 100;
@@ -199,20 +200,16 @@ public final class IndicatorRenderer {
         return zoom == null ? y : zoom.zoomedY(y);
     }
 
-    private static double zoomPercent(Zoom zoom) {
-        return zoom == null ? 1 : zoom.percent();
-    }
-
     /** An offscreen-rendered indicator: premultiplied ARGB (0xAARRGGBB), row-major. */
     public record CursorImage(int[] argb, int width, int height) {}
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
     public CursorImage renderCursorImage(Indicator indicator, double scale) {
-        int size = indicatorSize(indicator, scale, 1);
+        int size = indicatorSize(indicator, scale);
         if (size <= 0)
             return null;
-        int outlinePadding = indicatorOutlinePadding(indicator, scale, 1);
+        int outlinePadding = indicatorOutlinePadding(indicator, scale);
         int shadowPadding = indicatorShadowPadding(indicator, scale);
         int imageSize = size + 2 * (outlinePadding + shadowPadding);
         window();
@@ -371,7 +368,7 @@ public final class IndicatorRenderer {
     /** Moves and resizes the window + widgets to the computed visual top-left and sizes. */
     private void moveAndResize(int visualTopLeftX, int visualTopLeftY, int size,
                               int outlinePadding, int shadowPadding,
-                              double outlineScale, double labelFontScale) {
+                              double outlineScale) {
         widget.setOutlineScale(outlineScale);
         // Never shrink the window: the DWM compositor would show the old, larger surface
         // at the new smaller size for one frame, mispositioning the indicator. Extra area
@@ -388,7 +385,7 @@ public final class IndicatorRenderer {
         labelWidget.move(shadowPadding, shadowPadding);
         labelWidget.resize(widgetSize, widgetSize);
         labelWidget.setIndicatorOutlinePadding(outlinePadding);
-        labelWidget.setLabelFontScale(labelFontScale);
+        labelWidget.setLabelFontScale(1);
     }
 
     public void hide(boolean allowFade) {

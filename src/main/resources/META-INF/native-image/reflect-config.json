@@ -948,21 +948,35 @@
   "allDeclaredFields":true
 },
 {
-  "name":"mousemaster.platform.windows.Magnification$MAGTRANSFORM",
-  "allDeclaredFields":true,
-  "methods":[{"name":"<init>","parameterTypes":["float"] }]
-},
-{
-  "name":"mousemaster.platform.windows.Magnification$MAGTRANSFORM$ByReference",
-  "allDeclaredFields":true,
-  "methods":[{"name":"<init>","parameterTypes":["float"] }]
-},
-{
   "name":"mousemaster.platform.windows.QtJambi_LibraryUtilities"
 },
 {
   "name":"mousemaster.platform.windows.Shcore$MONITOR_DPI_TYPE",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.platform.windows.WindowsDesktopDuplication$OutputDesc",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.platform.windows.WindowsDesktopDuplication$Texture2DDesc",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.platform.windows.WindowsZoomRenderer$BufferDesc",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.platform.windows.WindowsZoomRenderer$SamplerDesc",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.platform.windows.WindowsZoomRenderer$SwapChainDesc1",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.platform.windows.WindowsZoomRenderer$Viewport",
+  "allDeclaredFields":true
 },
 {
   "name":"mousemaster.platform.windows.WindowsScreen$1",
