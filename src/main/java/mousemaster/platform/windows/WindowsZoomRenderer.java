@@ -113,6 +113,8 @@ final class WindowsZoomRenderer {
     private Rectangle outputBounds;
     private Rectangle windowBounds;
     private WinDef.HWND hwnd;
+    /** The device the resources above belong to. */
+    private Pointer device;
     private boolean sampled;
     private boolean unavailable;
 
@@ -124,15 +126,18 @@ final class WindowsZoomRenderer {
     boolean prepare(WinDef.HWND hwnd, Rectangle screenRect) {
         if (unavailable)
             return false;
-        if (this.hwnd != null && this.hwnd.equals(hwnd) &&
-            screenRect.equals(windowBounds))
-            return true;
         try {
             if (!duplication.ensureInitialized(screenRect))
                 return false;
+            // The duplication takes its device down with it, and these resources are the
+            // device's children.
+            if (hwnd.equals(this.hwnd) && screenRect.equals(windowBounds) &&
+                duplication.device().equals(device))
+                return true;
             releaseResources();
             this.hwnd = hwnd;
             windowBounds = screenRect;
+            device = duplication.device();
             outputBounds = duplication.outputBounds();
             createSwapChain(screenRect);
             createPipeline();
@@ -208,7 +213,6 @@ final class WindowsZoomRenderer {
     }
 
     private void createSwapChain(Rectangle screenRect) {
-        Pointer device = duplication.device();
         Pointer dxgiDevice = queryInterface(device, IID_IDXGIDevice);
         PointerByReference adapterOut = new PointerByReference();
         check(call(dxgiDevice, IDXGIDEVICE_GETADAPTER, adapterOut), "GetAdapter");
@@ -252,7 +256,6 @@ final class WindowsZoomRenderer {
     }
 
     private void createPipeline() {
-        Pointer device = duplication.device();
         // The duplicated texture is not bindable as a shader resource, hence this copy.
         WindowsDesktopDuplication.Texture2DDesc texture =
                 new WindowsDesktopDuplication.Texture2DDesc();
@@ -348,6 +351,7 @@ final class WindowsZoomRenderer {
         outputBounds = null;
         windowBounds = null;
         hwnd = null;
+        device = null;
         sampled = false;
     }
 

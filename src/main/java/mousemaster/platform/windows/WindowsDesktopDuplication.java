@@ -218,8 +218,6 @@ final class WindowsDesktopDuplication {
 
     /** The default adapter of a hybrid-GPU laptop often drives no output. */
     private void createDevice(Pointer adapter) {
-        if (device != null)
-            return;
         PointerByReference deviceOut = new PointerByReference();
         PointerByReference contextOut = new PointerByReference();
         // An explicit adapter requires the driver type to be UNKNOWN.
@@ -235,6 +233,12 @@ final class WindowsDesktopDuplication {
         duplication = null;
         outputBounds = null;
         copied = false;
+        // The device goes with it: it can only duplicate an output of the adapter it was
+        // created on, and the next output may be on another one.
+        release(context);
+        context = null;
+        release(device);
+        device = null;
     }
 
     /** Exposes {@code _invokeNativeObject}, which is protected to Unknown's subclasses. */
