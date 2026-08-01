@@ -43,6 +43,8 @@ public interface Overlay {
 
     void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch);
 
+    void restoreHintMesh(HintMesh hintMesh, Zoom zoom);
+
     void hideHintMesh();
 
     boolean hintTransitionAnimating();

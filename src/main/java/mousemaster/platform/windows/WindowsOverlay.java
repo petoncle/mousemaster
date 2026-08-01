@@ -489,9 +489,20 @@ public class WindowsOverlay implements Overlay {
 
     @Override
     public void setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch) {
+        showHintMesh(hintMesh, zoom, hintMatch, true);
+    }
+
+    /** The mesh was concealed while the zoom moved, so putting it back is not it appearing. */
+    @Override
+    public void restoreHintMesh(HintMesh hintMesh, Zoom zoom) {
+        showHintMesh(hintMesh, zoom, false, false);
+    }
+
+    private void showHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
+                              boolean allowFade) {
         int windowsBefore = hintMeshRenderer.windows().size();
         boolean wasShowing = hintMeshRenderer.showing();
-        hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch,
+        hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch, allowFade,
                 WindowsScreen.findScreens());
         if (!wasShowing)
             setTopmost();

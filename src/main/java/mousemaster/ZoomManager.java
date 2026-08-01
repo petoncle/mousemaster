@@ -151,7 +151,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             if (endHintMesh != null) {
                 if (endZoom == null)
                     endZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
-                overlay.setHintMesh(endHintMesh, endZoom);
+                overlay.restoreHintMesh(endHintMesh, endZoom);
                 endHintMesh = null;
             }
             if (endIsNoZoom)

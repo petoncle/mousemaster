@@ -263,7 +263,7 @@ public final class HintMeshRenderer {
     }
 
     public boolean setHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
-                               Set<Screen> screens) {
+                               boolean allowFade, Set<Screen> screens) {
         boolean nonMatchShown = false;
         Objects.requireNonNull(hintMesh);
         if (!hintMesh.visible()) {
@@ -302,7 +302,7 @@ public final class HintMeshRenderer {
         currentHintMesh = hintMesh;
         createOrUpdateHintMeshWindows(currentHintMesh, zoom, screens);
         showingHintMesh = true;
-        if ((!wasShowing || fadeIn) && !hintMeshWindows.isEmpty()) {
+        if (allowFade && (!wasShowing || fadeIn) && !hintMeshWindows.isEmpty()) {
             // Resolve fade settings from first screen's style.
             Map.Entry<Screen, HintMeshWindow> firstEntry =
                     hintMeshWindows.entrySet().iterator().next();
