@@ -22,7 +22,7 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     private Easing animationEasing;
     private double animationTotalDuration;
     /** Hidden while the image moves, shown again when it settles. */
-    private HintMesh endHintMesh;
+    private boolean hintMeshHidden;
 
     public ZoomManager(ScreenManager screenManager, HintManager hintManager,
                        Overlay overlay) {
@@ -91,12 +91,10 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                     screenManager.activeScreen().rectangle(), mouseX, mouseY,
                     hintManager.lastSelectedHintPoint());
             if (beginPercent == endPercent && beginCenterPoint.equals(endCenterPoint)) {
-                // Zoom configurations differing only in their animation settings.
+                // Zoom configurations differing only in their animation settings, or a
+                // zoom released before a single frame of it was drawn.
                 currentPercent = endPercent;
-                if (endIsNoZoom) {
-                    currentCenterPoint = null;
-                    overlay.setZoom(null);
-                }
+                settle(beginCenterPoint);
                 return;
             }
             animating = true;
@@ -111,12 +109,10 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0
                     * durationScale;
             HintMesh hintMesh = hintManager.hintMesh();
-            if (newMode.hintMesh().enabled() && hintMesh != null && hintMesh.visible()) {
-                endHintMesh = hintMesh;
+            hintMeshHidden = newMode.hintMesh().enabled() && hintMesh != null &&
+                             hintMesh.visible();
+            if (hintMeshHidden)
                 overlay.hideHintMesh();
-            }
-            else
-                endHintMesh = null;
             Screen screen = screenManager.nearestScreenContaining(
                     beginCenterPoint.x(), beginCenterPoint.y());
             overlay.setZoom(new Zoom(beginPercent, beginCenterPoint, screen.rectangle()));
@@ -143,20 +139,27 @@ public class ZoomManager implements ModeListener, MousePositionListener {
                 centerPoint.y());
         Zoom currentZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
         overlay.setZoom(currentZoom);
-        if (t >= 1.0) {
-            animating = false;
-            Zoom endZoom = endIsNoZoom ? null :
-                    new Zoom(currentPercent, centerPoint, screen.rectangle());
-            overlay.setZoom(endZoom);
-            if (endHintMesh != null) {
-                if (endZoom == null)
-                    endZoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
-                overlay.restoreHintMesh(endHintMesh, endZoom);
-                endHintMesh = null;
-            }
-            if (endIsNoZoom)
-                currentCenterPoint = null;
+        if (t >= 1.0)
+            settle(centerPoint);
+    }
+
+    /** The image has arrived, so the mesh hidden for the move can come back over it. */
+    private void settle(Point centerPoint) {
+        animating = false;
+        Screen screen = screenManager.nearestScreenContaining(centerPoint.x(),
+                centerPoint.y());
+        Zoom zoom = new Zoom(currentPercent, centerPoint, screen.rectangle());
+        overlay.setZoom(endIsNoZoom ? null : zoom);
+        if (hintMeshHidden) {
+            hintMeshHidden = false;
+            // Read now, not when it was hidden: the mesh hidden at the start was laid out
+            // for the zoom that has since been left behind.
+            HintMesh hintMesh = hintManager.hintMesh();
+            if (hintMesh != null)
+                overlay.restoreHintMesh(hintMesh, zoom);
         }
+        if (endIsNoZoom)
+            currentCenterPoint = null;
     }
 
     @Override
