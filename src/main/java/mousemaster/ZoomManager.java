@@ -39,7 +39,14 @@ public class ZoomManager implements ModeListener, MousePositionListener {
     public void modeChanged(Mode newMode) {
         Mode previousMode = this.currentMode;
         this.currentMode = newMode;
-        if (previousMode != null && previousMode.zoom().equals(newMode.zoom()))
+        // A zoom anchored on the hint selection resolves to a deeper zoom on every drill,
+        // even though the configuration it comes from is the same one.
+        boolean anchoredOnHintSelection =
+                newMode.zoom().areaSize().source() ==
+                ZoomAreaSizeSource.LAST_SELECTED_HINT_CELL ||
+                newMode.zoom().center() == ZoomCenter.LAST_SELECTED_HINT;
+        if (previousMode != null && !anchoredOnHintSelection &&
+            previousMode.zoom().equals(newMode.zoom()))
             return;
         Point targetCenter = newMode.zoom().center().centerPoint(
                 screenManager.activeScreen().rectangle(), mouseX, mouseY,
