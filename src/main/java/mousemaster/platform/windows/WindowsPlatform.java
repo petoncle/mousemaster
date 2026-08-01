@@ -44,6 +44,7 @@ public class WindowsPlatform implements Platform {
     private KeyboardManager keyboardManager;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
+    private ZoomManager zoomManager;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -100,7 +101,7 @@ public class WindowsPlatform implements Platform {
         enforceWindowsTopmostTimer -= delta;
         // Every 200ms, but not during an animation: SetWindowPos would cost it a frame.
         if (enforceWindowsTopmostTimer < 0 && !overlay.hintTransitionAnimating() &&
-            !overlay.zoomAnimating()) {
+            !zoomManager.animating()) {
             enforceWindowsTopmostTimer = 0.2;
             overlay.setTopmost();
         }
@@ -144,7 +145,7 @@ public class WindowsPlatform implements Platform {
         // A hint transition's and a zoom animation's frames are painted once per iteration,
         // so this sleep is what their first frame waits on.
         long sleepMillis =
-                overlay.hintTransitionAnimating() || overlay.zoomAnimating() ? 1 : 10;
+                overlay.hintTransitionAnimating() || zoomManager.animating() ? 1 : 10;
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();
@@ -158,6 +159,7 @@ public class WindowsPlatform implements Platform {
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
                       ModeMap newModeMap,
+                      ZoomManager zoomManager,
                       List<MousePositionListener> mousePositionListeners,
                       KeyboardLayout activeKeyboardLayout) {
         ModeMap oldModeMap = this.modeMap;
@@ -170,6 +172,7 @@ public class WindowsPlatform implements Platform {
         }
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
+        this.zoomManager = zoomManager;
         this.mousePositionListeners = mousePositionListeners;
         if (keyboard.activeKeyboardLayout != null &&
             !keyboard.activeKeyboardLayout.equals(activeKeyboardLayout)) {

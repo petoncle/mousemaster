@@ -33,7 +33,6 @@ public class WindowsOverlay implements Overlay {
     private WindowsZoomRenderer zoomRenderer;
     private Zoom currentZoom;
     private boolean zoomWindowShowing;
-    private boolean zoomAnimating;
     private Runnable messagePump;
 
     public WindowsOverlay(WindowsMouseController mouse) {
@@ -376,11 +375,6 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void setZoomAnimating(boolean zoomAnimating) {
-        this.zoomAnimating = zoomAnimating;
-    }
-
-    @Override
     public void setZoom(Zoom zoom) {
         if (currentZoom != null && currentZoom.equals(zoom))
             return;
@@ -519,11 +513,6 @@ public class WindowsOverlay implements Overlay {
     @Override
     public boolean hintTransitionAnimating() {
         return hintMeshRenderer.transitionAnimating();
-    }
-
-    @Override
-    public boolean zoomAnimating() {
-        return zoomAnimating;
     }
 
     void mouseMoved(WinDef.POINT mousePosition) {

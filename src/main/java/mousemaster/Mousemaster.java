@@ -254,6 +254,7 @@ public class Mousemaster {
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseManager, keyboardManager,
                 configuration.modeMap(),
+                zoomManager,
                 List.of(mouseManager, gridManager, hintManager, screenManager,
                         zoomManager), activeKeyboardLayout);
         if (preWarmHints)

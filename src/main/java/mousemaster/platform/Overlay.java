@@ -47,14 +47,9 @@ public interface Overlay {
 
     boolean hintTransitionAnimating();
 
-    boolean zoomAnimating();
-
     void animateHintMatch(Hint hint);
 
     void setZoom(Zoom zoom);
-
-    /** Only paces the frame loop: an animated zoom is a plain sequence of setZoom calls. */
-    void setZoomAnimating(boolean zoomAnimating);
 
     boolean waitForZoomBeforeRepainting();
 

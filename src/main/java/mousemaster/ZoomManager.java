@@ -31,6 +31,10 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         this.overlay = overlay;
     }
 
+    public boolean animating() {
+        return animating;
+    }
+
     @Override
     public void modeChanged(Mode newMode) {
         Mode previousMode = this.currentMode;
@@ -106,7 +110,6 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             }
             else
                 endHintMesh = null;
-            overlay.setZoomAnimating(true);
             Screen screen = screenManager.nearestScreenContaining(
                     beginCenterPoint.x(), beginCenterPoint.y());
             overlay.setZoom(new Zoom(beginPercent, beginCenterPoint, screen.rectangle()));
@@ -135,7 +138,6 @@ public class ZoomManager implements ModeListener, MousePositionListener {
         overlay.setZoom(currentZoom);
         if (t >= 1.0) {
             animating = false;
-            overlay.setZoomAnimating(false);
             Zoom endZoom = endIsNoZoom ? null :
                     new Zoom(currentPercent, centerPoint, screen.rectangle());
             overlay.setZoom(endZoom);
