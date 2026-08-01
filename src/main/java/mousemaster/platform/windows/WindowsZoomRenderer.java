@@ -235,8 +235,8 @@ final class WindowsZoomRenderer {
         desc.bufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         desc.bufferCount = 1;
         desc.scaling = DXGI_SCALING_STRETCH;
-        // Bitblt, not flip: a flip model window bypasses DWM's redirection surface, and
-        // the translucent overlays drawn on top of it then composite unreliably.
+        // Bitblt, not flip: a flip model window goes straight to the screen, and the
+        // translucent overlays above it then draw unreliably.
         desc.swapEffect = DXGI_SWAP_EFFECT_DISCARD;
         desc.alphaMode = DXGI_ALPHA_MODE_IGNORE;
         desc.write();

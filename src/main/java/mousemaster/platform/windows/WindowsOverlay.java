@@ -33,7 +33,6 @@ public class WindowsOverlay implements Overlay {
     private WindowsZoomRenderer zoomRenderer;
     private Zoom currentZoom;
     private boolean zoomWindowShowing;
-    private boolean overlaysExcludedFromCapture;
     private boolean zoomAnimating;
     private Runnable messagePump;
 
@@ -272,8 +271,8 @@ public class WindowsOverlay implements Overlay {
                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
-    /** A full-screen swapchain window appearing for the first time makes DWM rearrange how
-     *  it composites the desktop, which costs a frame. */
+    /** A full-screen swapchain window appearing for the first time makes Windows rearrange
+     *  how it assembles the desktop, which costs a frame. */
     private void preWarmZoomWindow() {
         if (zoomHwnd != null)
             return;
@@ -288,8 +287,8 @@ public class WindowsOverlay implements Overlay {
                      (System.nanoTime() - before) / 1_000_000 + "ms");
     }
 
-    /** Through the alpha, never by hiding: a concealed window still composites, so it can
-     *  be drawn before it is shown. */
+    /** Through the alpha, never by hiding: a window at zero alpha is still drawn, so it can
+     *  hold an image before it is shown. */
     private void setZoomWindowVisible(boolean visible) {
         User32.INSTANCE.SetLayeredWindowAttributes(zoomHwnd, 0,
                 (byte) (visible ? 255 : 0), WinUser.LWA_ALPHA);
@@ -404,17 +403,15 @@ public class WindowsOverlay implements Overlay {
                  !previousZoom.screenRectangle().equals(currentZoom.screenRectangle()))
             // Still transparent: updateZoomWindow reveals it once it holds a frame.
             placeZoomWindow(currentZoom.screenRectangle());
-        // Only on the transition: setZoom runs on every mouse move when the zoom follows
-        // the mouse, and re-composing every overlay that often flickers them.
-        if ((currentZoom != null) != overlaysExcludedFromCapture) {
+        if (previousZoom == null && currentZoom != null) {
             updateCaptureExclusions();
-            if (currentZoom != null) {
-                // Duplication hands over an already composed frame, so the exclusions
-                // only reach it once composited.
-                Dwmapi.INSTANCE.DwmFlush();
-                zoomRenderer.discardFrame();
-            }
+            // Duplication hands over the desktop as Windows assembled it, so the
+            // exclusions only reach the next frame it assembles.
+            Dwmapi.INSTANCE.DwmFlush();
+            zoomRenderer.discardFrame();
         }
+        else if (previousZoom != null && currentZoom == null)
+            updateCaptureExclusions();
         if (indicatorHwnd != null)
             moveAndResizeIndicatorWindow();
         if (hintMeshRenderer.showing()) {
@@ -427,12 +424,11 @@ public class WindowsOverlay implements Overlay {
     /**
      * Keeps the overlays out of the duplicated frame, which would otherwise magnify them.
      * This hides them from every capture, not just ours, so it is cleared with the zoom.
-     * Each call re-composes the windows it touches: never call it per frame.
+     * Each call makes the windows it touches flicker: never call it per frame.
      */
     private void updateCaptureExclusions() {
-        overlaysExcludedFromCapture = currentZoom != null;
-        int affinity = overlaysExcludedFromCapture ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
-                                                   : ExtendedUser32.WDA_NONE;
+        int affinity = currentZoom != null ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
+                                           : ExtendedUser32.WDA_NONE;
         if (gridHwnd != null)
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(gridHwnd, affinity);
         for (TransparentWindow window : hintMeshRenderer.windows())

@@ -18,7 +18,7 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Hands the composed desktop to {@link WindowsZoomRenderer} with DXGI Desktop Duplication,
+ * Hands the on-screen desktop to {@link WindowsZoomRenderer} with DXGI Desktop Duplication,
  * texture to texture, never through the CPU. Windows marked WDA_EXCLUDEFROMCAPTURE are left
  * out of the frame.
  */

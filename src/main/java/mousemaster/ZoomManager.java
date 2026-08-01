@@ -99,8 +99,6 @@ public class ZoomManager implements ModeListener, MousePositionListener {
             double durationScale = fullRange > 0 ? Math.min(1.0, actualRange / fullRange) : 1.0;
             animationTotalDuration = animationConfig.animationDurationMillis() / 1000.0
                     * durationScale;
-            // The mesh built for the new zoom is a different grid, not the same one at
-            // another scale, so there is nothing coherent to show while the image moves.
             HintMesh hintMesh = hintManager.hintMesh();
             if (newMode.hintMesh().enabled() && hintMesh != null && hintMesh.visible()) {
                 endHintMesh = hintMesh;
