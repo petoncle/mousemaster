@@ -2223,9 +2223,9 @@ public class ConfigurationParser {
         return switch (key) {
             // @formatter:off
             case "percent" -> ModePropertyHandler.of(prefix.append("percent"), v -> parseDouble(v, true, 1, 100), v -> zoom.percent(v));
-            case "area-size-source" -> ModePropertyHandler.of(prefix.append("areaSizeSource"), v -> parseZoomAreaSizeSource("zoom.area-size-source", v), v -> zoom.areaSizeSource(v));
-            case "area-width-percent" -> ModePropertyHandler.of(prefix.append("areaWidthPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaWidthPercent(v));
-            case "area-height-percent" -> ModePropertyHandler.of(prefix.append("areaHeightPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaHeightPercent(v));
+            case "area-size-source" -> ModePropertyHandler.of(prefix.append("areaSize", "source"), v -> parseZoomAreaSizeSource("zoom.area-size-source", v), v -> zoom.areaSizeSource(v));
+            case "area-width-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "widthPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaWidthPercent(v));
+            case "area-height-percent" -> ModePropertyHandler.of(prefix.append("areaSize", "heightPercent"), v -> parseNonZeroPercent(v, 100), v -> zoom.areaHeightPercent(v));
             case "center" -> ModePropertyHandler.of(prefix.append("center"), v -> parseZoomCenter("zoom.center", v), v -> zoom.center(v));
             case "animation-enabled" -> ModePropertyHandler.of(prefix.append("animationEnabled"), v -> Boolean.parseBoolean(v), v -> zoom.animationEnabled(v));
             case "animation-easing" -> ModePropertyHandler.of(prefix.append("animationEasing"), v -> parseEasing(v), v -> zoom.animationEasing(v));

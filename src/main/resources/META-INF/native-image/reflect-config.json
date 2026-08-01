@@ -889,6 +889,11 @@
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.VelocityConfiguration"] }, {"name":"velocity","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.ZoomAreaSize",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.ZoomAreaSizeSource","double","double"] }, {"name":"heightPercent","parameterTypes":[] }, {"name":"source","parameterTypes":[] }, {"name":"widthPercent","parameterTypes":[] }]
+},
+{
   "name":"mousemaster.ZoomConfiguration",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["double","mousemaster.ZoomAreaSize","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"<init>","parameterTypes":["double","mousemaster.ZoomCenter","boolean","mousemaster.Easing","double"] }, {"name":"animationDurationMillis","parameterTypes":[] }, {"name":"animationEasing","parameterTypes":[] }, {"name":"animationEnabled","parameterTypes":[] }, {"name":"areaSize","parameterTypes":[] }, {"name":"center","parameterTypes":[] }, {"name":"percent","parameterTypes":[] }]
