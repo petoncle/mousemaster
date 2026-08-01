@@ -14,13 +14,13 @@ import mousemaster.Rectangle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
  * Hands the composed desktop to {@link WindowsZoomRenderer} with DXGI Desktop Duplication,
  * texture to texture, never through the CPU. Windows marked WDA_EXCLUDEFROMCAPTURE are left
- * out of the frame. Written against the Direct3D 11 / DXGI C API through JNA, the same
- * COM-through-JNA style as {@link WindowsUiAutomation}, for lack of a Java binding.
+ * out of the frame.
  */
 final class WindowsDesktopDuplication {
 
@@ -40,6 +40,7 @@ final class WindowsDesktopDuplication {
     private static final int IDXGIADAPTER_ENUMOUTPUTS = 7;
     private static final int IDXGIOUTPUT_GETDESC = 7;
     private static final int IDXGIOUTPUT1_DUPLICATEOUTPUT = 22;
+    private static final int IDXGIOUTPUTDUPLICATION_GETDESC = 7;
     private static final int IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME = 8;
     private static final int IDXGIOUTPUTDUPLICATION_RELEASEFRAME = 14;
     private static final int ID3D11DEVICECONTEXT_COPYRESOURCE = 47;
@@ -48,6 +49,7 @@ final class WindowsDesktopDuplication {
     private static final int D3D11_SDK_VERSION = 7;
     private static final int D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20;
 
+    private static final int DXGI_FORMAT_B8G8R8A8_UNORM = 87;
     private static final int DXGI_MODE_ROTATION_UNSPECIFIED = 0;
     private static final int DXGI_MODE_ROTATION_IDENTITY = 1;
 
@@ -57,6 +59,7 @@ final class WindowsDesktopDuplication {
 
     private static final int FRAME_INFO_SIZE = 48; // DXGI_OUTDUPL_FRAME_INFO, unread
     private static final int ACQUIRE_TIMEOUT_MILLIS = 60;
+    private static final Duration RETRY_DELAY = Duration.ofSeconds(1);
 
     private interface D3D11 extends Library {
         D3D11 INSTANCE = Native.load("d3d11", D3D11.class);
@@ -79,6 +82,7 @@ final class WindowsDesktopDuplication {
     private Rectangle outputBounds;
     private boolean copied;
     private boolean unavailable;
+    private long retryAtNanos;
 
     Pointer device() {
         return device;
@@ -99,7 +103,7 @@ final class WindowsDesktopDuplication {
     }
 
     boolean ensureInitialized(Rectangle bounds) {
-        if (unavailable)
+        if (unavailable || System.nanoTime() < retryAtNanos)
             return false;
         try {
             if (duplication != null && !outputBounds.contains(bounds))
@@ -111,6 +115,9 @@ final class WindowsDesktopDuplication {
         catch (Throwable e) {
             logger.debug("Desktop Duplication unavailable: " + e.getMessage());
             releaseDuplication();
+            // Enumerating costs a device creation, and a display that cannot be duplicated
+            // stays that way until it is reconfigured: not worth retrying every frame.
+            retryAtNanos = System.nanoTime() + RETRY_DELAY.toNanos();
             // A lost duplication comes back on the next call; a missing DLL does not.
             if (e instanceof UnsatisfiedLinkError || e instanceof NoClassDefFoundError)
                 unavailable = true;
@@ -181,6 +188,13 @@ final class WindowsDesktopDuplication {
             release(output1);
             check(hr, "DuplicateOutput");
             duplication = duplicationOut.getValue();
+            OutduplDesc desc = new OutduplDesc();
+            callVoid(duplication, IDXGIOUTPUTDUPLICATION_GETDESC, desc.getPointer());
+            desc.read();
+            // An HDR desktop duplicates as float16, which the sample texture cannot be
+            // copied from. Refusing here leaves the zoom off rather than unmagnified.
+            if (desc.format != DXGI_FORMAT_B8G8R8A8_UNORM)
+                throw new IllegalStateException("desktop format " + desc.format);
             logger.debug("Initialized Desktop Duplication on " + outputBounds);
         }
         finally {
@@ -308,6 +322,22 @@ final class WindowsDesktopDuplication {
         protected List<String> getFieldOrder() {
             return List.of("deviceName", "left", "top", "right", "bottom",
                     "attachedToDesktop", "rotation", "monitor");
+        }
+    }
+
+    public static class OutduplDesc extends Structure {
+        public int width, height;                  // DXGI_MODE_DESC inlined
+        public int refreshRateNumerator, refreshRateDenominator;
+        public int format;
+        public int scanlineOrdering, scaling;
+        public int rotation;
+        public int desktopImageInSystemMemory;
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("width", "height", "refreshRateNumerator",
+                    "refreshRateDenominator", "format", "scanlineOrdering", "scaling",
+                    "rotation", "desktopImageInSystemMemory");
         }
     }
 

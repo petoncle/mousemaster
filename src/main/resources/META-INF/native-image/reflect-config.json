@@ -955,6 +955,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"mousemaster.platform.windows.WindowsDesktopDuplication$OutduplDesc",
+  "allDeclaredFields":true
+},
+{
   "name":"mousemaster.platform.windows.WindowsDesktopDuplication$OutputDesc",
   "allDeclaredFields":true
 },

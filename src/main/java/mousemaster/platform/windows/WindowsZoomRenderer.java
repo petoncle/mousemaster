@@ -157,6 +157,7 @@ final class WindowsZoomRenderer {
         duplication.discardFrame();
     }
 
+    /** False means the window has nothing new to show. */
     boolean render(Zoom zoom) {
         if (unavailable || swapChain == null)
             return false;
@@ -171,8 +172,10 @@ final class WindowsZoomRenderer {
             return true;
         }
         catch (Throwable e) {
-            logger.error("Failed to render the zoom: " + e.getMessage());
-            unavailable = true;
+            // A device lost to a driver reset comes back: the duplication drops it, and the
+            // next prepare rebuilds on a new one.
+            logger.debug("Failed to render the zoom: " + e.getMessage());
+            releaseResources();
             return false;
         }
     }

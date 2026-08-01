@@ -84,13 +84,13 @@ public class WindowsOverlay implements Overlay {
         if (!zoomRenderer.prepare(zoomHwnd, currentZoom.screenRectangle()))
             return;
         if (!zoomRenderer.render(currentZoom))
-            return; // nothing presented yet, so nothing to reveal
+            return;
         // Not per frame: enforceTopmost issues a SetWindowPos per overlay, which flickers
         // the layered hint windows.
         if (!zoomWindowShowing) {
             zoomWindowShowing = true;
-            // The present is queued: revealing before it is composited would show what the
-            // window last held, the final frame of the previous zoom.
+            // Drawing only queues the frame: revealing the window before it reaches the
+            // screen would show what it last held, the final frame of the previous zoom.
             Dwmapi.INSTANCE.DwmFlush();
             setZoomWindowVisible(true);
             setTopmost();
@@ -288,8 +288,8 @@ public class WindowsOverlay implements Overlay {
                      (System.nanoTime() - before) / 1_000_000 + "ms");
     }
 
-    /** Through the alpha, never by hiding: a concealed window still composites, so its
-     *  swapchain stays presentable. */
+    /** Through the alpha, never by hiding: a concealed window still composites, so it can
+     *  be drawn before it is shown. */
     private void setZoomWindowVisible(boolean visible) {
         User32.INSTANCE.SetLayeredWindowAttributes(zoomHwnd, 0,
                 (byte) (visible ? 255 : 0), WinUser.LWA_ALPHA);
@@ -303,7 +303,6 @@ public class WindowsOverlay implements Overlay {
 
     private void createZoomWindow() {
         WinUser.WNDCLASSEX wClass = new WinUser.WNDCLASSEX();
-        // In a field: Windows keeps calling it after this method returns.
         zoomWindowProc = this::zoomWindowCallback;
         wClass.lpszClassName = "MousemasterZoomWindow";
         wClass.lpfnWndProc = zoomWindowProc;
@@ -391,6 +390,10 @@ public class WindowsOverlay implements Overlay {
                 return;
             createZoomWindow();
         }
+        // Magnifying where the hints and the indicator go, over a screen that Direct3D
+        // cannot magnify, would send clicks to the wrong place.
+        if (zoom != null && !zoomRenderer.prepare(zoomHwnd, zoom.screenRectangle()))
+            zoom = null;
         Zoom previousZoom = currentZoom;
         currentZoom = zoom;
         if (currentZoom == null) {
