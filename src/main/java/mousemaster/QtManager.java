@@ -1,5 +1,6 @@
 package mousemaster;
 
+import io.qt.core.QEvent;
 import io.qt.QtUtilities;
 import io.qt.widgets.QApplication;
 import org.slf4j.Logger;
@@ -113,6 +114,9 @@ public class QtManager {
 
     public static void processEvents() {
         QApplication.processEvents();
+        // disposeLater posts a deletion that only an exec() loop returning to itself carries
+        // out, and this application never runs one: without this the widgets pile up.
+        QApplication.sendPostedEvents(null, QEvent.Type.DeferredDispose);
     }
 
     private static File createExtractDirectory(String tempDirectory) throws IOException {
