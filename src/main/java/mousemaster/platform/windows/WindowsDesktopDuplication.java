@@ -242,7 +242,7 @@ final class WindowsDesktopDuplication {
         context = contextOut.getValue();
     }
 
-    private void releaseDuplication() {
+    void releaseDuplication() {
         release(duplication);
         duplication = null;
         outputBounds = null;

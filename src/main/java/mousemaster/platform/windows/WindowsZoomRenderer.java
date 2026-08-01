@@ -334,6 +334,11 @@ final class WindowsZoomRenderer {
         return code.getValue();
     }
 
+    void releaseDevice() {
+        releaseResources();
+        duplication.releaseDuplication();
+    }
+
     private void releaseResources() {
         release(renderTargetView);
         renderTargetView = null;

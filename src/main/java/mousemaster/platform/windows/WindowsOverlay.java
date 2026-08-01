@@ -16,6 +16,8 @@ public class WindowsOverlay implements Overlay {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsOverlay.class);
 
+    private static final Duration ZOOM_IDLE_RELEASE = Duration.ofSeconds(30);
+
     private final WindowsMouseController mouse;
     private boolean waitForZoom;
     private IndicatorRenderer indicatorRenderer;
@@ -33,6 +35,7 @@ public class WindowsOverlay implements Overlay {
     private WindowsZoomRenderer zoomRenderer;
     private Zoom currentZoom;
     private boolean zoomWindowShowing;
+    private double zoomIdleTimer;
     private Runnable messagePump;
 
     public WindowsOverlay(WindowsMouseController mouse) {
@@ -74,6 +77,21 @@ public class WindowsOverlay implements Overlay {
         if (indicatorRenderer != null)
             indicatorRenderer.advanceAnimationsToFirstFrame();
         updateZoomWindow();
+        releaseZoomWhenIdle(delta);
+    }
+
+    /** A Direct3D device keeps the graphics driver and a screen worth of surfaces resident,
+     *  which is far more than an occasional zoom is worth holding on to. */
+    private void releaseZoomWhenIdle(double delta) {
+        if (currentZoom != null) {
+            zoomIdleTimer = ZOOM_IDLE_RELEASE.toSeconds();
+            return;
+        }
+        if (zoomIdleTimer <= 0)
+            return;
+        zoomIdleTimer -= delta;
+        if (zoomIdleTimer <= 0)
+            zoomRenderer.releaseDevice();
     }
 
     private void updateZoomWindow() {
@@ -270,18 +288,16 @@ public class WindowsOverlay implements Overlay {
                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
     }
 
-    /** A full-screen swapchain window appearing for the first time makes Windows rearrange
-     *  how it assembles the desktop, which costs a frame. */
+    /** A full-screen window appearing for the first time makes Windows rearrange how it
+     *  assembles the desktop, which costs a frame. Direct3D is left to the first zoom: a
+     *  device holds the graphics driver and its surfaces for as long as it lives. */
     private void preWarmZoomWindow() {
         if (zoomHwnd != null)
             return;
         long before = System.nanoTime();
         createZoomWindow();
-        Rectangle screen =
-                WindowsScreen.findActiveScreen(mouse.findMousePosition()).rectangle();
-        placeZoomWindow(screen);
-        if (zoomRenderer.prepare(zoomHwnd, screen))
-            zoomRenderer.render(new Zoom(1, screen.center(), screen));
+        placeZoomWindow(
+                WindowsScreen.findActiveScreen(mouse.findMousePosition()).rectangle());
         logger.debug("Pre-warmed the zoom window in " +
                      (System.nanoTime() - before) / 1_000_000 + "ms");
     }
