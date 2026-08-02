@@ -224,6 +224,11 @@ public class WindowsUiAutomation implements UiAutomation {
         return false;
     }
 
+    private static Rectangle rectangle(WinDef.RECT rect) {
+        return new Rectangle(rect.left, rect.top, rect.right - rect.left,
+                rect.bottom - rect.top);
+    }
+
     /**
      * Queries UI elements from the given window and all visible windows on the same thread
      * (e.g. popup menus are separate windows on the same thread).
@@ -292,6 +297,57 @@ public class WindowsUiAutomation implements UiAutomation {
         return foregroundMonitors.contains(Pointer.nativeValue(monitor.getPointer()));
     }
 
+    /**
+     * Queries UI elements of every visible window that intersects the area, front to back.
+     * Elements covered by a window that is drawn over theirs are left out: a hint is
+     * only kept where the click it performs would reach the element.
+     */
+    private static List<UiElement> queryUiElementsOfWindowsInArea(Rectangle area) {
+        int currentProcessId = Kernel32.INSTANCE.GetCurrentProcessId();
+        IntByReference processId = new IntByReference();
+        List<HWND> windows = new ArrayList<>();
+        List<Rectangle> windowRectanglesInArea = new ArrayList<>();
+        // EnumWindows walks top-level windows front to back.
+        User32.INSTANCE.EnumWindows((hwnd, data) -> {
+            if (!User32.INSTANCE.IsWindowVisible(hwnd) ||
+                ExtendedUser32.INSTANCE.IsIconic(hwnd) ||
+                isCloaked(hwnd) ||
+                // A click-through window does not receive the clicks the hints perform,
+                // and does not hide what is behind it.
+                (User32.INSTANCE.GetWindowLong(hwnd, WinUser.GWL_EXSTYLE) &
+                 ExtendedUser32.WS_EX_TRANSPARENT) != 0)
+                return true;
+            User32.INSTANCE.GetWindowThreadProcessId(hwnd, processId);
+            if (processId.getValue() == currentProcessId)
+                return true;
+            Rectangle windowRectangleInArea =
+                    rectangle(WindowsOverlay.windowRectExcludingShadow(hwnd))
+                            .intersection(area);
+            if (windowRectangleInArea.isEmpty())
+                return true;
+            windows.add(hwnd);
+            windowRectanglesInArea.add(windowRectangleInArea);
+            return true;
+        }, null);
+        List<UiElement> uiElements = new ArrayList<>();
+        long before = System.nanoTime();
+        for (int windowIndex = 0; windowIndex < windows.size(); windowIndex++)
+            queryUiElementsOfWindow(windows.get(windowIndex),
+                    windowRectanglesInArea.get(windowIndex),
+                    windowRectanglesInArea.subList(0, windowIndex), uiElements);
+        logger.debug("Found {} UI elements in {} windows of area {} in {}ms",
+                uiElements.size(), windows.size(), area,
+                (long) ((System.nanoTime() - before) / 1e6));
+        return uiElements;
+    }
+
+    /** Windows of another virtual desktop, and suspended UWP apps, are cloaked. */
+    private static boolean isCloaked(HWND hwnd) {
+        IntByReference cloaked = new IntByReference();
+        Dwmapi.INSTANCE.DwmGetWindowAttribute(hwnd, Dwmapi.DWMWA_CLOAKED, cloaked, 4);
+        return cloaked.getValue() != 0;
+    }
+
     private static void queryUiElementsOfWindow(HWND hwnd,
                                                 List<UiElement> uiElements) {
         WinDef.RECT windowRect = new WinDef.RECT();
@@ -299,12 +355,17 @@ public class WindowsUiAutomation implements UiAutomation {
             return;
         if (User32.INSTANCE.MonitorFromRect(windowRect,
                 WinUser.MONITOR_DEFAULTTONULL) == null)
-            // The window is not within a screen.
+            // The window is not withi n a screen.
             return;
-        WinDef.POINT center = new WinDef.POINT(
-                (windowRect.left + windowRect.right) / 2,
-                (windowRect.top + windowRect.bottom) / 2);
-        double scale = WindowsScreen.findActiveScreen(center).scale();
+        queryUiElementsOfWindow(hwnd, rectangle(windowRect), List.of(), uiElements);
+    }
+
+    private static void queryUiElementsOfWindow(HWND hwnd, Rectangle elementBounds,
+                                                List<Rectangle> occludingRectangles,
+                                                List<UiElement> uiElements) {
+        double scale = WindowsScreen.findActiveScreen(new WinDef.POINT(
+                elementBounds.x() + elementBounds.width() / 2,
+                elementBounds.y() + elementBounds.height() / 2)).scale();
         UIAutomation uia = new UIAutomation(automation);
         UIAutomationElement root = null;
         UIAutomationElementArray array = null;
@@ -313,12 +374,14 @@ public class WindowsUiAutomation implements UiAutomation {
             if (root == null)
                 return;
             long beforeQuery = System.nanoTime();
+            int elementCountBeforeQuery = uiElements.size();
             array = root.findAllBuildCache(TreeScope_Descendants,
                     cachedCondition, cachedCacheRequest);
             if (array != null)
-                collectElements(array, windowRect, scale, uiElements);
+                collectElements(array, elementBounds, occludingRectangles, scale,
+                        uiElements);
             logger.trace("Found {} UI elements in HWND {} in {}ms",
-                    uiElements.size(),
+                    uiElements.size() - elementCountBeforeQuery,
                     Pointer.nativeValue(hwnd.getPointer()),
                     (long) ((System.nanoTime() - beforeQuery) / 1e6));
         }
@@ -331,7 +394,8 @@ public class WindowsUiAutomation implements UiAutomation {
     }
 
     private static void collectElements(UIAutomationElementArray array,
-                                        WinDef.RECT windowRect,
+                                        Rectangle elementBounds,
+                                        List<Rectangle> occludingRectangles,
                                         double scale,
                                         List<UiElement> uiElements) {
         double threshold = MIN_DISTANCE_BETWEEN_HINTS_UNZOOMED * scale;
@@ -351,10 +415,11 @@ public class WindowsUiAutomation implements UiAutomation {
                     continue;
                 double centerX = rect.left + width / 2.0;
                 double centerY = rect.top + height / 2.0;
-                if (centerX < windowRect.left ||
-                    centerX > windowRect.right ||
-                    centerY < windowRect.top ||
-                    centerY > windowRect.bottom)
+                if (!elementBounds.contains(centerX, centerY))
+                    continue;
+                if (occludingRectangles.stream()
+                                       .anyMatch(rectangle -> rectangle.contains(centerX,
+                                               centerY)))
                     continue;
                 if (isTooCloseToExistingUiElements(uiElements,
                         centerX, centerY, thresholdSquared))
@@ -371,7 +436,7 @@ public class WindowsUiAutomation implements UiAutomation {
      * Starts an asynchronous UI element query on a background thread.
      */
     @Override
-    public Future<List<UiElement>> startFindInteractiveUiElements() {
+    public Future<List<UiElement>> startFindActiveWindowUiElements() {
         ensureInitialized();
         HWND hwnd = User32.INSTANCE.GetForegroundWindow();
         long hwndKey = hwnd != null ? Pointer.nativeValue(hwnd.getPointer()) : 0;
@@ -379,14 +444,28 @@ public class WindowsUiAutomation implements UiAutomation {
             if (hwndKey == 0 || cachedCondition == null ||
                 cachedCacheRequest == null)
                 return List.of();
-            if (!backgroundComInitialized) {
-                Ole32.INSTANCE.CoInitializeEx(Pointer.NULL,
-                        Ole32.COINIT_MULTITHREADED);
-                backgroundComInitialized = true;
-            }
+            initializeBackgroundCom();
             return queryUiElementsOfWindowAndChildren(
                     new HWND(new Pointer(hwndKey)));
         });
+    }
+
+    @Override
+    public Future<List<UiElement>> startFindUiElementsInArea(Rectangle area) {
+        ensureInitialized();
+        return queryExecutor.submit(() -> {
+            if (cachedCondition == null || cachedCacheRequest == null)
+                return List.of();
+            initializeBackgroundCom();
+            return queryUiElementsOfWindowsInArea(area);
+        });
+    }
+
+    private static void initializeBackgroundCom() {
+        if (backgroundComInitialized)
+            return;
+        Ole32.INSTANCE.CoInitializeEx(Pointer.NULL, Ole32.COINIT_MULTITHREADED);
+        backgroundComInitialized = true;
     }
 
     // COM wrappers

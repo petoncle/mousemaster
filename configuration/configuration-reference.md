@@ -511,16 +511,17 @@ hint-mode.hint.type=grid
 The **`type`** property determines what hints are displayed:
 - `grid`: Displays a grid of hints laid out across the screen
 - `position-history`: Displays discrete absolutely positioned hints at previously saved positions (see [Position history](#position-history))
-- `ui`: Displays hints at interactive UI elements of the active window
+- `ui`: Displays hints at interactive UI elements (see [UI hints](#ui-hints))
 
 ### UI hints
 
 UI hints use the Windows UI Automation API to detect interactive elements (buttons, links,
-text fields, checkboxes, etc.) in the active window and display a hint label on each one.
+text fields, checkboxes, etc.) and display a hint label on each one.
 Unlike grid hints, UI hints are positioned based on the UI elements' locations.
 
 ```properties
 ui-hint-mode.hint.type=ui
+ui-hint-mode.hint.grid-area=active-screen
 ui-hint-mode.hint.selection-keys=selectionkey
 ui-hint-mode.hint.select=+selectionkey
 ui-hint-mode.hint.undo=backspace
@@ -534,6 +535,23 @@ ui-hint-mode.hint.cell-horizontal-padding=8
 ui-hint-mode.hint.cell-vertical-padding=0
 ui-hint-mode.hint.box-border-radius=3
 ```
+
+**`grid-area`** selects the windows the elements are looked for in (default
+`active-screen`, the same default as for a grid):
+- `active-screen`: Every visible window on the screen with the mouse cursor
+- `all-screens`: Every visible window on every connected screen
+- `active-window`: The active window, and its popups (menus, dropdowns, dialogs). A popup
+  is hinted even where it extends past the window.
+
+With `active-screen` and `all-screens`, elements are cropped to that region, and elements
+covered by a window drawn over theirs are left out, so a hint is only shown where the
+click it performs would reach the element. Windows of another virtual desktop and
+suspended apps are left out. Scanning several windows takes longer than scanning one: the
+hints appear once the scan is over, mousemaster stays responsive in the meantime.
+
+The size and center properties of the grid area (`grid-area-width-percent`,
+`grid-area-height-percent`, `grid-area-center`) do not apply to UI hints, and
+`grid-area=last-selected-hint-cell` is not supported.
 
 UI hints use the same appearance properties as other hint types (`box-*`, `font-*`, etc.).
 The `cell-horizontal-padding` and `cell-vertical-padding` properties are particularly useful
@@ -565,6 +583,8 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   - `active-window`: The currently active window
   - `all-screens`: Every connected screen (one grid per screen — `grid-area-center` does not apply)
   - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
+
+  `grid-area` also selects what `hint.type=ui` scans (see [UI hints](#ui-hints)).
 
 - **`grid-area-width-percent`** / **`grid-area-height-percent`**: Scale the area to a
   fraction of that region, keeping it centered on `grid-area-center` (default `1.0`).

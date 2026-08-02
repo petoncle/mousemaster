@@ -254,16 +254,10 @@ public class WindowsOverlay implements Overlay {
     }
 
     private Rectangle virtualDesktopBounds() {
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
-        for (Screen screen : WindowsScreen.findScreens()) {
-            Rectangle r = screen.rectangle();
-            minX = Math.min(minX, r.x());
-            minY = Math.min(minY, r.y());
-            maxX = Math.max(maxX, r.x() + r.width());
-            maxY = Math.max(maxY, r.y() + r.height());
-        }
-        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
+        return Rectangle.union(WindowsScreen.findScreens()
+                                            .stream()
+                                            .map(Screen::rectangle)
+                                            .toList());
     }
 
     /** The window factory the renderer uses: a styled, transparent, click-through window. */

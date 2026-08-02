@@ -147,18 +147,6 @@ public final class HintMeshRenderer {
         }
     }
 
-    private static Rectangle bounds(List<Rectangle> rectangles) {
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
-        for (Rectangle rectangle : rectangles) {
-            minX = Math.min(minX, rectangle.x());
-            minY = Math.min(minY, rectangle.y());
-            maxX = Math.max(maxX, rectangle.x() + rectangle.width());
-            maxY = Math.max(maxY, rectangle.y() + rectangle.height());
-        }
-        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
-    }
-
     private static Rectangle lerp(Rectangle from, Rectangle to, double t) {
         return new Rectangle(
                 (int) Math.round(from.x() + (to.x() - from.x()) * t),
@@ -371,13 +359,7 @@ public final class HintMeshRenderer {
         if (hintsByScreen.isEmpty() && hintMesh.backgroundArea() != null) {
             Rectangle backgroundArea = hintMesh.backgroundArea();
             for (Screen screen : screens) {
-                Rectangle screenRectangle = screen.rectangle();
-                boolean intersects =
-                        screenRectangle.x() < backgroundArea.x() + backgroundArea.width() &&
-                        backgroundArea.x() < screenRectangle.x() + screenRectangle.width() &&
-                        screenRectangle.y() < backgroundArea.y() + backgroundArea.height() &&
-                        backgroundArea.y() < screenRectangle.y() + screenRectangle.height();
-                if (intersects)
+                if (!screen.rectangle().intersection(backgroundArea).isEmpty())
                     hintsByScreen.put(screen, List.of());
             }
         }
@@ -957,8 +939,8 @@ public final class HintMeshRenderer {
             // Carry over the borders of every grid whose content is still shrinking, dropping the ones
             // this grid covers: it draws their area itself now, and backing out of a drill returns to a
             // grid that is in the list, whose borders would then be drawn twice.
-            Rectangle newBounds = bounds(targets);
-            Rectangle previousBounds = bounds(morph.targets);
+            Rectangle newBounds = Rectangle.union(targets);
+            Rectangle previousBounds = Rectangle.union(morph.targets);
             outgoing = new ArrayList<>();
             for (OutgoingBorders previous : morph.layer.outgoing)
                 if (!newBounds.contains(previous.bounds()))
@@ -1003,7 +985,7 @@ public final class HintMeshRenderer {
         // Region the borders travel through, so each frame repaints only that area.
         List<Rectangle> startsAndTargets = new ArrayList<>(starts);
         startsAndTargets.addAll(targets);
-        Rectangle dirty = bounds(startsAndTargets);
+        Rectangle dirty = Rectangle.union(startsAndTargets);
         QVariantAnimation animation = new QVariantAnimation();
         // Same duration as the crop, so the morph stays in lockstep with it.
         animation.setDuration(Math.max(1, (int) duration.toMillis()));
@@ -3114,7 +3096,7 @@ public final class HintMeshRenderer {
                          int containerHeight) {
             if (ink.isEmpty())
                 return false;
-            Rectangle bounds = bounds(ink);
+            Rectangle bounds = Rectangle.union(ink);
             int left = Math.max(0, bounds.x() - padding);
             int top = Math.max(0, bounds.y() - padding);
             int right = Math.min(containerWidth, bounds.x() + bounds.width() + padding);

@@ -21,7 +21,11 @@ public sealed interface HintMeshType {
 
     }
 
-    record UiHintMesh() implements HintMeshType {
+    /**
+     * Only the area size source applies: it selects the windows the UI elements are
+     * looked for in. The size percents and the center do not apply.
+     */
+    record UiHintMesh(HintGridArea area) implements HintMeshType {
 
     }
 
@@ -57,6 +61,7 @@ public sealed interface HintMeshType {
                 }
                 case UiHintMesh uiHintMesh -> {
                     this.type = HintMeshTypeType.UI;
+                    this.gridArea = uiHintMesh.area.builder();
                     this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
                 }
             }
@@ -88,7 +93,7 @@ public sealed interface HintMeshType {
             return switch (type) {
                 case GRID -> new HintGrid(gridArea.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
                 case POSITION_HISTORY -> new HintPositionHistory();
-                case UI -> new UiHintMesh();
+                case UI -> new UiHintMesh(gridArea.build());
             };
         }
     }

@@ -1897,7 +1897,12 @@ public class ConfigurationParser {
                     // No op.
                 }
                 case UI -> {
-                    // No op.
+                    if (hintMeshType.gridArea().source() ==
+                        HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL)
+                        throw new IllegalArgumentException(
+                                "Invalid definition of hint for " + mode.modeName +
+                                ": hint.type=ui expects hint.grid-area to be one of " +
+                                List.of("active-window", "active-screen", "all-screens"));
                 }
             }
         }
@@ -2382,7 +2387,12 @@ public class ConfigurationParser {
                                 currentType.getClass().getSimpleName());
                     };
                     case POSITION_HISTORY -> new HintMeshType.HintPositionHistory();
-                    case UI -> new HintMeshType.UiHintMesh();
+                    case UI -> (Object) (Function<Object, Object>) currentType ->
+                            currentType instanceof HintMeshType.UiHintMesh uiHintMesh ?
+                                    uiHintMesh : new HintMeshType.UiHintMesh(
+                                    new HintGridArea(new HintGridAreaSize(
+                                            HintGridAreaSizeSource.ACTIVE_SCREEN, 1, 1),
+                                            HintGridAreaCenter.SCREEN_CENTER));
                 };
             }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
             // Grid area = size + center. Mutations set the record component directly
