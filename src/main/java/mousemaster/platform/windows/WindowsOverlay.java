@@ -17,6 +17,7 @@ public class WindowsOverlay implements Overlay {
     private static final Logger logger = LoggerFactory.getLogger(WindowsOverlay.class);
 
     private static final Duration ZOOM_IDLE_RELEASE = Duration.ofSeconds(30);
+    private static final Duration ZOOM_FRAME_INTERVAL = Duration.ofMillis(16);
 
     private final WindowsMouseController mouse;
     private boolean waitForZoom;
@@ -36,6 +37,7 @@ public class WindowsOverlay implements Overlay {
     private Zoom currentZoom;
     private boolean zoomWindowShowing;
     private double zoomIdleTimer;
+    private long nextZoomFrameNanos;
     private Runnable messagePump;
 
     public WindowsOverlay(WindowsMouseController mouse) {
@@ -97,10 +99,20 @@ public class WindowsOverlay implements Overlay {
     private void updateZoomWindow() {
         if (currentZoom == null)
             return;
+        // The loop iterates far more often than the screen refreshes, and every frame copies
+        // and presents a screen sized image over whatever else is drawing.
+        if (zoomWindowShowing && System.nanoTime() < nextZoomFrameNanos)
+            return;
         if (!zoomRenderer.prepare(zoomHwnd, currentZoom.screenRectangle()))
             return;
+        long before = System.nanoTime();
         if (!zoomRenderer.render(currentZoom))
             return;
+        long after = System.nanoTime();
+        // Presenting over a busy compositor takes tens of milliseconds and holds up the
+        // keyboard with it, so give the loop as long as the frame cost before asking again.
+        nextZoomFrameNanos =
+                after + Math.max(ZOOM_FRAME_INTERVAL.toNanos(), after - before);
         // Not per frame: enforceTopmost issues a SetWindowPos per overlay, which flickers
         // the layered hint windows.
         if (!zoomWindowShowing) {
