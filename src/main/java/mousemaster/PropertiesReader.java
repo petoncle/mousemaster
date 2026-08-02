@@ -24,16 +24,25 @@ public class PropertiesReader {
                 continue;
             if (property.isEmpty() && (line.startsWith("#") || line.startsWith("!")))
                 continue;
-            // Handle line continuation.
-            if (line.endsWith("\\"))
+            // Handle line continuation. A trailing backslash continues the line,
+            // unless that backslash is itself escaped.
+            if (trailingBackslashCount(line) % 2 == 1)
                 property.append(line, 0, line.length() - 1);
             else {
                 property.append(line);
                 String fullLine = property.toString();
                 property.setLength(0);
-                properties.add(fullLine);
+                properties.add(fullLine.replace("\\\\", "\\"));
             }
         }
         return properties;
+    }
+
+    private static int trailingBackslashCount(String line) {
+        int count = 0;
+        for (int charIndex = line.length() - 1;
+             charIndex >= 0 && line.charAt(charIndex) == '\\'; charIndex--)
+            count++;
+        return count;
     }
 }
