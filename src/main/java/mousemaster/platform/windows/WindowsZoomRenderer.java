@@ -115,6 +115,7 @@ final class WindowsZoomRenderer {
     private WinDef.HWND hwnd;
     /** The device the resources above belong to. */
     private Pointer device;
+    private Zoom presentedZoom;
     private boolean sampled;
     private boolean unavailable;
 
@@ -162,13 +163,16 @@ final class WindowsZoomRenderer {
         if (unavailable || swapChain == null)
             return false;
         try {
-            sampled |= duplication.copyFrameInto(outputBounds, sampleTexture);
-            // The texture holds nothing until a frame has landed.
-            if (!sampled)
+            boolean copied = duplication.copyFrameInto(outputBounds, sampleTexture);
+            sampled |= copied;
+            // The texture holds nothing until a frame has landed, and an unchanged screen
+            // seen through an unchanged zoom is already on the screen.
+            if (!sampled || (!copied && zoom.equals(presentedZoom)))
                 return false;
             draw(zoom);
             // No vsync: blocking here would stall the loop that paces the frames.
             check(call(swapChain, IDXGISWAPCHAIN_PRESENT, 0, 0), "Present");
+            presentedZoom = zoom;
             return true;
         }
         catch (Throwable e) {
@@ -360,6 +364,7 @@ final class WindowsZoomRenderer {
         windowBounds = null;
         hwnd = null;
         device = null;
+        presentedZoom = null;
         sampled = false;
     }
 
