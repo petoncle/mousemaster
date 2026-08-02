@@ -120,9 +120,3 @@ Contributions to mousemaster are welcome!
   If you're interested in helping extend mousemaster to these platforms, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
 If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!
-
-## Third-party licenses
-
-**mousemaster.exe** embeds Qt 6.8.2 and QtJambi 6.8.2, used under the GNU Lesser General Public
-License. Run `mousemaster.exe --licenses` for the notices and the license texts, or read them in
-[src/main/resources/licenses/](src/main/resources/licenses).
