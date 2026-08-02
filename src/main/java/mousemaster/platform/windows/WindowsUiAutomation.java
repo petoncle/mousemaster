@@ -227,11 +227,11 @@ public class WindowsUiAutomation implements UiAutomation {
     /**
      * Queries UI elements from the given window and all visible windows on the same thread
      * (e.g. popup menus are separate windows on the same thread).
-     * Thread-windows that aren't owned by the foreground window and aren't on a
-     * monitor the foreground window touches are skipped. Without this filter,
-     * Chromium-based browsers which share a UI thread across multiple top-level browser windows,
-     * would surface elements from unrelated browser windows on other monitors and
-     * scatter hints onto the wrong screen.
+     * Thread-windows that aren't owned by the foreground window and aren't a popup on a
+     * monitor the foreground window covers are skipped. Without this filter,
+     * Chromium- and Gecko-based browsers which share a UI thread across multiple top-level
+     * browser windows, would surface elements from unrelated browser windows on other
+     * monitors and scatter hints onto the wrong screen.
      */
     private static List<UiElement> queryUiElementsOfWindowAndChildren(HWND foregroundHwnd) {
         int threadId = User32.INSTANCE.GetWindowThreadProcessId(foregroundHwnd, null);
@@ -258,9 +258,9 @@ public class WindowsUiAutomation implements UiAutomation {
     }
 
     private static Set<Long> monitorsIntersectingWindow(HWND hwnd) {
-        WinDef.RECT windowRect = new WinDef.RECT();
-        if (!User32.INSTANCE.GetWindowRect(hwnd, windowRect))
-            return Set.of();
+        // GetWindowRect includes the invisible resize border, which for a maximized window
+        // hangs over the neighboring monitors.
+        WinDef.RECT windowRect = WindowsOverlay.windowRectExcludingShadow(hwnd);
         Set<Long> monitors = new HashSet<>();
         User32.INSTANCE.EnumDisplayMonitors(null, windowRect,
                 (hMonitor, hdcMonitor, lprcMonitor, dwData) -> {
@@ -272,6 +272,10 @@ public class WindowsUiAutomation implements UiAutomation {
 
     private static boolean shouldIncludeThreadWindow(HWND hwnd, long foregroundKey,
                                                      Set<Long> foregroundMonitors) {
+        // Another browser window is not a popup.
+        if ((User32.INSTANCE.GetWindowLong(hwnd, WinUser.GWL_STYLE) &
+             WinUser.WS_POPUP) == 0)
+            return false;
         // Owned popups (menus, dropdowns, dialogs anchored to the focused window)
         // are kept regardless of which monitor they land on.
         HWND owner = User32.INSTANCE.GetWindow(hwnd, new WinDef.DWORD(User32.GW_OWNER));
