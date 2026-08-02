@@ -14,7 +14,6 @@
 <a href="#installation">Installation</a> •
 <a href="#usage">Usage</a> •
 <a href="#features">Features</a> •
-<a href="#building-from-source">Building from source</a> •
 <a href="#contributing">Contributing</a>
 </p>
 
@@ -37,7 +36,7 @@ https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-
 
 ## Installation
 
-1. Download **mousemaster.exe** (a portable executable) from the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or [build it from source](#building-from-source).
+1. Download **mousemaster.exe** (a portable executable) from the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build it from source.
 2. In the same Release page, choose and download one of the existing configuration files:
    - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))
    - **neru.properties**: a recursive hint configuration ([see documentation](configuration/neru.md))
@@ -88,27 +87,6 @@ For a complete reference, see the [neo-mousekeys-ijkl documentation](configurati
 11. **Live configuration**: All configuration lives in a single file that is automatically reloaded when saved.
 
 mousemaster provides low-level primitives (modes, combos, commands, macros, key aliases) that you compose to build the exact behavior you want. See the [configuration reference](configuration/configuration-reference.md).
-
-## Building from source
-
-Requires [GraalVM](https://www.graalvm.org) for JDK 25. From the root of the repository:
-
-```
-mvnw clean package                  # builds target/mousemaster-<version>-jar-with-dependencies.jar
-mvnw -Pnative -Dagent package       # builds target/mousemaster.exe
-```
-
-The released executable additionally has VCRUNTIME140.dll embedded, so that it runs without the
-Visual C++ redistributable installed:
-
-```
-ren target\mousemaster.exe mousemaster-without-vcruntime140.exe
-pefrmdllembed\pefrmdllembed.exe -impinj target/mousemaster-without-vcruntime140.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster.exe
-```
-
-Qt and QtJambi are pulled in as Maven dependencies and embedded in the executable, so changing the
-`io.qtjambi` versions in **pom.xml**, or installing modified QtJambi artifacts into the local Maven
-repository, is enough to rebuild against a different Qt.
 
 ## Contributing
 
