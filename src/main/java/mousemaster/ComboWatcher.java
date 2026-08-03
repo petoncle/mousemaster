@@ -171,7 +171,8 @@ public class ComboWatcher {
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
                         ModeMap modeMap, Set<String> initiallySetVariables,
-                        Set<Key> virtualKeys) {
+                        Set<Key> virtualKeys, Set<Key> initiallyPressedVirtualKeys) {
+        this.currentlyPressedComboKeys.addAll(initiallyPressedVirtualKeys);
         this.activeVariables = new HashSet<>(initiallySetVariables);
         this.initiallySetVariables = initiallySetVariables;
         this.virtualKeys = virtualKeys;
@@ -1220,7 +1221,7 @@ public class ComboWatcher {
                 if (!allGroupKeys.contains(completedKey))
                     candidatePressedPreconditionKeys.remove(completedKey);
             }
-            // A held virtual key is not something the user is holding, so it counts only
+            // A pressed virtual key is not a key the user is pressing, so it counts only
             // where the group names it.
             candidatePressedPreconditionKeys.removeIf(
                     candidateKey -> virtualKeys.contains(candidateKey) &&
@@ -1523,7 +1524,9 @@ public class ComboWatcher {
         breakComboPreparation();
         // When a mode times out to a new mode, the currentlyPressedComboKeys should not be reset.
         currentlyPressedCompletedComboKeys.clear();
-        currentlyPressedComboKeys.clear();
+        // Virtual keys are kept: these resets reconcile with the physical keyboard, and a
+        // virtual key has nothing there to reconcile with.
+        currentlyPressedComboKeys.removeIf(key -> !virtualKeys.contains(key));
     }
 
     public void reset(Key comboPreparationBreakerKey) {

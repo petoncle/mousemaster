@@ -27,7 +27,7 @@ class VirtualKeyVisibilityTest {
         ActiveAppFinder noApp = () -> new App("test.exe");
         comboWatcher = new ComboWatcher(null, null, noApp, () -> now, Set.of(), Set.of(),
                 false, modeMap, configuration.initiallySetVariables(),
-                configuration.virtualKeys());
+                configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
             public void modeChanged(Mode newMode) {
@@ -120,7 +120,21 @@ class VirtualKeyVisibilityTest {
     }
 
     @Test
-    void aHeldVirtualKeyDoesNotFalsifyNone() {
+    void aVirtualKeyDeclaredWithPlusStartsPressed() {
+        load("virtual-keys=+flag other",
+                "idle-mode.indicator.render-as-cursor=false | _{flag} -> true");
+        assertTrue(fired());
+    }
+
+    @Test
+    void aVirtualKeyDeclaredWithMinusOrNothingStartsReleased() {
+        load("virtual-keys=-flag",
+                "idle-mode.indicator.render-as-cursor=false | _{flag} -> true");
+        assertFalse(fired());
+    }
+
+    @Test
+    void aPressedVirtualKeyDoesNotFalsifyNone() {
         load("virtual-keys=flag",
                 "idle-mode.indicator.render-as-cursor=false | _{none} +a -> true");
         pressVirtual("flag");
@@ -143,7 +157,7 @@ class VirtualKeyVisibilityTest {
 
     @Test
     void virtualKeyDoesNotCancelAHoldItIsInvisibleTo() {
-        // flag is a sequence key of the mode (+flag +q), but the held combo does not name it.
+        // flag is a sequence key of the mode (+flag +q), but the waiting combo does not name it.
         load("virtual-keys=flag",
                 "idle-mode.indicator.render-as-cursor=false | +a-250 -> true | +flag +q -> true");
         press("a");

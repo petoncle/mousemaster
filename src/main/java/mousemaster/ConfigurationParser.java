@@ -344,10 +344,10 @@ public class ConfigurationParser {
                 forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout == null ?
                         activeKeyboardLayout :
                         forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout;
-        Set<String> virtualKeyNames = parseVirtualKeyNames(properties);
+        VirtualKeyNames virtualKeyNames = parseVirtualKeyNames(properties);
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
-                        virtualKeyNames);
+                        virtualKeyNames.all());
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
@@ -578,7 +578,12 @@ public class ConfigurationParser {
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
                 Set.copyOf(initiallySetVariables),
-                virtualKeyNames.stream()
+                virtualKeyNames.all()
+                               .stream()
+                               .map(keyResolver::resolve)
+                               .collect(Collectors.toSet()),
+                virtualKeyNames.initiallyPressed()
+                               .stream()
                                .map(keyResolver::resolve)
                                .collect(Collectors.toSet()));
     }
@@ -610,19 +615,30 @@ public class ConfigurationParser {
                                 .toList();
     }
 
-    private static Set<String> parseVirtualKeyNames(List<String> properties) {
-        Set<String> names = new HashSet<>();
+    /** A name prefixed with + is pressed from the start; - or no prefix is not pressed. */
+    private record VirtualKeyNames(Set<String> all, Set<String> initiallyPressed) {
+    }
+
+    private static VirtualKeyNames parseVirtualKeyNames(List<String> properties) {
+        Set<String> all = new HashSet<>();
+        Set<String> initiallyPressed = new HashSet<>();
         for (String property : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(property);
             if (!lineMatcher.matches())
                 continue;
             if (!lineMatcher.group(1).strip().equals("virtual-keys"))
                 continue;
-            for (String name : lineMatcher.group(2).strip().split("\\s+"))
-                if (!name.isEmpty())
-                    names.add(name);
+            for (String token : lineMatcher.group(2).strip().split("\\s+")) {
+                if (token.isEmpty())
+                    continue;
+                boolean pressed = token.startsWith("+");
+                String name = pressed || token.startsWith("-") ? token.substring(1) : token;
+                all.add(name);
+                if (pressed)
+                    initiallyPressed.add(name);
+            }
         }
-        return names;
+        return new VirtualKeyNames(all, initiallyPressed);
     }
 
     private static ForcedActiveAndConfigurationKeyboardLayouts parseForcedAndConfigurationLayouts(

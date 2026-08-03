@@ -71,7 +71,8 @@ public class UiHintGridAreaTest {
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> new App("test.exe"), Instant::now,
                         Set.of(), Set.of(), false, configuration.modeMap(),
-                        configuration.initiallySetVariables(), configuration.virtualKeys());
+                        configuration.initiallySetVariables(), configuration.virtualKeys(),
+                        configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
             public void modeChanged(Mode newMode) {

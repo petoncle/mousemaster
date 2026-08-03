@@ -28,7 +28,7 @@ class PreconditionOnlyMutationTest {
         Clock clock = Instant::now;
         comboWatcher = new ComboWatcher(null, null, noApp, clock, Set.of(), Set.of(),
                 false, modeMap, configuration.initiallySetVariables(),
-                configuration.virtualKeys());
+                configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
             public void modeChanged(Mode newMode) {
