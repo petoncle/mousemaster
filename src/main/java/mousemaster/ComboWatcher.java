@@ -1220,6 +1220,11 @@ public class ComboWatcher {
                 if (!allGroupKeys.contains(completedKey))
                     candidatePressedPreconditionKeys.remove(completedKey);
             }
+            // A held virtual key is not something the user is holding, so it counts only
+            // where the group names it.
+            candidatePressedPreconditionKeys.removeIf(
+                    candidateKey -> virtualKeys.contains(candidateKey) &&
+                                    !allGroupKeys.contains(candidateKey));
             // Reverse-apply matched key moves: remove pressed keys, add released keys.
             for (int i = matchedKeyMoves.size() - 1; i >= 0; i--) {
                 ResolvedKeyComboMove move = matchedKeyMoves.get(i);

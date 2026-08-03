@@ -120,6 +120,15 @@ class VirtualKeyVisibilityTest {
     }
 
     @Test
+    void aHeldVirtualKeyDoesNotFalsifyNone() {
+        load("virtual-keys=flag",
+                "idle-mode.indicator.render-as-cursor=false | _{none} +a -> true");
+        pressVirtual("flag");
+        press("a");
+        assertTrue(fired(), "_{none} asks what the user is holding, not which flags are set");
+    }
+
+    @Test
     void virtualKeyDoesNotDistortTheGapBetweenRealKeys() {
         // The gap that must satisfy +a's 50-300ms is a -> b (200ms), not flag -> b (10ms).
         load("virtual-keys=flag",
