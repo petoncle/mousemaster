@@ -18,11 +18,12 @@ class VirtualKeyVisibilityTest {
 
     private Instant now = Instant.parse("2020-01-01T00:00:00Z");
     private ComboWatcher comboWatcher;
+    private ModeMap modeMap;
 
     private void load(String... lines) {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
                 KeyboardLayout.keyboardLayout("00000409", null));
-        ModeMap modeMap = configuration.modeMap();
+        modeMap = configuration.modeMap();
         ActiveAppFinder noApp = () -> new App("test.exe");
         comboWatcher = new ComboWatcher(null, null, noApp, () -> now, Set.of(), Set.of(),
                 false, modeMap, configuration.initiallySetVariables(),
@@ -89,6 +90,33 @@ class VirtualKeyVisibilityTest {
                 "idle-mode.indicator.render-as-cursor=false | +flag -> true");
         pressVirtual("flag");
         assertTrue(fired());
+    }
+
+    @Test
+    void virtualKeyDoesNotMatchACompletedComboAgain() {
+        // The completed +a stays buffered, so a later event must not re-run its commands.
+        load("virtual-keys=flag",
+                "idle-mode.indicator.render-as-cursor=false | +a -> true");
+        press("a");
+        assertTrue(fired());
+        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
+        assertFalse(fired());
+        pressVirtual("flag");
+        assertFalse(fired(), "the buffered +a must not be matched again");
+    }
+
+    @Test
+    void virtualKeyNamedElsewhereDoesNotMatchACompletedComboAgain() {
+        // +flag +q names flag, so it reaches the preparation, and pressing flag alone does not
+        // complete that branch.
+        load("virtual-keys=flag",
+                "idle-mode.indicator.render-as-cursor=false | +a -> true | +flag +q -> true");
+        press("a");
+        assertTrue(fired());
+        comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
+        assertFalse(fired());
+        pressVirtual("flag");
+        assertFalse(fired(), "the buffered +a must not be matched again");
     }
 
     @Test

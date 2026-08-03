@@ -484,12 +484,24 @@ public class ComboWatcher {
                                                   Set<Key> virtualKeysInPreparation) {
         if (virtualKeysInPreparation.isEmpty())
             return comboPreparation;
+        // Hiding the last event would turn an older event into the suffix, matching a combo
+        // that already completed.
+        if (!isVisibleTo(sequence, comboPreparation.events().getLast().key()))
+            return comboPreparation;
         Set<Key> hidden = new HashSet<>(virtualKeysInPreparation);
         hidden.removeAll(sequence.allKeys());
         return comboPreparation.without(hidden);
     }
 
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
+        if (!isVisibleToSomeCombo(event.key())) {
+            if (event.isPress())
+                currentlyPressedComboKeys.add(event.key());
+            else
+                currentlyPressedComboKeys.remove(event.key());
+            refreshPreconditionOnlyMutations();
+            return new PressKeyEventProcessingSet(new HashMap<>(), new HashMap<>());
+        }
         App activeApp = activeAppFinder.activeApp();
         lastKeyEvent = event;
         // Update wait begin times: only reset for non-ignored key events.
@@ -597,8 +609,7 @@ public class ComboWatcher {
                 combosBlockedFromRerunningCommand.clear();
             }
         }
-        if (isVisibleToSomeCombo(event.key()))
-            comboPreparation.events().add(event);
+        comboPreparation.events().add(event);
         List<KeyEvent> preparationEvents = comboPreparation.events();
         Duration retainDuration = comboPreparationRetainDurationByMode.get(baseMode);
         int minRetainEventCount = comboPreparationMinRetainEventCountByMode.getOrDefault(baseMode, 0);
