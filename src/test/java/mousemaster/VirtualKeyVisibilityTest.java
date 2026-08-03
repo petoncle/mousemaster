@@ -11,14 +11,10 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * A combo waiting for its held last move to elapse is cancelled by a key that some combo
- * sequence of the mode uses, not by an unrelated key.
+ * A virtual key event is visible only to combos whose sequence names that key. Events are fed
+ * straight into keyEvent, the way MacroPlayer feeds them.
  */
-class HeldLastMoveEvictionTest {
-
-    /** b and c are sequence keys, z is not. */
-    private static final String combos =
-            "idle-mode.indicator.render-as-cursor=false | +a-250 -> true | +b +c -> true";
+class VirtualKeyVisibilityTest {
 
     private Instant now = Instant.parse("2020-01-01T00:00:00Z");
     private ComboWatcher comboWatcher;
@@ -43,8 +39,16 @@ class HeldLastMoveEvictionTest {
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
     }
 
+    private void press(Key key) {
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, key));
+    }
+
     private void press(String keyName) {
-        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName(keyName)));
+        press(Key.ofName(keyName));
+    }
+
+    private void pressVirtual(String keyName) {
+        press(new Key(keyName, null, null));
     }
 
     private void elapse(long millis) {
@@ -52,33 +56,45 @@ class HeldLastMoveEvictionTest {
         comboWatcher.update(millis / 1000d);
     }
 
-    private boolean heldComboFired() {
+    private boolean fired() {
         return comboWatcher.getMutatedMode().indicator().renderAsCursor();
     }
 
     @Test
-    void heldLastMoveFiresOnceTheHoldElapses() {
-        load(combos);
-        press("a");
-        elapse(300);
-        assertTrue(heldComboFired());
-    }
-
-    @Test
-    void unrelatedKeyDoesNotCancelHeldLastMove() {
-        load(combos);
+    void realKeyBetweenTwoMovesBreaksTheCombo() {
+        load("idle-mode.indicator.render-as-cursor=false | +a +b -> true");
         press("a");
         press("z");
-        elapse(300);
-        assertTrue(heldComboFired(), "z is used by no combo sequence of the mode");
+        press("b");
+        assertFalse(fired());
     }
 
     @Test
-    void sequenceKeyCancelsHeldLastMove() {
-        load(combos);
+    void virtualKeyBetweenTwoMovesDoesNotBreakTheCombo() {
+        load("virtual-keys=flag",
+                "idle-mode.indicator.render-as-cursor=false | +a +b -> true");
         press("a");
+        pressVirtual("flag");
         press("b");
+        assertTrue(fired());
+    }
+
+    @Test
+    void comboNamingTheVirtualKeySeesIt() {
+        load("virtual-keys=flag",
+                "idle-mode.indicator.render-as-cursor=false | +flag -> true");
+        pressVirtual("flag");
+        assertTrue(fired());
+    }
+
+    @Test
+    void virtualKeyDoesNotCancelAHoldItIsInvisibleTo() {
+        // flag is a sequence key of the mode (+flag +q), but the held combo does not name it.
+        load("virtual-keys=flag",
+                "idle-mode.indicator.render-as-cursor=false | +a-250 -> true | +flag +q -> true");
+        press("a");
+        pressVirtual("flag");
         elapse(300);
-        assertFalse(heldComboFired(), "b starts +b +c, so the hold is abandoned");
+        assertTrue(fired());
     }
 }

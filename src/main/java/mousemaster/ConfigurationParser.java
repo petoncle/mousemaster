@@ -344,9 +344,10 @@ public class ConfigurationParser {
                 forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout == null ?
                         activeKeyboardLayout :
                         forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout;
+        Set<String> virtualKeyNames = parseVirtualKeyNames(properties);
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
-                        parseVirtualKeyNames(properties));
+                        virtualKeyNames);
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
@@ -576,7 +577,10 @@ public class ConfigurationParser {
         return new Configuration(maxPositionHistorySize,
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
-                Set.copyOf(initiallySetVariables));
+                Set.copyOf(initiallySetVariables),
+                virtualKeyNames.stream()
+                               .map(keyResolver::resolve)
+                               .collect(Collectors.toSet()));
     }
 
     private static List<Combo> deriveSelectCombosFromHintSelectionKeys(ModeBuilder mode,

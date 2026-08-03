@@ -27,7 +27,8 @@ class PreconditionOnlyMutationTest {
         ActiveAppFinder noApp = () -> new App("test.exe");
         Clock clock = Instant::now;
         comboWatcher = new ComboWatcher(null, null, noApp, clock, Set.of(), Set.of(),
-                false, modeMap, configuration.initiallySetVariables());
+                false, modeMap, configuration.initiallySetVariables(),
+                configuration.virtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
             public void modeChanged(Mode newMode) {

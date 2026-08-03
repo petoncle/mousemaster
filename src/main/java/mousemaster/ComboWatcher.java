@@ -42,6 +42,7 @@ public class ComboWatcher {
     private final Map<ModePropertyPath, ActiveModeMutation> activeMutations = new LinkedHashMap<>();
     private final Set<String> activeVariables;
     private final Set<String> initiallySetVariables;
+    private final Set<Key> virtualKeys;
     /**
      * Computed once on mode change: true if ALL MutateMode combos for this
      * field path are precondition-only (no sequence moves).
@@ -169,9 +170,11 @@ public class ComboWatcher {
                         Clock clock,
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
-                        ModeMap modeMap, Set<String> initiallySetVariables) {
+                        ModeMap modeMap, Set<String> initiallySetVariables,
+                        Set<Key> virtualKeys) {
         this.activeVariables = new HashSet<>(initiallySetVariables);
         this.initiallySetVariables = initiallySetVariables;
+        this.virtualKeys = virtualKeys;
         this.commandRunner = commandRunner;
         this.hintManager = hintManager;
         this.activeAppFinder = activeAppFinder;
@@ -290,15 +293,18 @@ public class ComboWatcher {
             boolean atLeastOneProcessingIsPartOfComboSequence = false;
             boolean preparationIsStillPrefixOfAtLeastOneCombo = false;
             Instant currentTime = clock.now();
+            Set<Key> virtualKeysInPreparation = virtualKeysInPreparation();
             for (var entry : lastProcessingSet.processingByCombo().entrySet()) {
                 Combo combo = entry.getKey();
                 PressKeyEventProcessing processing = entry.getValue();
                 if (processing.isPartOfComboSequence()) {
                     atLeastOneProcessingIsPartOfComboSequence = true;
-                    ComboSequenceMatch match = comboPreparation.match(combo.sequence());
+                    ComboPreparation visiblePreparation = preparationVisibleTo(
+                            combo.sequence(), virtualKeysInPreparation);
+                    ComboSequenceMatch match = visiblePreparation.match(combo.sequence());
                     if (match.hasMatch()) {
                         ResolvedKeyComboMove currentKeyMove = match.lastMatchedKeyMove();
-                        KeyEvent lastMatchedEvent = comboPreparation.events()
+                        KeyEvent lastMatchedEvent = visiblePreparation.events()
                                 .get(match.lastMatchedKeyMoveEventIndex());
                         // If the last matched MoveSet is an absorbing wait,
                         // use the wait's max duration instead of the move's.
@@ -452,6 +458,33 @@ public class ComboWatcher {
         return new ComboWatcherUpdateResult(completedCombos, preparationIsNotPrefixAnymore, hasComboPreparationBreaker, comboPreparationAlreadyBroken, comboPreparationBreakerKey, expiredCombos);
     }
 
+    private boolean isVisibleTo(ComboSequence sequence, Key key) {
+        return !virtualKeys.contains(key) || sequence.allKeys().contains(key);
+    }
+
+    private Set<Key> virtualKeysInPreparation() {
+        if (virtualKeys.isEmpty())
+            return Set.of();
+        Set<Key> keys = null;
+        for (KeyEvent event : comboPreparation.events()) {
+            if (!virtualKeys.contains(event.key()))
+                continue;
+            if (keys == null)
+                keys = new HashSet<>();
+            keys.add(event.key());
+        }
+        return keys == null ? Set.of() : keys;
+    }
+
+    private ComboPreparation preparationVisibleTo(ComboSequence sequence,
+                                                  Set<Key> virtualKeysInPreparation) {
+        if (virtualKeysInPreparation.isEmpty())
+            return comboPreparation;
+        Set<Key> hidden = new HashSet<>(virtualKeysInPreparation);
+        hidden.removeAll(sequence.allKeys());
+        return comboPreparation.without(hidden);
+    }
+
     public PressKeyEventProcessingSet keyEvent(KeyEvent event) {
         App activeApp = activeAppFinder.activeApp();
         lastKeyEvent = event;
@@ -524,7 +557,8 @@ public class ComboWatcher {
             combosWaitingForLastMoveToComplete.removeIf(waiting -> {
                 WaitComboMove waitMove = waiting.lastWaitMove();
                 if (waitMove == null)
-                    return currentModeSequenceKeys.contains(event.key());
+                    return isVisibleTo(waiting.comboAndCommands.combo.sequence(), event.key())
+                           && currentModeSequenceKeys.contains(event.key());
                 return !waitMove.matchesEvent(event);
             });
         }
@@ -668,6 +702,7 @@ public class ComboWatcher {
         Map<Combo, PressKeyEventProcessing> processingByCombo = new HashMap<>();
         Map<Combo, ComboSequenceMatch> matchByCombo = new HashMap<>();
         List<ComboAndCommands> comboAndCommandsToRun = new ArrayList<>();
+        Set<Key> virtualKeysInPreparation = virtualKeysInPreparation();
         Set<Key> currentlyPressedKeys = new HashSet<>(currentlyPressedComboKeys);
         if (event != null && event.isPress())
             currentlyPressedKeys.add(event.key());
@@ -750,7 +785,8 @@ public class ComboWatcher {
             totalPreMatchNanos += System.nanoTime() - comboIterationStartNanos;
             matchCallCount++;
             long matchBeforeNanos = System.nanoTime();
-            ComboSequenceMatch match = comboPreparation.match(combo.sequence());
+            ComboSequenceMatch match = preparationVisibleTo(combo.sequence(),
+                    virtualKeysInPreparation).match(combo.sequence());
             long matchElapsedNanos = System.nanoTime() - matchBeforeNanos;
             totalMatchNanos += matchElapsedNanos;
             long postMatchStartNanos = System.nanoTime();
