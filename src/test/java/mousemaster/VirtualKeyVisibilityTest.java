@@ -51,8 +51,12 @@ class VirtualKeyVisibilityTest {
         press(new Key(keyName, null, null));
     }
 
-    private void elapse(long millis) {
+    private void advance(long millis) {
         now = now.plus(Duration.ofMillis(millis));
+    }
+
+    private void elapse(long millis) {
+        advance(millis);
         comboWatcher.update(millis / 1000d);
     }
 
@@ -84,6 +88,19 @@ class VirtualKeyVisibilityTest {
         load("virtual-keys=flag",
                 "idle-mode.indicator.render-as-cursor=false | +flag -> true");
         pressVirtual("flag");
+        assertTrue(fired());
+    }
+
+    @Test
+    void virtualKeyDoesNotDistortTheGapBetweenRealKeys() {
+        // The gap that must satisfy +a's 50-300ms is a -> b (200ms), not flag -> b (10ms).
+        load("virtual-keys=flag",
+                "idle-mode.indicator.render-as-cursor=false | +a-50-300 +b -> true");
+        press("a");
+        advance(190);
+        pressVirtual("flag");
+        advance(10);
+        press("b");
         assertTrue(fired());
     }
 

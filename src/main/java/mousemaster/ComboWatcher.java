@@ -462,6 +462,10 @@ public class ComboWatcher {
         return !virtualKeys.contains(key) || sequence.allKeys().contains(key);
     }
 
+    private boolean isVisibleToSomeCombo(Key key) {
+        return !virtualKeys.contains(key) || currentModeSequenceKeys.contains(key);
+    }
+
     private Set<Key> virtualKeysInPreparation() {
         if (virtualKeys.isEmpty())
             return Set.of();
@@ -491,6 +495,8 @@ public class ComboWatcher {
         // Update wait begin times: only reset for non-ignored key events.
         for (Map.Entry<Combo, Instant> entry : leadingWaitBeginTimeByCombo.entrySet()) {
             Combo combo = entry.getKey();
+            if (!isVisibleTo(combo.sequence(), event.key()))
+                continue;
             WaitComboMove waitMove = ((WaitMoveSet) combo.sequence().moveSets().getFirst()).waitMove();
             if (waitMove.matchesEvent(event))
                 continue;
@@ -555,10 +561,12 @@ public class ComboWatcher {
         }
         if (!combosWaitingForLastMoveToComplete.isEmpty()) {
             combosWaitingForLastMoveToComplete.removeIf(waiting -> {
+                Combo combo = waiting.comboAndCommands.combo;
+                if (!isVisibleTo(combo.sequence(), event.key()))
+                    return false;
                 WaitComboMove waitMove = waiting.lastWaitMove();
                 if (waitMove == null)
-                    return isVisibleTo(waiting.comboAndCommands.combo.sequence(), event.key())
-                           && currentModeSequenceKeys.contains(event.key());
+                    return currentModeSequenceKeys.contains(event.key());
                 return !waitMove.matchesEvent(event);
             });
         }
@@ -566,6 +574,8 @@ public class ComboWatcher {
         // idle-mode.macro.tap1=#!{f1}-250 +f1 #!{f1}-0-250 -f1 #!{f1}-250 -> +b -b
         if (!combosBlockedFromRerunningCommand.isEmpty()) {
             combosBlockedFromRerunningCommand.removeIf(combo -> {
+                if (!isVisibleTo(combo.sequence(), event.key()))
+                    return false;
                 MoveSet lastMoveSet = combo.sequence().moveSets().getLast();
                 if (!(lastMoveSet instanceof WaitMoveSet waitMoveSet))
                     return true;
@@ -587,7 +597,8 @@ public class ComboWatcher {
                 combosBlockedFromRerunningCommand.clear();
             }
         }
-        comboPreparation.events().add(event);
+        if (isVisibleToSomeCombo(event.key()))
+            comboPreparation.events().add(event);
         List<KeyEvent> preparationEvents = comboPreparation.events();
         Duration retainDuration = comboPreparationRetainDurationByMode.get(baseMode);
         int minRetainEventCount = comboPreparationMinRetainEventCountByMode.getOrDefault(baseMode, 0);
@@ -621,7 +632,8 @@ public class ComboWatcher {
             boolean couldBePartOfOptionalTap =
                     keyCouldBePartOfOptionalTapInAnyCombo(event.key());
             boolean ignoredByKeyMoveSet = keyEventIgnoredByFirstKeyMoveSetInAnyCombo(event);
-            if (!couldMatchOptional && !couldBePartOfOptionalTap && !ignoredByKeyMoveSet) {
+            if (!couldMatchOptional && !couldBePartOfOptionalTap && !ignoredByKeyMoveSet &&
+                !virtualKeys.contains(event.key())) {
                 comboPreparation = ComboPreparation.empty();
                 clearLeadingWaitBeginTimesExceptIgnored(event);
                 combosBlockedFromRerunningCommand.clear();
@@ -666,11 +678,13 @@ public class ComboWatcher {
         // Update lastEventTimeByKey after all processing, so that
         // lastNonIgnoredEventTime() during processKeyEventForCurrentMode
         // reflects the state before the current event arrived.
-        lastEventTimeByKey.put(event.key(), event.time());
-        if (event.isPress())
-            lastPressEventTime = event.time();
-        else
-            lastReleaseEventTime = event.time();
+        if (!virtualKeys.contains(event.key())) {
+            lastEventTimeByKey.put(event.key(), event.time());
+            if (event.isPress())
+                lastPressEventTime = event.time();
+            else
+                lastReleaseEventTime = event.time();
+        }
         lastProcessingSet = processingSet;
         refreshPreconditionOnlyMutations(activeApp);
         return processingSet;
