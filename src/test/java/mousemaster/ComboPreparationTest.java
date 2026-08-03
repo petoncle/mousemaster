@@ -18,6 +18,7 @@ class ComboPreparationTest {
     static final Key b = Key.ofName("b");
     static final Key c = Key.ofName("c");
     static final Key d = Key.ofName("d");
+    static final Key z = Key.ofName("z");
 
     static final ComboMoveDuration defaultDuration = new ComboMoveDuration(Duration.ZERO, null);
 
@@ -76,6 +77,39 @@ class ComboPreparationTest {
         ComboSequenceMatch match = prep().match(seq());
         assertTrue(match.complete());
         assertTrue(match.matchedKeyMoves().isEmpty());
+    }
+
+    // 1b. Events hidden from a sequence (a virtual key the sequence does not name)
+
+    @Test
+    void without_nothingToDrop_returnsSameInstance() {
+        ComboPreparation preparation = prep("+a +b");
+        assertSame(preparation, preparation.without(Set.of()));
+        assertSame(preparation, preparation.without(Set.of(z)));
+    }
+
+    @Test
+    void interleavedEvent_breaksTheMatch() {
+        assertFalse(prep("+a +z +b").match(parseCombo("+a +b", Map.of())).complete());
+    }
+
+    @Test
+    void interleavedHiddenEvent_doesNotBreakTheMatch() {
+        ComboSequenceMatch match = prep("+a +z +b").without(Set.of(z))
+                                                  .match(parseCombo("+a +b", Map.of()));
+        assertTrue(match.complete());
+        assertEquals(2, match.matchedKeyMoves().size());
+    }
+
+    @Test
+    void interleavedHiddenEvent_doesNotDistortTheGap() {
+        // The gap checked is a -> b (80ms), not z -> b (30ms).
+        assertTrue(prep("+a@0 +z@50 +b@80").without(Set.of(z))
+                                           .match(parseCombo("+a-0-100 +b", Map.of()))
+                                           .complete());
+        assertFalse(prep("+a@0 +z@50 +b@200").without(Set.of(z))
+                                             .match(parseCombo("+a-0-100 +b", Map.of()))
+                                             .complete());
     }
 
     // 2. Single required move

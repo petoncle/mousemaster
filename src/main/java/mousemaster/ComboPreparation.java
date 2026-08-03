@@ -20,6 +20,22 @@ public record ComboPreparation(List<KeyEvent> events) {
         return new ComboPreparation(new ArrayList<>());
     }
 
+    public ComboPreparation without(Set<Key> keys) {
+        if (keys.isEmpty())
+            return this;
+        List<KeyEvent> remaining = null;
+        for (int eventIndex = 0; eventIndex < events.size(); eventIndex++) {
+            KeyEvent event = events.get(eventIndex);
+            if (keys.contains(event.key())) {
+                if (remaining == null)
+                    remaining = new ArrayList<>(events.subList(0, eventIndex));
+            }
+            else if (remaining != null)
+                remaining.add(event);
+        }
+        return remaining == null ? this : new ComboPreparation(remaining);
+    }
+
     /**
      * Matches the most recent events in this preparation against a combo sequence.
      * A combo sequence is an ordered list of MoveSets. Each MoveSet contains required
