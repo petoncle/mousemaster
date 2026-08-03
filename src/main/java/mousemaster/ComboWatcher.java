@@ -32,7 +32,9 @@ public class ComboWatcher {
     private final boolean logRedactKeys;
     private final Set<Key> unpressedComboPreconditionKeys;
     private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
+    private final Map<Mode, Set<Key>> sequenceKeysByMode;
     private Set<Key> currentModePressedPreconditionKeys;
+    private Set<Key> currentModeSequenceKeys;
     private List<ModeListener> modeListeners;
     private Mode baseMode;
     private Mode mutatedMode;
@@ -193,17 +195,22 @@ public class ComboWatcher {
         }
         this.comboPreparation = ComboPreparation.empty();
         Map<Mode, Set<Key>> preconditionKeysByMode = new HashMap<>();
+        Map<Mode, Set<Key>> sequenceKeysByMode = new HashMap<>();
         for (Mode mode : modeMap.modes()) {
             Set<Key> keys = new HashSet<>();
+            Set<Key> sequenceKeys = new HashSet<>();
             for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
                 keys.addAll(combo.precondition()
                                  .keyPrecondition()
                                  .pressedKeyPrecondition()
                                  .allKeys());
+                sequenceKeys.addAll(combo.sequence().allKeys());
             }
             preconditionKeysByMode.put(mode, keys);
+            sequenceKeysByMode.put(mode, sequenceKeys);
         }
         this.pressedPreconditionKeysByMode = preconditionKeysByMode;
+        this.sequenceKeysByMode = sequenceKeysByMode;
     }
 
     public void setModeListeners(List<ModeListener> modeListeners) {
@@ -517,7 +524,7 @@ public class ComboWatcher {
             combosWaitingForLastMoveToComplete.removeIf(waiting -> {
                 WaitComboMove waitMove = waiting.lastWaitMove();
                 if (waitMove == null)
-                    return true; // Non-wait waiting combos: any key cancels.
+                    return currentModeSequenceKeys.contains(event.key());
                 return !waitMove.matchesEvent(event);
             });
         }
@@ -1464,6 +1471,7 @@ public class ComboWatcher {
         activeMutations.clear();
         currentModePressedPreconditionKeys =
                 pressedPreconditionKeysByMode.getOrDefault(newMode, Set.of());
+        currentModeSequenceKeys = sequenceKeysByMode.getOrDefault(newMode, Set.of());
         computePreconditionOnlyByPropertyPath();
         if (!refreshPreconditionOnlyMutations(activeApp))
             notifyMutatedMode();
