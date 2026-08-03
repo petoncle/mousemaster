@@ -10,7 +10,7 @@
 - [Negated moves](#negated-moves)
 - [Optionality](#optionality)
 - [Preconditions](#preconditions)
-- [Variables](#variables)
+- [Virtual keys](#virtual-keys)
 - [Combo preparation](#combo-preparation)
 - [Multi-combo](#multi-combo)
 - [Macro output syntax](#macro-output-syntax)
@@ -429,76 +429,76 @@ _{firefox.exe | chrome.exe}  combo only works when Firefox or Chrome is active
 
 ---
 
-## Variables
+## Virtual keys
 
-Variables are boolean flags that persist across mode switches. They allow combos and property values to change behavior dynamically based on runtime state.
+A virtual key is a key with no hardware behind it, declared in the configuration and pressed by a macro. Virtual keys persist across mode switches, so combos and property values can change behavior based on runtime state.
 
-### Setting and unsetting variables
+### Declaring virtual keys
 
-Variables are managed with `set-variable`, `unset-variable`, and `reset-variables` commands. Each takes a combo expression.
-
-```properties
-mode.set-variable.iszoom=combo           set iszoom when combo matches
-mode.unset-variable.iszoom=combo         unset iszoom when combo matches
-mode.reset-variables=combo               return all variables to the values they start with
-```
-
-A common pattern is toggling a variable on/off with the same key:
+`virtual-keys` is a global, space-separated list:
 
 ```properties
-mode.set-variable.iszoom=_{!iszoom} +leftctrl       set iszoom if not already set
-mode.unset-variable.iszoom=_{iszoom} +leftctrl       unset iszoom if already set
+virtual-keys=iszoom isslow
 ```
 
-### Variable preconditions in combos
+A virtual key can never be produced by hardware, is never sent to the OS, and can only be pressed by a macro. Using one as an OS move (`+`/`-`) is a configuration error. Declaring it keeps typo detection: an undeclared unknown key name is still rejected at load time.
 
-Variable preconditions use the `_{}` syntax (same block type as pressed-key preconditions). Variable names are distinguished from key names automatically.
+A virtual key starts released. Prefix its name with `+` to have it pressed from the start; `-` is the explicit form of the default:
 
-```
-_{iszoom}              iszoom must be set
-_{!iszoom}             iszoom must NOT be set
-_{isslow iszoom}       both isslow and iszoom must be set
-_{isslow | iszoom}     isslow OR iszoom must be set
+```properties
+virtual-keys=iszoom +showkeys -isslow
 ```
 
-**Important**: variable preconditions and key preconditions cannot be mixed in one `_{}` block. Use separate blocks:
+### Pressing and releasing
 
-```
-_{rightalt} _{iszoom} +a     correct: separate blocks for key and variable
-_{rightalt iszoom} +a        wrong: parser treats iszoom as a key name
-```
+A macro presses a virtual key with `#name` and releases it with `~name`:
 
-**Important**: multiple variable `_{}` blocks are not allowed on one combo branch. Combine into one block:
-
-```
-_{isslow iszoom} +a               correct: one block with both variables
-_{isslow} _{iszoom} +a            WRONG: multiple variable blocks
-_{isslow iszoom | isrclick} +a    correct: OR with combined conditions
+```properties
+mode.macro.setiszoom=^{iszoom} +z -> #iszoom
+mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 ```
 
-Negated variable preconditions can be combined with regular ones:
+Together those two lines are the toggle pattern: pressing z while it is released presses it, pressing z while it is pressed releases it.
+
+A virtual key pressed at the start of a macro's output takes effect before the combo's other commands, so a mode switch on the same combo already sees it.
+
+### Reading
+
+A virtual key is read like any other key: `_{}` for pressed, `^{}` for not pressed.
 
 ```
-_{!isslow !iszoom !isrclick}       none of these three variables are set
-_{iszoom !isnomove}                iszoom is set AND isnomove is not set
+_{iszoom}              iszoom is pressed
+^{iszoom}              iszoom is not pressed
+_{isslow iszoom}       both are pressed
+_{isslow | iszoom}     either is pressed
+_{rightalt iszoom}     a real key and a virtual key in one block
 ```
 
-### Built-in variables
+A branch carries at most one `_{}` block and one `^{}` block; two blocks of the same kind is a configuration error. Combine them:
 
-Some variables are maintained automatically by mousemaster and can be used in preconditions like any other variable. They cannot be set, unset, or reset from the configuration (attempting to `set-variable`/`unset-variable` a built-in name is a configuration error, and `reset-variables` leaves them untouched).
+```
+_{isslow iszoom} +a       correct
+_{isslow} _{iszoom} +a    error: combine into one block
+```
 
-| Variable   | Set when                                                                                                          |
-|------------|-------------------------------------------------------------------------------------------------------------------|
+A pressed virtual key never disturbs a combo that does not mention it. It is not a key the user is pressing, so it does not break another combo's sequence and does not falsify `_{none}`.
+
+### Built-in virtual keys
+
+Some virtual keys are maintained by mousemaster. They can be read like any other but cannot be pressed or released from the configuration.
+
+| Key        | Pressed when                                                                                                        |
+|------------|------------------------------------------------------------------------------------------------------------------|
 | `isidling` | The mouse is idle: not moving, no mouse button pressed, not wheeling, and no combo completed on the current tick. |
 
 ```
-_{isidling} +a                     combo only works while the mouse is idle
+_{isidling} +a                                        combo only works while the mouse is idle
 mode.indicator.idle-color=... | _{isidling} -> gray   idle-only property value
 ```
 
-### Mode property mutation with variables
+### Mode property mutation
 
-Properties can have different values depending on which variables are set. The syntax uses `|` to separate branches, with `_{}` variable preconditions and `->` pointing to the value:
+Properties can take different values depending on which virtual keys are pressed. `|` separates branches, `_{}` and `^{}` give the condition, and `->` points to the value:
 
 ```properties
 mode.property=default | _{iszoom} -> zoomed-value
@@ -507,37 +507,40 @@ mode.property=default | _{iszoom} -> zoomed-value
 The last matching branch wins (rightmost has highest priority). The leftmost branch has no precondition and serves as the default.
 
 ```properties
-# Single variable override
+# Single override
 hint3-mode.zoom.percent=1 | _{iszoom} -> 30
 
-# Multiple variable overrides
+# Several overrides
 _hint-mode.hint.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
 
-# Combined variable + key precondition
+# A virtual key and a real key
 _hint-mode.hint.box-border-color=#FFFF00 | _{iszoom} -> #00FF00 | _{rightalt} -> #FFFFFF
 ```
 
 ### Example: slow and zoom toggles
 
-Toggle slow mode and zoom mode on/off with keys, changing hint box color accordingly:
+Toggle slow and zoom with keys, changing the hint box color accordingly:
 
 ```properties
-_hint-mode.set-variable.isslow=_{!isslow} +s
-_hint-mode.unset-variable.isslow=_{isslow} +s
-_hint-mode.set-variable.iszoom=_{!iszoom} +z
-_hint-mode.unset-variable.iszoom=_{iszoom} +z
+virtual-keys=isslow iszoom
 
-# Change hint box color based on active variable
+_hint-mode.macro.setisslow=^{isslow} +s -> #isslow
+_hint-mode.macro.unsetisslow=_{isslow} +s -> ~isslow
+_hint-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
+_hint-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
+
 _hint-mode.hint.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
 ```
 
 ### Example: zoom toggle
 
-Toggle zoom on/off with a key, adjusting hint cell size accordingly:
+Toggle zoom with a key, adjusting hint cell size accordingly:
 
 ```properties
-hint3-mode.set-variable.iszoom=_{!iszoom} +z
-hint3-mode.unset-variable.iszoom=_{iszoom} +z
+virtual-keys=iszoom
+
+hint3-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
+hint3-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 
 hint3-mode.zoom.percent=1 | _{iszoom} -> 30
 hint3-mode.hint.grid-cell-width=10.7 | _{iszoom} -> 320
@@ -898,12 +901,10 @@ Breakdown:
 | `_{keys}` | Precondition: keys must be pressed |
 | `_{none}` | Precondition: no keys pressed |
 | `_{a \| b}` | Precondition: a or b pressed |
-| `_{variable}` | Precondition: variable must be set |
-| `_{!variable}` | Precondition: variable must NOT be set |
-| `set-variable.variable=combo` | Set variable when combo matches |
-| `unset-variable.variable=combo` | Unset variable when combo matches |
-| `reset-variables=combo` | Return all variables to the values they start with |
-| `val \| _{variable} -> val2` | Variable-conditional property value |
+| `virtual-keys=a b +c` | Declare virtual keys; `+` = pressed from the start |
+| `combo -> #name` | Press a virtual key |
+| `combo -> ~name` | Release a virtual key |
+| `val \| _{name} -> val2` | Conditional property value |
 | `combo1 \| combo2` | Alternative combos |
 | `combo -> output` | Macro output |
 | `-> +key` | Output: press key to OS |

@@ -251,22 +251,18 @@ When shift is released, the property reverts to its default. Mutations are most 
 normal-mode.indicator.idle.color=#00FF00 | _{leftctrl} -> #FF0000
 ```
 
-Mutations can also be driven by [variables](combo-reference.md#variables) (boolean flags settable from combos) instead of held keys, so the value persists across mode switches and survives key releases:
+Mutations can also be driven by [virtual keys](combo-reference.md#virtual-keys) instead of held keys, so the value
+persists across mode switches and survives key releases:
 
 ```properties
-# Toggle iszoom on/off with z, change zoom percent based on the variable
-hint-mode.set-variable.iszoom=_{!iszoom} +z
-hint-mode.unset-variable.iszoom=_{iszoom} +z
+# Toggle iszoom on/off with z, change zoom percent based on the virtual key
+virtual-keys=iszoom
+hint-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
+hint-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 hint-mode.zoom.percent=1 | _{iszoom} -> 30
 ```
 
-A variable starts false. `variable.<name>` (a global property) gives it the value it starts with, and
-declares it, so a variable that only a `variable.` line ever sets can still be tested. `reset-variables`
-and reloading the configuration both return every variable to the value it starts with.
-
-```properties
-variable.iszoom=true
-```
+A virtual key starts released, and reloading the configuration returns every one to released.
 
 When mutating an indicator or hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration). Mutating `indicator.idle.color` also mutates `move`, `wheel`, `mouse-press`, etc.
 
@@ -1231,7 +1227,7 @@ list):
 virtual-keys=drilling
 ```
 
-A virtual key has no scancode: it can never be produced by hardware, is never sent to the
+A virtual key can never be produced by hardware, is never sent to the
 OS, and is only ever pressed/released by a macro via `#`/`~`. It can be used anywhere a
 real key can in the combo system — in a macro's `#`/`~` moves, and in `_{}`/`^{}`
 preconditions — but using it as an OS move (`+`/`-`) is a configuration error.
@@ -1245,6 +1241,11 @@ virtual-keys=drilling
 some-mode.macro.example=+g -> #drilling k k ~drilling
 some-mode.hint.visible=true | _{drilling} -> false
 ```
+
+A macro can also leave a virtual key pressed past its own end, making it persistent state that
+combos and property values can be gated on. See
+[virtual keys](combo-reference.md#virtual-keys) for reading them in preconditions and for
+driving property mutation.
 
 ### Examples
 
