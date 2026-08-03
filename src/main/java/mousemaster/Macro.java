@@ -141,15 +141,13 @@ public record Macro(String name, MacroSequence output,
         if (alias != null)
             keyOrAlias = KeyOrAlias.ofAlias(alias);
         else {
-            if (destination == MacroMoveDestination.OS &&
-                keyResolver.isVirtual(keyOrAliasName))
-                throw new IllegalArgumentException(
-                        "Virtual key " + keyOrAliasName + " has no OS representation: " +
-                        "use #/~ (combo watcher) instead of +/-");
             if (BuiltInVirtualKey.NAMES.contains(keyOrAliasName))
                 throw new IllegalArgumentException(
                         "Virtual key " + keyOrAliasName +
                         " is built-in and cannot be pressed or released by a macro");
+            if (keyResolver.isVirtual(keyOrAliasName))
+                // A virtual key has no OS side, so +/- and #/~ mean the same thing.
+                destination = MacroMoveDestination.COMBO_WATCHER;
             keyOrAlias = KeyOrAlias.ofKey(keyResolver.resolve(keyOrAliasName));
         }
         return new KeyMacroMove(keyOrAlias, negated, press, destination);

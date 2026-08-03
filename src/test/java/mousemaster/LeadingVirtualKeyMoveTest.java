@@ -57,6 +57,14 @@ class LeadingVirtualKeyMoveTest {
     }
 
     @Test
+    void plusAndMinusMeanTheSameAsHashAndTildeForAVirtualKey() {
+        assertEquals(leadingMoves(macro("virtual-keys=flag other",
+                        "idle-mode.macro.x=+a -> +flag -other")),
+                leadingMoves(macro("virtual-keys=flag other",
+                        "idle-mode.macro.x=+a -> #flag ~other")));
+    }
+
+    @Test
     void aRealKeyMoveIsNeverLeading() {
         Macro macro = macro("virtual-keys=flag", "idle-mode.macro.x=+a -> #b #flag");
         assertEquals(List.of(), leadingMoves(macro));

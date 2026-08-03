@@ -451,12 +451,14 @@ virtual-keys=iszoom +showkeys -isslow
 
 ### Pressing and releasing
 
-A macro presses a virtual key with `#name` and releases it with `~name`:
+A macro presses a virtual key with `+name` and releases it with `-name`:
 
 ```properties
-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
+mode.macro.setiszoom=^{iszoom} +z -> +iszoom
+mode.macro.unsetiszoom=_{iszoom} +z -> -iszoom
 ```
+
+A virtual key has no OS side, so `#name` and `~name` mean the same thing here — the distinction those prefixes draw for a real key does not apply.
 
 Together those two lines are the toggle pattern: pressing z while it is released presses it, pressing z while it is pressed releases it.
 
