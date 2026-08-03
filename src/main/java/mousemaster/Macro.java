@@ -10,6 +10,25 @@ public record Macro(String name, MacroSequence output,
                     Map<String, List<Key>> outputAliasAllKeys) {
 
     /**
+     * The moves before the first move that is not a virtual key move. Their state is applied in
+     * the command batch, before the combo's other commands.
+     */
+    public List<KeyMacroMove> leadingVirtualKeyMoves(Set<Key> virtualKeys) {
+        if (virtualKeys.isEmpty())
+            return List.of();
+        List<KeyMacroMove> moves = new ArrayList<>();
+        for (MacroMove move : output.parallels().getFirst().moves()) {
+            if (!(move instanceof KeyMacroMove keyMove) ||
+                keyMove.destination() != MacroMoveDestination.COMBO_WATCHER ||
+                keyMove.keyOrAlias().isAlias() ||
+                !virtualKeys.contains(keyMove.keyOrAlias().key()))
+                break;
+            moves.add(keyMove);
+        }
+        return moves;
+    }
+
+    /**
      * - +key = press key, send to OS
      * - -key = release key, send to OS
      * - #key = press key, send to ComboWatcher

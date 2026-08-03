@@ -1084,7 +1084,7 @@ public class ComboWatcher {
         }
         // Batch all mutations so the mode is rebuilt only once.
         boolean anyMutation = false;
-        boolean anyVariableChange = false;
+        boolean anyStateChange = false;
         // Process ResetVariables before Set/UnsetVariable so that
         // reset-variables + set-variable on the same combo resets first, then sets.
         for (Command command : commands) {
@@ -1092,10 +1092,10 @@ public class ComboWatcher {
                 // Back to the values the variables start with, not to nothing: a variable.<name>=true
                 // is a configured value, not runtime state. Built-in variables (e.g. isidling) are
                 // maintained automatically and survive too.
-                anyVariableChange |= activeVariables.removeIf(
+                anyStateChange |= activeVariables.removeIf(
                         variableName -> !BuiltInVariable.NAMES.contains(variableName)
                                         && !initiallySetVariables.contains(variableName));
-                anyVariableChange |= activeVariables.addAll(initiallySetVariables);
+                anyStateChange |= activeVariables.addAll(initiallySetVariables);
             }
         }
         for (Command command : commands) {
@@ -1106,10 +1106,18 @@ public class ComboWatcher {
                 anyMutation = true;
             }
             else if (command instanceof Command.SetVariable setVariable) {
-                anyVariableChange |= activeVariables.add(setVariable.variableName());
+                anyStateChange |= activeVariables.add(setVariable.variableName());
             }
             else if (command instanceof Command.UnsetVariable unsetVariable) {
-                anyVariableChange |= activeVariables.remove(unsetVariable.variableName());
+                anyStateChange |= activeVariables.remove(unsetVariable.variableName());
+            }
+            else if (command instanceof Command.MacroCommand macroCommand) {
+                for (KeyMacroMove move : macroCommand.macro()
+                                                     .leadingVirtualKeyMoves(virtualKeys)) {
+                    Key key = move.keyOrAlias().key();
+                    anyStateChange |= move.press() ? currentlyPressedComboKeys.add(key) :
+                            currentlyPressedComboKeys.remove(key);
+                }
             }
         }
         commands.removeIf(c -> c instanceof Command.SetVariable ||
@@ -1132,7 +1140,7 @@ public class ComboWatcher {
             if (rebuildMs > 0 || equalsMs > 0 || notifyMs > 0)
                 logger.trace("Mutation: rebuild=" + rebuildMs + "ms, equals=" + equalsMs + "ms, notify=" + notifyMs + "ms, changed=" + modeChanged);
         }
-        if (anyVariableChange)
+        if (anyStateChange)
             refreshPreconditionOnlyMutations();
         while (!commands.isEmpty() && !commandRunner.runningAtomicCommand()) {
             Command command = commands.removeFirst();
