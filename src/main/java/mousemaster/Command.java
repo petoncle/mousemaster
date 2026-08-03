@@ -61,7 +61,12 @@ public sealed interface Command {
     record CycleNextPosition() implements Command {}
     record CyclePreviousPosition() implements Command {}
 
-    record MacroCommand(Macro macro, AliasResolution aliasResolution) implements Command {}
+    record MacroCommand(Macro macro, AliasResolution aliasResolution) implements Command {
+        @Override
+        public String toString() {
+            return "MacroCommand[" + macro.name() + "]";
+        }
+    }
 
     record BreakComboPreparation() implements Command {}
 
