@@ -54,9 +54,9 @@ public class ComboWatcher {
      * changes but is not in here, no mutation can depend on it, so the
      * (relatively costly) mutation refresh is skipped.
      */
-    private final Set<String> builtInVariablesReferencedByPreconditionOnlyMutations =
+    private final Set<Key> builtInVirtualKeysReferencedByPreconditionOnlyMutations =
             new HashSet<>();
-    private final Set<String> builtInVariablesReferencedByPreconditionOnlyNonMutationCombos =
+    private final Set<Key> builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos =
             new HashSet<>();
     private boolean preconditionOnlyNonMutationComboRefreshPending;
     private boolean modeJustTimedOut;
@@ -226,21 +226,21 @@ public class ComboWatcher {
     }
 
     /**
-     * Updates the built-in {@code isidling} variable. Called every update tick
+     * Presses or releases the built-in {@code isidling} key. Called every update tick
      * with the idle state computed by {@link ModeController}. Precondition-only
      * mutations are refreshed only when the state actually changes.
      */
     public void setIdling(boolean idling) {
         boolean changed = idling ?
-                activeVariables.add(BuiltInVariable.IS_IDLING) :
-                activeVariables.remove(BuiltInVariable.IS_IDLING);
+                currentlyPressedComboKeys.add(BuiltInVirtualKey.IS_IDLING) :
+                currentlyPressedComboKeys.remove(BuiltInVirtualKey.IS_IDLING);
         if (!changed)
             return;
-        if (builtInVariablesReferencedByPreconditionOnlyMutations
-                .contains(BuiltInVariable.IS_IDLING))
+        if (builtInVirtualKeysReferencedByPreconditionOnlyMutations
+                .contains(BuiltInVirtualKey.IS_IDLING))
             refreshPreconditionOnlyMutations();
-        if (builtInVariablesReferencedByPreconditionOnlyNonMutationCombos
-                .contains(BuiltInVariable.IS_IDLING))
+        if (builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos
+                .contains(BuiltInVirtualKey.IS_IDLING))
             preconditionOnlyNonMutationComboRefreshPending = true;
     }
 
@@ -1102,11 +1102,9 @@ public class ComboWatcher {
         for (Command command : commands) {
             if (command instanceof Command.ResetVariables) {
                 // Back to the values the variables start with, not to nothing: a variable.<name>=true
-                // is a configured value, not runtime state. Built-in variables (e.g. isidling) are
-                // maintained automatically and survive too.
+                // is a configured value, not runtime state.
                 anyStateChange |= activeVariables.removeIf(
-                        variableName -> !BuiltInVariable.NAMES.contains(variableName)
-                                        && !initiallySetVariables.contains(variableName));
+                        variableName -> !initiallySetVariables.contains(variableName));
                 anyStateChange |= activeVariables.addAll(initiallySetVariables);
             }
         }
@@ -1679,8 +1677,8 @@ public class ComboWatcher {
 
     private void computePreconditionOnlyByPropertyPath() {
         preconditionOnlyByPropertyPath.clear();
-        builtInVariablesReferencedByPreconditionOnlyMutations.clear();
-        builtInVariablesReferencedByPreconditionOnlyNonMutationCombos.clear();
+        builtInVirtualKeysReferencedByPreconditionOnlyMutations.clear();
+        builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos.clear();
         for (Map.Entry<Combo, List<Command>> entry : baseMode.comboMap()
                                                                  .commandsByCombo()
                                                                  .entrySet()) {
@@ -1693,23 +1691,26 @@ public class ComboWatcher {
                             isPreconditionOnly,
                             (existing, newVal) -> existing && newVal);
                     if (isPreconditionOnly)
-                        builtInVariablesReferencedByPreconditionOnlyMutations
-                                .addAll(builtInVariablesReferencedBy(combo));
+                        builtInVirtualKeysReferencedByPreconditionOnlyMutations
+                                .addAll(builtInVirtualKeysReferencedBy(combo));
                 }
                 else
                     hasNonMutationCommand = true;
             }
             if (isPreconditionOnly && hasNonMutationCommand)
-                builtInVariablesReferencedByPreconditionOnlyNonMutationCombos
-                        .addAll(builtInVariablesReferencedBy(combo));
+                builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos
+                        .addAll(builtInVirtualKeysReferencedBy(combo));
         }
     }
 
-    private static Set<String> builtInVariablesReferencedBy(Combo combo) {
-        return combo.precondition().variablePrecondition().conditions().stream()
-                    .map(condition -> condition.variableName())
-                    .filter(BuiltInVariable.NAMES::contains)
-                    .collect(Collectors.toSet());
+    private static Set<Key> builtInVirtualKeysReferencedBy(Combo combo) {
+        Set<Key> keys = new HashSet<>(combo.precondition()
+                                           .keyPrecondition()
+                                           .pressedKeyPrecondition()
+                                           .allKeys());
+        keys.addAll(combo.precondition().keyPrecondition().unpressedKeySet());
+        keys.retainAll(BuiltInVirtualKey.KEYS);
+        return keys;
     }
 
 

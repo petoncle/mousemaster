@@ -146,6 +146,10 @@ public record Macro(String name, MacroSequence output,
                 throw new IllegalArgumentException(
                         "Virtual key " + keyOrAliasName + " has no OS representation: " +
                         "use #/~ (combo watcher) instead of +/-");
+            if (BuiltInVirtualKey.NAMES.contains(keyOrAliasName))
+                throw new IllegalArgumentException(
+                        "Virtual key " + keyOrAliasName +
+                        " is built-in and cannot be pressed or released by a macro");
             keyOrAlias = KeyOrAlias.ofKey(keyResolver.resolve(keyOrAliasName));
         }
         return new KeyMacroMove(keyOrAlias, negated, press, destination);

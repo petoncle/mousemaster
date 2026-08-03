@@ -620,7 +620,7 @@ public class ConfigurationParser {
     }
 
     private static VirtualKeyNames parseVirtualKeyNames(List<String> properties) {
-        Set<String> all = new HashSet<>();
+        Set<String> all = new HashSet<>(BuiltInVirtualKey.NAMES);
         Set<String> initiallyPressed = new HashSet<>();
         for (String property : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(property);
@@ -1540,10 +1540,10 @@ public class ConfigurationParser {
                             "unset-variable requires a variable name: unset-variable.<name>");
                 else {
                     String variableName = keyMatcher.group(group4);
-                    if (BuiltInVariable.NAMES.contains(variableName))
+                    if (BuiltInVirtualKey.NAMES.contains(variableName))
                         throw new IllegalArgumentException(
                                 "Variable name '" + variableName +
-                                "' is a built-in variable and cannot be unset");
+                                "' is a built-in virtual key and cannot be unset");
                     setCommand(mode.comboMap.unsetVariable.builder, propertyValue,
                             new Command.UnsetVariable(variableName), propertyKey,
                             defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
@@ -1746,7 +1746,7 @@ public class ConfigurationParser {
     static Set<String> parseVariableNames(List<String> properties,
                                           Map<String, KeyAlias> keyAliases,
                                           KeyResolver keyResolver) {
-        Set<String> variableNames = new HashSet<>(BuiltInVariable.NAMES);
+        Set<String> variableNames = new HashSet<>();
         for (String line : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(line);
             if (!lineMatcher.matches())
@@ -1768,10 +1768,10 @@ public class ConfigurationParser {
 
     private static String checkedVariableName(String variableName,
                                               Map<String, KeyAlias> keyAliases) {
-        if (BuiltInVariable.NAMES.contains(variableName))
+        if (BuiltInVirtualKey.NAMES.contains(variableName))
             throw new IllegalArgumentException(
                     "Variable name '" + variableName +
-                    "' is a built-in variable and cannot be set");
+                    "' is a built-in virtual key and cannot be set");
         if (keyAliases.containsKey(variableName))
             throw new IllegalArgumentException(
                     "Variable name '" + variableName +
