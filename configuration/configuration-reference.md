@@ -506,7 +506,7 @@ hint-mode.hint.type=grid
 
 The **`type`** property determines what hints are displayed:
 - `grid`: Displays a grid of hints laid out across the screen
-- `position-history`: Displays discrete absolutely positioned hints at previously saved positions (see [Position history](#position-history))
+- `position-history`, or any `<name>-position-history`: Displays discrete absolutely positioned hints at the positions saved in that history (see [Position history](#position-history))
 - `ui`: Displays hints at interactive UI elements (see [UI hints](#ui-hints))
 
 ### UI hints
@@ -1118,7 +1118,7 @@ Position history allows you to save mouse positions and quickly return to them l
 
 ```properties
 # Set the maximum number of positions to remember
-max-position-history-size=16
+position-history.max-size=16
 
 # Define a key to save the current mouse position
 normal-mode.position-history.save-position=+f1
@@ -1127,13 +1127,29 @@ normal-mode.position-history.save-position=+f1
 normal-mode.position-history.clear=+f2
 ```
 
-- **`max-position-history-size`**: Maximum number of positions that can be stored (older positions are removed when this limit is reached)
+- **`max-size`**: Maximum number of positions that can be stored (older positions are removed when this limit is reached). Default 16.
 - **`save-position`**: Command to save the current mouse position to history
 - **`clear`**: Command to clear all saved positions
 
+### Several position histories
+
+Position history names end with `-position-history`, the same way mode names end with
+`-mode`. Every command and every hint mode names the history it acts on, and
+`position-history` alone is the default one:
+
+```properties
+# Two isolated histories, with their own sizes
+browser-position-history.max-size=4
+normal-mode.position-history.save-position=+f1
+normal-mode.browser-position-history.save-position=_{browserapp} +f2
+normal-mode.browser-position-history.clear=+f3
+```
+
+A history exists as soon as a mode defines a command for it. Positions saved in one history are invisible to the others, and each history has its own cycling position.
+
 ### Using position history with hints
 
-Position history works in conjunction with a hint mode of type `position-history`:
+Position history works in conjunction with a hint mode whose type is the name of the history:
 
 ```properties
 # Configure a hint mode to use position history
@@ -1142,6 +1158,15 @@ position-hint-mode.hint.selection-keys=a b c d e f g h i j k l m n o p q r s t u
 
 # Switch to position hint mode
 normal-mode.to.position-hint-mode=+p
+
+# A hint mode for the browser history
+browser-hint-mode.hint.type=browser-position-history
+```
+
+Because `hint.type` can be combo-triggered, one hint mode can show different histories:
+
+```properties
+position-hint-mode.hint.type=position-history | _{browserapp} -> browser-position-history
 ```
 
 When you enter a position history hint mode:

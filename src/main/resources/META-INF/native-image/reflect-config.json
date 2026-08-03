@@ -819,7 +819,7 @@
 {
   "name":"mousemaster.HintMeshType$HintPositionHistory",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }, {"name":"positionHistoryName","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshType$UiHintMesh",

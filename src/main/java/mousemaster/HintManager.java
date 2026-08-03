@@ -29,8 +29,8 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int mouseX, mouseY;
     private Mode currentMode;
     private Zoom currentZoom;
-    private final List<Point> positionHistory = new ArrayList<>();
-    private final int maxPositionHistorySize;
+    private final Map<String, Integer> maxPositionHistorySizeByName;
+    private final Map<String, PositionHistory> positionHistoryByName = new HashMap<>();
     private Point lastSelectedHintPoint;
     private Rectangle lastSelectedHintCell;
     // One level per last-selected-hint-cell drill-down step. The area is frozen at push
@@ -40,12 +40,6 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private record CellGridLevel(String modeName, Rectangle cell, Rectangle area) {
     }
-    /**
-     * Used for deterministic hint key sequences.
-     */
-    private int positionIdCount = 0;
-    private final Map<Point, Integer> idByPosition = new HashMap<>();
-    private int positionCycleIndex = 0;
 
     private boolean lastHintCommandSupercedesOtherCommands;
 
@@ -78,10 +72,11 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     }
 
-    public HintManager(int maxPositionHistorySize, ScreenManager screenManager,
+    public HintManager(Map<String, Integer> maxPositionHistorySizeByName,
+                       ScreenManager screenManager,
                        MouseManager mouseManager, Overlay overlay,
                        UiAutomation uiAutomation) {
-        this.maxPositionHistorySize = maxPositionHistorySize;
+        this.maxPositionHistorySizeByName = maxPositionHistorySizeByName;
         this.screenManager = screenManager;
         this.mouseManager = mouseManager;
         this.overlay = overlay;
@@ -235,9 +230,12 @@ public class HintManager implements ModeListener, MousePositionListener {
         boolean sameMode =
                 currentMode != null && newMode.name().equals(currentMode.name());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
-        if (hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory) {
-            if (positionHistory.isEmpty())
-                saveCurrentPosition();
+        if (hintMeshConfiguration.type() instanceof
+                HintMeshType.HintPositionHistory hintPositionHistory) {
+            PositionHistory positionHistory =
+                    positionHistory(hintPositionHistory.positionHistoryName());
+            if (positionHistory.positions().isEmpty())
+                positionHistory.save(new Point(mouseX, mouseY));
         }
         ViewportFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
@@ -472,10 +470,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         return switch (hintMeshConfiguration.type()) {
             case HintMeshType.HintGrid hintGrid -> screenFilter(hintGrid.area());
             case HintMeshType.UiHintMesh uiHintMesh -> screenFilter(uiHintMesh.area());
-            case HintMeshType.HintPositionHistory hintPositionHistory ->
-                    ViewportFilter.of(
-                            screenManager.screenContaining(positionHistory.getFirst().x(),
-                                    positionHistory.getFirst().y()));
+            case HintMeshType.HintPositionHistory hintPositionHistory -> {
+                Point position =
+                        positionHistory(hintPositionHistory.positionHistoryName())
+                                .positions()
+                                .getFirst();
+                yield ViewportFilter.of(
+                        screenManager.screenContaining(position.x(), position.y()));
+            }
         };
     }
 
@@ -727,17 +729,20 @@ public class HintManager implements ModeListener, MousePositionListener {
                     .backgroundArea(uiHintArea(uiHintMesh.area()));
         }
         else {
-            int hintCount = positionHistory.size();
+            PositionHistory positionHistory = positionHistory(
+                    ((HintMeshType.HintPositionHistory) type).positionHistoryName());
+            List<Point> positions = positionHistory.positions();
+            int hintCount = positions.size();
             List<Hint> hints = new ArrayList<>(hintCount);
             HintMeshKeys hintMeshKeys =
                     hintMeshConfiguration.keysByFilter().get(screenFilter);
             List<Key> selectionKeys = hintMeshKeys.selectionKeys();
             Set<Integer> prefixLengths = new HashSet<>();
             int rowKeyOffset = hintMeshKeys.rowKeyOffset();
-            for (Point point : positionHistory) {
+            for (Point point : positions) {
                 List<Key> keySequence = hintKeySequence(
                         selectionKeys, rowKeyOffset, hintCount,
-                        0, -1, idByPosition.get(point) % maxPositionHistorySize,
+                        0, -1, positionHistory.id(point),
                         -1, -1,
                         -1, -1,
                         -1, -1, false, prefixLengths);
@@ -1426,78 +1431,30 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
-    public void saveCurrentPosition() {
-        savePosition(new Point(mouseX, mouseY));
+    private PositionHistory positionHistory(String positionHistoryName) {
+        return positionHistoryByName.computeIfAbsent(positionHistoryName,
+                name -> new PositionHistory(name,
+                        maxPositionHistorySizeByName.get(name)));
     }
 
-    public void unsaveCurrentPosition() {
-        Point currentPosition = new Point(mouseX, mouseY);
-        if (positionHistory.remove(currentPosition)) {
-            int currentPositionId = idByPosition.remove(currentPosition);
-            Map<Point, Integer> newIdByPosition = new HashMap<>();
-            for (Map.Entry<Point, Integer> entry : idByPosition.entrySet()) {
-                int id = entry.getValue();
-                newIdByPosition.put(entry.getKey(), id < currentPositionId ? id : id - 1);
-            }
-            idByPosition.clear();
-            idByPosition.putAll(newIdByPosition);
-            positionIdCount--;
-            positionCycleIndex = positionHistory.size() - 1;
-        }
+    public void saveCurrentPosition(String positionHistoryName) {
+        positionHistory(positionHistoryName).save(new Point(mouseX, mouseY));
     }
 
-    public void savePosition(Point point) {
-        if (positionHistory.contains(point))
-            return;
-        idByPosition.put(point, positionIdCount);
-        if (positionIdCount == Integer.MAX_VALUE)
-            positionIdCount = 0;
-        else
-            positionIdCount++;
-        if (positionHistory.size() == maxPositionHistorySize)
-            positionHistory.removeFirst();
-        positionHistory.add(point);
-        positionCycleIndex = positionHistory.size() - 1;
-        logger.debug(
-                "Saved position (" + point.x() + ", " + point.y() + ") to history");
+    public void unsaveCurrentPosition(String positionHistoryName) {
+        positionHistory(positionHistoryName).unsave(new Point(mouseX, mouseY));
     }
 
-    public void clearPositionHistory() {
-        positionHistory.clear();
-        idByPosition.clear();
-        positionIdCount = 0;
-        positionCycleIndex = 0;
-        logger.debug("Reset mouse position history");
+    public void clearPositionHistory(String positionHistoryName) {
+        positionHistory(positionHistoryName).clear();
     }
 
-    public void cycleNextPosition() {
-        if (positionHistory.isEmpty())
-            return;
-        findPositionHistoryEntryMatchingCurrentPosition();
-        positionCycleIndex = (positionCycleIndex + 1) % positionHistory.size();
-        Point point = positionHistory.get(positionCycleIndex);
-        mouseManager.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
-    }
-
-    private void findPositionHistoryEntryMatchingCurrentPosition() {
-        for (int positionIndex = 0;
-             positionIndex < positionHistory.size(); positionIndex++) {
-            Point point = positionHistory.get(positionIndex);
-            if (Math.round(point.x()) == mouseX && Math.round(point.y()) == mouseY) {
-                positionCycleIndex = positionIndex;
-                break;
-            }
-        }
-    }
-
-    public void cyclePreviousPosition() {
-        if (positionHistory.isEmpty())
-            return;
-        findPositionHistoryEntryMatchingCurrentPosition();
-        positionCycleIndex = (positionCycleIndex - 1 + positionHistory.size()) %
-                             positionHistory.size();
-        Point point = positionHistory.get(positionCycleIndex);
-        mouseManager.moveTo((int) Math.round(point.x()), (int) Math.round(point.y()));
+    public void cyclePosition(String positionHistoryName, int offset) {
+        Point position =
+                positionHistory(positionHistoryName).cycle(offset, mouseX, mouseY);
+        if (position != null)
+            mouseManager.moveTo((int) Math.round(position.x()),
+                    (int) Math.round(position.y()));
     }
 
 }

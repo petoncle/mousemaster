@@ -355,6 +355,7 @@ public class ConfigurationParser {
                 configurationKeyboardLayout);
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         Set<String> allVariableNames = parseVariableNames(properties, keyAliases, keyResolver);
+        Set<String> positionHistoryNames = parsePositionHistoryNames(properties);
 
         String logLevel = null;
         boolean logRedactKeys = false;
@@ -362,7 +363,9 @@ public class ConfigurationParser {
         boolean hideConsole = false;
         ComboMoveDuration defaultComboMoveDuration =
                 new ComboMoveDuration(Duration.ZERO, null);
-        int maxPositionHistorySize = 16;
+        Map<String, Integer> maxPositionHistorySizeByName = new HashMap<>();
+        for (String positionHistoryName : positionHistoryNames)
+            maxPositionHistorySizeByName.put(positionHistoryName, 16);
         Set<String> initiallySetVariables = new HashSet<>();
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Map<PropertyKey, Property<?>> propertyByKey = new HashMap<>();
@@ -398,8 +401,18 @@ public class ConfigurationParser {
                 continue;
             }
             else if (propertyKey.equals("max-position-history-size")) {
-                maxPositionHistorySize =
-                        parseUnsignedInteger(propertyValue, 1, 100);
+                throw new IllegalArgumentException(
+                        "max-position-history-size has been deprecated and removed: use position-history.max-size instead");
+            }
+            else if (propertyKey.endsWith("position-history.max-size")) {
+                String positionHistoryName = propertyKey.substring(0,
+                        propertyKey.length() - ".max-size".length());
+                if (!positionHistoryNames.contains(positionHistoryName))
+                    throw new IllegalArgumentException(
+                            "Invalid property key " + propertyKey +
+                            ": undefined position history " + positionHistoryName);
+                maxPositionHistorySizeByName.put(positionHistoryName,
+                        parseUnsignedInteger(propertyValue, 1, 100));
                 continue;
             }
             else if (propertyKey.equals("hide-console")) {
@@ -449,7 +462,7 @@ public class ConfigurationParser {
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases, keyResolver,
                         modeReferences, defaultComboMoveDuration, appAliases,
                         finalDefaultComboMoveDuration, QFontDatabase::hasFamily,
-                        allVariableNames);
+                        allVariableNames, positionHistoryNames);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
                         new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
@@ -575,7 +588,7 @@ public class ConfigurationParser {
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
-        return new Configuration(maxPositionHistorySize,
+        return new Configuration(maxPositionHistorySizeByName,
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
                 Set.copyOf(initiallySetVariables),
@@ -791,7 +804,8 @@ public class ConfigurationParser {
                                   Map<String, AppAlias> appAliases,
                                   ComboMoveDuration finalDefaultComboMoveDuration,
                                   Predicate<String> fontAvailability,
-                                  Set<String> allVariableNames) {
+                                  Set<String> allVariableNames,
+                                  Set<String> positionHistoryNames) {
         if (group2 == null) {
             // Mode reference.
             parseModeReference(propertyKey, propertyValue, childModesByParentMode,
@@ -941,7 +955,8 @@ public class ConfigurationParser {
                     ModePropertyHandler handler = hintHandler(
                             new ModePropertyPath(List.of("hintMesh")),
                             mode.hintMesh.builder, viewportFilter, hintKey,
-                            fontAvailability, keyAliases, keyResolver);
+                            fontAvailability, keyAliases, keyResolver,
+                            positionHistoryNames);
                     if (handler != null) {
                         if (!tryParseComboProperty(propertyValue, modeName,
                                 handler.propertyPath(), handler.valueParser(),
@@ -1461,36 +1476,6 @@ public class ConfigurationParser {
                     }
                 }
             }
-            case "position-history" -> {
-                if (keyMatcher.group(group3) == null) {
-                    mode.comboMap.savePosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.unsavePosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.clearPositionHistory.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.cycleNextPosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                    mode.comboMap.cyclePreviousPosition.parsePropertyReference(propertyKey, propertyValue,
-                            childPropertiesByParentProperty, nonRootPropertyKeys);
-                }
-                else if (keyMatcher.group(group4) == null)
-                    throw new IllegalArgumentException(
-                            "Invalid position-history property key");
-                else {
-                    switch (keyMatcher.group(group4)) {
-                        // @formatter:off
-                        case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "unsave-position" -> setCommand(mode.comboMap.unsavePosition.builder,  propertyValue, new UnsavePosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
-                        // @formatter:on
-                        default -> throw new IllegalArgumentException(
-                                "Invalid position-history property key");
-                    }
-                }
-            }
             // @formatter:off
             case "move-to-grid-center" -> {
                 mode.comboMap.moveToGridCenter.parseReferenceOr(propertyKey, propertyValue,
@@ -1557,8 +1542,42 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys);
             }
             // @formatter:on
-            default -> throw new IllegalArgumentException(
-                    "Invalid mode property key");
+            default -> {
+                if (!isPositionHistoryName(group2))
+                    throw new IllegalArgumentException("Invalid mode property key");
+                if (keyMatcher.group(group3) == null) {
+                    if (!group2.equals("position-history"))
+                        throw new IllegalArgumentException(
+                                "A position history reference copies the commands of every position history: use position-history instead of " +
+                                group2);
+                    mode.comboMap.savePosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.unsavePosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.clearPositionHistory.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.cycleNextPosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                    mode.comboMap.cyclePreviousPosition.parsePropertyReference(propertyKey, propertyValue,
+                            childPropertiesByParentProperty, nonRootPropertyKeys);
+                }
+                else if (keyMatcher.group(group5) != null)
+                    throw new IllegalArgumentException(
+                            "Invalid position-history property key");
+                else {
+                    switch (keyMatcher.group(group4)) {
+                        // @formatter:off
+                        case "save-position" -> setCommand(mode.comboMap.savePosition.builder,  propertyValue, new SavePosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "unsave-position" -> setCommand(mode.comboMap.unsavePosition.builder,  propertyValue, new UnsavePosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "clear" -> setCommand(mode.comboMap.clearPositionHistory.builder,  propertyValue, new ClearPositionHistory(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cycle-next" -> setCommand(mode.comboMap.cycleNextPosition.builder,  propertyValue, new CycleNextPosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        case "cycle-previous" -> setCommand(mode.comboMap.cyclePreviousPosition.builder,  propertyValue, new CyclePreviousPosition(group2), propertyKey, defaultComboMoveDuration, keyAliases, appAliases, keyResolver, allVariableNames);
+                        // @formatter:on
+                        default -> throw new IllegalArgumentException(
+                                "Invalid position-history property key");
+                    }
+                }
+            }
         }
     }
 
@@ -1765,6 +1784,31 @@ public class ConfigurationParser {
                         propertyKey.substring("variable.".length()), keyAliases));
         }
         return variableNames;
+    }
+
+    /**
+     * First pass: a position history exists as soon as a mode defines a command for it.
+     */
+    static Set<String> parsePositionHistoryNames(List<String> properties) {
+        // Match: <mode-name>.<position-history-name>.<command-name>=...
+        Pattern commandPattern = Pattern.compile("[^.]+-mode\\.([^.]+)\\.[^.]+");
+        Set<String> positionHistoryNames = new HashSet<>();
+        for (String line : properties) {
+            Matcher lineMatcher = propertyLinePattern.matcher(line);
+            if (!lineMatcher.matches())
+                continue;
+            Matcher commandMatcher =
+                    commandPattern.matcher(lineMatcher.group(1).strip());
+            if (commandMatcher.matches() &&
+                isPositionHistoryName(commandMatcher.group(1)))
+                positionHistoryNames.add(commandMatcher.group(1));
+        }
+        return positionHistoryNames;
+    }
+
+    private static boolean isPositionHistoryName(String name) {
+        return name.equals("position-history") ||
+               name.endsWith("-position-history");
     }
 
     private static String checkedVariableName(String variableName,
@@ -2393,7 +2437,8 @@ public class ConfigurationParser {
             HintMeshConfigurationBuilder hintMeshBuilder,
             ViewportFilter viewportFilter,
             String key, Predicate<String> fontAvailability,
-            Map<String, KeyAlias> keyAliases, KeyResolver keyResolver) {
+            Map<String, KeyAlias> keyAliases, KeyResolver keyResolver,
+            Set<String> positionHistoryNames) {
         ModePropertyHandler decorationHandler = decorationHandler(prefix, hintMeshBuilder,
                 viewportFilter, key, fontAvailability, keyAliases, keyResolver);
         if (decorationHandler != null)
@@ -2408,7 +2453,8 @@ public class ConfigurationParser {
             // Type property (sealed variant): uses Function for GRID because it
             // needs the current area/gridLayout at mutation time, not parse time.
             case "type" -> new ModePropertyHandler(prefix.append("type"), v -> {
-                HintMeshType.HintMeshTypeType typeType = parseHintMeshTypeType("hint.type", v);
+                HintMeshType.HintMeshTypeType typeType =
+                        parseHintMeshTypeType("hint.type", v, positionHistoryNames);
                 return switch (typeType) {
                     case GRID -> (Object) (Function<Object, Object>) currentType -> {
                         if (currentType instanceof HintMeshType.HintGrid)
@@ -2417,13 +2463,18 @@ public class ConfigurationParser {
                                 "Cannot combo-trigger hint type to GRID: current type is " +
                                 currentType.getClass().getSimpleName());
                     };
-                    case POSITION_HISTORY -> new HintMeshType.HintPositionHistory();
+                    case POSITION_HISTORY -> new HintMeshType.HintPositionHistory(v);
                     case UI -> (Object) (Function<Object, Object>) currentType ->
                             currentType instanceof HintMeshType.UiHintMesh uiHintMesh ?
                                     uiHintMesh : new HintMeshType.UiHintMesh(
                                     UiHintArea.ACTIVE_SCREEN);
                 };
-            }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
+            }, v -> {
+                HintMeshType.HintMeshTypeBuilder type = hintMeshBuilder.type();
+                type.type(parseHintMeshTypeType("hint.type", v, positionHistoryNames));
+                if (type.type() == HintMeshType.HintMeshTypeType.POSITION_HISTORY)
+                    type.positionHistoryName(v);
+            });
             // The area UI elements are looked for in. Only hint.type=ui reads it, and it is
             // rejected on the other types, so its path lands on UiHintMesh.area.
             case "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area"), v -> parseUiHintArea("hint.ui-area", v), v -> hintMeshBuilder.type().uiArea(v));
@@ -2779,11 +2830,17 @@ public class ConfigurationParser {
     }
 
     private static HintMeshType.HintMeshTypeType parseHintMeshTypeType(String propertyKey,
-                                                                       String propertyValue) {
+                                                                       String propertyValue,
+                                                                       Set<String> positionHistoryNames) {
+        if (isPositionHistoryName(propertyValue)) {
+            if (!positionHistoryNames.contains(propertyValue))
+                throw new IllegalArgumentException(
+                        "Invalid property value in " + propertyKey + "=" + propertyValue +
+                        ": undefined position history " + propertyValue);
+            return HintMeshType.HintMeshTypeType.POSITION_HISTORY;
+        }
         return switch (propertyValue) {
             case "grid" -> HintMeshType.HintMeshTypeType.GRID;
-            case "position-history" ->
-                    HintMeshType.HintMeshTypeType.POSITION_HISTORY;
             case "ui" -> HintMeshType.HintMeshTypeType.UI;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
@@ -3183,6 +3240,8 @@ public class ConfigurationParser {
                     builder.type().gridArea().center(parent.type().gridArea().center());
                 if (builder.type().uiArea() == null)
                     builder.type().uiArea(parent.type().uiArea());
+                if (builder.type().positionHistoryName() == null)
+                    builder.type().positionHistoryName(parent.type().positionHistoryName());
                 for (var parentEntry : parent.type()
                                              .gridLayoutByFilter()
                                              .map()

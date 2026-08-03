@@ -55,11 +55,11 @@ public sealed interface Command {
 
     record MoveToLastSelectedHint() implements Command {}
 
-    record SavePosition() implements Command {}
-    record UnsavePosition() implements Command {}
-    record ClearPositionHistory() implements Command {}
-    record CycleNextPosition() implements Command {}
-    record CyclePreviousPosition() implements Command {}
+    record SavePosition(String positionHistoryName) implements Command {}
+    record UnsavePosition(String positionHistoryName) implements Command {}
+    record ClearPositionHistory(String positionHistoryName) implements Command {}
+    record CycleNextPosition(String positionHistoryName) implements Command {}
+    record CyclePreviousPosition(String positionHistoryName) implements Command {}
 
     record MacroCommand(Macro macro, AliasResolution aliasResolution) implements Command {
         @Override

@@ -85,11 +85,11 @@ public class CommandRunner {
 
             case MoveToLastSelectedHint moveToLastSelectedHint -> hintManager.moveToLastSelectedHint();
 
-            case SavePosition savePosition -> hintManager.saveCurrentPosition();
-            case UnsavePosition unsavePosition -> hintManager.unsaveCurrentPosition();
-            case ClearPositionHistory clearPositionHistory -> hintManager.clearPositionHistory();
-            case CycleNextPosition cycleNextPosition -> hintManager.cycleNextPosition();
-            case CyclePreviousPosition cyclePreviousPosition -> hintManager.cyclePreviousPosition();
+            case SavePosition(String positionHistoryName) -> hintManager.saveCurrentPosition(positionHistoryName);
+            case UnsavePosition(String positionHistoryName) -> hintManager.unsaveCurrentPosition(positionHistoryName);
+            case ClearPositionHistory(String positionHistoryName) -> hintManager.clearPositionHistory(positionHistoryName);
+            case CycleNextPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, 1);
+            case CyclePreviousPosition(String positionHistoryName) -> hintManager.cyclePosition(positionHistoryName, -1);
 
             case MacroCommand(Macro macro, AliasResolution aliasResolution) ->
                     macroPlayer.submit(macro.resolve(aliasResolution));

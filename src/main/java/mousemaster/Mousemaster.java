@@ -205,8 +205,10 @@ public class Mousemaster {
         mouseManager = new MouseManager(screenManager, platform.mouse());
         MouseState mouseState = new MouseState(mouseManager);
         GridManager gridManager = new GridManager(screenManager, mouseManager, platform.overlay());
-        HintManager hintManager = new HintManager(configuration.maxPositionHistorySize(),
-                screenManager, mouseManager, platform.overlay(), platform.uiAutomation());
+        HintManager hintManager =
+                new HintManager(configuration.maxPositionHistorySizeByName(),
+                        screenManager, mouseManager, platform.overlay(),
+                        platform.uiAutomation());
         commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();

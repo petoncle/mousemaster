@@ -17,7 +17,7 @@ public sealed interface HintMeshType {
 
     }
 
-    record HintPositionHistory() implements HintMeshType {
+    record HintPositionHistory(String positionHistoryName) implements HintMeshType {
 
     }
 
@@ -38,6 +38,7 @@ public sealed interface HintMeshType {
         private HintGridArea.HintGridAreaBuilder
                 gridArea = new HintGridArea.HintGridAreaBuilder();
         private UiHintArea uiArea;
+        private String positionHistoryName;
         private final ViewportFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
                 gridLayoutByFilter;
 
@@ -55,6 +56,7 @@ public sealed interface HintMeshType {
                 }
                 case HintPositionHistory hintPositionHistory -> {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
+                    this.positionHistoryName = hintPositionHistory.positionHistoryName;
                     this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
                 }
                 case UiHintMesh uiHintMesh -> {
@@ -82,6 +84,15 @@ public sealed interface HintMeshType {
             return this;
         }
 
+        public String positionHistoryName() {
+            return positionHistoryName;
+        }
+
+        public HintMeshTypeBuilder positionHistoryName(String positionHistoryName) {
+            this.positionHistoryName = positionHistoryName;
+            return this;
+        }
+
         public HintGridLayoutBuilder gridLayout(ViewportFilter filter) {
             return gridLayoutByFilter.map().computeIfAbsent(filter,
                     filter1 -> new HintGridLayoutBuilder());
@@ -99,7 +110,7 @@ public sealed interface HintMeshType {
         public HintMeshType build() {
             return switch (type) {
                 case GRID -> new HintGrid(gridArea.build(), gridLayoutByFilter.build(HintGridLayoutBuilder::build));
-                case POSITION_HISTORY -> new HintPositionHistory();
+                case POSITION_HISTORY -> new HintPositionHistory(positionHistoryName);
                 case UI -> new UiHintMesh(uiArea);
             };
         }
