@@ -186,6 +186,7 @@ public class ConfigurationParser {
         hintGridAreaBuilder.source(HintGridAreaSizeSource.ACTIVE_SCREEN)
                            .widthPercent(1.0)
                            .heightPercent(1.0);
+        hintMeshTypeBuilder.uiArea(UiHintArea.ACTIVE_SCREEN);
         ModeTimeoutBuilder timeout =
                 new ModeTimeoutBuilder().enabled(false).onlyIfIdle(true);
         IndicatorConfigurationBuilder indicator =
@@ -1870,6 +1871,11 @@ public class ConfigurationParser {
                     "Property " + propertyKey + " is defined twice");
     }
 
+    private static final ModePropertyPath HINT_GRID_AREA_SOURCE_PATH =
+            new ModePropertyPath(List.of("hintMesh", "type", "area", "size", "source"));
+    private static final ModePropertyPath HINT_UI_AREA_PATH =
+            new ModePropertyPath(List.of("hintMesh", "type", "area"));
+
     private static void checkMissingProperties(ModeBuilder mode) {
         if (mode.timeout.builder.enabled() != null && mode.timeout.builder.enabled() &&
             (mode.timeout.builder.duration() == null ||
@@ -1893,6 +1899,16 @@ public class ConfigurationParser {
         HintMeshType.HintMeshTypeBuilder hintMeshType =
                 mode.hintMesh.builder.type();
         if (hintMeshType.type() != null) {
+            boolean uiType = hintMeshType.type() == HintMeshType.HintMeshTypeType.UI;
+            if (uiType &&
+                mode.hintMesh.setPropertyPaths.contains(HINT_GRID_AREA_SOURCE_PATH))
+                throw new IllegalArgumentException(
+                        "Invalid definition of hint for " + mode.modeName +
+                        ": hint.grid-area does not apply to hint.type=ui, use hint.ui-area");
+            if (!uiType && mode.hintMesh.setPropertyPaths.contains(HINT_UI_AREA_PATH))
+                throw new IllegalArgumentException(
+                        "Invalid definition of hint for " + mode.modeName +
+                        ": hint.ui-area only applies to hint.type=ui");
             switch (hintMeshType.type()) {
                 case GRID -> {
                     HintGridLayoutBuilder defaultLayout =
@@ -1917,12 +1933,7 @@ public class ConfigurationParser {
                     // No op.
                 }
                 case UI -> {
-                    if (hintMeshType.gridArea().source() ==
-                        HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL)
-                        throw new IllegalArgumentException(
-                                "Invalid definition of hint for " + mode.modeName +
-                                ": hint.type=ui expects hint.grid-area to be one of " +
-                                List.of("active-window", "active-screen", "all-screens"));
+                    // No op.
                 }
             }
         }
@@ -2410,11 +2421,12 @@ public class ConfigurationParser {
                     case UI -> (Object) (Function<Object, Object>) currentType ->
                             currentType instanceof HintMeshType.UiHintMesh uiHintMesh ?
                                     uiHintMesh : new HintMeshType.UiHintMesh(
-                                    new HintGridArea(new HintGridAreaSize(
-                                            HintGridAreaSizeSource.ACTIVE_SCREEN, 1, 1),
-                                            HintGridAreaCenter.SCREEN_CENTER));
+                                    UiHintArea.ACTIVE_SCREEN);
                 };
             }, v -> hintMeshBuilder.type().type(parseHintMeshTypeType("hint.type", v)));
+            // The area UI elements are looked for in. Only hint.type=ui reads it, and it is
+            // rejected on the other types, so its path lands on UiHintMesh.area.
+            case "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area"), v -> parseUiHintArea("hint.ui-area", v), v -> hintMeshBuilder.type().uiArea(v));
             // Grid area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
             case "grid-area" -> ModePropertyHandler.of(prefix.append("type", "area", "size", "source"), v -> parseHintGridAreaSizeSource("hint.grid-area", v), v -> hintMeshBuilder.type().gridArea().source(v));
@@ -2794,6 +2806,18 @@ public class ConfigurationParser {
         };
     }
 
+    private static UiHintArea parseUiHintArea(String propertyKey, String propertyValue) {
+        return switch (propertyValue) {
+            case "active-screen" -> UiHintArea.ACTIVE_SCREEN;
+            case "active-window" -> UiHintArea.ACTIVE_WINDOW;
+            case "all-screens" -> UiHintArea.ALL_SCREENS;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": should be one of " +
+                    List.of("active-screen", "active-window", "all-screens"));
+        };
+    }
+
     private static HintCellSizing.HintCellSizingType parseHintCellSizingType(
             String propertyKey, String propertyValue) {
         return switch (propertyValue) {
@@ -3157,6 +3181,8 @@ public class ConfigurationParser {
                     builder.type().gridArea().heightPercent(parent.type().gridArea().heightPercent());
                 if (builder.type().gridArea().center() == null)
                     builder.type().gridArea().center(parent.type().gridArea().center());
+                if (builder.type().uiArea() == null)
+                    builder.type().uiArea(parent.type().uiArea());
                 for (var parentEntry : parent.type()
                                              .gridLayoutByFilter()
                                              .map()

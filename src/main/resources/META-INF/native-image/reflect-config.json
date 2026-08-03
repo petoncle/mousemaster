@@ -824,7 +824,7 @@
 {
   "name":"mousemaster.HintMeshType$UiHintMesh",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridArea"] }, {"name":"area","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea"] }, {"name":"area","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.Indicator",

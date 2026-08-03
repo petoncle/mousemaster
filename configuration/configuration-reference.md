@@ -517,7 +517,7 @@ Unlike grid hints, UI hints are positioned based on the UI elements' locations.
 
 ```properties
 ui-hint-mode.hint.type=ui
-ui-hint-mode.hint.grid-area=active-screen
+ui-hint-mode.hint.ui-area=active-screen
 ui-hint-mode.hint.selection-keys=selectionkey
 ui-hint-mode.hint.select=+selectionkey
 ui-hint-mode.hint.undo=backspace
@@ -532,8 +532,8 @@ ui-hint-mode.hint.cell-vertical-padding=0
 ui-hint-mode.hint.box-border-radius=3
 ```
 
-**`grid-area`** selects the windows the elements are looked for in (default
-`active-screen`, the same default as for a grid):
+**`ui-area`** selects the windows the elements are looked for in (default
+`active-screen`, the same default as the grid area):
 - `active-screen`: Every visible window on the screen with the mouse cursor
 - `all-screens`: Every visible window on every connected screen
 - `active-window`: The active window, and its popups (menus, dropdowns, dialogs). A popup
@@ -545,9 +545,8 @@ click it performs would reach the element. Windows of another virtual desktop an
 suspended apps are left out. Scanning several windows takes longer than scanning one: the
 hints appear once the scan is over, mousemaster stays responsive in the meantime.
 
-The size and center properties of the grid area (`grid-area-width-percent`,
-`grid-area-height-percent`, `grid-area-center`) do not apply to UI hints, and
-`grid-area=last-selected-hint-cell` is not supported.
+`ui-area` and the `grid-area*` properties are exclusive: `ui-area` only applies to
+`hint.type=ui`, and setting `grid-area` on a UI hint mode is rejected.
 
 UI hints use the same appearance properties as other hint types (`box-*`, `font-*`, etc.).
 The `cell-horizontal-padding` and `cell-vertical-padding` properties are particularly useful
@@ -580,7 +579,8 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   - `all-screens`: Every connected screen (one grid per screen — `grid-area-center` does not apply)
   - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
 
-  `grid-area` also selects what `hint.type=ui` scans (see [UI hints](#ui-hints)).
+  `grid-area` only applies to `hint.type=grid`. What `hint.type=ui` scans is selected by
+  `ui-area` (see [UI hints](#ui-hints)).
 
 - **`grid-area-width-percent`** / **`grid-area-height-percent`**: Scale the area to a
   fraction of that region, keeping it centered on `grid-area-center` (default `1.0`).

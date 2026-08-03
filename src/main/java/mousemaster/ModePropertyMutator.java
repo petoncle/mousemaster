@@ -82,8 +82,16 @@ public class ModePropertyMutator {
             RecordComponent[] components = getComponents(record.getClass());
             Object[] args = new Object[components.length];
             for (int i = 0; i < components.length; i++) {
-                if (components[i].getName().equals(fieldName))
+                if (components[i].getName().equals(fieldName)) {
+                    // The same component name holds a different type in another variant of a sealed
+                    // type (HintGrid.area and UiHintMesh.area): that path is for the other variant.
+                    // Primitive components are skipped: the value is boxed, so isInstance is false.
+                    Class<?> componentType = components[i].getType();
+                    if (newValue != null && !componentType.isPrimitive() &&
+                        !componentType.isInstance(newValue))
+                        return record;
                     args[i] = newValue;
+                }
                 else
                     args[i] = components[i].getAccessor().invoke(record);
             }
@@ -123,8 +131,14 @@ public class ModePropertyMutator {
         }
     }
 
+    private static final RecordComponent[] NO_COMPONENTS = new RecordComponent[0];
+
+    /** A non-record has no component to descend into: a path reaching one does not apply. */
     private static RecordComponent[] getComponents(Class<?> clazz) {
-        return componentCache.computeIfAbsent(clazz, Class::getRecordComponents);
+        return componentCache.computeIfAbsent(clazz, clazz1 -> {
+            RecordComponent[] components = clazz1.getRecordComponents();
+            return components == null ? NO_COMPONENTS : components;
+        });
     }
 
     private static Constructor<?> getCanonicalConstructor(

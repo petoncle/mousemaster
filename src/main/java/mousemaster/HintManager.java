@@ -330,15 +330,15 @@ public class HintManager implements ModeListener, MousePositionListener {
                 zoomCenterPoint, zoomScreen);
         HintMesh newHintMesh;
         if (hintMeshConfiguration.type() instanceof HintMeshType.UiHintMesh uiHintMesh) {
-            HintGridAreaSizeSource areaSource = uiHintMesh.area().size().source();
+            UiHintArea uiArea = uiHintMesh.area();
             // Do not recompute UI elements when switching between two UI hint modes that
             // look for them in the same area.
             if (currentMode == null ||
                 !(currentMode.hintMesh().type() instanceof
                           HintMeshType.UiHintMesh currentUiHintMesh) ||
-                currentUiHintMesh.area().size().source() != areaSource) {
+                currentUiHintMesh.area() != uiArea) {
                 pendingUiHintQuery = new PendingUiHintQuery(
-                        startUiElementQuery(areaSource),
+                        startUiElementQuery(uiArea),
                         hintMeshConfiguration, newZoom, newScreenFilter);
                 currentMode = newMode;
                 currentZoom = newZoom;
@@ -485,30 +485,36 @@ public class HintManager implements ModeListener, MousePositionListener {
                     ViewportFilter.of(screenManager.activeScreen());
             case ALL_SCREENS ->
                     ViewportFilter.of(sortedScreens().getFirst());
-            case ACTIVE_WINDOW -> {
-                Rectangle activeWindowRectangle =
-                        overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
-                Point areaCenter = activeWindowRectangle.center();
-                yield ViewportFilter.of(screenManager.nearestScreenContaining(
-                        areaCenter.x(), areaCenter.y()));
-            }
+            case ACTIVE_WINDOW -> activeWindowScreenFilter();
         };
     }
 
-    private Future<List<UiElement>> startUiElementQuery(
-            HintGridAreaSizeSource areaSource) {
-        return areaSource == HintGridAreaSizeSource.ACTIVE_WINDOW ?
+    private ViewportFilter screenFilter(UiHintArea uiArea) {
+        return switch (uiArea) {
+            case ACTIVE_SCREEN -> ViewportFilter.of(screenManager.activeScreen());
+            case ALL_SCREENS -> ViewportFilter.of(sortedScreens().getFirst());
+            case ACTIVE_WINDOW -> activeWindowScreenFilter();
+        };
+    }
+
+    private ViewportFilter activeWindowScreenFilter() {
+        Point areaCenter = overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
+        return ViewportFilter.of(screenManager.nearestScreenContaining(
+                areaCenter.x(), areaCenter.y()));
+    }
+
+    private Future<List<UiElement>> startUiElementQuery(UiHintArea uiArea) {
+        return uiArea == UiHintArea.ACTIVE_WINDOW ?
                 uiAutomation.startFindActiveWindowUiElements() :
-                uiAutomation.startFindUiElementsInArea(uiHintArea(areaSource));
+                uiAutomation.startFindUiElementsInArea(uiHintArea(uiArea));
     }
 
     /** The area the UI elements are looked for in, and the one the background covers. */
-    private Rectangle uiHintArea(HintGridAreaSizeSource areaSource) {
-        return switch (areaSource) {
+    private Rectangle uiHintArea(UiHintArea uiArea) {
+        return switch (uiArea) {
             case ACTIVE_WINDOW -> overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0);
             case ACTIVE_SCREEN -> screenManager.activeScreen().rectangle();
             case ALL_SCREENS -> Rectangle.union(screenRectangles(screenManager.screens()));
-            case LAST_SELECTED_HINT_CELL -> throw new IllegalStateException();
         };
     }
 
@@ -718,7 +724,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1)
-                    .backgroundArea(uiHintArea(uiHintMesh.area().size().source()));
+                    .backgroundArea(uiHintArea(uiHintMesh.area()));
         }
         else {
             int hintCount = positionHistory.size();
