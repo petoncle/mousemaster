@@ -1147,6 +1147,24 @@ normal-mode.browser-position-history.clear=+f3
 
 A history exists as soon as a mode defines a command for it. Positions saved in one history are invisible to the others, and each history has its own cycling position.
 
+### Isolating a position history
+
+A history can keep a separate list of positions for each app, so that saving a position in
+one app never shows it in another:
+
+```properties
+browser-position-history.isolation=active-app
+browser-position-history.max-size=4
+```
+
+- **`isolation`**: What the history keeps a separate list of positions for. `active-app`
+  isolates by the active app, identified by its executable name. `none` (default): one list
+  shared by every app.
+
+Every command and the hints act on the list of the app that is active when they run, so
+`max-size` applies to each app's list, and `clear` only clears the active app's list. Unlike
+naming a history per app, this needs no knowledge of which apps exist.
+
 ### Using position history with hints
 
 Position history works in conjunction with a hint mode whose type is the name of the history:

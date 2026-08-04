@@ -12,7 +12,7 @@ public class PositionHistory {
 
     private static final Logger logger = LoggerFactory.getLogger(PositionHistory.class);
 
-    private final String name;
+    private final PositionHistoryKey key;
     private final int maxSize;
     private final List<Point> positions = new ArrayList<>();
     /**
@@ -22,8 +22,8 @@ public class PositionHistory {
     private final Map<Point, Integer> idByPosition = new HashMap<>();
     private int cycleIndex = 0;
 
-    public PositionHistory(String name, int maxSize) {
-        this.name = name;
+    public PositionHistory(PositionHistoryKey key, int maxSize) {
+        this.key = key;
         this.maxSize = maxSize;
     }
 
@@ -48,7 +48,7 @@ public class PositionHistory {
         positions.add(position);
         cycleIndex = positions.size() - 1;
         logger.debug("Saved position (" + position.x() + ", " + position.y() + ") to " +
-                     name);
+                     key);
     }
 
     public void unsave(Point position) {
@@ -71,7 +71,7 @@ public class PositionHistory {
         idByPosition.clear();
         idCount = 0;
         cycleIndex = 0;
-        logger.debug("Reset " + name);
+        logger.debug("Reset " + key);
     }
 
     /**

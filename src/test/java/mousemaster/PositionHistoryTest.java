@@ -109,11 +109,78 @@ public class PositionHistoryTest {
     }
 
     @Test
-    void maxSizeIsPerPositionHistory() throws IOException {
-        Configuration configuration = parse(
-                twoHistories + browserHints + "browser-position-history.max-size=4\n");
-        assertEquals(Map.of("position-history", 16, "browser-position-history", 4),
-                configuration.maxPositionHistorySizeByName());
+    void maxSizeAndIsolationArePerPositionHistory() throws IOException {
+        Configuration configuration = parse(twoHistories + browserHints + """
+                position-history.isolation=none
+                browser-position-history.max-size=4
+                browser-position-history.isolation=active-app
+                """);
+        assertEquals(Map.of("position-history",
+                        new PositionHistoryConfiguration(16,
+                                PositionHistoryIsolation.NONE),
+                        "browser-position-history",
+                        new PositionHistoryConfiguration(4,
+                                PositionHistoryIsolation.ACTIVE_APP)),
+                configuration.positionHistoryConfigurationByName());
+    }
+
+    private static HintManager hintManager(Configuration configuration,
+                                           App[] activeApp) {
+        return new HintManager(configuration.positionHistoryConfigurationByName(), null,
+                new MouseManager(null, null), null, null, () -> activeApp[0]);
+    }
+
+    @Test
+    void anActiveAppIsolatedPositionHistoryHasOneListPerApp() throws IOException {
+        Configuration configuration = parse(twoHistories + browserHints +
+                                            "browser-position-history.isolation=active-app\n");
+        App[] activeApp = {new App("chrome.exe")};
+        HintManager hintManager = hintManager(configuration, activeApp);
+        hintManager.mouseMoved(10, 10);
+        hintManager.saveCurrentPosition("browser-position-history");
+        activeApp[0] = new App("firefox.exe");
+        hintManager.mouseMoved(20, 20);
+        hintManager.saveCurrentPosition("browser-position-history");
+        assertEquals(List.of(new Point(20, 20)),
+                hintManager.positionHistory("browser-position-history").positions());
+        activeApp[0] = new App("chrome.exe");
+        assertEquals(List.of(new Point(10, 10)),
+                hintManager.positionHistory("browser-position-history").positions());
+    }
+
+    @Test
+    void aPositionHistoryIsSharedByEveryAppByDefault() throws IOException {
+        Configuration configuration = parse(twoHistories + browserHints);
+        App[] activeApp = {new App("chrome.exe")};
+        HintManager hintManager = hintManager(configuration, activeApp);
+        hintManager.mouseMoved(10, 10);
+        hintManager.saveCurrentPosition("browser-position-history");
+        activeApp[0] = new App("firefox.exe");
+        hintManager.mouseMoved(20, 20);
+        hintManager.saveCurrentPosition("browser-position-history");
+        assertEquals(List.of(new Point(10, 10), new Point(20, 20)),
+                hintManager.positionHistory("browser-position-history").positions());
+    }
+
+    @Test
+    void anUnknownIsolationIsRejected() {
+        IllegalArgumentException exception =
+                assertThrows(IllegalArgumentException.class, () -> parse(
+                        twoHistories + browserHints +
+                        "browser-position-history.isolation=active-window\n"));
+        assertTrue(exception.getMessage().contains("expected one of"),
+                exception.getMessage());
+    }
+
+    @Test
+    void anUnknownPositionHistoryPropertyIsRejected() {
+        IllegalArgumentException exception =
+                assertThrows(IllegalArgumentException.class, () -> parse(
+                        twoHistories + browserHints +
+                        "browser-position-history.maxsize=4\n"));
+        assertTrue(exception.getMessage()
+                            .contains("Invalid position history property key"),
+                exception.getMessage());
     }
 
     @Test

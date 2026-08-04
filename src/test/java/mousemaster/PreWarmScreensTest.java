@@ -52,7 +52,7 @@ class PreWarmScreensTest {
                     return null;
                 });
         HintManager hintManager =
-                new HintManager(Map.of(), screenManager, null, overlay, null);
+                new HintManager(Map.of(), screenManager, null, overlay, null, null);
         hintManager.preWarmHintMeshes(configuration.modeMap());
         return preWarmed;
     }

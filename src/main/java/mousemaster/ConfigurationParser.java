@@ -363,9 +363,12 @@ public class ConfigurationParser {
         boolean hideConsole = false;
         ComboMoveDuration defaultComboMoveDuration =
                 new ComboMoveDuration(Duration.ZERO, null);
-        Map<String, Integer> maxPositionHistorySizeByName = new HashMap<>();
+        Map<String, PositionHistoryConfiguration> positionHistoryConfigurationByName =
+                new HashMap<>();
         for (String positionHistoryName : positionHistoryNames)
-            maxPositionHistorySizeByName.put(positionHistoryName, 16);
+            positionHistoryConfigurationByName.put(positionHistoryName,
+                    new PositionHistoryConfiguration(16,
+                            PositionHistoryIsolation.NONE));
         Set<String> initiallySetVariables = new HashSet<>();
         Map<String, ModeBuilder> modeByName = new HashMap<>();
         Map<PropertyKey, Property<?>> propertyByKey = new HashMap<>();
@@ -404,15 +407,28 @@ public class ConfigurationParser {
                 throw new IllegalArgumentException(
                         "max-position-history-size has been deprecated and removed: use position-history.max-size instead");
             }
-            else if (propertyKey.endsWith("position-history.max-size")) {
-                String positionHistoryName = propertyKey.substring(0,
-                        propertyKey.length() - ".max-size".length());
-                if (!positionHistoryNames.contains(positionHistoryName))
+            else if (isPositionHistoryProperty(propertyKey)) {
+                int dotIndex = propertyKey.indexOf('.');
+                String positionHistoryName = propertyKey.substring(0, dotIndex);
+                PositionHistoryConfiguration positionHistory =
+                        positionHistoryConfigurationByName.get(positionHistoryName);
+                if (positionHistory == null)
                     throw new IllegalArgumentException(
                             "Invalid property key " + propertyKey +
                             ": undefined position history " + positionHistoryName);
-                maxPositionHistorySizeByName.put(positionHistoryName,
-                        parseUnsignedInteger(propertyValue, 1, 100));
+                switch (propertyKey.substring(dotIndex + 1)) {
+                    case "max-size" -> positionHistoryConfigurationByName.put(
+                            positionHistoryName, new PositionHistoryConfiguration(
+                                    parseUnsignedInteger(propertyValue, 1, 100),
+                                    positionHistory.isolation()));
+                    case "isolation" -> positionHistoryConfigurationByName.put(
+                            positionHistoryName, new PositionHistoryConfiguration(
+                                    positionHistory.maxSize(),
+                                    parsePositionHistoryIsolation(propertyKey,
+                                            propertyValue)));
+                    default -> throw new IllegalArgumentException(
+                            "Invalid position history property key " + propertyKey);
+                }
                 continue;
             }
             else if (propertyKey.equals("hide-console")) {
@@ -588,7 +604,7 @@ public class ConfigurationParser {
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
-        return new Configuration(maxPositionHistorySizeByName,
+        return new Configuration(positionHistoryConfigurationByName,
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
                 Set.copyOf(initiallySetVariables),
@@ -1811,6 +1827,15 @@ public class ConfigurationParser {
                name.endsWith("-position-history");
     }
 
+    /**
+     * Matches a root position history property, e.g. browser-position-history.max-size.
+     */
+    private static boolean isPositionHistoryProperty(String propertyKey) {
+        int dotIndex = propertyKey.indexOf('.');
+        return dotIndex != -1 && propertyKey.indexOf('.', dotIndex + 1) == -1 &&
+               isPositionHistoryName(propertyKey.substring(0, dotIndex));
+    }
+
     private static String checkedVariableName(String variableName,
                                               Map<String, KeyAlias> keyAliases) {
         if (BuiltInVirtualKey.NAMES.contains(variableName))
@@ -2922,6 +2947,17 @@ public class ConfigurationParser {
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": expected one of " + List.of("mouse-and-grid-center-unsynchronized",
                             "mouse-follows-grid-center", "grid-center-follows-mouse"));
+        };
+    }
+
+    private static PositionHistoryIsolation parsePositionHistoryIsolation(String propertyKey,
+                                                                         String propertyValue) {
+        return switch (propertyValue) {
+            case "none" -> PositionHistoryIsolation.NONE;
+            case "active-app" -> PositionHistoryIsolation.ACTIVE_APP;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " + List.of("none", "active-app"));
         };
     }
 

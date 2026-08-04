@@ -1,6 +1,9 @@
 package mousemaster;
 
 import mousemaster.HintMesh.HintMeshBuilder;
+import mousemaster.PositionHistoryIsolationKey.ActiveAppPositionHistoryIsolationKey;
+import mousemaster.PositionHistoryIsolationKey.NonePositionHistoryIsolationKey;
+import mousemaster.platform.ActiveAppFinder;
 import mousemaster.platform.Overlay;
 import mousemaster.platform.UiAutomation;
 import mousemaster.platform.UiAutomation.UiElement;
@@ -20,6 +23,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final MouseManager mouseManager;
     private final Overlay overlay;
     private final UiAutomation uiAutomation;
+    private final ActiveAppFinder activeAppFinder;
     private ModeController modeController;
     private HintMesh hintMesh;
     private ViewportFilter screenFilter;
@@ -29,8 +33,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     private int mouseX, mouseY;
     private Mode currentMode;
     private Zoom currentZoom;
-    private final Map<String, Integer> maxPositionHistorySizeByName;
-    private final Map<String, PositionHistory> positionHistoryByName = new HashMap<>();
+    private PositionHistory currentPositionHistory;
+    private final Map<String, PositionHistoryConfiguration> positionHistoryConfigurationByName;
+    private final Map<PositionHistoryKey, PositionHistory> positionHistoryByKey =
+            new HashMap<>();
     private Point lastSelectedHintPoint;
     private Rectangle lastSelectedHintCell;
     // One level per last-selected-hint-cell drill-down step. The area is frozen at push
@@ -72,15 +78,17 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     }
 
-    public HintManager(Map<String, Integer> maxPositionHistorySizeByName,
-                       ScreenManager screenManager,
-                       MouseManager mouseManager, Overlay overlay,
-                       UiAutomation uiAutomation) {
-        this.maxPositionHistorySizeByName = maxPositionHistorySizeByName;
+    public HintManager(
+            Map<String, PositionHistoryConfiguration> positionHistoryConfigurationByName,
+            ScreenManager screenManager,
+            MouseManager mouseManager, Overlay overlay,
+            UiAutomation uiAutomation, ActiveAppFinder activeAppFinder) {
+        this.positionHistoryConfigurationByName = positionHistoryConfigurationByName;
         this.screenManager = screenManager;
         this.mouseManager = mouseManager;
         this.overlay = overlay;
         this.uiAutomation = uiAutomation;
+        this.activeAppFinder = activeAppFinder;
     }
 
     public void setModeController(ModeController modeController) {
@@ -102,6 +110,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
                         screenRectangle.center(), screenRectangle);
                 for (HintMeshConfiguration configuration : hintMeshVariants(mode)) {
+                    if (configuration.type() instanceof HintMeshType.HintPositionHistory)
+                        continue;
                     HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
                             ViewportFilter.of(screen), null, screen);
                     if (!hintMesh.visible() ||
@@ -232,10 +242,10 @@ public class HintManager implements ModeListener, MousePositionListener {
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         if (hintMeshConfiguration.type() instanceof
                 HintMeshType.HintPositionHistory hintPositionHistory) {
-            PositionHistory positionHistory =
+            currentPositionHistory =
                     positionHistory(hintPositionHistory.positionHistoryName());
-            if (positionHistory.positions().isEmpty())
-                positionHistory.save(new Point(mouseX, mouseY));
+            if (currentPositionHistory.positions().isEmpty())
+                currentPositionHistory.save(new Point(mouseX, mouseY));
         }
         ViewportFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
@@ -471,10 +481,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             case HintMeshType.HintGrid hintGrid -> screenFilter(hintGrid.area());
             case HintMeshType.UiHintMesh uiHintMesh -> screenFilter(uiHintMesh.area());
             case HintMeshType.HintPositionHistory hintPositionHistory -> {
-                Point position =
-                        positionHistory(hintPositionHistory.positionHistoryName())
-                                .positions()
-                                .getFirst();
+                Point position = currentPositionHistory.positions().getFirst();
                 yield ViewportFilter.of(
                         screenManager.screenContaining(position.x(), position.y()));
             }
@@ -729,9 +736,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     .backgroundArea(uiHintArea(uiHintMesh.area()));
         }
         else {
-            PositionHistory positionHistory = positionHistory(
-                    ((HintMeshType.HintPositionHistory) type).positionHistoryName());
-            List<Point> positions = positionHistory.positions();
+            List<Point> positions = currentPositionHistory.positions();
             int hintCount = positions.size();
             List<Hint> hints = new ArrayList<>(hintCount);
             HintMeshKeys hintMeshKeys =
@@ -742,7 +747,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             for (Point point : positions) {
                 List<Key> keySequence = hintKeySequence(
                         selectionKeys, rowKeyOffset, hintCount,
-                        0, -1, positionHistory.id(point),
+                        0, -1, currentPositionHistory.id(point),
                         -1, -1,
                         -1, -1,
                         -1, -1, false, prefixLengths);
@@ -1431,10 +1436,21 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
-    private PositionHistory positionHistory(String positionHistoryName) {
-        return positionHistoryByName.computeIfAbsent(positionHistoryName,
-                name -> new PositionHistory(name,
-                        maxPositionHistorySizeByName.get(name)));
+    PositionHistory positionHistory(String positionHistoryName) {
+        PositionHistoryConfiguration configuration =
+                positionHistoryConfigurationByName.get(positionHistoryName);
+        PositionHistoryKey key = new PositionHistoryKey(positionHistoryName,
+                isolationKey(configuration.isolation()));
+        return positionHistoryByKey.computeIfAbsent(key,
+                key1 -> new PositionHistory(key1, configuration.maxSize()));
+    }
+
+    private PositionHistoryIsolationKey isolationKey(PositionHistoryIsolation isolation) {
+        return switch (isolation) {
+            case NONE -> new NonePositionHistoryIsolationKey();
+            case ACTIVE_APP -> new ActiveAppPositionHistoryIsolationKey(
+                    activeAppFinder.activeApp());
+        };
     }
 
     public void saveCurrentPosition(String positionHistoryName) {

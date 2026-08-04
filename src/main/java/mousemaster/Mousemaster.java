@@ -206,9 +206,9 @@ public class Mousemaster {
         MouseState mouseState = new MouseState(mouseManager);
         GridManager gridManager = new GridManager(screenManager, mouseManager, platform.overlay());
         HintManager hintManager =
-                new HintManager(configuration.maxPositionHistorySizeByName(),
+                new HintManager(configuration.positionHistoryConfigurationByName(),
                         screenManager, mouseManager, platform.overlay(),
-                        platform.uiAutomation());
+                        platform.uiAutomation(), platform.activeAppFinder());
         commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
