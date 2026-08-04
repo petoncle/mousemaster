@@ -96,7 +96,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static final int maxHintMeshVariantBranchCount = 12;
-    private static final int minPreWarmedHintCount = 1000;
+    private static final int minPreWarmedHintCount = 100;
 
     /** Builds and caches the meshes that are slow to build. */
     public void preWarmHintMeshes(ModeMap modeMap) {
