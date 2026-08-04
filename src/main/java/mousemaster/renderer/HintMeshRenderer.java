@@ -37,8 +37,10 @@ public final class HintMeshRenderer {
      * Windows will cancel the hook and the key press will go through to the other apps.
      * Windows won't wait for the keyboard hook to return if it's taking too long.
      */
-    private Runnable setUncachedHintMeshWindowRunnable;
-    private Runnable cacheQtHintWindowIntoPixmapRunnable;
+    private final Map<TransparentWindow, Runnable> setUncachedHintMeshWindowRunnables =
+            new LinkedHashMap<>();
+    private final Map<TransparentWindow, Runnable> cacheQtHintWindowIntoPixmapRunnables =
+            new LinkedHashMap<>();
     private boolean preWarming;
     private Runnable messagePump;
     /**
@@ -199,25 +201,29 @@ public final class HintMeshRenderer {
         advanceCropAnimationToFirstFrame();
         if (hintMeshFadeAnimator != null)
             hintMeshFadeAnimator.advanceToFirstFrame();
-        if (setUncachedHintMeshWindowRunnable != null) {
+        if (!setUncachedHintMeshWindowRunnables.isEmpty()) {
             pumpDuringHintBuild = true;
-            setUncachedHintMeshWindowRunnable.run();
+            List<Runnable> pending =
+                    List.copyOf(setUncachedHintMeshWindowRunnables.values());
+            setUncachedHintMeshWindowRunnables.clear();
+            pending.forEach(Runnable::run);
             pumpDuringHintBuild = false;
-            setUncachedHintMeshWindowRunnable = null;
             // Don't run the cache grab in the same tick: Qt hasn't painted
             // the window yet (processEvents runs before update in the main
             // loop). Let the next tick's processEvents paint, then grab.
         }
-        else if (cacheQtHintWindowIntoPixmapRunnable != null) {
-            cacheQtHintWindowIntoPixmapRunnable.run();
-            cacheQtHintWindowIntoPixmapRunnable = null;
+        else if (!cacheQtHintWindowIntoPixmapRunnables.isEmpty()) {
+            List<Runnable> pending =
+                    List.copyOf(cacheQtHintWindowIntoPixmapRunnables.values());
+            cacheQtHintWindowIntoPixmapRunnables.clear();
+            pending.forEach(Runnable::run);
         }
     }
 
     /** Drops pending build/cache runnables: container.grab() on a destroyed widget crashes. */
     public void cancelPendingBuild() {
-        setUncachedHintMeshWindowRunnable = null;
-        cacheQtHintWindowIntoPixmapRunnable = null;
+        setUncachedHintMeshWindowRunnables.clear();
+        cacheQtHintWindowIntoPixmapRunnables.clear();
     }
 
     public void flushCache() {
@@ -545,9 +551,9 @@ public final class HintMeshRenderer {
                                           HintMeshStyle style,
                                           boolean zoomChanged,
                                           PixmapAndPosition matchBoxPixmap) {
-        setUncachedHintMeshWindowRunnable = null;
-        cacheQtHintWindowIntoPixmapRunnable = null;
         TransparentWindow window = hintMeshWindow.window;
+        cacheQtHintWindowIntoPixmapRunnables.remove(window);
+        setUncachedHintMeshWindowRunnables.remove(window);
         // A match crop zooms into a just-typed hint's box (animateHintMatch seeds it with that box's
         // screenshot); it plus the content render that follows form a drill. Was this render one, or the last?
         boolean matchCropBefore = hintMeshWindow.lastWasMatchCrop.get();
@@ -730,7 +736,7 @@ public final class HintMeshRenderer {
                 container.setClearColor(backgroundColor);
             container.setStyleSheet("background: transparent;");
             newContainer = container;
-            setUncachedHintMeshWindowRunnable =
+            Runnable setUncachedHintMeshWindowRunnable =
                     () -> {
                         long before = System.nanoTime();
                         List<HintBox> boxes =
@@ -757,8 +763,8 @@ public final class HintMeshRenderer {
                         if (isHintGrid) {
                             // Defer the pixmap cache grab to the next frame so the hint mesh is shown
                             // immediately; the grab is expensive (~90ms at 4K when cold).
-                            cacheQtHintWindowIntoPixmapRunnable = () ->
-                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, boxes);
+                            cacheQtHintWindowIntoPixmapRunnables.put(window, () ->
+                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, boxes));
                         }
                     };
             // Run immediately when hints are already visible (to avoid a
@@ -770,7 +776,10 @@ public final class HintMeshRenderer {
                     || hintMesh.hints().size() < 100
             ) {
                 setUncachedHintMeshWindowRunnable.run();
-                setUncachedHintMeshWindowRunnable = null;
+            }
+            else {
+                setUncachedHintMeshWindowRunnables.put(window,
+                        setUncachedHintMeshWindowRunnable);
             }
         }
     }
