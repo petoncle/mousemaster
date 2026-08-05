@@ -56,8 +56,8 @@ public final class ExpBlur {
         return plane;
     }
 
-    /** The blurred plane back in an ARGB32_Premultiplied image. Its colour channels stay zero:
-     *  the shadow's colour comes from the SourceIn fill that follows, which reads only alpha. */
+    /** The blurred plane back in an ARGB32_Premultiplied image. Its color channels stay zero:
+     *  the shadow's color comes from the SourceIn fill that follows, which reads only alpha. */
     public static byte[] planeAsImage(byte[] plane, int width, int height) {
         byte[] pixels = new byte[width * height * 4];
         overRange(height, 64, (from, to) -> {

@@ -45,7 +45,7 @@ public final class IndicatorRenderer {
         return window;
     }
 
-    /** Installing a graphics effect for the first time initialises Qt machinery that costs
+    /** Installing a graphics effect for the first time initializes Qt machinery that costs
      *  around 15ms, which the first mode to show an indicator would otherwise pay. */
     public void preWarm() {
         window();

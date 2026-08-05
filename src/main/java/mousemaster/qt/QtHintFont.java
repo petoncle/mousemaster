@@ -56,7 +56,7 @@ public final class QtHintFont {
             new IdentityHashMap<>();
 
     /** The paths are only ever copied into a painter, so they can be freed outright; the metrics
-     *  are kept, rebuilding one re-initialises the GDI font engine. */
+     *  are kept, rebuilding one re-initializes the GDI font engine. */
     public static void clearCaches() {
         for (Map<String, QPainterPath> pathsByText : textPathsByMetrics.values())
             for (QPainterPath path : pathsByText.values())

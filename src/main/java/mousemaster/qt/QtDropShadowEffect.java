@@ -21,7 +21,7 @@ import io.qt.widgets.QGraphicsDropShadowEffect;
 
 /**
  * Qt's drop shadow with its blur swapped for {@link ExpBlur}. Qt still pads the source, upscales
- * the halved blur, colours the shadow and composites it, so only the blur itself has to be kept
+ * the halved blur, colors the shadow and composites it, so only the blur itself has to be kept
  * bit-exact.
  */
 public class QtDropShadowEffect extends QGraphicsDropShadowEffect {

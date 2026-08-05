@@ -44,7 +44,7 @@ public final class QtColorUtil {
 
     private static final Map<Integer, QColor> opaqueByRgba = new HashMap<>();
 
-    /** The colour at full alpha. Shadow sources are drawn opaque so the shadow keeps its strength,
+    /** The color at full alpha. Shadow sources are drawn opaque so the shadow keeps its strength,
      *  which asks for the same few variants once per label. */
     public static QColor opaque(QColor color) {
         if (color.alpha() == 255)

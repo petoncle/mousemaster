@@ -11,7 +11,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * A combo waiting for its held last move to elapse is cancelled by a key that some combo
+ * A combo waiting for its held last move to elapse is canceled by a key that some combo
  * sequence of the mode uses, not by an unrelated key.
  */
 class HeldLastMoveEvictionTest {

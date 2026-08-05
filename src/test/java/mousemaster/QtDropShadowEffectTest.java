@@ -33,7 +33,7 @@ class QtDropShadowEffectTest {
     private static boolean qtAvailable;
 
     @BeforeAll
-    static void initialiseQt() {
+    static void initializeQt() {
         try {
             MousemasterApplication.tempDirectory =
                     System.getProperty("java.io.tmpdir") + "/mousemaster-shadow-test";
@@ -49,7 +49,7 @@ class QtDropShadowEffectTest {
     void portedShadowMatchesQtsOwn() {
         assumeTrue(qtAvailable, "Qt natives are unavailable here");
         // Radii either side of 4, where Qt halves the image before blurring; offsets whole,
-        // fractional and negative; shadow colours opaque and translucent.
+        // fractional and negative; shadow colors opaque and translucent.
         double[] radii = {0.5, 2, 3.9, 4, 6, 12};
         double[][] offsets = {{0, 0}, {1, 1}, {0.5, 0.5}, {-2, 3}};
         QColor[] colors = {new QColor(0, 0, 0, 255), new QColor(200, 30, 30, 128)};
