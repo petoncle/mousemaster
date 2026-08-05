@@ -149,6 +149,22 @@ public class PositionHistoryTest {
     }
 
     @Test
+    void theDefaultPositionHistoryCanBeActiveAppIsolated() throws IOException {
+        Configuration configuration = parse(twoHistories + browserHints +
+                                            "position-history.isolation=active-app\n");
+        App[] activeApp = {new App("chrome.exe")};
+        HintManager hintManager = hintManager(configuration, activeApp);
+        hintManager.mouseMoved(10, 10);
+        hintManager.saveCurrentPosition("position-history");
+        activeApp[0] = new App("firefox.exe");
+        assertEquals(List.of(),
+                hintManager.positionHistory("position-history").positions());
+        activeApp[0] = new App("chrome.exe");
+        assertEquals(List.of(new Point(10, 10)),
+                hintManager.positionHistory("position-history").positions());
+    }
+
+    @Test
     void aPositionHistoryIsSharedByEveryAppByDefault() throws IOException {
         Configuration configuration = parse(twoHistories + browserHints);
         App[] activeApp = {new App("chrome.exe")};
