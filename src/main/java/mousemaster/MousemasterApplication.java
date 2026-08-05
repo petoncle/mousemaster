@@ -56,7 +56,10 @@ public class MousemasterApplication {
         if (platform != null)
             platform.shutdown();
         logger.error(jnaCallback ? "Error in JNA callback" : "", e);
-        if (pauseOnError) {
+        // Without a terminal there is nobody to press Enter: the read blocks or throws,
+        // either of which skips the shutdown below. System.console() alone stopped
+        // meaning interactive in java 22, it is now non null on a redirected stream too.
+        if (pauseOnError && System.console() != null && System.console().isTerminal()) {
             logger.info(
                     "An error has occurred. The details of the error should be right above this message. Press Enter in this window to close mousemaster.");
             new Scanner(System.in).nextLine();
