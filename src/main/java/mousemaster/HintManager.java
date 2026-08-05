@@ -57,7 +57,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private PendingUiHintQuery pendingUiHintQuery;
-    private List<UiElement> lastUiElements;
+    private List<UiElement> lastUiElements = List.of();
 
     /**
      * It would be better to have an instance of Zoom instead of ZoomConfiguration
@@ -232,14 +232,21 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     @Override
     public void modeChanged(Mode newMode) {
-        if (pendingUiHintQuery != null) {
-            pendingUiHintQuery.future().cancel(false);
-            pendingUiHintQuery = null;
-        }
         boolean hintWasJustSelected = hintJustSelected;
         boolean sameMode =
                 currentMode != null && newMode.name().equals(currentMode.name());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
+        boolean sameUiHintArea = hintMeshConfiguration.enabled() &&
+                                 hintMeshConfiguration.type() instanceof
+                                         HintMeshType.UiHintMesh newUiHintMesh &&
+                                 currentMode != null &&
+                                 currentMode.hintMesh().type() instanceof
+                                         HintMeshType.UiHintMesh currentUiHintMesh &&
+                                 currentUiHintMesh.area() == newUiHintMesh.area();
+        if (pendingUiHintQuery != null && !sameUiHintArea) {
+            pendingUiHintQuery.future().cancel(false);
+            pendingUiHintQuery = null;
+        }
         if (hintMeshConfiguration.type() instanceof
                 HintMeshType.HintPositionHistory hintPositionHistory) {
             currentPositionHistory =
@@ -341,10 +348,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             UiHintArea uiArea = uiHintMesh.area();
             // Do not recompute UI elements when switching between two UI hint modes that
             // look for them in the same area.
-            if (currentMode == null ||
-                !(currentMode.hintMesh().type() instanceof
-                          HintMeshType.UiHintMesh currentUiHintMesh) ||
-                currentUiHintMesh.area() != uiArea) {
+            if (!sameUiHintArea) {
                 pendingUiHintQuery = new PendingUiHintQuery(
                         startUiElementQuery(uiArea),
                         hintMeshConfiguration, newZoom, newScreenFilter);
