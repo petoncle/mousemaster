@@ -605,6 +605,10 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   - `grid-cell-width`: Width of each hint cell in pixels
   - `grid-cell-height`: Height of each hint cell in pixels
 
+  The sizes are unzoomed pixels, so the zoom scales them: under a `zoom.percent` of 5, a
+  cell of width 10 is drawn 50 pixels wide and still covers 10 pixels of the magnified
+  content. A grid therefore keeps its shape, and its hint keys, whatever the zoom.
+
 - **`grid-cell-sizing`**: How cell size is determined:
   - `fixed` (default): cells are `grid-cell-width` x `grid-cell-height` pixels, and `grid-max-row-count`/`grid-max-column-count` cap how many fit.
   - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `grid-area=last-selected-hint-cell`.

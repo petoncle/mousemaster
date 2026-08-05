@@ -536,7 +536,8 @@ _hint-mode.hint.box-color=#000000 | _{isslow} -> #00FF00 | _{iszoom} -> #FF00FF
 
 ### Example: zoom toggle
 
-Toggle zoom with a key, adjusting hint cell size accordingly:
+Toggle zoom with a key. The cell sizes are unzoomed pixels, so they follow the zoom on
+their own and the grid keeps its shape:
 
 ```properties
 virtual-keys=iszoom
@@ -545,8 +546,8 @@ hint3-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
 hint3-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 
 hint3-mode.zoom.percent=1 | _{iszoom} -> 30
-hint3-mode.hint.grid-cell-width=10.7 | _{iszoom} -> 320
-hint3-mode.hint.grid-cell-height=6.0 | _{iszoom} -> 180
+hint3-mode.hint.grid-cell-width=10.7
+hint3-mode.hint.grid-cell-height=6.0
 ```
 
 ---
