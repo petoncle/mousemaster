@@ -46,8 +46,11 @@ jobs:
         shell: cmd
       - name: Rename GraalVM executable
         run: ren target\mousemaster.exe mousemaster-without-vcruntime140.exe
+      # -nores keeps mousemaster's own version information: without it, the DLL's
+      # VERSIONINFO replaces it and Task Manager lists mousemaster as
+      # "Microsoft(R) C Runtime Library".
       - name: Embed VCRUNTIME140.dll
-        run: pefrmdllembed\pefrmdllembed.exe -impinj target/mousemaster-without-vcruntime140.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster.exe
+        run: pefrmdllembed\pefrmdllembed.exe -impinj -nores target/mousemaster-without-vcruntime140.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster.exe
         shell: cmd
       - name: Upload executable
         uses: actions/upload-artifact@v4

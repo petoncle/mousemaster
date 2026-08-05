@@ -14,7 +14,7 @@
     GRAALVM_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ JAVA_HOME=~/Documents/tools/graalvm-25.1.3+9.1/ ./mvnw -Pnative -Dagent package -DskipTests
     The GRAALVM_HOME environment variable takes precedence over JAVA_HOME for native-maven-plugin.
     https://github.com/oracle/graal/issues/1762#issuecomment-1297370039
-    ./pefrmdllembed/pefrmdllembed.exe -impinj target/mousemaster.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster-with-vcruntime140.exe
+    ./pefrmdllembed/pefrmdllembed.exe -impinj -nores target/mousemaster.exe ./pefrmdllembed/VCRUNTIME140.dll target/mousemaster-with-vcruntime140.exe
     -->
 
     <properties>
@@ -109,6 +109,12 @@
                         </executions>
                         <configuration>
                             <fallback>false</fallback>
+                            <!-- native-image has no option for the executable's VERSIONINFO
+                            resource, so the compiled resource is handed to the linker. See
+                            versioninfo/mousemaster.rc. -->
+                            <buildArgs>
+                                <buildArg>-H:NativeLinkerOption=${project.build.directory}/mousemaster.res</buildArg>
+                            </buildArgs>
                             <!-- https://graalvm.github.io/native-build-tools/latest/maven-plugin.html#agent-support-configuring-options -->
                             <!-- https://medium.com/graalvm/simplifying-native-image-generation-with-maven-plugin-and-embeddable-configuration-d5b283b92f57 -->
                             <!-- ./mvnw -Pnative -Dagent package will read the json files from the jar's META-INF/native-image. -->
@@ -120,6 +126,33 @@
                                 </modes>
                             </agent>
                         </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>compile-versioninfo</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>powershell</executable>
+                                    <arguments>
+                                        <argument>-NoProfile</argument>
+                                        <argument>-ExecutionPolicy</argument>
+                                        <argument>Bypass</argument>
+                                        <argument>-File</argument>
+                                        <argument>${project.basedir}/versioninfo/compile.ps1</argument>
+                                        <argument>-version</argument>
+                                        <argument>${project.version}</argument>
+                                        <argument>-outputFile</argument>
+                                        <argument>${project.build.directory}/mousemaster.res</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

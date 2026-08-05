@@ -76,6 +76,9 @@ public class WindowsPlatform implements Platform {
     private double stuckKeyCheckTimer;
     private ExtendedKernel32.PhandlerRoutine consoleCtrlHandler;
     private volatile boolean killProcessRequested;
+    private final boolean startedWithAConsole =
+            Kernel32.INSTANCE.GetConsoleWindow() != null;
+    private double consoleCheckTimer;
 
     public WindowsPlatform(boolean multipleInstancesAllowed, boolean keyRegurgitationEnabled,
                            boolean ignoreInjectedEvents) {
@@ -95,6 +98,7 @@ public class WindowsPlatform implements Platform {
     public void update(double delta) {
         if (killProcessRequested)
             killProcess(0);
+        killProcessIfConsoleIsGone(delta);
         overlay.setWaitForZoomBeforeRepainting(false);
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
@@ -294,6 +298,19 @@ public class WindowsPlatform implements Platform {
         logger.warn("Main thread is not responding, killing the process from the console control handler");
         killProcess(0);
         return false; // Only reached if TerminateProcess failed: let the default handler proceed.
+    }
+
+    private void killProcessIfConsoleIsGone(double delta) {
+        if (!startedWithAConsole)
+            return;
+        consoleCheckTimer -= delta;
+        if (consoleCheckTimer > 0)
+            return;
+        consoleCheckTimer = 1;
+        if (Kernel32.INSTANCE.GetConsoleWindow() != null)
+            return;
+        logger.info("Killing the process because its console is gone");
+        killProcess(0);
     }
 
     private static boolean shutdown = false;
