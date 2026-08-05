@@ -40,6 +40,7 @@ public class ConfigurationParser {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigurationParser.class);
 
+    private static final Pattern appAliasPattern = Pattern.compile("\"([^\"]*)\"|(\\S+)");
     private static final Pattern propertyLinePattern = Pattern.compile("(.+?)=(.+)");
     private static final Map<String, Property<?>> defaultPropertyByName = defaultPropertyByName();
 
@@ -1881,9 +1882,14 @@ public class ConfigurationParser {
                                    Map<String, LayoutKeyAlias> layoutKeyAliasByName) {
         if (propertyKey.startsWith("app-alias.")) {
             String aliasName = propertyKey.substring("app-alias.".length());
-            Set<App> apps = Arrays.stream(propertyValue.split("\\s+"))
-                                  .map(App::new)
-                                  .collect(Collectors.toSet());
+            // Quoted so that an executable name containing a space, which macOS is full of,
+            // can be given.
+            Set<App> apps = appAliasPattern.matcher(propertyValue)
+                                           .results()
+                                           .map(result -> result.group(1) != null ?
+                                                   result.group(1) : result.group(2))
+                                           .map(App::new)
+                                           .collect(Collectors.toSet());
             appAliasByName.put(aliasName, new AppAlias(aliasName, apps));
         }
         else if (propertyKey.startsWith("key-alias.")) {

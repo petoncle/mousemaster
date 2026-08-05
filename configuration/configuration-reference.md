@@ -1093,6 +1093,9 @@ App aliases allow you to group applications together and create mode switches ba
 
 ```properties
 app-alias.browserapp=firefox.exe chrome.exe edge.exe
+
+# An executable name containing a space, as macOS ones often do, goes in double quotes:
+app-alias.settingsapp="System Settings" "Activity Monitor"
 ```
 
 App aliases work similarly to key aliases, but instead of grouping keys, they group application executable names.
