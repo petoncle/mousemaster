@@ -11,7 +11,8 @@
 
 <p align="center">
 <a href="#demo">Demo</a> •
-<a href="#installation">Installation</a> •
+<a href="#windows">Install on Windows</a> •
+<a href="#macos">Install on macOS</a> •
 <a href="#usage">Usage</a> •
 <a href="#features">Features</a> •
 <a href="#contributing">Contributing</a>
@@ -36,6 +37,8 @@ https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-
 
 ## Installation
 
+### Windows
+
 1. Download **mousemaster.exe** (a portable executable) from the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build it from source.
 2. In the same Release page, choose and download one of the existing configuration files:
    - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))
@@ -52,6 +55,35 @@ https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-
    or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own
    configuration. If you have ideas for a better configuration that
    you would like to share, I'd love to hear from you.
+
+### macOS
+
+macOS support is new and testers are wanted: if you try it, please report what does and does not
+work in an [issue](https://github.com/petoncle/mousemaster/issues).
+
+The setup below is more involved than it should be. mousemaster is not signed or notarized, which
+needs an Apple developer account I do not have yet, so macOS treats the app as unidentified: it has
+to be allowed by hand, and each permission is granted to that exact copy rather than to mousemaster
+as an identified application.
+
+mousemaster reads the keyboard through the Karabiner virtual HID device, so that driver and a few
+permissions are needed.
+
+1. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org), which installs the virtual HID
+   device, and allow its system extension when macOS asks.
+2. Download and unzip **mousemaster-macos.zip** from the [Release page](https://github.com/petoncle/mousemaster/releases/latest),
+   then put **mousemaster.app** in **/Applications**, next to a **mousemaster.properties**.
+3. Run it from a terminal, as root, which the virtual HID device requires:
+   ```
+   sudo /Applications/mousemaster.app/Contents/MacOS/mousemaster
+   ```
+4. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**:
+   - **Input Monitoring**, to read the keys you press. Always needed.
+   - **Accessibility**, only for UI hints (`hint.type=ui`).
+   - **Screen Recording**, only for zoom (`mode.zoom`).
+
+   Each is granted to the app you launched, so replacing mousemaster.app with a new build means
+   granting them again. Quit and relaunch after granting.
 
 ## Usage
 
@@ -94,7 +126,7 @@ Contributions to mousemaster are welcome!
 
 - **Share a configuration**: If you have ideas for a new or improved configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
 
-- **Cross-platform support:** mousemaster currently supports Windows only. That said, the overlay has already been reimplemented to be cross-platform. The remaining work is keyboard/mouse input handling and sending inputs on macOS and Linux.  
+- **Cross-platform support:** mousemaster supports Windows and macOS. The remaining work is Linux, for which the overlay is already cross-platform and only input handling is left.  
   If you're interested in helping extend mousemaster to these platforms, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
 If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!

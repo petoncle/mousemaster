@@ -18,7 +18,7 @@ From idle — or to switch between modes — hold **Ctrl+Shift** and press:
 | `Space` | UI hints        |
 | `M`     | Monitor         |
 
-`Esc` returns to idle, where all keys pass through to Windows as normal.
+`Esc` returns to idle, where all keys pass through to the operating system as normal.
 
 ## In any mode
 

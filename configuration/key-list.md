@@ -43,3 +43,6 @@
 - minus (`-`)
 - hash (`#`)
 - backslash (`\`)
+
+On macOS, `leftwin` and `rightwin` are the command keys, and `leftalt` and `rightalt` the option
+keys.

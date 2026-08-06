@@ -441,6 +441,7 @@ hint2-2-mode.zoom.center=last-selected-hint
 - `zoom.percent` must be greater than or equal to 1.0 (100%).
 - `zoom.center` can either be `screen-center`, `mouse`
   or `last-selected-hint`.
+- On macOS, zooming needs the Screen Recording permission to capture what it magnifies.
 
 Optional animation can be enabled to smoothly transition in and out of zoom:
 ```properties
@@ -511,8 +512,9 @@ The **`type`** property determines what hints are displayed:
 
 ### UI hints
 
-UI hints use the Windows UI Automation API to detect interactive elements (buttons, links,
-text fields, checkboxes, etc.) and display a hint label on each one.
+UI hints detect interactive elements (buttons, links, text fields, checkboxes, etc.) and display
+a hint label on each one, with the UI Automation API on Windows and the Accessibility API on macOS.
+On macOS this needs the Accessibility permission, without which no element is found.
 Unlike grid hints, UI hints are positioned based on the UI elements' locations.
 
 ```properties
