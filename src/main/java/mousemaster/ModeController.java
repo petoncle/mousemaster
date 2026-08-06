@@ -61,7 +61,7 @@ public class ModeController {
         boolean mustResetHideCursorTimeout = !idling || hintManager.showingHintMesh();
         // render-as-cursor also owns the system cursor; when both are on it takes
         // precedence and hide-cursor is deferred (the indicator is the cursor).
-        boolean hideCursorEnabled = !mutatedMode.indicator().renderAsCursor() &&
+        boolean hideCursorEnabled = !renderIndicatorAsCursor(mutatedMode) &&
                                     mutatedMode.hideCursor().enabled();
         if (!previousHideCursorEnabled && hideCursorEnabled)
             resetHideCursorTimer(mutatedMode);
@@ -137,8 +137,12 @@ public class ModeController {
         previousHideCursorEnabled = mutatedMode.hideCursor().enabled();
     }
 
+    private boolean renderIndicatorAsCursor(Mode mode) {
+        return mode.indicator().renderAsCursor() && mouseManager.supportsRenderAsCursor();
+    }
+
     private void resetCurrentModeCursorHidden(Mode mode) {
-        if (mode.indicator().renderAsCursor()) {
+        if (renderIndicatorAsCursor(mode)) {
             currentModeCursorHidden = false;
             return;
         }

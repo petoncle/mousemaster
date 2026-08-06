@@ -29,4 +29,6 @@ public interface MouseController {
     void showCursor();
 
     void hideCursor();
+
+    boolean supportsRenderAsCursor();
 }

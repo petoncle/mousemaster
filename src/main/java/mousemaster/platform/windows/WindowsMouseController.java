@@ -849,4 +849,9 @@ public class WindowsMouseController implements MouseController {
         GDI32.INSTANCE.DeleteDC(hdc);
         return result != 0 ? pixels : null;
     }
+
+    @Override
+    public boolean supportsRenderAsCursor() {
+        return true;
+    }
 }

@@ -620,6 +620,10 @@ public class MouseManager implements ModeListener, MousePositionListener {
         mouseController.hideCursor();
     }
 
+    public boolean supportsRenderAsCursor() {
+        return mouseController.supportsRenderAsCursor();
+    }
+
     public void moveTo(int x, int y) {
         if (x == mouseX && y == mouseY) {
             jumping = false;
