@@ -31,6 +31,8 @@
   }, {
     "pattern":"\\Qcom/sun/jna/win32-x86-64/jnidispatch.dll\\E"
   }, {
+    "pattern":"\\Qdarwin-aarch64/libdriverkit.dylib\\E"
+  }, {
     "pattern":"\\Qio/qt/internal/LibraryUtility.class\\E"
   }, {
     "pattern":"\\Qkeyboard-layouts.json\\E"

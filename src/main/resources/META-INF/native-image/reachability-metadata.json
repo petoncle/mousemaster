@@ -1,0 +1,8453 @@
+{
+  "reflection": [
+    {
+      "type": "boolean"
+    },
+    {
+      "type": "ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.joran.SerializedModelConfigurator",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.pattern.DateConverter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.pattern.LevelConverter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.pattern.LineSeparatorConverter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.pattern.LoggerConverter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.pattern.MDCConverter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.pattern.MessageConverter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.pattern.ThreadConverter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.classic.spi.LogbackServiceProvider"
+    },
+    {
+      "type": "ch.qos.logback.classic.util.DefaultJoranConfigurator",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.ConsoleAppender",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.FileAppender",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "setAppend",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setFile",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.OutputStreamAppender",
+      "methods": [
+        {
+          "name": "setEncoder",
+          "parameterTypes": [
+            "ch.qos.logback.core.encoder.Encoder"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.encoder.Encoder",
+      "methods": [
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.encoder.LayoutWrappingEncoder",
+      "methods": [
+        {
+          "name": "setParent",
+          "parameterTypes": [
+            "ch.qos.logback.core.spi.ContextAware"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.pattern.PatternLayoutEncoderBase",
+      "methods": [
+        {
+          "name": "setPattern",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ch.qos.logback.core.spi.ContextAware",
+      "methods": [
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Callback",
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.CallbackProxy",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "java.lang.Object[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.CallbackReference",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getCallback",
+          "parameterTypes": [
+            "java.lang.Class",
+            "com.sun.jna.Pointer",
+            "boolean"
+          ]
+        },
+        {
+          "name": "getFunctionPointer",
+          "parameterTypes": [
+            "com.sun.jna.Callback",
+            "boolean"
+          ]
+        },
+        {
+          "name": "getNativeString",
+          "parameterTypes": [
+            "java.lang.Object",
+            "boolean"
+          ]
+        },
+        {
+          "name": "initializeThread",
+          "parameterTypes": [
+            "com.sun.jna.Callback",
+            "com.sun.jna.CallbackReference$AttachOptions"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.CallbackReference$AttachOptions",
+      "allDeclaredFields": true,
+      "allDeclaredConstructors": true,
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.FromNativeConverter",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "nativeType",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.IntegerType",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.JNIEnv",
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.Native",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "dispose",
+          "parameterTypes": []
+        },
+        {
+          "name": "fromNative",
+          "parameterTypes": [
+            "com.sun.jna.FromNativeConverter",
+            "java.lang.Object",
+            "java.lang.reflect.Method"
+          ]
+        },
+        {
+          "name": "fromNative",
+          "parameterTypes": [
+            "java.lang.Class",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "fromNative",
+          "parameterTypes": [
+            "java.lang.reflect.Method",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "nativeType",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "toNative",
+          "parameterTypes": [
+            "com.sun.jna.ToNativeConverter",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Native$ffi_callback",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "invoke",
+          "parameterTypes": [
+            "long",
+            "long",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.NativeLong",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.NativeMapped",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toNative",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Pointer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "peer"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.PointerType",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "pointer"
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "memory"
+        },
+        {
+          "name": "typeInfo"
+        }
+      ],
+      "methods": [
+        {
+          "name": "autoRead",
+          "parameterTypes": []
+        },
+        {
+          "name": "autoWrite",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTypeInfo",
+          "parameterTypes": []
+        },
+        {
+          "name": "newInstance",
+          "parameterTypes": [
+            "java.lang.Class",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure$ByValue",
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.Structure$FFIType",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure$FFIType$FFITypes",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "ffi_type_double"
+        },
+        {
+          "name": "ffi_type_float"
+        },
+        {
+          "name": "ffi_type_longdouble"
+        },
+        {
+          "name": "ffi_type_pointer"
+        },
+        {
+          "name": "ffi_type_sint16"
+        },
+        {
+          "name": "ffi_type_sint32"
+        },
+        {
+          "name": "ffi_type_sint64"
+        },
+        {
+          "name": "ffi_type_sint8"
+        },
+        {
+          "name": "ffi_type_uint16"
+        },
+        {
+          "name": "ffi_type_uint32"
+        },
+        {
+          "name": "ffi_type_uint64"
+        },
+        {
+          "name": "ffi_type_uint8"
+        },
+        {
+          "name": "ffi_type_void"
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure$FFIType$size_t",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Union",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.WString",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.BaseTSD$LONG_PTR",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.BaseTSD$ULONG_PTR",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.Guid$CLSID",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.Guid$GUID",
+      "allDeclaredFields": true,
+      "allPublicFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.Guid$IID",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.Tlhelp32$PROCESSENTRY32",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinBase$PROCESS_INFORMATION",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinBase$STARTUPINFO",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$ATOM",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$BOOL",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$DWORD",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HBITMAP",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HBRUSH",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HCURSOR",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HDC",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HFONT",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HICON",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HINSTANCE",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HKL",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HMODULE",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HPEN",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$HWND",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$LONG",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$LPARAM",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$LRESULT",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$POINT",
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$POINT$ByValue",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$POINT[]"
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$RECT",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$UINT",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$WORD",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinDef$WPARAM",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinGDI$BITMAP",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinGDI$BITMAPINFO",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinGDI$BITMAPINFOHEADER",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinGDI$ICONINFO",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinGDI$RGBQUAD",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinGDI$RGBQUAD[]"
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinNT$HANDLE",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinNT$HANDLEByReference",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinNT$HRESULT",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinNT$LUID",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinNT$LUID_AND_ATTRIBUTES",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinNT$LUID_AND_ATTRIBUTES[]"
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinNT$PRIVILEGE_SET",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$BLENDFUNCTION",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$HARDWAREINPUT",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$HHOOK",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$HMONITOR",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$INPUT",
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$INPUT$INPUT_UNION",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$INPUT[]"
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$KBDLLHOOKSTRUCT",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$KEYBDINPUT",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$LowLevelKeyboardProc",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "int",
+            "com.sun.jna.platform.win32.WinDef$WPARAM",
+            "com.sun.jna.platform.win32.WinUser$KBDLLHOOKSTRUCT"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$LowLevelMouseProc",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "int",
+            "com.sun.jna.platform.win32.WinDef$WPARAM",
+            "com.sun.jna.platform.win32.WinUser$MSLLHOOKSTRUCT"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$MONITORENUMPROC",
+      "methods": [
+        {
+          "name": "apply",
+          "parameterTypes": [
+            "com.sun.jna.platform.win32.WinUser$HMONITOR",
+            "com.sun.jna.platform.win32.WinDef$HDC",
+            "com.sun.jna.platform.win32.WinDef$RECT",
+            "com.sun.jna.platform.win32.WinDef$LPARAM"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$MONITORINFO",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$MOUSEINPUT",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$MSG",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$MSLLHOOKSTRUCT",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$WNDCLASSEX",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$WNDENUMPROC",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "com.sun.jna.platform.win32.WinDef$HWND",
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.platform.win32.WinUser$WindowProc",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "com.sun.jna.platform.win32.WinDef$HWND",
+            "int",
+            "com.sun.jna.platform.win32.WinDef$WPARAM",
+            "com.sun.jna.platform.win32.WinDef$LPARAM"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.ptr.ByteByReference",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.ptr.IntByReference",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.ptr.PointerByReference",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.win32.DLLCallback"
+    },
+    {
+      "type": "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "double"
+    },
+    {
+      "type": "int",
+      "fields": [
+        {
+          "name": "OPTIONS"
+        },
+        {
+          "name": "STRING_ENCODING"
+        },
+        {
+          "name": "STRUCTURE_ALIGNMENT"
+        },
+        {
+          "name": "TYPE_MAPPER"
+        }
+      ]
+    },
+    {
+      "type": "int[][]"
+    },
+    {
+      "type": "io.qt.QFlags",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "intValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "setIntValue",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QNativePointer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "long",
+            "int",
+            "boolean"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.nio.Buffer",
+            "long",
+            "long"
+          ]
+        },
+        {
+          "name": "fromNative",
+          "parameterTypes": [
+            "long",
+            "int",
+            "long",
+            "int",
+            "boolean"
+          ]
+        },
+        {
+          "name": "indirections",
+          "parameterTypes": []
+        },
+        {
+          "name": "invalidate",
+          "parameterTypes": []
+        },
+        {
+          "name": "isReadOnly",
+          "parameterTypes": []
+        },
+        {
+          "name": "knownSize",
+          "parameterTypes": []
+        },
+        {
+          "name": "pointer",
+          "parameterTypes": []
+        },
+        {
+          "name": "setVerificationEnabled",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtByteEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "comparator",
+          "parameterTypes": []
+        },
+        {
+          "name": "value",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "comparator",
+          "parameterTypes": []
+        },
+        {
+          "name": "value",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtJambi_LibraryUtilities",
+      "methods": [
+        {
+          "name": "initialize",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtLongEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "comparator",
+          "parameterTypes": []
+        },
+        {
+          "name": "value",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtObject",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "clipAll",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "coverVirtualDesktop",
+          "parameterTypes": [
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean"
+          ]
+        },
+        {
+          "name": "hideGrid",
+          "parameterTypes": []
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setBoxPaint",
+          "parameterTypes": [
+            "mousemaster.renderer.HintMeshRenderer$BoxPaint"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setEdgeCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setFillColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setIndicatorOutlinePadding",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
+            "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabelFontScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutgoing",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "setOutgoingCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setOutlineScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "io.qt.gui.QColor",
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "setScreenshot",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "setShadowPixmap",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setStackedOpacity",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setZoom",
+          "parameterTypes": [
+            "mousemaster.Zoom"
+          ]
+        },
+        {
+          "name": "showGrid",
+          "parameterTypes": [
+            "mousemaster.Grid",
+            "int",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean",
+            "java.time.Duration"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtObjectInterface",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "dispose",
+          "parameterTypes": []
+        },
+        {
+          "name": "isDisposed",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtShortEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "comparator",
+          "parameterTypes": []
+        },
+        {
+          "name": "value",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.QtUtilities",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "initializePackage",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.Utility$Object",
+      "methods": [
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "clipAll",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "coverVirtualDesktop",
+          "parameterTypes": [
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean"
+          ]
+        },
+        {
+          "name": "hideGrid",
+          "parameterTypes": []
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setBoxPaint",
+          "parameterTypes": [
+            "mousemaster.renderer.HintMeshRenderer$BoxPaint"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setEdgeCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setFillColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setIndicatorOutlinePadding",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
+            "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabelFontScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutgoing",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "setOutgoingCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setOutlineScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "io.qt.gui.QColor",
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "setScreenshot",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "setShadowPixmap",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setStackedOpacity",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setZoom",
+          "parameterTypes": [
+            "mousemaster.Zoom"
+          ]
+        },
+        {
+          "name": "showGrid",
+          "parameterTypes": [
+            "mousemaster.Grid",
+            "int",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean",
+            "java.time.Duration"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.AbstractContainer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "__rcContainer"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.AbstractSpan",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "commit",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QAbstractAnimation",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "currentLoopChanged"
+        },
+        {
+          "name": "directionChanged"
+        },
+        {
+          "name": "finished"
+        },
+        {
+          "name": "stateChanged"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QByteArray",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QByteArrayView",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QCoreApplication",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "__qt_isInitializing"
+        },
+        {
+          "name": "aboutToQuit"
+        },
+        {
+          "name": "applicationNameChanged"
+        },
+        {
+          "name": "applicationVersionChanged"
+        },
+        {
+          "name": "organizationDomainChanged"
+        },
+        {
+          "name": "organizationNameChanged"
+        }
+      ],
+      "methods": [
+        {
+          "name": "execPostRoutines",
+          "parameterTypes": []
+        },
+        {
+          "name": "execPreRoutines",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QEasingCurve$Type",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "resolve",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QFactoryInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QList",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.core.QMetaType",
+            "java.util.Collection"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMessageLogContext",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaMethod",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaObject",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "metaObjectPointer"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaObject$Connection",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QMetaObject$DisposedSignal",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericByteEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "byte",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "int",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericFlags",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericGadget",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "type"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericLongEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "long",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericObject",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "type"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericShortEnumerator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "short",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericTypeInterface",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "metaType",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QMetaType$GenericValue",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "type"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QModelIndex",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QObject",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "destroyed"
+        },
+        {
+          "name": "objectNameChanged"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        },
+        {
+          "name": "childEvent",
+          "parameterTypes": [
+            "io.qt.core.QChildEvent"
+          ]
+        },
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "clipAll",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "connectNotify",
+          "parameterTypes": [
+            "io.qt.core.QMetaMethod"
+          ]
+        },
+        {
+          "name": "coverVirtualDesktop",
+          "parameterTypes": [
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "customEvent",
+          "parameterTypes": [
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "disconnectNotify",
+          "parameterTypes": [
+            "io.qt.core.QMetaMethod"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean"
+          ]
+        },
+        {
+          "name": "event",
+          "parameterTypes": [
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "eventFilter",
+          "parameterTypes": [
+            "io.qt.core.QObject",
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "hideGrid",
+          "parameterTypes": []
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setBoxPaint",
+          "parameterTypes": [
+            "mousemaster.renderer.HintMeshRenderer$BoxPaint"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setEdgeCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setFillColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setIndicatorOutlinePadding",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
+            "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabelFontScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutgoing",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "setOutgoingCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setOutlineScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "io.qt.gui.QColor",
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "setScreenshot",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "setShadowPixmap",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setStackedOpacity",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setZoom",
+          "parameterTypes": [
+            "mousemaster.Zoom"
+          ]
+        },
+        {
+          "name": "showGrid",
+          "parameterTypes": [
+            "mousemaster.Grid",
+            "int",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean",
+            "java.time.Duration"
+          ]
+        },
+        {
+          "name": "timerEvent",
+          "parameterTypes": [
+            "io.qt.core.QTimerEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QObject$QDeclarativeConstructor",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QObject[]"
+    },
+    {
+      "type": "io.qt.core.QPair",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "first"
+        },
+        {
+          "name": "second"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QPoint",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QPointF",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QRect",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QRectF",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QRunnable",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QSequentialConstIterator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor",
+            "io.qt.QtObject"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QSize",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QSizeF",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QString",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QThread",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "finished"
+        },
+        {
+          "name": "javaThread"
+        },
+        {
+          "name": "started"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        },
+        {
+          "name": "getJavaThreadReference",
+          "parameterTypes": []
+        },
+        {
+          "name": "setJavaThreadReference",
+          "parameterTypes": [
+            "java.lang.Thread"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QVariant",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QVariant$Null",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "metaTypeID",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.QVariantAnimation",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "valueChanged"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.Qt$BrushStyle",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "resolve",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.Qt$FillRule",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.Qt$GlobalColor",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.Qt$ImageConversionFlags",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.Qt$PenCapStyle",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.Qt$PenJoinStyle",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.Qt$PenStyle",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.Qt$WindowFlags",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.core.QtJambi_LibraryUtilities",
+      "methods": [
+        {
+          "name": "initialize",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.core.SmartPointer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "get",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QAbstractUndoItem",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessible$ActivationObserver",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleActionInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleAttributesInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleEditableTextInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleHyperlinkInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleImageInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleSelectionInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleTableCellInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleTableInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleTextInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QAccessibleValueInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QBitmap",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QBrush",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QColor",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QColor$Spec",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QFont",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QGradient",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QGuiApplication",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "applicationDisplayNameChanged"
+        },
+        {
+          "name": "applicationStateChanged"
+        },
+        {
+          "name": "commitDataRequest"
+        },
+        {
+          "name": "focusObjectChanged"
+        },
+        {
+          "name": "focusWindowChanged"
+        },
+        {
+          "name": "fontChanged"
+        },
+        {
+          "name": "fontDatabaseChanged"
+        },
+        {
+          "name": "lastWindowClosed"
+        },
+        {
+          "name": "layoutDirectionChanged"
+        },
+        {
+          "name": "paletteChanged"
+        },
+        {
+          "name": "primaryScreenChanged"
+        },
+        {
+          "name": "saveStateRequest"
+        },
+        {
+          "name": "screenAdded"
+        },
+        {
+          "name": "screenRemoved"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QImage",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QImage$Format",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "resolve",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QPagedPaintDevice",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QPaintDevice",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QPaintDevice$Impl",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QPaintDevice$Impl$ConcreteWrapper",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QPaintDeviceWindow",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QPaintEvent",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QPainter",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        },
+        {
+          "name": "beginPaint",
+          "parameterTypes": [
+            "io.qt.gui.QPaintDevice"
+          ]
+        },
+        {
+          "name": "endPaint",
+          "parameterTypes": [
+            "io.qt.gui.QPaintDevice"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QPdfWriter",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QPen",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QPicture",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QPixmap",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QPolygon",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QRegion",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QRegion$RegionType",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "resolve",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QRgba64",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QScreen",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "availableGeometryChanged"
+        },
+        {
+          "name": "geometryChanged"
+        },
+        {
+          "name": "logicalDotsPerInchChanged"
+        },
+        {
+          "name": "orientationChanged"
+        },
+        {
+          "name": "physicalDotsPerInchChanged"
+        },
+        {
+          "name": "physicalSizeChanged"
+        },
+        {
+          "name": "primaryOrientationChanged"
+        },
+        {
+          "name": "refreshRateChanged"
+        },
+        {
+          "name": "virtualGeometryChanged"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QSurface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QTextObjectInterface",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.QTransform",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.QtJambi_LibraryUtilities",
+      "methods": [
+        {
+          "name": "initialize",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.gui.nativeinterface.QCocoaGLContext",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.nativeinterface.QCocoaWindow",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.nativeinterface.QWGLContext",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.nativeinterface.QWindowsApplication",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.nativeinterface.QWindowsScreen",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.gui.nativeinterface.QWindowsWindow",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.internal.AccessUtility",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "instance"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.ClassAnalyzerUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "checkImplementation",
+          "parameterTypes": [
+            "java.lang.Class",
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "findGeneratedSuperclass",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getImplementedInterfaceInfo",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "isGeneratedClass",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "isImplementedInJava",
+          "parameterTypes": [
+            "boolean",
+            "java.lang.reflect.Method",
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "objectToString",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.LibraryUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "clear",
+          "parameterTypes": []
+        },
+        {
+          "name": "extractContainerAccessLib",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "isNativeDeployment",
+          "parameterTypes": []
+        },
+        {
+          "name": "pluginPaths",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.MetaObjectData",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "constructorMetaTypes"
+        },
+        {
+          "name": "constructors"
+        },
+        {
+          "name": "hasStaticMembers"
+        },
+        {
+          "name": "intData"
+        },
+        {
+          "name": "metaTypes"
+        },
+        {
+          "name": "methodMetaTypes"
+        },
+        {
+          "name": "methods"
+        },
+        {
+          "name": "propertyBindables"
+        },
+        {
+          "name": "propertyClassTypes"
+        },
+        {
+          "name": "propertyMemberFields"
+        },
+        {
+          "name": "propertyMetaTypes"
+        },
+        {
+          "name": "propertyNotifies"
+        },
+        {
+          "name": "propertyQPropertyFields"
+        },
+        {
+          "name": "propertyReaders"
+        },
+        {
+          "name": "propertyResetters"
+        },
+        {
+          "name": "propertyWriters"
+        },
+        {
+          "name": "relatedMetaObjects"
+        },
+        {
+          "name": "signalInfos"
+        },
+        {
+          "name": "stringData"
+        },
+        {
+          "name": "switchTableFields"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.MetaObjectData$IntArray",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "array"
+        },
+        {
+          "name": "size"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.MetaObjectData$MetaTypeInfo",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "metaTypeId"
+        },
+        {
+          "name": "typeName"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.MetaObjectUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "analyze",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.MetaTypeUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "analyzeExpectedTemplateName",
+          "parameterTypes": [
+            "java.lang.Class",
+            "io.qt.core.QMetaType[]"
+          ]
+        },
+        {
+          "name": "debugObject",
+          "parameterTypes": [
+            "io.qt.core.QDebug",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "readSerializableJavaObject",
+          "parameterTypes": [
+            "io.qt.core.QDataStream"
+          ]
+        },
+        {
+          "name": "writeSerializableJavaObject",
+          "parameterTypes": [
+            "io.qt.core.QDataStream",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.NativeUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "createAssociation",
+          "parameterTypes": [
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "deleteAssociation",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "deleteAssociationByHashCode",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "findAndAssignInterfaceLink",
+          "parameterTypes": [
+            "io.qt.QtObjectInterface",
+            "boolean",
+            "boolean",
+            "long"
+          ]
+        },
+        {
+          "name": "findAssociation",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "findInterfaceLink",
+          "parameterTypes": [
+            "io.qt.QtObjectInterface",
+            "boolean",
+            "boolean"
+          ]
+        },
+        {
+          "name": "getGlobalReference",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "getWeakGlobalReference",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "nativeId",
+          "parameterTypes": [
+            "io.qt.QtObjectInterface"
+          ]
+        },
+        {
+          "name": "nativeId",
+          "parameterTypes": [
+            "io.qt.internal.NativeUtility$Object"
+          ]
+        },
+        {
+          "name": "pushGlobalReference",
+          "parameterTypes": [
+            "long",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "pushWeakGlobalReference",
+          "parameterTypes": [
+            "long",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "releaseGlobalReference",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "releaseWeakGlobalReference",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "terminateCleanupThread",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$AssociativeReference",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "enqueue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$AssociativeReference$1"
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$AssociativeReference$WhenMappings"
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$NativeLink",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "assignNativeId",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "detach",
+          "parameterTypes": [
+            "long",
+            "boolean"
+          ]
+        },
+        {
+          "name": "detachForID",
+          "parameterTypes": [
+            "long",
+            "boolean"
+          ]
+        },
+        {
+          "name": "get",
+          "parameterTypes": []
+        },
+        {
+          "name": "getForID",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "initialize",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "nativeId",
+          "parameterTypes": []
+        },
+        {
+          "name": "releaseOwnership",
+          "parameterTypes": []
+        },
+        {
+          "name": "releaseOwnershipForID",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "reset",
+          "parameterTypes": [
+            "long",
+            "boolean"
+          ]
+        },
+        {
+          "name": "resetForID",
+          "parameterTypes": [
+            "long",
+            "boolean"
+          ]
+        },
+        {
+          "name": "takeOwnership",
+          "parameterTypes": []
+        },
+        {
+          "name": "takeOwnershipForID",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$Object",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "nativeLink"
+        }
+      ],
+      "methods": [
+        {
+          "name": "assignNativeLink",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "clipAll",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "coverVirtualDesktop",
+          "parameterTypes": [
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean"
+          ]
+        },
+        {
+          "name": "hideGrid",
+          "parameterTypes": []
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setBoxPaint",
+          "parameterTypes": [
+            "mousemaster.renderer.HintMeshRenderer$BoxPaint"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setEdgeCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setFillColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setIndicatorOutlinePadding",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
+            "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabelFontScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutgoing",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "setOutgoingCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setOutlineScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "io.qt.gui.QColor",
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "setScreenshot",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "setShadowPixmap",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setStackedOpacity",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setZoom",
+          "parameterTypes": [
+            "mousemaster.Zoom"
+          ]
+        },
+        {
+          "name": "showGrid",
+          "parameterTypes": [
+            "mousemaster.Grid",
+            "int",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean",
+            "java.time.Duration"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$QueuedCleaner",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$QueuedCleaner$1"
+    },
+    {
+      "type": "io.qt.internal.NativeUtility$QueuedCleaner$WhenMappings"
+    },
+    {
+      "type": "io.qt.internal.ReferenceUtility$RCSet",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.ResourceUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "cleanupOnShutdown",
+          "parameterTypes": []
+        },
+        {
+          "name": "resolveFileToJarResource",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "resolveUrlFromPath",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.SignalUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "resolveSignal",
+          "parameterTypes": [
+            "java.lang.Object",
+            "boolean[]",
+            "boolean[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.SignalUtility$AbstractConnection",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "invoke",
+          "parameterTypes": [
+            "java.lang.Object[]"
+          ]
+        },
+        {
+          "name": "onDisconnect",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.SignalUtility$AbstractSignal",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "initializeSignal",
+          "parameterTypes": [
+            "java.lang.Class",
+            "java.util.List",
+            "int",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.SignalUtility$NativeConnection",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.internal.ThreadUtility",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "setThreadInterruptible",
+          "parameterTypes": [
+            "io.qt.core.QThread",
+            "java.lang.Thread",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.qml.QQmlListProperty"
+    },
+    {
+      "type": "io.qt.widgets.QApplication",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "focusChanged"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QFrame",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "initStyleOption",
+          "parameterTypes": [
+            "io.qt.widgets.QStyleOptionFrame"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QGraphicsDropShadowEffect",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "blurRadiusChanged"
+        },
+        {
+          "name": "colorChanged"
+        },
+        {
+          "name": "offsetChanged"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        },
+        {
+          "name": "boundingRectFor",
+          "parameterTypes": [
+            "io.qt.core.QRectF"
+          ]
+        },
+        {
+          "name": "draw",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setFillColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setStackedOpacity",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QGraphicsEffect",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "enabledChanged"
+        }
+      ],
+      "methods": [
+        {
+          "name": "draw",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setFillColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setStackedOpacity",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "sourceChanged",
+          "parameterTypes": [
+            "io.qt.widgets.QGraphicsEffect$ChangeFlags"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QGraphicsItem",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.widgets.QGraphicsLayoutItem",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.widgets.QGraphicsPixmapItem",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QGraphicsScene",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "changed"
+        },
+        {
+          "name": "focusItemChanged"
+        },
+        {
+          "name": "sceneRectChanged"
+        },
+        {
+          "name": "selectionChanged"
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QItemEditorCreatorBase",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.widgets.QLabel",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "linkActivated"
+        },
+        {
+          "name": "linkHovered"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        },
+        {
+          "name": "changeEvent",
+          "parameterTypes": [
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "contextMenuEvent",
+          "parameterTypes": [
+            "io.qt.gui.QContextMenuEvent"
+          ]
+        },
+        {
+          "name": "event",
+          "parameterTypes": [
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "focusInEvent",
+          "parameterTypes": [
+            "io.qt.gui.QFocusEvent"
+          ]
+        },
+        {
+          "name": "focusNextPrevChild",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "focusOutEvent",
+          "parameterTypes": [
+            "io.qt.gui.QFocusEvent"
+          ]
+        },
+        {
+          "name": "heightForWidth",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "keyPressEvent",
+          "parameterTypes": [
+            "io.qt.gui.QKeyEvent"
+          ]
+        },
+        {
+          "name": "minimumSizeHint",
+          "parameterTypes": []
+        },
+        {
+          "name": "mouseMoveEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMouseEvent"
+          ]
+        },
+        {
+          "name": "mousePressEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMouseEvent"
+          ]
+        },
+        {
+          "name": "mouseReleaseEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMouseEvent"
+          ]
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "sizeHint",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QLayoutItem",
+      "jniAccessible": true
+    },
+    {
+      "type": "io.qt.widgets.QWidget",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "customContextMenuRequested"
+        },
+        {
+          "name": "windowIconChanged"
+        },
+        {
+          "name": "windowIconTextChanged"
+        },
+        {
+          "name": "windowTitleChanged"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        },
+        {
+          "name": "actionEvent",
+          "parameterTypes": [
+            "io.qt.gui.QActionEvent"
+          ]
+        },
+        {
+          "name": "changeEvent",
+          "parameterTypes": [
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "clearWindow",
+          "parameterTypes": []
+        },
+        {
+          "name": "clipAll",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "closeEvent",
+          "parameterTypes": [
+            "io.qt.gui.QCloseEvent"
+          ]
+        },
+        {
+          "name": "contextMenuEvent",
+          "parameterTypes": [
+            "io.qt.gui.QContextMenuEvent"
+          ]
+        },
+        {
+          "name": "coverVirtualDesktop",
+          "parameterTypes": [
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "dragEnterEvent",
+          "parameterTypes": [
+            "io.qt.gui.QDragEnterEvent"
+          ]
+        },
+        {
+          "name": "dragLeaveEvent",
+          "parameterTypes": [
+            "io.qt.gui.QDragLeaveEvent"
+          ]
+        },
+        {
+          "name": "dragMoveEvent",
+          "parameterTypes": [
+            "io.qt.gui.QDragMoveEvent"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean"
+          ]
+        },
+        {
+          "name": "dropEvent",
+          "parameterTypes": [
+            "io.qt.gui.QDropEvent"
+          ]
+        },
+        {
+          "name": "enterEvent",
+          "parameterTypes": [
+            "io.qt.gui.QEnterEvent"
+          ]
+        },
+        {
+          "name": "event",
+          "parameterTypes": [
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "focusInEvent",
+          "parameterTypes": [
+            "io.qt.gui.QFocusEvent"
+          ]
+        },
+        {
+          "name": "focusNextPrevChild",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "focusOutEvent",
+          "parameterTypes": [
+            "io.qt.gui.QFocusEvent"
+          ]
+        },
+        {
+          "name": "hasHeightForWidth",
+          "parameterTypes": []
+        },
+        {
+          "name": "heightForWidth",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "hideChildren",
+          "parameterTypes": []
+        },
+        {
+          "name": "hideEvent",
+          "parameterTypes": [
+            "io.qt.gui.QHideEvent"
+          ]
+        },
+        {
+          "name": "hideGrid",
+          "parameterTypes": []
+        },
+        {
+          "name": "initPainter",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "inputMethodEvent",
+          "parameterTypes": [
+            "io.qt.gui.QInputMethodEvent"
+          ]
+        },
+        {
+          "name": "inputMethodQuery",
+          "parameterTypes": [
+            "io.qt.core.Qt$InputMethodQuery"
+          ]
+        },
+        {
+          "name": "keyPressEvent",
+          "parameterTypes": [
+            "io.qt.gui.QKeyEvent"
+          ]
+        },
+        {
+          "name": "keyReleaseEvent",
+          "parameterTypes": [
+            "io.qt.gui.QKeyEvent"
+          ]
+        },
+        {
+          "name": "leaveEvent",
+          "parameterTypes": [
+            "io.qt.core.QEvent"
+          ]
+        },
+        {
+          "name": "metric",
+          "parameterTypes": [
+            "io.qt.gui.QPaintDevice$PaintDeviceMetric"
+          ]
+        },
+        {
+          "name": "minimumSizeHint",
+          "parameterTypes": []
+        },
+        {
+          "name": "mouseDoubleClickEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMouseEvent"
+          ]
+        },
+        {
+          "name": "mouseMoveEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMouseEvent"
+          ]
+        },
+        {
+          "name": "mousePressEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMouseEvent"
+          ]
+        },
+        {
+          "name": "mouseReleaseEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMouseEvent"
+          ]
+        },
+        {
+          "name": "moveEvent",
+          "parameterTypes": [
+            "io.qt.gui.QMoveEvent"
+          ]
+        },
+        {
+          "name": "paintEngine",
+          "parameterTypes": []
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "redirected",
+          "parameterTypes": [
+            "io.qt.core.QPoint"
+          ]
+        },
+        {
+          "name": "resizeEvent",
+          "parameterTypes": [
+            "io.qt.gui.QResizeEvent"
+          ]
+        },
+        {
+          "name": "setBackground",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setBoxPaint",
+          "parameterTypes": [
+            "mousemaster.renderer.HintMeshRenderer$BoxPaint"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setEdgeCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setIndicatorOutlinePadding",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
+            "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabelFontScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutgoing",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "setOutgoingCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setOutlineScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "io.qt.gui.QColor",
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "setScreenshot",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "setShadowPixmap",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "setVisible",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setZoom",
+          "parameterTypes": [
+            "mousemaster.Zoom"
+          ]
+        },
+        {
+          "name": "sharedPainter",
+          "parameterTypes": []
+        },
+        {
+          "name": "showEvent",
+          "parameterTypes": [
+            "io.qt.gui.QShowEvent"
+          ]
+        },
+        {
+          "name": "showGrid",
+          "parameterTypes": [
+            "mousemaster.Grid",
+            "int",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean",
+            "java.time.Duration"
+          ]
+        },
+        {
+          "name": "sizeHint",
+          "parameterTypes": []
+        },
+        {
+          "name": "tabletEvent",
+          "parameterTypes": [
+            "io.qt.gui.QTabletEvent"
+          ]
+        },
+        {
+          "name": "wheelEvent",
+          "parameterTypes": [
+            "io.qt.gui.QWheelEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.qt.widgets.QtJambi_LibraryUtilities",
+      "methods": [
+        {
+          "name": "initialize",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.io.FilePermission"
+    },
+    {
+      "type": "java.io.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "java.lang.Boolean",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "booleanValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBoolean",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Byte",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "byte"
+          ]
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "byte"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.CharSequence",
+      "jniAccessible": true
+    },
+    {
+      "type": "java.lang.Character",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "char"
+          ]
+        },
+        {
+          "name": "charValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "char"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Class",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "cast",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "getAnnotation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getClassLoader",
+          "parameterTypes": []
+        },
+        {
+          "name": "getComponentType",
+          "parameterTypes": []
+        },
+        {
+          "name": "getDeclaredField",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "getDeclaredMethod",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Class[]"
+          ]
+        },
+        {
+          "name": "getDeclaredMethods",
+          "parameterTypes": []
+        },
+        {
+          "name": "getEnumConstants",
+          "parameterTypes": []
+        },
+        {
+          "name": "getInterfaces",
+          "parameterTypes": []
+        },
+        {
+          "name": "getMethod",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Class[]"
+          ]
+        },
+        {
+          "name": "getModifiers",
+          "parameterTypes": []
+        },
+        {
+          "name": "getName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getRecordComponents",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTypeParameters",
+          "parameterTypes": []
+        },
+        {
+          "name": "isAnnotationPresent",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "isArray",
+          "parameterTypes": []
+        },
+        {
+          "name": "isInterface",
+          "parameterTypes": []
+        },
+        {
+          "name": "isPrimitive",
+          "parameterTypes": []
+        },
+        {
+          "name": "isRecord",
+          "parameterTypes": []
+        },
+        {
+          "name": "isSynthetic",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Cloneable",
+      "jniAccessible": true
+    },
+    {
+      "type": "java.lang.Double",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "double"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Enum",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "ordinal",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Float",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "float"
+          ]
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "float"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Integer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Iterable",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "iterator",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Long",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "hashCode",
+          "parameterTypes": [
+            "long"
+          ]
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Number",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "byteValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "doubleValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "floatValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "intValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "longValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "shortValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Object",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "clipAll",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "clone",
+          "parameterTypes": []
+        },
+        {
+          "name": "coverVirtualDesktop",
+          "parameterTypes": [
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean"
+          ]
+        },
+        {
+          "name": "equals",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "hashCode",
+          "parameterTypes": []
+        },
+        {
+          "name": "hideGrid",
+          "parameterTypes": []
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setBoxPaint",
+          "parameterTypes": [
+            "mousemaster.renderer.HintMeshRenderer$BoxPaint"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setEdgeCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setFillColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setIndicatorOutlinePadding",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
+            "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabelFontScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutgoing",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "setOutgoingCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setOutlineScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "io.qt.gui.QColor",
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "setScreenshot",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "setShadowPixmap",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setStackedOpacity",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setZoom",
+          "parameterTypes": [
+            "mousemaster.Zoom"
+          ]
+        },
+        {
+          "name": "showGrid",
+          "parameterTypes": [
+            "mousemaster.Grid",
+            "int",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean",
+            "java.time.Duration"
+          ]
+        },
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Object$1"
+    },
+    {
+      "type": "java.lang.Object$WhenMappings"
+    },
+    {
+      "type": "java.lang.Object[]",
+      "jniAccessible": true
+    },
+    {
+      "type": "java.lang.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "java.lang.Record",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "java.lang.Runnable"
+    },
+    {
+      "type": "java.lang.RuntimePermission"
+    },
+    {
+      "type": "java.lang.Short",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "short"
+          ]
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "short"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.String",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "byte[]"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "byte[]",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "getBytes",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBytes",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "toCharArray",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.String[]",
+      "jniAccessible": true
+    },
+    {
+      "type": "java.lang.System",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "gc",
+          "parameterTypes": []
+        },
+        {
+          "name": "getProperty",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "getProperty",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "identityHashCode",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "setProperty",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Thread",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "currentThread",
+          "parameterTypes": []
+        },
+        {
+          "name": "dumpStack",
+          "parameterTypes": []
+        },
+        {
+          "name": "getContextClassLoader",
+          "parameterTypes": []
+        },
+        {
+          "name": "getId",
+          "parameterTypes": []
+        },
+        {
+          "name": "getName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getStackTrace",
+          "parameterTypes": []
+        },
+        {
+          "name": "getThreadGroup",
+          "parameterTypes": []
+        },
+        {
+          "name": "getUncaughtExceptionHandler",
+          "parameterTypes": []
+        },
+        {
+          "name": "interrupt",
+          "parameterTypes": []
+        },
+        {
+          "name": "isAlive",
+          "parameterTypes": []
+        },
+        {
+          "name": "isDaemon",
+          "parameterTypes": []
+        },
+        {
+          "name": "setContextClassLoader",
+          "parameterTypes": [
+            "java.lang.ClassLoader"
+          ]
+        },
+        {
+          "name": "setName",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "setUncaughtExceptionHandler",
+          "parameterTypes": [
+            "java.lang.Thread$UncaughtExceptionHandler"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Throwable",
+      "methods": [
+        {
+          "name": "addSuppressed",
+          "parameterTypes": [
+            "java.lang.Throwable"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.UnsatisfiedLinkError",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Void",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        }
+      ]
+    },
+    {
+      "type": "java.lang.constant.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "java.lang.invoke.MethodHandle",
+      "methods": [
+        {
+          "name": "bindTo",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "invokeWithArguments",
+          "parameterTypes": [
+            "java.lang.Object[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.invoke.MethodHandles",
+      "methods": [
+        {
+          "name": "lookup",
+          "parameterTypes": []
+        },
+        {
+          "name": "privateLookupIn",
+          "parameterTypes": [
+            "java.lang.Class",
+            "java.lang.invoke.MethodHandles$Lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.invoke.MethodHandles$Lookup",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "findSpecial",
+          "parameterTypes": [
+            "java.lang.Class",
+            "java.lang.String",
+            "java.lang.invoke.MethodType",
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "in",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "unreflectSpecial",
+          "parameterTypes": [
+            "java.lang.reflect.Method",
+            "java.lang.Class"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.invoke.MethodType",
+      "methods": [
+        {
+          "name": "methodType",
+          "parameterTypes": [
+            "java.lang.Class",
+            "java.lang.Class[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.ref.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "java.lang.ref.Reference",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "get",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.ref.Reference$1"
+    },
+    {
+      "type": "java.lang.ref.Reference$2"
+    },
+    {
+      "type": "java.lang.ref.Reference$WhenMappings"
+    },
+    {
+      "type": "java.lang.ref.WeakReference",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "java.lang.ref.WeakReference$1"
+    },
+    {
+      "type": "java.lang.ref.WeakReference$WhenMappings"
+    },
+    {
+      "type": "java.lang.reflect.Executable",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getModifiers",
+          "parameterTypes": []
+        },
+        {
+          "name": "getParameterTypes",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.reflect.Method",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getDeclaringClass",
+          "parameterTypes": []
+        },
+        {
+          "name": "getName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getParameterTypes",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReturnType",
+          "parameterTypes": []
+        },
+        {
+          "name": "isDefault",
+          "parameterTypes": []
+        },
+        {
+          "name": "isVarArgs",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.reflect.Modifier",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "isAbstract",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "isFinal",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "isNative",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "isStatic",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.reflect.RecordComponent",
+      "methods": [
+        {
+          "name": "getName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getType",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.net.NetPermission"
+    },
+    {
+      "type": "java.net.SocketPermission"
+    },
+    {
+      "type": "java.net.URL",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "openConnection",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.net.URLConnection",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getContentLengthLong",
+          "parameterTypes": []
+        },
+        {
+          "name": "getDoInput",
+          "parameterTypes": []
+        },
+        {
+          "name": "getDoOutput",
+          "parameterTypes": []
+        },
+        {
+          "name": "getInputStream",
+          "parameterTypes": []
+        },
+        {
+          "name": "getOutputStream",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.net.URLPermission",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.nio.Buffer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "capacity"
+        }
+      ],
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        },
+        {
+          "name": "capacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "clear",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasArray",
+          "parameterTypes": []
+        },
+        {
+          "name": "isDirect",
+          "parameterTypes": []
+        },
+        {
+          "name": "isReadOnly",
+          "parameterTypes": []
+        },
+        {
+          "name": "limit",
+          "parameterTypes": []
+        },
+        {
+          "name": "limit",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "mark",
+          "parameterTypes": []
+        },
+        {
+          "name": "position",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ByteBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "allocate",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "allocateDirect",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        },
+        {
+          "name": "asCharBuffer",
+          "parameterTypes": []
+        },
+        {
+          "name": "asDoubleBuffer",
+          "parameterTypes": []
+        },
+        {
+          "name": "asFloatBuffer",
+          "parameterTypes": []
+        },
+        {
+          "name": "asIntBuffer",
+          "parameterTypes": []
+        },
+        {
+          "name": "asLongBuffer",
+          "parameterTypes": []
+        },
+        {
+          "name": "asReadOnlyBuffer",
+          "parameterTypes": []
+        },
+        {
+          "name": "asShortBuffer",
+          "parameterTypes": []
+        },
+        {
+          "name": "get",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "order",
+          "parameterTypes": []
+        },
+        {
+          "name": "order",
+          "parameterTypes": [
+            "java.nio.ByteOrder"
+          ]
+        },
+        {
+          "name": "put",
+          "parameterTypes": [
+            "int",
+            "byte"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ByteOrder",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "nativeOrder",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.CharBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectByteBuffer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectCharBufferS",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectCharBufferU",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectDoubleBufferS",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectDoubleBufferU",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectFloatBufferS",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectFloatBufferU",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectIntBufferS",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectIntBufferU",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectLongBufferS",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectLongBufferU",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectShortBufferS",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DirectShortBufferU",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "att"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DoubleBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.FloatBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.IntBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.LongBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ShortBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.security.AllPermission"
+    },
+    {
+      "type": "java.security.SecureRandomParameters"
+    },
+    {
+      "type": "java.security.SecurityPermission"
+    },
+    {
+      "type": "java.sql.Date"
+    },
+    {
+      "type": "java.time.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "java.time.temporal.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "java.util.ArrayList",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.Collection",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "add",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "addAll",
+          "parameterTypes": [
+            "java.util.Collection"
+          ]
+        },
+        {
+          "name": "clear",
+          "parameterTypes": []
+        },
+        {
+          "name": "contains",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "iterator",
+          "parameterTypes": []
+        },
+        {
+          "name": "remove",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "size",
+          "parameterTypes": []
+        },
+        {
+          "name": "toArray",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.Iterator",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "hasNext",
+          "parameterTypes": []
+        },
+        {
+          "name": "next",
+          "parameterTypes": []
+        },
+        {
+          "name": "remove",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.List",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "get",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "remove",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "remove",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "set",
+          "parameterTypes": [
+            "int",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.util.Map",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "clear",
+          "parameterTypes": []
+        },
+        {
+          "name": "entrySet",
+          "parameterTypes": []
+        },
+        {
+          "name": "get",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "keySet",
+          "parameterTypes": []
+        },
+        {
+          "name": "put",
+          "parameterTypes": [
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "putAll",
+          "parameterTypes": [
+            "java.util.Map"
+          ]
+        },
+        {
+          "name": "remove",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "remove",
+          "parameterTypes": [
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "size",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.PropertyPermission"
+    },
+    {
+      "type": "java.util.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "java.util.concurrent.ForkJoinTask",
+      "fields": [
+        {
+          "name": "aux"
+        },
+        {
+          "name": "status"
+        }
+      ]
+    },
+    {
+      "type": "java.util.concurrent.atomic.AtomicBoolean",
+      "fields": [
+        {
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "java.util.concurrent.atomic.AtomicReference",
+      "fields": [
+        {
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "javax.smartcardio.CardPermission"
+    },
+    {
+      "type": "jdk.internal.misc.Unsafe"
+    },
+    {
+      "type": "mousemaster.Decoration",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "java.util.List",
+            "java.util.List",
+            "java.lang.String",
+            "double",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "mousemaster.HintFontStyle",
+            "boolean"
+          ]
+        },
+        {
+          "name": "boxBorderHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderLength",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderRadius",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "closed",
+          "parameterTypes": []
+        },
+        {
+          "name": "fontStyle",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelKeys",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelOverride",
+          "parameterTypes": []
+        },
+        {
+          "name": "maxColumnCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "maxRowCount",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.FontStyle",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "mousemaster.FontWeight",
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "mousemaster.Shadow",
+            "mousemaster.FontVerticalAlignment"
+          ]
+        },
+        {
+          "name": "hexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "opacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "outlineHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "outlineOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "outlineThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "shadow",
+          "parameterTypes": []
+        },
+        {
+          "name": "size",
+          "parameterTypes": []
+        },
+        {
+          "name": "verticalAlignment",
+          "parameterTypes": []
+        },
+        {
+          "name": "weight",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.GridArea$ActiveScreenGridArea",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "double",
+            "int",
+            "int",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "bottomInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "heightPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "leftInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "rightInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "topInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "widthPercent",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.GridArea$ActiveWindowGridArea",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "double",
+            "int",
+            "int",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "bottomInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "heightPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "leftInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "rightInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "topInset",
+          "parameterTypes": []
+        },
+        {
+          "name": "widthPercent",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.GridConfiguration",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.GridArea",
+            "mousemaster.Synchronization",
+            "int",
+            "int",
+            "boolean",
+            "java.lang.String",
+            "double"
+          ]
+        },
+        {
+          "name": "area",
+          "parameterTypes": []
+        },
+        {
+          "name": "columnCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "lineHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "lineThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "lineVisible",
+          "parameterTypes": []
+        },
+        {
+          "name": "rowCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "synchronization",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HideCursor",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "java.time.Duration"
+          ]
+        },
+        {
+          "name": "enabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "idleDuration",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintCellSizing$FixedCellSize",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "double"
+          ]
+        },
+        {
+          "name": "cellHeight",
+          "parameterTypes": []
+        },
+        {
+          "name": "cellWidth",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintFontStyle",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.FontStyle",
+            "double",
+            "mousemaster.FontStyle",
+            "mousemaster.FontStyle"
+          ]
+        },
+        {
+          "name": "defaultFontStyle",
+          "parameterTypes": []
+        },
+        {
+          "name": "focusedFontStyle",
+          "parameterTypes": []
+        },
+        {
+          "name": "selectedFontStyle",
+          "parameterTypes": []
+        },
+        {
+          "name": "spacingPercent",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintGridArea",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.HintGridAreaSize",
+            "mousemaster.HintGridAreaCenter"
+          ]
+        },
+        {
+          "name": "center",
+          "parameterTypes": []
+        },
+        {
+          "name": "size",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintGridAreaSize",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.HintGridAreaSizeSource",
+            "double",
+            "double"
+          ]
+        },
+        {
+          "name": "heightPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "source",
+          "parameterTypes": []
+        },
+        {
+          "name": "widthPercent",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintGridLayout",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "double",
+            "double",
+            "int",
+            "int",
+            "boolean"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "mousemaster.HintCellSizing",
+            "int",
+            "int",
+            "boolean"
+          ]
+        },
+        {
+          "name": "cellHeight",
+          "parameterTypes": []
+        },
+        {
+          "name": "cellSizing",
+          "parameterTypes": []
+        },
+        {
+          "name": "cellWidth",
+          "parameterTypes": []
+        },
+        {
+          "name": "layoutColumnCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "layoutRowCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "layoutRowOriented",
+          "parameterTypes": []
+        },
+        {
+          "name": "maxColumnCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "maxRowCount",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintMeshConfiguration",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "boolean",
+            "mousemaster.HintMouseMovement",
+            "mousemaster.HintMeshType",
+            "mousemaster.ViewportFilterMap",
+            "mousemaster.ViewportFilterMap",
+            "java.lang.String",
+            "boolean",
+            "java.util.List",
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "eatUnusedSelectionKeys",
+          "parameterTypes": []
+        },
+        {
+          "name": "enabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "keysByFilter",
+          "parameterTypes": []
+        },
+        {
+          "name": "modeAfterSelection",
+          "parameterTypes": []
+        },
+        {
+          "name": "mouseMovement",
+          "parameterTypes": []
+        },
+        {
+          "name": "selectCombos",
+          "parameterTypes": []
+        },
+        {
+          "name": "styleByFilter",
+          "parameterTypes": []
+        },
+        {
+          "name": "type",
+          "parameterTypes": []
+        },
+        {
+          "name": "unselectCombos",
+          "parameterTypes": []
+        },
+        {
+          "name": "visible",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintMeshKeys",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List",
+            "int"
+          ]
+        },
+        {
+          "name": "rowKeyOffset",
+          "parameterTypes": []
+        },
+        {
+          "name": "selectionKeys",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintMeshStyle",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.HintFontStyle",
+            "boolean",
+            "mousemaster.HintFontStyle",
+            "java.lang.String",
+            "double",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "mousemaster.Shadow",
+            "boolean",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "double",
+            "double",
+            "double",
+            "java.util.List",
+            "boolean",
+            "java.time.Duration",
+            "boolean",
+            "java.time.Duration",
+            "java.lang.String",
+            "double",
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "backgroundHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "backgroundOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderLength",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderRadius",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxHeightPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxShadow",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxWidthPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "cellHorizontalPadding",
+          "parameterTypes": []
+        },
+        {
+          "name": "cellVerticalPadding",
+          "parameterTypes": []
+        },
+        {
+          "name": "decorations",
+          "parameterTypes": []
+        },
+        {
+          "name": "fadeAnimationDuration",
+          "parameterTypes": []
+        },
+        {
+          "name": "fadeAnimationEnabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "fontStyle",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelOverride",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixBoxBorderHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixBoxBorderLength",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixBoxBorderOpacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixBoxBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixBoxEnabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixFontStyle",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixInBackground",
+          "parameterTypes": []
+        },
+        {
+          "name": "transitionAnimationDuration",
+          "parameterTypes": []
+        },
+        {
+          "name": "transitionAnimationEnabled",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintMeshType$HintGrid",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.HintGridArea",
+            "mousemaster.ViewportFilterMap"
+          ]
+        },
+        {
+          "name": "area",
+          "parameterTypes": []
+        },
+        {
+          "name": "gridLayoutByFilter",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintMeshType$HintPositionHistory",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "positionHistoryName",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintMeshType$UiHintMesh",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.UiHintArea"
+          ]
+        },
+        {
+          "name": "area",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.Indicator",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "java.lang.String",
+            "double",
+            "mousemaster.IndicatorOutline",
+            "mousemaster.IndicatorOutline",
+            "mousemaster.Shadow",
+            "boolean",
+            "java.lang.String",
+            "mousemaster.FontStyle",
+            "mousemaster.IndicatorPosition"
+          ]
+        },
+        {
+          "name": "edgeCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "hexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "innerOutline",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelEnabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelFontStyle",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelText",
+          "parameterTypes": []
+        },
+        {
+          "name": "opacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "outerOutline",
+          "parameterTypes": []
+        },
+        {
+          "name": "position",
+          "parameterTypes": []
+        },
+        {
+          "name": "shadow",
+          "parameterTypes": []
+        },
+        {
+          "name": "size",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.IndicatorConfiguration",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "boolean",
+            "java.time.Duration",
+            "boolean",
+            "mousemaster.Indicator",
+            "mousemaster.Indicator",
+            "mousemaster.Indicator",
+            "mousemaster.Indicator",
+            "mousemaster.Indicator",
+            "mousemaster.Indicator",
+            "mousemaster.Indicator",
+            "mousemaster.Indicator"
+          ]
+        },
+        {
+          "name": "enabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "fadeAnimationDuration",
+          "parameterTypes": []
+        },
+        {
+          "name": "fadeAnimationEnabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "idleIndicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "leftMousePressIndicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "middleMousePressIndicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "mousePressIndicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "moveIndicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "renderAsCursor",
+          "parameterTypes": []
+        },
+        {
+          "name": "rightMousePressIndicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "unhandledKeyPressIndicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "wheelIndicator",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.IndicatorOutline",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "fillDirection",
+          "parameterTypes": []
+        },
+        {
+          "name": "fillPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "fillStartAngle",
+          "parameterTypes": []
+        },
+        {
+          "name": "hexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "opacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "thickness",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.KeyboardLayout",
+      "allDeclaredFields": true,
+      "unsafeAllocated": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.KeyboardLayout$KeyboardLayoutKey",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "mousemaster.platform.windows.WindowsVirtualKey",
+            "mousemaster.Key",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "key",
+          "parameterTypes": []
+        },
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "scanCode",
+          "parameterTypes": []
+        },
+        {
+          "name": "text",
+          "parameterTypes": []
+        },
+        {
+          "name": "virtualKey",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.Mode",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "java.lang.String",
+            "mousemaster.ComboMap",
+            "mousemaster.Mouse",
+            "mousemaster.Wheel",
+            "mousemaster.GridConfiguration",
+            "mousemaster.HintMeshConfiguration",
+            "mousemaster.ModeTimeout",
+            "mousemaster.IndicatorConfiguration",
+            "mousemaster.HideCursor",
+            "mousemaster.ZoomConfiguration"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "java.lang.String",
+            "mousemaster.ComboMap",
+            "mousemaster.Mouse",
+            "mousemaster.Wheel",
+            "mousemaster.GridConfiguration",
+            "mousemaster.HintMeshConfiguration",
+            "mousemaster.ModeTimeout",
+            "mousemaster.IndicatorConfiguration",
+            "mousemaster.HideCursor",
+            "mousemaster.ZoomConfiguration",
+            "double"
+          ]
+        },
+        {
+          "name": "comboMap",
+          "parameterTypes": []
+        },
+        {
+          "name": "cursorScale",
+          "parameterTypes": []
+        },
+        {
+          "name": "grid",
+          "parameterTypes": []
+        },
+        {
+          "name": "hideCursor",
+          "parameterTypes": []
+        },
+        {
+          "name": "hintMesh",
+          "parameterTypes": []
+        },
+        {
+          "name": "indicator",
+          "parameterTypes": []
+        },
+        {
+          "name": "modeAfterUnhandledKeyPress",
+          "parameterTypes": []
+        },
+        {
+          "name": "mouse",
+          "parameterTypes": []
+        },
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "pushModeToHistoryStack",
+          "parameterTypes": []
+        },
+        {
+          "name": "stopCommandsFromPreviousMode",
+          "parameterTypes": []
+        },
+        {
+          "name": "timeout",
+          "parameterTypes": []
+        },
+        {
+          "name": "wheel",
+          "parameterTypes": []
+        },
+        {
+          "name": "zoom",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.ModeTimeout",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "java.time.Duration",
+            "java.lang.String",
+            "boolean"
+          ]
+        },
+        {
+          "name": "duration",
+          "parameterTypes": []
+        },
+        {
+          "name": "enabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "modeName",
+          "parameterTypes": []
+        },
+        {
+          "name": "onlyIfIdle",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.Mouse",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.VelocityConfiguration",
+            "boolean",
+            "double"
+          ]
+        },
+        {
+          "name": "smoothJumpEnabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "smoothJumpVelocity",
+          "parameterTypes": []
+        },
+        {
+          "name": "velocity",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "mousemaster.Rectangle"
+    },
+    {
+      "type": "mousemaster.Shadow",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "double",
+            "int"
+          ]
+        },
+        {
+          "name": "blurRadius",
+          "parameterTypes": []
+        },
+        {
+          "name": "hexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "horizontalOffset",
+          "parameterTypes": []
+        },
+        {
+          "name": "opacity",
+          "parameterTypes": []
+        },
+        {
+          "name": "stackCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "verticalOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.VelocityConfiguration",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "double",
+            "double",
+            "mousemaster.Easing",
+            "double"
+          ]
+        },
+        {
+          "name": "acceleration",
+          "parameterTypes": []
+        },
+        {
+          "name": "accelerationEasing",
+          "parameterTypes": []
+        },
+        {
+          "name": "deceleration",
+          "parameterTypes": []
+        },
+        {
+          "name": "initialVelocity",
+          "parameterTypes": []
+        },
+        {
+          "name": "maxVelocity",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.Wheel",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.VelocityConfiguration"
+          ]
+        },
+        {
+          "name": "velocity",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.ZoomAreaSize",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.ZoomAreaSizeSource",
+            "double",
+            "double"
+          ]
+        },
+        {
+          "name": "heightPercent",
+          "parameterTypes": []
+        },
+        {
+          "name": "source",
+          "parameterTypes": []
+        },
+        {
+          "name": "widthPercent",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.ZoomConfiguration",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "mousemaster.ZoomAreaSize",
+            "mousemaster.ZoomCenter",
+            "boolean",
+            "mousemaster.Easing",
+            "double"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "mousemaster.ZoomCenter",
+            "boolean",
+            "mousemaster.Easing",
+            "double"
+          ]
+        },
+        {
+          "name": "animationDurationMillis",
+          "parameterTypes": []
+        },
+        {
+          "name": "animationEasing",
+          "parameterTypes": []
+        },
+        {
+          "name": "animationEnabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "areaSize",
+          "parameterTypes": []
+        },
+        {
+          "name": "center",
+          "parameterTypes": []
+        },
+        {
+          "name": "percent",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.CoreGraphics",
+      "fields": [
+        {
+          "name": "INSTANCE"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.CoreGraphics$CGPoint",
+      "fields": [
+        {
+          "name": "x"
+        },
+        {
+          "name": "y"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.CoreGraphics$CGPoint$ByValue"
+    },
+    {
+      "type": "mousemaster.platform.macos.ObjectiveC$CGSize",
+      "fields": [
+        {
+          "name": "height"
+        },
+        {
+          "name": "width"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.ObjectiveC$CGSize$ByValue",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.CoreGraphics$CGRect",
+      "fields": [
+        {
+          "name": "height"
+        },
+        {
+          "name": "width"
+        },
+        {
+          "name": "x"
+        },
+        {
+          "name": "y"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.CoreGraphics$CGRect$ByValue"
+    },
+    {
+      "type": "mousemaster.platform.macos.Driverkit$DKEvent",
+      "fields": [
+        {
+          "name": "code"
+        },
+        {
+          "name": "deviceHash"
+        },
+        {
+          "name": "page"
+        },
+        {
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedGDI32",
+      "allPublicFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedGDI32$EnumFontFamExProc",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "mousemaster.platform.windows.ExtendedGDI32$LOGFONT",
+            "mousemaster.platform.windows.ExtendedGDI32$TEXTMETRIC",
+            "com.sun.jna.platform.win32.WinDef$DWORD",
+            "com.sun.jna.platform.win32.WinDef$LPARAM"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedGDI32$LOGFONT",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedGDI32$TEXTMETRIC",
+      "allDeclaredFields": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedKernel32$PhandlerRoutine",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedUser32$CURSORINFO",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedUser32$PAINTSTRUCT",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.ExtendedUser32$WinEventProc",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "com.sun.jna.Pointer",
+            "int",
+            "com.sun.jna.platform.win32.WinDef$HWND",
+            "int",
+            "int",
+            "int",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.Gdiplus$CharacterRange",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.Gdiplus$GdiplusRectF",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.Gdiplus$GdiplusStartupInput",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "mousemaster.platform.windows.Shcore$MONITOR_DPI_TYPE",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsDesktopDuplication$OutduplDesc",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsDesktopDuplication$OutputDesc",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsDesktopDuplication$Texture2DDesc",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsMain",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "main",
+          "parameterTypes": [
+            "java.lang.String[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsScreen$1",
+      "fields": [
+        {
+          "name": "OPTIONS"
+        },
+        {
+          "name": "STRING_ENCODING"
+        },
+        {
+          "name": "STRUCTURE_ALIGNMENT"
+        },
+        {
+          "name": "TYPE_MAPPER"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsVirtualKey",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsZoomRenderer$BufferDesc",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsZoomRenderer$SamplerDesc",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsZoomRenderer$SwapChainDesc1",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsZoomRenderer$Viewport",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.qt.FadeAnimator$Finished",
+      "fields": [
+        {
+          "name": "arg$1"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.qt.FadeAnimator$ValueChanged",
+      "fields": [
+        {
+          "name": "arg$1"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.qt.QtDropShadowEffect",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "drawBlurredShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.qt.QtDropShadowEffect$1"
+    },
+    {
+      "type": "mousemaster.qt.QtDropShadowEffect$WhenMappings"
+    },
+    {
+      "type": "mousemaster.qt.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "mousemaster.qt.ScreenshotWidget",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getZoom",
+          "parameterTypes": []
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "setScreenshot",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "setZoom",
+          "parameterTypes": [
+            "mousemaster.Zoom"
+          ]
+        },
+        {
+          "name": "zoom",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.qt.ScreenshotWidget$1"
+    },
+    {
+      "type": "mousemaster.qt.ScreenshotWidget$WhenMappings"
+    },
+    {
+      "type": "mousemaster.qt.StackedShadowEffect",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "draw",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "drawShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "getStackCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTransparencyOnly",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasTransparencyOnly",
+          "parameterTypes": []
+        },
+        {
+          "name": "isTransparencyOnly",
+          "parameterTypes": []
+        },
+        {
+          "name": "redrawSourceOverShadow",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setPreWarming",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "setStackCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setTransparencyOnly",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
+          "name": "stackCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "transparencyOnly",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.qt.StackedShadowEffect$1"
+    },
+    {
+      "type": "mousemaster.qt.StackedShadowEffect$WhenMappings"
+    },
+    {
+      "type": "mousemaster.qt.TransparentWindow",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "clearWindow",
+          "parameterTypes": []
+        },
+        {
+          "name": "hideChildren",
+          "parameterTypes": []
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "setBackground",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.core.QRect"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.qt.TransparentWindow$1"
+    },
+    {
+      "type": "mousemaster.qt.TransparentWindow$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.GridRenderer$GridWidget",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "animateDrawRect",
+          "parameterTypes": [
+            "int",
+            "int",
+            "int",
+            "int",
+            "int",
+            "int",
+            "int",
+            "int",
+            "java.time.Duration"
+          ]
+        },
+        {
+          "name": "coverVirtualDesktop",
+          "parameterTypes": [
+            "mousemaster.Rectangle"
+          ]
+        },
+        {
+          "name": "drawGrid",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "hideGrid",
+          "parameterTypes": []
+        },
+        {
+          "name": "lambda$animateDrawRect$65642449$1",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "repaintGrid",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setDrawRect",
+          "parameterTypes": [
+            "int",
+            "int",
+            "int",
+            "int"
+          ]
+        },
+        {
+          "name": "showGrid",
+          "parameterTypes": [
+            "mousemaster.Grid",
+            "int",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean",
+            "java.time.Duration"
+          ]
+        },
+        {
+          "name": "stopAnimation",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.GridRenderer$GridWidget$1"
+    },
+    {
+      "type": "mousemaster.renderer.GridRenderer$GridWidget$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer",
+      "methods": [
+        {
+          "name": "lambda$followContentCrop$d48fc74f$1",
+          "parameterTypes": [
+            "java.lang.Runnable",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "lambda$morphBorders$4e270ae3$1",
+          "parameterTypes": [
+            "int",
+            "java.util.List",
+            "java.util.List",
+            "java.util.List",
+            "mousemaster.renderer.HintMeshRenderer$HintPaintLayer",
+            "mousemaster.Rectangle",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "lambda$morphBorders$efcd5d23$1",
+          "parameterTypes": [
+            "int",
+            "java.util.List",
+            "java.util.List",
+            "java.util.List",
+            "mousemaster.renderer.HintMeshRenderer$HintPaintLayer",
+            "int",
+            "int",
+            "int",
+            "int",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "lambda$morphLines$48997885$1",
+          "parameterTypes": [
+            "int",
+            "int[][]",
+            "int[][]",
+            "java.util.List",
+            "mousemaster.renderer.HintMeshRenderer$HintPaintLayer",
+            "int",
+            "int",
+            "int",
+            "int",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$ClearBackgroundQLabel",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "clearColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "crop",
+          "parameterTypes": []
+        },
+        {
+          "name": "getClearColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "getCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "paint",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "setClearColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$ClearBackgroundQLabel$1"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$ClearBackgroundQLabel$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintBox",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintBox$1"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintBox$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintContainerAnimationChanged",
+      "fields": [
+        {
+          "name": "arg$1"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintContainerAnimationFinished",
+      "fields": [
+        {
+          "name": "arg$1"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintLabel",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintLabel$1"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintLabel$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintPaintLayer",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "boxPaint",
+          "parameterTypes": []
+        },
+        {
+          "name": "clearCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "clipAll",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "crop",
+          "parameterTypes": []
+        },
+        {
+          "name": "disposeShadowPixmap",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBoxPaint",
+          "parameterTypes": []
+        },
+        {
+          "name": "getCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "getOutgoing",
+          "parameterTypes": []
+        },
+        {
+          "name": "getOutgoingCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "outgoing",
+          "parameterTypes": []
+        },
+        {
+          "name": "outgoingCrop",
+          "parameterTypes": []
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "paintLayer",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "setBoxPaint",
+          "parameterTypes": [
+            "mousemaster.renderer.HintMeshRenderer$BoxPaint"
+          ]
+        },
+        {
+          "name": "setCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setOutgoing",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
+        {
+          "name": "setOutgoingCrop",
+          "parameterTypes": [
+            "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setShadowPixmap",
+          "parameterTypes": [
+            "io.qt.gui.QPixmap",
+            "int",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintPaintLayer$1"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$HintPaintLayer$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.HintMeshRenderer$OutgoingBorders",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "clone",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getIndicatorOutlinePadding",
+          "parameterTypes": []
+        },
+        {
+          "name": "getLabelFontScale",
+          "parameterTypes": []
+        },
+        {
+          "name": "indicatorOutlinePadding",
+          "parameterTypes": []
+        },
+        {
+          "name": "labelFontScale",
+          "parameterTypes": []
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "setIndicatorOutlinePadding",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
+            "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabelFontScale",
+          "parameterTypes": [
+            "double"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget$1"
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorLabelWidget$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "draw",
+          "parameterTypes": [
+            "io.qt.gui.QPainter"
+          ]
+        },
+        {
+          "name": "setColors",
+          "parameterTypes": [
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$1"
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorShadowEffect$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorWidget",
+      "allDeclaredFields": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "clearOutline",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "double",
+            "double",
+            "double",
+            "double",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        },
+        {
+          "name": "color",
+          "parameterTypes": []
+        },
+        {
+          "name": "drawContent",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "io.qt.gui.QColor",
+            "boolean"
+          ]
+        },
+        {
+          "name": "drawOutline",
+          "parameterTypes": [
+            "io.qt.gui.QPainter",
+            "double",
+            "double",
+            "double",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double"
+          ]
+        },
+        {
+          "name": "edgeCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "getColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "getEdgeCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "getOutlineScale",
+          "parameterTypes": []
+        },
+        {
+          "name": "outlineScale",
+          "parameterTypes": []
+        },
+        {
+          "name": "paintEvent",
+          "parameterTypes": [
+            "io.qt.gui.QPaintEvent"
+          ]
+        },
+        {
+          "name": "setColor",
+          "parameterTypes": [
+            "io.qt.gui.QColor"
+          ]
+        },
+        {
+          "name": "setEdgeCount",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "setOutlineScale",
+          "parameterTypes": [
+            "double"
+          ]
+        },
+        {
+          "name": "setOutlines",
+          "parameterTypes": [
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection",
+            "double",
+            "io.qt.gui.QColor",
+            "double",
+            "double",
+            "mousemaster.FillDirection"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorWidget$1"
+    },
+    {
+      "type": "mousemaster.renderer.IndicatorRenderer$IndicatorWidget$WhenMappings"
+    },
+    {
+      "type": "mousemaster.renderer.QtJambi_LibraryUtilities"
+    },
+    {
+      "type": "sun.misc.Unsafe",
+      "fields": [
+        {
+          "name": "theUnsafe"
+        }
+      ],
+      "methods": [
+        {
+          "name": "allocateInstance",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.DRBG",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.security.SecureRandomParameters"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.NativePRNG",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.security.SecureRandomParameters"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA2$SHA256",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "void"
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.ApplicationServices"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.Carbon"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.CoreFoundation"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.CoreGraphics"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.Driverkit"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.IOKit"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.Libc"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.ObjectiveC"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.ObjectiveC$ReturningInt"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.ObjectiveC$ReturningSize"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "sun.nio.ch.Interruptible"
+        ]
+      }
+    },
+    {
+      "type": {
+        "lambda": {
+          "declaringClass": "io.qt.internal.NativeUtility$AssociativeReference",
+          "interfaces": [
+            "io.qt.core.QMetaObject$Slot0"
+          ]
+        }
+      },
+      "methods": [
+        {
+          "name": "writeReplace",
+          "parameterTypes": []
+        }
+      ]
+    }
+  ]
+}
