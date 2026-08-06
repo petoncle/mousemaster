@@ -9,6 +9,8 @@ public record FontStyle(String name, FontWeight weight,
                         double outlineOpacity,
                         Shadow shadow, FontVerticalAlignment verticalAlignment) {
 
+    public static final String defaultName = Os.macos ? "Menlo" : "Consolas";
+
     public static class FontStyleBuilder {
 
         private String name;

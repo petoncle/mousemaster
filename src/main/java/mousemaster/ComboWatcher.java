@@ -173,6 +173,7 @@ public class ComboWatcher {
                         ModeMap modeMap, Set<String> initiallySetVariables,
                         Set<Key> virtualKeys, Set<Key> initiallyPressedVirtualKeys) {
         this.currentlyPressedComboKeys.addAll(initiallyPressedVirtualKeys);
+        this.currentlyPressedComboKeys.add(BuiltInVirtualKey.CURRENT_OS);
         this.activeVariables = new HashSet<>(initiallySetVariables);
         this.initiallySetVariables = initiallySetVariables;
         this.virtualKeys = virtualKeys;

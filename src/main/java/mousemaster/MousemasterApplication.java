@@ -33,8 +33,7 @@ public class MousemasterApplication {
         if (tempDirectory != null)
             MousemasterApplication.tempDirectory = tempDirectory;
         else {
-            String os = System.getProperty("os.name").toLowerCase();
-            if (os.contains("win")) {
+            if (Os.windows) {
                 boolean userNameIsAscii =
                         System.getProperty("user.name").matches("[\\x00-\\x7F]+");
                 if (!userNameIsAscii) {
