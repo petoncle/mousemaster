@@ -58,3 +58,44 @@ jobs:
           name: mousemaster-exe
           path: target/mousemaster.exe
           retention-days: 7
+
+  # A separate job rather than another matrix entry: every step above is Windows shaped
+  # (cmd, ren, pefrmdllembed). It cannot run the functional suite, which needs the karabiner
+  # driver extension, root, Input Monitoring and a logged in console session.
+  build-macos:
+    name: mousemaster on macos-latest
+    runs-on: macos-latest
+    steps:
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+      - name: Checkout source
+        uses: actions/checkout@v4
+      # mvnw is committed without the executable bit, which only the Windows job can ignore.
+      - name: Make the maven wrapper executable
+        run: chmod +x ./mvnw
+      - name: Build jar and run the tests
+        run: ./mvnw clean package
+      - name: Build GraalVM native executable
+        run: ./mvnw -Pnative -Dagent package
+      # The native image links against the Qt frameworks, which the .app carries: on its own it
+      # cannot even start.
+      - name: Install Qt
+        run: |
+          python3 -m pip install --break-system-packages aqtinstall
+          python3 -m aqt install-qt mac desktop 6.8.2 -O "$HOME/Qt"
+      - name: Assemble the app bundle
+        run: QT=$HOME/Qt/6.8.2/macos ./macos/build-app.sh
+      # ditto rather than zip: a framework is symlinks, an executable bit and a signature, none
+      # of which survive being uploaded as a directory.
+      - name: Zip the app bundle
+        run: ditto -c -k --keepParent target/mousemaster.app target/mousemaster-macos.zip
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mousemaster-macos
+          path: target/mousemaster-macos.zip
+          retention-days: 7

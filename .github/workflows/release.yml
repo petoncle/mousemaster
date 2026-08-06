@@ -22,6 +22,11 @@ jobs:
         with:
           name: mousemaster-exe
           path: target
+      - name: Download app bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: mousemaster-macos
+          path: target
       - name: Get commit message
         id: get_commit_message
         run: |
@@ -29,7 +34,7 @@ jobs:
           $releaseNotes += "### New features and improvements`n"
           $releaseNotes += ($commitMessage -split '\r?\n' | Select-Object -Skip 2) -join "`n"
           $releaseNotes += "`n"
-          $releaseNotes += "### Installation`n"
+          $releaseNotes += "### Installation on Windows`n"
           $releaseNotes += "1. Download **mousemaster.exe** (a portable executable).`n"
           $releaseNotes += "2. Download one of the existing configuration files:`n"
           $releaseNotes += "   - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))`n"
@@ -43,10 +48,19 @@ jobs:
           $releaseNotes += "5. Run **mousemaster.exe**: make sure to run it as administrator if you want the mousemaster overlay to be displayed on top of everything else.`n"
           $releaseNotes += "6. Feel free to open a [GitHub Issue](https://github.com/petoncle/mousemaster/issues) or join the [Discord](https://discord.gg/GSB6MaKb2R) if you need help creating your own configuration. If you have ideas for a better configuration that you would like to share, I'd love to hear from you.`n"
           $releaseNotes += "7. If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!`n"
+          $releaseNotes += "### Installation on macOS`n"
+          $releaseNotes += "mousemaster reads the keyboard through the Karabiner virtual HID device, so that driver and a few permissions are needed.`n"
+          $releaseNotes += "1. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org), which installs the virtual HID device, and allow its system extension when macOS asks.`n"
+          $releaseNotes += "2. Download and unzip **mousemaster-macos.zip**, then put **mousemaster.app** in **/Applications**, next to a **mousemaster.properties** (one of the configuration files above, renamed).`n"
+          $releaseNotes += "3. Run it from a terminal, as root, which the virtual HID device requires: ``sudo /Applications/mousemaster.app/Contents/MacOS/mousemaster```n"
+          $releaseNotes += "4. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**, then quit and relaunch:`n"
+          $releaseNotes += "   - **Input Monitoring**, to read the keys you press. Always needed.`n"
+          $releaseNotes += "   - **Accessibility**, only for UI hints (``hint.type=ui``).`n"
+          $releaseNotes += "   - **Screen Recording**, only for zoom (``mode.zoom``).`n"
           $releaseNotes += "### License`n"
-          $releaseNotes += "mousemaster.exe embeds Qt and QtJambi, used under the GNU Lesser General Public License. Run ``mousemaster.exe --licenses`` for the third-party notices and the full license texts.`n"
+          $releaseNotes += "mousemaster.exe and mousemaster.app embed Qt and QtJambi, used under the GNU Lesser General Public License. Run mousemaster with ``--licenses`` for the third-party notices and the full license texts.`n"
           Set-Content -Path ./release-notes.txt -Value $releaseNotes
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys-ijkl.properties" "configuration/neo-mousekeys-wasd.properties" "configuration/neru.properties" "configuration/warpd.properties" --title "v${{ needs.build.outputs.version }}" --notes-file ./release-notes.txt
+        run: gh release create ${{ github.ref_name }} "target/mousemaster.exe" "target/mousemaster-macos.zip" "configuration/author.properties" "configuration/mouseable.properties" "configuration/neo-mousekeys-ijkl.properties" "configuration/neo-mousekeys-wasd.properties" "configuration/neru.properties" "configuration/warpd.properties" --title "v${{ needs.build.outputs.version }}" --notes-file ./release-notes.txt
