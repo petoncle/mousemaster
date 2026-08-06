@@ -41,8 +41,10 @@ jobs:
           $jarPath = "${{ steps.find_jar.outputs.jar_path }}"
           $version = [regex]::match($jarPath, 'mousemaster-(.*?)-jar-with-dependencies\.jar').Groups[1].Value
           "version=$version" >> $env:GITHUB_OUTPUT
+      # Skipped: the tests ran in the step above, and -Dagent would run them again under the
+      # tracing agent, which is minutes slower.
       - name: Build GraalVM native executable
-        run: mvnw -Pnative -Dagent package
+        run: mvnw -Pnative -Dagent package -DskipTests
         shell: cmd
       - name: Rename GraalVM executable
         run: ren target\mousemaster.exe mousemaster-without-vcruntime140.exe
@@ -79,8 +81,10 @@ jobs:
         run: chmod +x ./mvnw
       - name: Build jar and run the tests
         run: ./mvnw clean package
+      # Skipped: the tests ran in the step above, and -Dagent would run them again under the
+      # tracing agent, which is minutes slower.
       - name: Build GraalVM native executable
-        run: ./mvnw -Pnative -Dagent package
+        run: ./mvnw -Pnative -Dagent package -DskipTests
       # The native image links against the Qt frameworks, which the .app carries: on its own it
       # cannot even start.
       - name: Install Qt
