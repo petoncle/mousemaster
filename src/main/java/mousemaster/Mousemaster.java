@@ -28,6 +28,7 @@ public class Mousemaster {
     private KeyboardLayout activeKeyboardLayout;
     private KeyboardLayout forcedActiveKeyboardLayout;
     private final boolean preWarmHints;
+    private boolean logToFileEnabledByConfiguration;
 
     public Mousemaster(Path configurationPath, Platform platform, boolean preWarmHints)
             throws IOException {
@@ -190,10 +191,16 @@ public class Mousemaster {
                 configuration.modeMap().modes().stream()
                              .mapToInt(mode -> mode.name().length())
                              .max().orElse(0));
-        if (configuration.logToFile())
+        // Only what a configuration turned on is turned back off: --log-to-file asked for the
+        // file before there was a configuration, and no configuration mentioning nothing undoes it.
+        if (configuration.logToFile()) {
             MousemasterApplication.enableLogToFile();
-        else
+            logToFileEnabledByConfiguration = true;
+        }
+        else if (logToFileEnabledByConfiguration) {
             MousemasterApplication.disableLogToFile();
+            logToFileEnabledByConfiguration = false;
+        }
         if (configuration.hideConsole())
             platform.console().hide();
         else
