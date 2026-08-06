@@ -1,6 +1,5 @@
 package mousemaster;
 
-import io.qt.gui.QFontDatabase;
 import mousemaster.ComboMove.KeyComboMove;
 import mousemaster.ComboMove.PressComboMove;
 import mousemaster.GridArea.GridAreaType;
@@ -99,7 +98,7 @@ public class ConfigurationParser {
         HintMeshStyleBuilder hintMeshStyleBuilder =
                 hintMesh.style(AnyViewportFilter.ANY_VIEWPORT_FILTER);
         hintMeshStyleBuilder.fontStyle().defaultFontStyle()
-                            .name("Consolas")
+                            .name(FontStyle.defaultName)
                             .weight(FontWeight.NORMAL)
                             .size(18d)
                             .hexColor("#FFFFFF")
@@ -161,7 +160,7 @@ public class ConfigurationParser {
                       .boxBorderHexColor("#FFFFFF").boxBorderOpacity(1d)
                       .boxBorderRadius(0d).closed(false);
             decoration.fontStyle().defaultFontStyle()
-                      .name("Consolas").weight(FontWeight.NORMAL).size(10d)
+                      .name(FontStyle.defaultName).weight(FontWeight.NORMAL).size(10d)
                       .hexColor("#FFFFFF").opacity(1d)
                       .outlineThickness(0d).outlineHexColor("#000000")
                       .outlineOpacity(0.5d);
@@ -478,7 +477,7 @@ public class ConfigurationParser {
                         childPropertiesByParentProperty, nonRootPropertyKeys,
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases, keyResolver,
                         modeReferences, defaultComboMoveDuration, appAliases,
-                        finalDefaultComboMoveDuration, QFontDatabase::hasFamily,
+                        finalDefaultComboMoveDuration,
                         allVariableNames, positionHistoryNames);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
@@ -820,7 +819,6 @@ public class ConfigurationParser {
                                   ComboMoveDuration defaultComboMoveDuration,
                                   Map<String, AppAlias> appAliases,
                                   ComboMoveDuration finalDefaultComboMoveDuration,
-                                  Predicate<String> fontAvailability,
                                   Set<String> allVariableNames,
                                   Set<String> positionHistoryNames) {
         if (group2 == null) {
@@ -972,7 +970,7 @@ public class ConfigurationParser {
                     ModePropertyHandler handler = hintHandler(
                             new ModePropertyPath(List.of("hintMesh")),
                             mode.hintMesh.builder, viewportFilter, hintKey,
-                            fontAvailability, keyAliases, keyResolver,
+                            keyAliases, keyResolver,
                             positionHistoryNames);
                     if (handler != null) {
                         if (!tryParseComboProperty(propertyValue, modeName,
@@ -1237,7 +1235,7 @@ public class ConfigurationParser {
                         ModePropertyPath indicatorPropertyPathPrefix =
                                 new ModePropertyPath(List.of("indicator", indicatorFieldName));
                         parseIndicatorProperty(targetIndicator, subKey,
-                                propertyValue, fontAvailability,
+                                propertyValue,
                                 indicatorPropertyPathPrefix,
                                 mode.indicator.mutateModeCommands,
                                 mode.indicator.setPropertyPaths,
@@ -1655,13 +1653,6 @@ public class ConfigurationParser {
         nonRootModes.add(propertyKeyMode);
     }
 
-    private static String parseFontName(String fontName, Predicate<String> fontAvailability) {
-        if (!fontAvailability.test(fontName)) {
-            logger.info("Font " + fontName + " not found, falling back to Consolas");
-            return "Consolas";
-        }
-        return fontName;
-    }
 
     private record ResolvedAliasWithRefs(KeyAlias alias, List<String> referencedAliasNames) {
     }
@@ -2193,7 +2184,6 @@ public class ConfigurationParser {
 
     private static void parseIndicatorProperty(IndicatorBuilder indicator,
                                                 String key, String propertyValue,
-                                                Predicate<String> fontAvailability,
                                                 ModePropertyPath propertyPathPrefix,
                                                 Map<Combo, List<Command>> mutateModeCommandMap,
                                                 Set<ModePropertyPath> setPropertyPaths,
@@ -2204,7 +2194,7 @@ public class ConfigurationParser {
                                                 KeyResolver keyResolver,
                                                 Set<String> allVariableNames) {
         ModePropertyHandler handler =
-                indicatorHandler(propertyPathPrefix, indicator, key, fontAvailability);
+                indicatorHandler(propertyPathPrefix, indicator, key);
         if (handler == null)
             throw new IllegalArgumentException("Invalid indicator property key: " + key);
         if (!tryParseComboProperty(propertyValue, modeName, handler.propertyPath(),
@@ -2348,7 +2338,7 @@ public class ConfigurationParser {
 
     private static ModePropertyHandler indicatorHandler(
             ModePropertyPath prefix, IndicatorBuilder indicator,
-            String key, Predicate<String> fontAvailability) {
+            String key) {
         return switch (key) {
             // @formatter:off
             case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.size(v));
@@ -2375,7 +2365,7 @@ public class ConfigurationParser {
             case "shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("shadow").append("verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> indicator.shadow().verticalOffset(v));
             case "label-enabled" -> ModePropertyHandler.of(prefix.append("labelEnabled"), v -> Boolean.parseBoolean(v), v -> indicator.labelEnabled(v));
             case "label-text" -> ModePropertyHandler.of(prefix.append("labelText"), v -> v, v -> indicator.labelText(v));
-            case "label-font-name" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("name"), v -> parseFontName(v, fontAvailability), v -> indicator.labelFontStyle().name(v));
+            case "label-font-name" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("name"), v -> v, v -> indicator.labelFontStyle().name(v));
             case "label-font-size" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("size"), v -> parseDouble(v, false, 0, 1000), v -> indicator.labelFontStyle().size(v));
             case "label-font-color" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("hexColor"), v -> checkColorFormat(v), v -> indicator.labelFontStyle().hexColor(v));
             case "label-font-weight" -> ModePropertyHandler.of(prefix.append("labelFontStyle").append("weight"), v -> FontWeight.of(v), v -> indicator.labelFontStyle().weight(v));
@@ -2400,7 +2390,7 @@ public class ConfigurationParser {
             ModePropertyPath prefix,
             HintMeshConfigurationBuilder hintMeshBuilder,
             ViewportFilter viewportFilter,
-            String key, Predicate<String> fontAvailability,
+            String key,
             Map<String, KeyAlias> keyAliases, KeyResolver keyResolver) {
         final int index;
         String suffix;
@@ -2442,7 +2432,7 @@ public class ConfigurationParser {
             case "box-border-opacity" -> ModePropertyHandler.of(p.append("boxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).decoration(index).boxBorderOpacity(v));
             case "box-border-radius" -> ModePropertyHandler.of(p.append("boxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).decoration(index).boxBorderRadius(v));
             case "closed" -> ModePropertyHandler.of(p.append("closed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).closed(v));
-            case "font-name" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().name(v));
+            case "font-name" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().name(v));
             case "font-weight" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().weight(v));
             case "font-size" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().size(v));
             case "font-color" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().hexColor(v));
@@ -2467,11 +2457,11 @@ public class ConfigurationParser {
             ModePropertyPath prefix,
             HintMeshConfigurationBuilder hintMeshBuilder,
             ViewportFilter viewportFilter,
-            String key, Predicate<String> fontAvailability,
+            String key,
             Map<String, KeyAlias> keyAliases, KeyResolver keyResolver,
             Set<String> positionHistoryNames) {
         ModePropertyHandler decorationHandler = decorationHandler(prefix, hintMeshBuilder,
-                viewportFilter, key, fontAvailability, keyAliases, keyResolver);
+                viewportFilter, key, keyAliases, keyResolver);
         if (decorationHandler != null)
             return decorationHandler;
         return switch (key) {
@@ -2530,7 +2520,7 @@ public class ConfigurationParser {
             case "selection-keys" -> ModePropertyHandler.of(prefix.append("keysByFilter", "selectionKeys"), v -> parseHintKeys(v, keyAliases, keyResolver), v -> hintMeshBuilder.keys(viewportFilter).selectionKeys(v));
             case "row-key-offset" -> ModePropertyHandler.of(prefix.append("keysByFilter", "rowKeyOffset"), v -> parseUnsignedInteger(v, 0, 1_000), v -> hintMeshBuilder.keys(viewportFilter).rowKeyOffset(v));
             // Style: main font
-            case "font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().name(v));
+            case "font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().name(v));
             case "font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().weight(v));
             case "font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().size(v));
             case "font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "defaultFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().defaultFontStyle().hexColor(v));
@@ -2549,7 +2539,7 @@ public class ConfigurationParser {
             // Style: selected font
             case "selected-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().hexColor(v));
             case "selected-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().opacity(v));
-            case "selected-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().name(v));
+            case "selected-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().name(v));
             case "selected-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().weight(v));
             case "selected-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().size(v));
             case "selected-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "selectedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().selectedFontStyle().outlineThickness(v));
@@ -2564,7 +2554,7 @@ public class ConfigurationParser {
             // Style: focused font
             case "focused-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().hexColor(v));
             case "focused-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().opacity(v));
-            case "focused-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().name(v));
+            case "focused-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().name(v));
             case "focused-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().weight(v));
             case "focused-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().size(v));
             case "focused-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().outlineThickness(v));
@@ -2578,7 +2568,7 @@ public class ConfigurationParser {
             case "focused-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "fontStyle", "focusedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(viewportFilter).fontStyle().focusedFontStyle().shadow().verticalOffset(v));
             // Style: prefix font
             case "prefix-in-background" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixInBackground"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).prefixInBackground(v));
-            case "prefix-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().name(v));
+            case "prefix-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().name(v));
             case "prefix-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().weight(v));
             case "prefix-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().defaultFontStyle().size(v));
             case "prefix-font-spacing-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "spacingPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().spacingPercent(v));
@@ -2597,7 +2587,7 @@ public class ConfigurationParser {
             // Style: prefix selected font
             case "prefix-selected-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().hexColor(v));
             case "prefix-selected-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().opacity(v));
-            case "prefix-selected-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().name(v));
+            case "prefix-selected-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().name(v));
             case "prefix-selected-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().weight(v));
             case "prefix-selected-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().size(v));
             case "prefix-selected-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "selectedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().selectedFontStyle().outlineThickness(v));
@@ -2612,7 +2602,7 @@ public class ConfigurationParser {
             // Style: prefix focused font
             case "prefix-focused-font-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().hexColor(v));
             case "prefix-focused-font-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().opacity(v));
-            case "prefix-focused-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "name"), v -> parseFontName(v, fontAvailability), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().name(v));
+            case "prefix-focused-font-name" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().name(v));
             case "prefix-focused-font-weight" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().weight(v));
             case "prefix-focused-font-size" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().size(v));
             case "prefix-focused-font-outline-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "outlineThickness"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).prefixFontStyle().focusedFontStyle().outlineThickness(v));

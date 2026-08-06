@@ -47,21 +47,24 @@ public class QtManager {
             "qt-msvcp/msvcp140_2.dll"
     );
 
+
     public static void initialize() throws IOException {
-        File extractDirectory = createExtractDirectory(
-                MousemasterApplication.tempDirectory);
-        for (String resourcesPath : windowsResourcesPaths) {
-            Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath);
-            Files.createDirectories(extractPath.getParent());
-            extractResourceFile(resourcesPath, extractPath);
+        if (!Os.macos) {
+            File extractDirectory = createExtractDirectory(
+                    MousemasterApplication.tempDirectory);
+            for (String resourcesPath : windowsResourcesPaths) {
+                Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath);
+                Files.createDirectories(extractPath.getParent());
+                extractResourceFile(resourcesPath, extractPath);
+            }
+            for (String qtJambiPath : qtJambiPaths) {
+                Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/qt/" + qtJambiPath);
+                extractResourceFile(qtJambiPath, extractPath);
+            }
+            logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
+            System.setProperty("io.qt.library-path-override",
+                    extractDirectory.getAbsolutePath() + "/qt/bin");
         }
-        for (String qtJambiPath : qtJambiPaths) {
-            Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/qt/" + qtJambiPath);
-            extractResourceFile(qtJambiPath, extractPath);
-        }
-        logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
-        System.setProperty("io.qt.library-path-override",
-                extractDirectory.getAbsolutePath() + "/qt/bin");
         // QtJambi expects DLLs in io.qt.library-path-override, and io.qt.library-path-override/../plugins/platforms
 
 //        System.setProperty("QT_ENABLE_HIGHDPI_SCALING", "0");
@@ -73,6 +76,8 @@ public class QtManager {
             // Just to trigger the static initializer which loads DLLs.
             QtUtilities.jambiDeploymentDir();
         } catch (UnsatisfiedLinkError e) {
+            if (Os.macos)
+                throw e;
             for (String msvcpDllResourcePath : msvcpDllPaths) {
                 extractResourceFile(msvcpDllResourcePath,
                         Paths.get(msvcpDllResourcePath.replaceAll(".*/", "")));
@@ -89,8 +94,8 @@ public class QtManager {
         QtUtilities.putenv("QT_MAX_CACHED_GLYPH_SIZE", "256");
         logger.trace("High DPI scale factor rounding policy is " + QApplication.highDpiScaleFactorRoundingPolicy());
         // Default font engine on Windows is directwrite. Antialiasing seems better with gdi.
-        QApplication.initialize(new String[] { "-platform", "windows:fontengine=gdi" });
-//        QApplication.initialize(new String[] { });
+        QApplication.initialize(Os.macos ? new String[] {} :
+                new String[] { "-platform", "windows:fontengine=gdi" });
     }
 
     private static void extractResourceFile(String resourcesPath, Path extractPath)

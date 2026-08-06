@@ -58,11 +58,6 @@
             <version>6.8.2</version>
         </dependency>
         <dependency>
-            <groupId>io.qtjambi</groupId>
-            <artifactId>qtjambi-native-windows-x64</artifactId>
-            <version>6.8.2</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.12.1</version>
@@ -83,48 +78,32 @@
 
     <profiles>
         <profile>
-            <id>native</id>
+            <id>windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>io.qtjambi</groupId>
+                    <artifactId>qtjambi-native-windows-x64</artifactId>
+                    <version>6.8.2</version>
+                </dependency>
+            </dependencies>
+            <!-- Here rather than in the native profile, which macOS activates too. -->
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <version>${native.maven.plugin.version}</version>
-                        <extensions>true</extensions>
-                        <executions>
-                            <execution>
-                                <id>build-native</id>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <phase>package</phase>
-                            </execution>
-                            <execution>
-                                <id>test-native</id>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <phase>test</phase>
-                            </execution>
-                        </executions>
                         <configuration>
-                            <fallback>false</fallback>
                             <!-- native-image has no option for the executable's VERSIONINFO
                             resource, so the compiled resource is handed to the linker. See
                             windows/versioninfo/mousemaster.rc. -->
                             <buildArgs>
                                 <buildArg>-H:NativeLinkerOption=${project.build.directory}/mousemaster.res</buildArg>
                             </buildArgs>
-                            <!-- https://graalvm.github.io/native-build-tools/latest/maven-plugin.html#agent-support-configuring-options -->
-                            <!-- https://medium.com/graalvm/simplifying-native-image-generation-with-maven-plugin-and-embeddable-configuration-d5b283b92f57 -->
-                            <!-- ./mvnw -Pnative -Dagent package will read the json files from the jar's META-INF/native-image. -->
-                            <agent>
-                                <enabled>true</enabled>
-                                <defaultMode>direct</defaultMode>
-                                <modes>
-                                    <direct>config-merge-dir=src/main/resources/META-INF/native-image</direct>
-                                </modes>
-                            </agent>
                         </configuration>
                     </plugin>
                     <plugin>
@@ -153,6 +132,66 @@
                                 </configuration>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>macos</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <properties>
+                <mainClass>mousemaster.platform.macos.MacosMain</mainClass>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.qtjambi</groupId>
+                    <artifactId>qtjambi-native-macos</artifactId>
+                    <version>6.8.2</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                            <execution>
+                                <id>test-native</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <fallback>false</fallback>
+                            <!-- https://graalvm.github.io/native-build-tools/latest/maven-plugin.html#agent-support-configuring-options -->
+                            <!-- https://medium.com/graalvm/simplifying-native-image-generation-with-maven-plugin-and-embeddable-configuration-d5b283b92f57 -->
+                            <!-- ./mvnw -Pnative -Dagent package will read the json files from the jar's META-INF/native-image. -->
+                            <agent>
+                                <enabled>true</enabled>
+                                <defaultMode>direct</defaultMode>
+                                <modes>
+                                    <direct>config-merge-dir=src/main/resources/META-INF/native-image</direct>
+                                </modes>
+                            </agent>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -197,6 +236,7 @@
                                     <filtering>true</filtering>
                                     <excludes>
                                         <exclude>**/*.dll</exclude> <!-- Exclude DLLs from filtering. -->
+                                        <exclude>**/*.dylib</exclude>
                                         <exclude>licenses/**</exclude> <!-- Exclude license texts from filtering. -->
                                     </excludes>
                                 </resource>
@@ -262,6 +302,10 @@
                             <addClasspath>true</addClasspath>
                             <mainClass>${mainClass}</mainClass>
                         </manifest>
+                        <!-- JNA loads native libraries, which warns without this. -->
+                        <manifestEntries>
+                            <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
@@ -283,6 +327,10 @@
                             <addClasspath>true</addClasspath>
                             <mainClass>${mainClass}</mainClass>
                         </manifest>
+                        <!-- JNA loads native libraries, which warns without this. -->
+                        <manifestEntries>
+                            <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
+                        </manifestEntries>
                     </archive>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>

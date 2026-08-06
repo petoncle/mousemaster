@@ -16,7 +16,8 @@ public record ApplicationOptions(String tempDirectory,
                                  boolean keyRegurgitationEnabled,
                                  boolean graalvmAgentRun,
                                  boolean ignoreInjectedEvents,
-                                 boolean preWarmHints) {
+                                 boolean preWarmHints,
+                                 String simulationKeyEvents) {
 
     public static ApplicationOptions parse(String[] args) {
         return new ApplicationOptions(
@@ -32,7 +33,8 @@ public record ApplicationOptions(String tempDirectory,
                 booleanArg(args, "--key-regurgitation-enabled=", true),
                 Stream.of(args).anyMatch(Predicate.isEqual("--graalvm-agent-run")),
                 booleanArg(args, "--ignore-injected-events=", false),
-                booleanArg(args, "--pre-warm-hints=", true)
+                booleanArg(args, "--pre-warm-hints=", true),
+                stringArg(args, "--simulation-key-events=", null)
         );
     }
 

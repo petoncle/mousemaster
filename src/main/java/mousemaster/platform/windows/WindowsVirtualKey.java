@@ -347,7 +347,13 @@ public enum WindowsVirtualKey {
 
     private static final Logger logger = LoggerFactory.getLogger(WindowsVirtualKey.class);
 
-    private static final int keyboardType = ExtendedUser32.INSTANCE.GetKeyboardType(0);
+    private static Integer keyboardType;
+
+    private static int keyboardType() {
+        if (keyboardType == null)
+            keyboardType = ExtendedUser32.INSTANCE.GetKeyboardType(0);
+        return keyboardType;
+    }
 
     static {
         WindowsVirtualKey[] valueArrayWithDuplicateCodes = values();
@@ -449,7 +455,7 @@ public enum WindowsVirtualKey {
             ExtendedUser32.INSTANCE.ActivateKeyboardLayout(hkl, 0);
             int languageIdentifier = hkl.getLanguageIdentifier();
             KeyboardLayout keyboardLayout = KeyboardLayout.keyboardLayout(
-                    String.format("%08X", languageIdentifier), keyboardType);
+                    String.format("%08X", languageIdentifier), keyboardType());
 //            logger.debug("Found active window keyboard layout: " + keyboardLayout);
             return keyboardLayout;
         }
@@ -470,7 +476,7 @@ public enum WindowsVirtualKey {
             }
         }
         return KeyboardLayout.keyboardLayout(new String(nameBuffer, 0, nameLength),
-                keyboardType);
+                keyboardType());
     }
 
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode,
