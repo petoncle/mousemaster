@@ -219,11 +219,8 @@ public final class IndicatorRenderer {
                 QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
         // The label's point-size font resolves against the image's DPI; match the target
-        // screen so it renders at the right size on any screen. QImage exposes only
-        // dots-per-meter, hence the inch-to-meter conversion.
-        int dotsPerMeter = (int) Math.round(scale * 96.0 / 0.0254);
-        image.setDotsPerMeterX(dotsPerMeter);
-        image.setDotsPerMeterY(dotsPerMeter);
+        // screen so it renders at the right size on any screen.
+        HintMeshRenderer.setQImageDpiForScreen(image, scale);
         window.render(image);
         int total = imageSize * imageSize * 4;
         byte[] bytes = new byte[total];

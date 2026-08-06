@@ -1799,8 +1799,10 @@ public final class HintMeshRenderer {
      * QImages uses the primary screen's DPI, causing wrong-sized glyphs on
      * secondary screens with different scaling.
      */
-    private void setQImageDpiForScreen(QImage image, double screenScale) {
-        int dotsPerMeter = (int) Math.round(screenScale * 96.0 / 0.0254);
+    static void setQImageDpiForScreen(QImage image, double screenScale) {
+        double dpi = QtHintFont.gdiFontEngine ? screenScale * 96.0 :
+                QApplication.primaryScreen().logicalDotsPerInchX();
+        int dotsPerMeter = (int) Math.round(dpi / 0.0254);
         image.setDotsPerMeterX(dotsPerMeter);
         image.setDotsPerMeterY(dotsPerMeter);
     }

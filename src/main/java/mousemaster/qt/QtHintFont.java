@@ -1,7 +1,9 @@
 package mousemaster.qt;
 
 import io.qt.core.QRect;
+import mousemaster.Os;
 import io.qt.gui.QFont;
+import io.qt.gui.QFontDatabase;
 import io.qt.gui.QFontMetrics;
 import io.qt.gui.QPainterPath;
 import io.qt.widgets.QApplication;
@@ -27,6 +29,11 @@ import java.util.Set;
 public final class QtHintFont {
 
     private static final Logger logger = LoggerFactory.getLogger(QtHintFont.class);
+
+    private static final Set<String> missingFonts = new HashSet<>();
+
+    public static final boolean gdiFontEngine =
+            Os.windows;
 
     private QtHintFont() {
     }
@@ -83,11 +90,20 @@ public final class QtHintFont {
     }
 
     public static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
-        QFont font = new QFont(fontName, (int) Math.round(fontSize),
+        QFont font = new QFont(available(fontName), (int) Math.round(fontSize),
                 fontWeight.qtWeight().value());
         antialiasing(font);
         font.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
         return font;
+    }
+
+    private static String available(String fontName) {
+        if (QFontDatabase.hasFamily(fontName))
+            return fontName;
+        if (missingFonts.add(fontName))
+            logger.info("Font " + fontName + " not found, falling back to " +
+                        FontStyle.defaultName);
+        return FontStyle.defaultName;
     }
 
     /**
@@ -233,8 +249,8 @@ public final class QtHintFont {
                         screenScale, primaryScreenDpi),
                 key -> {
                     double targetDpi = screenScale * 96.0;
-                    if (Math.abs(primaryScreenDpi - targetDpi) < 1) {
-                        // QFontMetrics already matches the target DPI, no correction needed.
+                    if (!gdiFontEngine || Math.abs(primaryScreenDpi - targetDpi) < 1) {
+                        // QFontMetrics already matches how the text will be rendered.
                         return new QFontMetrics(renderFont);
                     }
                     // Create a metrics-only font with the pixel size that GDI will use.
