@@ -1968,7 +1968,9 @@ public final class HintMeshRenderer {
                 QFontMetrics metrics = labelStyle.metrics();
                 int advance = metrics.horizontalAdvance(label);
                 this.decorationLabelX = (width - advance) / 2;
-                this.decorationLabelY = middleBaselineY(verticalAlignment, height, metrics, label);
+                Rectangle ink = QtHintFont.tightBounds(metrics, label);
+                this.decorationLabelY =
+                        baselineY(verticalAlignment, height, metrics, ink.y(), ink.height());
                 this.decorationLabelWidth = advance;
                 this.decorationLabelAscent = metrics.ascent();
                 this.decorationLabelDescent = metrics.descent();
@@ -2431,12 +2433,10 @@ public final class HintMeshRenderer {
 
     }
 
-    private static int middleBaselineY(FontVerticalAlignment verticalAlignment,
-                                       int boxHeight, QFontMetrics metrics, String text) {
-        if (verticalAlignment == FontVerticalAlignment.MIDDLE) {
-            Rectangle tight = QtHintFont.tightBounds(metrics, text);
-            return (int) Math.round(boxHeight / 2.0 - tight.y() - tight.height() / 2.0);
-        }
+    private static int baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
+                                 QFontMetrics metrics, int inkTop, int inkHeight) {
+        if (verticalAlignment == FontVerticalAlignment.MIDDLE)
+            return (int) Math.round(boxHeight / 2.0 - inkTop - inkHeight / 2.0);
         return (boxHeight + metrics.ascent() - metrics.descent()) / 2;
     }
 
@@ -2500,6 +2500,18 @@ public final class HintMeshRenderer {
             extraNotAlignedWidth = adjustedFontBoxWidthPercent * extraNotAlignedWidth;
 
             keyTexts = new ArrayList<>(keySequence.size());
+            // The ink of every key at once, so the label gets one baseline: measuring each key on
+            // its own drops whatever overshoots the baseline, G and S in Helvetica Neue, a pixel
+            // below the letters that stop at it.
+            int inkTop = Integer.MAX_VALUE;
+            int inkBottom = Integer.MIN_VALUE;
+            for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
+                Rectangle ink = QtHintFont.tightBounds(
+                        keyMetrics(keyIndex, labelMetrics, prefixLength, selectedKeyEndIndex),
+                        keySequence.get(keyIndex).hintLabel());
+                inkTop = Math.min(inkTop, ink.y());
+                inkBottom = Math.max(inkBottom, ink.y() + ink.height());
+            }
             int xAdvance = 0;
             int smallestHintBoxLeft = 0;
             int smallestHintBoxWidth = 0;
@@ -2548,14 +2560,14 @@ public final class HintMeshRenderer {
                 boolean isSelected = keyIndex <= selectedKeyEndIndex;
                 boolean isFocused = keyIndex == selectedKeyEndIndex + 1;
                 int textX = x;
-                QFontMetrics keyMetrics = labelMetrics;
+                QFontMetrics keyMetrics =
+                        keyMetrics(keyIndex, labelMetrics, prefixLength, selectedKeyEndIndex);
                 if (labelFontStyle.perKeyFont()) {
-                    keyMetrics = resolveKeyQtFontStyle(isPrefix, isSelected, isFocused).metrics();
                     int actualTextWidth = keyMetrics.horizontalAdvance(keyText);
                     textX += (textWidth - actualTextWidth) / 2;
                 }
-                // MIDDLE centers each key on its own tight bounds, not the whole label as one block.
-                int textY = middleBaselineY(verticalAlignment, boxHeight, keyMetrics, keyText);
+                int textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
+                        inkBottom - inkTop);
                 if (!isHintPartOfGrid) {
                     Rectangle tight = QtHintFont.tightBounds(keyMetrics, keyText);
                     tightLeft = Math.min(tightLeft, textX + tight.x());
@@ -2582,13 +2594,19 @@ public final class HintMeshRenderer {
             this.centeredBoxWidth = centeredBoxWidth;
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxTop = isHintPartOfGrid ? 0 :
-                    middleBaselineY(verticalAlignment, boxHeight, labelMetrics,
-                            keySequence.stream()
-                                       .map(Key::hintLabel)
-                                       .collect(Collectors.joining()))
-                    - labelMetrics.ascent();
+                    baselineY(verticalAlignment, boxHeight, labelMetrics, inkTop,
+                            inkBottom - inkTop) - labelMetrics.ascent();
             this.tightHintBoxWidth = smallestHintBoxWidth;
             this.tightHintBoxHeight = labelMetrics.height();
+        }
+
+        private QFontMetrics keyMetrics(int keyIndex, QFontMetrics labelMetrics, int prefixLength,
+                                        int selectedKeyEndIndex) {
+            if (!labelFontStyle.perKeyFont())
+                return labelMetrics;
+            return resolveKeyQtFontStyle(prefixLength != -1 && keyIndex <= prefixLength - 1,
+                    keyIndex <= selectedKeyEndIndex,
+                    keyIndex == selectedKeyEndIndex + 1).metrics();
         }
 
         public void setFixedSize(int width, int height) {
