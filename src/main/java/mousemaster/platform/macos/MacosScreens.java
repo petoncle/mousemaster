@@ -32,6 +32,12 @@ public class MacosScreens implements Screens {
         return Rectangle.union(screens().stream().map(Screen::rectangle).toList());
     }
 
+    /** Where Qt lays out the screen the given pixel point is on. */
+    public static Rectangle logicalScreenBounds(QPoint pixelPoint) {
+        QRect geometry = qScreenAt(pixelPoint).geometry();
+        return new Rectangle(geometry.x(), geometry.y(), geometry.width(), geometry.height());
+    }
+
     /** The grid spans screens that scale differently, so it is drawn in the space Qt lays out. */
     public static Rectangle logicalVirtualDesktopBounds() {
         List<Rectangle> geometries = new ArrayList<>();
