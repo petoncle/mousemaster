@@ -33,6 +33,8 @@
   }, {
     "pattern":"\\Qdarwin-aarch64/libdriverkit.dylib\\E"
   }, {
+    "pattern":"\\Qdarwin-x86-64/libdriverkit.dylib\\E"
+  }, {
     "pattern":"\\Qio/qt/internal/LibraryUtility.class\\E"
   }, {
     "pattern":"\\Qkeyboard-layouts.json\\E"

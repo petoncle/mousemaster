@@ -119,7 +119,7 @@ public class MacosPlatform implements Platform {
         handleTerminationSignals();
     }
 
-    /** The jvm exit sequence disposes Qt from the signal thread, under the main thread. */
+    /** The JVM exit sequence disposes Qt from the signal thread, under the main thread. */
     private void handleTerminationSignals() {
         SignalHandler handler = signal -> {
             killProcessRequested = true;
