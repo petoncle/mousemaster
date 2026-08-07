@@ -88,14 +88,13 @@ permissions are needed.
    ```
    cd /Applications && sudo mousemaster.app/Contents/MacOS/mousemaster
    ```
-4. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**:
+4. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**. They are
+   granted to the terminal you run mousemaster from rather than to mousemaster itself, so they
+   survive replacing mousemaster.app with a new build. Quit and reopen that terminal after
+   granting, then run mousemaster again.
    - **Input Monitoring**, to read the keys you press. Always needed.
    - **Accessibility**, only for UI hints (`hint.type=ui`).
    - **Screen Recording**, only for zoom (`mode.zoom`).
-
-   They are granted to the terminal you run mousemaster from rather than to mousemaster itself, so
-   they survive replacing mousemaster.app with a new build. Quit and reopen that terminal after
-   granting, then run mousemaster again.
 
 ## Usage
 
