@@ -164,7 +164,8 @@ public class MacosOverlay implements Overlay {
             gridRenderer = new GridRenderer();
             MacosWindow.applyOverlayProperties(gridRenderer.widget());
         }
-        gridRenderer.setGrid(grid, MacosScreens.virtualDesktopBounds(),
+        gridRenderer.setGrid(MacosScreens.logicalGrid(grid),
+                MacosScreens.logicalVirtualDesktopBounds(),
                 (int) Math.floor(grid.lineThickness()));
     }
 

@@ -140,8 +140,9 @@ public final class IndicatorRenderer {
         int visualSize = size + 2 * outlinePadding;
         Point topLeft = indicatorTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
                 zoom, indicator, visualSize);
-        moveAndResize((int) Math.round(topLeft.x()), (int) Math.round(topLeft.y()),
-                size, outlinePadding, shadowPadding, screenScale);
+        moveAndResize(activeScreen, (int) Math.round(topLeft.x()),
+                (int) Math.round(topLeft.y()), size, outlinePadding, shadowPadding,
+                screenScale);
     }
 
     private static final int indicatorEdgeThreshold = 100;
@@ -363,8 +364,8 @@ public final class IndicatorRenderer {
     }
 
     /** Moves and resizes the window + widgets to the computed visual top-left and sizes. */
-    private void moveAndResize(int visualTopLeftX, int visualTopLeftY, int size,
-                              int outlinePadding, int shadowPadding,
+    private void moveAndResize(Screen activeScreen, int visualTopLeftX, int visualTopLeftY,
+                              int size, int outlinePadding, int shadowPadding,
                               double outlineScale) {
         widget.setOutlineScale(outlineScale);
         // Never shrink the window: the DWM compositor would show the old, larger surface
@@ -375,13 +376,17 @@ public final class IndicatorRenderer {
         int totalPadding = outlinePadding + shadowPadding;
         int widgetSize = size + 2 * outlinePadding;
         int windowSize = size + 2 * totalPadding;
-        window.move(visualTopLeftX - shadowPadding, visualTopLeftY - shadowPadding);
-        window.resize(windowSize, windowSize);
-        widget.move(shadowPadding, shadowPadding);
-        widget.resize(widgetSize, widgetSize);
-        labelWidget.move(shadowPadding, shadowPadding);
-        labelWidget.resize(widgetSize, widgetSize);
-        labelWidget.setIndicatorOutlinePadding(outlinePadding);
+        window.moveAndResizeInPixels(activeScreen, visualTopLeftX - shadowPadding,
+                visualTopLeftY - shadowPadding, windowSize, windowSize);
+        // The window is in points, so what it holds is too.
+        double pointsPerPixel = Os.macos ? activeScreen.scale() : 1;
+        int widgetPadding = (int) Math.round(shadowPadding / pointsPerPixel);
+        int widgetPoints = (int) Math.round(widgetSize / pointsPerPixel);
+        widget.move(widgetPadding, widgetPadding);
+        widget.resize(widgetPoints, widgetPoints);
+        labelWidget.move(widgetPadding, widgetPadding);
+        labelWidget.resize(widgetPoints, widgetPoints);
+        labelWidget.setIndicatorOutlinePadding((int) Math.round(outlinePadding / pointsPerPixel));
         labelWidget.setLabelFontScale(1);
     }
 

@@ -6,6 +6,8 @@ import io.qt.core.Qt;
 import io.qt.gui.QColor;
 import io.qt.gui.QPaintEvent;
 import io.qt.gui.QPainter;
+import io.qt.gui.QGuiApplication;
+import io.qt.gui.QScreen;
 import io.qt.widgets.QWidget;
 import mousemaster.Os;
 import mousemaster.Rectangle;
@@ -35,10 +37,29 @@ public class TransparentWindow extends QWidget {
      * its own amount, so the window is told which screen it covers.
      */
     public void coverInPixels(Screen screen) {
+        Rectangle rectangle = screen.rectangle();
+        moveAndResizeInPixels(screen, rectangle.x(), rectangle.y(), rectangle.width(),
+                rectangle.height());
+    }
+
+    /** Sizes scale, but a position is an offset into the screen: only that offset scales. */
+    public void moveAndResizeInPixels(Screen screen, int x, int y, int width, int height) {
         pointsPerPixel = Os.macos ? screen.scale() : 1;
         Rectangle rectangle = screen.rectangle();
-        move(toPoints(rectangle.x()), toPoints(rectangle.y()));
-        resize(toPoints(rectangle.width()), toPoints(rectangle.height()));
+        QRect logical = logicalGeometry(rectangle);
+        move(logical.x() + toPoints(x - rectangle.x()),
+                logical.y() + toPoints(y - rectangle.y()));
+        resize(toPoints(width), toPoints(height));
+    }
+
+    /** Where Qt itself puts the screen, rather than a second guess at its arrangement. */
+    private static QRect logicalGeometry(Rectangle screenRectangle) {
+        for (QScreen qScreen : QGuiApplication.screens()) {
+            QRect geometry = qScreen.geometry();
+            if (Math.round(geometry.x() * qScreen.devicePixelRatio()) == screenRectangle.x())
+                return geometry;
+        }
+        return QGuiApplication.primaryScreen().geometry();
     }
 
     public int xInPixels() {
