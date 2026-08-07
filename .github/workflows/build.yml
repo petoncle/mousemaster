@@ -61,40 +61,12 @@ jobs:
           path: target/mousemaster.exe
           retention-days: 7
 
-  # Only the executable: native-image cannot cross compile, so the Intel half of the universal
-  # binary has to be built on an Intel runner and handed to the job below.
-  build-macos-intel:
-    name: mousemaster on macos-15-intel
-    runs-on: macos-15-intel
-    steps:
-      - uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '25'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
-      - name: Checkout source
-        uses: actions/checkout@v4
-      - name: Make the maven wrapper executable
-        run: chmod +x ./mvnw
-      - name: Build jar
-        run: ./mvnw clean package -DskipTests
-      - name: Build GraalVM native executable
-        run: ./mvnw -Pnative -Dagent package -DskipTests
-      - name: Upload the Intel executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: mousemaster-macos-x86_64
-          path: target/mousemaster
-          retention-days: 7
-
   # A separate job rather than another matrix entry: every step above is Windows shaped
   # (cmd, ren, pefrmdllembed). It cannot run the functional suite, which needs the Karabiner
   # driver extension, root, Input Monitoring and a logged in console session.
   build-macos:
     name: mousemaster on macos-latest
     runs-on: macos-latest
-    needs: build-macos-intel
     steps:
       - uses: graalvm/setup-graalvm@v1
         with:
@@ -113,20 +85,6 @@ jobs:
       # tracing agent, which is minutes slower.
       - name: Build GraalVM native executable
         run: ./mvnw -Pnative -Dagent package -DskipTests
-      # One bundle for both architectures, so nobody has to know which Mac they are on. The Qt
-      # frameworks and the Karabiner shim are already universal.
-      - name: Download the Intel executable
-        uses: actions/download-artifact@v4
-        with:
-          name: mousemaster-macos-x86_64
-          path: target/x86_64
-      - name: Make the executable universal
-        run: |
-          lipo -create -output target/mousemaster.universal \
-              target/mousemaster target/x86_64/mousemaster
-          mv target/mousemaster.universal target/mousemaster
-          chmod +x target/mousemaster
-          lipo -archs target/mousemaster
       # The native image links against the Qt frameworks, which the .app carries: on its own it
       # cannot even start.
       - name: Install Qt

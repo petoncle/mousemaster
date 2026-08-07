@@ -8,7 +8,6 @@ set -e
 VERSION=0.4.0
 WORK=${1:-/tmp/driverkit-build}
 OUT=$(cd "$(dirname "$0")/.." && pwd)/src/main/resources/darwin-aarch64
-INTEL_OUT=$(cd "$(dirname "$0")/.." && pwd)/src/main/resources/darwin-x86-64
 mkdir -p "$WORK" "$OUT"
 cd "$WORK"
 # crates.io answers 403 without a user agent.
@@ -27,14 +26,10 @@ sed -i '' '1i\
 static std::ostream mm_quiet(nullptr);
 ' c_src/driverkit.cpp
 sed -i '' -E '/"(connected|closed|release called|connect_failed |error_occurred |virtual_hid_keyboard_ready |virtual_hid_pointing_ready |driver activated|driver connected|driver version matched)/ s/std::cout/mm_quiet/' c_src/driverkit.cpp
-# Both architectures in one dylib, copied to the directory JNA looks in on each: the app bundle
-# is universal, so whichever slice of it runs has to find a shim it can load.
-clang++ -std=c++23 -w -shared -fPIC -O2 -arch arm64 -arch x86_64 \
+clang++ -std=c++23 -w -shared -fPIC -O2 \
     -I c_src/Karabiner-DriverKit-VirtualHIDDevice/include/pqrs/karabiner/driverkit \
     -I c_src/Karabiner-DriverKit-VirtualHIDDevice/vendor/vendor/include \
     -I c_src/Karabiner-DriverKit-VirtualHIDDevice/src/Daemon/vendor/include \
     -framework IOKit -framework CoreFoundation \
     -o "$OUT/libdriverkit.dylib" c_src/driverkit.cpp
-mkdir -p "$INTEL_OUT"
-cp "$OUT/libdriverkit.dylib" "$INTEL_OUT/libdriverkit.dylib"
-echo "built $OUT/libdriverkit.dylib ($(lipo -archs "$OUT/libdriverkit.dylib"))"
+echo "built $OUT/libdriverkit.dylib"
