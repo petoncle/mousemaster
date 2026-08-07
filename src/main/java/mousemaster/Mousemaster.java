@@ -208,7 +208,7 @@ public class Mousemaster {
         logger.info((reload ? "Reloaded" : "Loaded") + " configuration " +
                     (readFile ? "file " + configurationPath + " " : "") +
                     "with active keyboard layout " + activeKeyboardLayout);
-        ScreenManager screenManager = new ScreenManager(platform.screens());
+        ScreenManager screenManager = new ScreenManager(platform::screens);
         mouseManager = new MouseManager(screenManager, platform.mouse());
         MouseState mouseState = new MouseState(mouseManager);
         GridManager gridManager = new GridManager(screenManager, mouseManager, platform.overlay());

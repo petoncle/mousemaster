@@ -1,7 +1,6 @@
 package mousemaster;
 
 import mousemaster.platform.Overlay;
-import mousemaster.platform.Screens;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -42,7 +41,7 @@ class PreWarmScreensTest {
         Configuration configuration = ConfigurationParser.parse(properties,
                 KeyboardLayout.keyboardLayout("00000409", null));
         Set<Screen> screenSet = new LinkedHashSet<>(List.of(screens));
-        ScreenManager screenManager = new ScreenManager((Screens) () -> screenSet);
+        ScreenManager screenManager = new ScreenManager(() -> screenSet);
         List<HintMesh> preWarmed = new ArrayList<>();
         Overlay overlay = (Overlay) Proxy.newProxyInstance(
                 Overlay.class.getClassLoader(), new Class<?>[] {Overlay.class},

@@ -12,7 +12,6 @@ import mousemaster.KeyRegurgitator;
 import mousemaster.platform.KeyboardController;
 import mousemaster.platform.Overlay;
 import mousemaster.platform.UiAutomation;
-import mousemaster.platform.Screens;
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
 import org.slf4j.Logger;
@@ -32,7 +31,6 @@ public class WindowsPlatform implements Platform {
     private final boolean ignoreInjectedEvents;
     private final WindowsKeyboardController keyboard = new WindowsKeyboardController();
     private final WindowsMouseController mouse = new WindowsMouseController(this::mousePositionSet);
-    private final Screens screens = new WindowsScreens();
     private final WindowsOverlay overlay = new WindowsOverlay(mouse);
     private final UiAutomation uiAutomation = new WindowsUiAutomation();
     private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
@@ -363,8 +361,8 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public Screens screens() {
-        return screens;
+    public Set<Screen> screens() {
+        return WindowsScreen.findScreens();
     }
 
     @Override

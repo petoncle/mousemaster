@@ -6,6 +6,7 @@ import mousemaster.KeyEvent;
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
 import mousemaster.KeyRegurgitator;
+import mousemaster.Screen;
 import mousemaster.KeyboardLayout;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.KeyboardManager;
@@ -21,7 +22,6 @@ import mousemaster.platform.Console;
 import mousemaster.platform.KeyboardController;
 import mousemaster.platform.MouseController;
 import mousemaster.platform.Overlay;
-import mousemaster.platform.Screens;
 import mousemaster.platform.UiAutomation;
 import io.qt.core.QPoint;
 import org.slf4j.Logger;
@@ -47,7 +47,6 @@ public class MacosPlatform implements Platform {
 
     private final MacosKeyboardController keyboard = new MacosKeyboardController();
     private final MacosMouseController mouse = new MacosMouseController();
-    private final MacosScreens screens = new MacosScreens();
     private final MacosOverlay overlay = new MacosOverlay(mouse);
     private final MacosUiAutomation uiAutomation = new MacosUiAutomation();
     private final MacosActiveAppFinder activeAppFinder = new MacosActiveAppFinder();
@@ -410,8 +409,8 @@ public class MacosPlatform implements Platform {
     }
 
     @Override
-    public Screens screens() {
-        return screens;
+    public Set<Screen> screens() {
+        return MacosScreens.screens();
     }
 
     @Override

@@ -6,17 +6,11 @@ import io.qt.gui.QGuiApplication;
 import io.qt.gui.QScreen;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
-import mousemaster.platform.Screens;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class MacosScreens implements Screens {
-
-    @Override
-    public Set<Screen> findScreens() {
-        return screens();
-    }
+public class MacosScreens {
 
     public static Set<Screen> screens() {
         Set<Screen> screens = new HashSet<>();

@@ -4,10 +4,10 @@ import mousemaster.platform.ActiveAppFinder;
 import mousemaster.platform.Console;
 import mousemaster.platform.KeyboardController;
 import mousemaster.platform.Overlay;
-import mousemaster.platform.Screens;
 import mousemaster.platform.UiAutomation;
 
 import java.util.List;
+import java.util.Set;
 
 public interface Platform extends ModeListener {
 
@@ -41,7 +41,7 @@ public interface Platform extends ModeListener {
 
     mousemaster.platform.MouseController mouse();
 
-    Screens screens();
+    Set<Screen> screens();
 
     Overlay overlay();
 
