@@ -3,6 +3,7 @@ package mousemaster.platform.macos;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
+import io.qt.core.QPoint;
 import mousemaster.Rectangle;
 
 import java.util.ArrayList;
@@ -206,14 +207,18 @@ public final class MacosAccessibility {
         }
     }
 
+    /** The Accessibility API answers in points, and the hints it feeds are in pixels. */
     private static Rectangle frame(Pointer element) {
         double[] position = value(element, positionAttribute,
                 ApplicationServices.cgPointType);
         double[] size = value(element, sizeAttribute, ApplicationServices.cgSizeType);
         if (position == null || size == null)
             return null;
-        return new Rectangle((int) position[0], (int) position[1], (int) size[0],
-                (int) size[1]);
+        QPoint topLeft = MacosScreens.pixelPoint(
+                new QPoint((int) position[0], (int) position[1]));
+        double scale = MacosScreens.findActiveScreen(topLeft).scale();
+        return new Rectangle(topLeft.x(), topLeft.y(),
+                (int) Math.round(size[0] * scale), (int) Math.round(size[1] * scale));
     }
 
     private static String role(Pointer element) {
