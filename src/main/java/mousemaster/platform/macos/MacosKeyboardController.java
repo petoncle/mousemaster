@@ -114,6 +114,8 @@ public class MacosKeyboardController implements KeyboardController {
             durationUntilNextKeyPressRepeat = 0.025d;
             repeatStartedDuringCurrentTick = true;
         }
+        else if (!move.press() && move.key().equals(pressedKeyToRepeat))
+            pressedKeyToRepeat = null;
     }
 
     /**
