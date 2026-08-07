@@ -1,6 +1,7 @@
 package mousemaster.qt;
 
 import io.qt.core.QRect;
+import io.qt.core.QRectF;
 import mousemaster.Os;
 import io.qt.gui.QFont;
 import io.qt.gui.QFontDatabase;
@@ -45,6 +46,8 @@ public final class QtHintFont {
     private static final Map<FontKey, QFontMetrics> metricsByFont = new HashMap<>();
     private static final Map<QFontMetrics, Map<String, Rectangle>>
             tightBoundsByTextByMetrics = new IdentityHashMap<>();
+    private static final Map<QFontMetrics, Map<String, Ink>> inkByTextByMetrics =
+            new IdentityHashMap<>();
 
     /** The ink bounds of the text, kept once measured: ~100us a query under the GDI font engine. */
     public static Rectangle tightBounds(QFontMetrics metrics, String text) {
@@ -59,6 +62,34 @@ public final class QtHintFont {
                                          });
     }
 
+    /**
+     * The ink of the text on the outline that is drawn, relative to the baseline: a round letter
+     * overshoots the cap line and the baseline by a fraction of a pixel, which
+     * {@link #tightBounds} rounds away and a scaled screen then makes visible.
+     */
+    public static Ink ink(QFontMetrics metrics, QFont font, String text) {
+        return inkByTextByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
+                                 .computeIfAbsent(text, t -> {
+                                     QPainterPath glyphs = new QPainterPath();
+                                     glyphs.addText(0, 0, font, t);
+                                     QRectF bounds = glyphs.boundingRect();
+                                     Ink ink = new Ink(bounds.y(),
+                                             bounds.y() + bounds.height());
+                                     bounds.dispose();
+                                     glyphs.dispose();
+                                     return ink;
+                                 });
+    }
+
+    /** How far the ink reaches above and below the baseline, which is 0, down being positive. */
+    public record Ink(double top, double bottom) {
+
+        public double height() {
+            return bottom - top;
+        }
+
+    }
+
     private static final Map<QFontMetrics, Map<String, QPainterPath>> textPathsByMetrics =
             new IdentityHashMap<>();
 
@@ -70,6 +101,7 @@ public final class QtHintFont {
                 path.dispose();
         textPathsByMetrics.clear();
         tightBoundsByTextByMetrics.clear();
+        inkByTextByMetrics.clear();
     }
 
     /** Adds the text's glyph outline to {@code path}, baseline origin at (x, y). Outlines are kept

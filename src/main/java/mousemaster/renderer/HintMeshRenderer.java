@@ -1970,9 +1970,9 @@ public final class HintMeshRenderer {
                 QFontMetrics metrics = labelStyle.metrics();
                 int advance = metrics.horizontalAdvance(label);
                 this.decorationLabelX = (width - advance) / 2;
-                Rectangle ink = QtHintFont.tightBounds(metrics, label);
+                QtHintFont.Ink ink = QtHintFont.ink(metrics, labelStyle.font(), label);
                 this.decorationLabelY =
-                        baselineY(verticalAlignment, height, metrics, ink.y(), ink.height());
+                        baselineY(verticalAlignment, height, metrics, ink.top(), ink.height());
                 this.decorationLabelWidth = advance;
                 this.decorationLabelAscent = metrics.ascent();
                 this.decorationLabelDescent = metrics.descent();
@@ -2436,7 +2436,7 @@ public final class HintMeshRenderer {
     }
 
     private static int baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
-                                 QFontMetrics metrics, int inkTop, int inkHeight) {
+                                 QFontMetrics metrics, double inkTop, double inkHeight) {
         if (verticalAlignment == FontVerticalAlignment.MIDDLE)
             return (int) Math.round(boxHeight / 2.0 - inkTop - inkHeight / 2.0);
         return (boxHeight + metrics.ascent() - metrics.descent()) / 2;
@@ -2505,14 +2505,14 @@ public final class HintMeshRenderer {
             // The ink of every key at once, so the label gets one baseline: measuring each key on
             // its own drops whatever overshoots the baseline, G and S in Helvetica Neue, a pixel
             // below the letters that stop at it.
-            int inkTop = Integer.MAX_VALUE;
-            int inkBottom = Integer.MIN_VALUE;
+            double inkTop = Double.MAX_VALUE;
+            double inkBottom = -Double.MAX_VALUE;
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
-                Rectangle ink = QtHintFont.tightBounds(
-                        keyMetrics(keyIndex, labelMetrics, prefixLength, selectedKeyEndIndex),
+                QtFontStyle keyStyle = keyStyle(keyIndex, prefixLength, selectedKeyEndIndex);
+                QtHintFont.Ink ink = QtHintFont.ink(keyStyle.metrics(), keyStyle.font(),
                         keySequence.get(keyIndex).hintLabel());
-                inkTop = Math.min(inkTop, ink.y());
-                inkBottom = Math.max(inkBottom, ink.y() + ink.height());
+                inkTop = Math.min(inkTop, ink.top());
+                inkBottom = Math.max(inkBottom, ink.bottom());
             }
             int xAdvance = 0;
             int smallestHintBoxLeft = 0;
@@ -2606,9 +2606,13 @@ public final class HintMeshRenderer {
                                         int selectedKeyEndIndex) {
             if (!labelFontStyle.perKeyFont())
                 return labelMetrics;
+            return keyStyle(keyIndex, prefixLength, selectedKeyEndIndex).metrics();
+        }
+
+        private QtFontStyle keyStyle(int keyIndex, int prefixLength, int selectedKeyEndIndex) {
             return resolveKeyQtFontStyle(prefixLength != -1 && keyIndex <= prefixLength - 1,
                     keyIndex <= selectedKeyEndIndex,
-                    keyIndex == selectedKeyEndIndex + 1).metrics();
+                    keyIndex == selectedKeyEndIndex + 1);
         }
 
         public void setFixedSize(int width, int height) {
