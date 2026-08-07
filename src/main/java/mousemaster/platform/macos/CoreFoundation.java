@@ -44,6 +44,8 @@ public interface CoreFoundation extends Library {
     Pointer CFPreferencesCopyValue(Pointer key, Pointer applicationId, Pointer userName,
                                    Pointer hostName);
 
+    Pointer CFRetain(Pointer ref);
+
     void CFRelease(Pointer ref);
 
 }

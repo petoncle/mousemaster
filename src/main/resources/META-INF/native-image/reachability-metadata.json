@@ -7358,6 +7358,34 @@
       ]
     },
     {
+      "type": "mousemaster.platform.macos.ObjectiveC$BlockHandler",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.ObjectiveC$FrameOutput",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
       "type": "mousemaster.platform.macos.CoreGraphics$CGRect",
       "fields": [
         {
@@ -8401,7 +8429,28 @@
     {
       "type": {
         "proxy": [
+          "mousemaster.platform.macos.CoreMedia"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.CoreVideo"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
           "mousemaster.platform.macos.Libc"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.ObjectiveC$ReturningBoolean"
         ]
       }
     },
