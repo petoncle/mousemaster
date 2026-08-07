@@ -62,28 +62,40 @@ macOS support is new and testers are wanted: if you try it, please report what d
 work in an [issue](https://github.com/petoncle/mousemaster/issues).
 
 The setup below is more involved than it should be. mousemaster is not signed or notarized, which
-needs an Apple developer account I do not have yet, so macOS treats the app as unidentified: it has
-to be allowed by hand, and each permission is granted to that exact copy rather than to mousemaster
-as an identified application.
+needs an Apple developer account I do not have yet, so macOS treats the app as unidentified and it
+has to be allowed by hand.
 
 mousemaster reads the keyboard through the Karabiner virtual HID device, so that driver and a few
 permissions are needed.
 
 1. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org), which installs the virtual HID
    device, and allow its system extension when macOS asks.
-2. Download and unzip **mousemaster-macos.zip** from the [Release page](https://github.com/petoncle/mousemaster/releases/latest),
-   then put **mousemaster.app** in **/Applications**, next to a **mousemaster.properties**.
-3. Run it from a terminal, as root, which the virtual HID device requires:
+2. Download and unzip **mousemaster-macos.zip** into **/Applications**, so that **mousemaster.app**
+   sits next to a **mousemaster.properties**:
    ```
-   sudo /Applications/mousemaster.app/Contents/MacOS/mousemaster
+   curl -L -o mousemaster-macos.zip https://github.com/petoncle/mousemaster/releases/download/nightly/mousemaster-macos.zip
+   unzip mousemaster-macos.zip -d /Applications
+   ```
+   Downloading it in a browser instead marks the app as quarantined, and macOS refuses to start a
+   quarantined app that is not notarized. Clear it before the first run:
+   ```
+   xattr -dr com.apple.quarantine /Applications/mousemaster.app
+   ```
+   Or let macOS refuse it once, then allow it under **System Settings > Privacy & Security >
+   Security**, where an **Open Anyway** button appears for it.
+3. Run it from a terminal, as root, which the virtual HID device requires. The configuration is
+   read from the working directory, so start it from where you put it:
+   ```
+   cd /Applications && sudo mousemaster.app/Contents/MacOS/mousemaster
    ```
 4. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**:
    - **Input Monitoring**, to read the keys you press. Always needed.
    - **Accessibility**, only for UI hints (`hint.type=ui`).
    - **Screen Recording**, only for zoom (`mode.zoom`).
 
-   Each is granted to the app you launched, so replacing mousemaster.app with a new build means
-   granting them again. Quit and relaunch after granting.
+   They are granted to the terminal you run mousemaster from rather than to mousemaster itself, so
+   they survive replacing mousemaster.app with a new build. Quit and reopen that terminal after
+   granting, then run mousemaster again.
 
 ## Usage
 

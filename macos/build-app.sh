@@ -1,7 +1,6 @@
 #!/bin/bash
-# Assembles target/mousemaster.app around the native image, so the binary is relocatable and
-# has one code identity: TCC keys the screen recording grant on that, and a bare rebuilt
-# binary is a new identity that has to be granted again.
+# Assembles target/mousemaster.app around the native image, so the binary is relocatable: it finds
+# the Qt frameworks and the cocoa plugin next to itself rather than in a Qt install.
 #
 #   QT=~/Qt/6.8.2/macos ./macos/build-app.sh
 #
@@ -72,13 +71,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 # Nested code has to be signed before the bundle that contains it, and a signing failure is
-# reported rather than aborting: the bundle still runs unsigned, it just has no stable identity.
+# reported rather than aborting, so the build says which part failed.
 set +e
 for nested in "$APP"/Contents/Frameworks/*.framework "$APP"/Contents/PlugIns/*/*.dylib; do
     codesign --force --sign - "$nested" 2>&1 | sed 's/^/  /'
 done
-# Ad hoc signing identifies the bundle by its own hash, so a rebuilt binary is a new identity
-# and has to be granted screen recording again. A Developer ID signature is what fixes that.
+# Ad hoc is enough: Apple Silicon kills unsigned code, and nothing keys off the identity. TCC
+# grants a terminal-launched mousemaster the permissions of the terminal, not of the bundle.
 codesign --force --sign - "$APP" 2>&1 | sed 's/^/  /'
 set -e
 echo "built $APP ($(du -sh "$APP" | cut -f1))"
