@@ -1459,7 +1459,7 @@ public final class HintMeshRenderer {
                 boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
             }
             hintLabel.left = !isHintPartOfGrid && boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
-            hintLabel.top = !isHintPartOfGrid && boxHeight == hintLabel.tightHintBoxHeight ? hintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
+            hintLabel.top = !isHintPartOfGrid && boxHeight == hintLabel.tightHintBoxHeight ? (int) Math.round(hintLabel.tightHintBoxTop) : (fullBoxHeight - boxHeight) / 2;
             x += hintLabel.left;
             y += hintLabel.top;
             // Not sure why required, but this help having the grid match the screen
@@ -1571,7 +1571,7 @@ public final class HintMeshRenderer {
                 int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
                 int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, (int) (fullBoxHeight * 1d));
                 prefixHintLabel.left = boxWidth == prefixHintLabel.tightHintBoxWidth ? prefixHintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
-                prefixHintLabel.top = boxHeight == prefixHintLabel.tightHintBoxHeight ? prefixHintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
+                prefixHintLabel.top = boxHeight == prefixHintLabel.tightHintBoxHeight ? (int) Math.round(prefixHintLabel.tightHintBoxTop) : (fullBoxHeight - boxHeight) / 2;
                 x += prefixHintLabel.left;
                 y += prefixHintLabel.top;
                 prefixHintLabel.move(
@@ -1914,7 +1914,8 @@ public final class HintMeshRenderer {
         private String decorationLabel;
         private QFont decorationLabelFont;
         private QColor decorationLabelColor;
-        private int decorationLabelX, decorationLabelY;
+        private int decorationLabelX;
+        private double decorationLabelY;
         private int decorationLabelWidth, decorationLabelAscent, decorationLabelDescent;
 
         public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
@@ -1983,7 +1984,7 @@ public final class HintMeshRenderer {
                 if (decorationLabel != null && !decorationLabel.isEmpty()
                     && decorationLabelFont != null)
                     bounds.add(new Rectangle(offsetX + x + decorationLabelX,
-                            offsetY + y + decorationLabelY - decorationLabelAscent,
+                            offsetY + y + (int) Math.round(decorationLabelY) - decorationLabelAscent,
                             decorationLabelWidth,
                             decorationLabelAscent + decorationLabelDescent));
                 return;
@@ -2081,7 +2082,7 @@ public final class HintMeshRenderer {
                     && decorationLabelFont != null) {
                     painter.setFont(decorationLabelFont);
                     painter.setPen(decorationLabelColor);
-                    painter.drawText(decorationLabelX, decorationLabelY, decorationLabel);
+                    painter.drawText(new QPointF(decorationLabelX, decorationLabelY), decorationLabel);
                 }
             }
             else
@@ -2433,11 +2434,11 @@ public final class HintMeshRenderer {
 
     }
 
-    private static int baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
-                                 QFontMetrics metrics, double inkTop, double inkHeight) {
+    private static double baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
+                                    QFontMetrics metrics, double inkTop, double inkHeight) {
         if (verticalAlignment == FontVerticalAlignment.MIDDLE)
-            return (int) Math.round(boxHeight / 2.0 - inkTop - inkHeight / 2.0);
-        return (boxHeight + metrics.ascent() - metrics.descent()) / 2;
+            return boxHeight / 2.0 - inkTop - inkHeight / 2.0;
+        return (boxHeight + metrics.ascent() - metrics.descent()) / 2d;
     }
 
     public static class HintLabel {
@@ -2453,7 +2454,7 @@ public final class HintMeshRenderer {
         }
 
         /** A glyph and where it sits in the label it belongs to. */
-        private record GlyphPlacement(String text, int x, int y) {
+        private record GlyphPlacement(String text, double x, double y) {
         }
 
         /** Everything the rasterized outline of a label depends on. */
@@ -2468,7 +2469,7 @@ public final class HintMeshRenderer {
         /** Only a non-grid hint's box is sized and placed to fit its label; a grid hint's box is its
          *  cell, so its left and top are left at 0. */
         final int tightHintBoxLeft;
-        final int tightHintBoxTop;
+        final double tightHintBoxTop;
         final int tightHintBoxWidth;
         final int tightHintBoxHeight;
         int left;
@@ -2565,7 +2566,7 @@ public final class HintMeshRenderer {
                     int actualTextWidth = keyMetrics.horizontalAdvance(keyText);
                     textX += (textWidth - actualTextWidth) / 2;
                 }
-                int textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
+                double textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
                         inkBottom - inkTop);
                 if (!isHintPartOfGrid) {
                     QtHintFont.Ink keyInk = QtHintFont.ink(keyMetrics,
@@ -2579,8 +2580,7 @@ public final class HintMeshRenderer {
             }
             // No columns to align to: center the label's tight bounds instead of per-key slots.
             if (!isHintPartOfGrid && tightRight > tightLeft) {
-                int shiftX = (int) Math.round(
-                        (boxWidth - (tightRight - tightLeft)) / 2 - tightLeft);
+                double shiftX = (boxWidth - (tightRight - tightLeft)) / 2 - tightLeft;
                 if (shiftX != 0) {
                     keyTexts.replaceAll(k -> new HintKeyText(k.text(), k.x() + shiftX, k.y(),
                             k.width(), k.isSelected(), k.isFocused(), k.isPrefix()));
@@ -2690,7 +2690,7 @@ public final class HintMeshRenderer {
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
                 painter.setPen(forceOpaque ? opaqueColor(color) : color);
-                painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
+                painter.drawText(new QPointF(keyText.x() - left, keyText.y() - top), keyText.text());
             }
             painter.restore();
         }
@@ -2811,7 +2811,7 @@ public final class HintMeshRenderer {
                 if (labelFontStyle.perKeyFont())
                     painter.setFont(qtFontStyle.font());
                 painter.setPen(opaqueColor(color));
-                painter.drawText(keyText.x() - left, keyText.y() - top, keyText.text());
+                painter.drawText(new QPointF(keyText.x() - left, keyText.y() - top), keyText.text());
             }
             painter.restore();
         }
@@ -2822,7 +2822,7 @@ public final class HintMeshRenderer {
                                   double horizontalOffset, double verticalOffset) {
     }
 
-    private record HintKeyText(String text, int x, int y, int width, boolean isSelected,
+    private record HintKeyText(String text, double x, double y, int width, boolean isSelected,
                                boolean isFocused,
                                boolean isPrefix) {
 

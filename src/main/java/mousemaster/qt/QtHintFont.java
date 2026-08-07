@@ -109,7 +109,7 @@ public final class QtHintFont {
      *  at the origin and copied into place: ~90us to build one under the GDI font engine. Keyed by
      *  the metrics, which are cached per font, unlike the QFont, which callers may resize. */
     static void addTextPath(QPainterPath path, QFontMetrics metrics, QFont font, String text,
-                            int x, int y) {
+                            double x, double y) {
         QPainterPath glyphs =
                 textPathsByMetrics.computeIfAbsent(metrics, m -> new HashMap<>())
                                   .computeIfAbsent(text, t -> {

@@ -13,7 +13,7 @@ public record QtFontStyle(QFont font, QFontMetrics metrics,
                           double shadowHorizontalOffset, double shadowVerticalOffset) {
 
     /** Adds the text's glyph outline to {@code path}, its baseline origin at (x, y). */
-    public void addTextPath(QPainterPath path, String text, int x, int y) {
+    public void addTextPath(QPainterPath path, String text, double x, double y) {
         QtHintFont.addTextPath(path, metrics, font, text, x, y);
     }
 
