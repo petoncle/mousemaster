@@ -17,7 +17,7 @@ public class MacosMouseController implements MouseController {
     private final Set<Integer> pressedButtons = new LinkedHashSet<>();
 
     public QPoint findMousePosition() {
-        return QCursor.pos();
+        return MacosScreens.pixelPoint(QCursor.pos());
     }
 
     /**
@@ -74,10 +74,11 @@ public class MacosMouseController implements MouseController {
 
     /** Warping accepts coordinates on no screen, so an off-screen target is brought back. */
     private QPoint onScreen(long x, long y) {
-        QPoint target = new QPoint((int) x, (int) y);
+        QPoint target = MacosScreens.logicalPoint(new QPoint((int) x, (int) y));
         if (QGuiApplication.screenAt(target) != null)
             return target;
-        QScreen screen = QGuiApplication.screenAt(findMousePosition());
+        QScreen screen = QGuiApplication.screenAt(
+                MacosScreens.logicalPoint(findMousePosition()));
         if (screen == null)
             screen = QGuiApplication.primaryScreen();
         QRect geometry = screen.geometry();
@@ -131,7 +132,7 @@ public class MacosMouseController implements MouseController {
             pressedButtons.add(button);
         else
             pressedButtons.remove(button);
-        QPoint position = findMousePosition();
+        QPoint position = QCursor.pos();
         post(coreGraphics.CGEventCreateMouseEvent(null, type,
                 new CoreGraphics.CGPoint.ByValue(position.x(), position.y()), button));
     }

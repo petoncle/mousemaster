@@ -441,8 +441,7 @@ public final class HintMeshRenderer {
 
     private HintMeshWindow createHintMeshWindow(Screen screen, List<Hint> hints, Zoom zoom) {
         TransparentWindow window = windowFactory.get();
-        window.move(screen.rectangle().x(), screen.rectangle().y());
-        window.resize(screen.rectangle().width(), screen.rectangle().height());
+        window.coverInPixels(screen);
         return new HintMeshWindow(window, hints, zoom,
                 new ArrayList<>(), new ArrayList<>(), new AtomicReference<>(),
                 new AtomicBoolean());
@@ -649,9 +648,9 @@ public final class HintMeshRenderer {
         hintMeshWindow.animations.clear();
         hintMeshWindow.animationCallbacks.clear();
         cropAnimation = null;
-        // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then
-        // devicePixelRatio will be the screen's scale.
-        double qtScaleFactor = QApplication.primaryScreen().devicePixelRatio();
+        // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then Qt draws in points
+        // and the hints, which are in pixels, are scaled down by the screen they are on.
+        double qtScaleFactor = Os.windows ? 1 : screenScale;
         List<QWidget> oldContainers = containers(window);
         QWidget oldContainer = oldContainers.isEmpty() ? null : oldContainers.getFirst();
         boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
@@ -1568,8 +1567,9 @@ public final class HintMeshRenderer {
                                 hintMesh.selectedKeySequence().size() - 1,
                                 style.prefixFontStyle().defaultFontStyle().verticalAlignment(),
                                 isHintPartOfGrid);
-                int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, qtScaleFactor);
-                int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, qtScaleFactor);
+                // The group bounds come from boxes that are already scaled down.
+                int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, 1);
+                int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, 1);
                 int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
                 if (!isHintPartOfGrid)
                     boxWidth = Math.max(boxWidth, prefixHintLabel.centeredBoxWidth);

@@ -30,16 +30,47 @@ public class MacosScreens implements Screens {
     }
 
     public static Screen findActiveScreen(QPoint point) {
-        QScreen qScreen = QGuiApplication.screenAt(point);
-        return screen(qScreen == null ? QGuiApplication.primaryScreen() : qScreen);
+        return screen(qScreenAt(point));
+    }
+
+    /** Each screen scales by its own amount, so a point is converted on the screen it is on. */
+    public static QPoint logicalPoint(QPoint point) {
+        QScreen qScreen = qScreenAt(point);
+        double scale = qScreen.devicePixelRatio();
+        QRect geometry = qScreen.geometry();
+        return new QPoint(
+                geometry.x() + (int) Math.round((point.x() - geometry.x() * scale) / scale),
+                geometry.y() + (int) Math.round((point.y() - geometry.y() * scale) / scale));
+    }
+
+    public static QPoint pixelPoint(QPoint logicalPoint) {
+        QScreen qScreen = QGuiApplication.screenAt(logicalPoint);
+        if (qScreen == null)
+            qScreen = QGuiApplication.primaryScreen();
+        double scale = qScreen.devicePixelRatio();
+        QRect geometry = qScreen.geometry();
+        return new QPoint(
+                (int) Math.round((geometry.x() + (logicalPoint.x() - geometry.x())) * scale),
+                (int) Math.round((geometry.y() + (logicalPoint.y() - geometry.y())) * scale));
+    }
+
+    private static QScreen qScreenAt(QPoint point) {
+        for (QScreen qScreen : QGuiApplication.screens()) {
+            if (screen(qScreen).rectangle().contains(point.x(), point.y()))
+                return qScreen;
+        }
+        return QGuiApplication.primaryScreen();
     }
 
     private static Screen screen(QScreen qScreen) {
         QRect geometry = qScreen.geometry();
+        double scale = qScreen.devicePixelRatio();
         return new Screen(
-                new Rectangle(geometry.x(), geometry.y(), geometry.width(),
-                        geometry.height()),
-                (int) qScreen.logicalDotsPerInch(), qScreen.devicePixelRatio());
+                new Rectangle((int) Math.round(geometry.x() * scale),
+                        (int) Math.round(geometry.y() * scale),
+                        (int) Math.round(geometry.width() * scale),
+                        (int) Math.round(geometry.height() * scale)),
+                (int) qScreen.logicalDotsPerInch(), scale);
     }
 
 }
