@@ -73,7 +73,8 @@ public final class QtHintFont {
                                      QPainterPath glyphs = new QPainterPath();
                                      glyphs.addText(0, 0, font, t);
                                      QRectF bounds = glyphs.boundingRect();
-                                     Ink ink = new Ink(bounds.y(),
+                                     Ink ink = new Ink(bounds.x(), bounds.y(),
+                                             bounds.x() + bounds.width(),
                                              bounds.y() + bounds.height());
                                      bounds.dispose();
                                      glyphs.dispose();
@@ -82,7 +83,7 @@ public final class QtHintFont {
     }
 
     /** How far the ink reaches above and below the baseline, which is 0, down being positive. */
-    public record Ink(double top, double bottom) {
+    public record Ink(double left, double top, double right, double bottom) {
 
         public double height() {
             return bottom - top;

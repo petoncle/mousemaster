@@ -1456,8 +1456,6 @@ public final class HintMeshRenderer {
             }
             else {
                 boxWidth = Math.max(hintLabel.tightHintBoxWidth, (int) (fullBoxWidth * style.boxWidthPercent()));
-                if (!isHintPartOfGrid)
-                    boxWidth = Math.max(boxWidth, hintLabel.centeredBoxWidth);
                 boxHeight = Math.max(hintLabel.tightHintBoxHeight, (int) (fullBoxHeight * style.boxHeightPercent()));
             }
             hintLabel.left = !isHintPartOfGrid && boxWidth == hintLabel.tightHintBoxWidth ? hintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
@@ -1571,8 +1569,6 @@ public final class HintMeshRenderer {
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, 1);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, 1);
                 int boxWidth = Math.max(prefixHintLabel.tightHintBoxWidth, (int) (fullBoxWidth * 1d));
-                if (!isHintPartOfGrid)
-                    boxWidth = Math.max(boxWidth, prefixHintLabel.centeredBoxWidth);
                 int boxHeight = Math.max(prefixHintLabel.tightHintBoxHeight, (int) (fullBoxHeight * 1d));
                 prefixHintLabel.left = boxWidth == prefixHintLabel.tightHintBoxWidth ? prefixHintLabel.tightHintBoxLeft : (fullBoxWidth - boxWidth) / 2;
                 prefixHintLabel.top = boxHeight == prefixHintLabel.tightHintBoxHeight ? prefixHintLabel.tightHintBoxTop : (fullBoxHeight - boxHeight) / 2;
@@ -2475,7 +2471,6 @@ public final class HintMeshRenderer {
         final int tightHintBoxTop;
         final int tightHintBoxWidth;
         final int tightHintBoxHeight;
-        final int centeredBoxWidth;
         int left;
         int top;
         int x, y, width, height;
@@ -2519,8 +2514,8 @@ public final class HintMeshRenderer {
             int xAdvance = 0;
             int smallestHintBoxLeft = 0;
             int smallestHintBoxWidth = 0;
-            int tightLeft = Integer.MAX_VALUE;
-            int tightRight = Integer.MIN_VALUE;
+            double tightLeft = Double.MAX_VALUE;
+            double tightRight = -Double.MAX_VALUE;
             for (int keyIndex = 0; keyIndex < keySequence.size(); keyIndex++) {
                 Key key = keySequence.get(keyIndex);
                 String keyText = key.hintLabel();
@@ -2573,29 +2568,25 @@ public final class HintMeshRenderer {
                 int textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
                         inkBottom - inkTop);
                 if (!isHintPartOfGrid) {
-                    Rectangle tight = QtHintFont.tightBounds(keyMetrics, keyText);
-                    tightLeft = Math.min(tightLeft, textX + tight.x());
-                    tightRight = Math.max(tightRight, textX + tight.x() + tight.width());
+                    QtHintFont.Ink keyInk = QtHintFont.ink(keyMetrics,
+                            keyStyle(keyIndex, prefixLength, selectedKeyEndIndex).font(),
+                            keyText);
+                    tightLeft = Math.min(tightLeft, textX + keyInk.left());
+                    tightRight = Math.max(tightRight, textX + keyInk.right());
                 }
                 keyTexts.add(new HintKeyText(keyText, textX, textY, keyWidth,
                         isSelected, isFocused, isPrefix));
             }
             // No columns to align to: center the label's tight bounds instead of per-key slots.
-            // An odd leftover can't split evenly, so grow the box by 1px rather than let the
-            // rounding always drop the spare pixel on the same side.
-            int centeredBoxWidth = boxWidth;
             if (!isHintPartOfGrid && tightRight > tightLeft) {
-                int inkWidth = tightRight - tightLeft;
-                if (inkWidth < boxWidth && ((boxWidth - inkWidth) & 1) == 1)
-                    centeredBoxWidth = boxWidth + 1;
-                int shiftX = (centeredBoxWidth - inkWidth) / 2 - tightLeft;
+                int shiftX = (int) Math.round(
+                        (boxWidth - (tightRight - tightLeft)) / 2 - tightLeft);
                 if (shiftX != 0) {
                     keyTexts.replaceAll(k -> new HintKeyText(k.text(), k.x() + shiftX, k.y(),
                             k.width(), k.isSelected(), k.isFocused(), k.isPrefix()));
                     smallestHintBoxLeft += shiftX;
                 }
             }
-            this.centeredBoxWidth = centeredBoxWidth;
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxTop = isHintPartOfGrid ? 0 :
                     baselineY(verticalAlignment, boxHeight, labelMetrics, inkTop,
