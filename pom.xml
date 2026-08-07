@@ -15,6 +15,14 @@
     The GRAALVM_HOME environment variable takes precedence over JAVA_HOME for native-maven-plugin.
     https://github.com/oracle/graal/issues/1762#issuecomment-1297370039
     ./windows/pefrmdllembed/pefrmdllembed.exe -impinj -nores target/mousemaster.exe ./windows/pefrmdllembed/VCRUNTIME140.dll target/mousemaster-with-vcruntime140.exe
+
+    On macOS, with JAVA_HOME set to a GraalVM, the same two builds then the bundle that carries
+    the Qt frameworks the image links against:
+    ./mvnw clean package
+    ./mvnw -Pnative -Dagent package -DskipTests
+    QT=~/Qt/6.8.2/macos ./macos/build-app.sh
+    Outside a git checkout, add -Dmaven.gitcommitid.skip=true to both builds.
+    macos/build-libdriverkit.sh rebuilds the committed Karabiner shim, which rarely changes.
     -->
 
     <properties>
