@@ -4,14 +4,11 @@ import io.qt.core.QPoint;
 import io.qt.core.QRect;
 import io.qt.gui.QGuiApplication;
 import io.qt.gui.QScreen;
-import mousemaster.Grid;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
 import mousemaster.platform.Screens;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class MacosScreens implements Screens {
@@ -28,38 +25,14 @@ public class MacosScreens implements Screens {
         return screens;
     }
 
-    public static Rectangle virtualDesktopBounds() {
-        return Rectangle.union(screens().stream().map(Screen::rectangle).toList());
-    }
-
     /** Where Qt lays out the screen the given pixel point is on. */
     public static Rectangle logicalScreenBounds(QPoint pixelPoint) {
         QRect geometry = qScreenAt(pixelPoint).geometry();
         return new Rectangle(geometry.x(), geometry.y(), geometry.width(), geometry.height());
     }
 
-    /** The grid spans screens that scale differently, so it is drawn in the space Qt lays out. */
-    public static Rectangle logicalVirtualDesktopBounds() {
-        List<Rectangle> geometries = new ArrayList<>();
-        for (QScreen qScreen : QGuiApplication.screens()) {
-            QRect geometry = qScreen.geometry();
-            geometries.add(new Rectangle(geometry.x(), geometry.y(), geometry.width(),
-                    geometry.height()));
-        }
-        return Rectangle.union(geometries);
-    }
-
-    public static Grid logicalGrid(Grid grid) {
-        QPoint topLeft = logicalPoint(new QPoint(grid.x(), grid.y()));
-        // The far corner is on the screen's exclusive edge, so the size scales by the screen the
-        // grid starts on rather than by whichever screen that corner lands in.
-        double scale = qScreenAt(new QPoint(grid.x(), grid.y())).devicePixelRatio();
-        return grid.builder()
-                   .x(topLeft.x())
-                   .y(topLeft.y())
-                   .width((int) Math.round(grid.width() / scale))
-                   .height((int) Math.round(grid.height() / scale))
-                   .build();
+    public static double scaleAt(QPoint pixelPoint) {
+        return qScreenAt(pixelPoint).devicePixelRatio();
     }
 
     public static Screen findActiveScreen(QPoint point) {

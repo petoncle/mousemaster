@@ -166,9 +166,22 @@ public class MacosOverlay implements Overlay {
         }
         // A translucent window is composited on the screen it is assigned to, so one covering
         // the whole desktop draws nothing on the others: it covers the grid's screen instead.
-        gridRenderer.setGrid(MacosScreens.logicalGrid(grid),
-                MacosScreens.logicalScreenBounds(new QPoint(grid.x(), grid.y())),
+        QPoint gridTopLeft = new QPoint(grid.x(), grid.y());
+        gridRenderer.setGrid(logicalGrid(grid, gridTopLeft),
+                MacosScreens.logicalScreenBounds(gridTopLeft),
                 (int) Math.floor(grid.lineThickness()));
+    }
+
+    /** The far corner is on the screen's exclusive edge, so the size scales by where the grid starts. */
+    private static Grid logicalGrid(Grid grid, QPoint topLeft) {
+        QPoint logicalTopLeft = MacosScreens.logicalPoint(topLeft);
+        double scale = MacosScreens.scaleAt(topLeft);
+        return grid.builder()
+                   .x(logicalTopLeft.x())
+                   .y(logicalTopLeft.y())
+                   .width((int) Math.round(grid.width() / scale))
+                   .height((int) Math.round(grid.height() / scale))
+                   .build();
     }
 
     @Override
