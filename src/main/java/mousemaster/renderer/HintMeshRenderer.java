@@ -2132,9 +2132,11 @@ public final class HintMeshRenderer {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
                 painter.setBrush(QtColorUtil.noBrush());
                 painter.setPen(createPen(borderColor, borderThickness));
-                int offset = borderThickness / 2;
-                painter.drawRoundedRect(offset, offset,
-                        width - borderThickness, height - borderThickness,
+                // Half the pen, not half of it rounded down: a border one pixel thick strokes
+                // half a pixel each side of the rect, and the box would keep only the inner half.
+                double offset = borderThickness / 2d;
+                painter.drawRoundedRect(new QRectF(offset, offset,
+                        width - borderThickness, height - borderThickness),
                         borderRadius, borderRadius);
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
