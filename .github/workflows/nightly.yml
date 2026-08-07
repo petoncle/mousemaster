@@ -2,6 +2,9 @@ name: nightly
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'configuration/*.md'
   workflow_dispatch:       # allow forcing a nightly from the Actions tab
 concurrency:
   group: nightly
