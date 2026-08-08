@@ -521,7 +521,11 @@ public final class HintMeshRenderer {
                 QRect drawRegion = crop.intersected(event.rect());
                 if (!drawRegion.isEmpty()) {
                     painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-                    painter.drawPixmap(drawRegion, pixmap(), drawRegion);
+                    // The grab is in pixels, the label in points: the target is the whole label.
+                    painter.setClipRect(drawRegion);
+                    QRect r = rect();
+                    painter.drawPixmap(r, pixmap());
+                    r.dispose();
                 }
                 drawRegion.dispose();
                 painter.end();
