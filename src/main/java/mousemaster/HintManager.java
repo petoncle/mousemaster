@@ -27,7 +27,6 @@ public class HintManager implements ModeListener, MousePositionListener {
     private ModeController modeController;
     private HintMesh hintMesh;
     private ViewportFilter screenFilter;
-    private Set<Key> selectionKeySubset;
     private final Map<HintMeshKey, HintMeshState> hintMeshStates = new HashMap<>();
     private boolean hintJustSelected = false;
     private int mouseX, mouseY;
@@ -388,11 +387,6 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void activateHintMesh(Mode newMode, HintMesh newHintMesh,
                                   HintMeshConfiguration hintMeshConfiguration,
                                   ViewportFilter newScreenFilter, Zoom newZoom) {
-        selectionKeySubset = newHintMesh.hints()
-                                        .stream()
-                                        .map(Hint::keySequence)
-                                        .flatMap(Collection::stream)
-                                        .collect(Collectors.toSet());
         List<Key> newSelectionKeys =
                 hintMeshConfiguration.keysByFilter().get(newScreenFilter).selectionKeys();
         hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(), newSelectionKeys,
@@ -1320,9 +1314,6 @@ public class HintManager implements ModeListener, MousePositionListener {
                                                          .get(screenFilter);
         if (hintJustSelected)
             return;
-        if (!selectionKeySubset.contains(key)) {
-            return;
-        }
         List<Key> newSelectedKeySequence = new ArrayList<>(hintMesh.selectedKeySequence());
         newSelectedKeySequence.add(key);
         Hint exactMatchHint = null;
@@ -1388,8 +1379,8 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     /**
      * Other commands should be canceled when an unselect hint key is successful,
-     * and when a select hint key does not trigger a hint match (and there are still some
-     * letters to select).
+     * when a select hint key does not trigger a hint match (and there are still some
+     * letters to select), and when an unused selection key is eaten.
      */
     public boolean pollLastHintCommandSupercedesOtherCommands() {
         try {

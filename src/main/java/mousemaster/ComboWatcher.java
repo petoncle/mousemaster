@@ -1095,8 +1095,12 @@ public class ComboWatcher {
                 commandRunner.run(command, lastEventKey);
                 commands.remove(i);
                 i--;
-                if (hintManager.pollLastHintCommandSupercedesOtherCommands())
+                if (hintManager.pollLastHintCommandSupercedesOtherCommands()) {
+                    if (!commands.isEmpty() && logger.isDebugEnabled())
+                        logger.debug("Ignoring commands (superseded by hint command): " +
+                                     summarizeCommands(commands));
                     return;
+                }
             }
         }
         // Batch all mutations so the mode is rebuilt only once.
