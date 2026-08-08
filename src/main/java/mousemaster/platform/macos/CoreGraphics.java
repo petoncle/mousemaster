@@ -76,6 +76,9 @@ public interface CoreGraphics extends Library {
     /** The session of the caller, or null when it has no quartz session. */
     Pointer CGSessionCopyCurrentDictionary();
 
+    /** Counts the cursor changes. Undocumented, but the cursor itself is a round trip to read. */
+    int CGSCurrentCursorSeed();
+
     int windowListOnScreenOnly = 1;
     int windowListOnScreenBelowWindow = 4;
     int windowListExcludeDesktopElements = 16;

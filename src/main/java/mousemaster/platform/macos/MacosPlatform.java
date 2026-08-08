@@ -194,8 +194,10 @@ public class MacosPlatform implements Platform {
             lastMousePosition = mousePosition;
             for (MousePositionListener listener : mousePositionListeners)
                 listener.mouseMoved(mousePosition.x(), mousePosition.y());
-            overlay.mouseMoved(mousePosition);
         }
+        // Every iteration, not only on a move: the cursor also changes shape where the mouse
+        // stands, and an arrow becoming an I-beam moves the center the indicator sits on.
+        overlay.repositionIndicator(mousePosition);
         // So that a shift click works while shift is being eaten. The Windows mouse hook
         // does this on the button event; here the button state is polled with the position.
         boolean pressingPhysicalButton = mouse.pressingPhysicalButton();

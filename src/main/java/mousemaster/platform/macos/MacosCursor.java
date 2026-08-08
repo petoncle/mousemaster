@@ -25,43 +25,44 @@ public final class MacosCursor {
             objectiveC.sel_registerName("samplesPerPixel");
     private static final Pointer bitmapFormat = objectiveC.sel_registerName("bitmapFormat");
 
-    private static Pointer inkCursor;
-    private static Point ink;
+    private static int measuredSeed;
+    private static Point measuredSize;
+    private static Point measuredVisualCenter;
 
     private MacosCursor() {
     }
 
     /** The cursor image size, which is the glyph's own bounds. */
     public static Point size() {
-        Pointer cursor = cursor();
-        ObjectiveC.CGSize.ByValue imageSize = ObjectiveC.ReturningSize.INSTANCE
-                .objc_msgSend(objectiveC.objc_msgSend(cursor, image), size);
-        return new Point(imageSize.width, imageSize.height);
+        measure();
+        return measuredSize;
     }
 
     /** The center of what the cursor draws: the image is larger than the glyph in it. */
     public static Point visualCenter() {
+        measure();
+        return measuredVisualCenter;
+    }
+
+    /** Measured once per cursor: currentSystemCursor is a round trip, and a new object each call. */
+    private static void measure() {
+        int seed = CoreGraphics.INSTANCE.CGSCurrentCursorSeed();
+        if (seed == measuredSeed)
+            return;
+        measuredSeed = seed;
         Pointer cursor = cursor();
-        ObjectiveC.CGSize.ByValue hot =
-                ObjectiveC.ReturningSize.INSTANCE.objc_msgSend(cursor, hotSpot);
-        Point center = inkCenter(cursor);
-        return new Point(center.x() - hot.width, center.y() - hot.height);
-    }
-
-    /** Cached per cursor: this is asked for on every mouse move. */
-    private static Point inkCenter(Pointer cursor) {
-        if (cursor.equals(inkCursor))
-            return ink;
-        inkCursor = cursor;
-        ink = computeInkCenter(cursor);
-        return ink;
-    }
-
-    /** The center of the non-transparent pixels, in image points. */
-    private static Point computeInkCenter(Pointer cursor) {
         Pointer cursorImage = objectiveC.objc_msgSend(cursor, image);
         ObjectiveC.CGSize.ByValue imageSize =
                 ObjectiveC.ReturningSize.INSTANCE.objc_msgSend(cursorImage, size);
+        ObjectiveC.CGSize.ByValue hot =
+                ObjectiveC.ReturningSize.INSTANCE.objc_msgSend(cursor, hotSpot);
+        Point ink = inkCenter(cursorImage, imageSize);
+        measuredSize = new Point(imageSize.width, imageSize.height);
+        measuredVisualCenter = new Point(ink.x() - hot.width, ink.y() - hot.height);
+    }
+
+    /** The center of the non-transparent pixels, in image points. */
+    private static Point inkCenter(Pointer cursorImage, ObjectiveC.CGSize.ByValue imageSize) {
         Pointer representation = objectiveC.objc_msgSend(
                 objectiveC.objc_msgSend(cursorImage, representations), objectAtIndex, 0L);
         Pointer pixels = objectiveC.objc_msgSend(representation, bitmapData);

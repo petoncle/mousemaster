@@ -141,11 +141,7 @@ public class MacosOverlay implements Overlay {
             indicatorRenderer.hide(allowFade);
     }
 
-    public void mouseMoved(QPoint mousePosition) {
-        reposition(mousePosition);
-    }
-
-    private void reposition(QPoint mousePosition) {
+    public void repositionIndicator(QPoint mousePosition) {
         if (indicatorRenderer == null || indicatorRenderer.currentIndicator() == null)
             return;
         indicatorRenderer.reposition(cursorRectangle(mousePosition), MacosCursor.visualCenter(),
