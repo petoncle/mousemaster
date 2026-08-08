@@ -88,12 +88,14 @@ public final class HintMeshRenderer {
         private QVariantAnimation animation;
         private QMetaObject.AbstractSlot callback; // Kept referenced so Qt does not GC it.
         private List<Rectangle> targets; // Each layer box's target rect, to settle to on interruption.
+        private List<Rectangle> enclosingInk; // In window coordinates, like targets.
     }
 
     /** A previous grid's borders, still drawn while its content shrinks, minus where the grid that
      *  superseded it draws its own: both colors are translucent, so drawing both on the outline they
      *  share would add up their opacity. A drill interrupted more than once stacks several of these. */
-    private record OutgoingBorders(List<HintBox> boxes, Rectangle bounds, Rectangle covered) {
+    private record OutgoingBorders(List<HintBox> boxes, List<Rectangle> enclosingInk,
+                                   Rectangle bounds, Rectangle covered) {
     }
 
     /** What one transition's crop cost. Work on the main thread drops whole frames, so the largest
@@ -720,7 +722,8 @@ public final class HintMeshRenderer {
             transitionHintContainers(animateTransition, oldContainer, newContainer,
                     window, hintMeshWindow, transitionAnimationDuration);
             if (pixmapAndPosition.boxes() != null)
-                morphBorders(window, hintMeshWindow, pixmapLabel, pixmapAndPosition.boxes(), animateTransition,
+                morphBorders(window, hintMeshWindow, pixmapLabel, pixmapAndPosition.boxes(),
+                        pixmapAndPosition.enclosingInk(), animateTransition,
                         transitionAnimationDuration);
             else
                 // A match crop carries no boxes, so morphBorders is skipped; clip the old border
@@ -738,15 +741,16 @@ public final class HintMeshRenderer {
             Runnable setUncachedHintMeshWindowRunnable =
                     () -> {
                         long before = System.nanoTime();
+                        List<Rectangle> enclosingInk = new ArrayList<>();
                         List<HintBox> boxes =
                                 setUncachedHintMeshWindow(hintMeshWindow, hintMeshKey, hintMesh,
-                                        screenScale, style, qtScaleFactor, container);
+                                        screenScale, style, qtScaleFactor, container, enclosingInk);
                         if (!preWarming)
                             logger.debug("Built hint mesh window in " +
                                     (long) ((System.nanoTime() - before) / 1e6) + "ms");
                         if (preWarming) {
                             cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh,
-                                    boxes);
+                                    boxes, enclosingInk);
                             container.setParent(null);
                             disposeWidget(container);
                             return;
@@ -757,13 +761,13 @@ public final class HintMeshRenderer {
                                 window, hintMeshWindow, transitionAnimationDuration);
                         // Borders are drawn on the layer morphBorders builds, so non-grid hints
                         // (which never animate or cache) still need it created.
-                        morphBorders(window, hintMeshWindow, container, boxes, animateTransition,
-                                transitionAnimationDuration);
+                        morphBorders(window, hintMeshWindow, container, boxes, enclosingInk,
+                                animateTransition, transitionAnimationDuration);
                         if (isHintGrid) {
                             // Defer the pixmap cache grab to the next frame so the hint mesh is shown
                             // immediately; the grab is expensive (~90ms at 4K when cold).
                             cacheQtHintWindowIntoPixmapRunnables.put(window, () ->
-                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, boxes));
+                                cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh, boxes, enclosingInk));
                         }
                     };
             // Run immediately when hints are already visible (to avoid a
@@ -918,7 +922,8 @@ public final class HintMeshRenderer {
      *  old grid's and move, it morphs them there; otherwise it clips the layer in lockstep with the crop. */
     private void morphBorders(TransparentWindow window, HintMeshWindow hintMeshWindow,
                             QWidget contentContainer,
-                            List<HintBox> newBoxes, boolean animateTransition, Duration duration) {
+                            List<HintBox> newBoxes, List<Rectangle> enclosingInk,
+                            boolean animateTransition, Duration duration) {
         BorderMorph morph = borderMorphByWindow.computeIfAbsent(window, w -> new BorderMorph());
         QRect containerGeometry = contentContainer.geometry();
         int originX = containerGeometry.x(), originY = containerGeometry.y();
@@ -954,7 +959,8 @@ public final class HintMeshRenderer {
                 if (!newBounds.contains(previous.bounds()))
                     outgoing.add(previous);
             if (!newBounds.contains(previousBounds))
-                outgoing.add(new OutgoingBorders(morph.layer.boxes, previousBounds, newBounds));
+                outgoing.add(new OutgoingBorders(morph.layer.boxes, morph.enclosingInk,
+                        previousBounds, newBounds));
         }
         boolean lockstepCrop =
                 !boxesMove && cropAnimation != null && (growCrop || !outgoing.isEmpty());
@@ -966,12 +972,18 @@ public final class HintMeshRenderer {
             copy.setGeometry(boxesMove ? starts.get(i) : targets.get(i));
             borderBoxes.add(copy);
         }
+        List<Rectangle> windowInk = new ArrayList<>(enclosingInk.size());
+        for (Rectangle rectangle : enclosingInk)
+            windowInk.add(new Rectangle(rectangle.x() + originX, rectangle.y() + originY,
+                    rectangle.width(), rectangle.height()));
         HintPaintLayer layer = new HintPaintLayer(window, borderBoxes, List.of(), HintBox::paintBorder);
         layer.setGeometry(0, 0, window.width(), window.height());
+        layer.setEnclosingInk(windowInk);
         layer.raise();
         layer.show();
         morph.layer = layer;
         morph.targets = targets;
+        morph.enclosingInk = windowInk;
         window.show();
         if (lockstepCrop) {
             QMetaObject.Slot0 finish;
@@ -1065,9 +1077,9 @@ public final class HintMeshRenderer {
      *  the widget leaves it behind. */
     private static void disposeWidget(QWidget widget) {
         if (widget instanceof HintPaintLayer layer)
-            layer.disposeShadowPixmap();
+            layer.disposeBuffers();
         for (HintPaintLayer layer : widget.findChildren(HintPaintLayer.class))
-            layer.disposeShadowPixmap();
+            layer.disposeBuffers();
         widget.disposeLater();
     }
 
@@ -1307,7 +1319,8 @@ public final class HintMeshRenderer {
                                                               HintMesh hintMesh,
                                                               double screenScale, HintMeshStyle style,
                                                               double qtScaleFactor,
-                                                              QWidget container) {
+                                                              QWidget container,
+                                                              List<Rectangle> enclosingInk) {
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -1651,6 +1664,8 @@ public final class HintMeshRenderer {
         // Layer 3: Prefix boxes.
         HintPaintLayer prefixBoxLayer = new HintPaintLayer(container, prefixBoxes, List.of());
         prefixBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
+        for (HintBox prefixBox : prefixBoxes)
+            prefixBox.collectBorderInk(0, 0, enclosingInk);
         // Layer 3: Prefix labels.
         HintPaintLayer prefixLabelLayer =
                 new HintPaintLayer(container, List.of(), prefixLabels);
@@ -1681,6 +1696,10 @@ public final class HintMeshRenderer {
                     List.of(decorationStyle(style.decorations().get(0), screenScale));
             addDecorationBoxes(areaBox, containerWidth, containerHeight,
                     hintMesh.decoration(), areaDecorationStyles, 0, qtScaleFactor);
+            List<Rectangle> areaInk = new ArrayList<>();
+            areaBox.collectBorderInk(0, 0, areaInk);
+            prefixBoxLayer.setEnclosingInk(areaInk);
+            enclosingInk.addAll(areaInk);
             HintPaintLayer areaDecorationLayer =
                     new HintPaintLayer(container, List.of(areaBox), List.of());
             areaDecorationLayer.setGeometry(0, 0, containerWidth, containerHeight);
@@ -1805,13 +1824,13 @@ public final class HintMeshRenderer {
 
     private void cacheQtHintWindowIntoPixmap(TransparentWindow window, ClearBackgroundQLabel container,
                                                     HintMesh hintMeshKey, HintMesh hintMesh,
-                                                    List<HintBox> boxes) {
+                                                    List<HintBox> boxes, List<Rectangle> enclosingInk) {
         long before = System.nanoTime();
         // When morphing, the boxes are not in the container, so this grabs labels/shadows only.
         QPixmap pixmap = container.grab();
         PixmapAndPosition pixmapAndPosition =
-                new PixmapAndPosition(pixmap, container.x(), container.y(), boxes, hintMesh,
-                        window.x(), window.y());
+                new PixmapAndPosition(pixmap, container.x(), container.y(), boxes, enclosingInk,
+                        hintMesh, window.x(), window.y());
 //         pixmap.save("screenshot.png", "PNG");
         hintMeshPixmaps.put(hintMeshKey, pixmapAndPosition);
         if (!preWarming)
@@ -1865,8 +1884,10 @@ public final class HintMeshRenderer {
         return trimmedHints;
     }
 
-    /** boxes is the live box layer's boxes for a morphing grid, redrawn on a cache hit; null otherwise. */
+    /** boxes is the live box layer's boxes for a morphing grid, redrawn on a cache hit; null otherwise.
+     *  enclosingInk is where the borders enclosing them put ink, in container coordinates. */
     private record PixmapAndPosition(QPixmap pixmap, int x, int y, List<HintBox> boxes,
+                                     List<Rectangle> enclosingInk,
                                      HintMesh originalHintMesh, int windowX, int windowY) {
         @Override
         public String toString() {
@@ -1910,6 +1931,8 @@ public final class HintMeshRenderer {
         private final QColor borderColor;
         private final int borderRadius;
         private int x, y, width, height;
+        /** Set while drawBorders records where it would paint instead of painting. */
+        private List<Rectangle> ink;
         final List<HintBox> decorationBoxes = new ArrayList<>();
         private String decorationLabel;
         private QFont decorationLabelFont;
@@ -2116,6 +2139,21 @@ public final class HintMeshRenderer {
             for (HintBox decorationBox : decorationBoxes)
                 decorationBox.paint(painter);
             painter.restore();
+        }
+
+        /** Where this box's border, and its decorations' in turn, put ink, in the coordinates its
+         *  parent paints it in. */
+        void collectBorderInk(int offsetX, int offsetY, List<Rectangle> ink) {
+            if (borderThickness != 0 && borderColor.alpha() != 0) {
+                this.ink = new ArrayList<>();
+                drawBorders(null);
+                for (Rectangle rectangle : this.ink)
+                    ink.add(new Rectangle(offsetX + x + rectangle.x(), offsetY + y + rectangle.y(),
+                            rectangle.width(), rectangle.height()));
+                this.ink = null;
+            }
+            for (HintBox decorationBox : decorationBoxes)
+                decorationBox.collectBorderInk(offsetX + x, offsetY + y, ink);
         }
 
         /** The box's own border only — the part the border layer draws and animates. */
@@ -2397,8 +2435,12 @@ public final class HintMeshRenderer {
             QPen pen = isEdge ? edgePen : insidePen;
             if (pen.width() == 0)
                 return;
-            painter.setPen(pen);
             int x = xBase + (isEdge ? edgeOffset : insideOffset);
+            if (ink != null) {
+                ink.add(new Rectangle(x - pen.width() / 2, y1, pen.width(), y2 - y1 + 1));
+                return;
+            }
+            painter.setPen(pen);
             painter.drawLine(x, y1, x, y2);
         }
 
@@ -2421,8 +2463,12 @@ public final class HintMeshRenderer {
             QPen pen = isEdge ? edgePen : insidePen;
             if (pen.width() == 0)
                 return;
-            painter.setPen(pen);
             int y = yBase + (isEdge ? edgeOffset : insideOffset);
+            if (ink != null) {
+                ink.add(new Rectangle(x1, y - pen.width() / 2, x2 - x1 + 1, pen.width()));
+                return;
+            }
+            painter.setPen(pen);
             painter.drawLine(x1, y, x2, y);
         }
 
@@ -3095,6 +3141,10 @@ public final class HintMeshRenderer {
         private QPixmap shadowPixmap;
         private int shadowPixmapX, shadowPixmapY;
         private QRect crop;
+        // Where an enclosing border puts ink, kept out of what this layer paints. The outgoing
+        // borders are kept out of their own grids' enclosing ink, which is still on screen too.
+        private QRegion enclosingInk;
+        private QRegion outgoingEnclosingInk;
         // The interrupted grids' borders, drawn beneath this layer's own so they can shrink with their
         // content (their own crop) while these boxes stay put.
         private List<OutgoingBorders> outgoing = List.of();
@@ -3135,8 +3185,35 @@ public final class HintMeshRenderer {
             return true;
         }
 
+        void setEnclosingInk(List<Rectangle> ink) {
+            enclosingInk = region(ink);
+        }
+
+        private static QRegion region(List<Rectangle> rectangles) {
+            if (rectangles.isEmpty())
+                return null;
+            QRegion region = new QRegion();
+            for (Rectangle rectangle : rectangles) {
+                QRect rect = new QRect(rectangle.x(), rectangle.y(),
+                        rectangle.width(), rectangle.height());
+                QRegion united = region.united(rect);
+                region.dispose();
+                region = united;
+                rect.dispose();
+            }
+            return region;
+        }
+
         void setOutgoing(List<OutgoingBorders> outgoing) {
             this.outgoing = outgoing;
+            if (outgoingEnclosingInk != null) {
+                outgoingEnclosingInk.dispose();
+                outgoingEnclosingInk = null;
+            }
+            List<Rectangle> ink = new ArrayList<>();
+            for (OutgoingBorders outgoingBorders : outgoing)
+                ink.addAll(outgoingBorders.enclosingInk());
+            outgoingEnclosingInk = region(ink);
             if (outgoing.isEmpty() && outgoingCrop != null) {
                 outgoingCrop.dispose();
                 outgoingCrop = null;
@@ -3189,11 +3266,19 @@ public final class HintMeshRenderer {
             this.shadowPixmapY = y;
         }
 
-        void disposeShadowPixmap() {
-            if (shadowPixmap == null)
-                return;
-            shadowPixmap.dispose();
-            shadowPixmap = null;
+        void disposeBuffers() {
+            if (shadowPixmap != null) {
+                shadowPixmap.dispose();
+                shadowPixmap = null;
+            }
+            if (enclosingInk != null) {
+                enclosingInk.dispose();
+                enclosingInk = null;
+            }
+            if (outgoingEnclosingInk != null) {
+                outgoingEnclosingInk.dispose();
+                outgoingEnclosingInk = null;
+            }
         }
 
         @Override
@@ -3219,6 +3304,11 @@ public final class HintMeshRenderer {
                     QRect coveredRect = new QRect(c.x(), c.y(), c.width(), c.height());
                     QRegion covered = new QRegion(coveredRect);
                     QRegion visible = dirtyRegion.subtracted(covered);
+                    if (outgoingEnclosingInk != null) {
+                        QRegion clipped = visible.subtracted(outgoingEnclosingInk);
+                        visible.dispose();
+                        visible = clipped;
+                    }
                     painter.setClipRegion(visible);
                     for (HintBox box : outgoingBorders.boxes())
                         box.paintBorder(painter);
@@ -3230,7 +3320,16 @@ public final class HintMeshRenderer {
                 dirtyRegion.dispose();
                 outgoingDirty.dispose();
             }
-            if (crop != null) {
+            if (enclosingInk != null) {
+                QRect clip = crop != null ? crop.intersected(event.rect()) : new QRect(event.rect());
+                QRegion clipRegion = new QRegion(clip);
+                QRegion visible = clipRegion.subtracted(enclosingInk);
+                painter.setClipRegion(visible);
+                visible.dispose();
+                clipRegion.dispose();
+                clip.dispose();
+            }
+            else if (crop != null) {
                 QRect clip = crop.intersected(event.rect());
                 painter.setClipRect(clip);
                 clip.dispose();
@@ -3303,7 +3402,7 @@ public final class HintMeshRenderer {
                 new HintMesh.HintMeshBuilder(lastHintMeshKey).hints(List.of(hint))
                                                              .build();
         PixmapAndPosition pixmapAndPosition =
-                new PixmapAndPosition(pixmap, boxWindowX, boxWindowY, null, hintMesh,
+                new PixmapAndPosition(pixmap, boxWindowX, boxWindowY, null, List.of(), hintMesh,
                         hintMeshWindow.window.x(), hintMeshWindow.window.y());
         setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, false, pixmapAndPosition);
     }

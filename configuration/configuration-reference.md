@@ -742,7 +742,8 @@ hint-mode.hint.font-shadow-vertical-offset=0
 hint-mode.hint.selected-font-color=#A3A3A3
 hint-mode.hint.selected-font-opacity=1.0
 
-# Prefix box (for multi-character hints)
+# Prefix box (for multi-character hints). A border is never drawn where an enclosing one
+# already draws, so the hint boxes leave the prefix box its own.
 hint-mode.hint.prefix-box-enabled=true
 hint-mode.hint.prefix-box-border-thickness=4
 hint-mode.hint.prefix-box-border-color=#FFD93D
