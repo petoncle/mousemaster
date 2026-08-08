@@ -27,15 +27,15 @@
     },
     "Tab",
     {
-      "c": "#621dba"
+      "c": "#cdaef0"
     },
     "Q\n\n\n\n\n\nDisable",
     {
-      "c": "#0b21a3"
+      "c": "#c6d5fc"
     },
-    "W\n\n\n\n\n\nUp",
+    "W\n↑(+Alt)\n\n\n\n\nUp",
     {
-      "c": "#621dba"
+      "c": "#cdaef0"
     },
     "E\n(+Alt)\n\n\n\n\nEnable",
     {
@@ -44,26 +44,20 @@
     "R",
     "T",
     {
-      "c": "#1c3c6d",
-      "f": 2
+      "c": "#b6c6d9"
     },
-    "Y\nForward\n\n\n\n\nNavigate",
+    "Y\nForward\n\n\n\n\nNav",
     {
-      "c": "#bc251e",
-      "f": 3
+      "c": "#f8bfba"
     },
     "U\nFast\n\n\n\n\nMouse",
     {
-      "c": "#168a93",
-      "f": 1
+      "c": "#a8dfe6"
     },
-    "I\n↑(+L.Alt)\n\n\n\n\nWheel\nLeft",
-    {
-      "f": 3
-    },
+    "I\nLeft\n\n\n\n\nWheel",
     "O\nRight\n\n\n\n\nWheel",
     {
-      "c": "#621dba"
+      "c": "#cdaef0"
     },
     "P\n\n\n\n\n\nDisable",
     {
@@ -78,39 +72,34 @@
   ],
   [
     {
-      "c": "#621dba",
+      "c": "#cdaef0",
       "w": 1.75
     },
     "Caps Lock\nSuper Slow\n\n\n\n\nEnable (+Alt)",
     {
-      "c": "#0b21a3"
+      "c": "#c6d5fc"
     },
-    "A\n\n\n\n\n\nLeft",
-    "S\n\n\n\n\n\nDown",
-    "D\n\n\n\n\n\nRight",
+    "A\n←(+Alt)\n\n\n\n\nLeft",
+    "S\n↓(+Alt)\n\n\n\n\nDown",
+    "D\n→(+Alt)\n\n\n\n\nRight",
     {
-      "c": "#ebd400"
+      "c": "#f7e98c"
     },
-    "F\n\n\n\n\n\nHints",
+    "F\nUI(+Alt)\n\n\n\n\nHints",
     "G\n\n\n\n\n\nGrid",
     {
-      "c": "#1c3c6d",
-      "f": 2
+      "c": "#b6c6d9"
     },
-    "H\nBack\n\n\n\n\nNavigate",
+    "H\nBack\n\n\n\n\nNav",
     {
-      "c": "#bc251e",
-      "f": 1
+      "c": "#f8bfba"
     },
-    "J\n←(+L.Alt)\n\n\n\n\nMouse\nJmp",
+    "J\nJump\n\n\n\n\nMouse",
     {
-      "c": "#689b34"
+      "c": "#d4e9b6"
     },
-    "K\n↓(+L.Alt)\n\n\n\n\nClick\nLeft",
-    "L\n→(+L.Alt)\n\n\n\n\nClick\nRight",
-    {
-      "f": 3
-    },
+    "K\nLeft\n\n\n\n\nClick",
+    "L\nRight\n\n\n\n\nClick",
     ";\nMiddle\n\n\n\n\nClick",
     {
       "c": "#cccccc"
@@ -123,7 +112,7 @@
   ],
   [
     {
-      "c": "#bc251e",
+      "c": "#f8bfba",
       "w": 2.25
     },
     "Shift\nWheel Slow\n\n\n\n\nMouse Slow",
@@ -133,31 +122,29 @@
     "Z",
     "X",
     {
-      "c": "#ebd400"
+      "c": "#f7e98c"
     },
     "C\nSelect\n\n\n\n\nScreen",
     {
-      "c": "#bc251e"
+      "c": "#f8bfba"
     },
     "V\nFast\n\n\n\n\nWheel",
     "B\nFast\n\n\n\n\nWheel",
     {
-      "c": "#00773a"
+      "c": "#b2e2c6"
     },
     "N\nLClick\n\n\n\n\nToggle",
     {
-      "c": "#168a93"
+      "c": "#a8dfe6"
     },
     "M\nDown\n\n\n\n\nWheel",
     ",\nUp\n\n\n\n\nWheel",
     {
-      "c": "#689b34",
-      "f": 1
+      "c": "#d4e9b6"
     },
     ".\nClick Then Disable",
     {
-      "c": "#cccccc",
-      "f": 3
+      "c": "#cccccc"
     },
     ">\n/",
     {
@@ -175,29 +162,18 @@
     },
     "Win",
     {
-      "c": "#621dba",
-      "f": 1,
-      "fa": [
-        3,
-        0,
-        0,
-        0,
-        0,
-        0,
-        2
-      ],
+      "c": "#cdaef0",
       "w": 1.25
     },
-    "Alt\n\n\n+E or +CapsLock\n\n\nEnable",
+    "Alt\n+E/Caps\n\n\n\n\nEnable",
     {
       "c": "#cccccc",
       "a": 7,
-      "f": 3,
       "w": 6.25
     },
     "",
     {
-      "c": "#b22269",
+      "c": "#f4b8d3",
       "a": 4,
       "w": 1.75
     },

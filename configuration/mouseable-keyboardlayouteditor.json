@@ -1,0 +1,219 @@
+[
+  {
+    "css": ""
+  },
+  [
+    {
+      "c": "#cdaef0"
+    },
+    "Esc\n\n\n\n\n\nExit",
+    {
+      "x": 1,
+      "c": "#cccccc"
+    },
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    {
+      "x": 0.5
+    },
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    {
+      "x": 0.5
+    },
+    "F9",
+    "F10",
+    "F11",
+    "F12",
+    {
+      "x": 0.25
+    },
+    "PrtSc",
+    "Scroll\nLock",
+    "Pause"
+  ],
+  [
+    {
+      "y": 0.25
+    },
+    "~\n`",
+    "!\n1",
+    "@\n2",
+    "#\n3",
+    "$\n4",
+    "%\n5",
+    "^\n6",
+    "&\n7",
+    "*\n8",
+    "(\n9",
+    ")\n0",
+    "_\n-",
+    "+\n=",
+    {
+      "w": 2
+    },
+    "Backspace",
+    {
+      "x": 0.25
+    },
+    "Insert",
+    "Home",
+    "PgUp"
+  ],
+  [
+    {
+      "w": 1.5
+    },
+    "Tab",
+    "Q",
+    "W",
+    "E",
+    "R",
+    "T",
+    {
+      "c": "#a8dfe6"
+    },
+    "Y\nLeft\n\n\n\n\nWheel",
+    "U\nDown\n\n\n\n\nWheel",
+    "I\nUp\n\n\n\n\nWheel",
+    "O\nRight\n\n\n\n\nWheel",
+    {
+      "c": "#cccccc"
+    },
+    "P",
+    "{\n[",
+    "}\n]",
+    {
+      "w": 1.5
+    },
+    "|\n\\",
+    {
+      "x": 0.25
+    },
+    "Delete",
+    "End",
+    "PgDn"
+  ],
+  [
+    {
+      "w": 1.75
+    },
+    "Caps Lock",
+    {
+      "c": "#d4e9b6"
+    },
+    "A\nLeft\n\n\n\n\nClick",
+    "S\nRight\n\n\n\n\nClick",
+    "D\nMiddle\n\n\n\n\nClick",
+    {
+      "c": "#f8bfba"
+    },
+    "F\n\n\n\n\n\nFast",
+    {
+      "c": "#cccccc"
+    },
+    "G",
+    {
+      "c": "#c6d5fc"
+    },
+    "H\nEdge\n\n\n\n\nLeft",
+    "J\nEdge\n\n\n\n\nDown",
+    "K\nEdge\n\n\n\n\nUp",
+    "L\nEdge\n\n\n\n\nRight",
+    {
+      "c": "#cdaef0"
+    },
+    ";\n\n\n\n\n\nExit",
+    {
+      "c": "#cccccc"
+    },
+    "\"\n'",
+    {
+      "w": 2.25
+    },
+    "Enter"
+  ],
+  [
+    {
+      "w": 2.25,
+      "c": "#f7e98c"
+    },
+    "Shift\ntap×2\n\n\n\n\nGrid",
+    {
+      "c": "#cccccc"
+    },
+    "Z",
+    "X",
+    "C",
+    "V",
+    "B",
+    "N",
+    {
+      "c": "#f4b8d3"
+    },
+    "M\n+Shift\n\n\n\n\nCenter",
+    {
+      "c": "#cccccc"
+    },
+    "<\n,",
+    ">\n.",
+    "?\n/",
+    {
+      "w": 2.75
+    },
+    "Shift",
+    {
+      "x": 1.25
+    },
+    "↑"
+  ],
+  [
+    {
+      "w": 1.25,
+      "c": "#cdaef0"
+    },
+    "Ctrl\ntap×2\n\n\n\n\nEnable",
+    {
+      "w": 1.25,
+      "c": "#cccccc"
+    },
+    "Win",
+    {
+      "w": 1.25,
+      "c": "#f7e98c"
+    },
+    "Alt\n×2/Edge\n\n\n\n\nHints",
+    {
+      "w": 6.25,
+      "c": "#f8bfba"
+    },
+    "\n\n\n\n\n\nSlow",
+    {
+      "w": 1.25,
+      "c": "#cccccc"
+    },
+    "Alt",
+    {
+      "w": 1.25
+    },
+    "Win",
+    {
+      "w": 1.25
+    },
+    "Menu",
+    {
+      "w": 1.25
+    },
+    "Ctrl",
+    {
+      "x": 0.25
+    },
+    "←",
+    "↓",
+    "→"
+  ]
+]

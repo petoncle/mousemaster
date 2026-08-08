@@ -1,0 +1,241 @@
+[
+  {
+    "css": ""
+  },
+  [
+    {
+      "c": "#cdaef0"
+    },
+    "Esc\n\n\n\n\n\nIdle",
+    {
+      "x": 1,
+      "c": "#cccccc"
+    },
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    {
+      "x": 0.5
+    },
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    {
+      "x": 0.5
+    },
+    "F9",
+    "F10",
+    "F11",
+    "F12",
+    {
+      "x": 0.25
+    },
+    "PrtSc",
+    "Scroll\nLock",
+    "Pause"
+  ],
+  [
+    {
+      "y": 0.25,
+      "c": "#f4b8d3"
+    },
+    "`\n\n\n\n\n\nFollow",
+    {
+      "c": "#cccccc"
+    },
+    "!\n1",
+    "@\n2",
+    "#\n3",
+    "$\n4",
+    "%\n5",
+    "^\n6",
+    "&\n7",
+    "*\n8",
+    "(\n9",
+    ")\n0",
+    "_\n-",
+    "+\n=",
+    {
+      "w": 2,
+      "c": "#b6c6d9"
+    },
+    "Backspace\n\n\n\n\n\nBack",
+    {
+      "x": 0.25,
+      "c": "#cccccc"
+    },
+    "Insert",
+    "Home",
+    "PgUp"
+  ],
+  [
+    {
+      "w": 1.5
+    },
+    "Tab",
+    "Q",
+    "W",
+    "E",
+    {
+      "c": "#d4e9b6"
+    },
+    "R\nCell\n\n\n\n\nRight",
+    {
+      "c": "#c6d5fc"
+    },
+    "T\n\n\n\n\n\nCell",
+    "Y\n\n\n\n\n\nCell",
+    {
+      "c": "#d4e9b6"
+    },
+    "U\n\n\n\n\n\nRelease",
+    "I\nLeft\n\n\n\n\nPress",
+    {
+      "c": "#cccccc"
+    },
+    "O",
+    "P",
+    "{\n[",
+    "}\n]",
+    {
+      "w": 1.5
+    },
+    "|\n\\",
+    {
+      "x": 0.25
+    },
+    "Delete",
+    "End",
+    "PgDn"
+  ],
+  [
+    {
+      "w": 1.75
+    },
+    "Caps Lock",
+    "A",
+    {
+      "c": "#a8dfe6"
+    },
+    "S\n\n\n\n\n\nScroll",
+    {
+      "c": "#cccccc"
+    },
+    "D",
+    {
+      "c": "#c6d5fc"
+    },
+    "F\n\n\n\n\n\nCell",
+    {
+      "c": "#f7e98c"
+    },
+    "G\nCell\n\n\n\n\nHints",
+    {
+      "c": "#a8dfe6"
+    },
+    "H\nCell\n\n\n\n\nScr←",
+    "J\n\n\n\n\n\nScr↓",
+    "K\n\n\n\n\n\nScr↑",
+    {
+      "c": "#d4e9b6"
+    },
+    "L\nScr→\n\n\n\n\nLeft",
+    {
+      "c": "#cccccc"
+    },
+    ":\n;",
+    "\"\n'",
+    {
+      "w": 2.25
+    },
+    "Enter"
+  ],
+  [
+    {
+      "w": 2.25,
+      "c": "#d4e9b6"
+    },
+    "Shift\n+L/R/M\n\n\n\n\nClick",
+    {
+      "c": "#cccccc"
+    },
+    "Z",
+    "X",
+    {
+      "c": "#f7e98c"
+    },
+    "C\n\n\n\n\n\nRecurse",
+    {
+      "c": "#c6d5fc"
+    },
+    "V\n\n\n\n\n\nCell",
+    "B\n\n\n\n\n\nCell",
+    "N\n\n\n\n\n\nCell",
+    {
+      "c": "#f7e98c"
+    },
+    "M\nMid\n\n\n\n\nMonitor",
+    {
+      "c": "#cccccc"
+    },
+    "<\n,",
+    ">\n.",
+    "?\n/",
+    {
+      "w": 2.75
+    },
+    "Shift",
+    {
+      "x": 1.25,
+      "c": "#c6d5fc"
+    },
+    "↑\n\n\n\n\n\nMove"
+  ],
+  [
+    {
+      "w": 1.25,
+      "c": "#cdaef0"
+    },
+    "Ctrl\n+Shift\n\n\n\n\nLaunch",
+    {
+      "w": 1.25,
+      "c": "#cccccc"
+    },
+    "Win",
+    {
+      "w": 1.25
+    },
+    "Alt",
+    {
+      "w": 6.25,
+      "c": "#f7e98c"
+    },
+    "\nReset\n\n\n\n\nUI Hints",
+    {
+      "w": 1.25,
+      "c": "#cccccc"
+    },
+    "Alt",
+    {
+      "w": 1.25
+    },
+    "Win",
+    {
+      "w": 1.25
+    },
+    "Menu",
+    {
+      "w": 1.25
+    },
+    "Ctrl",
+    {
+      "x": 0.25,
+      "c": "#c6d5fc"
+    },
+    "←\n\n\n\n\n\nMove",
+    "↓\n\n\n\n\n\nMove",
+    "→\n\n\n\n\n\nMove"
+  ]
+]

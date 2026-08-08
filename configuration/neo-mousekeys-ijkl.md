@@ -8,7 +8,7 @@
 - Press _i_, _j_, _k_, _l_ to move the mouse.
 - Press _q_ or _p_ to deactivate.
 
-![neo-mousekeys-ijkl layout](https://github.com/user-attachments/assets/5e0aa96d-96f2-4349-9b2f-26dcca4933c0)
+![neo-mousekeys-ijkl layout](neo-mousekeys-ijkl-layout.png)
 
 ## Normal Mode (hold _leftalt_ then press _e_, or hold _leftalt_ then press _capslock_)
 

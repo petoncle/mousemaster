@@ -8,7 +8,7 @@
 - Press _w_, _a_, _s_, _d_ to move the mouse.
 - Press _q_ or _p_ to deactivate.
 
-![neo-mousekeys-wasd layout](https://github.com/user-attachments/assets/a37f4a7d-12ef-426d-9e95-128137514379)
+![neo-mousekeys-wasd layout](neo-mousekeys-wasd-layout.png)
 
 ## Normal Mode (hold _leftalt_ then press _e_, or hold _leftalt_ then press _capslock_)
 

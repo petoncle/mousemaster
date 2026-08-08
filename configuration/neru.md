@@ -6,6 +6,10 @@ Designed to mimic the features of the [neru](https://github.com/y3owk1n/neru) pr
 
 A keyboard-only mouse driven by hints: launch a mode, jump the cursor onto a target, click. The pattern is always **Ctrl+Shift** to start a mode, then **unmodified keys** to pick a cell, and **Shift+L/R/M** to click.
 
+![neru layout](neru-layout.png)
+
+Mode launchers are yellow, the recursive 3×3 cells blue, scrolling teal, and clicking green ([neru-keyboardlayouteditor.json](neru-keyboardlayouteditor.json)).
+
 ## Launch
 
 From idle — or to switch between modes — hold **Ctrl+Shift** and press:

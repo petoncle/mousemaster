@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/b395505e-9a06-4ec8-b361-81323c7b3fb4
 https://github.com/user-attachments/assets/91eef554-bf68-44a7-8d16-5e4d5d353fe0
 
 ### Continuous mouse movement
-https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
+https://github.com/user-attachments/assets/7300bf36-6a02-4615-b068-30c38571fc24
 
 ## Installation
 
@@ -110,9 +110,7 @@ permissions are needed.
 
 ## Usage
 
-### Default configuration (neo-mousekeys-ijkl)
-
-The recommended configuration uses the following key bindings:
+### neo-mousekeys-ijkl configuration
 
 - **Activate**: Press _leftalt + e_ or _leftalt + capslock_
 - **Deactivate**: Press _q_ or _p_
@@ -123,7 +121,7 @@ The recommended configuration uses the following key bindings:
 - **UI Hint mode**: Press _leftalt + f_
 - **Screen selection**: Press _c_
 
-![neo-mousekeys-ijkl layout](https://github.com/user-attachments/assets/5e0aa96d-96f2-4349-9b2f-26dcca4933c0)
+![neo-mousekeys-ijkl layout](configuration/neo-mousekeys-ijkl-layout.png)
 
 For a complete reference, see the [neo-mousekeys-ijkl documentation](configuration/neo-mousekeys-ijkl.md).
 

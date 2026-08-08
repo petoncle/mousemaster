@@ -1,0 +1,249 @@
+[
+  {
+    "css": ""
+  },
+  [
+    {
+      "c": "#cdaef0"
+    },
+    "Esc\n\n\n\n\n\nExit",
+    {
+      "x": 1,
+      "c": "#cccccc"
+    },
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    {
+      "x": 0.5
+    },
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    {
+      "x": 0.5
+    },
+    "F9",
+    "F10",
+    "F11",
+    "F12",
+    {
+      "x": 0.25
+    },
+    "PrtSc",
+    "Scroll\nLock",
+    "Pause"
+  ],
+  [
+    {
+      "y": 0.25
+    },
+    "~\n`",
+    "!\n1",
+    "@\n2",
+    "#\n3",
+    {
+      "c": "#f4b8d3"
+    },
+    "$\nRight\n\n\n\n\nSnap",
+    {
+      "c": "#cccccc"
+    },
+    "%\n5",
+    "^\n6",
+    "&\n7",
+    "*\n8",
+    "(\n9",
+    {
+      "c": "#f4b8d3"
+    },
+    "0\nLeft\n\n\n\n\nSnap",
+    {
+      "c": "#b2e2c6"
+    },
+    "-\nMiddle\n\n\n\n\n1-shot",
+    {
+      "c": "#cccccc"
+    },
+    "+\n=",
+    {
+      "w": 2
+    },
+    "Backspace",
+    {
+      "x": 0.25
+    },
+    "Insert",
+    "Home",
+    "PgUp"
+  ],
+  [
+    {
+      "w": 1.5
+    },
+    "Tab",
+    "Q",
+    {
+      "c": "#a8dfe6"
+    },
+    "W\nLeft\n\n\n\n\nWheel",
+    "E\nDown\n\n\n\n\nWheel",
+    "R\nUp\n\n\n\n\nWheel",
+    "T\nRight\n\n\n\n\nWheel",
+    {
+      "c": "#cccccc"
+    },
+    "Y",
+    "U",
+    "I",
+    "O",
+    "P",
+    "{\n[",
+    "}\n]",
+    {
+      "w": 1.5
+    },
+    "|\n\\",
+    {
+      "x": 0.25
+    },
+    "Delete",
+    "End",
+    "PgDn"
+  ],
+  [
+    {
+      "w": 1.75
+    },
+    "Caps Lock",
+    {
+      "c": "#f8bfba"
+    },
+    "A\n\n\n\n\n\nFast",
+    {
+      "c": "#f7e98c"
+    },
+    "S\n\n\n\n\n\nScreen",
+    {
+      "c": "#f8bfba"
+    },
+    "D\n\n\n\n\n\nSlow",
+    {
+      "c": "#cccccc"
+    },
+    "F",
+    {
+      "c": "#f7e98c"
+    },
+    "G\n\n\n\n\n\nGrid",
+    {
+      "c": "#c6d5fc"
+    },
+    "H\n↑+Sh\n\n\n\n\nLeft",
+    "J\n\n\n\n\n\nDown",
+    "K\n\n\n\n\n\nUp",
+    "L\n↓+Sh\n\n\n\n\nRight",
+    {
+      "c": "#b6c6d9"
+    },
+    ";\n\n\n\n\n\nHistory",
+    {
+      "c": "#cccccc"
+    },
+    "\"\n'",
+    {
+      "w": 2.25
+    },
+    "Enter"
+  ],
+  [
+    {
+      "w": 2.25
+    },
+    "Shift",
+    "Z",
+    {
+      "c": "#f7e98c"
+    },
+    "X\n2nd+Sh\n\n\n\n\nHints",
+    {
+      "c": "#cdaef0"
+    },
+    "C\nCopy\n\n\n\n\nExit",
+    {
+      "c": "#b2e2c6"
+    },
+    "V\n\n\n\n\n\nDrag",
+    {
+      "c": "#cccccc"
+    },
+    "B",
+    {
+      "c": "#b2e2c6"
+    },
+    "N\nLeft\n\n\n\n\n1-shot",
+    {
+      "c": "#d4e9b6"
+    },
+    "M\nLeft\n\n\n\n\nClick",
+    ",\nMiddle\n\n\n\n\nClick",
+    ".\nRight\n\n\n\n\nClick",
+    {
+      "c": "#b2e2c6"
+    },
+    "/\nRight\n\n\n\n\n1-shot",
+    {
+      "w": 2.75,
+      "c": "#cccccc"
+    },
+    "Shift",
+    {
+      "x": 1.25
+    },
+    "↑"
+  ],
+  [
+    {
+      "w": 1.25
+    },
+    "Ctrl",
+    {
+      "w": 1.25
+    },
+    "Win",
+    {
+      "w": 1.25,
+      "c": "#cdaef0"
+    },
+    "Alt\n+CGXSH\n\n\n\n\nEnable",
+    {
+      "w": 6.25,
+      "c": "#cccccc"
+    },
+    "",
+    {
+      "w": 1.25
+    },
+    "Alt",
+    {
+      "w": 1.25
+    },
+    "Win",
+    {
+      "w": 1.25
+    },
+    "Menu",
+    {
+      "w": 1.25
+    },
+    "Ctrl",
+    {
+      "x": 0.25
+    },
+    "←",
+    "↓",
+    "→"
+  ]
+]
