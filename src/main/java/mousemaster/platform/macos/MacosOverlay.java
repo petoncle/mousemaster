@@ -8,6 +8,7 @@ import mousemaster.HintMeshConfiguration;
 import mousemaster.Indicator;
 import mousemaster.Point;
 import mousemaster.Rectangle;
+import mousemaster.Screen;
 import mousemaster.Zoom;
 import mousemaster.platform.Overlay;
 import mousemaster.qt.QtHintFont;
@@ -130,9 +131,11 @@ public class MacosOverlay implements Overlay {
         if (indicatorRenderer == null)
             createIndicatorWindow();
         QPoint mousePosition = mouse.findMousePosition();
+        Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
         indicatorRenderer.setIndicator(indicator, fadeAnimationEnabled,
-                fadeAnimationDuration, allowFade, cursorRectangle(mousePosition),
-                MacosCursor.visualCenter(), MacosScreens.findActiveScreen(mousePosition), null);
+                fadeAnimationDuration, allowFade,
+                cursorRectangle(mousePosition, activeScreen),
+                cursorVisualCenter(activeScreen), activeScreen, null);
     }
 
     @Override
@@ -144,14 +147,23 @@ public class MacosOverlay implements Overlay {
     public void repositionIndicator(QPoint mousePosition) {
         if (indicatorRenderer == null || indicatorRenderer.currentIndicator() == null)
             return;
-        indicatorRenderer.reposition(cursorRectangle(mousePosition), MacosCursor.visualCenter(),
-                MacosScreens.findActiveScreen(mousePosition), null);
+        Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
+        indicatorRenderer.reposition(cursorRectangle(mousePosition, activeScreen),
+                cursorVisualCenter(activeScreen), activeScreen, null);
     }
 
-    private static Rectangle cursorRectangle(QPoint mousePosition) {
+    /** The cursor is measured in points, and the indicator it positions is in pixels. */
+    private static Rectangle cursorRectangle(QPoint mousePosition, Screen activeScreen) {
         Point size = MacosCursor.size();
-        return new Rectangle(mousePosition.x(), mousePosition.y(), (int) size.x(),
-                (int) size.y());
+        return new Rectangle(mousePosition.x(), mousePosition.y(),
+                (int) Math.round(size.x() * activeScreen.scale()),
+                (int) Math.round(size.y() * activeScreen.scale()));
+    }
+
+    private static Point cursorVisualCenter(Screen activeScreen) {
+        Point visualCenter = MacosCursor.visualCenter();
+        return new Point(visualCenter.x() * activeScreen.scale(),
+                visualCenter.y() * activeScreen.scale());
     }
 
     @Override
