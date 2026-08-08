@@ -31,7 +31,13 @@
   }, {
     "pattern":"\\Qcom/sun/jna/win32-x86-64/jnidispatch.dll\\E"
   }, {
+    "pattern":"\\Qcom/sun/jna/darwin-aarch64/libjnidispatch.jnilib\\E"
+  }, {
+    "pattern":"\\Qcom/sun/jna/darwin-x86-64/libjnidispatch.jnilib\\E"
+  }, {
     "pattern":"\\Qdarwin-aarch64/libdriverkit.dylib\\E"
+  }, {
+    "pattern":"\\Qdarwin-x86-64/libdriverkit.dylib\\E"
   }, {
     "pattern":"\\Qio/qt/internal/LibraryUtility.class\\E"
   }, {

@@ -189,6 +189,12 @@
                         </executions>
                         <configuration>
                             <fallback>false</fallback>
+                            <!-- The repository refuses to run on GraalVM 25.0.1, the last release
+                            built for macOS Intel. What it contributed for jna and logback, the
+                            agent already writes into the json files below. -->
+                            <metadataRepository>
+                                <enabled>false</enabled>
+                            </metadataRepository>
                             <!-- https://graalvm.github.io/native-build-tools/latest/maven-plugin.html#agent-support-configuring-options -->
                             <!-- https://medium.com/graalvm/simplifying-native-image-generation-with-maven-plugin-and-embeddable-configuration-d5b283b92f57 -->
                             <!-- ./mvnw -Pnative -Dagent package will read the json files from the jar's META-INF/native-image. -->
