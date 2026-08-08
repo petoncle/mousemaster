@@ -686,6 +686,8 @@ hint-mode.hint.box-border-length=1000
 hint-mode.hint.box-border-color=#FFFFFF
 hint-mode.hint.box-border-opacity=0.4
 hint-mode.hint.box-border-radius=0
+# false draws the lines between the boxes only, no border around the grid
+hint-mode.hint.box-closed=true
 
 # Box shadow for UI hints and position history hints only
 hint-mode.hint.box-shadow-blur-radius=10
@@ -710,7 +712,7 @@ hint-mode.hint.subdecoration-box-border-thickness=1
 hint-mode.hint.subdecoration-box-border-length=10000
 hint-mode.hint.subdecoration-box-border-color=#FFFFFF
 hint-mode.hint.subdecoration-box-border-opacity=1.0
-hint-mode.hint.subdecoration-closed=false
+hint-mode.hint.subdecoration-box-closed=false
 hint-mode.hint.subdecoration-font-size=10
 hint-mode.hint.subdecoration-font-color=#FFFFFF
 hint-mode.hint.subdecoration-font-opacity=1.0
@@ -745,6 +747,8 @@ hint-mode.hint.prefix-box-enabled=true
 hint-mode.hint.prefix-box-border-thickness=4
 hint-mode.hint.prefix-box-border-color=#FFD93D
 hint-mode.hint.prefix-box-border-opacity=0.8
+# false draws the lines between the prefix boxes only, no border around the grid
+hint-mode.hint.prefix-box-closed=true
 hint-mode.hint.prefix-in-background=true
 
 # Animation
@@ -783,7 +787,7 @@ hint-mode.hint.background-opacity=0
   - `<level>-box-color` / `<level>-box-opacity`: Cell fill.
   - `<level>-box-border-thickness` / `<level>-box-border-color` / `<level>-box-border-opacity` / `<level>-box-border-radius`: The lines. (Names mirror the top-level `box-border-*`.)
   - `<level>-box-border-length`: Length of each line; high values (default 10000) draw continuous lines, low values draw short marks (e.g. a `+` at the center of a 2x2 decoration).
-  - `<level>-closed`: Whether the decoration draws its own outer perimeter (default false). When false, only interior lines are drawn (the hint box border acts as the outer edge); set true for a fully-enclosed grid that does not rely on the parent border.
+  - `<level>-box-closed`: Whether the decoration draws its own outer perimeter (default false). When false, only interior lines are drawn (the hint box border acts as the outer edge); set true for a fully-enclosed grid that does not rely on the parent border. Same property as the top-level `box-closed` and `prefix-box-closed`, which default to true since nothing encloses them.
 
 - Font appearance: controls how hint labels appear
     - `font-spacing-percent`: Controls character spacing (0=touching, 1=evenly distributed, 0.5=minimal spacing with alignment)

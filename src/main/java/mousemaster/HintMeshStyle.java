@@ -14,12 +14,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             String boxBorderHexColor,
                             double boxBorderOpacity,
                             double boxBorderRadius,
+                            boolean boxClosed,
                             Shadow boxShadow,
                             boolean prefixBoxEnabled,
                             double prefixBoxBorderThickness,
                             double prefixBoxBorderLength,
                             String prefixBoxBorderHexColor,
                             double prefixBoxBorderOpacity,
+                            boolean prefixBoxClosed,
                             double boxWidthPercent,
                             double boxHeightPercent,
                             double cellHorizontalPadding,
@@ -48,12 +50,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
         private Double boxBorderRadius;
+        private Boolean boxClosed;
         private Shadow.ShadowBuilder boxShadow = new Shadow.ShadowBuilder();
         private Boolean prefixBoxEnabled;
         private Double prefixBoxBorderThickness;
         private Double prefixBoxBorderLength;
         private String prefixBoxBorderHexColor;
         private Double prefixBoxBorderOpacity;
+        private Boolean prefixBoxClosed;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
         private Double cellHorizontalPadding;
@@ -86,12 +90,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.boxBorderHexColor = style.boxBorderHexColor;
             this.boxBorderOpacity = style.boxBorderOpacity;
             this.boxBorderRadius = style.boxBorderRadius;
+            this.boxClosed = style.boxClosed;
             this.boxShadow = new Shadow.ShadowBuilder(style.boxShadow);
             this.prefixBoxEnabled = style.prefixBoxEnabled;
             this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
             this.prefixBoxBorderLength = style.prefixBoxBorderLength;
             this.prefixBoxBorderHexColor = style.prefixBoxBorderHexColor;
             this.prefixBoxBorderOpacity = style.prefixBoxBorderOpacity;
+            this.prefixBoxClosed = style.prefixBoxClosed;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
             this.cellHorizontalPadding = style.cellHorizontalPadding;
@@ -149,6 +155,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
+        public HintMeshStyleBuilder boxClosed(Boolean boxClosed) {
+            this.boxClosed = boxClosed;
+            return this;
+        }
+
         public HintMeshStyleBuilder prefixBoxEnabled(Boolean prefixBoxEnabled) {
             this.prefixBoxEnabled = prefixBoxEnabled;
             return this;
@@ -171,6 +182,11 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public HintMeshStyleBuilder prefixBoxBorderOpacity(Double prefixBoxBorderOpacity) {
             this.prefixBoxBorderOpacity = prefixBoxBorderOpacity;
+            return this;
+        }
+
+        public HintMeshStyleBuilder prefixBoxClosed(Boolean prefixBoxClosed) {
+            this.prefixBoxClosed = prefixBoxClosed;
             return this;
         }
 
@@ -282,6 +298,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxBorderRadius;
         }
 
+        public Boolean boxClosed() {
+            return boxClosed;
+        }
+
         public Shadow.ShadowBuilder boxShadow() {
             return boxShadow;
         }
@@ -304,6 +324,10 @@ public record HintMeshStyle(HintFontStyle fontStyle,
 
         public Double prefixBoxBorderOpacity() {
             return prefixBoxBorderOpacity;
+        }
+
+        public Boolean prefixBoxClosed() {
+            return prefixBoxClosed;
         }
 
         public Double boxWidthPercent() {
@@ -369,12 +393,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
                     boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
                     boxBorderRadius == null ? defaultStyle.boxBorderRadius : boxBorderRadius,
+                    boxClosed == null ? defaultStyle.boxClosed : boxClosed,
                     boxShadow.build(),
                     prefixBoxEnabled == null ? defaultStyle.prefixBoxEnabled : prefixBoxEnabled,
                     prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
                     prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,
                     prefixBoxBorderHexColor == null ? defaultStyle.prefixBoxBorderHexColor : prefixBoxBorderHexColor,
                     prefixBoxBorderOpacity == null ? defaultStyle.prefixBoxBorderOpacity : prefixBoxBorderOpacity,
+                    prefixBoxClosed == null ? defaultStyle.prefixBoxClosed : prefixBoxClosed,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
                     cellHorizontalPadding == null ? defaultStyle.cellHorizontalPadding : cellHorizontalPadding,

@@ -1440,7 +1440,7 @@ public final class HintMeshRenderer {
                             boxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
-                            true,
+                            style.boxClosed(),
                             qtScaleFactor,
                             (int) Math.round(style.boxBorderRadius())
                     );
@@ -1524,7 +1524,7 @@ public final class HintMeshRenderer {
                             prefixBoxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
-                            true,
+                            style.prefixBoxClosed(),
                             qtScaleFactor,
                             0
                     );
@@ -1721,7 +1721,7 @@ public final class HintMeshRenderer {
     /** The Qt drawing resources for one decoration. */
     private record DecorationStyle(QColor boxColor, QColor boxBorderColor,
                                    int borderThicknessPx, int borderLengthPx,
-                                   int borderRadiusPx, boolean closed,
+                                   int borderRadiusPx, boolean boxClosed,
                                    boolean labelVisible,
                                    QtFontStyle labelStyle,
                                    List<Key> labelOverride,
@@ -1736,7 +1736,7 @@ public final class HintMeshRenderer {
                 (int) Math.round(decoration.boxBorderThickness()),
                 (int) Math.round(decoration.boxBorderLength()),
                 (int) Math.round(decoration.boxBorderRadius()),
-                decoration.closed(),
+                decoration.boxClosed(),
                 font.opacity() != 0,
                 QtHintFont.qtFontStyle(font, screenScale),
                 decoration.labelOverride(),
@@ -1774,7 +1774,7 @@ public final class HintMeshRenderer {
                     decorationStyle.boxBorderColor(), true,
                     decorationBoxLeft == 0, decorationBoxTop == 0,
                     decorationBoxRight == parentWidth, decorationBoxBottom == parentHeight,
-                    decorationStyle.closed(), qtScaleFactor, decorationStyle.borderRadiusPx());
+                    decorationStyle.boxClosed(), qtScaleFactor, decorationStyle.borderRadiusPx());
             decorationBox.setGeometry(decorationBoxLeft, decorationBoxTop,
                     decorationBoxRight - decorationBoxLeft, decorationBoxBottom - decorationBoxTop);
             decorationBox.setDecorationLabel(labelKeys.stream()
