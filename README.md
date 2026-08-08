@@ -1,7 +1,19 @@
 # mousemaster
 
-- Control your mouse from the keyboard and remap your keys
+- Control your mouse from the keyboard and remap your keys, on Windows and macOS
 - Heavily inspired by [warpd](https://github.com/rvaiya/warpd), [mouseable](https://github.com/wirekang/mouseable/), [neru](https://github.com/y3owk1n/neru) and [kanata](https://github.com/jtroo/kanata)
+
+<div align="center">
+  <a href="#windows">
+    <img src="https://img.shields.io/badge/Windows-supported-2ea043?style=for-the-badge&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40NDlMOS43NSAyLjF2OS40NTFIMG0xMC45NDktOS42MDJMMjQgMHYxMS40SDEwLjk0OU0wIDEyLjZoOS43NXY5LjQ1MUwwIDIwLjY5OU0xMC45NDkgMTIuNkgyNFYyNGwtMTIuOS0xLjgwMSIvPjwvc3ZnPg==" alt="Windows: supported"/>
+  </a>
+  <a href="#macos">
+    <img src="https://img.shields.io/badge/macOS-supported-2ea043?style=for-the-badge&logo=apple&logoColor=white" alt="macOS: supported"/>
+  </a>
+  <a href="#contributing">
+    <img src="https://img.shields.io/badge/Linux-help%20wanted-6e7681?style=for-the-badge&logo=linux&logoColor=white" alt="Linux: help wanted"/>
+  </a>
+</div>
 
 <div align="center">
   <a href="https://discord.gg/GSB6MaKb2R">
@@ -20,17 +32,17 @@
 
 ## Demo
 
-### Hints
+### Hint grid
 https://github.com/user-attachments/assets/cfba2c70-7edd-44bf-b63e-ded1613368da
 
-### Recursive hints
+### Recursive hint grid
 https://github.com/user-attachments/assets/9140b3be-6109-4a90-a842-0a22c7e0e562
-
-### UI hints
-https://github.com/user-attachments/assets/91eef554-bf68-44a7-8d16-5e4d5d353fe0
 
 ### Recursive grid
 https://github.com/user-attachments/assets/b395505e-9a06-4ec8-b361-81323c7b3fb4
+
+### UI hints
+https://github.com/user-attachments/assets/91eef554-bf68-44a7-8d16-5e4d5d353fe0
 
 ### Continuous mouse movement
 https://github.com/petoncle/mousemaster/assets/39304282/2dadbfa0-1270-41ff-9e18-3fb3a28d5b6f
@@ -62,7 +74,7 @@ macOS support is new and testers are wanted: if you try it, please report what d
 work in an [issue](https://github.com/petoncle/mousemaster/issues).
 
 The setup below is more involved than it should be. mousemaster is not signed or notarized, which
-needs an Apple developer account I do not have yet, so macOS treats the app as unidentified and it
+needs an Apple developer account I do not have, so macOS treats the app as unidentified and it
 has to be allowed by hand.
 
 mousemaster reads the keyboard through the Karabiner virtual HID device, so that driver and a few
@@ -137,7 +149,7 @@ Contributions to mousemaster are welcome!
 
 - **Share a configuration**: If you have ideas for a new or improved configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
 
-- **Cross-platform support:** mousemaster supports Windows and macOS. The remaining work is Linux, for which the overlay is already cross-platform and only input handling is left.  
-  If you're interested in helping extend mousemaster to these platforms, your contributions are very welcome. Please open an issue or join the Discord to get involved.
+- **Cross-platform support:** mousemaster supports Windows and macOS.  
+  If you're interested in helping extend mousemaster to Linux, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
 If you enjoy mousemaster, consider making a [donation](https://ko-fi.com/petoncle) or stop by the Discord to show your support!
