@@ -56,7 +56,9 @@ public class TransparentWindow extends QWidget {
     private static QRect logicalGeometry(Rectangle screenRectangle) {
         for (QScreen qScreen : QGuiApplication.screens()) {
             QRect geometry = qScreen.geometry();
-            if (Math.round(geometry.x() * qScreen.devicePixelRatio()) == screenRectangle.x())
+            double scale = qScreen.devicePixelRatio();
+            if (Math.round(geometry.x() * scale) == screenRectangle.x() &&
+                Math.round(geometry.y() * scale) == screenRectangle.y())
                 return geometry;
         }
         return QGuiApplication.primaryScreen().geometry();
