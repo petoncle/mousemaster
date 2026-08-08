@@ -71,8 +71,11 @@ permissions are needed.
 
 1. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org), which installs the virtual HID
    device, and allow its system extension when macOS asks.
-2. Download and unzip **mousemaster-macos.zip** from the [Release page](https://github.com/petoncle/mousemaster/releases/latest),
-   then put **mousemaster.app** in **/Applications**, next to a **mousemaster.properties**.
+2. Download and unzip the archive for your Mac from the [Release page](https://github.com/petoncle/mousemaster/releases/latest):
+   - Apple Silicon: **mousemaster-macos.zip**
+   - Intel: **mousemaster-macos-x86_64.zip**
+
+   Then put **mousemaster.app** in **/Applications**, next to a **mousemaster.properties**.
 3. Run it from a terminal, as root, which the virtual HID device requires:
    ```
    sudo /Applications/mousemaster.app/Contents/MacOS/mousemaster

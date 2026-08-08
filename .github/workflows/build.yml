@@ -65,8 +65,24 @@ jobs:
   # (cmd, ren, pefrmdllembed). It cannot run the functional suite, which needs the karabiner
   # driver extension, root, Input Monitoring and a logged in console session.
   build-macos:
-    name: mousemaster on macos-latest
-    runs-on: macos-latest
+    name: mousemaster on ${{ matrix.os }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Keep the existing archive and artifact names for Apple Silicon so current links and
+          # download automation continue to work.
+          - os: macos-latest
+            arch: arm64
+            resource-arch: aarch64
+            archive: mousemaster-macos.zip
+            artifact: mousemaster-macos
+          - os: macos-15-intel
+            arch: x86_64
+            resource-arch: x86-64
+            archive: mousemaster-macos-x86_64.zip
+            artifact: mousemaster-macos-x86_64
     steps:
       - uses: graalvm/setup-graalvm@v1
         with:
@@ -76,6 +92,12 @@ jobs:
           native-image-job-reports: 'true'
       - name: Checkout source
         uses: actions/checkout@v4
+      - name: Verify runner and DriverKit architectures
+        shell: bash
+        run: |
+          test "$(uname -m)" = "${{ matrix.arch }}"
+          lipo "src/main/resources/darwin-${{ matrix.resource-arch }}/libdriverkit.dylib" \
+            -verify_arch "${{ matrix.arch }}"
       # mvnw is committed without the executable bit, which only the Windows job can ignore.
       - name: Make the maven wrapper executable
         run: chmod +x ./mvnw
@@ -93,13 +115,16 @@ jobs:
           python3 -m aqt install-qt mac desktop 6.8.2 -O "$HOME/Qt"
       - name: Assemble the app bundle
         run: QT=$HOME/Qt/6.8.2/macos ./macos/build-app.sh
+      - name: Verify app architecture
+        shell: bash
+        run: test "$(lipo -archs target/mousemaster.app/Contents/MacOS/mousemaster)" = "${{ matrix.arch }}"
       # ditto rather than zip: a framework is symlinks, an executable bit and a signature, none
       # of which survive being uploaded as a directory.
       - name: Zip the app bundle
-        run: ditto -c -k --keepParent target/mousemaster.app target/mousemaster-macos.zip
+        run: ditto -c -k --keepParent target/mousemaster.app "target/${{ matrix.archive }}"
       - name: Upload app bundle
         uses: actions/upload-artifact@v4
         with:
-          name: mousemaster-macos
-          path: target/mousemaster-macos.zip
+          name: ${{ matrix.artifact }}
+          path: target/${{ matrix.archive }}
           retention-days: 7

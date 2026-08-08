@@ -30,6 +30,11 @@ jobs:
         with:
           name: mousemaster-macos
           path: target
+      - name: Download Intel app bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: mousemaster-macos-x86_64
+          path: target
       - name: Move the rolling 'nightly' prerelease
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,7 +55,7 @@ jobs:
           ### Installation
           On Windows, download **mousemaster.exe** and one configuration file (e.g. **neo-mousekeys-ijkl.properties**), put them in the same folder, rename the config to **mousemaster.properties**, then run **mousemaster.exe** (as administrator so the overlay draws on top).
 
-          On macOS, download **mousemaster-macos.zip** and follow the [installation steps](https://github.com/petoncle/mousemaster#macos).
+          On Apple Silicon macOS, download **mousemaster-macos.zip**. On Intel macOS, download **mousemaster-macos-x86_64.zip**. Then follow the [installation steps](https://github.com/petoncle/mousemaster#macos).
 
           ### Feedback
           Found a bug? Please include the commit above when filing an issue on [GitHub](https://github.com/petoncle/mousemaster/issues) or the [Discord](https://discord.gg/GSB6MaKb2R).
@@ -80,6 +85,7 @@ jobs:
           gh release upload nightly \
             "target/mousemaster.exe" \
             "target/mousemaster-macos.zip" \
+            "target/mousemaster-macos-x86_64.zip" \
             "configuration/author.properties" \
             "configuration/mouseable.properties" \
             "configuration/neo-mousekeys-ijkl.properties" \
