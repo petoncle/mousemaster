@@ -3286,10 +3286,14 @@ public final class HintMeshRenderer {
             long before = System.nanoTime();
             paintLayer(event);
             long durationMillis = (System.nanoTime() - before) / 1000000;
-            if (durationMillis >= SLOW_PAINT_MS && !preWarming)
-                logger.debug("Painted a " + width() + "x" + height() + " hint layer of " +
-                             boxes.size() + " boxes and " + labels.size() +
-                             " labels in " + durationMillis + "ms");
+            if (durationMillis >= SLOW_PAINT_MS && !preWarming) {
+                QRect dirty = event.rect();
+                logger.debug("Painted a " + dirty.width() + "x" + dirty.height() +
+                             " region at (" + dirty.x() + ", " + dirty.y() + ") of a " +
+                             width() + "x" + height() + " hint layer of " + boxes.size() +
+                             " boxes and " + labels.size() + " labels in " + durationMillis +
+                             "ms");
+            }
         }
 
         private void paintLayer(QPaintEvent event) {
