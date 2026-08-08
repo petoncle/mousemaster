@@ -14,14 +14,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                             String boxBorderHexColor,
                             double boxBorderOpacity,
                             double boxBorderRadius,
-                            boolean boxClosed,
+                            boolean boxFramed,
                             Shadow boxShadow,
                             boolean prefixBoxEnabled,
                             double prefixBoxBorderThickness,
                             double prefixBoxBorderLength,
                             String prefixBoxBorderHexColor,
                             double prefixBoxBorderOpacity,
-                            boolean prefixBoxClosed,
+                            boolean prefixBoxFramed,
                             double boxWidthPercent,
                             double boxHeightPercent,
                             double cellHorizontalPadding,
@@ -50,14 +50,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
         private Double boxBorderRadius;
-        private Boolean boxClosed;
+        private Boolean boxFramed;
         private Shadow.ShadowBuilder boxShadow = new Shadow.ShadowBuilder();
         private Boolean prefixBoxEnabled;
         private Double prefixBoxBorderThickness;
         private Double prefixBoxBorderLength;
         private String prefixBoxBorderHexColor;
         private Double prefixBoxBorderOpacity;
-        private Boolean prefixBoxClosed;
+        private Boolean prefixBoxFramed;
         private Double boxWidthPercent;
         private Double boxHeightPercent;
         private Double cellHorizontalPadding;
@@ -90,14 +90,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.boxBorderHexColor = style.boxBorderHexColor;
             this.boxBorderOpacity = style.boxBorderOpacity;
             this.boxBorderRadius = style.boxBorderRadius;
-            this.boxClosed = style.boxClosed;
+            this.boxFramed = style.boxFramed;
             this.boxShadow = new Shadow.ShadowBuilder(style.boxShadow);
             this.prefixBoxEnabled = style.prefixBoxEnabled;
             this.prefixBoxBorderThickness = style.prefixBoxBorderThickness;
             this.prefixBoxBorderLength = style.prefixBoxBorderLength;
             this.prefixBoxBorderHexColor = style.prefixBoxBorderHexColor;
             this.prefixBoxBorderOpacity = style.prefixBoxBorderOpacity;
-            this.prefixBoxClosed = style.prefixBoxClosed;
+            this.prefixBoxFramed = style.prefixBoxFramed;
             this.boxWidthPercent = style.boxWidthPercent;
             this.boxHeightPercent = style.boxHeightPercent;
             this.cellHorizontalPadding = style.cellHorizontalPadding;
@@ -155,8 +155,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder boxClosed(Boolean boxClosed) {
-            this.boxClosed = boxClosed;
+        public HintMeshStyleBuilder boxFramed(Boolean boxFramed) {
+            this.boxFramed = boxFramed;
             return this;
         }
 
@@ -185,8 +185,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder prefixBoxClosed(Boolean prefixBoxClosed) {
-            this.prefixBoxClosed = prefixBoxClosed;
+        public HintMeshStyleBuilder prefixBoxFramed(Boolean prefixBoxFramed) {
+            this.prefixBoxFramed = prefixBoxFramed;
             return this;
         }
 
@@ -298,8 +298,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return boxBorderRadius;
         }
 
-        public Boolean boxClosed() {
-            return boxClosed;
+        public Boolean boxFramed() {
+            return boxFramed;
         }
 
         public Shadow.ShadowBuilder boxShadow() {
@@ -326,8 +326,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return prefixBoxBorderOpacity;
         }
 
-        public Boolean prefixBoxClosed() {
-            return prefixBoxClosed;
+        public Boolean prefixBoxFramed() {
+            return prefixBoxFramed;
         }
 
         public Double boxWidthPercent() {
@@ -393,14 +393,14 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     boxBorderHexColor == null ? defaultStyle.boxBorderHexColor : boxBorderHexColor,
                     boxBorderOpacity == null ? defaultStyle.boxBorderOpacity : boxBorderOpacity,
                     boxBorderRadius == null ? defaultStyle.boxBorderRadius : boxBorderRadius,
-                    boxClosed == null ? defaultStyle.boxClosed : boxClosed,
+                    boxFramed == null ? defaultStyle.boxFramed : boxFramed,
                     boxShadow.build(),
                     prefixBoxEnabled == null ? defaultStyle.prefixBoxEnabled : prefixBoxEnabled,
                     prefixBoxBorderThickness == null ? defaultStyle.prefixBoxBorderThickness : prefixBoxBorderThickness,
                     prefixBoxBorderLength == null ? defaultStyle.prefixBoxBorderLength : prefixBoxBorderLength,
                     prefixBoxBorderHexColor == null ? defaultStyle.prefixBoxBorderHexColor : prefixBoxBorderHexColor,
                     prefixBoxBorderOpacity == null ? defaultStyle.prefixBoxBorderOpacity : prefixBoxBorderOpacity,
-                    prefixBoxClosed == null ? defaultStyle.prefixBoxClosed : prefixBoxClosed,
+                    prefixBoxFramed == null ? defaultStyle.prefixBoxFramed : prefixBoxFramed,
                     boxWidthPercent == null ? defaultStyle.boxWidthPercent : boxWidthPercent,
                     boxHeightPercent == null ? defaultStyle.boxHeightPercent : boxHeightPercent,
                     cellHorizontalPadding == null ? defaultStyle.cellHorizontalPadding : cellHorizontalPadding,

@@ -13,7 +13,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
                          String boxHexColor, double boxOpacity,
                          double boxBorderThickness, double boxBorderLength,
                          String boxBorderHexColor, double boxBorderOpacity,
-                         double boxBorderRadius, boolean boxClosed,
+                         double boxBorderRadius, boolean boxFramed,
                          HintFontStyle fontStyle) {
 
     public DecorationBuilder builder() {
@@ -32,7 +32,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
         private String boxBorderHexColor;
         private Double boxBorderOpacity;
         private Double boxBorderRadius;
-        private Boolean boxClosed;
+        private Boolean boxFramed;
         private HintFontStyle.HintFontStyleBuilder fontStyle =
                 new HintFontStyle.HintFontStyleBuilder();
 
@@ -51,7 +51,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             this.boxBorderHexColor = decoration.boxBorderHexColor;
             this.boxBorderOpacity = decoration.boxBorderOpacity;
             this.boxBorderRadius = decoration.boxBorderRadius;
-            this.boxClosed = decoration.boxClosed;
+            this.boxFramed = decoration.boxFramed;
             this.fontStyle = decoration.fontStyle.builder();
         }
 
@@ -103,8 +103,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return fontStyle;
         }
 
-        public Boolean boxClosed() {
-            return boxClosed;
+        public Boolean boxFramed() {
+            return boxFramed;
         }
 
         public DecorationBuilder maxRowCount(Integer maxRowCount) {
@@ -162,8 +162,8 @@ public record Decoration(int maxRowCount, int maxColumnCount,
             return this;
         }
 
-        public DecorationBuilder boxClosed(Boolean boxClosed) {
-            this.boxClosed = boxClosed;
+        public DecorationBuilder boxFramed(Boolean boxFramed) {
+            this.boxFramed = boxFramed;
             return this;
         }
 
@@ -180,7 +180,7 @@ public record Decoration(int maxRowCount, int maxColumnCount,
                     boxBorderHexColor == null ? defaultDecoration.boxBorderHexColor : boxBorderHexColor,
                     boxBorderOpacity == null ? defaultDecoration.boxBorderOpacity : boxBorderOpacity,
                     boxBorderRadius == null ? defaultDecoration.boxBorderRadius : boxBorderRadius,
-                    boxClosed == null ? defaultDecoration.boxClosed : boxClosed,
+                    boxFramed == null ? defaultDecoration.boxFramed : boxFramed,
                     fontStyle.build()
             );
         }

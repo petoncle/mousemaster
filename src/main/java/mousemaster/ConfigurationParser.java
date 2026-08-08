@@ -124,7 +124,7 @@ public class ConfigurationParser {
                 .boxBorderHexColor("#FFFFFF")
                 .boxBorderOpacity(0.4d)
                 .boxBorderRadius(0d)
-                .boxClosed(true);
+                .boxFramed(true);
         hintMeshStyleBuilder.boxShadow()
                 .blurRadius(10d)
                 .hexColor("#000000")
@@ -138,7 +138,7 @@ public class ConfigurationParser {
                 .prefixBoxBorderLength(10_000d)
                 .prefixBoxBorderHexColor("#FFD93D")
                 .prefixBoxBorderOpacity(0.8d)
-                .prefixBoxClosed(true)
+                .prefixBoxFramed(true)
                 .boxWidthPercent(1d)
                 .boxHeightPercent(1d)
                 .cellHorizontalPadding(0d)
@@ -160,7 +160,7 @@ public class ConfigurationParser {
                       .boxHexColor("#000000").boxOpacity(0d)
                       .boxBorderThickness(1d).boxBorderLength(10_000d)
                       .boxBorderHexColor("#FFFFFF").boxBorderOpacity(1d)
-                      .boxBorderRadius(0d).boxClosed(false);
+                      .boxBorderRadius(0d).boxFramed(false);
             decoration.fontStyle().defaultFontStyle()
                       .name(FontStyle.defaultName).weight(FontWeight.NORMAL).size(10d)
                       .hexColor("#FFFFFF").opacity(1d)
@@ -2412,8 +2412,10 @@ public class ConfigurationParser {
             // Deprecated (should use subdecoration instead).
             index = 1;
             suffix = key.substring("subgrid-".length());
-            if (suffix.startsWith("border-") || suffix.equals("closed"))
+            if (suffix.startsWith("border-"))
                 suffix = "box-" + suffix;
+            else if (suffix.equals("closed"))
+                suffix = "box-framed";
             else if (suffix.equals("selection-keys"))
                 suffix = "label-keys";
         }
@@ -2433,7 +2435,7 @@ public class ConfigurationParser {
             case "box-border-color" -> ModePropertyHandler.of(p.append("boxBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).boxBorderHexColor(v));
             case "box-border-opacity" -> ModePropertyHandler.of(p.append("boxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).decoration(index).boxBorderOpacity(v));
             case "box-border-radius" -> ModePropertyHandler.of(p.append("boxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).decoration(index).boxBorderRadius(v));
-            case "box-closed" -> ModePropertyHandler.of(p.append("boxClosed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).boxClosed(v));
+            case "box-framed" -> ModePropertyHandler.of(p.append("boxFramed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).boxFramed(v));
             case "font-name" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "name"), v -> v, v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().name(v));
             case "font-weight" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "weight"), v -> FontWeight.of(v), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().weight(v));
             case "font-size" -> ModePropertyHandler.of(p.append("fontStyle", "defaultFontStyle", "size"), v -> parseDouble(v, false, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).decoration(index).fontStyle().defaultFontStyle().size(v));
@@ -2624,7 +2626,7 @@ public class ConfigurationParser {
             case "box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).boxBorderHexColor(v));
             case "box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxBorderOpacity(v));
             case "box-border-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).boxBorderRadius(v));
-            case "box-closed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxClosed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).boxClosed(v));
+            case "box-framed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxFramed"), v -> Boolean.parseBoolean(v), v -> hintMeshBuilder.style(viewportFilter).boxFramed(v));
             case "box-shadow-blur-radius" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "blurRadius"), v -> parseDouble(v, true, 0, 1000), v -> hintMeshBuilder.style(viewportFilter).boxShadow().blurRadius(v));
             case "box-shadow-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "hexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(viewportFilter).boxShadow().hexColor(v));
             case "box-shadow-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxShadow", "opacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxShadow().opacity(v));
@@ -2637,7 +2639,7 @@ public class ConfigurationParser {
             case "prefix-box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxBorderLength(v); });
             case "prefix-box-border-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderHexColor"), v -> checkColorFormat(v), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxBorderHexColor(v); });
             case "prefix-box-border-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxBorderOpacity"), v -> parseDouble(v, true, 0, 1), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxBorderOpacity(v); });
-            case "prefix-box-closed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxClosed"), v -> Boolean.parseBoolean(v), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxClosed(v); });
+            case "prefix-box-framed" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixBoxFramed"), v -> Boolean.parseBoolean(v), v -> { if (hintMeshBuilder.style(viewportFilter).prefixBoxEnabled() == null) hintMeshBuilder.style(viewportFilter).prefixBoxEnabled(true); hintMeshBuilder.style(viewportFilter).prefixBoxFramed(v); });
             // Style: box dimensions
             case "box-width-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxWidthPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxWidthPercent(v));
             case "box-height-percent" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHeightPercent"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(viewportFilter).boxHeightPercent(v));
@@ -3391,9 +3393,9 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.boxBorderRadius(parentStyle.boxBorderRadius());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::boxClosed,
+                            HintMeshStyleBuilder::boxFramed,
                             childStyleByFilter, filter))
-                        childStyle.boxClosed(parentStyle.boxClosed());
+                        childStyle.boxFramed(parentStyle.boxFramed());
                     childStyle.boxShadow().extend(parentStyle.boxShadow());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::prefixBoxEnabled,
@@ -3418,9 +3420,9 @@ public class ConfigurationParser {
                             childStyleByFilter, filter))
                         childStyle.prefixBoxBorderOpacity(parentStyle.prefixBoxBorderOpacity());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::prefixBoxClosed,
+                            HintMeshStyleBuilder::prefixBoxFramed,
                             childStyleByFilter, filter))
-                        childStyle.prefixBoxClosed(parentStyle.prefixBoxClosed());
+                        childStyle.prefixBoxFramed(parentStyle.prefixBoxFramed());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxWidthPercent, childStyleByFilter,
                             filter))
@@ -3470,8 +3472,8 @@ public class ConfigurationParser {
                             cd.boxBorderOpacity(pd.boxBorderOpacity());
                         if (!childDoesNotNeedParentProperty(b -> b.decoration(i).boxBorderRadius(), childStyleByFilter, filter))
                             cd.boxBorderRadius(pd.boxBorderRadius());
-                        if (!childDoesNotNeedParentProperty(b -> b.decoration(i).boxClosed(), childStyleByFilter, filter))
-                            cd.boxClosed(pd.boxClosed());
+                        if (!childDoesNotNeedParentProperty(b -> b.decoration(i).boxFramed(), childStyleByFilter, filter))
+                            cd.boxFramed(pd.boxFramed());
                     }
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::transitionAnimationEnabled,

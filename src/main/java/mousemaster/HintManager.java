@@ -1120,7 +1120,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         boolean hasLabel = !decoration.labelOverride().isEmpty()
                            || !decoration.labelKeys().isEmpty();
         boolean hasFill = decoration.boxOpacity() > 0;
-        if (!hasGrid && !hasLabel && !decoration.boxClosed() && !hasFill)
+        if (!hasGrid && !hasLabel && !decoration.boxFramed() && !hasFill)
             return null;
         HintGridLayout decorationLayout = new HintGridLayout(
                 decoration.maxRowCount(), decoration.maxColumnCount(),
