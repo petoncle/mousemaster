@@ -714,9 +714,16 @@ public final class HintMeshRenderer {
             Hint newFirstHint = hintMesh.hints().getFirst();
             // Translate the original pixmap which may be at a different position than
             // the new hint mesh.
-            pixmapLabel.setGeometry(pixmapAndPosition.x() + (int) Math.round(newFirstHint.centerX() - window.x() - (originalFirstHint.centerX() - originalWindowX)),
-                    pixmapAndPosition.y() + (int) Math.round(newFirstHint.centerY() - window.y() - (originalFirstHint.centerY() - originalWindowY)),
-                    pixmapAndPosition.pixmap().width(), pixmapAndPosition.pixmap().height());
+            // Hints and the grab are in pixels, the label and the window in points.
+            pixmapLabel.setGeometry(pixmapAndPosition.x() + (int) Math.round(
+                            (newFirstHint.centerX() - originalFirstHint.centerX()) / qtScaleFactor
+                            - window.x() + originalWindowX),
+                    pixmapAndPosition.y() + (int) Math.round(
+                            (newFirstHint.centerY() - originalFirstHint.centerY()) / qtScaleFactor
+                            - window.y() + originalWindowY),
+                    (int) Math.round(pixmapAndPosition.pixmap().width() / qtScaleFactor),
+                    (int) Math.round(pixmapAndPosition.pixmap().height() / qtScaleFactor));
+            pixmapLabel.setScaledContents(true);
             newContainer = pixmapLabel;
             boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
             transitionHintContainers(animateTransition, oldContainer, newContainer,
@@ -3408,7 +3415,8 @@ public final class HintMeshRenderer {
         PixmapAndPosition pixmapAndPosition =
                 new PixmapAndPosition(pixmap, boxWindowX, boxWindowY, null, List.of(), hintMesh,
                         hintMeshWindow.window.x(), hintMeshWindow.window.y());
-        setHintMeshWindow(hintMeshWindow, hintMesh, -1, style, false, pixmapAndPosition);
+        setHintMeshWindow(hintMeshWindow, hintMesh, screen.scale(), style, false,
+                pixmapAndPosition);
     }
 
 }
