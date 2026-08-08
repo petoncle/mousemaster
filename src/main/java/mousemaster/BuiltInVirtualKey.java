@@ -16,6 +16,7 @@ public final class BuiltInVirtualKey {
 
     public static final Key IS_WINDOWS = new Key("iswindows", null, null);
     public static final Key IS_MACOS = new Key("ismacos", null, null);
+    public static final Set<Key> OS_KEYS = Set.of(IS_WINDOWS, IS_MACOS);
     public static final Key CURRENT_OS = Os.macos ? IS_MACOS : IS_WINDOWS;
 
     public static final Set<Key> KEYS = Set.of(IS_IDLING, IS_WINDOWS, IS_MACOS);

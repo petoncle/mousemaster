@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 public class HintManager implements ModeListener, MousePositionListener {
 
@@ -140,6 +139,11 @@ public class HintManager implements ModeListener, MousePositionListener {
                 if (!(command instanceof Command.MutateMode mutateMode) ||
                     !mutateMode.propertyPath().fieldNames().getFirst().equals("hintMesh"))
                     continue;
+                if (combo.precondition().keyPrecondition().pressedKeyPrecondition().allKeys()
+                         .stream().anyMatch(
+                                key -> BuiltInVirtualKey.OS_KEYS.contains(key) &&
+                                       !key.equals(BuiltInVirtualKey.CURRENT_OS)))
+                    break;
                 mutatingCombos.add(combo);
                 combo.precondition().variablePrecondition().conditions()
                      .forEach(condition -> variableNames.add(condition.variableName()));
