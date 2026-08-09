@@ -2058,9 +2058,9 @@ public final class HintMeshRenderer {
                     painter.setBrush(color.alpha() != 0 ? QtColorUtil.qBrush(color) :
                             QtColorUtil.noBrush());
                     painter.setPen(createPen(borderColor, borderThickness));
-                    int offset = borderThickness / 2;
-                    painter.drawRoundedRect(offset, offset,
-                            width - borderThickness, height - borderThickness,
+                    double offset = borderThickness / 2d;
+                    painter.drawRoundedRect(new QRectF(offset, offset,
+                                    width - borderThickness, height - borderThickness),
                             borderRadius, borderRadius);
                 }
                 else if (color.alpha() != 0) {
@@ -2138,9 +2138,9 @@ public final class HintMeshRenderer {
                     // The border strokes this same inset rect on its own layer; filling it (not the
                     // full box) keeps the background from bleeding past the rounded border, the way
                     // paint() does by drawing both in one call.
-                    int offset = borderThickness / 2;
-                    painter.drawRoundedRect(offset, offset,
-                            width - borderThickness, height - borderThickness,
+                    double offset = borderThickness / 2d;
+                    painter.drawRoundedRect(new QRectF(offset, offset,
+                                    width - borderThickness, height - borderThickness),
                             borderRadius, borderRadius);
                 }
                 else
