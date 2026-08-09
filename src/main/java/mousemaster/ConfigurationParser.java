@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 
 import static mousemaster.Command.*;
 import static mousemaster.ViewportFilter.AnyViewportFilter;
-import static mousemaster.ViewportFilter.FixedViewportFilter;
+import static mousemaster.ViewportFilter.NegatedViewportFilter;
 
 public class ConfigurationParser {
 
@@ -317,7 +317,8 @@ public class ConfigurationParser {
     }
 
     private record Aliases(Map<String, LayoutKeyAlias> layoutKeyAliasByName,
-                           Map<String, AppAlias> appAliasByName) {
+                           Map<String, AppAlias> appAliasByName,
+                           Map<String, Set<ViewportFilter>> viewportFilterAliasByName) {
 
     }
 
@@ -480,7 +481,8 @@ public class ConfigurationParser {
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases, keyResolver,
                         modeReferences, defaultComboMoveDuration, appAliases,
                         finalDefaultComboMoveDuration,
-                        allVariableNames, positionHistoryNames);
+                        allVariableNames, positionHistoryNames,
+                        configurationAliases.viewportFilterAliasByName);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
                         new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
@@ -822,7 +824,8 @@ public class ConfigurationParser {
                                   Map<String, AppAlias> appAliases,
                                   ComboMoveDuration finalDefaultComboMoveDuration,
                                   Set<String> allVariableNames,
-                                  Set<String> positionHistoryNames) {
+                                  Set<String> positionHistoryNames,
+                                  Map<String, Set<ViewportFilter>> viewportFilterAliases) {
         if (group2 == null) {
             // Mode reference.
             parseModeReference(propertyKey, propertyValue, childModesByParentMode,
@@ -969,11 +972,13 @@ public class ConfigurationParser {
                             AnyViewportFilter.ANY_VIEWPORT_FILTER :
                             parseViewportFilter(keyMatcher.group(group5));
                     String hintKey = keyMatcher.group(group4);
-                    ModePropertyHandler handler = hintHandler(
-                            new ModePropertyPath(List.of("hintMesh")),
-                            mode.hintMesh.builder, viewportFilter, hintKey,
-                            keyAliases, keyResolver,
-                            positionHistoryNames);
+                    Function<ViewportFilter, ModePropertyHandler> handlerByFilter =
+                            filter -> hintHandler(
+                                    new ModePropertyPath(List.of("hintMesh")),
+                                    mode.hintMesh.builder, filter, hintKey,
+                                    keyAliases, keyResolver,
+                                    positionHistoryNames);
+                    ModePropertyHandler handler = handlerByFilter.apply(viewportFilter);
                     if (handler != null) {
                         if (!tryParseComboProperty(propertyValue, modeName,
                                 handler.propertyPath(), handler.valueParser(),
@@ -981,7 +986,9 @@ public class ConfigurationParser {
                                 mode.hintMesh.mutateModeCommands,
                                 mode.hintMesh.setPropertyPaths,
                                 defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver, allVariableNames, viewportFilter))
+                                keyResolver, allVariableNames,
+                                new ViewportFilterProperty(viewportFilter,
+                                        handlerByFilter, viewportFilterAliases)))
                             handler.modeBuilderSetter().accept(propertyValue);
                         return;
                     }
@@ -1614,33 +1621,11 @@ public class ConfigurationParser {
     private static ViewportFilter parseViewportFilter(String string) {
         if (string == null)
             return AnyViewportFilter.ANY_VIEWPORT_FILTER;
-        // 1920x1080
-        Matcher resolutionMatcher = Pattern.compile("(\\d+)x(\\d+)").matcher(string);
-        if (resolutionMatcher.matches()) {
-            return new FixedViewportFilter(new Viewport(
-                    Integer.parseUnsignedInt(resolutionMatcher.group(1)),
-                    Integer.parseUnsignedInt(resolutionMatcher.group(2)),
-                    -1f
-            ));
-        }
-        // 100%
-        Matcher scaleMatcher = Pattern.compile("(\\d+)%").matcher(string);
-        if (scaleMatcher.matches()) {
-            return new FixedViewportFilter(new Viewport(-1, -1,
-                    Integer.parseUnsignedInt(scaleMatcher.group(1)) / 100d
-            ));
-        }
-        // 1920x1080-100%
-        Matcher resolutionScaleMatcher = Pattern.compile("(\\d+)x(\\d+)-(\\d+)%").matcher(string);
-        if (!resolutionScaleMatcher.matches()) {
+        ViewportFilter viewportFilter = ViewportFilter.of(string);
+        if (viewportFilter == null)
             throw new IllegalArgumentException("Invalid viewport filter " + string +
                                                ": expected formats 1920x1080, 100%, or 1920x1080-100%");
-        }
-        return new FixedViewportFilter(new Viewport(
-                Integer.parseUnsignedInt(resolutionScaleMatcher.group(1)),
-                Integer.parseUnsignedInt(resolutionScaleMatcher.group(2)),
-                Integer.parseUnsignedInt(resolutionScaleMatcher.group(3)) / 100d
-        ));
+        return viewportFilter;
     }
 
     private static void parseModeReference(String propertyKey, String propertyValue,
@@ -1857,6 +1842,7 @@ public class ConfigurationParser {
     private static Aliases parseAliases(List<String> properties) {
         Map<String, LayoutKeyAlias> layoutKeyAliasByName = new HashMap<>();
         Map<String, AppAlias> appAliasByName = new HashMap<>();
+        Map<String, List<String>> viewportFilterAliasTokensByName = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
         for (String line : properties) {
             checkPropertyLineCorrectness(line, visitedPropertyKeys);
@@ -1866,7 +1852,8 @@ public class ConfigurationParser {
             String propertyKey = lineMatcher.group(1).strip();
             String propertyValue = lineMatcher.group(2).strip();
             try {
-                parseAlias(propertyKey, propertyValue, appAliasByName, layoutKeyAliasByName);
+                parseAlias(propertyKey, propertyValue, appAliasByName, layoutKeyAliasByName,
+                        viewportFilterAliasTokensByName);
             } catch (IllegalArgumentException e) {
                 IllegalArgumentException e2 =
                         new IllegalArgumentException("[" + propertyKey + "] " + e.getMessage());
@@ -1874,13 +1861,45 @@ public class ConfigurationParser {
                 throw e2;
             }
         }
-        return new Aliases(layoutKeyAliasByName, appAliasByName);
+        Map<String, Set<ViewportFilter>> viewportFilterAliasByName = new HashMap<>();
+        for (String aliasName : viewportFilterAliasTokensByName.keySet())
+            resolveViewportFilterAlias(aliasName, viewportFilterAliasTokensByName,
+                    viewportFilterAliasByName);
+        return new Aliases(layoutKeyAliasByName, appAliasByName,
+                viewportFilterAliasByName);
+    }
+
+    /** A viewport alias can name another one, like a key alias can. */
+    private static Set<ViewportFilter> resolveViewportFilterAlias(String aliasName,
+                                                                  Map<String, List<String>> tokensByName,
+                                                                  Map<String, Set<ViewportFilter>> resolvedByName) {
+        Set<ViewportFilter> resolved = resolvedByName.get(aliasName);
+        if (resolved != null)
+            return resolved;
+        // Put it in before filling it, so an alias naming itself stops here.
+        resolved = new LinkedHashSet<>();
+        resolvedByName.put(aliasName, resolved);
+        for (String token : tokensByName.get(aliasName)) {
+            if (tokensByName.containsKey(token))
+                resolved.addAll(resolveViewportFilterAlias(token, tokensByName,
+                        resolvedByName));
+            else
+                resolved.add(parseViewportFilter(token));
+        }
+        return resolved;
     }
 
     private static void parseAlias(String propertyKey, String propertyValue,
                                    Map<String, AppAlias> appAliasByName,
-                                   Map<String, LayoutKeyAlias> layoutKeyAliasByName) {
-        if (propertyKey.startsWith("app-alias.")) {
+                                   Map<String, LayoutKeyAlias> layoutKeyAliasByName,
+                                   Map<String, List<String>> viewportFilterAliasTokensByName) {
+        if (propertyKey.startsWith("viewport-alias.")) {
+            // viewport-alias.dense=3840x2160-100% 2560x1440-100%
+            viewportFilterAliasTokensByName.put(
+                    propertyKey.substring("viewport-alias.".length()),
+                    List.of(propertyValue.split("\\s+")));
+        }
+        else if (propertyKey.startsWith("app-alias.")) {
             String aliasName = propertyKey.substring("app-alias.".length());
             // Quoted so that an executable name containing a space, which macOS is full of,
             // can be given.
@@ -2680,6 +2699,106 @@ public class ConfigurationParser {
                                   String valueString) {}
     }
 
+    /** A property whose value is resolved per screen: one value per viewport filter. */
+    private record ViewportFilterProperty(ViewportFilter viewportFilter,
+                                          Function<ViewportFilter, ModePropertyHandler> handlerByFilter,
+                                          Map<String, Set<ViewportFilter>> aliasByName) {
+
+        Consumer<String> setter(ViewportFilter viewportFilter) {
+            return handlerByFilter.apply(viewportFilter).modeBuilderSetter();
+        }
+    }
+
+    private record SplitComboViewportFilter(Set<ViewportFilter> viewportFilters,
+                                            boolean negated, String comboString) {
+    }
+
+    private static final Pattern comboPreconditionPattern =
+            Pattern.compile("([\\^_])\\{([^{}]+)\\}");
+
+    /**
+     * Takes the viewport filters out of a combo's preconditions: they pick the screens the
+     * value applies to, they are not conditions. A space and a {@code |} both read as "any
+     * of" between filters; next to keys a block takes a single filter, since neither "both
+     * screens at once" nor "either the keys or a screen" can be satisfied.
+     */
+    private static SplitComboViewportFilter splitComboViewportFilter(String comboString,
+                                                                     String label,
+                                                                     Map<String, Set<ViewportFilter>> aliasByName) {
+        Set<ViewportFilter> viewportFilters = new LinkedHashSet<>();
+        String negatedPrefix = null;
+        StringBuilder remainingCombo = new StringBuilder();
+        int appendBeginIndex = 0;
+        Matcher matcher = comboPreconditionPattern.matcher(comboString);
+        while (matcher.find()) {
+            List<String> remainingTokens = new ArrayList<>();
+            List<Set<ViewportFilter>> blockViewportFilters = new ArrayList<>();
+            for (String token : matcher.group(2).strip().split("\\s+")) {
+                Set<ViewportFilter> tokenViewportFilters =
+                        viewportFilters(token, aliasByName);
+                if (tokenViewportFilters == null)
+                    remainingTokens.add(token);
+                else
+                    blockViewportFilters.add(tokenViewportFilters);
+            }
+            if (blockViewportFilters.isEmpty())
+                continue;
+            if (negatedPrefix != null && !negatedPrefix.equals(matcher.group(1)))
+                throw new IllegalArgumentException("[" + label +
+                                                   "] A combo cannot have both a viewport filter and a negated one: " +
+                                                   comboString);
+            negatedPrefix = matcher.group(1);
+            if (remainingTokens.stream().allMatch("|"::equals))
+                remainingTokens.clear();
+            else if (!negatedPrefix.equals("^") &&
+                     (blockViewportFilters.size() > 1 || remainingTokens.contains("|")))
+                throw new IllegalArgumentException("[" + label + "] " + comboString +
+                                                   " can never be satisfied: a screen matches a single viewport filter, so give each of them its own branch");
+            blockViewportFilters.forEach(viewportFilters::addAll);
+            remainingCombo.append(comboString, appendBeginIndex, matcher.start());
+            if (!remainingTokens.isEmpty())
+                remainingCombo.append(matcher.group(1))
+                              .append('{')
+                              .append(String.join(" ", remainingTokens))
+                              .append('}');
+            appendBeginIndex = matcher.end();
+        }
+        remainingCombo.append(comboString, appendBeginIndex, comboString.length());
+        return new SplitComboViewportFilter(viewportFilters, "^".equals(negatedPrefix),
+                remainingCombo.toString().strip());
+    }
+
+    /** Gives each filter's entry the property's default, unless a branch already valued it. */
+    private static void writeDefaultToUnvaluedFilters(ViewportFilterProperty property,
+                                                      Set<ViewportFilter> viewportFilters,
+                                                      Set<ViewportFilter> valuedViewportFilters,
+                                                      String defaultValue) {
+        for (ViewportFilter viewportFilter : viewportFilters)
+            if (valuedViewportFilters.add(viewportFilter))
+                property.setter(viewportFilter).accept(defaultValue);
+    }
+
+    /**
+     * The filters one token of a {@code _{}} block stands for: a filter, an alias, or a
+     * {@code *}-list of either. Null if the token is none of those.
+     */
+    private static Set<ViewportFilter> viewportFilters(String token,
+                                                       Map<String, Set<ViewportFilter>> aliasByName) {
+        Set<ViewportFilter> viewportFilters = new LinkedHashSet<>();
+        for (String orToken : token.split("\\*")) {
+            Set<ViewportFilter> aliasViewportFilters = aliasByName.get(orToken);
+            if (aliasViewportFilters != null) {
+                viewportFilters.addAll(aliasViewportFilters);
+                continue;
+            }
+            ViewportFilter viewportFilter = ViewportFilter.of(orToken);
+            if (viewportFilter == null)
+                return null;
+            viewportFilters.add(viewportFilter);
+        }
+        return viewportFilters;
+    }
+
     /**
      * Splits a property value on top-level {@code |} (brace-depth-aware), then
      * classifies each segment as either a default value or a combo-triggered
@@ -2749,21 +2868,71 @@ public class ConfigurationParser {
             Map<String, AppAlias> appAliases,
             KeyResolver keyResolver,
             Set<String> allVariableNames,
-            ViewportFilter viewportFilter) {
+            ViewportFilterProperty viewportFilterProperty) {
         setPropertyPaths.add(propertyPath);
         SplitComboProperty splitComboProperty = splitComboProperties(propertyValue);
         if (splitComboProperty == null)
             return false;
-        if (splitComboProperty.defaultValue() != null)
-            modeBuilderSetter.accept(splitComboProperty.defaultValue());
+        String defaultValue = splitComboProperty.defaultValue();
+        if (defaultValue != null)
+            modeBuilderSetter.accept(defaultValue);
+        ViewportFilter viewportFilter = viewportFilterProperty == null ? null :
+                viewportFilterProperty.viewportFilter();
         ModePropertyPath mutationPath =
                 viewportFilter != null &&
                 !(viewportFilter instanceof AnyViewportFilter) ?
                         propertyPath.withViewportFilter(viewportFilter) :
                         propertyPath;
         String label = modeName + "." + String.join(".", propertyPath.fieldNames());
+        Map<String, Set<ViewportFilter>> aliasByName = viewportFilterProperty == null ?
+                Map.of() : viewportFilterProperty.aliasByName();
+        Set<ViewportFilter> valuedViewportFilters = new HashSet<>();
         for (SplitComboProperty.ComboPropertyValue comboPropertyValue : splitComboProperty.comboValues()) {
-            List<Combo> combos = parseCombos(comboPropertyValue.comboString(), label,
+            SplitComboViewportFilter splitFilter = splitComboViewportFilter(
+                    comboPropertyValue.comboString(), label, aliasByName);
+            Set<ViewportFilter> comboViewportFilters = splitFilter.viewportFilters();
+            String comboString = comboPropertyValue.comboString();
+            List<ModePropertyPath> comboMutationPaths = List.of(mutationPath);
+            if (!comboViewportFilters.isEmpty()) {
+                if (viewportFilterProperty == null)
+                    throw new IllegalArgumentException("[" + label +
+                                                       "] A viewport filter is only supported for hint properties: " +
+                                                       comboString);
+                comboString = splitFilter.comboString();
+                if (comboString.isEmpty()) {
+                    // The filters are the whole precondition: same as the property key suffix.
+                    if (!splitFilter.negated()) {
+                        for (ViewportFilter comboViewportFilter : comboViewportFilters)
+                            viewportFilterProperty.setter(comboViewportFilter)
+                                                  .accept(comboPropertyValue.valueString());
+                        valuedViewportFilters.addAll(comboViewportFilters);
+                    }
+                    else {
+                        // Every screen but the filters': the value becomes the default,
+                        // and the filters' screens keep the previous default.
+                        if (defaultValue == null)
+                            throw new IllegalArgumentException("[" + label +
+                                                               "] A negated viewport filter requires a default value: " +
+                                                               propertyValue);
+                        writeDefaultToUnvaluedFilters(viewportFilterProperty,
+                                comboViewportFilters, valuedViewportFilters, defaultValue);
+                        modeBuilderSetter.accept(comboPropertyValue.valueString());
+                    }
+                    continue;
+                }
+                // The entries have to exist for the mutation to find them, without
+                // overwriting what an earlier branch gave them.
+                if (defaultValue != null)
+                    writeDefaultToUnvaluedFilters(viewportFilterProperty,
+                            comboViewportFilters, valuedViewportFilters, defaultValue);
+                comboMutationPaths = splitFilter.negated() ?
+                        List.of(propertyPath.withViewportFilter(
+                                new NegatedViewportFilter(comboViewportFilters))) :
+                        comboViewportFilters.stream()
+                                            .map(propertyPath::withViewportFilter)
+                                            .toList();
+            }
+            List<Combo> combos = parseCombos(comboString, label,
                     defaultComboMoveDuration, keyAliases, appAliases, keyResolver,
                     allVariableNames);
             for (Combo combo : combos) {
@@ -2798,11 +2967,13 @@ public class ConfigurationParser {
                 else {
                     parsedValue = valueParser.apply(comboPropertyValue.valueString());
                 }
-                Command command = new Command.MutateMode(modeName, mutationPath,
-                        parsedValue, combo);
-                mutateModeCommandMap
-                        .computeIfAbsent(combo, c -> new ArrayList<>())
-                        .add(command);
+                for (ModePropertyPath comboMutationPath : comboMutationPaths) {
+                    Command command = new Command.MutateMode(modeName, comboMutationPath,
+                            parsedValue, combo);
+                    mutateModeCommandMap
+                            .computeIfAbsent(combo, c -> new ArrayList<>())
+                            .add(command);
+                }
             }
         }
         return true;

@@ -626,33 +626,69 @@ You can create different layouts by adjusting the row and column counts:
 
 ### Screen-specific hint configurations
 
-You can optimize hint configurations for different screen resolutions by appending the resolution to the property name:
+Any hint property can hold a different value per screen: give the screen as a precondition of a [combo property](#mode-property-mutation).
 
 ```properties
-# Default hint configuration (applies to all screens unless overridden):
-hint1-mode.hint.grid-cell-width=74
-hint1-mode.hint.grid-cell-height=41
-hint1-mode.hint.layout-row-count=6
-hint1-mode.hint.layout-column-count=5
-
-# Override for a 4K screen (3840×2160):
-hint1-mode.hint.grid-cell-width.3840x2160=96
-hint1-mode.hint.grid-cell-height.3840x2160=54
-hint1-mode.hint.layout-row-count.3840x2160=4
-hint1-mode.hint.layout-column-count.3840x2160=10
+# A 4K screen gets denser hints than the others:
+hint1-mode.hint.grid-cell-width=74 | _{3840x2160-100%} -> 96
+hint1-mode.hint.grid-cell-height=41 | _{3840x2160-100%} -> 54
+hint1-mode.hint.layout-row-count=6 | _{3840x2160-100%} -> 4
+hint1-mode.hint.layout-column-count=5 | _{3840x2160-100%} -> 10
 ```
 
-The syntax is `property-name.filter=value`, where:
-- `property-name` is the standard property name (e.g., `hint1-mode.hint.grid-cell-width`)
-- `filter` is the screen resolution (`3840x2160`), the screen scale (`150%`), or both (`3840x2160-150%`)
-- `value` is the property value specific to those screens
+A viewport filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
 
 ```properties
-# Override for every screen scaled at 300%, whatever its resolution:
-hint1-mode.hint.box-border-radius.300%=3
+# Every screen scaled at 300%, whatever its resolution.
+hint1-mode.hint.box-border-radius=1 | _{300%} -> 3
+
+# ^{300%} is every other screen: the value becomes the default, and the
+# screens matching the filter keep the previous default (1).
+hint1-mode.hint.box-border-radius=1 | ^{300%} -> 3
+
+# Mixed with a key precondition: on 300% screens only, and only while
+# leftshift is pressed.
+hint1-mode.hint.box-border-radius=1 | _{300% leftshift} -> 3
+
+# Either of two screens, separated by | as an alias does implicitly.
+hint1-mode.hint.box-border-radius=1 | _{3840x2160-300% | 1366x768-100%} -> 3
+
+# Alongside a key, one filter per branch: in a single block a space would mean
+# both screens at once, and | an alternative to the key, and no screen can
+# satisfy either.
+hint1-mode.hint.box-border-radius=1 | _{leftshift 3840x2160-300%} -> 3 \
+    | _{leftshift 1366x768-100%} -> 3
+
+# ^{} takes a space-separated list too: neither of these screens, just as it
+# means neither of two keys.
+hint1-mode.hint.box-border-radius=1 | ^{3840x2160-300% 1366x768-100%} -> 3
 ```
 
-mousemaster automatically uses the appropriate configuration based on the screen where the hints are displayed. Any hint property can be customized per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. If no screen-specific property matches, mousemaster falls back to the default property value.
+Only a hint property can be filtered, and a combo cannot mix a filter with a negated one.
+
+A set of screens can be named once with `viewport-alias`, which behaves like a key alias: it
+stands for any one of the filters it lists, so `_{largescreen}` is a named `*`-list. A screen
+is then written down in one place instead of once per property:
+
+```properties
+viewport-alias.largescreen=3840x2160-100% 3440x1440-100%
+viewport-alias.mediumscreen=3840x2160-150% 2560x1440-100%
+viewport-alias.smallscreen=1920x1080-125% 1366x768-100%
+# An alias can name another one, like a key alias can.
+viewport-alias.tunedscreen=largescreen mediumscreen smallscreen
+
+hint1-mode.hint.grid-cell-sizing=fit
+hint1-mode.hint.grid-max-column-count=25 | _{mediumscreen | largescreen} -> 40
+hint1-mode.hint.grid-max-row-count=30 | _{smallscreen} -> 20 | _{mediumscreen | largescreen} -> 40
+hint1-mode.hint.selection-keys=hintkey | _{mediumscreen | largescreen} -> extendedhintkey
+```
+
+Aliases that split the screens into sets let each property name a set instead of a screen, so
+adding a screen to a set is all it takes to tune it.
+
+Note that a filter with no scale matches that resolution at *every* scale, so
+`3840x2160` also covers `3840x2160-150%`. Spelling the scale out on every filter keeps each
+one exact, and lets an unlisted scale fall back to the default value.
 
 ### Hint selection and behavior
 

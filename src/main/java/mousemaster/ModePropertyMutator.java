@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import static mousemaster.ViewportFilter.NegatedViewportFilter;
+
 public class ModePropertyMutator {
 
     private static final Map<Class<?>, RecordComponent[]> componentCache =
@@ -45,7 +47,7 @@ public class ModePropertyMutator {
             Map<ViewportFilter, Object> mutatedMap = new LinkedHashMap<>();
             for (var entry : viewportFilterMap.map().entrySet()) {
                 if (targetViewportFilter != null &&
-                    !entry.getKey().equals(targetViewportFilter)) {
+                    !mutates(targetViewportFilter, entry.getKey())) {
                     mutatedMap.put(entry.getKey(), entry.getValue());
                 }
                 else {
@@ -61,6 +63,12 @@ public class ModePropertyMutator {
                     newPropertyValue, targetViewportFilter);
         }
         return createWithField(obj, fieldName, mutatedChild);
+    }
+
+    private static boolean mutates(ViewportFilter target, ViewportFilter entryFilter) {
+        if (target instanceof NegatedViewportFilter negatedTarget)
+            return !negatedTarget.viewportFilters().contains(entryFilter);
+        return target.equals(entryFilter);
     }
 
     private static Object mutateDecoration(Object obj, String fieldName,
