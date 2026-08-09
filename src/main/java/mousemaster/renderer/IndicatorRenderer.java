@@ -251,7 +251,6 @@ public final class IndicatorRenderer {
         labelWidget.move(shadowPadding, shadowPadding);
         labelWidget.resize(widgetSize, widgetSize);
         labelWidget.setIndicatorOutlinePadding(outlinePadding);
-        labelWidget.setLabelFontScale(1);
     }
 
     /** Draws label text centered at (centerX, centerY): outline (if any) then fill, using the
@@ -314,8 +313,7 @@ public final class IndicatorRenderer {
             QFont labelFont = QtHintFont.qFont(labelFontStyle.name(), labelFontStyle.size(), labelFontStyle.weight());
             QColor labelColor = QtColorUtil.qColor(labelFontStyle.hexColor(), labelFontStyle.opacity());
             QColor labelOutlineColor = QtColorUtil.qColor(labelFontStyle.outlineHexColor(), labelFontStyle.outlineOpacity());
-            labelWidget.setLabel(indicator.labelText(), labelFont, labelFontStyle.size(),
-                    labelColor,
+            labelWidget.setLabel(indicator.labelText(), labelFont, labelColor,
                     (int) Math.round(labelFontStyle.outlineThickness()), labelOutlineColor,
                     indicator.edgeCount());
             Shadow labelShadow = labelFontStyle.shadow();
@@ -336,7 +334,7 @@ public final class IndicatorRenderer {
             labelWidget.show();
         }
         else {
-            labelWidget.setLabel(null, null, 0, null, 0, null, 0);
+            labelWidget.setLabel(null, null, null, 0, null, 0);
             labelWidget.setGraphicsEffect(null);
             labelWidget.hide();
         }
@@ -387,7 +385,6 @@ public final class IndicatorRenderer {
         labelWidget.move(widgetPadding, widgetPadding);
         labelWidget.resize(widgetPoints, widgetPoints);
         labelWidget.setIndicatorOutlinePadding((int) Math.round(outlinePadding / pointsPerPixel));
-        labelWidget.setLabelFontScale(1);
     }
 
     public void hide(boolean allowFade) {
@@ -1004,8 +1001,6 @@ public final class IndicatorRenderer {
 
         private String labelText;
         private QFont labelFont;
-        private double labelFontSize;
-        private double labelFontScale;
         private QColor labelColor;
         private int outlineThickness;
         private QColor outlineColor;
@@ -1021,12 +1016,7 @@ public final class IndicatorRenderer {
             this.indicatorOutlinePadding = padding;
         }
 
-        void setLabelFontScale(double scale) {
-            this.labelFontScale = scale;
-        }
-
-        void setLabel(String labelText, QFont labelFont, double fontSize,
-                      QColor labelColor,
+        void setLabel(String labelText, QFont labelFont, QColor labelColor,
                       int outlineThickness, QColor outlineColor,
                       int edgeCount) {
             if (this.labelFont != null)
@@ -1037,7 +1027,6 @@ public final class IndicatorRenderer {
                 this.outlineColor.dispose();
             this.labelText = labelText;
             this.labelFont = labelFont;
-            this.labelFontSize = fontSize;
             this.labelColor = labelColor;
             this.outlineThickness = outlineThickness;
             this.outlineColor = outlineColor;
@@ -1049,7 +1038,6 @@ public final class IndicatorRenderer {
         protected void paintEvent(QPaintEvent event) {
             if (labelText == null || labelFont == null || labelColor == null)
                 return;
-            labelFont.setPointSize((int) Math.round(labelFontSize * labelFontScale));
             QPainter painter = new QPainter(this);
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
             painter.setFont(labelFont);

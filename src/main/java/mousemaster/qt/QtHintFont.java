@@ -122,8 +122,13 @@ public final class QtHintFont {
         glyphs.translate(-x, -y);
     }
 
+    /** Qt resolves a point size at 96dpi per scale step on Windows but always at 72dpi on
+     *  macOS, where the scale goes to the widget instead. */
+    private static final double pointScale = Os.macos ? 96d / 72d : 1;
+
     public static QFont qFont(String fontName, double fontSize, FontWeight fontWeight) {
-        QFont font = new QFont(available(fontName), (int) Math.round(fontSize),
+        QFont font = new QFont(available(fontName),
+                (int) Math.round(fontSize * pointScale),
                 fontWeight.qtWeight().value());
         antialiasing(font);
         font.setHintingPreference(QFont.HintingPreference.PreferFullHinting);
