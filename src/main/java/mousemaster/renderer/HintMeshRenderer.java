@@ -668,12 +668,17 @@ public final class HintMeshRenderer {
         if (backgroundColor != null) {
             // Set background on the window itself (painted before child containers,
             // covers the area outside the container).
-            int backgroundX = backgroundArea.x() - window.x();
-            int backgroundY = backgroundArea.y() - window.y();
+            // The area is in pixels and the window in points.
+            int backgroundX = (int) Math.round(
+                    (backgroundArea.x() - window.xInPixels()) / qtScaleFactor);
+            int backgroundY = (int) Math.round(
+                    (backgroundArea.y() - window.yInPixels()) / qtScaleFactor);
             int left = Math.max(0, backgroundX);
             int top = Math.max(0, backgroundY);
-            int right = Math.min(window.width(), backgroundX + backgroundArea.width());
-            int bottom = Math.min(window.height(), backgroundY + backgroundArea.height());
+            int right = Math.min(window.width(),
+                    backgroundX + (int) Math.round(backgroundArea.width() / qtScaleFactor));
+            int bottom = Math.min(window.height(),
+                    backgroundY + (int) Math.round(backgroundArea.height() / qtScaleFactor));
             if (right > left && bottom > top) {
                 QRect backgroundRect = new QRect(left, top, right - left, bottom - top);
                 window.setBackground(backgroundColor, backgroundRect);
