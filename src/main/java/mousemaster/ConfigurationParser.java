@@ -134,7 +134,7 @@ public class ConfigurationParser {
                 .stackCount(1);
         hintMeshStyleBuilder
                 .prefixBoxEnabled(false)
-                .prefixBoxBorderThickness(4d)
+                .prefixBoxBorderThickness(2d)
                 .prefixBoxBorderLength(10_000d)
                 .prefixBoxBorderHexColor("#FFD93D")
                 .prefixBoxBorderOpacity(0.8d)

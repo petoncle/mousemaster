@@ -745,7 +745,7 @@ hint-mode.hint.selected-font-opacity=1.0
 # Prefix box (for multi-character hints). A border is never drawn where an enclosing one
 # already draws, so the hint boxes leave the prefix box its own.
 hint-mode.hint.prefix-box-enabled=true
-hint-mode.hint.prefix-box-border-thickness=4
+hint-mode.hint.prefix-box-border-thickness=2
 hint-mode.hint.prefix-box-border-color=#FFD93D
 hint-mode.hint.prefix-box-border-opacity=0.8
 # false draws the lines between the prefix boxes only, no frame around the grid
