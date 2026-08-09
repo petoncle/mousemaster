@@ -53,12 +53,12 @@ https://github.com/user-attachments/assets/7300bf36-6a02-4615-b068-30c38571fc24
 
 1. Download **mousemaster.exe** (a portable executable) from the [Release page](https://github.com/petoncle/mousemaster/releases/latest), or build it from source.
 2. In the same Release page, choose and download one of the existing configuration files:
-   - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))
-   - **neru.properties**: a recursive hint configuration ([see documentation](configuration/neru.md))
-   - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](configuration/neo-mousekeys-wasd.md))
-   - **warpd.properties**: an HJKL configuration ([see documentation](configuration/warpd.md))
-   - **mouseable.properties**: another HJKL configuration ([see documentation](configuration/mouseable.md))
-   - **author.properties**: an IJKL configuration designed to control everything with the right hand only ([see documentation](configuration/author.md))
+   - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](docs/neo-mousekeys-ijkl.md))
+   - **neru.properties**: a recursive hint configuration ([see documentation](docs/neru.md))
+   - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](docs/neo-mousekeys-wasd.md))
+   - **warpd.properties**: an HJKL configuration ([see documentation](docs/warpd.md))
+   - **mouseable.properties**: another HJKL configuration ([see documentation](docs/mouseable.md))
+   - **author.properties**: an IJKL configuration designed to control everything with the right hand only ([see documentation](docs/author.md))
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to **mousemaster.properties**.
 5. Run **mousemaster.exe**: make sure to run it as administrator if you want the
@@ -121,16 +121,16 @@ permissions are needed.
 - **UI Hint mode**: Press _leftalt + f_
 - **Screen selection**: Press _c_
 
-![neo-mousekeys-ijkl layout](configuration/neo-mousekeys-ijkl-layout.png)
+![neo-mousekeys-ijkl layout](docs/assets/neo-mousekeys-ijkl-layout.png)
 
-For a complete reference, see the [neo-mousekeys-ijkl documentation](configuration/neo-mousekeys-ijkl.md).
-The other configurations are documented too: [neru](configuration/neru.md),
-[neo-mousekeys-wasd](configuration/neo-mousekeys-wasd.md), [warpd](configuration/warpd.md),
-[mouseable](configuration/mouseable.md), [author](configuration/author.md).
+For a complete reference, see the [neo-mousekeys-ijkl documentation](docs/neo-mousekeys-ijkl.md).
+The other configurations are documented too: [neru](docs/neru.md),
+[neo-mousekeys-wasd](docs/neo-mousekeys-wasd.md), [warpd](docs/warpd.md),
+[mouseable](docs/mouseable.md), [author](docs/author.md).
 
 ## Features
 
-1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands, switch modes, or remap keys. See the [combo reference](configuration/combo-reference.md).
+1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands, switch modes, or remap keys. See the [combo reference](docs/combo-reference.md).
 2. **Modes**: Each mode has its own combos and its own hint, grid, indicator and zoom settings, and can inherit properties from other modes.
 3. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
 4. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.
@@ -142,7 +142,7 @@ The other configurations are documented too: [neru](configuration/neru.md),
 10. **Position history**: Save cursor positions, jump back to them later.
 11. **Live configuration**: All configuration lives in a single file that is automatically reloaded when saved.
 
-mousemaster provides low-level primitives (modes, combos, commands, macros, key aliases) that you compose to build the exact behavior you want. See the [configuration reference](configuration/configuration-reference.md).
+mousemaster provides low-level primitives (modes, combos, commands, macros, key aliases) that you compose to build the exact behavior you want. See the [configuration reference](docs/configuration-reference.md).
 
 ## Contributing
 

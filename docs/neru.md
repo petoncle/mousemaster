@@ -1,4 +1,4 @@
-# neru configuration for mousemaster ([neru.properties](neru.properties))
+# neru configuration for mousemaster ([neru.properties](../configuration/neru.properties))
 
 (See [configuration-reference.md](configuration-reference.md) for the full list of properties.)
 
@@ -6,9 +6,9 @@ Designed to mimic the features of the [neru](https://github.com/y3owk1n/neru) pr
 
 A keyboard-only mouse driven by hints: launch a mode, jump the cursor onto a target, click. The pattern is always **Ctrl+Shift** to start a mode, then **unmodified keys** to pick a cell, and **Shift+L/R/M** to click.
 
-![neru layout](neru-layout.png)
+![neru layout](assets/neru-layout.png)
 
-Mode launchers are yellow, the recursive 3×3 cells blue, scrolling teal, and clicking green ([neru-keyboardlayouteditor.json](neru-keyboardlayouteditor.json)).
+Mode launchers are yellow, the recursive 3×3 cells blue, scrolling teal, and clicking green ([neru-keyboardlayouteditor.json](assets/neru-keyboardlayouteditor.json)).
 
 ## Launch
 
@@ -46,7 +46,7 @@ f g h      (g = center)
 v b n
 ```
 
-- Each cell shows a 3×3 of dots where the next level's cells will fall, under a `+` spanning the whole region. Set `variable.showrecursivehintkeys=true` in [neru.properties](neru.properties) to label those cells with the next level's keys instead.
+- Each cell shows a 3×3 of dots where the next level's cells will fall, under a `+` spanning the whole region. Set `variable.showrecursivehintkeys=true` in [neru.properties](../configuration/neru.properties) to label those cells with the next level's keys instead.
 - Five levels deep; the fifth keypress lands on the target.
 - The cursor tracks the current region's center as you drill; `` ` `` (backtick) toggles that off/on.
 - `Space` resets to the full screen, `Backspace` steps back one level (and exits at the top), `Esc` exits.
@@ -95,4 +95,4 @@ Completing any hint leaves you on the target, click-ready: click with `Shift+L/R
 
 ## Rebinding
 
-Every key is a named alias at the top of [neru.properties](neru.properties), e.g. `key-alias.moveupkey.us-qwerty=uparrow` — change the value to remap. The selection sets (`hintkey`, `hint2key`, `recursivehintkey`, …) are aliases too; each is laid out to match the grid it fills, so resizing a grid means resizing its key set.
+Every key is a named alias at the top of [neru.properties](../configuration/neru.properties), e.g. `key-alias.moveupkey.us-qwerty=uparrow` — change the value to remap. The selection sets (`hintkey`, `hint2key`, `recursivehintkey`, …) are aliases too; each is laid out to match the grid it fills, so resizing a grid means resizing its key set.

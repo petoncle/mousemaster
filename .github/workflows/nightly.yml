@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'README.md'
-      - 'configuration/*.md'
+      - 'docs/**'
   workflow_dispatch:       # allow forcing a nightly from the Actions tab
 concurrency:
   group: nightly

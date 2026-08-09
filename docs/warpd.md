@@ -1,4 +1,4 @@
-# warpd configuration for mousemaster ([warpd.properties](warpd.properties))
+# warpd configuration for mousemaster ([warpd.properties](../configuration/warpd.properties))
 
 (Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
 
@@ -9,9 +9,9 @@
 - Normal mode uses vi-like bindings for local mouse movement.
 - Hint and grid modes assist in larger screen movements and are used with normal mode for comprehensive navigation.
 
-![warpd layout](warpd-layout.png)
+![warpd layout](assets/warpd-layout.png)
 
-The layout above shows normal mode ([warpd-keyboardlayouteditor.json](warpd-keyboardlayouteditor.json)).
+The layout above shows normal mode ([warpd-keyboardlayouteditor.json](assets/warpd-keyboardlayouteditor.json)).
 
 ## Normal Mode (_leftalt + c_)
 
@@ -33,7 +33,7 @@ The layout above shows normal mode ([warpd-keyboardlayouteditor.json](warpd-keyb
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, with _leftalt + leftshift + x_ (or _leftshift + x_ in normal mode).
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [warpd.properties](warpd.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [warpd.properties](../configuration/warpd.properties).
 - Exit with _esc_.
 
 ## History Mode (_leftalt + h_ or _;_ in normal mode)

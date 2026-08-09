@@ -1,4 +1,4 @@
-# Author's configuration of mousemaster ([author.properties](author.properties))
+# Author's configuration of mousemaster ([author.properties](../configuration/author.properties))
 
 (Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
 

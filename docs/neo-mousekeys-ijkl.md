@@ -1,26 +1,25 @@
-# neo-mousekeys-wasd configuration for mousemaster ([neo-mousekeys-wasd.properties](neo-mousekeys-wasd.properties))
+# neo-mousekeys-ijkl configuration for mousemaster ([neo-mousekeys-ijkl.properties](../configuration/neo-mousekeys-ijkl.properties))
 
 (Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
 
 ## Overview
 
 - Press _leftalt + e_ or _leftalt + capslock_ to activate.
-- Press _w_, _a_, _s_, _d_ to move the mouse.
+- Press _i_, _j_, _k_, _l_ to move the mouse.
 - Press _q_ or _p_ to deactivate.
 
-![neo-mousekeys-wasd layout](neo-mousekeys-wasd-layout.png)
+![neo-mousekeys-ijkl layout](assets/neo-mousekeys-ijkl-layout.png)
 
 ## Normal Mode (hold _leftalt_ then press _e_, or hold _leftalt_ then press _capslock_)
 
-- Press mouse buttons with _k_ (left button), _;_ (middle button), _l_ (right button).
+- Press mouse buttons with _;_ (left button), _rightshift_ (middle button), _'_ (right button).
 - Toggle left mouse button with _n_.
 - Left click then deactivate with _._
-- Jump to screen edges with _rightalt + w_, _rightalt + a_, _rightalt + s_, _rightalt + d_.
-- Scroll vertically or horizontally (wheel) with _m_, _,_ (comma), _i_, _o_.
-- Jump forward (teleport) by holding _j_ while moving.
+- Jump to screen edges with _rightalt + i_, _rightalt + j_, _rightalt + k_, _rightalt + l_.
+- Scroll vertically or horizontally (wheel) with _m_, _,_ (comma), _u_, _o_.
 - Slow down mouse and scroll movement by holding _leftshift_ while moving.
 - Super slow down mouse and scroll movement by holding _capslock_ while moving.
-- Accelerate mouse movement by holding _u_ while moving.
+- Accelerate mouse movement by holding _v_ or _b_ while moving.
 - Accelerate scroll movement by holding _v_ or _b_ while scrolling.
 
 ## Key remappings
@@ -32,7 +31,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 
 - Divide screen into a 2x2 grid, refining target area with each key press.
 - Move mouse to the middle of the targeted grid section.
-- Shrink the grid in one direction with _w_, _a_, _s_, _d_.
+- Shrink the grid in one direction with _i_, _j_, _k_, _l_.
 - Go back to normal mode with _g_ or _esc_.
 
 ## Window Mode (hold _leftshift_ then press _g_ in normal mode)
@@ -47,7 +46,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, by holding _leftshift_ while selecting a hint.
 - Undo an accidental key press with _backspace_.
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys-wasd.properties](neo-mousekeys-wasd.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys-ijkl.properties](../configuration/neo-mousekeys-ijkl.properties).
 - Go back to normal mode with _esc_ or _backspace_.
 
 ## UI Hint Mode (hold _leftalt_ then press _f_ in normal mode)

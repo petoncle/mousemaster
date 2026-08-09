@@ -1,4 +1,4 @@
-# mouseable configuration for mousemaster ([mouseable.properties](mouseable.properties))
+# mouseable configuration for mousemaster ([mouseable.properties](../configuration/mouseable.properties))
 
 ## Overview
 
@@ -7,9 +7,9 @@
 - Normal mode uses vi-like bindings for local mouse movement.
 - Hint and grid modes assist in larger screen movements and are used with normal mode for comprehensive navigation.
 
-![mouseable layout](mouseable-layout.png)
+![mouseable layout](assets/mouseable-layout.png)
 
-The layout above shows normal mode ([mouseable-keyboardlayouteditor.json](mouseable-keyboardlayouteditor.json)).
+The layout above shows normal mode ([mouseable-keyboardlayouteditor.json](assets/mouseable-keyboardlayouteditor.json)).
 
 ## Normal Mode (_leftctrl, leftctrl_)
 
@@ -31,7 +31,7 @@ The layout above shows normal mode ([mouseable-keyboardlayouteditor.json](mousea
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a left button click by holding _leftshift_ while selecting a hint.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, by holding _leftctrl_ while selecting a hint.
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [mouseable.properties](mouseable.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [mouseable.properties](../configuration/mouseable.properties).
 - Exit with _leftalt_, _esc_, or _backspace_.
 
 ## Grid Mode (_leftshift, leftshift_)
