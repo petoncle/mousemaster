@@ -56,8 +56,8 @@ https://github.com/user-attachments/assets/7300bf36-6a02-4615-b068-30c38571fc24
    - **neo-mousekeys-ijkl.properties** (***recommended***): an IJKL configuration ([see documentation](configuration/neo-mousekeys-ijkl.md))
    - **neru.properties**: a recursive hint configuration ([see documentation](configuration/neru.md))
    - **neo-mousekeys-wasd.properties**: a WASD configuration ([see documentation](configuration/neo-mousekeys-wasd.md))
-   - **warpd.properties**: an HKJL configuration ([see documentation](configuration/warpd.md))
-   - **mouseable.properties**: another HKJL configuration ([see documentation](configuration/mouseable.md))
+   - **warpd.properties**: an HJKL configuration ([see documentation](configuration/warpd.md))
+   - **mouseable.properties**: another HJKL configuration ([see documentation](configuration/mouseable.md))
    - **author.properties**: an IJKL configuration designed to control everything with the right hand only ([see documentation](configuration/author.md))
 3. Place the executable and the configuration file of your choice in the same directory.
 4. Rename the configuration file to **mousemaster.properties**.
@@ -124,6 +124,9 @@ permissions are needed.
 ![neo-mousekeys-ijkl layout](configuration/neo-mousekeys-ijkl-layout.png)
 
 For a complete reference, see the [neo-mousekeys-ijkl documentation](configuration/neo-mousekeys-ijkl.md).
+The other configurations are documented too: [neru](configuration/neru.md),
+[neo-mousekeys-wasd](configuration/neo-mousekeys-wasd.md), [warpd](configuration/warpd.md),
+[mouseable](configuration/mouseable.md), [author](configuration/author.md).
 
 ## Features
 
@@ -146,7 +149,6 @@ mousemaster provides low-level primitives (modes, combos, commands, macros, key 
 Contributions to mousemaster are welcome! 
 
 - **Share a configuration**: If you have ideas for a new or improved configuration that you would like to share, open an issue or join the [Discord](https://discord.gg/GSB6MaKb2R).
-
 - **Cross-platform support:** mousemaster supports Windows and macOS.  
   If you're interested in helping extend mousemaster to Linux, your contributions are very welcome. Please open an issue or join the Discord to get involved.
 
