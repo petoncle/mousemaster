@@ -1623,11 +1623,18 @@ public class ConfigurationParser {
                     -1f
             ));
         }
+        // 100%
+        Matcher scaleMatcher = Pattern.compile("(\\d+)%").matcher(string);
+        if (scaleMatcher.matches()) {
+            return new FixedViewportFilter(new Viewport(-1, -1,
+                    Integer.parseUnsignedInt(scaleMatcher.group(1)) / 100d
+            ));
+        }
         // 1920x1080-100%
         Matcher resolutionScaleMatcher = Pattern.compile("(\\d+)x(\\d+)-(\\d+)%").matcher(string);
         if (!resolutionScaleMatcher.matches()) {
             throw new IllegalArgumentException("Invalid viewport filter " + string +
-                                               ": expected formats 1920x1080 or 1920x1080-100%");
+                                               ": expected formats 1920x1080, 100%, or 1920x1080-100%");
         }
         return new FixedViewportFilter(new Viewport(
                 Integer.parseUnsignedInt(resolutionScaleMatcher.group(1)),

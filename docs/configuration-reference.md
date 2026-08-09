@@ -642,12 +642,17 @@ hint1-mode.hint.layout-row-count.3840x2160=4
 hint1-mode.hint.layout-column-count.3840x2160=10
 ```
 
-The syntax is `property-name.resolution=value`, where:
+The syntax is `property-name.filter=value`, where:
 - `property-name` is the standard property name (e.g., `hint1-mode.hint.grid-cell-width`)
-- `resolution` is the screen resolution in the format `widthxheight` (e.g., `3840x2160` for 4K)
-- `value` is the property value specific to that resolution
+- `filter` is the screen resolution (`3840x2160`), the screen scale (`150%`), or both (`3840x2160-150%`)
+- `value` is the property value specific to those screens
 
-mousemaster automatically uses the appropriate configuration based on the screen where the hints are displayed. Any hint property can be customized per screen resolution. If a screen-specific property is not defined, mousemaster falls back to the default property value.
+```properties
+# Override for every screen scaled at 300%, whatever its resolution:
+hint1-mode.hint.box-border-radius.300%=3
+```
+
+mousemaster automatically uses the appropriate configuration based on the screen where the hints are displayed. Any hint property can be customized per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. If no screen-specific property matches, mousemaster falls back to the default property value.
 
 ### Hint selection and behavior
 
