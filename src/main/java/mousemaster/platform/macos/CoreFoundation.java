@@ -37,6 +37,10 @@ public interface CoreFoundation extends Library {
                                    .getGlobalVariableAddress("kCFPreferencesAnyHost")
                                    .getPointer(0);
 
+    Pointer booleanTrue = NativeLibrary.getInstance("CoreFoundation")
+                                       .getGlobalVariableAddress("kCFBooleanTrue")
+                                       .getPointer(0);
+
     /**
      * Reading another user's preference: running as root, the current user is root, whose
      * keyboard layout is not the one being typed on.

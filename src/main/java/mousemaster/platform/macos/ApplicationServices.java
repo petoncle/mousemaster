@@ -26,4 +26,7 @@ public interface ApplicationServices extends Library {
     /** 0 on success. */
     int AXUIElementCopyActionNames(Pointer element, PointerByReference names);
 
+    /** 0 on success; Chromium answers not-implemented and acts on it anyway. */
+    int AXUIElementSetAttributeValue(Pointer element, Pointer attribute, Pointer value);
+
 }

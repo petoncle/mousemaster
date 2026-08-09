@@ -34,6 +34,8 @@ public final class MacosAccessibility {
     private static final Pointer childrenAttribute = string("AXChildren");
     private static final Pointer roleAttribute = string("AXRole");
     private static final Pointer windowsAttribute = string("AXWindows");
+    private static final Pointer enhancedUserInterfaceAttribute =
+            string("AXEnhancedUserInterface");
 
     /** These answer no action: clicking a text input focuses it without that being one. */
     private static final Set<String> actionableRoles =
@@ -184,10 +186,33 @@ public final class MacosAccessibility {
         if (application != null) {
             int processId = ObjectiveC.ReturningInt.INSTANCE.objc_msgSend(application,
                     processIdentifier);
-            if (processId != ownProcessId)
+            if (processId != ownProcessId) {
+                if (processId != lastForeignProcessId)
+                    enhanceUserInterface(processId);
                 lastForeignProcessId = processId;
+            }
         }
         return lastForeignProcessId;
+    }
+
+    /** A Chromium browser answers only its toolbar until asked for the page tree, which takes
+     *  a moment to build. Off the polling thread because a busy application answers slowly. */
+    private static void enhanceUserInterface(int processId) {
+        Thread thread = new Thread(() -> {
+            Pointer axApplication =
+                    applicationServices.AXUIElementCreateApplication(processId);
+            if (axApplication == null)
+                return;
+            try {
+                applicationServices.AXUIElementSetAttributeValue(axApplication,
+                        enhancedUserInterfaceAttribute, CoreFoundation.booleanTrue);
+            }
+            finally {
+                coreFoundation.CFRelease(axApplication);
+            }
+        }, "ax-enhance");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     /** Null when no window is focused. */
