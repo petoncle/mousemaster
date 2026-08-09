@@ -2499,7 +2499,8 @@ public final class HintMeshRenderer {
     private static double baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
                                     QFontMetrics metrics, double inkTop, double inkHeight) {
         if (verticalAlignment == FontVerticalAlignment.MIDDLE)
-            return boxHeight / 2.0 - inkTop - inkHeight / 2.0;
+            // The ink starts on a whole pixel, a leftover one going above the text, not below.
+            return Math.round((boxHeight - inkHeight) / 2) - inkTop;
         return (boxHeight + metrics.ascent() - metrics.descent()) / 2d;
     }
 
