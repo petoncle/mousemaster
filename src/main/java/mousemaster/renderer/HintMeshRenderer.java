@@ -721,15 +721,18 @@ public final class HintMeshRenderer {
             Hint newFirstHint = hintMesh.hints().getFirst();
             // Translate the original pixmap which may be at a different position than
             // the new hint mesh.
-            // Hints and the grab are in pixels, the label and the window in points.
+            // Hints are in pixels, the label and the window in points. The grab is in the pixels
+            // of the screen it was taken on, which is not always this one: a mesh is cached by
+            // its hints alone, and a screen of another scale grabs it at another ratio.
+            double grabScale = pixmapAndPosition.pixmap().devicePixelRatio();
             pixmapLabel.setGeometry(pixmapAndPosition.x() + (int) Math.round(
                             (newFirstHint.centerX() - originalFirstHint.centerX()) / qtScaleFactor
                             - window.x() + originalWindowX),
                     pixmapAndPosition.y() + (int) Math.round(
                             (newFirstHint.centerY() - originalFirstHint.centerY()) / qtScaleFactor
                             - window.y() + originalWindowY),
-                    (int) Math.round(pixmapAndPosition.pixmap().width() / qtScaleFactor),
-                    (int) Math.round(pixmapAndPosition.pixmap().height() / qtScaleFactor));
+                    (int) Math.round(pixmapAndPosition.pixmap().width() / grabScale),
+                    (int) Math.round(pixmapAndPosition.pixmap().height() / grabScale));
             pixmapLabel.setScaledContents(true);
             newContainer = pixmapLabel;
             boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
