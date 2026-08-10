@@ -82,8 +82,7 @@ permissions are needed.
 
 1. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org), which installs the virtual HID
    device, and allow its system extension when macOS asks.
-2. Download and unzip **mousemaster-macos.zip** into **/Applications**, so that **mousemaster.app**
-   sits next to a **mousemaster.properties**:
+2. Download and unzip **mousemaster-macos.zip** into **/Applications**:
    ```
    curl -L -o mousemaster-macos.zip https://github.com/petoncle/mousemaster/releases/download/nightly/mousemaster-macos.zip
    unzip mousemaster-macos.zip -d /Applications
@@ -95,12 +94,15 @@ permissions are needed.
    ```
    Or let macOS refuse it once, then allow it under **System Settings > Privacy & Security >
    Security**, where an **Open Anyway** button appears for it.
-3. Run it from a terminal, as root, which the virtual HID device requires. The configuration is
+3. In the [Release page](https://github.com/petoncle/mousemaster/releases/latest), choose and
+   download one of the configuration files listed above, place it in **/Applications** next to
+   **mousemaster.app**, and rename it to **mousemaster.properties**.
+4. Run it from a terminal, as root, which the virtual HID device requires. The configuration is
    read from the working directory, so start it from where you put it:
    ```
    cd /Applications && sudo mousemaster.app/Contents/MacOS/mousemaster
    ```
-4. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**. They are
+5. Grant the permissions macOS asks for, under **System Settings > Privacy & Security**. They are
    granted to the terminal you run mousemaster from rather than to mousemaster itself, so they
    survive replacing mousemaster.app with a new build. Quit and reopen that terminal after
    granting, then run mousemaster again.
