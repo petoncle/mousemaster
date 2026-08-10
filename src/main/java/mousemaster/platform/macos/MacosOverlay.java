@@ -177,7 +177,7 @@ public class MacosOverlay implements Overlay {
         QPoint gridTopLeft = new QPoint(grid.x(), grid.y());
         gridRenderer.setGrid(logicalGrid(grid, gridTopLeft),
                 MacosScreens.logicalScreenBounds(gridTopLeft),
-                (int) Math.floor(grid.lineThickness()));
+                Math.max(1, (int) Math.round(grid.lineThickness())));
     }
 
     /** The far corner is on the screen's exclusive edge, so the size scales by where the grid starts. */

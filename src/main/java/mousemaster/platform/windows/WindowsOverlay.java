@@ -481,9 +481,11 @@ public class WindowsOverlay implements Overlay {
             applyOverlayExStyles(gridHwnd);
         }
         boolean wasShowing = gridRenderer.showing();
-        // Screen pixels: the configured thickness does not change with the zoom.
+        // Screen pixels: the configured thickness does not change with the zoom. A line the
+        // screen's scale leaves below a pixel is still drawn as one, and the repainted region
+        // grows by the thickness, so a thickness of 0 would leave the line behind.
         gridRenderer.setGrid(grid, virtualDesktopBounds(),
-                (int) Math.floor(grid.lineThickness()));
+                Math.max(1, (int) Math.round(grid.lineThickness())));
         if (!wasShowing)
             setTopmost();
         if (firstCreation)
