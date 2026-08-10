@@ -233,19 +233,29 @@ public final class QtHintFont {
                 perKeyFont, perKeyShadow, hintFontStyle.spacingPercent());
     }
 
+    /**
+     * An outline or a text shadow is in pixels and grows with the text, so it takes the screen's
+     * scale. Only Windows leaves that to the caller: elsewhere Qt paints text in points and
+     * applies the scale itself.
+     */
+    private static double textPixelScale(double screenScale) {
+        return Os.windows ? screenScale : 1;
+    }
+
     private static QtFontStyle qtFontStyle(FontStyle fs, QFont font,
                                            QFontMetrics metrics,
                                            double screenScale) {
+        double textPixelScale = textPixelScale(screenScale);
         return new QtFontStyle(
                 font, metrics,
                 QtColorUtil.qColor(fs.hexColor(), fs.opacity()),
                 QtColorUtil.qColor(fs.outlineHexColor(), fs.outlineOpacity()),
-                (int) Math.round(fs.outlineThickness() * screenScale),
+                (int) Math.round(fs.outlineThickness() * textPixelScale),
                 QtColorUtil.shadow(fs.shadow()),
                 fs.shadow().stackCount(),
-                fs.shadow().blurRadius() * screenScale,
-                fs.shadow().horizontalOffset() * screenScale,
-                fs.shadow().verticalOffset() * screenScale
+                fs.shadow().blurRadius() * textPixelScale,
+                fs.shadow().horizontalOffset() * textPixelScale,
+                fs.shadow().verticalOffset() * textPixelScale
         );
     }
 
