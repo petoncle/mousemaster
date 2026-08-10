@@ -33,7 +33,6 @@ import java.util.stream.Stream;
 
 import static mousemaster.Command.*;
 import static mousemaster.ScreenFilter.AnyScreenFilter;
-import static mousemaster.ScreenFilter.NegatedScreenFilter;
 
 public class ConfigurationParser {
 
@@ -2710,30 +2709,28 @@ public class ConfigurationParser {
     }
 
     private record SplitComboScreenFilter(Set<ScreenFilter> screenFilters,
-                                          boolean negated, String comboString) {
+                                          String comboString) {
     }
 
     private static final Pattern comboPreconditionPattern =
-            Pattern.compile("([\\^_])\\{([^{}]+)\\}");
+            Pattern.compile("_\\{([^{}]+)\\}");
 
     /**
      * Takes the screen filters out of a combo's preconditions: they pick the screens the
-     * value applies to, they are not conditions. A space and a {@code |} both read as "any
-     * of" between filters; next to keys a block takes a single filter, since neither "both
-     * screens at once" nor "either the keys or a screen" can be satisfied.
+     * value applies to, they are not conditions. A space means AND as it does between keys,
+     * so two filters have to be alternatives ({@code |}): a screen is never both.
      */
     private static SplitComboScreenFilter splitComboScreenFilter(String comboString,
                                                                  String label,
                                                                  Map<String, Set<ScreenFilter>> aliasByName) {
         Set<ScreenFilter> screenFilters = new LinkedHashSet<>();
-        String negatedPrefix = null;
         StringBuilder remainingCombo = new StringBuilder();
         int appendBeginIndex = 0;
         Matcher matcher = comboPreconditionPattern.matcher(comboString);
         while (matcher.find()) {
             List<String> remainingTokens = new ArrayList<>();
             List<Set<ScreenFilter>> blockScreenFilters = new ArrayList<>();
-            for (String token : matcher.group(2).strip().split("\\s+")) {
+            for (String token : matcher.group(1).strip().split("\\s+")) {
                 Set<ScreenFilter> tokenScreenFilters =
                         screenFilters(token, aliasByName);
                 if (tokenScreenFilters == null)
@@ -2743,29 +2740,32 @@ public class ConfigurationParser {
             }
             if (blockScreenFilters.isEmpty())
                 continue;
-            if (negatedPrefix != null && !negatedPrefix.equals(matcher.group(1)))
-                throw new IllegalArgumentException("[" + label +
-                                                   "] A combo cannot have both a screen filter and a negated one: " +
-                                                   comboString);
-            negatedPrefix = matcher.group(1);
-            if (remainingTokens.stream().allMatch("|"::equals))
+            long separatorCount = remainingTokens.stream().filter("|"::equals).count();
+            boolean filtersOnly = separatorCount == remainingTokens.size();
+            if (filtersOnly) {
+                if (separatorCount != blockScreenFilters.size() - 1)
+                    throw cannotBeSatisfied(label, comboString);
                 remainingTokens.clear();
-            else if (!negatedPrefix.equals("^") &&
-                     (blockScreenFilters.size() > 1 || remainingTokens.contains("|")))
-                throw new IllegalArgumentException("[" + label + "] " + comboString +
-                                                   " can never be satisfied: a screen matches a single screen filter, so give each of them its own branch");
+            }
+            else if (blockScreenFilters.size() > 1 || separatorCount != 0)
+                throw cannotBeSatisfied(label, comboString);
             blockScreenFilters.forEach(screenFilters::addAll);
             remainingCombo.append(comboString, appendBeginIndex, matcher.start());
             if (!remainingTokens.isEmpty())
-                remainingCombo.append(matcher.group(1))
-                              .append('{')
+                remainingCombo.append("_{")
                               .append(String.join(" ", remainingTokens))
                               .append('}');
             appendBeginIndex = matcher.end();
         }
         remainingCombo.append(comboString, appendBeginIndex, comboString.length());
-        return new SplitComboScreenFilter(screenFilters, "^".equals(negatedPrefix),
+        return new SplitComboScreenFilter(screenFilters,
                 remainingCombo.toString().strip());
+    }
+
+    private static IllegalArgumentException cannotBeSatisfied(String label,
+                                                              String comboString) {
+        return new IllegalArgumentException("[" + label + "] " + comboString +
+                                           " can never be satisfied: a screen matches a single screen filter, so separate filters with | or give each of them its own branch");
     }
 
     /** Gives each filter's entry the property's default, unless a branch already valued it. */
@@ -2901,23 +2901,10 @@ public class ConfigurationParser {
                 comboString = splitFilter.comboString();
                 if (comboString.isEmpty()) {
                     // The filters are the whole precondition: same as the property key suffix.
-                    if (!splitFilter.negated()) {
-                        for (ScreenFilter comboScreenFilter : comboScreenFilters)
-                            screenFilterProperty.setter(comboScreenFilter)
-                                                  .accept(comboPropertyValue.valueString());
-                        valuedScreenFilters.addAll(comboScreenFilters);
-                    }
-                    else {
-                        // Every screen but the filters': the value becomes the default,
-                        // and the filters' screens keep the previous default.
-                        if (defaultValue == null)
-                            throw new IllegalArgumentException("[" + label +
-                                                               "] A negated screen filter requires a default value: " +
-                                                               propertyValue);
-                        writeDefaultToUnvaluedFilters(screenFilterProperty,
-                                comboScreenFilters, valuedScreenFilters, defaultValue);
-                        modeBuilderSetter.accept(comboPropertyValue.valueString());
-                    }
+                    for (ScreenFilter comboScreenFilter : comboScreenFilters)
+                        screenFilterProperty.setter(comboScreenFilter)
+                                            .accept(comboPropertyValue.valueString());
+                    valuedScreenFilters.addAll(comboScreenFilters);
                     continue;
                 }
                 // The entries have to exist for the mutation to find them, without
@@ -2925,12 +2912,9 @@ public class ConfigurationParser {
                 if (defaultValue != null)
                     writeDefaultToUnvaluedFilters(screenFilterProperty,
                             comboScreenFilters, valuedScreenFilters, defaultValue);
-                comboMutationPaths = splitFilter.negated() ?
-                        List.of(propertyPath.withScreenFilter(
-                                new NegatedScreenFilter(comboScreenFilters))) :
-                        comboScreenFilters.stream()
-                                            .map(propertyPath::withScreenFilter)
-                                            .toList();
+                comboMutationPaths = comboScreenFilters.stream()
+                                                       .map(propertyPath::withScreenFilter)
+                                                       .toList();
             }
             List<Combo> combos = parseCombos(comboString, label,
                     defaultComboMoveDuration, keyAliases, appAliases, keyResolver,

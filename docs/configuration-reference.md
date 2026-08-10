@@ -642,29 +642,21 @@ A screen filter is a screen resolution (`3840x2160`), a screen scale (`150%`), o
 # Every screen scaled at 300%, whatever its resolution.
 hint1-mode.hint.box-border-radius=1 | _{300%} -> 3
 
-# ^{300%} is every other screen: the value becomes the default, and the
-# screens matching the filter keep the previous default (1).
-hint1-mode.hint.box-border-radius=1 | ^{300%} -> 3
-
 # Mixed with a key precondition: on 300% screens only, and only while
 # leftshift is pressed.
 hint1-mode.hint.box-border-radius=1 | _{300% leftshift} -> 3
 
-# Either of two screens, separated by | as an alias does implicitly.
+# Either of two screens. A space means AND, as it does between keys, so two
+# filters have to be alternatives: no screen is both at once.
 hint1-mode.hint.box-border-radius=1 | _{3840x2160-300% | 1366x768-100%} -> 3
 
-# Alongside a key, one filter per branch: in a single block a space would mean
-# both screens at once, and | an alternative to the key, and no screen can
-# satisfy either.
+# Alongside a key, one filter per branch: a | in that block would read as an
+# alternative to the key, which no screen can satisfy.
 hint1-mode.hint.box-border-radius=1 | _{leftshift 3840x2160-300%} -> 3 \
     | _{leftshift 1366x768-100%} -> 3
-
-# ^{} takes a space-separated list too: neither of these screens, just as it
-# means neither of two keys.
-hint1-mode.hint.box-border-radius=1 | ^{3840x2160-300% 1366x768-100%} -> 3
 ```
 
-Only a hint property can be filtered, and a combo cannot mix a filter with a negated one.
+Only a hint property can be filtered.
 
 A set of screens can be named once with `screen-alias`, which behaves like a key alias: it
 stands for any one of the filters it lists, so `_{largescreen}` is a named `*`-list. A screen

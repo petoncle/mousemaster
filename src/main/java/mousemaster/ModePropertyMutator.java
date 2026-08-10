@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import static mousemaster.ScreenFilter.NegatedScreenFilter;
-
 public class ModePropertyMutator {
 
     private static final Map<Class<?>, RecordComponent[]> componentCache =
@@ -47,7 +45,7 @@ public class ModePropertyMutator {
             Map<ScreenFilter, Object> mutatedMap = new LinkedHashMap<>();
             for (var entry : screenFilterMap.map().entrySet()) {
                 if (targetScreenFilter != null &&
-                    !mutates(targetScreenFilter, entry.getKey())) {
+                    !entry.getKey().equals(targetScreenFilter)) {
                     mutatedMap.put(entry.getKey(), entry.getValue());
                 }
                 else {
@@ -63,12 +61,6 @@ public class ModePropertyMutator {
                     newPropertyValue, targetScreenFilter);
         }
         return createWithField(obj, fieldName, mutatedChild);
-    }
-
-    private static boolean mutates(ScreenFilter target, ScreenFilter entryFilter) {
-        if (target instanceof NegatedScreenFilter negatedTarget)
-            return !negatedTarget.screenFilters().contains(entryFilter);
-        return target.equals(entryFilter);
     }
 
     private static Object mutateDecoration(Object obj, String fieldName,

@@ -1,6 +1,5 @@
 package mousemaster;
 
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,11 +36,6 @@ public sealed interface ScreenFilter {
 
     /** An unspecified width, height or scale is -1. */
     record FixedScreenFilter(int width, int height, double scale) implements ScreenFilter {
-
-    }
-
-    /** Not a {@link ScreenFilterMap} key: a mutation of every entry but these. */
-    record NegatedScreenFilter(Set<ScreenFilter> screenFilters) implements ScreenFilter {
 
     }
 }

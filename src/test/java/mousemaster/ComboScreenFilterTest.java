@@ -69,16 +69,6 @@ class ComboScreenFilterTest {
     }
 
     @Test
-    void negatedFilterAloneMakesTheValueTheDefault() {
-        Mode mode = load("idle-mode.hint.selection-keys=a b c d",
-                "idle-mode.hint.box-border-radius=1 | ^{3840x2160-300%} -> 3")
-                .modeMap()
-                .get(Mode.IDLE_MODE_NAME);
-        assertEquals(1, boxBorderRadius(mode, 3840, 2160, 3));
-        assertEquals(3, boxBorderRadius(mode, 1920, 1080, 1));
-    }
-
-    @Test
     void filterMixedWithAKeyMutatesOnlyTheFiltersScreens() {
         load("idle-mode.hint.selection-keys=a b c d",
                 "idle-mode.hint.box-border-radius=1 | _{3840x2160-300% isidling} -> 3");
@@ -91,18 +81,6 @@ class ComboScreenFilterTest {
 
         comboWatcher.setIdling(false);
         assertEquals(1, mutatedBoxBorderRadius(3840, 2160, 3));
-    }
-
-    @Test
-    void negatedFilterMixedWithAKeyMutatesEveryOtherScreen() {
-        load("idle-mode.hint.selection-keys=a b c d",
-                "idle-mode.hint.box-border-radius=1 | ^{3840x2160-300%} _{isidling} -> 3");
-        assertEquals(1, mutatedBoxBorderRadius(3840, 2160, 3));
-        assertEquals(1, mutatedBoxBorderRadius(1920, 1080, 1));
-
-        comboWatcher.setIdling(true);
-        assertEquals(1, mutatedBoxBorderRadius(3840, 2160, 3));
-        assertEquals(3, mutatedBoxBorderRadius(1920, 1080, 1));
     }
 
     @Test
@@ -132,20 +110,9 @@ class ComboScreenFilterTest {
         assertEquals(1, boxBorderRadius(mode, 1920, 1080, 1));
     }
 
+    /** Two filters are alternatives: | between them, or the *-list an alias expands to. */
     @Test
-    void aNegatedAliasMixedWithAKeyMutatesEveryOtherScreen() {
-        load("screen-alias.big=3840x2160-300% 2560x1440-100%",
-                "idle-mode.hint.selection-keys=a b c d",
-                "idle-mode.hint.box-border-radius=1 | ^{big} _{isidling} -> 3");
-        comboWatcher.setIdling(true);
-        assertEquals(1, mutatedBoxBorderRadius(3840, 2160, 3));
-        assertEquals(1, mutatedBoxBorderRadius(2560, 1440, 1));
-        assertEquals(3, mutatedBoxBorderRadius(1920, 1080, 1));
-    }
-
-    /** A block of nothing but filters takes | for either screen, as an alias does. */
-    @Test
-    void filtersOnlyBlockTakesEitherSeparator() {
+    void severalFiltersAreAlternatives() {
         for (String block : List.of("_{3840x2160-300% | 2560x1440-100%}",
                 "_{3840x2160-300%*2560x1440-100%}")) {
             Mode mode = load("idle-mode.hint.selection-keys=a b c d",
@@ -156,6 +123,14 @@ class ComboScreenFilterTest {
             assertEquals(3, boxBorderRadius(mode, 2560, 1440, 1), block);
             assertEquals(1, boxBorderRadius(mode, 1920, 1080, 1), block);
         }
+    }
+
+    @Test
+    void aSpaceBetweenFiltersIsRejected() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> load("idle-mode.hint.selection-keys=a b c d",
+                        "idle-mode.hint.box-border-radius=1 | _{3840x2160-300% 2560x1440-100%} -> 3"));
+        assertTrue(e.getMessage().contains("can never be satisfied"), e.getMessage());
     }
 
     /** Alongside keys, a space means both screens at once and | an alternative to the keys. */
@@ -188,25 +163,6 @@ class ComboScreenFilterTest {
         comboWatcher.setIdling(true);
         assertEquals(4, mutatedBoxBorderRadius(3840, 2160, 3));
         assertEquals(3, mutatedBoxBorderRadius(1920, 1080, 1));
-    }
-
-    @Test
-    void aNegatedBlockTakesSeveralFiltersSeparatedBySpace() {
-        Mode mode = load("idle-mode.hint.selection-keys=a b c d",
-                "idle-mode.hint.box-border-radius=1 | ^{3840x2160-300% 2560x1440-100%} -> 3")
-                .modeMap()
-                .get(Mode.IDLE_MODE_NAME);
-        assertEquals(1, boxBorderRadius(mode, 3840, 2160, 3));
-        assertEquals(1, boxBorderRadius(mode, 2560, 1440, 1));
-        assertEquals(3, boxBorderRadius(mode, 1920, 1080, 1));
-    }
-
-    @Test
-    void aFilterAndANegatedOneCannotBeMixed() {
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> load("idle-mode.hint.selection-keys=a b c d",
-                        "idle-mode.hint.box-border-radius=1 | _{3840x2160-300%} ^{1920x1080-100%} -> 3"));
-        assertTrue(e.getMessage().contains("negated"), e.getMessage());
     }
 
     @Test
