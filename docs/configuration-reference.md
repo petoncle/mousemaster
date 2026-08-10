@@ -638,6 +638,8 @@ hint1-mode.hint.layout-column-count=5 | _{3840x2160-100%} -> 10
 
 A screen filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
 
+A length — a padding, a border thickness, radius or length, a shadow blur or offset, a grid line thickness — is in the pixels of a 100% screen, and the screen's scale grows it, exactly as it grows a font size. A hint therefore keeps its proportions on a 200% or 300% screen with no per-screen value at all. To pin a length to a pixel count on one scale, override it there and divide: `hint1-mode.hint.box-border-thickness=1 | _{150%} -> 0.67` draws a single pixel at 150%.
+
 ```properties
 # Every screen scaled at 300%, whatever its resolution.
 hint1-mode.hint.box-border-radius=1 | _{300%} -> 3

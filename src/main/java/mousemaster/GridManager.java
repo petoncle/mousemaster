@@ -276,6 +276,7 @@ public class GridManager implements MousePositionListener, ModeListener {
             }
         }
         Screen screen = screenManager.activeScreen();
+        gridBuilder.lineThickness(gridConfiguration.lineThickness() * screen.scale());
         int scaledTopInset = (int) (gridConfiguration.area().topInset() * screen.scale());
         int scaledBottomInset =
                 (int) (gridConfiguration.area().bottomInset() * screen.scale());

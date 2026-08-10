@@ -1376,6 +1376,15 @@ public final class HintMeshRenderer {
         QColor boxColor = QtColorUtil.qColor(style.boxHexColor(), style.boxOpacity());
         QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
+        int cellHorizontalPadding = scaledLength(style.cellHorizontalPadding(), screenScale);
+        int cellVerticalPadding = scaledLength(style.cellVerticalPadding(), screenScale);
+        int boxBorderThickness = scaledLength(style.boxBorderThickness(), screenScale);
+        int boxBorderLength = scaledLength(style.boxBorderLength(), screenScale);
+        int boxBorderRadius = scaledLength(style.boxBorderRadius(), screenScale);
+        int prefixBoxBorderThickness =
+                scaledLength(style.prefixBoxBorderThickness(), screenScale);
+        int prefixBoxBorderLength = scaledLength(style.prefixBoxBorderLength(), screenScale);
+        Shadow boxShadow = scaledShadow(style.boxShadow(), screenScale);
         // One entry per tiled depth: subdecoration at index 0, subsubdecoration at index 1.
         List<DecorationStyle> subDecorationStyles = new ArrayList<>();
         if (hintMesh.subDecoration() != null) {
@@ -1412,8 +1421,6 @@ public final class HintMeshRenderer {
                                                                              Collectors.joining()));
             // Size of cell for screen selection hint is not configured by user.
             // The default size is used and it is too small (and will be less than totalXAdvance).
-            int cellHorizontalPadding = (int) Math.round(style.cellHorizontalPadding());
-            int cellVerticalPadding = (int) Math.round(style.cellVerticalPadding());
             int lineHeight = labelFontStyle.defaultStyle().metrics().height();
             // A cell is in pixels, as the padding and the grid's own cell are, but metrics are
             // in the points Qt draws text in.
@@ -1462,13 +1469,12 @@ public final class HintMeshRenderer {
                             style.fontStyle().defaultFontStyle().verticalAlignment(),
                             isHintPartOfGrid, qtScaleFactor);
             hintLabels.add(hintLabel);
-            int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
             boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
             boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
             boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
             HintBox hintBox =
-                    new HintBox(hint, (int) Math.round(style.boxBorderLength()),
+                    new HintBox(hint, boxBorderLength,
                             boxBorderThickness,
                             boxColor,
                             boxBorderColor,
@@ -1476,7 +1482,7 @@ public final class HintMeshRenderer {
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
                             style.boxFramed(),
                             qtScaleFactor,
-                            (int) Math.round(style.boxBorderRadius())
+                            boxBorderRadius
                     );
             hintBoxes.add(hintBox);
             int boxWidth, boxHeight;
@@ -1549,10 +1555,8 @@ public final class HintMeshRenderer {
             boolean gridBottomEdge =
                     isHintPartOfGrid && hintGroup.maxHintCenterY == maxHintCenterY ||
                     style.boxHeightPercent() != 1;
-            int prefixBoxBorderThickness =
-                    (int) Math.round(style.prefixBoxBorderThickness());
             HintBox prefixHintBox =
-                    new HintBox(null, (int) Math.round(style.prefixBoxBorderLength()),
+                    new HintBox(null, prefixBoxBorderLength,
                             prefixBoxBorderThickness,
                             QtColorUtil.qColor("#000000", 0),
                             prefixBoxBorderColor,
@@ -1618,16 +1622,14 @@ public final class HintMeshRenderer {
         }
         // Expand container bounds to accommodate the antialiased rounded
         // border stroke extending outside the box fill area.
-        if (style.boxBorderRadius() > 0 && style.boxBorderThickness() > 0) {
-            int borderPad = (int) Math.ceil(
-                    style.boxBorderThickness() / 2.0 / qtScaleFactor);
+        if (boxBorderRadius > 0 && boxBorderThickness > 0) {
+            int borderPad = (int) Math.ceil(boxBorderThickness / 2.0 / qtScaleFactor);
             minHintLeft -= borderPad;
             minHintTop -= borderPad;
             maxHintRight += borderPad;
             maxHintBottom += borderPad;
         }
         // Expand container bounds to accommodate box shadow extent.
-        Shadow boxShadow = style.boxShadow();
         if (boxShadow.opacity() > 0) {
             int shadowPadLeft = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, -boxShadow.horizontalOffset())) / qtScaleFactor);
             int shadowPadRight = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, boxShadow.horizontalOffset())) / qtScaleFactor);
@@ -1679,7 +1681,7 @@ public final class HintMeshRenderer {
         HintPaintLayer hintBoxLayer =
                 new HintPaintLayer(container, hintBoxes, List.of(), HintBox::paintWithoutBorder);
         hintBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        applyBoxShadow(boxShadowLayer, hintBoxes, style.boxShadow(),
+        applyBoxShadow(boxShadowLayer, hintBoxes, boxShadow,
                 containerWidth, containerHeight, qtScaleFactor);
         addDecorationLabelLayers(container, hintBoxes, subDecorationStyles,
                 containerWidth, containerHeight);
@@ -1774,9 +1776,9 @@ public final class HintMeshRenderer {
         return new DecorationStyle(
                 QtColorUtil.qColor(decoration.boxHexColor(), decoration.boxOpacity()),
                 QtColorUtil.qColor(decoration.boxBorderHexColor(), decoration.boxBorderOpacity()),
-                (int) Math.round(decoration.boxBorderThickness()),
-                (int) Math.round(decoration.boxBorderLength()),
-                (int) Math.round(decoration.boxBorderRadius()),
+                scaledLength(decoration.boxBorderThickness(), screenScale),
+                scaledLength(decoration.boxBorderLength(), screenScale),
+                scaledLength(decoration.boxBorderRadius(), screenScale),
                 decoration.boxFramed(),
                 font.opacity() != 0,
                 QtHintFont.qtFontStyle(font, screenScale),
@@ -1922,6 +1924,16 @@ public final class HintMeshRenderer {
      * hints, which are in pixels, are scaled down by the screen they are on. Widget geometry is in
      * points, so it is divided by this; everything painted inside one is in pixels.
      */
+    private static int scaledLength(double length, double screenScale) {
+        return (int) Math.round(length * screenScale);
+    }
+
+    private static Shadow scaledShadow(Shadow shadow, double screenScale) {
+        return new Shadow(shadow.blurRadius() * screenScale, shadow.hexColor(),
+                shadow.opacity(), shadow.horizontalOffset() * screenScale,
+                shadow.verticalOffset() * screenScale, shadow.stackCount());
+    }
+
     private static double qtScaleFactor(double screenScale) {
         return Os.windows ? 1 : screenScale;
     }
@@ -3487,7 +3499,8 @@ public final class HintMeshRenderer {
         // right/bottom border lines are its neighbours', just past its rect) so the crop's target
         // extent covers them and the clipped layer keeps all four borders.
         int boxBorderThickness = (int) Math.round(
-                style.boxBorderThickness() / qtScaleFactor(screen.scale()));
+                scaledLength(style.boxBorderThickness(), screen.scale()) /
+                qtScaleFactor(screen.scale()));
         QRect containerBoxRect = new QRect(hintBoxGeometry.x(), hintBoxGeometry.y(),
                 hintBoxGeometry.width() + boxBorderThickness,
                 hintBoxGeometry.height() + boxBorderThickness);
