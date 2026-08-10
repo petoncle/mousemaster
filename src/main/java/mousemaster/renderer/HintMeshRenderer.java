@@ -1460,7 +1460,7 @@ public final class HintMeshRenderer {
                                     (hintMesh.selectedKeySequence().size() - 1
                                     - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)),
                             style.fontStyle().defaultFontStyle().verticalAlignment(),
-                            isHintPartOfGrid);
+                            isHintPartOfGrid, qtScaleFactor);
             hintLabels.add(hintLabel);
             int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
@@ -1598,7 +1598,7 @@ public final class HintMeshRenderer {
                                 prefixHintKeyMaxXAdvance,
                                 hintMesh.selectedKeySequence().size() - 1,
                                 style.prefixFontStyle().defaultFontStyle().verticalAlignment(),
-                                isHintPartOfGrid);
+                                isHintPartOfGrid, qtScaleFactor);
                 // The group bounds come from boxes that are already scaled down.
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, 1);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, 1);
@@ -2023,7 +2023,8 @@ public final class HintMeshRenderer {
                 this.decorationLabelX = (width - advance) / 2;
                 QtHintFont.Ink ink = QtHintFont.ink(metrics, labelStyle.font(), label);
                 this.decorationLabelY =
-                        baselineY(verticalAlignment, height, metrics, ink.top(), ink.height());
+                        baselineY(verticalAlignment, height, metrics, ink.top(), ink.height(),
+                                qtScaleFactor);
                 this.decorationLabelWidth = advance;
                 this.decorationLabelAscent = metrics.ascent();
                 this.decorationLabelDescent = metrics.descent();
@@ -2557,10 +2558,14 @@ public final class HintMeshRenderer {
     }
 
     private static double baselineY(FontVerticalAlignment verticalAlignment, int boxHeight,
-                                    QFontMetrics metrics, double inkTop, double inkHeight) {
+                                    QFontMetrics metrics, double inkTop, double inkHeight,
+                                    double qtScaleFactor) {
         if (verticalAlignment == FontVerticalAlignment.MIDDLE)
             // The ink starts on a whole pixel, a leftover one going above the text, not below.
-            return Math.round((boxHeight - inkHeight) / 2) - inkTop;
+            // A pixel, not a point: where Qt paints in points, half of one is still a pixel, and
+            // rounding to the point would push the text off center by one.
+            return Math.round((boxHeight - inkHeight) / 2 * qtScaleFactor) / qtScaleFactor
+                   - inkTop;
         return (boxHeight + metrics.ascent() - metrics.descent()) / 2d;
     }
 
@@ -2605,7 +2610,7 @@ public final class HintMeshRenderer {
                          QtHintFontStyle labelFontStyle,
                          int hintKeyMaxXAdvance, int selectedKeyEndIndex,
                          FontVerticalAlignment verticalAlignment,
-                         boolean isHintPartOfGrid) {
+                         boolean isHintPartOfGrid, double qtScaleFactor) {
             this.labelFontStyle = labelFontStyle;
 
             QFontMetrics labelMetrics = labelFontStyle.defaultStyle().metrics();
@@ -2690,7 +2695,7 @@ public final class HintMeshRenderer {
                     textX += (textWidth - actualTextWidth) / 2;
                 }
                 double textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
-                        inkBottom - inkTop);
+                        inkBottom - inkTop, qtScaleFactor);
                 if (!isHintPartOfGrid) {
                     QtHintFont.Ink keyInk = QtHintFont.ink(keyMetrics,
                             keyStyle(keyIndex, prefixLength, selectedKeyEndIndex).font(),
@@ -2713,7 +2718,7 @@ public final class HintMeshRenderer {
             this.tightHintBoxLeft = smallestHintBoxLeft;
             this.tightHintBoxTop = isHintPartOfGrid ? 0 :
                     baselineY(verticalAlignment, boxHeight, labelMetrics, inkTop,
-                            inkBottom - inkTop) - labelMetrics.ascent();
+                            inkBottom - inkTop, qtScaleFactor) - labelMetrics.ascent();
             this.tightHintBoxWidth = smallestHintBoxWidth;
             this.tightHintBoxHeight = labelMetrics.height();
         }
