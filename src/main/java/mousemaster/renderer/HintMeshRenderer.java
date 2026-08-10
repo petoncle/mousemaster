@@ -1364,6 +1364,9 @@ public final class HintMeshRenderer {
             maxHintCenterY = Math.max(maxHintCenterY, hint.centerY());
         }
         List<Hint> hints = hintMeshWindow.hints;
+        // A grid of one hint (the screen selection hint) has no neighboring cells: its box grows
+        // to fit its text and its label centers on its ink, as a non-grid hint's does.
+        boolean isHintPartOfTiledGrid = isHintPartOfGrid && hints.size() != 1;
         int minHintLeft = Integer.MAX_VALUE;
         int minHintTop = Integer.MAX_VALUE;
         int maxHintRight = Integer.MIN_VALUE;
@@ -1467,7 +1470,7 @@ public final class HintMeshRenderer {
                                     (hintMesh.selectedKeySequence().size() - 1
                                     - (style.prefixInBackground() && hintMesh.prefixLength() != -1 ? prefix.size() : 0)),
                             style.fontStyle().defaultFontStyle().verticalAlignment(),
-                            isHintPartOfGrid, qtScaleFactor);
+                            isHintPartOfGrid, isHintPartOfTiledGrid, qtScaleFactor);
             hintLabels.add(hintLabel);
             boolean gridLeftEdge = isHintPartOfGrid && hint.centerX() == minHintCenterX || style.boxWidthPercent() != 1;
             boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
@@ -1486,10 +1489,7 @@ public final class HintMeshRenderer {
                     );
             hintBoxes.add(hintBox);
             int boxWidth, boxHeight;
-            if (isHintPartOfGrid
-                // Exclude single-hint grids (e.g. screen selection hint) so the box
-                // can expand to fit its text.
-                && hints.size() != 1) {
+            if (isHintPartOfTiledGrid) {
                 // For grid hints, box size is determined by the grid cell, not the text.
                 boxWidth = (int) (fullBoxWidth * style.boxWidthPercent());
                 boxHeight = (int) (fullBoxHeight * style.boxHeightPercent());
@@ -1602,7 +1602,7 @@ public final class HintMeshRenderer {
                                 prefixHintKeyMaxXAdvance,
                                 hintMesh.selectedKeySequence().size() - 1,
                                 style.prefixFontStyle().defaultFontStyle().verticalAlignment(),
-                                isHintPartOfGrid, qtScaleFactor);
+                                isHintPartOfGrid, isHintPartOfTiledGrid, qtScaleFactor);
                 // The group bounds come from boxes that are already scaled down.
                 int x = hintRoundedX((hintGroup.left + hintGroup.right-1) / 2d, fullBoxWidth, 1);
                 int y = hintRoundedY((hintGroup.top + hintGroup.bottom-1) / 2d, fullBoxHeight, 1);
@@ -2622,7 +2622,8 @@ public final class HintMeshRenderer {
                          QtHintFontStyle labelFontStyle,
                          int hintKeyMaxXAdvance, int selectedKeyEndIndex,
                          FontVerticalAlignment verticalAlignment,
-                         boolean isHintPartOfGrid, double qtScaleFactor) {
+                         boolean isHintPartOfGrid, boolean isHintPartOfTiledGrid,
+                         double qtScaleFactor) {
             this.labelFontStyle = labelFontStyle;
 
             QFontMetrics labelMetrics = labelFontStyle.defaultStyle().metrics();
@@ -2708,7 +2709,7 @@ public final class HintMeshRenderer {
                 }
                 double textY = baselineY(verticalAlignment, boxHeight, keyMetrics, inkTop,
                         inkBottom - inkTop, qtScaleFactor);
-                if (!isHintPartOfGrid) {
+                if (!isHintPartOfTiledGrid) {
                     QtHintFont.Ink keyInk = QtHintFont.ink(keyMetrics,
                             keyStyle(keyIndex, prefixLength, selectedKeyEndIndex).font(),
                             keyText);
@@ -2719,7 +2720,7 @@ public final class HintMeshRenderer {
                         isSelected, isFocused, isPrefix));
             }
             // No columns to align to: center the label's tight bounds instead of per-key slots.
-            if (!isHintPartOfGrid && tightRight > tightLeft) {
+            if (!isHintPartOfTiledGrid && tightRight > tightLeft) {
                 double shiftX = (boxWidth - (tightRight - tightLeft)) / 2 - tightLeft;
                 if (shiftX != 0) {
                     keyTexts.replaceAll(k -> new HintKeyText(k.text(), k.x() + shiftX, k.y(),
