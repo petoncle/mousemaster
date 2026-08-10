@@ -256,6 +256,8 @@ public class GridManager implements MousePositionListener, ModeListener {
                                  .transitionAnimationDuration(gridConfiguration.transitionAnimationDuration())
                                  .fadeAnimationEnabled(gridConfiguration.fadeAnimationEnabled())
                                  .fadeAnimationDuration(gridConfiguration.fadeAnimationDuration());
+        Screen screen = screenManager.activeScreen();
+        gridBuilder.lineThickness(gridConfiguration.lineThickness() * screen.scale());
         if (currentMode != null) {
             GridConfiguration oldGridConfiguration = currentMode.grid();
             if (oldGridConfiguration.area().equals(gridConfiguration.area()) &&
@@ -275,8 +277,6 @@ public class GridManager implements MousePositionListener, ModeListener {
                 return;
             }
         }
-        Screen screen = screenManager.activeScreen();
-        gridBuilder.lineThickness(gridConfiguration.lineThickness() * screen.scale());
         int scaledTopInset = (int) (gridConfiguration.area().topInset() * screen.scale());
         int scaledBottomInset =
                 (int) (gridConfiguration.area().bottomInset() * screen.scale());
