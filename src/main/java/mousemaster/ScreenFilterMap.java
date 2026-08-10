@@ -6,41 +6,41 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static mousemaster.ViewportFilter.*;
+import static mousemaster.ScreenFilter.*;
 
-public class ViewportFilterMap<V> {
+public class ScreenFilterMap<V> {
 
-    private final Map<ViewportFilter, V> map;
+    private final Map<ScreenFilter, V> map;
 
-    public ViewportFilterMap(Map<ViewportFilter, V> map) {
+    public ScreenFilterMap(Map<ScreenFilter, V> map) {
         this.map = map;
     }
 
-    public V get(ViewportFilter filter) {
+    public V get(ScreenFilter filter) {
         return map.get(closestFilter(filter));
     }
 
-    public ViewportFilter closestFilter(ViewportFilter filter) {
+    public ScreenFilter closestFilter(ScreenFilter filter) {
         if (map.containsKey(filter))
             return filter;
-        Viewport viewport = ((FixedViewportFilter) filter).viewport();
-        FixedViewportFilter resolutionFilter = new FixedViewportFilter(
-                new Viewport(viewport.width(), viewport.height(), -1));
+        FixedScreenFilter fixedFilter = (FixedScreenFilter) filter;
+        FixedScreenFilter resolutionFilter = new FixedScreenFilter(
+                fixedFilter.width(), fixedFilter.height(), -1);
         if (map.containsKey(resolutionFilter))
             return resolutionFilter;
-        FixedViewportFilter scaleFilter =
-                new FixedViewportFilter(new Viewport(-1, -1, viewport.scale()));
+        FixedScreenFilter scaleFilter =
+                new FixedScreenFilter(-1, -1, fixedFilter.scale());
         if (map.containsKey(scaleFilter))
             return scaleFilter;
-        return AnyViewportFilter.ANY_VIEWPORT_FILTER;
+        return AnyScreenFilter.ANY_SCREEN_FILTER;
     }
 
-    public Map<ViewportFilter, V> map() {
+    public Map<ScreenFilter, V> map() {
         return map;
     }
 
-    public <B> ViewportFilterMapBuilder<B, V> builder(Function<V, B> elementToBuilder) {
-        return new ViewportFilterMapBuilder<>(this, elementToBuilder);
+    public <B> ScreenFilterMapBuilder<B, V> builder(Function<V, B> elementToBuilder) {
+        return new ScreenFilterMapBuilder<>(this, elementToBuilder);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class ViewportFilterMap<V> {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        ViewportFilterMap<?> that = (ViewportFilterMap<?>) o;
+        ScreenFilterMap<?> that = (ScreenFilterMap<?>) o;
         return map.equals(that.map);
     }
 
@@ -57,19 +57,19 @@ public class ViewportFilterMap<V> {
         return map.hashCode();
     }
 
-    public static class ViewportFilterMapBuilder<B, V> {
+    public static class ScreenFilterMapBuilder<B, V> {
 
         /**
          * Each element is a builder (.build()).
          */
-        private Map<ViewportFilter, B> map;
+        private Map<ScreenFilter, B> map;
 
-        public ViewportFilterMapBuilder() {
+        public ScreenFilterMapBuilder() {
             this.map = new HashMap<>();
         }
 
-        public ViewportFilterMapBuilder(ViewportFilterMap<V> viewportFilterMap, Function<V, B> elementToBuilder) {
-            this.map = viewportFilterMap.map
+        public ScreenFilterMapBuilder(ScreenFilterMap<V> screenFilterMap, Function<V, B> elementToBuilder) {
+            this.map = screenFilterMap.map
                     .entrySet()
                     .stream()
                     .collect(Collectors.toMap(
@@ -78,18 +78,18 @@ public class ViewportFilterMap<V> {
                     ));
         }
 
-        public Map<ViewportFilter, B> map() {
+        public Map<ScreenFilter, B> map() {
             return map;
         }
 
         /**
          * elementBuilder takes a builder and a default value, returns the built element
          */
-        public ViewportFilterMap<V> build(BiFunction<B, V, V> elementBuilder) {
+        public ScreenFilterMap<V> build(BiFunction<B, V, V> elementBuilder) {
             // Assumes that the default layout is not missing any property.
             V defaultValue = elementBuilder.apply(map.get(
-                    AnyViewportFilter.ANY_VIEWPORT_FILTER), null);
-            return new ViewportFilterMap<>(map.entrySet().stream().collect(Collectors.toMap(
+                    AnyScreenFilter.ANY_SCREEN_FILTER), null);
+            return new ScreenFilterMap<>(map.entrySet().stream().collect(Collectors.toMap(
                     Map.Entry::getKey,
                     entry -> elementBuilder.apply(entry.getValue(), defaultValue)
             )));

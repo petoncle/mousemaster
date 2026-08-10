@@ -10,10 +10,10 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * A viewport filter in a combo property selects the screens the value applies to: it is
+ * A screen filter in a combo property selects the screens the value applies to: it is
  * the same as the .3840x2160-300% suffix of a property key.
  */
-class ComboViewportFilterTest {
+class ComboScreenFilterTest {
 
     private ComboWatcher comboWatcher;
 
@@ -41,8 +41,7 @@ class ComboViewportFilterTest {
     private static double boxBorderRadius(Mode mode, int width, int height, double scale) {
         return mode.hintMesh()
                    .styleByFilter()
-                   .get(new ViewportFilter.FixedViewportFilter(
-                           new Viewport(width, height, scale)))
+                   .get(new ScreenFilter.FixedScreenFilter(width, height, scale))
                    .boxBorderRadius();
     }
 
@@ -107,8 +106,8 @@ class ComboViewportFilterTest {
     }
 
     @Test
-    void aViewportAliasStandsForEveryFilterItNames() {
-        Mode mode = load("viewport-alias.big=3840x2160-300% 2560x1440-100%",
+    void aScreenAliasStandsForEveryFilterItNames() {
+        Mode mode = load("screen-alias.big=3840x2160-300% 2560x1440-100%",
                 "idle-mode.hint.selection-keys=a b c d",
                 "idle-mode.hint.box-border-radius=1 | _{big} -> 3")
                 .modeMap()
@@ -118,12 +117,12 @@ class ComboViewportFilterTest {
         assertEquals(1, boxBorderRadius(mode, 1920, 1080, 1));
     }
 
-    /** A viewport alias can name another one, like a key alias can. */
+    /** A screen alias can name another one, like a key alias can. */
     @Test
-    void aViewportAliasCanNameAnotherOne() {
-        Mode mode = load("viewport-alias.huge=3840x2160-300%",
-                "viewport-alias.big=2560x1440-100%",
-                "viewport-alias.dense=huge big",
+    void aScreenAliasCanNameAnotherOne() {
+        Mode mode = load("screen-alias.huge=3840x2160-300%",
+                "screen-alias.big=2560x1440-100%",
+                "screen-alias.dense=huge big",
                 "idle-mode.hint.selection-keys=a b c d",
                 "idle-mode.hint.box-border-radius=1 | _{dense} -> 3")
                 .modeMap()
@@ -135,7 +134,7 @@ class ComboViewportFilterTest {
 
     @Test
     void aNegatedAliasMixedWithAKeyMutatesEveryOtherScreen() {
-        load("viewport-alias.big=3840x2160-300% 2560x1440-100%",
+        load("screen-alias.big=3840x2160-300% 2560x1440-100%",
                 "idle-mode.hint.selection-keys=a b c d",
                 "idle-mode.hint.box-border-radius=1 | ^{big} _{isidling} -> 3");
         comboWatcher.setIdling(true);

@@ -636,7 +636,7 @@ hint1-mode.hint.layout-row-count=6 | _{3840x2160-100%} -> 4
 hint1-mode.hint.layout-column-count=5 | _{3840x2160-100%} -> 10
 ```
 
-A viewport filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
+A screen filter is a screen resolution (`3840x2160`), a screen scale (`150%`), or both (`3840x2160-150%`). Each screen resolves its own value when the hints are drawn, so a mesh covering several screens gets a value per screen. The most specific matching filter wins: resolution and scale first, then resolution, then scale. A screen matching none of them takes the default value.
 
 ```properties
 # Every screen scaled at 300%, whatever its resolution.
@@ -666,16 +666,16 @@ hint1-mode.hint.box-border-radius=1 | ^{3840x2160-300% 1366x768-100%} -> 3
 
 Only a hint property can be filtered, and a combo cannot mix a filter with a negated one.
 
-A set of screens can be named once with `viewport-alias`, which behaves like a key alias: it
+A set of screens can be named once with `screen-alias`, which behaves like a key alias: it
 stands for any one of the filters it lists, so `_{largescreen}` is a named `*`-list. A screen
 is then written down in one place instead of once per property:
 
 ```properties
-viewport-alias.largescreen=3840x2160-100% 3440x1440-100%
-viewport-alias.mediumscreen=3840x2160-150% 2560x1440-100%
-viewport-alias.smallscreen=1920x1080-125% 1366x768-100%
+screen-alias.largescreen=3840x2160-100% 3440x1440-100%
+screen-alias.mediumscreen=3840x2160-150% 2560x1440-100%
+screen-alias.smallscreen=1920x1080-125% 1366x768-100%
 # An alias can name another one, like a key alias can.
-viewport-alias.tunedscreen=largescreen mediumscreen smallscreen
+screen-alias.tunedscreen=largescreen mediumscreen smallscreen
 
 hint1-mode.hint.grid-cell-sizing=fit
 hint1-mode.hint.grid-max-column-count=25 | _{mediumscreen | largescreen} -> 40

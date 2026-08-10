@@ -3,7 +3,7 @@ package mousemaster;
 import mousemaster.HintMeshKeys.HintMeshKeysBuilder;
 import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
 import mousemaster.HintMeshType.HintMeshTypeBuilder;
-import mousemaster.ViewportFilterMap.ViewportFilterMapBuilder;
+import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 
 import java.util.List;
 
@@ -11,8 +11,8 @@ public record HintMeshConfiguration(boolean enabled,
                                     boolean visible,
                                     HintMouseMovement mouseMovement,
                                     HintMeshType type,
-                                    ViewportFilterMap<HintMeshKeys> keysByFilter,
-                                    ViewportFilterMap<HintMeshStyle> styleByFilter,
+                                    ScreenFilterMap<HintMeshKeys> keysByFilter,
+                                    ScreenFilterMap<HintMeshStyle> styleByFilter,
                                     String modeAfterSelection,
                                     boolean eatUnusedSelectionKeys,
                                     List<Combo> selectCombos,
@@ -23,10 +23,10 @@ public record HintMeshConfiguration(boolean enabled,
         private Boolean visible;
         private HintMouseMovement mouseMovement;
         private final HintMeshTypeBuilder type = new HintMeshTypeBuilder();
-        private final ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys>
-                keysByFilter = new ViewportFilterMapBuilder<>();
-        private final ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
-                styleByFilter = new ViewportFilterMapBuilder<>();
+        private final ScreenFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys>
+                keysByFilter = new ScreenFilterMapBuilder<>();
+        private final ScreenFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle>
+                styleByFilter = new ScreenFilterMapBuilder<>();
         private String modeAfterSelection;
         private Boolean eatUnusedSelectionKeys;
         private List<Combo> selectCombos;
@@ -47,13 +47,13 @@ public record HintMeshConfiguration(boolean enabled,
             return this;
         }
 
-        public HintMeshKeysBuilder keys(ViewportFilter filter) {
+        public HintMeshKeysBuilder keys(ScreenFilter filter) {
             return keysByFilter.map()
                                .computeIfAbsent(filter,
                                        filter1 -> new HintMeshKeysBuilder());
         }
 
-        public HintMeshStyleBuilder style(ViewportFilter filter) {
+        public HintMeshStyleBuilder style(ScreenFilter filter) {
             return styleByFilter.map()
                                 .computeIfAbsent(filter, filter1 -> new HintMeshStyleBuilder());
         }
@@ -96,11 +96,11 @@ public record HintMeshConfiguration(boolean enabled,
             return mouseMovement;
         }
 
-        public ViewportFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys> keysByFilter() {
+        public ScreenFilterMapBuilder<HintMeshKeysBuilder, HintMeshKeys> keysByFilter() {
             return keysByFilter;
         }
 
-        public ViewportFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> styleByFilter() {
+        public ScreenFilterMapBuilder<HintMeshStyleBuilder, HintMeshStyle> styleByFilter() {
             return styleByFilter;
         }
 

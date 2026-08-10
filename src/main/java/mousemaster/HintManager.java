@@ -25,7 +25,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final ActiveAppFinder activeAppFinder;
     private ModeController modeController;
     private HintMesh hintMesh;
-    private ViewportFilter screenFilter;
+    private ScreenFilter screenFilter;
     private final Map<HintMeshKey, HintMeshState> hintMeshStates = new HashMap<>();
     private boolean hintJustSelected = false;
     private int mouseX, mouseY;
@@ -51,7 +51,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             Future<List<UiElement>> future,
             HintMeshConfiguration hintMeshConfiguration,
             Zoom zoom,
-            ViewportFilter screenFilter) {
+            ScreenFilter screenFilter) {
     }
 
     private PendingUiHintQuery pendingUiHintQuery;
@@ -111,7 +111,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     if (configuration.type() instanceof HintMeshType.HintPositionHistory)
                         continue;
                     HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
-                            ViewportFilter.of(screen), null, screen);
+                            ScreenFilter.of(screen), null, screen);
                     if (!hintMesh.visible() ||
                         hintMesh.hints().size() < minPreWarmedHintCount)
                         continue;
@@ -257,7 +257,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             if (currentPositionHistory.positions().isEmpty())
                 currentPositionHistory.save(new Point(mouseX, mouseY));
         }
-        ViewportFilter newScreenFilter = screenFilter(hintMeshConfiguration);
+        ScreenFilter newScreenFilter = screenFilter(hintMeshConfiguration);
         List<Key> selectionKeys =
                 hintMeshConfiguration.keysByFilter()
                                      .get(newScreenFilter)
@@ -390,7 +390,7 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private void activateHintMesh(Mode newMode, HintMesh newHintMesh,
                                   HintMeshConfiguration hintMeshConfiguration,
-                                  ViewportFilter newScreenFilter, Zoom newZoom) {
+                                  ScreenFilter newScreenFilter, Zoom newZoom) {
         List<Key> newSelectionKeys =
                 hintMeshConfiguration.keysByFilter().get(newScreenFilter).selectionKeys();
         hintMeshStates.put(new HintMeshKey(hintMeshConfiguration.type(), newSelectionKeys,
@@ -469,7 +469,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
         lastUiElements = uiElements;
         HintMeshConfiguration hintMeshConfiguration = pending.hintMeshConfiguration();
-        ViewportFilter screenFilter = pending.screenFilter();
+        ScreenFilter screenFilter = pending.screenFilter();
         ZoomConfiguration zoom = currentMode.zoom();
         HintMesh newHintMesh = buildHintMesh(hintMeshConfiguration,
                 zoom, pending.zoom(), screenFilter,
@@ -478,39 +478,39 @@ public class HintManager implements ModeListener, MousePositionListener {
                 currentZoom);
     }
 
-    private ViewportFilter screenFilter(HintMeshConfiguration hintMeshConfiguration) {
+    private ScreenFilter screenFilter(HintMeshConfiguration hintMeshConfiguration) {
         return switch (hintMeshConfiguration.type()) {
             case HintMeshType.HintGrid hintGrid -> screenFilter(hintGrid.area());
             case HintMeshType.UiHintMesh uiHintMesh -> screenFilter(uiHintMesh.area());
             case HintMeshType.HintPositionHistory hintPositionHistory -> {
                 Point position = currentPositionHistory.positions().getFirst();
-                yield ViewportFilter.of(
+                yield ScreenFilter.of(
                         screenManager.screenContaining(position.x(), position.y()));
             }
         };
     }
 
-    private ViewportFilter screenFilter(HintGridArea area) {
+    private ScreenFilter screenFilter(HintGridArea area) {
         return switch (area.size().source()) {
             case ACTIVE_SCREEN, LAST_SELECTED_HINT_CELL ->
-                    ViewportFilter.of(screenManager.activeScreen());
+                    ScreenFilter.of(screenManager.activeScreen());
             case ALL_SCREENS ->
-                    ViewportFilter.of(sortedScreens().getFirst());
+                    ScreenFilter.of(sortedScreens().getFirst());
             case ACTIVE_WINDOW -> activeWindowScreenFilter();
         };
     }
 
-    private ViewportFilter screenFilter(UiHintArea uiArea) {
+    private ScreenFilter screenFilter(UiHintArea uiArea) {
         return switch (uiArea) {
-            case ACTIVE_SCREEN -> ViewportFilter.of(screenManager.activeScreen());
-            case ALL_SCREENS -> ViewportFilter.of(sortedScreens().getFirst());
+            case ACTIVE_SCREEN -> ScreenFilter.of(screenManager.activeScreen());
+            case ALL_SCREENS -> ScreenFilter.of(sortedScreens().getFirst());
             case ACTIVE_WINDOW -> activeWindowScreenFilter();
         };
     }
 
-    private ViewportFilter activeWindowScreenFilter() {
+    private ScreenFilter activeWindowScreenFilter() {
         Point areaCenter = overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0).center();
-        return ViewportFilter.of(screenManager.nearestScreenContaining(
+        return ScreenFilter.of(screenManager.nearestScreenContaining(
                 areaCenter.x(), areaCenter.y()));
     }
 
@@ -602,7 +602,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private HintMesh buildHintMesh(
             HintMeshConfiguration hintMeshConfiguration,
             ZoomConfiguration zoomConfiguration, Zoom zoom,
-            ViewportFilter screenFilter,
+            ScreenFilter screenFilter,
             List<UiElement> uiElements, Screen activeScreen) {
         HintMeshBuilder hintMesh = new HintMeshBuilder();
         hintMesh.visible(hintMeshConfiguration.visible())
@@ -619,7 +619,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     Rectangle areaRectangle = scaledArea(screen.rectangle(), area.size(),
                             screen.rectangle().center());
                     HintGridLayout gridLayout = hintGrid.layout(
-                            ViewportFilter.of(activeScreen));
+                            ScreenFilter.of(activeScreen));
                     fixedSizeHintGrids.add(hintGridForArea(areaRectangle,
                             areaRectangle.center(), gridLayout, screen.scale(), zoom));
                 }
@@ -632,7 +632,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 // instead, so back navigation reproduces the exact area it rendered.
                 Rectangle areaRectangle;
                 Point gridCenter;
-                // Areas resolve to screen space: a viewport source is already there, a
+                // Areas resolve to screen space: a screen source is already there, a
                 // desktop region is mapped through the zoom.
                 if (area.size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
                     areaRectangle = cellGridLevelStack.isEmpty() ?
@@ -809,7 +809,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private void buildUiHints(HintMeshConfiguration hintMeshConfiguration,
-                           ViewportFilter screenFilter,
+                           ScreenFilter screenFilter,
                            List<UiElement> uiElements,
                               Set<Integer> prefixLengths, List<Hint> hints) {
         HintMeshKeys hintMeshKeys =
@@ -1097,12 +1097,12 @@ public class HintManager implements ModeListener, MousePositionListener {
     }
 
     private static HintMeshStyle styleForFilter(HintMeshConfiguration configuration,
-                                                ViewportFilter filter) {
+                                                ScreenFilter filter) {
         HintMeshStyle style = configuration.styleByFilter().get(filter);
         if (style != null)
             return style;
         return configuration.styleByFilter().get(
-                ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER);
     }
 
     /**
@@ -1165,8 +1165,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                 .boxHeightPercent(1d)
                 .backgroundOpacity(0d)
                 .build(style);
-        ViewportFilterMap<HintMeshStyle> decorationStyleByFilter = new ViewportFilterMap<>(
-                Map.of(ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER, decorationStyle));
+        ScreenFilterMap<HintMeshStyle> decorationStyleByFilter = new ScreenFilterMap<>(
+                Map.of(ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER, decorationStyle));
         HintMesh childMesh = null;
         if (childDecoration != null) {
             Rectangle decorationCell = new Rectangle(

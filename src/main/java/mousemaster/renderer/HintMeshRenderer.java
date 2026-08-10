@@ -303,7 +303,7 @@ public final class HintMeshRenderer {
             Map.Entry<Screen, HintMeshWindow> firstEntry =
                     hintMeshWindows.entrySet().iterator().next();
             HintMeshStyle style = currentHintMesh.styleByFilter()
-                    .get(ViewportFilter.of(firstEntry.getKey()));
+                    .get(ScreenFilter.of(firstEntry.getKey()));
             hintMeshFadeAnimator = new FadeAnimator(
                     opacity -> {
                         for (HintMeshWindow w : hintMeshWindows.values())
@@ -380,7 +380,7 @@ public final class HintMeshRenderer {
         for (Map.Entry<Screen, List<Hint>> entry : hintsByScreen.entrySet()) {
             Screen screen = entry.getKey();
             HintMeshStyle style =
-                    hintMesh.styleByFilter().get(ViewportFilter.of(screen));
+                    hintMesh.styleByFilter().get(ScreenFilter.of(screen));
             List<Hint> hintsInScreen = entry.getValue();
             HintMeshWindow existingWindow = hintMeshWindows.get(screen);
             if (existingWindow == null) {
@@ -3391,7 +3391,7 @@ public final class HintMeshRenderer {
         HintMeshWindow hintMeshWindow = hintMeshWindows.get(screen);
         HintMesh lastHintMeshKey = hintMeshWindow.lastHintMeshKeyReference().get();
         HintMeshStyle style =
-                lastHintMeshKey.styleByFilter().get(ViewportFilter.of(screen));
+                lastHintMeshKey.styleByFilter().get(ScreenFilter.of(screen));
         if (!style.transitionAnimationEnabled())
             return;
         boolean isHintGrid = lastHintMeshKey.hints().getFirst().cellWidth() != -1 &&

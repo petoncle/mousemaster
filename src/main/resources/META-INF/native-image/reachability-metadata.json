@@ -6499,8 +6499,8 @@
             "boolean",
             "mousemaster.HintMouseMovement",
             "mousemaster.HintMeshType",
-            "mousemaster.ViewportFilterMap",
-            "mousemaster.ViewportFilterMap",
+            "mousemaster.ScreenFilterMap",
+            "mousemaster.ScreenFilterMap",
             "java.lang.String",
             "boolean",
             "java.util.List",
@@ -6726,7 +6726,7 @@
           "name": "<init>",
           "parameterTypes": [
             "mousemaster.HintGridArea",
-            "mousemaster.ViewportFilterMap"
+            "mousemaster.ScreenFilterMap"
           ]
         },
         {

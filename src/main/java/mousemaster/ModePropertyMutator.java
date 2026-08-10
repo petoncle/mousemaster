@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import static mousemaster.ViewportFilter.NegatedViewportFilter;
+import static mousemaster.ScreenFilter.NegatedScreenFilter;
 
 public class ModePropertyMutator {
 
@@ -19,13 +19,13 @@ public class ModePropertyMutator {
     public static Mode mutateModeProperty(Mode mode, ModePropertyPath propertyPath,
                                            Object newPropertyValue) {
         return (Mode) mutateModeProperty(mode, propertyPath.fieldNames(),
-                newPropertyValue, propertyPath.viewportFilter());
+                newPropertyValue, propertyPath.screenFilter());
     }
 
     @SuppressWarnings("unchecked")
     private static Object mutateModeProperty(Object obj, List<String> fieldNames,
                                              Object newPropertyValue,
-                                             ViewportFilter targetViewportFilter) {
+                                             ScreenFilter targetScreenFilter) {
         if (fieldNames.isEmpty()) {
             if (newPropertyValue instanceof Function<?, ?> function)
                 return ((Function<Object, Object>) function).apply(obj);
@@ -36,18 +36,18 @@ public class ModePropertyMutator {
         if (!hasField(obj, fieldName))
             // A decoration is named by its depth (decoration0, decoration1, ...) but held in a list.
             return mutateDecoration(obj, fieldName, remaining, newPropertyValue,
-                    targetViewportFilter);
+                    targetScreenFilter);
         Object child = getField(obj, fieldName);
         // A null field can be replaced, since the path ends on it and the new value just takes its
         // place, but it cannot be descended into to reach a field deeper in the path.
         if (child == null && !remaining.isEmpty())
             return obj;
         Object mutatedChild;
-        if (child instanceof ViewportFilterMap<?> viewportFilterMap) {
-            Map<ViewportFilter, Object> mutatedMap = new LinkedHashMap<>();
-            for (var entry : viewportFilterMap.map().entrySet()) {
-                if (targetViewportFilter != null &&
-                    !mutates(targetViewportFilter, entry.getKey())) {
+        if (child instanceof ScreenFilterMap<?> screenFilterMap) {
+            Map<ScreenFilter, Object> mutatedMap = new LinkedHashMap<>();
+            for (var entry : screenFilterMap.map().entrySet()) {
+                if (targetScreenFilter != null &&
+                    !mutates(targetScreenFilter, entry.getKey())) {
                     mutatedMap.put(entry.getKey(), entry.getValue());
                 }
                 else {
@@ -56,31 +56,31 @@ public class ModePropertyMutator {
                                     newPropertyValue, null));
                 }
             }
-            mutatedChild = new ViewportFilterMap<>(mutatedMap);
+            mutatedChild = new ScreenFilterMap<>(mutatedMap);
         }
         else {
             mutatedChild = mutateModeProperty(child, remaining,
-                    newPropertyValue, targetViewportFilter);
+                    newPropertyValue, targetScreenFilter);
         }
         return createWithField(obj, fieldName, mutatedChild);
     }
 
-    private static boolean mutates(ViewportFilter target, ViewportFilter entryFilter) {
-        if (target instanceof NegatedViewportFilter negatedTarget)
-            return !negatedTarget.viewportFilters().contains(entryFilter);
+    private static boolean mutates(ScreenFilter target, ScreenFilter entryFilter) {
+        if (target instanceof NegatedScreenFilter negatedTarget)
+            return !negatedTarget.screenFilters().contains(entryFilter);
         return target.equals(entryFilter);
     }
 
     private static Object mutateDecoration(Object obj, String fieldName,
                                            List<String> remaining, Object newPropertyValue,
-                                           ViewportFilter targetViewportFilter) {
+                                           ScreenFilter targetScreenFilter) {
         if (!fieldName.startsWith("decoration")
             || !(getField(obj, "decorations") instanceof List<?> decorations))
             return obj;
         int index = Integer.parseInt(fieldName.substring("decoration".length()));
         List<Object> mutatedDecorations = new ArrayList<>(decorations);
         mutatedDecorations.set(index, mutateModeProperty(decorations.get(index), remaining,
-                newPropertyValue, targetViewportFilter));
+                newPropertyValue, targetScreenFilter));
         return createWithField(obj, "decorations", List.copyOf(mutatedDecorations));
     }
 

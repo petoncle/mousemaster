@@ -1,18 +1,18 @@
 package mousemaster;
 
 import mousemaster.HintGridLayout.HintGridLayoutBuilder;
-import mousemaster.ViewportFilterMap.ViewportFilterMapBuilder;
+import mousemaster.ScreenFilterMap.ScreenFilterMapBuilder;
 
 public sealed interface HintMeshType {
 
-    record HintGrid(HintGridArea area, ViewportFilterMap<HintGridLayout> gridLayoutByFilter) implements HintMeshType {
+    record HintGrid(HintGridArea area, ScreenFilterMap<HintGridLayout> gridLayoutByFilter) implements HintMeshType {
 
-        public HintGridLayout layout(ViewportFilter filter) {
+        public HintGridLayout layout(ScreenFilter filter) {
             HintGridLayout layout = gridLayoutByFilter.get(filter);
             if (layout != null)
                 return layout;
             return gridLayoutByFilter.get(
-                    ViewportFilter.AnyViewportFilter.ANY_VIEWPORT_FILTER);
+                    ScreenFilter.AnyScreenFilter.ANY_SCREEN_FILTER);
         }
 
     }
@@ -39,11 +39,11 @@ public sealed interface HintMeshType {
                 gridArea = new HintGridArea.HintGridAreaBuilder();
         private UiHintArea uiArea;
         private String positionHistoryName;
-        private final ViewportFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
+        private final ScreenFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout>
                 gridLayoutByFilter;
 
         public HintMeshTypeBuilder() {
-            this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
+            this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
         }
 
         public HintMeshTypeBuilder(HintMeshType hintMeshType) {
@@ -57,12 +57,12 @@ public sealed interface HintMeshType {
                 case HintPositionHistory hintPositionHistory -> {
                     this.type = HintMeshTypeType.POSITION_HISTORY;
                     this.positionHistoryName = hintPositionHistory.positionHistoryName;
-                    this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
+                    this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
                 }
                 case UiHintMesh uiHintMesh -> {
                     this.type = HintMeshTypeType.UI;
                     this.uiArea = uiHintMesh.area;
-                    this.gridLayoutByFilter = new ViewportFilterMapBuilder<>();
+                    this.gridLayoutByFilter = new ScreenFilterMapBuilder<>();
                 }
             }
         }
@@ -93,12 +93,12 @@ public sealed interface HintMeshType {
             return this;
         }
 
-        public HintGridLayoutBuilder gridLayout(ViewportFilter filter) {
+        public HintGridLayoutBuilder gridLayout(ScreenFilter filter) {
             return gridLayoutByFilter.map().computeIfAbsent(filter,
                     filter1 -> new HintGridLayoutBuilder());
         }
 
-        public ViewportFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout> gridLayoutByFilter() {
+        public ScreenFilterMapBuilder<HintGridLayoutBuilder, HintGridLayout> gridLayoutByFilter() {
             return gridLayoutByFilter;
         }
 

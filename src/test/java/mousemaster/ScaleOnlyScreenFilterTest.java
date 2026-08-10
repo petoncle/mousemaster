@@ -9,7 +9,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ScaleOnlyViewportFilterTest {
+public class ScaleOnlyScreenFilterTest {
 
     private static double boxBorderRadius(Configuration configuration, int width,
                                           int height, double scale) {
@@ -17,8 +17,7 @@ public class ScaleOnlyViewportFilterTest {
                             .get("hint-mode")
                             .hintMesh()
                             .styleByFilter()
-                            .get(new ViewportFilter.FixedViewportFilter(
-                                    new Viewport(width, height, scale)))
+                            .get(new ScreenFilter.FixedScreenFilter(width, height, scale))
                             .boxBorderRadius();
     }
 

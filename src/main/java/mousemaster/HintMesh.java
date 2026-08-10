@@ -11,7 +11,7 @@ import java.util.List;
  */
 public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
                        List<Key> selectedKeySequence,
-                       ViewportFilterMap<HintMeshStyle> styleByFilter,
+                       ScreenFilterMap<HintMeshStyle> styleByFilter,
                        Rectangle backgroundArea, HintMesh decoration,
                        HintMesh subDecoration) {
 
@@ -24,7 +24,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         private List<Hint> hints;
         private int prefixLength;
         private List<Key> selectedKeySequence = List.of();
-        private ViewportFilterMap<HintMeshStyle> styleByFilter;
+        private ScreenFilterMap<HintMeshStyle> styleByFilter;
         private Rectangle backgroundArea;
         private HintMesh decoration;
         private HintMesh subDecoration;
@@ -60,7 +60,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
             return selectedKeySequence;
         }
 
-        public ViewportFilterMap<HintMeshStyle> styleByFilter() {
+        public ScreenFilterMap<HintMeshStyle> styleByFilter() {
             return styleByFilter;
         }
 
@@ -85,7 +85,7 @@ public record HintMesh(boolean visible, List<Hint> hints, int prefixLength,
         }
 
         public HintMeshBuilder styleByFilter(
-                ViewportFilterMap<HintMeshStyle> styleByFilter) {
+                ScreenFilterMap<HintMeshStyle> styleByFilter) {
             this.styleByFilter = styleByFilter;
             return this;
         }

@@ -799,7 +799,7 @@
 {
   "name":"mousemaster.HintMeshConfiguration",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","mousemaster.HintMouseMovement","mousemaster.HintMeshType","mousemaster.ViewportFilterMap","mousemaster.ViewportFilterMap","java.lang.String","boolean","java.util.List","java.util.List"] }, {"name":"eatUnusedSelectionKeys","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"keysByFilter","parameterTypes":[] }, {"name":"modeAfterSelection","parameterTypes":[] }, {"name":"mouseMovement","parameterTypes":[] }, {"name":"selectCombos","parameterTypes":[] }, {"name":"styleByFilter","parameterTypes":[] }, {"name":"type","parameterTypes":[] }, {"name":"unselectCombos","parameterTypes":[] }, {"name":"visible","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["boolean","boolean","mousemaster.HintMouseMovement","mousemaster.HintMeshType","mousemaster.ScreenFilterMap","mousemaster.ScreenFilterMap","java.lang.String","boolean","java.util.List","java.util.List"] }, {"name":"eatUnusedSelectionKeys","parameterTypes":[] }, {"name":"enabled","parameterTypes":[] }, {"name":"keysByFilter","parameterTypes":[] }, {"name":"modeAfterSelection","parameterTypes":[] }, {"name":"mouseMovement","parameterTypes":[] }, {"name":"selectCombos","parameterTypes":[] }, {"name":"styleByFilter","parameterTypes":[] }, {"name":"type","parameterTypes":[] }, {"name":"unselectCombos","parameterTypes":[] }, {"name":"visible","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshKeys",
@@ -814,7 +814,7 @@
 {
   "name":"mousemaster.HintMeshType$HintGrid",
   "allRecordComponents":true,
-  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridArea","mousemaster.ViewportFilterMap"] }, {"name":"area","parameterTypes":[] }, {"name":"gridLayoutByFilter","parameterTypes":[] }]
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridArea","mousemaster.ScreenFilterMap"] }, {"name":"area","parameterTypes":[] }, {"name":"gridLayoutByFilter","parameterTypes":[] }]
 },
 {
   "name":"mousemaster.HintMeshType$HintPositionHistory",
