@@ -654,9 +654,7 @@ public final class HintMeshRenderer {
         hintMeshWindow.animations.clear();
         hintMeshWindow.animationCallbacks.clear();
         cropAnimation = null;
-        // When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then Qt draws in points
-        // and the hints, which are in pixels, are scaled down by the screen they are on.
-        double qtScaleFactor = Os.windows ? 1 : screenScale;
+        double qtScaleFactor = qtScaleFactor(screenScale);
         List<QWidget> oldContainers = containers(window);
         QWidget oldContainer = oldContainers.isEmpty() ? null : oldContainers.getFirst();
         boolean oldContainerHidden = oldContainer == null || oldContainer.isHidden();
@@ -1413,21 +1411,25 @@ public final class HintMeshRenderer {
             // The default size is used and it is too small (and will be less than totalXAdvance).
             int cellHorizontalPadding = (int) Math.round(style.cellHorizontalPadding());
             int cellVerticalPadding = (int) Math.round(style.cellVerticalPadding());
+            int lineHeight = labelFontStyle.defaultStyle().metrics().height();
+            // A cell is in pixels, as the padding and the grid's own cell are, but metrics are
+            // in the points Qt draws text in.
+            double advancePixels = totalXAdvance * qtScaleFactor;
+            double lineHeightPixels = lineHeight * qtScaleFactor;
             double cellWidth = (hint.cellWidth() != -1 ?
                     // For grid hints, use the grid cell width as-is so boxes tile
                     // perfectly. Text that overflows is handled by the label layer.
                     (isHintPartOfGrid ? hint.cellWidth() :
-                            Math.max(totalXAdvance, hint.cellWidth())) :
-                    totalXAdvance) + 2 * cellHorizontalPadding;
-            int lineHeight = labelFontStyle.defaultStyle().metrics().height();
+                            Math.max(advancePixels, hint.cellWidth())) :
+                    advancePixels) + 2 * cellHorizontalPadding;
             double cellHeight = (hint.cellHeight() != -1 ?
                     (isHintPartOfGrid ? hint.cellHeight() :
-                            Math.max(lineHeight, hint.cellHeight())) :
-                    lineHeight) + 2 * cellVerticalPadding;
+                            Math.max(lineHeightPixels, hint.cellHeight())) :
+                    lineHeightPixels) + 2 * cellVerticalPadding;
             int x = hintRoundedX(hint.centerX(), cellWidth, qtScaleFactor);
             int y = hintRoundedY(hint.centerY(), cellHeight, qtScaleFactor);
-            int fullBoxWidth = (int) cellWidth;
-            int fullBoxHeight = (int) cellHeight;
+            int fullBoxWidth = (int) (cellWidth / qtScaleFactor);
+            int fullBoxHeight = (int) (cellHeight / qtScaleFactor);
             if (isHintPartOfGrid) {
                 // Size each box by its rounded cell boundaries so columns and rows tile exactly and
                 // the last column/row reaches the cell's edge. Otherwise the grid falls a pixel short
@@ -1614,7 +1616,8 @@ public final class HintMeshRenderer {
         // Expand container bounds to accommodate the antialiased rounded
         // border stroke extending outside the box fill area.
         if (style.boxBorderRadius() > 0 && style.boxBorderThickness() > 0) {
-            int borderPad = (int) Math.ceil(style.boxBorderThickness() / 2.0);
+            int borderPad = (int) Math.ceil(
+                    style.boxBorderThickness() / 2.0 / qtScaleFactor);
             minHintLeft -= borderPad;
             minHintTop -= borderPad;
             maxHintRight += borderPad;
@@ -1623,10 +1626,10 @@ public final class HintMeshRenderer {
         // Expand container bounds to accommodate box shadow extent.
         Shadow boxShadow = style.boxShadow();
         if (boxShadow.opacity() > 0) {
-            int shadowPadLeft = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, -boxShadow.horizontalOffset()));
-            int shadowPadRight = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, boxShadow.horizontalOffset()));
-            int shadowPadTop = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, -boxShadow.verticalOffset()));
-            int shadowPadBottom = (int) Math.ceil(boxShadow.blurRadius() + Math.max(0, boxShadow.verticalOffset()));
+            int shadowPadLeft = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, -boxShadow.horizontalOffset())) / qtScaleFactor);
+            int shadowPadRight = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, boxShadow.horizontalOffset())) / qtScaleFactor);
+            int shadowPadTop = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, -boxShadow.verticalOffset())) / qtScaleFactor);
+            int shadowPadBottom = (int) Math.ceil((boxShadow.blurRadius() + Math.max(0, boxShadow.verticalOffset())) / qtScaleFactor);
             minHintLeft -= shadowPadLeft;
             minHintTop -= shadowPadTop;
             maxHintRight += shadowPadRight;
@@ -1674,7 +1677,7 @@ public final class HintMeshRenderer {
                 new HintPaintLayer(container, hintBoxes, List.of(), HintBox::paintWithoutBorder);
         hintBoxLayer.setGeometry(0, 0, containerWidth, containerHeight);
         applyBoxShadow(boxShadowLayer, hintBoxes, style.boxShadow(),
-                containerWidth, containerHeight);
+                containerWidth, containerHeight, qtScaleFactor);
         addDecorationLabelLayers(container, hintBoxes, subDecorationStyles,
                 containerWidth, containerHeight);
         // Layer 3: Prefix boxes.
@@ -1911,6 +1914,15 @@ public final class HintMeshRenderer {
         }
     }
 
+    /**
+     * When QT_ENABLE_HIGHDPI_SCALING is not 0 (e.g. Linux/macOS), then Qt draws in points and the
+     * hints, which are in pixels, are scaled down by the screen they are on. Widget geometry is in
+     * points, so it is divided by this; everything painted inside one is in pixels.
+     */
+    private static double qtScaleFactor(double screenScale) {
+        return Os.windows ? 1 : screenScale;
+    }
+
     private int hintRoundedX(double centerX, double cellWidth,
                                     double qtScaleFactor) {
         return (int) Math.round((centerX - cellWidth / 2) / qtScaleFactor);
@@ -2051,10 +2063,33 @@ public final class HintMeshRenderer {
             return new Rectangle(x, y, width, height);
         }
 
+        /**
+         * A thickness, radius or length is a device pixel count, but Qt paints in points on the
+         * platforms where it scales for the screen itself, so the box paints in pixels.
+         */
+        private void scaleToPixels(QPainter painter) {
+            if (qtScaleFactor != 1)
+                painter.scale(1 / qtScaleFactor, 1 / qtScaleFactor);
+        }
+
+        private int pixels(int points) {
+            return qtScaleFactor == 1 ? points :
+                    (int) Math.round(points * qtScaleFactor);
+        }
+
         public void paint(QPainter painter) {
             painter.save();
-            painter.translate(x, y);
+            scaleToPixels(painter);
+            paintInPixels(painter);
+            painter.restore();
+        }
+
+        private void paintInPixels(QPainter painter) {
+            painter.save();
+            painter.translate(pixels(x), pixels(y));
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            int pixelWidth = pixels(width);
+            int pixelHeight = pixels(height);
             if (borderRadius > 0) {
                 // Draw background and border as a single rounded rect so
                 // the background does not bleed outside the border at corners.
@@ -2065,13 +2100,15 @@ public final class HintMeshRenderer {
                     painter.setPen(createPen(borderColor, borderThickness));
                     double offset = borderThickness / 2d;
                     painter.drawRoundedRect(new QRectF(offset, offset,
-                                    width - borderThickness, height - borderThickness),
+                                    pixelWidth - borderThickness,
+                                    pixelHeight - borderThickness),
                             borderRadius, borderRadius);
                 }
                 else if (color.alpha() != 0) {
                     painter.setBrush(QtColorUtil.qBrush(color));
                     painter.setPen(Qt.PenStyle.NoPen);
-                    painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
+                    painter.drawRoundedRect(0, 0, pixelWidth, pixelHeight, borderRadius,
+                            borderRadius);
                 }
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
@@ -2080,13 +2117,13 @@ public final class HintMeshRenderer {
                 if (color.alpha() != 0) {
                     painter.setBrush(QtColorUtil.qBrush(color));
                     painter.setPen(Qt.PenStyle.NoPen);
-                    painter.drawRoundedRect(0, 0, width, height, 0, 0);
+                    painter.drawRoundedRect(0, 0, pixelWidth, pixelHeight, 0, 0);
                 }
                 if (borderThickness != 0)
                     drawBorders(painter);
             }
             for (HintBox decorationBox : decorationBoxes) {
-                decorationBox.paint(painter);
+                decorationBox.paintInPixels(painter);
             }
             painter.restore();
         }
@@ -2133,7 +2170,14 @@ public final class HintMeshRenderer {
         /** Everything but the box's own border — the part that crops with the container. */
         void paintWithoutBorder(QPainter painter) {
             painter.save();
-            painter.translate(x, y);
+            scaleToPixels(painter);
+            paintWithoutBorderInPixels(painter);
+            painter.restore();
+        }
+
+        private void paintWithoutBorderInPixels(QPainter painter) {
+            painter.save();
+            painter.translate(pixels(x), pixels(y));
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (color.alpha() != 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, borderRadius > 0);
@@ -2145,15 +2189,17 @@ public final class HintMeshRenderer {
                     // paint() does by drawing both in one call.
                     double offset = borderThickness / 2d;
                     painter.drawRoundedRect(new QRectF(offset, offset,
-                                    width - borderThickness, height - borderThickness),
+                                    pixels(width) - borderThickness,
+                                    pixels(height) - borderThickness),
                             borderRadius, borderRadius);
                 }
                 else
-                    painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
+                    painter.drawRoundedRect(0, 0, pixels(width), pixels(height), borderRadius,
+                            borderRadius);
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             for (HintBox decorationBox : decorationBoxes)
-                decorationBox.paint(painter);
+                decorationBox.paintInPixels(painter);
             painter.restore();
         }
 
@@ -2163,9 +2209,18 @@ public final class HintMeshRenderer {
             if (borderThickness != 0 && borderColor.alpha() != 0) {
                 this.ink = new ArrayList<>();
                 drawBorders(null);
-                for (Rectangle rectangle : this.ink)
-                    ink.add(new Rectangle(offsetX + x + rectangle.x(), offsetY + y + rectangle.y(),
-                            rectangle.width(), rectangle.height()));
+                for (Rectangle rectangle : this.ink) {
+                    // Recorded in pixels, given back in the points the parent paints in, and
+                    // grown to whole ones so it still covers what the border draws.
+                    int left = (int) Math.floor(rectangle.x() / qtScaleFactor);
+                    int top = (int) Math.floor(rectangle.y() / qtScaleFactor);
+                    int right = (int) Math.ceil(
+                            (rectangle.x() + rectangle.width()) / qtScaleFactor);
+                    int bottom = (int) Math.ceil(
+                            (rectangle.y() + rectangle.height()) / qtScaleFactor);
+                    ink.add(new Rectangle(offsetX + x + left, offsetY + y + top,
+                            right - left, bottom - top));
+                }
                 this.ink = null;
             }
             for (HintBox decorationBox : decorationBoxes)
@@ -2177,7 +2232,8 @@ public final class HintMeshRenderer {
             if (borderThickness == 0)
                 return;
             painter.save();
-            painter.translate(x, y);
+            scaleToPixels(painter);
+            painter.translate(pixels(x), pixels(y));
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
             if (borderRadius > 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
@@ -2187,7 +2243,7 @@ public final class HintMeshRenderer {
                 // half a pixel each side of the rect, and the box would keep only the inner half.
                 double offset = borderThickness / 2d;
                 painter.drawRoundedRect(new QRectF(offset, offset,
-                        width - borderThickness, height - borderThickness),
+                        pixels(width) - borderThickness, pixels(height) - borderThickness),
                         borderRadius, borderRadius);
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
@@ -2199,22 +2255,23 @@ public final class HintMeshRenderer {
         }
 
         /**
-         * Paints the box shape with opaque white, used as the source
-         * image for shadow rendering. The overall box silhouette
-         * (fill area including border thickness) is all that matters.
+         * Paints the box shape with opaque white, used as the source image for shadow rendering.
+         * The overall box silhouette (fill area including border thickness) is all that matters.
+         * That image is in pixels, so this paints without the scale a widget needs.
          */
         public void paintOpaque(QPainter painter) {
             painter.save();
-            painter.translate(x, y);
+            painter.translate(pixels(x), pixels(y));
             painter.setBrush(QtColorUtil.opaqueWhiteBrush());
             painter.setPen(Qt.PenStyle.NoPen);
             if (borderRadius > 0) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
-                painter.drawRoundedRect(0, 0, width, height, borderRadius, borderRadius);
+                painter.drawRoundedRect(0, 0, pixels(width), pixels(height), borderRadius,
+                        borderRadius);
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             else {
-                painter.drawRect(0, 0, width, height);
+                painter.drawRect(0, 0, pixels(width), pixels(height));
             }
             painter.restore();
         }
@@ -2229,9 +2286,9 @@ public final class HintMeshRenderer {
             // draw vertical line penwidth 5 at x=0: x=0, x=1, x=2, x=-1, x=-2
             // Qt won't draw anything x < 0, but will draw x >= width().
             int top = 0;
-            int bottom = height() - 1;
+            int bottom = pixels(height) - 1;
             int left = 0;
-            int right = width() - 1;
+            int right = pixels(width) - 1;
             int edgeThickness = borderThickness;
             // Full thickness if grid edge.
             // Otherwise, half thickness: thickness/2 + thickness%2 for top and left, thickness/2 for bottom and right
@@ -2896,13 +2953,18 @@ public final class HintMeshRenderer {
                                        List<HintBox> hintBoxes,
                                        Shadow boxShadow,
                                        int containerWidth,
-                                       int containerHeight) {
+                                       int containerHeight,
+                                       double qtScaleFactor) {
         QColor shadowColor = QtColorUtil.shadow(boxShadow);
         if (shadowColor.alpha() == 0) {
             shadowColor.dispose();
             return;
         }
-        QImage sourceImage = new QImage(containerWidth, containerHeight,
+        // The source is in pixels, as the blur radius and the offsets are: a box's shadow is as
+        // many pixels as it is configured to be, whatever the screen.
+        int sourceWidth = (int) Math.round(containerWidth * qtScaleFactor);
+        int sourceHeight = (int) Math.round(containerHeight * qtScaleFactor);
+        QImage sourceImage = new QImage(sourceWidth, sourceHeight,
                 QImage.Format.Format_ARGB32_Premultiplied);
         QColor fillColor = new QColor(0, 0, 0, 0);
         sourceImage.fill(fillColor);
@@ -2914,12 +2976,15 @@ public final class HintMeshRenderer {
         srcPainter.dispose();
         StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
                 boxShadow.blurRadius(), boxShadow.horizontalOffset(),
-                boxShadow.verticalOffset(), containerWidth, containerHeight);
+                boxShadow.verticalOffset(), sourceWidth, sourceHeight);
         shadowColor.dispose();
         QImage shadowImage = StackedShadowEffect.bakeStacking(
                 shadow.image(), boxShadow.stackCount());
         QPixmap shadowPixmap = QPixmap.fromImage(shadowImage);
-        boxShadowLayer.setShadowPixmap(shadowPixmap, shadow.x(), shadow.y());
+        shadowPixmap.setDevicePixelRatio(qtScaleFactor);
+        boxShadowLayer.setShadowPixmap(shadowPixmap,
+                (int) Math.round(shadow.x() / qtScaleFactor),
+                (int) Math.round(shadow.y() / qtScaleFactor));
         shadowImage.dispose();
     }
 
@@ -3413,7 +3478,8 @@ public final class HintMeshRenderer {
         // would draw them twice (doubled opacity). Keep the extra right/bottom margin (a cell's
         // right/bottom border lines are its neighbours', just past its rect) so the crop's target
         // extent covers them and the clipped layer keeps all four borders.
-        int boxBorderThickness = (int) Math.round(style.boxBorderThickness());
+        int boxBorderThickness = (int) Math.round(
+                style.boxBorderThickness() / qtScaleFactor(screen.scale()));
         QRect containerBoxRect = new QRect(hintBoxGeometry.x(), hintBoxGeometry.y(),
                 hintBoxGeometry.width() + boxBorderThickness,
                 hintBoxGeometry.height() + boxBorderThickness);
