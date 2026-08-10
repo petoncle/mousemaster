@@ -50,6 +50,16 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys-wasd.properties](../configuration/neo-mousekeys-wasd.properties).
 - Go back to normal mode with _esc_ or _backspace_.
 
+## Recursive Hint Mode (_r_ in normal mode)
+
+- Display a 3x3 grid over the screen, positioned like the _r_, _t_, _y_, _f_, _g_, _h_, _v_, _b_, _n_ keys.
+- Press one of those keys to narrow the grid to that ninth of the current area, and repeat (up to five times) until the mouse is on target.
+- The mouse follows the center of the current area, so the drill can be left at any depth. Press _`_ (backtick) to leave the mouse where it is instead.
+- Press mouse buttons without leaving the drill, with the same keys as in normal mode.
+- Go back one level with _backspace_, back to the whole screen with _space_.
+- Go back to normal mode with _esc_.
+- Remove the `+` from `virtual-keys=+showrecursivehintkeys` in [neo-mousekeys-wasd.properties](../configuration/neo-mousekeys-wasd.properties) to replace the keys drawn in each cell with a plus over the current area and a dot per cell.
+
 ## UI Hint Mode (hold _leftalt_ then press _f_ in normal mode)
 
 - Display labels on interactive UI elements (buttons, links, etc.) of the active window.

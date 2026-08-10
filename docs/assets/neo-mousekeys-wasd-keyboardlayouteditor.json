@@ -3,7 +3,13 @@
     "css": ""
   },
   [
-    "~\n`",
+    {
+      "c": "#f7e98c"
+    },
+    "~\n`\n\n\n\n\nFollow",
+    {
+      "c": "#cccccc"
+    },
     "!\n1",
     "@\n2",
     "#\n3",
@@ -39,9 +45,12 @@
     },
     "E\n(+Alt)\n\n\n\n\nEnable",
     {
+      "c": "#f7e98c"
+    },
+    "R\nRecurse\n\n\n\n\nHints",
+    {
       "c": "#cccccc"
     },
-    "R",
     "T",
     {
       "c": "#b6c6d9"

@@ -120,6 +120,7 @@ permissions are needed.
 - **Mouse buttons**: _;_ (left), _rightshift_ (middle), _'_ (right)
 - **Grid mode**: Press _g_
 - **Hint mode**: Press _f_
+- **Recursive hint mode**: Press _r_
 - **UI Hint mode**: Press _leftalt + f_
 - **Screen selection**: Press _c_
 
