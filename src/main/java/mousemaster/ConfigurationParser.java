@@ -104,7 +104,8 @@ public class ConfigurationParser {
                             .opacity(1d)
                             .outlineThickness(0d)
                             .outlineHexColor("#000000")
-                            .outlineOpacity(0.5d);
+                            .outlineOpacity(0.5d)
+                            .verticalAlignment(FontVerticalAlignment.CAP_HEIGHT);
         hintMeshStyleBuilder.fontStyle()
                             .spacingPercent(0.7d);
         hintMeshStyleBuilder.fontStyle().defaultFontStyle().shadow()
@@ -164,7 +165,8 @@ public class ConfigurationParser {
                       .name(FontStyle.defaultName).weight(FontWeight.NORMAL).size(10d)
                       .hexColor("#FFFFFF").opacity(1d)
                       .outlineThickness(0d).outlineHexColor("#000000")
-                      .outlineOpacity(0.5d);
+                      .outlineOpacity(0.5d)
+                      .verticalAlignment(FontVerticalAlignment.CAP_HEIGHT);
             decoration.fontStyle().spacingPercent(0.7d);
             decoration.fontStyle().defaultFontStyle().shadow()
                       .blurRadius(10d).hexColor("#FFFFFF").opacity(0d)

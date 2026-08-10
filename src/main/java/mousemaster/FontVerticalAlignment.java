@@ -6,11 +6,14 @@ import java.util.List;
  * How a label is positioned vertically within its box.
  * baseline: the glyph rests on the baseline like normal text (a dot/comma sits low).
  * middle: the glyph's tight bounding box is centered in the box.
+ * cap-height: a capital's height is centered in the box, so every label keeps the baseline its
+ * neighbours have and a descender hangs below it.
  */
 public enum FontVerticalAlignment {
 
     BASELINE("baseline"),
-    MIDDLE("middle");
+    MIDDLE("middle"),
+    CAP_HEIGHT("cap-height");
 
     private final String name;
 
