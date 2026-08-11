@@ -62,7 +62,7 @@ jobs:
           retention-days: 7
 
   # Only the executable: native-image cannot cross compile, so the Intel half of the universal
-  # binary has to be built on an Intel runner and handed to the job below.
+  # binary has to be built on an Intel runner and handed to build-macos.
   build-macos-intel:
     name: mousemaster on macos-15-intel
     runs-on: macos-15-intel
@@ -92,10 +92,9 @@ jobs:
   # A separate job rather than another matrix entry: every step above is Windows shaped
   # (cmd, ren, pefrmdllembed). It cannot run the functional suite, which needs the Karabiner
   # driver extension, root, Input Monitoring and a logged in console session.
-  build-macos:
+  build-macos-arm:
     name: mousemaster on macos-latest
     runs-on: macos-latest
-    needs: build-macos-intel
     steps:
       - uses: graalvm/setup-graalvm@v1
         with:
@@ -114,20 +113,6 @@ jobs:
       # tracing agent, which is minutes slower.
       - name: Build GraalVM native executable
         run: ./mvnw -Pnative -Dagent package -DskipTests
-      # One bundle for both architectures, so nobody has to know which Mac they are on. The Qt
-      # frameworks and the Karabiner shim are already universal.
-      - name: Download the Intel executable
-        uses: actions/download-artifact@v4
-        with:
-          name: mousemaster-macos-x86_64
-          path: target/x86_64
-      - name: Make the executable universal
-        run: |
-          lipo -create -output target/mousemaster.universal \
-              target/mousemaster target/x86_64/mousemaster
-          mv target/mousemaster.universal target/mousemaster
-          chmod +x target/mousemaster
-          lipo -archs target/mousemaster
       # The native image links against the Qt frameworks, which the .app carries: on its own it
       # cannot even start.
       - name: Install Qt
@@ -138,6 +123,50 @@ jobs:
         run: QT=$HOME/Qt/6.8.2/macos ./macos/build-app.sh
       # ditto rather than zip: a framework is symlinks, an executable bit and a signature, none
       # of which survive being uploaded as a directory.
+      - name: Zip the app bundle
+        run: ditto -c -k --keepParent target/mousemaster.app target/mousemaster-macos-arm64.zip
+      - name: Upload the Apple Silicon app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mousemaster-macos-arm64
+          path: target/mousemaster-macos-arm64.zip
+          retention-days: 7
+
+  # A third job so both native image builds run at the same time: a lipo at the end of
+  # build-macos-arm would have to wait for the whole Intel job first.
+  build-macos:
+    name: mousemaster universal app bundle
+    runs-on: macos-latest
+    needs: [build-macos-intel, build-macos-arm]
+    steps:
+      - name: Download the Apple Silicon app bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: mousemaster-macos-arm64
+          path: target
+      - name: Download the Intel executable
+        uses: actions/download-artifact@v4
+        with:
+          name: mousemaster-macos-x86_64
+          path: target/x86_64
+      # One bundle for both architectures, so nobody has to know which Mac they are on. The Qt
+      # frameworks and the Karabiner shim are already universal.
+      - name: Make the bundled executable universal
+        run: |
+          cd target
+          ditto -x -k mousemaster-macos-arm64.zip .
+          lipo -create -output mousemaster.universal \
+              mousemaster.app/Contents/MacOS/mousemaster x86_64/mousemaster
+          mv mousemaster.universal mousemaster.app/Contents/MacOS/mousemaster
+          chmod +x mousemaster.app/Contents/MacOS/mousemaster
+          lipo -archs mousemaster.app/Contents/MacOS/mousemaster
+      # Replacing the executable invalidates the signature build-app.sh made, which Apple Silicon
+      # requires. The nested frameworks keep theirs.
+      - name: Re-sign the app bundle
+        run: |
+          codesign --force --sign - target/mousemaster.app
+          codesign --verify --strict target/mousemaster.app
+          codesign -dvv target/mousemaster.app 2>&1 | grep -E "Identifier=|Signature=|CDHash="
       - name: Zip the app bundle
         run: ditto -c -k --keepParent target/mousemaster.app target/mousemaster-macos.zip
       - name: Upload app bundle
