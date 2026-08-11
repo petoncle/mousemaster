@@ -51,7 +51,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 
 ## Recursive Hint Mode (_r_ in normal mode)
 
-- Display a 3x3 grid over the screen, positioned like the _r_, _t_, _y_, _f_, _g_, _h_, _v_, _b_, _n_ keys.
+- Display a 3x3 grid over the screen, positioned like the _u_, _i_, _o_, _j_, _k_, _l_, _m_, _,_, _._ keys.
 - Press one of those keys to narrow the grid to that ninth of the current area, and repeat (up to five times) until the mouse is on target.
 - The mouse follows the center of the current area, so the drill can be left at any depth. Press _`_ (backtick) to leave the mouse where it is instead.
 - Press mouse buttons without leaving the drill, with the same keys as in normal mode.
