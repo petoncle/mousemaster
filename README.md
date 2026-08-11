@@ -84,7 +84,7 @@ permissions are needed.
    device, and allow its system extension when macOS asks.
 2. Download and unzip **mousemaster-macos.zip** into **/Applications**:
    ```
-   curl -L -o mousemaster-macos.zip https://github.com/petoncle/mousemaster/releases/download/nightly/mousemaster-macos.zip
+   curl -L -o mousemaster-macos.zip https://github.com/petoncle/mousemaster/releases/latest/download/mousemaster-macos.zip
    unzip mousemaster-macos.zip -d /Applications
    ```
    Downloading it in a browser instead marks the app as quarantined, and macOS refuses to start a
