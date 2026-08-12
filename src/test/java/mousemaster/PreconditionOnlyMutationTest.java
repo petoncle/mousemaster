@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -26,7 +27,21 @@ class PreconditionOnlyMutationTest {
         ModeMap modeMap = configuration.modeMap();
         ActiveAppFinder noApp = () -> new App("test.exe");
         Clock clock = Instant::now;
-        comboWatcher = new ComboWatcher(null, null, noApp, null, clock, Set.of(), Set.of(),
+        // A precondition key is only recorded as pressed if it is one of these, as in Mousemaster.
+        Set<Key> unpressedPreconditionKeys = new HashSet<>();
+        Set<Key> pressedPreconditionKeys = new HashSet<>();
+        for (Mode mode : modeMap.modes()) {
+            for (Combo combo : mode.comboMap().commandsByCombo().keySet()) {
+                unpressedPreconditionKeys.addAll(
+                        combo.precondition().keyPrecondition().unpressedKeySet());
+                pressedPreconditionKeys.addAll(combo.precondition()
+                                                    .keyPrecondition()
+                                                    .pressedKeyPrecondition()
+                                                    .allKeys());
+            }
+        }
+        comboWatcher = new ComboWatcher(null, null, noApp, null, clock,
+                unpressedPreconditionKeys, pressedPreconditionKeys,
                 false, modeMap, configuration.initiallySetVariables(),
                 configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
@@ -81,5 +96,26 @@ class PreconditionOnlyMutationTest {
         comboWatcher.setIdling(true);
         assertEquals(1, notifiedModes.size());
         assertTrue(notifiedModes.getFirst().indicator().renderAsCursor());
+    }
+
+    /** A key precondition is refreshed declaratively too, so the key events that neither
+     *  press nor release it leave the mutation alone. */
+    @Test
+    void aKeyPreconditionMutationFollowsThatKeyOnly() {
+        load("idle-mode.indicator.render-as-cursor=false | _{leftshift} -> true");
+        Instant now = Instant.now();
+        assertFalse(renderAsCursor());
+
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.leftshift));
+        assertTrue(renderAsCursor());
+
+        notifiedModes.clear();
+        comboWatcher.keyEvent(new KeyEvent.PressKeyEvent(now, Key.ofName("a")));
+        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.ofName("a")));
+        assertTrue(renderAsCursor());
+        assertEquals(List.of(), notifiedModes, "an unrelated key must not rebuild the mode");
+
+        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.leftshift));
+        assertFalse(renderAsCursor());
     }
 }

@@ -786,13 +786,12 @@ public class ComboWatcher {
                       .appPrecondition()
                       .satisfied(activeApp))
                 continue;
-            if (combo.sequence().isEmpty() &&
-                (!combo.precondition().appPrecondition().isEmpty() ||
-                 !combo.precondition().variablePrecondition().isEmpty())) {
-                if (combo.precondition().variablePrecondition().isEmpty())
+            if (combo.sequence().isEmpty()) {
+                if (!combo.precondition().appPrecondition().isEmpty() &&
+                    combo.precondition().variablePrecondition().isEmpty())
                     continue; // App-precondition-only combos are handled by update / async combos.
-                // MutateMode is handled declaratively by refreshPreconditionOnlyMutations.
-                // Let non-MutateMode commands through event processing.
+                // refreshPreconditionOnlyMutations applies MutateMode when it changes, whereas
+                // running the command here rebuilds the mutated mode on every key event.
                 comboCommands = comboCommands.stream()
                         .filter(c -> !(c instanceof Command.MutateMode))
                         .toList();
