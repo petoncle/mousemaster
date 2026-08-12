@@ -273,8 +273,8 @@ public class WindowsMouseController implements MouseController {
         reloadSystemCursors();
     }
 
-    private boolean reloadSystemCursors() {
-        return ExtendedUser32.INSTANCE.SystemParametersInfoA(
+    public void reloadSystemCursors() {
+        ExtendedUser32.INSTANCE.SystemParametersInfoA(
                 new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
                 new WinDef.UINT(0));
     }
@@ -346,9 +346,7 @@ public class WindowsMouseController implements MouseController {
      * currently installed.
      */
     private void snapshotSystemGlyphs() {
-        ExtendedUser32.INSTANCE.SystemParametersInfoA(
-                new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
-                new WinDef.UINT(0));
+        reloadSystemCursors();
         for (long cursorId : SYSTEM_CURSOR_IDS) {
             WinNT.HANDLE cursor = ExtendedUser32.INSTANCE.LoadImageW(null,
                     new Pointer(cursorId), ExtendedUser32.IMAGE_CURSOR, 0, 0,

@@ -90,6 +90,8 @@ public class WindowsPlatform implements Platform {
         // instead of the default ~15.6ms. The JVM does this internally, but
         // GraalVM native image does not.
         Winmm.INSTANCE.timeBeginPeriod(1);
+        // A run killed from outside (Task Manager) leaves its cursor installed system-wide.
+        mouse.reloadSystemCursors();
     }
 
     @Override
