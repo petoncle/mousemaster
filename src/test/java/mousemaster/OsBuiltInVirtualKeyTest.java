@@ -2,7 +2,9 @@ package mousemaster;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,10 +16,27 @@ class OsBuiltInVirtualKeyTest {
     }
 
     @Test
-    void oneOfThemIsTheCurrentOs() {
-        assertTrue(BuiltInVirtualKey.CURRENT_OS.equals(BuiltInVirtualKey.IS_WINDOWS) ||
-                   BuiltInVirtualKey.CURRENT_OS.equals(BuiltInVirtualKey.IS_MACOS));
-        assertEquals(Os.macos, BuiltInVirtualKey.CURRENT_OS.equals(BuiltInVirtualKey.IS_MACOS));
+    void theRunningOneIsPressedAndTheOtherIsNot() {
+        Configuration configuration = parse(
+                "idle-mode.mouse.initial-velocity=200 | _{iswindows} -> 1 | _{ismacos} -> 2");
+        ComboWatcher comboWatcher =
+                new ComboWatcher(null, null, () -> new App("test.exe"), null,
+                        (Clock) Instant::now, Set.of(), Set.of(), false,
+                        configuration.modeMap(), configuration.initiallySetVariables(),
+                        configuration.virtualKeys(),
+                        configuration.initiallyPressedVirtualKeys());
+        comboWatcher.setModeListeners(List.of(new ModeListener() {
+            @Override
+            public void modeChanged(Mode newMode) {
+            }
+
+            @Override
+            public void modeTimedOut() {
+            }
+        }));
+        comboWatcher.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
+        assertEquals(Os.macos ? 2 : 1,
+                comboWatcher.getMutatedMode().mouse().velocity().initialVelocity());
     }
 
     @Test

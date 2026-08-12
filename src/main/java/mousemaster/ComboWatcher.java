@@ -27,6 +27,7 @@ public class ComboWatcher {
     private final CommandRunner commandRunner;
     private final HintManager hintManager;
     private final ActiveAppFinder activeAppFinder;
+    private final ScreenManager screenManager;
     private final Clock clock;
     private final Set<Key> pressedComboPreconditionKeys;
     private final boolean logRedactKeys;
@@ -43,6 +44,9 @@ public class ComboWatcher {
     private final Set<String> activeVariables;
     private final Set<String> initiallySetVariables;
     private final Set<Key> virtualKeys;
+    private final Map<Key, ScreenFilter> screenFilterByKey = new HashMap<>();
+    private final Set<Key> builtInVirtualKeys;
+    private Screen activeScreen;
     /**
      * Computed once on mode change: true if ALL MutateMode combos for this
      * field path are precondition-only (no sequence moves).
@@ -167,19 +171,31 @@ public class ComboWatcher {
 
     public ComboWatcher(CommandRunner commandRunner, HintManager hintManager,
                         ActiveAppFinder activeAppFinder,
+                        ScreenManager screenManager,
                         Clock clock,
                         Set<Key> unpressedComboPreconditionKeys,
                         Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
                         ModeMap modeMap, Set<String> initiallySetVariables,
                         Set<Key> virtualKeys, Set<Key> initiallyPressedVirtualKeys) {
         this.currentlyPressedComboKeys.addAll(initiallyPressedVirtualKeys);
-        this.currentlyPressedComboKeys.add(BuiltInVirtualKey.CURRENT_OS);
+        this.currentlyPressedComboKeys.add(Os.macos ? BuiltInVirtualKey.IS_MACOS :
+                BuiltInVirtualKey.IS_WINDOWS);
         this.activeVariables = new HashSet<>(initiallySetVariables);
         this.initiallySetVariables = initiallySetVariables;
         this.virtualKeys = virtualKeys;
+        Set<Key> builtInVirtualKeys = new HashSet<>(BuiltInVirtualKey.STATIC_KEYS);
+        for (Key virtualKey : virtualKeys) {
+            ScreenFilter screenFilter = BuiltInVirtualKey.screenFilter(virtualKey);
+            if (screenFilter == null)
+                continue;
+            screenFilterByKey.put(virtualKey, screenFilter);
+            builtInVirtualKeys.add(virtualKey);
+        }
+        this.builtInVirtualKeys = builtInVirtualKeys;
         this.commandRunner = commandRunner;
         this.hintManager = hintManager;
         this.activeAppFinder = activeAppFinder;
+        this.screenManager = screenManager;
         this.clock = clock;
         this.unpressedComboPreconditionKeys =
                 unpressedComboPreconditionKeys;
@@ -216,6 +232,8 @@ public class ComboWatcher {
         }
         this.pressedPreconditionKeysByMode = preconditionKeysByMode;
         this.sequenceKeysByMode = sequenceKeysByMode;
+        // Pressed before the first mode change, which applies the mutations that read them.
+        updateScreenFilterKeys();
     }
 
     public void setModeListeners(List<ModeListener> modeListeners) {
@@ -228,20 +246,33 @@ public class ComboWatcher {
 
     /**
      * Presses or releases the built-in {@code isidling} key. Called every update tick
-     * with the idle state computed by {@link ModeController}. Precondition-only
-     * mutations are refreshed only when the state actually changes.
+     * with the idle state computed by {@link ModeController}.
      */
     public void setIdling(boolean idling) {
-        boolean changed = idling ?
-                currentlyPressedComboKeys.add(BuiltInVirtualKey.IS_IDLING) :
-                currentlyPressedComboKeys.remove(BuiltInVirtualKey.IS_IDLING);
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, idling);
+    }
+
+    /** Presses the screen filter keys the active screen matches and releases the others. */
+    private void updateScreenFilterKeys() {
+        if (screenFilterByKey.isEmpty())
+            return;
+        Screen newActiveScreen = screenManager.activeScreen();
+        if (newActiveScreen.equals(activeScreen))
+            return;
+        activeScreen = newActiveScreen;
+        for (Map.Entry<Key, ScreenFilter> entry : screenFilterByKey.entrySet())
+            setVirtualKeyPressed(entry.getKey(), entry.getValue().matches(newActiveScreen));
+    }
+
+    /** Precondition-only combos are refreshed only when the key actually changes. */
+    private void setVirtualKeyPressed(Key key, boolean pressed) {
+        boolean changed = pressed ? currentlyPressedComboKeys.add(key) :
+                currentlyPressedComboKeys.remove(key);
         if (!changed)
             return;
-        if (builtInVirtualKeysReferencedByPreconditionOnlyMutations
-                .contains(BuiltInVirtualKey.IS_IDLING))
+        if (builtInVirtualKeysReferencedByPreconditionOnlyMutations.contains(key))
             refreshPreconditionOnlyMutations();
-        if (builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos
-                .contains(BuiltInVirtualKey.IS_IDLING))
+        if (builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos.contains(key))
             preconditionOnlyNonMutationComboRefreshPending = true;
     }
 
@@ -256,6 +287,7 @@ public class ComboWatcher {
 
     public ComboWatcherUpdateResult update(double delta) {
         List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
+        updateScreenFilterKeys();
         App activeApp = activeAppFinder.activeApp();
         if (preconditionOnlyNonMutationComboRefreshPending) {
             preconditionOnlyNonMutationComboRefreshPending = false;
@@ -1027,7 +1059,7 @@ public class ComboWatcher {
                 message.append(", eaten");
             // Built-in keys crowd out the ones actually typed.
             List<Key> pressedKeys = currentlyPressedComboKeys.stream()
-                                                             .filter(key -> !BuiltInVirtualKey.KEYS.contains(key))
+                                                             .filter(key -> !builtInVirtualKeys.contains(key))
                                                              .toList();
             if (!logRedactKeys && !pressedKeys.isEmpty())
                 message.append(", pressed ").append(pressedKeys);
@@ -1712,13 +1744,13 @@ public class ComboWatcher {
         }
     }
 
-    private static Set<Key> builtInVirtualKeysReferencedBy(Combo combo) {
+    private Set<Key> builtInVirtualKeysReferencedBy(Combo combo) {
         Set<Key> keys = new HashSet<>(combo.precondition()
                                            .keyPrecondition()
                                            .pressedKeyPrecondition()
                                            .allKeys());
         keys.addAll(combo.precondition().keyPrecondition().unpressedKeySet());
-        keys.retainAll(BuiltInVirtualKey.KEYS);
+        keys.retainAll(builtInVirtualKeys);
         return keys;
     }
 

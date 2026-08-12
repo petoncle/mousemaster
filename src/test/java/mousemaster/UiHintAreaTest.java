@@ -90,7 +90,7 @@ public class UiHintAreaTest {
                         "idle-mode.hint.ui-area=active-window | _{isidling} -> all-screens"),
                 KeyboardLayout.keyboardLayout("00000409", null));
         ComboWatcher comboWatcher =
-                new ComboWatcher(null, null, () -> new App("test.exe"), Instant::now,
+                new ComboWatcher(null, null, () -> new App("test.exe"), null, Instant::now,
                         Set.of(), Set.of(), false, configuration.modeMap(),
                         configuration.initiallySetVariables(), configuration.virtualKeys(),
                         configuration.initiallyPressedVirtualKeys());

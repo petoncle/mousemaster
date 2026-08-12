@@ -28,7 +28,7 @@ class HeldLastMoveEvictionTest {
                 KeyboardLayout.keyboardLayout("00000409", null));
         ModeMap modeMap = configuration.modeMap();
         ActiveAppFinder noApp = () -> new App("test.exe");
-        comboWatcher = new ComboWatcher(null, null, noApp, () -> now, Set.of(), Set.of(),
+        comboWatcher = new ComboWatcher(null, null, noApp, null, () -> now, Set.of(), Set.of(),
                 false, modeMap, configuration.initiallySetVariables(),
                 configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {

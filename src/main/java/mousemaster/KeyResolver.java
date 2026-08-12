@@ -9,18 +9,19 @@ public class KeyResolver {
 
     private final KeyboardLayout activeKeyboardLayout;
     private final KeyboardLayout configurationKeyboardLayout;
-    private final Set<String> virtualKeyNames;
+    private final Set<String> declaredVirtualKeyNames;
 
     public KeyResolver(KeyboardLayout activeKeyboardLayout,
                        KeyboardLayout configurationKeyboardLayout,
-                       Set<String> virtualKeyNames) {
+                       Set<String> declaredVirtualKeyNames) {
         this.activeKeyboardLayout = activeKeyboardLayout;
         this.configurationKeyboardLayout = configurationKeyboardLayout;
-        this.virtualKeyNames = virtualKeyNames;
+        this.declaredVirtualKeyNames = declaredVirtualKeyNames;
     }
 
     public boolean isVirtual(String keyName) {
-        return virtualKeyNames.contains(keyName);
+        return BuiltInVirtualKey.isBuiltIn(keyName) ||
+               declaredVirtualKeyNames.contains(keyName);
     }
 
     /**
@@ -30,7 +31,7 @@ public class KeyResolver {
      * then the resolved key will be é.
      */
     public Key resolve(String keyName) {
-        if (virtualKeyNames.contains(keyName))
+        if (isVirtual(keyName))
             return new Key(keyName, null, null);
         if (configurationKeyboardLayout.equals(activeKeyboardLayout))
             return Key.ofName(keyName);

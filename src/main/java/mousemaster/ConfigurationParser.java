@@ -349,14 +349,23 @@ public class ConfigurationParser {
                 forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout == null ?
                         activeKeyboardLayout :
                         forcedActiveAndConfigurationKeyboardLayouts.configurationKeyboardLayout;
-        VirtualKeyNames virtualKeyNames = parseVirtualKeyNames(properties);
+        DeclaredVirtualKeyNames declaredVirtualKeyNames =
+                parseDeclaredVirtualKeyNames(properties);
         KeyResolver keyResolver =
                 new KeyResolver(activeKeyboardLayout, configurationKeyboardLayout,
-                        virtualKeyNames.all());
+                        declaredVirtualKeyNames.names());
         Aliases configurationAliases = parseAliases(properties);
         Map<String, KeyAlias> keyAliases = buildKeyAliasesForActiveKeyboardLayout(
                 configurationAliases.layoutKeyAliasByName, activeKeyboardLayout,
                 configurationKeyboardLayout);
+        configurationAliases.screenFilterAliasByName.forEach((aliasName, screenFilters) -> {
+            if (keyAliases.put(aliasName, new KeyAlias(aliasName,
+                    screenFilters.stream()
+                                 .map(BuiltInVirtualKey::screenFilterKey)
+                                 .toList())) != null)
+                throw new IllegalArgumentException("Screen alias " + aliasName +
+                                                   " collides with a key alias name");
+        });
         Map<String, AppAlias> appAliases = configurationAliases.appAliasByName;
         Set<String> allVariableNames = parseVariableNames(properties, keyAliases, keyResolver);
         Set<String> positionHistoryNames = parsePositionHistoryNames(properties);
@@ -609,18 +618,22 @@ public class ConfigurationParser {
                                     .stream()
                                     .map(ModeBuilder::build)
                                     .collect(Collectors.toSet());
+        Set<Key> virtualKeys = new HashSet<>(BuiltInVirtualKey.STATIC_KEYS);
+        declaredVirtualKeyNames.names()
+                               .forEach(name -> virtualKeys.add(keyResolver.resolve(name)));
+        // A screen filter key cannot be declared, so it is whichever one the combos name.
+        allComboAndMacroKeys.stream()
+                            .filter(key -> BuiltInVirtualKey.screenFilter(key) != null)
+                            .forEach(virtualKeys::add);
         return new Configuration(positionHistoryConfigurationByName,
                 new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
                 Set.copyOf(initiallySetVariables),
-                virtualKeyNames.all()
-                               .stream()
-                               .map(keyResolver::resolve)
-                               .collect(Collectors.toSet()),
-                virtualKeyNames.initiallyPressed()
-                               .stream()
-                               .map(keyResolver::resolve)
-                               .collect(Collectors.toSet()));
+                virtualKeys,
+                declaredVirtualKeyNames.initiallyPressed()
+                                       .stream()
+                                       .map(keyResolver::resolve)
+                                       .collect(Collectors.toSet()));
     }
 
     private static List<Combo> deriveSelectCombosFromHintSelectionKeys(ModeBuilder mode,
@@ -651,11 +664,13 @@ public class ConfigurationParser {
     }
 
     /** A name prefixed with + is pressed from the start; - or no prefix is not pressed. */
-    private record VirtualKeyNames(Set<String> all, Set<String> initiallyPressed) {
+    private record DeclaredVirtualKeyNames(Set<String> names, Set<String> initiallyPressed) {
     }
 
-    private static VirtualKeyNames parseVirtualKeyNames(List<String> properties) {
-        Set<String> all = new HashSet<>(BuiltInVirtualKey.NAMES);
+    /** The names of the virtual-keys line: a built-in one is never declared. */
+    private static DeclaredVirtualKeyNames parseDeclaredVirtualKeyNames(
+            List<String> properties) {
+        Set<String> names = new HashSet<>();
         Set<String> initiallyPressed = new HashSet<>();
         for (String property : properties) {
             Matcher lineMatcher = propertyLinePattern.matcher(property);
@@ -668,12 +683,12 @@ public class ConfigurationParser {
                     continue;
                 boolean pressed = token.startsWith("+");
                 String name = pressed || token.startsWith("-") ? token.substring(1) : token;
-                all.add(name);
+                names.add(name);
                 if (pressed)
                     initiallyPressed.add(name);
             }
         }
-        return new VirtualKeyNames(all, initiallyPressed);
+        return new DeclaredVirtualKeyNames(names, initiallyPressed);
     }
 
     private static ForcedActiveAndConfigurationKeyboardLayouts parseForcedAndConfigurationLayouts(
@@ -1551,7 +1566,7 @@ public class ConfigurationParser {
                             "unset-variable requires a variable name: unset-variable.<name>");
                 else {
                     String variableName = keyMatcher.group(group4);
-                    if (BuiltInVirtualKey.NAMES.contains(variableName))
+                    if (BuiltInVirtualKey.STATIC_KEY_NAMES.contains(variableName))
                         throw new IllegalArgumentException(
                                 "Variable name '" + variableName +
                                 "' is a built-in virtual key and cannot be unset");
@@ -1825,7 +1840,7 @@ public class ConfigurationParser {
 
     private static String checkedVariableName(String variableName,
                                               Map<String, KeyAlias> keyAliases) {
-        if (BuiltInVirtualKey.NAMES.contains(variableName))
+        if (BuiltInVirtualKey.STATIC_KEY_NAMES.contains(variableName))
             throw new IllegalArgumentException(
                     "Variable name '" + variableName +
                     "' is a built-in virtual key and cannot be set");
@@ -2886,37 +2901,35 @@ public class ConfigurationParser {
                         propertyPath.withScreenFilter(screenFilter) :
                         propertyPath;
         String label = modeName + "." + String.join(".", propertyPath.fieldNames());
-        Map<String, Set<ScreenFilter>> aliasByName = screenFilterProperty == null ?
-                Map.of() : screenFilterProperty.aliasByName();
         Set<ScreenFilter> valuedScreenFilters = new HashSet<>();
         for (SplitComboProperty.ComboPropertyValue comboPropertyValue : splitComboProperty.comboValues()) {
-            SplitComboScreenFilter splitFilter = splitComboScreenFilter(
-                    comboPropertyValue.comboString(), label, aliasByName);
-            Set<ScreenFilter> comboScreenFilters = splitFilter.screenFilters();
             String comboString = comboPropertyValue.comboString();
             List<ModePropertyPath> comboMutationPaths = List.of(mutationPath);
-            if (!comboScreenFilters.isEmpty()) {
-                if (screenFilterProperty == null)
-                    throw new IllegalArgumentException("[" + label +
-                                                       "] A screen filter is only supported for hint properties: " +
-                                                       comboString);
-                comboString = splitFilter.comboString();
-                if (comboString.isEmpty()) {
-                    // The filters are the whole precondition: same as the property key suffix.
-                    for (ScreenFilter comboScreenFilter : comboScreenFilters)
-                        screenFilterProperty.setter(comboScreenFilter)
-                                            .accept(comboPropertyValue.valueString());
-                    valuedScreenFilters.addAll(comboScreenFilters);
-                    continue;
+            // A hint mesh spans screens, so a filter picks the entries the value applies to.
+            // Elsewhere, it stays in the combo string as the screen filter key it names.
+            if (screenFilterProperty != null) {
+                SplitComboScreenFilter splitFilter = splitComboScreenFilter(comboString,
+                        label, screenFilterProperty.aliasByName());
+                Set<ScreenFilter> comboScreenFilters = splitFilter.screenFilters();
+                if (!comboScreenFilters.isEmpty()) {
+                    comboString = splitFilter.comboString();
+                    if (comboString.isEmpty()) {
+                        // The filters are the whole precondition: same as the property key suffix.
+                        for (ScreenFilter comboScreenFilter : comboScreenFilters)
+                            screenFilterProperty.setter(comboScreenFilter)
+                                                .accept(comboPropertyValue.valueString());
+                        valuedScreenFilters.addAll(comboScreenFilters);
+                        continue;
+                    }
+                    // The entries have to exist for the mutation to find them, without
+                    // overwriting what an earlier branch gave them.
+                    if (defaultValue != null)
+                        writeDefaultToUnvaluedFilters(screenFilterProperty,
+                                comboScreenFilters, valuedScreenFilters, defaultValue);
+                    comboMutationPaths = comboScreenFilters.stream()
+                                                           .map(propertyPath::withScreenFilter)
+                                                           .toList();
                 }
-                // The entries have to exist for the mutation to find them, without
-                // overwriting what an earlier branch gave them.
-                if (defaultValue != null)
-                    writeDefaultToUnvaluedFilters(screenFilterProperty,
-                            comboScreenFilters, valuedScreenFilters, defaultValue);
-                comboMutationPaths = comboScreenFilters.stream()
-                                                       .map(propertyPath::withScreenFilter)
-                                                       .toList();
             }
             List<Combo> combos = parseCombos(comboString, label,
                     defaultComboMoveDuration, keyAliases, appAliases, keyResolver,

@@ -85,7 +85,7 @@ public class PositionHistoryTest {
                 """);
         App[] activeApp = {new App("notepad.exe")};
         ComboWatcher comboWatcher =
-                new ComboWatcher(null, null, () -> activeApp[0], Instant::now,
+                new ComboWatcher(null, null, () -> activeApp[0], null, Instant::now,
                         Set.of(), Set.of(), false, configuration.modeMap(),
                         configuration.initiallySetVariables(), configuration.virtualKeys(),
                         configuration.initiallyPressedVirtualKeys());

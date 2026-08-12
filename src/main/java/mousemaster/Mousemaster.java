@@ -234,7 +234,7 @@ public class Mousemaster {
         }
         ComboWatcher comboWatcher =
                 new ComboWatcher(commandRunner, hintManager, platform.activeAppFinder(),
-                        platform.clock(),
+                        screenManager, platform.clock(),
                         unpressedComboPreconditionKeys,
                         pressedComboPreconditionKeys, configuration.logRedactKeys(),
                         configuration.modeMap(), configuration.initiallySetVariables(),

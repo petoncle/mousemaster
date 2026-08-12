@@ -10,19 +10,30 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * A screen filter in a combo property selects the screens the value applies to: it is
- * the same as the .3840x2160-300% suffix of a property key.
+ * On a hint property, a screen filter selects the screens a value applies to; anywhere else,
+ * it is a key pressed while the active screen matches.
  */
 class ComboScreenFilterTest {
 
     private ComboWatcher comboWatcher;
+    private Screen activeScreen = screen(1920, 1080, 1);
+
+    private static Screen screen(int width, int height, double scale) {
+        return new Screen(new Rectangle(0, 0, width, height), (int) (96 * scale), scale);
+    }
+
+    private void setActiveScreen(int width, int height, double scale) {
+        activeScreen = screen(width, height, scale);
+        comboWatcher.update(0.01);
+    }
 
     private Configuration load(String... lines) {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
                 KeyboardLayout.keyboardLayout("00000409", null));
         ActiveAppFinder noApp = () -> new App("test.exe");
-        comboWatcher = new ComboWatcher(null, null, noApp, (Clock) Instant::now, Set.of(),
-                Set.of(), false, configuration.modeMap(),
+        comboWatcher = new ComboWatcher(null, null, noApp,
+                new ScreenManager(() -> Set.of(activeScreen)), (Clock) Instant::now,
+                Set.of(), Set.of(), false, configuration.modeMap(),
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
                 configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
@@ -165,12 +176,59 @@ class ComboScreenFilterTest {
         assertEquals(3, mutatedBoxBorderRadius(1920, 1080, 1));
     }
 
+    private double mutatedGridLineThickness() {
+        return comboWatcher.getMutatedMode().grid().lineThickness();
+    }
+
+    /** Outside a hint property, the filter is a condition on the active screen. */
     @Test
-    void aFilterIsRejectedOnANonHintProperty() {
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> load("idle-mode.indicator.render-as-cursor=false | _{3840x2160-300%} -> true"));
-        assertTrue(e.getMessage().contains("only supported for hint properties"),
-                e.getMessage());
+    void aFilterOnAnotherPropertyFollowsTheActiveScreen() {
+        load("idle-mode.grid.line-thickness=1 | _{300%} -> 0.66667");
+        assertEquals(1, mutatedGridLineThickness());
+
+        setActiveScreen(3840, 2160, 3);
+        assertEquals(0.66667, mutatedGridLineThickness());
+
+        setActiveScreen(1920, 1080, 1);
+        assertEquals(1, mutatedGridLineThickness());
+    }
+
+    @Test
+    void aScreenAliasIsAnAlternativeOfScreens() {
+        load("screen-alias.big=3840x2160-300% 2560x1440-100%",
+                "idle-mode.grid.line-thickness=1 | _{big} -> 2");
+        setActiveScreen(2560, 1440, 1);
+        assertEquals(2, mutatedGridLineThickness());
+
+        setActiveScreen(3840, 2160, 3);
+        assertEquals(2, mutatedGridLineThickness());
+
+        setActiveScreen(1920, 1080, 1);
+        assertEquals(1, mutatedGridLineThickness());
+    }
+
+    /** A screen is a key, so it can be negated and mixed with a key. */
+    @Test
+    void aFilterIsAKeyOutsideAHintProperty() {
+        load("idle-mode.grid.line-thickness=1 | ^{300%} -> 2 | _{300% isidling} -> 3");
+        assertEquals(2, mutatedGridLineThickness());
+
+        setActiveScreen(3840, 2160, 3);
+        assertEquals(1, mutatedGridLineThickness());
+
+        comboWatcher.setIdling(true);
+        assertEquals(3, mutatedGridLineThickness());
+    }
+
+    /** The keys a screen alias names are built-in, so a macro cannot press them either. */
+    @Test
+    void aScreenAliasCannotBePressedByAMacro() {
+        for (String output : List.of("#big", "+big", "~big", "-big")) {
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> load("screen-alias.big=3840x2160-300%",
+                            "idle-mode.macro.x=+a -> " + output), output);
+            assertTrue(e.getMessage().contains("built-in"), e.getMessage());
+        }
     }
 
 }

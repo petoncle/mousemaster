@@ -140,9 +140,8 @@ public class HintManager implements ModeListener, MousePositionListener {
                     !mutateMode.propertyPath().fieldNames().getFirst().equals("hintMesh"))
                     continue;
                 if (combo.precondition().keyPrecondition().pressedKeyPrecondition().allKeys()
-                         .stream().anyMatch(
-                                key -> BuiltInVirtualKey.OS_KEYS.contains(key) &&
-                                       !key.equals(BuiltInVirtualKey.CURRENT_OS)))
+                         .contains(Os.macos ? BuiltInVirtualKey.IS_WINDOWS :
+                                 BuiltInVirtualKey.IS_MACOS))
                     break;
                 mutatingCombos.add(combo);
                 combo.precondition().variablePrecondition().conditions()

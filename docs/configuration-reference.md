@@ -658,7 +658,20 @@ hint1-mode.hint.box-border-radius=1 | _{leftshift 3840x2160-300%} -> 3 \
     | _{leftshift 1366x768-100%} -> 3
 ```
 
-Only a hint property can be filtered.
+Only a hint property is filtered per screen. Everywhere else — another property, a command,
+a mode switch — a screen filter is a [virtual key](combo-reference.md#built-in-virtual-keys)
+that mousemaster presses while the active screen matches it, so it reads like any other key:
+
+```properties
+# A grid line is one pixel wide on a 300% screen.
+grid-mode.grid.line-thickness=1 | _{300%} -> 0.66667
+
+# ^{} negates it, and it can share a block with a real key.
+normal-mode.indicator.idle.size=12 | ^{300%} -> 8 | _{300% leftshift} -> 24
+
+# In a combo, like any other key.
+normal-mode.press.left=_{3840x2160-300%} +leftbutton
+```
 
 A set of screens can be named once with `screen-alias`, which behaves like a key alias: it
 stands for any one of the filters it lists, so `_{largescreen}` is a named `*`-list. A screen
