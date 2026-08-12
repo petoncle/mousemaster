@@ -33,6 +33,7 @@
         <imageName>mousemaster</imageName>
         <mainClass>mousemaster.platform.windows.WindowsMain</mainClass>
         <jna.version>5.13.0</jna.version> <!-- Check https://www.graalvm.org/latest/reference-manual/native-image/metadata/ -->
+        <qtjambi.version>6.8.2</qtjambi.version>
     </properties>
     <dependencies>
         <dependency>
@@ -63,7 +64,7 @@
         <dependency>
             <groupId>io.qtjambi</groupId>
             <artifactId>qtjambi</artifactId>
-            <version>6.8.2</version>
+            <version>${qtjambi.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -92,11 +93,14 @@
                     <family>windows</family>
                 </os>
             </activation>
+            <properties>
+                <platformResources>src/main/resources-windows</platformResources>
+            </properties>
             <dependencies>
                 <dependency>
                     <groupId>io.qtjambi</groupId>
                     <artifactId>qtjambi-native-windows-x64</artifactId>
-                    <version>6.8.2</version>
+                    <version>${qtjambi.version}</version>
                 </dependency>
             </dependencies>
             <!-- Here rather than in the native profile, which macOS activates too. -->
@@ -113,6 +117,48 @@
                                 <buildArg>-H:NativeLinkerOption=${project.build.directory}/mousemaster.res</buildArg>
                             </buildArgs>
                         </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>compress-qt-resources</id>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <!-- The QtJambi libraries are not committed like the Qt
+                                        ones: they come out of the native jar. -->
+                                        <unzip dest="${project.build.outputDirectory}"
+                                               src="${settings.localRepository}/io/qtjambi/qtjambi-native-windows-x64/${qtjambi.version}/qtjambi-native-windows-x64-${qtjambi.version}.jar">
+                                            <patternset>
+                                                <include name="bin/QtJambi6.dll"/>
+                                                <include name="bin/QtJambiCore6.dll"/>
+                                                <include name="bin/QtJambiGui6.dll"/>
+                                                <include name="bin/QtJambiWidgets6.dll"/>
+                                            </patternset>
+                                        </unzip>
+                                        <gzip src="${project.build.outputDirectory}/bin/QtJambi6.dll" destfile="${project.build.outputDirectory}/bin/QtJambi6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/bin/QtJambiCore6.dll" destfile="${project.build.outputDirectory}/bin/QtJambiCore6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/bin/QtJambiGui6.dll" destfile="${project.build.outputDirectory}/bin/QtJambiGui6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/bin/QtJambiWidgets6.dll" destfile="${project.build.outputDirectory}/bin/QtJambiWidgets6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/bin/Qt6Core.dll" destfile="${project.build.outputDirectory}/qt/bin/Qt6Core.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/bin/Qt6Gui.dll" destfile="${project.build.outputDirectory}/qt/bin/Qt6Gui.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/bin/Qt6Widgets.dll" destfile="${project.build.outputDirectory}/qt/bin/Qt6Widgets.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/plugins/platforms/qwindows.dll" destfile="${project.build.outputDirectory}/qt/plugins/platforms/qwindows.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt-msvcp/msvcp140.dll" destfile="${project.build.outputDirectory}/qt-msvcp/msvcp140.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt-msvcp/msvcp140_1.dll" destfile="${project.build.outputDirectory}/qt-msvcp/msvcp140_1.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt-msvcp/msvcp140_2.dll" destfile="${project.build.outputDirectory}/qt-msvcp/msvcp140_2.dll.gz"/>
+                                        <delete>
+                                            <fileset dir="${project.build.outputDirectory}" includes="**/*.dll"/>
+                                        </delete>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
@@ -153,12 +199,13 @@
             </activation>
             <properties>
                 <mainClass>mousemaster.platform.macos.MacosMain</mainClass>
+                <platformResources>src/main/resources-macos</platformResources>
             </properties>
             <dependencies>
                 <dependency>
                     <groupId>io.qtjambi</groupId>
                     <artifactId>qtjambi-native-macos</artifactId>
-                    <version>6.8.2</version>
+                    <version>${qtjambi.version}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -213,6 +260,14 @@
     </profiles>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${platformResources}</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>io.github.git-commit-id</groupId>
@@ -249,12 +304,35 @@
                                     <directory>src/main/resources</directory>
                                     <filtering>true</filtering>
                                     <excludes>
-                                        <exclude>**/*.dll</exclude> <!-- Exclude DLLs from filtering. -->
-                                        <exclude>**/*.dylib</exclude>
+                                        <exclude>**/*.gz</exclude> <!-- Exclude compressed resources from filtering. -->
                                         <exclude>licenses/**</exclude> <!-- Exclude license texts from filtering. -->
                                     </excludes>
                                 </resource>
                             </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- The native image stores resources uncompressed, so the large ones are gzipped
+            here and read back through MousemasterApplication.resourceStream. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>compress-resources</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <gzip src="${project.build.outputDirectory}/keyboard-layouts.json"
+                                      destfile="${project.build.outputDirectory}/keyboard-layouts.json.gz"/>
+                                <delete file="${project.build.outputDirectory}/keyboard-layouts.json"/>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>

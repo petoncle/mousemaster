@@ -11,9 +11,13 @@ import ch.qos.logback.core.OutputStreamAppender;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.logging.LogManager;
+import java.util.zip.GZIPInputStream;
 
 public class MousemasterApplication {
 
@@ -47,6 +51,19 @@ public class MousemasterApplication {
                     System.getProperty("java.io.tmpdir") + "mousemaster-" +
                     System.getProperty("user.name").hashCode();
         System.setProperty("jna.tmpdir", MousemasterApplication.tempDirectory + "/jna");
+    }
+
+    /** The build gzips the large resources; an IDE build of the classes directory leaves them raw. */
+    public static InputStream resourceStream(String resourcePath) {
+        ClassLoader classLoader = MousemasterApplication.class.getClassLoader();
+        InputStream inputStream = classLoader.getResourceAsStream(resourcePath);
+        if (inputStream != null)
+            return inputStream;
+        try {
+            return new GZIPInputStream(classLoader.getResourceAsStream(resourcePath + ".gz"));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public static void shutdownAfterException(Throwable e, Platform platform,

@@ -24,14 +24,7 @@ public class QtManager {
             "qt/bin/Qt6Core.dll",
             "qt/bin/Qt6Gui.dll",
             "qt/bin/Qt6Widgets.dll",
-            "qt/plugins/platforms/qdirect2d.dll",
-            "qt/plugins/platforms/qdirect2dd.dll",
-            "qt/plugins/platforms/qminimal.dll",
-            "qt/plugins/platforms/qminimald.dll",
-            "qt/plugins/platforms/qoffscreen.dll",
-            "qt/plugins/platforms/qoffscreend.dll",
-            "qt/plugins/platforms/qwindows.dll",
-            "qt/plugins/platforms/qwindowsd.dll"
+            "qt/plugins/platforms/qwindows.dll"
     );
 
     private static final List<String> qtJambiPaths = List.of(
@@ -100,8 +93,7 @@ public class QtManager {
 
     private static void extractResourceFile(String resourcesPath, Path extractPath)
             throws IOException {
-        try (InputStream inputStream = MousemasterApplication.class.getClassLoader().getResourceAsStream(
-                resourcesPath)) {
+        try (InputStream inputStream = MousemasterApplication.resourceStream(resourcesPath)) {
             try (OutputStream outputStream = Files.newOutputStream(extractPath,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE)) {

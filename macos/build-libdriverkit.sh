@@ -1,14 +1,14 @@
 #!/bin/sh
 # Builds libdriverkit.dylib, the Karabiner-DriverKit-VirtualHIDDevice client that mousemaster
-# grabs the keyboard with on macOS, into src/main/resources/darwin-aarch64 where JNA finds it
+# grabs the keyboard with on macOS, into src/main/resources-macos/darwin-aarch64 where JNA finds it
 # on the classpath. The sources are the unmodified karabiner-driverkit crate: driverkit.cpp
 # plus the Karabiner headers it vendors. Needs the xcode command line tools. The compile flags
 # follow the crate's own build.rs, dext branch (macOS 11 and later).
 set -e
 VERSION=0.4.0
 WORK=${1:-/tmp/driverkit-build}
-OUT=$(cd "$(dirname "$0")/.." && pwd)/src/main/resources/darwin-aarch64
-INTEL_OUT=$(cd "$(dirname "$0")/.." && pwd)/src/main/resources/darwin-x86-64
+OUT=$(cd "$(dirname "$0")/.." && pwd)/src/main/resources-macos/darwin-aarch64
+INTEL_OUT=$(cd "$(dirname "$0")/.." && pwd)/src/main/resources-macos/darwin-x86-64
 mkdir -p "$WORK" "$OUT"
 cd "$WORK"
 # crates.io answers 403 without a user agent.

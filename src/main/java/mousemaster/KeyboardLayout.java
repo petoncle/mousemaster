@@ -24,8 +24,7 @@ public final class KeyboardLayout {
 
     static {
         InputStreamReader reader = new InputStreamReader(
-                KeyboardLayout.class.getClassLoader()
-                                   .getResourceAsStream("keyboard-layouts.json"),
+                MousemasterApplication.resourceStream("keyboard-layouts.json"),
                 StandardCharsets.UTF_8
         );
         Type listType = new TypeToken<List<KeyboardLayout>>() {}.getType();
