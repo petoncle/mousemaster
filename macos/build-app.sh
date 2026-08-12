@@ -40,8 +40,14 @@ for framework in QtJambi QtJambiCore QtJambiGui QtJambiWidgets; do
     ln -sfn 6 "$inner/Versions/Current"
     ln -sfn "Versions/Current/$framework" "$inner/$framework"
     ln -sfn Versions/Current/Resources "$inner/Resources"
-    ln -sfn Versions/Current/Headers "$inner/Headers"
     chmod +x "$inner/Versions/6/$framework"
+done
+# The headers and the local symbols are a fifth of the bundle, and only the exported symbols
+# are ever looked up.
+for framework in "$APP"/Contents/Frameworks/*.framework; do
+    name=$(basename "$framework" .framework)
+    rm -rf "$framework/Headers" "$framework"/Versions/*/Headers
+    strip -x "$framework"/Versions/*/"$name"
 done
 cp "$QT/plugins/platforms/libqcocoa.dylib" "$APP/Contents/PlugIns/platforms/"
 cp "$QT/plugins/styles/libqmacstyle.dylib" "$APP/Contents/PlugIns/styles/"
