@@ -11,23 +11,32 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class WindowsScreen {
+
+    private static final Set<Screen> enumeratedScreens = new HashSet<>();
+
+    // Allocating a callback builds a native trampoline, which costs more than the
+    // enumeration itself, so this one is allocated once.
+    private static final WinUser.MONITORENUMPROC monitorEnumProc =
+            new WinUser.MONITORENUMPROC() {
+                @Override
+                public int apply(WinUser.HMONITOR hMonitor, WinDef.HDC hdcMonitor,
+                                 WinDef.RECT lprcMonitor, WinDef.LPARAM dwData) {
+                    int scaledDpi = findScreenDpi(hMonitor, true);
+                    double scale = screenScale(scaledDpi);
+                    int dpi = (int) (scaledDpi / scale);
+                    enumeratedScreens.add(
+                            new Screen(new Rectangle(lprcMonitor.left, lprcMonitor.top,
+                                    lprcMonitor.right - lprcMonitor.left,
+                                    lprcMonitor.bottom - lprcMonitor.top), dpi,
+                                    scale));
+                    return 1;
+                }
+            };
+
     public static Set<Screen> findScreens() {
-        Set<Screen> screens = new HashSet<>();
-        User32.INSTANCE.EnumDisplayMonitors(null, null, new WinUser.MONITORENUMPROC() {
-            @Override
-            public int apply(WinUser.HMONITOR hMonitor, WinDef.HDC hdcMonitor,
-                             WinDef.RECT lprcMonitor, WinDef.LPARAM dwData) {
-                int scaledDpi = findScreenDpi(hMonitor, true);
-                double scale = screenScale(scaledDpi);
-                int dpi = (int) (scaledDpi / scale);
-                screens.add(new Screen(new Rectangle(lprcMonitor.left, lprcMonitor.top,
-                        lprcMonitor.right - lprcMonitor.left,
-                        lprcMonitor.bottom - lprcMonitor.top), dpi,
-                        scale));
-                return 1;
-            }
-        }, null);
-        return screens;
+        enumeratedScreens.clear();
+        User32.INSTANCE.EnumDisplayMonitors(null, null, monitorEnumProc, null);
+        return Set.copyOf(enumeratedScreens);
     }
 
     public static Screen findActiveScreen(WinDef.POINT containedPoint) {
