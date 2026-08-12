@@ -62,6 +62,7 @@ public class ComboWatcher {
             new HashSet<>();
     private final Set<Key> builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos =
             new HashSet<>();
+    private boolean preconditionOnlyMutationRefreshPending;
     private boolean preconditionOnlyNonMutationComboRefreshPending;
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
@@ -244,12 +245,27 @@ public class ComboWatcher {
         return mutatedMode;
     }
 
-    /**
-     * Presses or releases the built-in {@code isidling} key. Called every update tick
-     * with the idle state computed by {@link ModeController}.
-     */
-    public void setIdling(boolean idling) {
-        setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, idling);
+    /** Presses the built-in keys that follow the mouse and keyboard state. */
+    public void updateMouseAndKeyboardKeys(MouseState mouseState,
+                                           KeyboardState keyboardState) {
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, mouseState.idling());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_MOVING, mouseState.moving());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_WHEELING, mouseState.wheeling());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_MOUSE_PRESSING, mouseState.pressing());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_LEFT_MOUSE_PRESSING,
+                mouseState.leftPressing());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_MIDDLE_MOUSE_PRESSING,
+                mouseState.middlePressing());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_RIGHT_MOUSE_PRESSING,
+                mouseState.rightPressing());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_UNHANDLED_KEY_PRESSING,
+                keyboardState.pressingUnhandledKeyInCurrentMode());
+        // Refreshed once all the keys are set, and before the tick moves the mouse, which
+        // reads properties these keys can mutate.
+        if (preconditionOnlyMutationRefreshPending) {
+            preconditionOnlyMutationRefreshPending = false;
+            refreshPreconditionOnlyMutations();
+        }
     }
 
     /** Presses the screen filter keys the active screen matches and releases the others. */
@@ -265,13 +281,13 @@ public class ComboWatcher {
     }
 
     /** Precondition-only combos are refreshed only when the key actually changes. */
-    private void setVirtualKeyPressed(Key key, boolean pressed) {
+    void setVirtualKeyPressed(Key key, boolean pressed) {
         boolean changed = pressed ? currentlyPressedComboKeys.add(key) :
                 currentlyPressedComboKeys.remove(key);
         if (!changed)
             return;
         if (builtInVirtualKeysReferencedByPreconditionOnlyMutations.contains(key))
-            refreshPreconditionOnlyMutations();
+            preconditionOnlyMutationRefreshPending = true;
         if (builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos.contains(key))
             preconditionOnlyNonMutationComboRefreshPending = true;
     }
@@ -289,6 +305,10 @@ public class ComboWatcher {
         List<ComboAndCommands> completedComboAndCommands = new ArrayList<>();
         updateScreenFilterKeys();
         App activeApp = activeAppFinder.activeApp();
+        if (preconditionOnlyMutationRefreshPending) {
+            preconditionOnlyMutationRefreshPending = false;
+            refreshPreconditionOnlyMutations(activeApp);
+        }
         if (preconditionOnlyNonMutationComboRefreshPending) {
             preconditionOnlyNonMutationComboRefreshPending = false;
             processKeyEventForCurrentMode(null, false, LogTrigger.PRECONDITION_REFRESH,

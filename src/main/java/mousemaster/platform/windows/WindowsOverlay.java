@@ -24,7 +24,7 @@ public class WindowsOverlay implements Overlay {
     private IndicatorRenderer indicatorRenderer;
     private WinDef.HWND indicatorHwnd;
     private boolean indicatorIsCursor;
-    private Indicator currentCursorIndicator;
+    private IndicatorConfiguration currentCursorIndicator;
     private double currentCursorScale;
     private boolean currentCursorIncludeGlyph;
     private GridRenderer gridRenderer;
@@ -343,12 +343,10 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(Indicator indicator,
-                                    boolean fadeAnimationEnabled,
-                                    Duration fadeAnimationDuration,
-                                    boolean allowFade,
-                                    boolean renderAsCursor, boolean includeCursorGlyph) {
+    public void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
+                                    boolean includeCursorGlyph) {
         Objects.requireNonNull(indicator);
+        boolean renderAsCursor = indicator.renderAsCursor();
         if (!renderAsCursor && !indicatorIsCursor && indicatorRenderer != null &&
             indicatorRenderer.showing() &&
             indicator.equals(indicatorRenderer.currentIndicator()))
@@ -388,9 +386,8 @@ public class WindowsOverlay implements Overlay {
         if (indicatorHwnd == null)
             createIndicatorWindow();
         boolean wasShowing = indicatorRenderer.showing();
-        indicatorRenderer.setIndicator(indicator, fadeAnimationEnabled,
-                fadeAnimationDuration, allowFade, mouseRectangle(mousePosition),
-                mouse.cursorVisualCenter(),
+        indicatorRenderer.setIndicator(indicator, allowFade,
+                mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom);
         if (!wasShowing)
             setTopmost();

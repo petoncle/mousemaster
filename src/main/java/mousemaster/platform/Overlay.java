@@ -4,12 +4,11 @@ import mousemaster.Grid;
 import mousemaster.Hint;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
-import mousemaster.Indicator;
+import mousemaster.IndicatorConfiguration;
 import mousemaster.Rectangle;
 import mousemaster.Zoom;
 
 import java.util.Set;
-import java.time.Duration;
 
 public interface Overlay {
 
@@ -29,9 +28,8 @@ public interface Overlay {
                                     int topInset, int bottomInset,
                                     int leftInset, int rightInset);
 
-    void setIndicator(Indicator indicator, boolean fadeAnimationEnabled,
-                      Duration fadeAnimationDuration, boolean allowFade,
-                      boolean renderAsCursor, boolean includeCursorGlyph);
+    void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
+                      boolean includeCursorGlyph);
 
     void hideIndicator(boolean allowFade);
 

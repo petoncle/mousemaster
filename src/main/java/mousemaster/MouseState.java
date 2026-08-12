@@ -28,4 +28,12 @@ public class MouseState {
         return mouseManager.wheeling();
     }
 
+    public boolean pressing() {
+        return leftPressing() || middlePressing() || rightPressing();
+    }
+
+    public boolean idling() {
+        return !moving() && !wheeling() && !pressing();
+    }
+
 }

@@ -27,6 +27,11 @@ class ComboScreenFilterTest {
         comboWatcher.update(0.01);
     }
 
+    private void setIdling(boolean idling) {
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, idling);
+        comboWatcher.update(0.01);
+    }
+
     private Configuration load(String... lines) {
         Configuration configuration = ConfigurationParser.parse(List.of(lines),
                 KeyboardLayout.keyboardLayout("00000409", null));
@@ -86,11 +91,11 @@ class ComboScreenFilterTest {
         assertEquals(1, mutatedBoxBorderRadius(3840, 2160, 3));
         assertEquals(1, mutatedBoxBorderRadius(1920, 1080, 1));
 
-        comboWatcher.setIdling(true);
+        setIdling(true);
         assertEquals(3, mutatedBoxBorderRadius(3840, 2160, 3));
         assertEquals(1, mutatedBoxBorderRadius(1920, 1080, 1));
 
-        comboWatcher.setIdling(false);
+        setIdling(false);
         assertEquals(1, mutatedBoxBorderRadius(3840, 2160, 3));
     }
 
@@ -149,7 +154,7 @@ class ComboScreenFilterTest {
     void severalFiltersMixedWithAKeyNeedOneBranchEach() {
         load("idle-mode.hint.selection-keys=a b c d",
                 "idle-mode.hint.box-border-radius=1 | _{isidling 3840x2160-300%} -> 3 | _{isidling 2560x1440-100%} -> 3");
-        comboWatcher.setIdling(true);
+        setIdling(true);
         assertEquals(3, mutatedBoxBorderRadius(3840, 2160, 3));
         assertEquals(3, mutatedBoxBorderRadius(2560, 1440, 1));
         assertEquals(1, mutatedBoxBorderRadius(1920, 1080, 1));
@@ -171,7 +176,7 @@ class ComboScreenFilterTest {
         assertEquals(2, mutatedBoxBorderRadius(3840, 2160, 3));
         assertEquals(1, mutatedBoxBorderRadius(1920, 1080, 1));
 
-        comboWatcher.setIdling(true);
+        setIdling(true);
         assertEquals(4, mutatedBoxBorderRadius(3840, 2160, 3));
         assertEquals(3, mutatedBoxBorderRadius(1920, 1080, 1));
     }
@@ -216,7 +221,7 @@ class ComboScreenFilterTest {
         setActiveScreen(3840, 2160, 3);
         assertEquals(1, mutatedGridLineThickness());
 
-        comboWatcher.setIdling(true);
+        setIdling(true);
         assertEquals(3, mutatedGridLineThickness());
     }
 

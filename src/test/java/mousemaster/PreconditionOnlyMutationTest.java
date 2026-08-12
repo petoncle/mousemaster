@@ -12,9 +12,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * A precondition-only mutation is applied and reverted as its variable toggles,
- * across the update() ticks that run in between. The refresh rebuilds the mutated
- * mode only when the active mutations change, so a tick must not leave it stale.
+ * A precondition-only mutation is applied and reverted as its key toggles, and the ticks in
+ * between must leave neither the mutation nor the mutated mode stale.
  */
 class PreconditionOnlyMutationTest {
 
@@ -61,8 +60,27 @@ class PreconditionOnlyMutationTest {
         comboWatcher.update(0.01);
     }
 
+    private void setIdling(boolean idling) {
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, idling);
+        tick();
+    }
+
     private boolean renderAsCursor() {
         return comboWatcher.getMutatedMode().indicator().renderAsCursor();
+    }
+
+    private String hexColor() {
+        return comboWatcher.getMutatedMode().indicator().hexColor();
+    }
+
+    @Test
+    void aMutationReachesAnIndicatorProperty() {
+        load("idle-mode.indicator.color=#FF0000 | _{isidling} -> #00FF00");
+        tick();
+        assertEquals("#FF0000", hexColor());
+
+        setIdling(true);
+        assertEquals("#00FF00", hexColor());
     }
 
     @Test
@@ -71,13 +89,13 @@ class PreconditionOnlyMutationTest {
         tick();
         assertFalse(renderAsCursor());
 
-        comboWatcher.setIdling(true);
+        setIdling(true);
         assertTrue(renderAsCursor());
         for (int i = 0; i < 5; i++)
             tick();
         assertTrue(renderAsCursor(), "a tick must not revert an applied mutation");
 
-        comboWatcher.setIdling(false);
+        setIdling(false);
         assertFalse(renderAsCursor());
         for (int i = 0; i < 5; i++)
             tick();
@@ -93,7 +111,7 @@ class PreconditionOnlyMutationTest {
             tick();
         assertEquals(List.of(), notifiedModes);
 
-        comboWatcher.setIdling(true);
+        setIdling(true);
         assertEquals(1, notifiedModes.size());
         assertTrue(notifiedModes.getFirst().indicator().renderAsCursor());
     }

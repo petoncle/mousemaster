@@ -6910,11 +6910,15 @@
       ]
     },
     {
-      "type": "mousemaster.Indicator",
+      "type": "mousemaster.IndicatorConfiguration",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
+            "boolean",
+            "boolean",
+            "java.time.Duration",
+            "boolean",
             "int",
             "int",
             "java.lang.String",
@@ -6930,6 +6934,18 @@
         },
         {
           "name": "edgeCount",
+          "parameterTypes": []
+        },
+        {
+          "name": "enabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "fadeAnimationDuration",
+          "parameterTypes": []
+        },
+        {
+          "name": "fadeAnimationEnabled",
           "parameterTypes": []
         },
         {
@@ -6965,81 +6981,15 @@
           "parameterTypes": []
         },
         {
+          "name": "renderAsCursor",
+          "parameterTypes": []
+        },
+        {
           "name": "shadow",
           "parameterTypes": []
         },
         {
           "name": "size",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.IndicatorConfiguration",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "boolean",
-            "boolean",
-            "java.time.Duration",
-            "boolean",
-            "mousemaster.Indicator",
-            "mousemaster.Indicator",
-            "mousemaster.Indicator",
-            "mousemaster.Indicator",
-            "mousemaster.Indicator",
-            "mousemaster.Indicator",
-            "mousemaster.Indicator",
-            "mousemaster.Indicator"
-          ]
-        },
-        {
-          "name": "enabled",
-          "parameterTypes": []
-        },
-        {
-          "name": "fadeAnimationDuration",
-          "parameterTypes": []
-        },
-        {
-          "name": "fadeAnimationEnabled",
-          "parameterTypes": []
-        },
-        {
-          "name": "idleIndicator",
-          "parameterTypes": []
-        },
-        {
-          "name": "leftMousePressIndicator",
-          "parameterTypes": []
-        },
-        {
-          "name": "middleMousePressIndicator",
-          "parameterTypes": []
-        },
-        {
-          "name": "mousePressIndicator",
-          "parameterTypes": []
-        },
-        {
-          "name": "moveIndicator",
-          "parameterTypes": []
-        },
-        {
-          "name": "renderAsCursor",
-          "parameterTypes": []
-        },
-        {
-          "name": "rightMousePressIndicator",
-          "parameterTypes": []
-        },
-        {
-          "name": "unhandledKeyPressIndicator",
-          "parameterTypes": []
-        },
-        {
-          "name": "wheelIndicator",
           "parameterTypes": []
         }
       ]

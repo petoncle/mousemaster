@@ -489,16 +489,24 @@ A pressed virtual key never disturbs a combo that does not mention it. It is not
 
 Some virtual keys are maintained by mousemaster. They can be read like any other but cannot be pressed or released from the configuration.
 
-| Key               | Pressed when                                                                                                        |
-|-------------------|------------------------------------------------------------------------------------------------------------------|
-| `isidling`        | The mouse is idle: not moving, no mouse button pressed, not wheeling, and no combo completed on the current tick. |
-| `3840x2160-300%`  | The active screen matches that [screen filter](configuration-reference.md#screen-specific-hint-configurations): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
+| Key                        | Pressed when                                                                                                        |
+|----------------------------|------------------------------------------------------------------------------------------------------------------|
+| `ismoving`                 | mousemaster is moving the mouse.                                                                                 |
+| `iswheeling`               | mousemaster is wheeling.                                                                                         |
+| `ismousepressing`          | mousemaster is holding any mouse button.                                                                         |
+| `isleftmousepressing`      | mousemaster is holding the left mouse button.                                                                    |
+| `ismiddlemousepressing`    | mousemaster is holding the middle mouse button.                                                                  |
+| `isrightmousepressing`     | mousemaster is holding the right mouse button.                                                                   |
+| `isidling`                 | The mouse is neither moving, wheeling, nor pressing a button.                                                     |
+| `isunhandledkeypressing`   | A key that is not part of any combo of the current mode is held.                                                  |
+| `iswindows`, `ismacos`     | mousemaster runs on that operating system.                                                                       |
+| `3840x2160-300%`           | The active screen matches that [screen filter](configuration-reference.md#screen-specific-hint-configurations): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
 
 ```
-_{isidling} +a                                        combo only works while the mouse is idle
-mode.indicator.idle-color=... | _{isidling} -> gray   idle-only property value
-_{300%} +a                                            combo only works on a 300% screen
-mode.grid.line-thickness=1 | _{300%} -> 0.66667       one pixel on a 300% screen
+_{isidling} +a                                     combo only works while the mouse is idle
+mode.indicator.color=... | _{iswheeling} -> gray   wheel-only property value
+_{300%} +a                                         combo only works on a 300% screen
+mode.grid.line-thickness=1 | _{300%} -> 0.66667    one pixel on a 300% screen
 ```
 
 A hint property is the exception: a hint mesh can span several screens at once, so a screen

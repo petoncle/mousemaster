@@ -5,15 +5,10 @@ import mousemaster.platform.Overlay;
 public class IndicatorManager implements ModeListener {
 
     private final Overlay overlay;
-    private final MouseState mouseState;
-    private final KeyboardState keyboardState;
     private Mode currentMode;
 
-    public IndicatorManager(Overlay overlay, MouseState mouseState,
-                            KeyboardState keyboardState) {
+    public IndicatorManager(Overlay overlay) {
         this.overlay = overlay;
-        this.mouseState = mouseState;
-        this.keyboardState = keyboardState;
     }
 
     public void update(double delta) {
@@ -30,18 +25,9 @@ public class IndicatorManager implements ModeListener {
     }
 
     private void updateIndicator(boolean allowFade) {
-        if (currentMode.indicator().enabled()) {
-            Indicator indicator = activeIndicator();
-            if (indicator.hexColor() == null)
-                overlay.hideIndicator(allowFade);
-            else
-                overlay.setIndicator(indicator,
-                        currentMode.indicator().fadeAnimationEnabled(),
-                        currentMode.indicator().fadeAnimationDuration(),
-                        allowFade,
-                        currentMode.indicator().renderAsCursor(),
-                        !currentMode.hideCursor().enabled());
-        }
+        if (currentMode.indicator().enabled())
+            overlay.setIndicator(currentMode.indicator(), allowFade,
+                    !currentMode.hideCursor().enabled());
         else
             overlay.hideIndicator(allowFade);
     }
@@ -49,23 +35,5 @@ public class IndicatorManager implements ModeListener {
     @Override
     public void modeTimedOut() {
         // Ignored.
-    }
-
-    private Indicator activeIndicator() {
-        IndicatorConfiguration config = currentMode.indicator();
-        if (keyboardState.pressingUnhandledKeyInCurrentMode() &&
-            config.unhandledKeyPressIndicator().hexColor() != null)
-            return config.unhandledKeyPressIndicator();
-        if (mouseState.leftPressing() && config.leftMousePressIndicator().hexColor() != null)
-            return config.leftMousePressIndicator();
-        if (mouseState.middlePressing() && config.middleMousePressIndicator().hexColor() != null)
-            return config.middleMousePressIndicator();
-        if (mouseState.rightPressing() && config.rightMousePressIndicator().hexColor() != null)
-            return config.rightMousePressIndicator();
-        if (mouseState.wheeling() && config.wheelIndicator().hexColor() != null)
-            return config.wheelIndicator();
-        if (mouseState.moving() && config.moveIndicator().hexColor() != null)
-            return config.moveIndicator();
-        return config.idleIndicator();
     }
 }

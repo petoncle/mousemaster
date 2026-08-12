@@ -1,52 +1,41 @@
 package mousemaster;
 
-import mousemaster.Indicator.IndicatorBuilder;
+import mousemaster.FontStyle.FontStyleBuilder;
+import mousemaster.IndicatorOutline.IndicatorOutlineBuilder;
+import mousemaster.Shadow.ShadowBuilder;
 
 import java.time.Duration;
-import java.util.List;
 
 public record IndicatorConfiguration(boolean enabled,
                                      boolean fadeAnimationEnabled,
                                      Duration fadeAnimationDuration,
                                      boolean renderAsCursor,
-                                     Indicator idleIndicator,
-                                     Indicator moveIndicator,
-                                     Indicator wheelIndicator,
-                                     Indicator mousePressIndicator,
-                                     Indicator leftMousePressIndicator,
-                                     Indicator middleMousePressIndicator,
-                                     Indicator rightMousePressIndicator,
-                                     Indicator unhandledKeyPressIndicator) {
+                                     int size, int edgeCount, String hexColor,
+                                     double opacity,
+                                     IndicatorOutline outerOutline,
+                                     IndicatorOutline innerOutline,
+                                     Shadow shadow,
+                                     boolean labelEnabled, String labelText,
+                                     FontStyle labelFontStyle,
+                                     IndicatorPosition position) {
 
     public static class IndicatorConfigurationBuilder {
-
-        /**
-         * Cascade relationships: target extends source.
-         * Order matters: idle → mousePress must come before mousePress → left/middle/right.
-         * Used by both build() (value cascading) and ConfigurationParser (mutation cascading).
-         */
-        static final List<CascadeRule> CASCADE_RULES = List.of(
-                new CascadeRule(List.of("idleIndicator"), List.of("mousePressIndicator")),
-                new CascadeRule(List.of("idleIndicator"), List.of("moveIndicator")),
-                new CascadeRule(List.of("idleIndicator"), List.of("wheelIndicator")),
-                new CascadeRule(List.of("idleIndicator"), List.of("unhandledKeyPressIndicator")),
-                new CascadeRule(List.of("mousePressIndicator"), List.of("leftMousePressIndicator")),
-                new CascadeRule(List.of("mousePressIndicator"), List.of("middleMousePressIndicator")),
-                new CascadeRule(List.of("mousePressIndicator"), List.of("rightMousePressIndicator"))
-        );
 
         private Boolean enabled;
         private Boolean fadeAnimationEnabled;
         private Duration fadeAnimationDuration;
         private Boolean renderAsCursor;
-        private IndicatorBuilder idleIndicator = new IndicatorBuilder();
-        private IndicatorBuilder moveIndicator = new IndicatorBuilder();
-        private IndicatorBuilder wheelIndicator = new IndicatorBuilder();
-        private IndicatorBuilder mousePressIndicator = new IndicatorBuilder();
-        private IndicatorBuilder leftMousePressIndicator = new IndicatorBuilder();
-        private IndicatorBuilder middleMousePressIndicator = new IndicatorBuilder();
-        private IndicatorBuilder rightMousePressIndicator = new IndicatorBuilder();
-        private IndicatorBuilder unhandledKeyPressIndicator = new IndicatorBuilder();
+        private Integer size;
+        private Integer edgeCount;
+        private String hexColor;
+        private Double opacity;
+        private IndicatorOutlineBuilder outerOutline = new IndicatorOutlineBuilder();
+        private IndicatorOutlineBuilder innerOutline = new IndicatorOutlineBuilder();
+        private ShadowBuilder shadow = new ShadowBuilder();
+        private Boolean labelEnabled;
+        private String labelText;
+        private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
+        private IndicatorPosition position;
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -84,36 +73,83 @@ public record IndicatorConfiguration(boolean enabled,
             return renderAsCursor;
         }
 
-        public IndicatorBuilder idleIndicator() {
-            return idleIndicator;
+        public IndicatorConfigurationBuilder size(int size) {
+            this.size = size;
+            return this;
         }
 
-        public IndicatorBuilder moveIndicator() {
-            return moveIndicator;
+        public Integer size() {
+            return size;
         }
 
-        public IndicatorBuilder wheelIndicator() {
-            return wheelIndicator;
+        public IndicatorConfigurationBuilder edgeCount(int edgeCount) {
+            this.edgeCount = edgeCount;
+            return this;
         }
 
-        public IndicatorBuilder mousePressIndicator() {
-            return mousePressIndicator;
+        public Integer edgeCount() {
+            return edgeCount;
         }
 
-        public IndicatorBuilder leftMousePressIndicator() {
-            return leftMousePressIndicator;
+        public IndicatorConfigurationBuilder hexColor(String hexColor) {
+            this.hexColor = hexColor;
+            return this;
         }
 
-        public IndicatorBuilder middleMousePressIndicator() {
-            return middleMousePressIndicator;
+        public String hexColor() {
+            return hexColor;
         }
 
-        public IndicatorBuilder rightMousePressIndicator() {
-            return rightMousePressIndicator;
+        public IndicatorConfigurationBuilder opacity(double opacity) {
+            this.opacity = opacity;
+            return this;
         }
 
-        public IndicatorBuilder unhandledKeyPressIndicator() {
-            return unhandledKeyPressIndicator;
+        public Double opacity() {
+            return opacity;
+        }
+
+        public IndicatorOutlineBuilder outerOutline() {
+            return outerOutline;
+        }
+
+        public IndicatorOutlineBuilder innerOutline() {
+            return innerOutline;
+        }
+
+        public ShadowBuilder shadow() {
+            return shadow;
+        }
+
+        public IndicatorConfigurationBuilder labelEnabled(boolean labelEnabled) {
+            this.labelEnabled = labelEnabled;
+            return this;
+        }
+
+        public Boolean labelEnabled() {
+            return labelEnabled;
+        }
+
+        public IndicatorConfigurationBuilder labelText(String labelText) {
+            this.labelText = labelText;
+            return this;
+        }
+
+        public String labelText() {
+            return labelText;
+        }
+
+        public FontStyleBuilder labelFontStyle() {
+            return labelFontStyle;
+        }
+
+        public IndicatorConfigurationBuilder position(IndicatorPosition position) {
+            this.position = position;
+            return this;
+        }
+
+        public IndicatorPosition position() {
+            return position;
         }
 
         public void extend(IndicatorConfigurationBuilder parent) {
@@ -121,46 +157,24 @@ public record IndicatorConfiguration(boolean enabled,
             if (fadeAnimationEnabled == null) fadeAnimationEnabled = parent.fadeAnimationEnabled;
             if (fadeAnimationDuration == null) fadeAnimationDuration = parent.fadeAnimationDuration;
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
-            idleIndicator.extend(parent.idleIndicator);
-            moveIndicator.extend(parent.moveIndicator);
-            wheelIndicator.extend(parent.wheelIndicator);
-            mousePressIndicator.extend(parent.mousePressIndicator);
-            leftMousePressIndicator.extend(parent.leftMousePressIndicator);
-            middleMousePressIndicator.extend(parent.middleMousePressIndicator);
-            rightMousePressIndicator.extend(parent.rightMousePressIndicator);
-            unhandledKeyPressIndicator.extend(parent.unhandledKeyPressIndicator);
-        }
-
-        private IndicatorBuilder builderByName(String name) {
-            return switch (name) {
-                case "idleIndicator" -> idleIndicator;
-                case "moveIndicator" -> moveIndicator;
-                case "wheelIndicator" -> wheelIndicator;
-                case "mousePressIndicator" -> mousePressIndicator;
-                case "leftMousePressIndicator" -> leftMousePressIndicator;
-                case "middleMousePressIndicator" -> middleMousePressIndicator;
-                case "rightMousePressIndicator" -> rightMousePressIndicator;
-                case "unhandledKeyPressIndicator" -> unhandledKeyPressIndicator;
-                default -> throw new IllegalArgumentException(name);
-            };
+            if (size == null) size = parent.size;
+            if (edgeCount == null) edgeCount = parent.edgeCount;
+            if (hexColor == null) hexColor = parent.hexColor;
+            if (opacity == null) opacity = parent.opacity;
+            outerOutline.extend(parent.outerOutline);
+            innerOutline.extend(parent.innerOutline);
+            shadow.extend(parent.shadow);
+            if (labelEnabled == null) labelEnabled = parent.labelEnabled;
+            if (labelText == null) labelText = parent.labelText;
+            labelFontStyle.extend(parent.labelFontStyle);
+            if (position == null) position = parent.position;
         }
 
         public IndicatorConfiguration build() {
-            for (CascadeRule rule : CASCADE_RULES)
-                builderByName(rule.targetFieldNames().getFirst())
-                        .extend(builderByName(rule.sourceFieldNames().getFirst()));
-            return new IndicatorConfiguration(enabled,
-                    fadeAnimationEnabled,
-                    fadeAnimationDuration,
-                    renderAsCursor,
-                    idleIndicator.build(),
-                    moveIndicator.build(),
-                    wheelIndicator.build(),
-                    mousePressIndicator.build(),
-                    leftMousePressIndicator.build(),
-                    middleMousePressIndicator.build(),
-                    rightMousePressIndicator.build(),
-                    unhandledKeyPressIndicator.build());
+            return new IndicatorConfiguration(enabled, fadeAnimationEnabled,
+                    fadeAnimationDuration, renderAsCursor, size, edgeCount, hexColor,
+                    opacity, outerOutline.build(), innerOutline.build(), shadow.build(),
+                    labelEnabled, labelText, labelFontStyle.build(), position);
         }
     }
 }

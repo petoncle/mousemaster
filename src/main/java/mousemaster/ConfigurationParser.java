@@ -9,7 +9,6 @@ import mousemaster.HintGridLayout.HintGridLayoutBuilder;
 import mousemaster.HintMeshConfiguration.HintMeshConfigurationBuilder;
 import mousemaster.HintMeshKeys.HintMeshKeysBuilder;
 import mousemaster.HintMeshStyle.HintMeshStyleBuilder;
-import mousemaster.Indicator.IndicatorBuilder;
 import mousemaster.IndicatorConfiguration.IndicatorConfigurationBuilder;
 import mousemaster.ModeTimeout.ModeTimeoutBuilder;
 import mousemaster.Mouse.MouseBuilder;
@@ -48,18 +47,18 @@ public class ConfigurationParser {
         AtomicReference<String> modeAfterPressingUnhandledKeysOnly = new AtomicReference<>();
         MouseBuilder mouse = new MouseBuilder();
         mouse.velocity().initialVelocity(1000)
-                        .maxVelocity(2200)
-                        .acceleration(3000)
-                        .accelerationEasing(new Easing.Smootherstep())
-                        .deceleration(20);
+                 .maxVelocity(2200)
+                 .acceleration(3000)
+                 .accelerationEasing(new Easing.Smootherstep())
+                 .deceleration(20);
         mouse.smoothJumpEnabled(true)
              .smoothJumpVelocity(30000);
         WheelBuilder wheel = new WheelBuilder();
         wheel.velocity().initialVelocity(1000)
-                        .maxVelocity(1000)
-                        .acceleration(500)
-                        .accelerationEasing(new Easing.Polynomial(1))
-                        .deceleration(0);
+                 .maxVelocity(1000)
+                 .acceleration(500)
+                 .accelerationEasing(new Easing.Polynomial(1))
+                 .deceleration(0);
         GridConfigurationBuilder grid =
                 new GridConfigurationBuilder();
         grid.synchronization(Synchronization.MOUSE_AND_GRID_CENTER_UNSYNCHRONIZED)
@@ -198,71 +197,49 @@ public class ConfigurationParser {
                  .fadeAnimationEnabled(true)
                  .fadeAnimationDuration(Duration.ofMillis(100))
                  .renderAsCursor(false);
-        // Defaults are set on idle indicator; other states inherit during build.
-        IndicatorBuilder idleIndicator = indicator.idleIndicator();
-        idleIndicator.size(26)
-                     .edgeCount(300)
-                     .hexColor("#FF0000")
-                     .opacity(0.2)
-                     .position(IndicatorPosition.CENTER);
-         idleIndicator.outerOutline()
-                     .thickness(0)
-                     .hexColor("#FF0000")
-                     .opacity(1.0)
-                     .fillPercent(1.0)
-                     .fillStartAngle(180)
-                     .fillDirection(FillDirection.COUNTERCLOCKWISE);
-        idleIndicator.innerOutline()
-                     .thickness(0.5)
-                     .hexColor("#FF0000")
-                     .opacity(1.0)
-                     .fillPercent(1.0)
-                     .fillStartAngle(180)
-                     .fillDirection(FillDirection.COUNTERCLOCKWISE);
-        idleIndicator.shadow()
-                     .blurRadius(10d)
-                     .hexColor("#000000")
-                     .opacity(0d)
-                     .horizontalOffset(0d)
-                     .verticalOffset(0d)
-                     .stackCount(1);
-        indicator.wheelIndicator()
-                 .hexColor("#FFFF00")
-                 .innerOutline().hexColor("#FFFF00");
-        indicator.wheelIndicator()
-                 .shadow().opacity(1d).hexColor("#FFFF00");
-        indicator.leftMousePressIndicator()
-                 .hexColor("#00FF00")
-                 .innerOutline().hexColor("#00FF00");
-        indicator.leftMousePressIndicator()
-                 .shadow().opacity(1d).hexColor("#00FF00");
-        indicator.middleMousePressIndicator()
-                 .hexColor("#FF00FF")
-                 .innerOutline().hexColor("#FF00FF");
-        indicator.middleMousePressIndicator()
-                 .shadow().opacity(1d).hexColor("#FF00FF");
-        indicator.rightMousePressIndicator()
-                 .hexColor("#00FFFF")
-                 .innerOutline().hexColor("#00FFFF");
-        indicator.rightMousePressIndicator()
-                 .shadow().opacity(1d).hexColor("#00FFFF");
-        idleIndicator.labelEnabled(false);
-        idleIndicator.labelFontStyle()
-                     .name("Arial")
-                     .weight(FontWeight.NORMAL)
-                     .size(8d)
-                     .hexColor("#FFFFFF")
-                     .opacity(1.0)
-                     .outlineThickness(0d)
-                     .outlineHexColor("#000000")
-                     .outlineOpacity(0d);
-        idleIndicator.labelFontStyle().shadow()
-                     .blurRadius(10d)
-                     .hexColor("#000000")
-                     .opacity(0d)
-                     .horizontalOffset(0d)
-                     .verticalOffset(0d)
-                     .stackCount(1);
+        indicator.size(26)
+                 .edgeCount(300)
+                 .hexColor("#FF0000")
+                 .opacity(0.2)
+                 .position(IndicatorPosition.CENTER);
+        indicator.outerOutline()
+                 .thickness(0)
+                 .hexColor("#FF0000")
+                 .opacity(1.0)
+                 .fillPercent(1.0)
+                 .fillStartAngle(180)
+                 .fillDirection(FillDirection.COUNTERCLOCKWISE);
+        indicator.innerOutline()
+                 .thickness(0.5)
+                 .hexColor("#FF0000")
+                 .opacity(1.0)
+                 .fillPercent(1.0)
+                 .fillStartAngle(180)
+                 .fillDirection(FillDirection.COUNTERCLOCKWISE);
+        indicator.shadow()
+                 .blurRadius(10d)
+                 .hexColor("#000000")
+                 .opacity(0d)
+                 .horizontalOffset(0d)
+                 .verticalOffset(0d)
+                 .stackCount(1);
+        indicator.labelEnabled(false);
+        indicator.labelFontStyle()
+                 .name("Arial")
+                 .weight(FontWeight.NORMAL)
+                 .size(8d)
+                 .hexColor("#FFFFFF")
+                 .opacity(1.0)
+                 .outlineThickness(0d)
+                 .outlineHexColor("#000000")
+                 .outlineOpacity(0d);
+        indicator.labelFontStyle().shadow()
+                 .blurRadius(10d)
+                 .hexColor("#000000")
+                 .opacity(0d)
+                 .horizontalOffset(0d)
+                 .verticalOffset(0d)
+                 .stackCount(1);
         HideCursorBuilder hideCursor =
                 new HideCursorBuilder().enabled(false).idleDuration(Duration.ZERO);
         ZoomConfigurationBuilder zoom = new ZoomConfigurationBuilder();
@@ -531,14 +508,10 @@ public class ConfigurationParser {
                     defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
                     rootPropertyNode, propertyByKey, referencedModesByReferencerMode);
         }
-        // Cascade mutations along property inheritance paths:
-        // e.g., font-color -> focused-font-color/selected-font-color/prefix variants,
-        // indicator idle -> move/wheel/mousePress/etc.
-        // Does not cascade to properties the user explicitly set in the configuration.
-        for (ModeBuilder mode : modeByName.values()) {
+        // Cascades font-color mutations to the focused, selected and prefix variants,
+        // except where the configuration sets them explicitly.
+        for (ModeBuilder mode : modeByName.values())
             cascadeMutations(mode.hintMesh, HINT_FONT_STYLE_CASCADE_RULES);
-            cascadeMutations(mode.indicator, IndicatorConfigurationBuilder.CASCADE_RULES);
-        }
         // Aggregate mutateModeCommands from individual properties into
         // each mode's comboMap.mutateMode so they are included in the ComboMap.
         for (ModeBuilder mode : modeByName.values()) {
@@ -1151,122 +1124,20 @@ public class ConfigurationParser {
                 else {
                     if (mode.indicator.builder.enabled() == null)
                         mode.indicator.builder.enabled(true);
-                    // group4 is the state name (idle, move, etc.) or "enabled".
-                    // group5 is the property name (color, size, etc.).
-                    String stateOrKey = keyMatcher.group(group4);
-                    if (stateOrKey.equals("enabled")) {
-                        ModePropertyHandler handler = ModePropertyHandler.of(
-                                new ModePropertyPath(List.of("indicator", "enabled")),
-                                Boolean::parseBoolean,
-                                v -> mode.indicator.builder.enabled(v));
-                        if (!tryParseComboProperty(propertyValue, modeName,
-                                handler.propertyPath(), handler.valueParser(),
-                                handler.modeBuilderSetter(),
-                                mode.indicator.mutateModeCommands,
-                                mode.indicator.setPropertyPaths,
-                                defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver, allVariableNames, null))
-                            handler.modeBuilderSetter().accept(propertyValue);
-                    }
-                    else if (stateOrKey.equals("fade-animation-enabled")) {
-                        ModePropertyHandler handler = ModePropertyHandler.of(
-                                new ModePropertyPath(List.of("indicator", "fadeAnimationEnabled")),
-                                Boolean::parseBoolean,
-                                v -> mode.indicator.builder.fadeAnimationEnabled(v));
-                        if (!tryParseComboProperty(propertyValue, modeName,
-                                handler.propertyPath(), handler.valueParser(),
-                                handler.modeBuilderSetter(),
-                                mode.indicator.mutateModeCommands,
-                                mode.indicator.setPropertyPaths,
-                                defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver, allVariableNames, null))
-                            handler.modeBuilderSetter().accept(propertyValue);
-                    }
-                    else if (stateOrKey.equals("fade-animation-duration-millis")) {
-                        ModePropertyHandler handler = ModePropertyHandler.of(
-                                new ModePropertyPath(List.of("indicator", "fadeAnimationDuration")),
-                                ConfigurationParser::parseDuration,
-                                v -> mode.indicator.builder.fadeAnimationDuration(v));
-                        if (!tryParseComboProperty(propertyValue, modeName,
-                                handler.propertyPath(), handler.valueParser(),
-                                handler.modeBuilderSetter(),
-                                mode.indicator.mutateModeCommands,
-                                mode.indicator.setPropertyPaths,
-                                defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver, allVariableNames, null))
-                            handler.modeBuilderSetter().accept(propertyValue);
-                    }
-                    else if (stateOrKey.equals("render-as-cursor")) {
-                        ModePropertyHandler handler = ModePropertyHandler.of(
-                                new ModePropertyPath(List.of("indicator", "renderAsCursor")),
-                                Boolean::parseBoolean,
-                                v -> mode.indicator.builder.renderAsCursor(v));
-                        if (!tryParseComboProperty(propertyValue, modeName,
-                                handler.propertyPath(), handler.valueParser(),
-                                handler.modeBuilderSetter(),
-                                mode.indicator.mutateModeCommands,
-                                mode.indicator.setPropertyPaths,
-                                defaultComboMoveDuration, keyAliases, appAliases,
-                                keyResolver, allVariableNames, null))
-                            handler.modeBuilderSetter().accept(propertyValue);
-                    }
-                    else {
-                        String subKey = keyMatcher.group(group5);
-                        if (subKey == null) {
-                            // Backward compatibility: idle-color (old) -> idle.color (new)
-                            for (String state : List.of(
-                                    "unhandled-key-press", "middle-mouse-press", "right-mouse-press",
-                                    "left-mouse-press", "mouse-press", "wheel", "idle", "move")) {
-                                if (stateOrKey.startsWith(state + "-")) {
-                                    subKey = stateOrKey.substring(state.length() + 1);
-                                    stateOrKey = state;
-                                    break;
-                                }
-                            }
-                            if (subKey == null)
-                                throw new IllegalArgumentException(
-                                        "Invalid indicator property key: " + stateOrKey);
-                            logger.warn(propertyKey + " is deprecated, use " +
-                                    propertyKey.replace("." + stateOrKey + "-" + subKey,
-                                            "." + stateOrKey + "." + subKey) +
-                                    " instead");
-                        }
-                        IndicatorBuilder targetIndicator = switch (stateOrKey) {
-                            case "idle" -> mode.indicator.builder.idleIndicator();
-                            case "move" -> mode.indicator.builder.moveIndicator();
-                            case "wheel" -> mode.indicator.builder.wheelIndicator();
-                            case "mouse-press" -> mode.indicator.builder.mousePressIndicator();
-                            case "left-mouse-press" -> mode.indicator.builder.leftMousePressIndicator();
-                            case "middle-mouse-press" -> mode.indicator.builder.middleMousePressIndicator();
-                            case "right-mouse-press" -> mode.indicator.builder.rightMousePressIndicator();
-                            case "unhandled-key-press" -> mode.indicator.builder.unhandledKeyPressIndicator();
-                            default -> throw new IllegalArgumentException(
-                                    "Invalid indicator state: " + stateOrKey);
-                        };
-                        if (subKey.startsWith("label-") &&
-                            targetIndicator.labelEnabled() == null)
-                            targetIndicator.labelEnabled(true);
-                        String indicatorFieldName = switch (stateOrKey) {
-                            case "idle" -> "idleIndicator";
-                            case "move" -> "moveIndicator";
-                            case "wheel" -> "wheelIndicator";
-                            case "mouse-press" -> "mousePressIndicator";
-                            case "left-mouse-press" -> "leftMousePressIndicator";
-                            case "middle-mouse-press" -> "middleMousePressIndicator";
-                            case "right-mouse-press" -> "rightMousePressIndicator";
-                            case "unhandled-key-press" -> "unhandledKeyPressIndicator";
-                            default -> throw new IllegalStateException();
-                        };
-                        ModePropertyPath indicatorPropertyPathPrefix =
-                                new ModePropertyPath(List.of("indicator", indicatorFieldName));
-                        parseIndicatorProperty(targetIndicator, subKey,
-                                propertyValue,
-                                indicatorPropertyPathPrefix,
-                                mode.indicator.mutateModeCommands,
-                                mode.indicator.setPropertyPaths,
-                                modeName, defaultComboMoveDuration,
-                                keyAliases, appAliases, keyResolver, allVariableNames);
-                    }
+                    if (keyMatcher.group(group5) != null)
+                        throw new IllegalArgumentException(
+                                "Invalid indicator property key: " +
+                                keyMatcher.group(group4));
+                    String key = keyMatcher.group(group4);
+                    if (key.startsWith("label-") &&
+                        mode.indicator.builder.labelEnabled() == null)
+                        mode.indicator.builder.labelEnabled(true);
+                    parseIndicatorProperty(mode.indicator.builder, key, propertyValue,
+                            new ModePropertyPath(List.of("indicator")),
+                            mode.indicator.mutateModeCommands,
+                            mode.indicator.setPropertyPaths,
+                            modeName, defaultComboMoveDuration,
+                            keyAliases, appAliases, keyResolver, allVariableNames);
                 }
             }
             case "hide-cursor" -> {
@@ -2065,7 +1936,8 @@ public class ConfigurationParser {
     );
 
     /**
-     * Cascades MutateMode commands along inheritance paths within a property.
+     * Gives each MutateMode a twin on the fields that extend the one it mutates, so that
+     * mutating font-color also mutates focused-font-color and the other variants.
      */
     private static void cascadeMutations(Property<?> property, List<CascadeRule> rules) {
         for (CascadeRule rule : rules) {
@@ -2075,12 +1947,6 @@ public class ConfigurationParser {
                 for (Command command : entry.getValue()) {
                     if (!(command instanceof Command.MutateMode mutateMode))
                         continue;
-                    // Example: path = [indicator, idleIndicator, hexColor],
-                    // rule = idleIndicator -> mousePressIndicator:
-                    // 1. sourceIndex = 1 (where [idleIndicator] appears in the path)
-                    // 2. Take everything before: [indicator]
-                    // 3. Add the target: [indicator, mousePressIndicator]
-                    // 4. Add everything after: [indicator, mousePressIndicator, hexColor]
                     List<String> fields = mutateMode.propertyPath().fieldNames();
                     int sourceIndex = Collections.indexOfSubList(fields, rule.sourceFieldNames());
                     if (sourceIndex < 0)
@@ -2105,8 +1971,8 @@ public class ConfigurationParser {
             }
             for (Map.Entry<Combo, List<Command>> entry : newEntries.entrySet()) {
                 property.mutateModeCommands
-                        .computeIfAbsent(entry.getKey(), c -> new ArrayList<>())
-                        .addAll(entry.getValue());
+                 .computeIfAbsent(entry.getKey(), c -> new ArrayList<>())
+                 .addAll(entry.getValue());
             }
         }
     }
@@ -2226,7 +2092,7 @@ public class ConfigurationParser {
         return new ModeNode(modeName, referencedModes);
     }
 
-    private static void parseIndicatorProperty(IndicatorBuilder indicator,
+    private static void parseIndicatorProperty(IndicatorConfigurationBuilder indicator,
                                                 String key, String propertyValue,
                                                 ModePropertyPath propertyPathPrefix,
                                                 Map<Combo, List<Command>> mutateModeCommandMap,
@@ -2381,10 +2247,14 @@ public class ConfigurationParser {
     }
 
     private static ModePropertyHandler indicatorHandler(
-            ModePropertyPath prefix, IndicatorBuilder indicator,
+            ModePropertyPath prefix, IndicatorConfigurationBuilder indicator,
             String key) {
         return switch (key) {
             // @formatter:off
+            case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> indicator.enabled(v));
+            case "fade-animation-enabled" -> ModePropertyHandler.of(prefix.append("fadeAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> indicator.fadeAnimationEnabled(v));
+            case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("fadeAnimationDuration"), v -> parseDuration(v), v -> indicator.fadeAnimationDuration(v));
+            case "render-as-cursor" -> ModePropertyHandler.of(prefix.append("renderAsCursor"), v -> Boolean.parseBoolean(v), v -> indicator.renderAsCursor(v));
             case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.size(v));
             case "edge-count" -> ModePropertyHandler.of(prefix.append("edgeCount"), v -> parseUnsignedInteger(v, 3, 1000), v -> indicator.edgeCount(v));
             case "color" -> ModePropertyHandler.of(prefix.append("hexColor"), v -> checkColorFormat(v), v -> indicator.hexColor(v));
@@ -3688,10 +3558,10 @@ public class ConfigurationParser {
                 // Font-style cascade: for each screen filter, resolve all font
                 // properties (child.X, child.any, parent.X, parent.any).
                 for (ScreenFilter filter : builder.styleByFilter().map().keySet()
-                        .stream()
-                        .sorted(Comparator.comparing(
+                 .stream()
+                 .sorted(Comparator.comparing(
                                 f -> f instanceof AnyScreenFilter ? 1 : 0))
-                        .toList()) {
+                 .toList()) {
                     HintMeshStyleBuilder childX = builder.styleByFilter().map().get(filter);
                     HintMeshStyleBuilder childAny = builder.styleByFilter().map()
                             .get(AnyScreenFilter.ANY_SCREEN_FILTER);

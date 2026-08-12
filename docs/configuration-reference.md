@@ -111,13 +111,8 @@ Modes can inherit properties from other modes to avoid duplication. For example,
 
 ```properties
 normal-mode.indicator.enabled=true
-normal-mode.indicator.idle-color=#FF0000
-normal-mode.indicator.move-color=#FF0000
-normal-mode.indicator.wheel-color=#FFFF00
-normal-mode.indicator.mouse-press-color=#00FF00
-normal-mode.indicator.left-mouse-press-color=#00FF00
-normal-mode.indicator.middle-mouse-press-color=#00FF00
-normal-mode.indicator.right-mouse-press-color=#00FF00
+normal-mode.indicator.color=#FF0000
+normal-mode.indicator.size=26
 ```
 
 You can make another mode inherit these settings:
@@ -128,7 +123,7 @@ slow-mode.indicator=normal-mode.indicator
 This applies all indicator properties from `normal-mode` to `slow-mode`. You can still override specific properties:
 ```properties
 slow-mode.indicator=normal-mode.indicator
-slow-mode.indicator.idle-color=#0000FF  # Override just this property
+slow-mode.indicator.color=#0000FF  # Override just this property
 ```
 
 ### Common mode types
@@ -248,7 +243,7 @@ When shift is released, the property reverts to its default. Mutations are most 
 
 ```properties
 # Change the indicator color while leftctrl is held
-normal-mode.indicator.idle.color=#00FF00 | _{leftctrl} -> #FF0000
+normal-mode.indicator.color=#00FF00 | _{leftctrl} -> #FF0000
 ```
 
 Mutations can also be driven by [virtual keys](combo-reference.md#virtual-keys) instead of held keys, so the value
@@ -264,7 +259,7 @@ hint-mode.zoom.percent=1 | _{iszoom} -> 30
 
 A virtual key starts released, and reloading the configuration returns every one to released.
 
-When mutating an indicator or hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration). Mutating `indicator.idle.color` also mutates `move`, `wheel`, `mouse-press`, etc.
+When mutating a hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration).
 
 ### Mouse properties
 
@@ -294,35 +289,29 @@ normal-mode.wheel.acceleration=500
 
 ### Indicator properties
 
-The indicator is a small polygon displayed next to the cursor. Each indicator property can be customized per mouse state (idle, move, wheel, mouse-press, etc.) and per mode.
+The indicator is a small polygon displayed next to the cursor. Properties use the format `<mode>.indicator.<property>`.
 
-Non-idle states inherit from the idle state. The `left-mouse-press`, `middle-mouse-press`, and `right-mouse-press` states inherit from `mouse-press`, which itself inherits from `idle`.
+#### Following the mouse state
 
-#### Per-state property syntax
-
-Properties use the format `<mode>.indicator.<state>.<property>`:
+Any indicator property can take a different value per mouse state, with a
+[mutation](#mode-property-mutation) on the [built-in virtual key](combo-reference.md#built-in-virtual-keys)
+of that state. The rightmost matching branch wins:
 
 ```properties
-normal-mode.indicator.idle.color=#FF0000
-normal-mode.indicator.move.color=#FF0000
-normal-mode.indicator.wheel.color=#FFFF00
-normal-mode.indicator.mouse-press.color=#00FF00
-normal-mode.indicator.left-mouse-press.color=#00FF00
-normal-mode.indicator.middle-mouse-press.color=#00FF00
-normal-mode.indicator.right-mouse-press.color=#00FF00
-normal-mode.indicator.unhandled-key-press.color=#0000FF
+normal-mode.indicator.color=#FF0000 | _{iswheeling} -> #FFFF00 | _{ismousepressing} -> #00FF00 | _{isunhandledkeypressing} -> #0000FF
+normal-mode.indicator.opacity=0 | _{isleftmousepressing ismoving} -> 1
 ```
 
 #### Polygon shape and appearance
 
-Each state can have its own polygon shape, size, color, and opacity:
+The polygon shape, size, color, and opacity:
 
 ```properties
-normal-mode.indicator.idle.size=12
-normal-mode.indicator.idle.edge-count=4
-normal-mode.indicator.idle.position=bottom-right
-normal-mode.indicator.idle.color=#FF0000
-normal-mode.indicator.idle.opacity=1.0
+normal-mode.indicator.size=12
+normal-mode.indicator.edge-count=4
+normal-mode.indicator.position=bottom-right
+normal-mode.indicator.color=#FF0000
+normal-mode.indicator.opacity=1.0
 ```
 
 - **`size`**: Size of the indicator in pixels (1-100, default 12)
@@ -335,20 +324,20 @@ Two optional outlines can be drawn around the polygon: an outer outline and an i
 
 ```properties
 # Outer outline
-normal-mode.indicator.idle.outer-outline-thickness=3
-normal-mode.indicator.idle.outer-outline-color=#FFFFFF
-normal-mode.indicator.idle.outer-outline-opacity=1
-normal-mode.indicator.idle.outer-outline-fill-percent=1.0
-normal-mode.indicator.idle.outer-outline-fill-start-angle=180
-normal-mode.indicator.idle.outer-outline-fill-direction=counterclockwise
+normal-mode.indicator.outer-outline-thickness=3
+normal-mode.indicator.outer-outline-color=#FFFFFF
+normal-mode.indicator.outer-outline-opacity=1
+normal-mode.indicator.outer-outline-fill-percent=1.0
+normal-mode.indicator.outer-outline-fill-start-angle=180
+normal-mode.indicator.outer-outline-fill-direction=counterclockwise
 
 # Inner outline
-normal-mode.indicator.idle.inner-outline-thickness=1
-normal-mode.indicator.idle.inner-outline-color=#CC0000
-normal-mode.indicator.idle.inner-outline-opacity=1
-normal-mode.indicator.idle.inner-outline-fill-percent=1
-normal-mode.indicator.idle.inner-outline-fill-start-angle=180
-normal-mode.indicator.idle.inner-outline-fill-direction=counterclockwise
+normal-mode.indicator.inner-outline-thickness=1
+normal-mode.indicator.inner-outline-color=#CC0000
+normal-mode.indicator.inner-outline-opacity=1
+normal-mode.indicator.inner-outline-fill-percent=1
+normal-mode.indicator.inner-outline-fill-start-angle=180
+normal-mode.indicator.inner-outline-fill-direction=counterclockwise
 ```
 
 - **`outer-outline-fill-percent`** / **`inner-outline-fill-percent`**: How much of the outline is filled (0.0-1.0, default 1.0)
@@ -362,11 +351,11 @@ normal-mode.indicator.idle.inner-outline-fill-direction=counterclockwise
 An optional drop shadow can be added to the indicator:
 
 ```properties
-normal-mode.indicator.idle.shadow-blur-radius=10
-normal-mode.indicator.idle.shadow-color=#000000
-normal-mode.indicator.idle.shadow-opacity=0.5
-normal-mode.indicator.idle.shadow-horizontal-offset=2
-normal-mode.indicator.idle.shadow-vertical-offset=2
+normal-mode.indicator.shadow-blur-radius=10
+normal-mode.indicator.shadow-color=#000000
+normal-mode.indicator.shadow-opacity=0.5
+normal-mode.indicator.shadow-horizontal-offset=2
+normal-mode.indicator.shadow-vertical-offset=2
 ```
 
 - **`shadow-blur-radius`**: Blur radius in pixels (0-1000, default 0). Set to > 0 to enable.
@@ -379,25 +368,25 @@ normal-mode.indicator.idle.shadow-vertical-offset=2
 An optional text label can be displayed inside the indicator:
 
 ```properties
-normal-mode.indicator.idle.label-enabled=false
-normal-mode.indicator.idle.label-text=N
-normal-mode.indicator.idle.label-font-name=Arial
-normal-mode.indicator.idle.label-font-size=8
-normal-mode.indicator.idle.label-font-weight=normal
-normal-mode.indicator.idle.label-font-color=#FFFFFF
-normal-mode.indicator.idle.label-font-opacity=1.0
+normal-mode.indicator.label-enabled=false
+normal-mode.indicator.label-text=N
+normal-mode.indicator.label-font-name=Arial
+normal-mode.indicator.label-font-size=8
+normal-mode.indicator.label-font-weight=normal
+normal-mode.indicator.label-font-color=#FFFFFF
+normal-mode.indicator.label-font-opacity=1.0
 
 # Label font outline
-normal-mode.indicator.idle.label-font-outline-thickness=0
-normal-mode.indicator.idle.label-font-outline-color=#000000
-normal-mode.indicator.idle.label-font-outline-opacity=0.0
+normal-mode.indicator.label-font-outline-thickness=0
+normal-mode.indicator.label-font-outline-color=#000000
+normal-mode.indicator.label-font-outline-opacity=0.0
 
 # Label font shadow
-normal-mode.indicator.idle.label-font-shadow-blur-radius=0
-normal-mode.indicator.idle.label-font-shadow-color=#000000
-normal-mode.indicator.idle.label-font-shadow-opacity=0.0
-normal-mode.indicator.idle.label-font-shadow-horizontal-offset=0
-normal-mode.indicator.idle.label-font-shadow-vertical-offset=0
+normal-mode.indicator.label-font-shadow-blur-radius=0
+normal-mode.indicator.label-font-shadow-color=#000000
+normal-mode.indicator.label-font-shadow-opacity=0.0
+normal-mode.indicator.label-font-shadow-horizontal-offset=0
+normal-mode.indicator.label-font-shadow-vertical-offset=0
 ```
 
 - **`label-enabled`**: Whether to show a text label (default false). Automatically set to true if any `label-` property is set.
@@ -667,7 +656,7 @@ that mousemaster presses while the active screen matches it, so it reads like an
 grid-mode.grid.line-thickness=1 | _{300%} -> 0.66667
 
 # ^{} negates it, and it can share a block with a real key.
-normal-mode.indicator.idle.size=12 | ^{300%} -> 8 | _{300% leftshift} -> 24
+normal-mode.indicator.size=12 | ^{300%} -> 8 | _{300% leftshift} -> 24
 
 # In a combo, like any other key.
 normal-mode.press.left=_{3840x2160-300%} +leftbutton

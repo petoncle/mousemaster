@@ -106,7 +106,8 @@ public class UiHintAreaTest {
         comboWatcher.modeChanged(configuration.modeMap().get(Mode.IDLE_MODE_NAME));
         comboWatcher.update(0.01);
         assertEquals(UiHintArea.ACTIVE_WINDOW, mutatedUiHintArea(comboWatcher));
-        comboWatcher.setIdling(true);
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, true);
+        comboWatcher.update(0.01);
         assertEquals(UiHintArea.ALL_SCREENS, mutatedUiHintArea(comboWatcher));
     }
 

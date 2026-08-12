@@ -54,10 +54,8 @@ public class ModeController {
                 return;
             }
         }
-        boolean idling = !mouseState.moving() &&
-                         !mouseState.leftPressing() && !mouseState.middlePressing() && !mouseState.rightPressing() &&
-                         !mouseState.wheeling();
-        comboWatcher.setIdling(idling);
+        comboWatcher.updateMouseAndKeyboardKeys(mouseState, keyboardState);
+        boolean idling = mouseState.idling();
         boolean mustResetHideCursorTimeout = !idling || hintManager.showingHintMesh();
         // render-as-cursor also owns the system cursor; when both are on it takes
         // precedence and hide-cursor is deferred (the indicator is the cursor).

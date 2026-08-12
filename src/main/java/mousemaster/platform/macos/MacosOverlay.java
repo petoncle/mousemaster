@@ -5,7 +5,7 @@ import mousemaster.Grid;
 import mousemaster.Hint;
 import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
-import mousemaster.Indicator;
+import mousemaster.IndicatorConfiguration;
 import mousemaster.Point;
 import mousemaster.Rectangle;
 import mousemaster.Screen;
@@ -125,15 +125,13 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(Indicator indicator, boolean fadeAnimationEnabled,
-                             Duration fadeAnimationDuration, boolean allowFade,
-                             boolean renderAsCursor, boolean includeCursorGlyph) {
+    public void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
+                             boolean includeCursorGlyph) {
         if (indicatorRenderer == null)
             createIndicatorWindow();
         QPoint mousePosition = mouse.findMousePosition();
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.setIndicator(indicator, fadeAnimationEnabled,
-                fadeAnimationDuration, allowFade,
+        indicatorRenderer.setIndicator(indicator, allowFade,
                 cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null);
     }

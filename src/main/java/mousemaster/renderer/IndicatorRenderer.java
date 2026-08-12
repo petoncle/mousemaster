@@ -8,7 +8,6 @@ import io.qt.widgets.*;
 import mousemaster.*;
 
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -23,7 +22,7 @@ public final class IndicatorRenderer {
     private TransparentWindow window;
     private IndicatorWidget widget;
     private IndicatorLabelWidget labelWidget;
-    private Indicator currentIndicator;
+    private IndicatorConfiguration currentIndicator;
     private int maxIndicatorShadowPadding;
     private FadeAnimator fadeAnimator;
     private boolean showing;
@@ -57,22 +56,22 @@ public final class IndicatorRenderer {
         return showing;
     }
 
-    public Indicator currentIndicator() {
+    public IndicatorConfiguration currentIndicator() {
         return currentIndicator;
     }
 
-    private int indicatorSize(Indicator indicator, double screenScale) {
+    private int indicatorSize(IndicatorConfiguration indicator, double screenScale) {
         return (int) Math.floor(indicator.size() * screenScale);
     }
 
-    private int indicatorOutlinePadding(Indicator indicator, double screenScale) {
+    private int indicatorOutlinePadding(IndicatorConfiguration indicator, double screenScale) {
         double scaled = Math.max(
                 indicator.outerOutline().thickness(),
                 indicator.innerOutline().thickness()) * screenScale;
         return (int) Math.ceil(IndicatorWidget.miterPadding(scaled, indicator.edgeCount()));
     }
 
-    private int indicatorShadowPadding(Indicator indicator, double scale) {
+    private int indicatorShadowPadding(IndicatorConfiguration indicator, double scale) {
         if (indicator.shadow().blurRadius() == 0)
             return 0;
         return (int) Math.ceil((indicator.shadow().blurRadius() +
@@ -83,11 +82,10 @@ public final class IndicatorRenderer {
     /** Shows/updates the indicator: detects what changed, repositions when needed, and
      *  renders. The overlay supplies the cursor rectangle, its visual center, and the
      *  active screen and zoom. */
-    public void setIndicator(Indicator indicator, boolean fadeAnimationEnabled,
-                             Duration fadeAnimationDuration, boolean allowFade,
+    public void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom) {
-        Indicator oldIndicator = currentIndicator;
+        IndicatorConfiguration oldIndicator = currentIndicator;
         if (showing && oldIndicator != null && oldIndicator.equals(indicator))
             return;
         boolean wasShowing = showing;
@@ -119,8 +117,7 @@ public final class IndicatorRenderer {
         if (created || sizeOrShadowOrPositionChanged)
             reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
         double shadowScale = activeScreen.scale();
-        showIndicator(indicator, applyShadow, shadowScale, wasShowing,
-                fadeAnimationEnabled, fadeAnimationDuration, allowFade);
+        showIndicator(indicator, applyShadow, shadowScale, wasShowing, allowFade);
     }
 
     /** Repositions/resizes the current indicator for the cursor, screen and zoom. */
@@ -129,7 +126,7 @@ public final class IndicatorRenderer {
         reposition(currentIndicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
     }
 
-    private void reposition(Indicator indicator, Rectangle mouseRectangle,
+    private void reposition(IndicatorConfiguration indicator, Rectangle mouseRectangle,
                             Point cursorVisualCenter, Screen activeScreen, Zoom zoom) {
         double screenScale = activeScreen.scale();
         // Screen pixels: the configured size does not change with the zoom. Only the
@@ -154,7 +151,7 @@ public final class IndicatorRenderer {
      * flipping to the opposite side when near the corresponding screen edge.
      */
     private Point indicatorTopLeft(Rectangle mouseRectangle, Point cursorVisualCenter,
-                                   Screen activeScreen, Zoom zoom, Indicator indicator,
+                                   Screen activeScreen, Zoom zoom, IndicatorConfiguration indicator,
                                    int visualSize) {
         Rectangle screen = activeScreen.rectangle();
         if (indicator.position() == IndicatorPosition.CENTER) {
@@ -206,7 +203,7 @@ public final class IndicatorRenderer {
 
     /** Renders the indicator's widget tree into a premultiplied-ARGB image for use as the
      *  system cursor, centered on the indicator's visual center. */
-    public CursorImage renderCursorImage(Indicator indicator, double scale) {
+    public CursorImage renderCursorImage(IndicatorConfiguration indicator, double scale) {
         int size = indicatorSize(indicator, scale);
         if (size <= 0)
             return null;
@@ -284,7 +281,7 @@ public final class IndicatorRenderer {
 
     /** Applies the indicator to the widgets (shape, outlines, shadow effect, label) without
      *  showing or positioning. Shared by the on-screen path and the offscreen cursor render. */
-    private void applyIndicator(Indicator indicator, boolean applyShadow, double shadowScale) {
+    private void applyIndicator(IndicatorConfiguration indicator, boolean applyShadow, double shadowScale) {
         currentIndicator = indicator;
         if (applyShadow)
             applyShadowEffect(shadowScale);
@@ -341,9 +338,9 @@ public final class IndicatorRenderer {
     }
 
     /** Applies the indicator, then shows the window (with a fade-in on first appearance). */
-    private void showIndicator(Indicator indicator, boolean applyShadow, double shadowScale,
-                               boolean wasShowing, boolean fadeAnimationEnabled,
-                               Duration fadeAnimationDuration, boolean allowFade) {
+    private void showIndicator(IndicatorConfiguration indicator, boolean applyShadow,
+                               double shadowScale, boolean wasShowing,
+                               boolean allowFade) {
         applyIndicator(indicator, applyShadow, shadowScale);
         window.show();
         widget.repaint();
@@ -352,8 +349,8 @@ public final class IndicatorRenderer {
             fadeAnimator = new FadeAnimator(
                     window::setWindowOpacity,
                     this::doHide,
-                    fadeAnimationEnabled,
-                    fadeAnimationDuration);
+                    indicator.fadeAnimationEnabled(),
+                    indicator.fadeAnimationDuration());
             if (allowFade && fadeAnimator.isEnabled()) {
                 window.setWindowOpacity(0.0);
                 fadeAnimator.startFadeIn();
