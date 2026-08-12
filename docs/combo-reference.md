@@ -441,7 +441,7 @@ A virtual key is a key with no hardware behind it, declared in the configuration
 virtual-keys=iszoom isslow
 ```
 
-A virtual key can never be produced by hardware, is never sent to the OS, and can only be pressed by a macro. Using one as an OS move (`+`/`-`) is a configuration error. Declaring it keeps typo detection: an undeclared unknown key name is still rejected at load time.
+A virtual key can never be produced by hardware, is never sent to the OS, and can only be pressed by a macro. Declaring it keeps typo detection: an undeclared unknown key name is still rejected at load time.
 
 A virtual key starts released. Prefix its name with `+` to have it pressed from the start; `-` is the explicit form of the default:
 
@@ -451,14 +451,14 @@ virtual-keys=iszoom +showkeys -isslow
 
 ### Pressing and releasing
 
-A macro presses a virtual key with `+name` and releases it with `-name`:
+A macro presses a virtual key with `#name` and releases it with `~name`:
 
 ```properties
-mode.macro.setiszoom=^{iszoom} +z -> +iszoom
-mode.macro.unsetiszoom=_{iszoom} +z -> -iszoom
+mode.macro.setiszoom=^{iszoom} +z -> #iszoom
+mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 ```
 
-A virtual key has no OS side, so `#name` and `~name` mean the same thing here — the distinction those prefixes draw for a real key does not apply.
+A virtual key has no OS side, so `+name` and `-name` mean the same thing here — the distinction those prefixes draw for a real key does not apply.
 
 Together those two lines are the toggle pattern: pressing z while it is released presses it, pressing z while it is pressed releases it.
 
