@@ -2725,8 +2725,8 @@ public class ConfigurationParser {
         }
     }
 
-    private record SplitComboScreenFilter(Set<ScreenFilter> screenFilters,
-                                          String comboString) {
+    private record ScreenFiltersAndRemainingCombo(Set<ScreenFilter> screenFilters,
+                                                  String remainingCombo) {
     }
 
     private static final Pattern comboPreconditionPattern =
@@ -2737,9 +2737,9 @@ public class ConfigurationParser {
      * value applies to, they are not conditions. A space means AND as it does between keys,
      * so two filters have to be alternatives ({@code |}): a screen is never both.
      */
-    private static SplitComboScreenFilter splitComboScreenFilter(String comboString,
-                                                                 String label,
-                                                                 Map<String, Set<ScreenFilter>> aliasByName) {
+    private static ScreenFiltersAndRemainingCombo extractScreenFilters(
+            String comboString, String label,
+            Map<String, Set<ScreenFilter>> aliasByName) {
         Set<ScreenFilter> screenFilters = new LinkedHashSet<>();
         StringBuilder remainingCombo = new StringBuilder();
         int appendBeginIndex = 0;
@@ -2761,11 +2761,11 @@ public class ConfigurationParser {
             boolean filtersOnly = separatorCount == remainingTokens.size();
             if (filtersOnly) {
                 if (separatorCount != blockScreenFilters.size() - 1)
-                    throw cannotBeSatisfied(label, comboString);
+                    throw screenFiltersCannotBeSatisfied(label, comboString);
                 remainingTokens.clear();
             }
             else if (blockScreenFilters.size() > 1 || separatorCount != 0)
-                throw cannotBeSatisfied(label, comboString);
+                throw screenFiltersCannotBeSatisfied(label, comboString);
             blockScreenFilters.forEach(screenFilters::addAll);
             remainingCombo.append(comboString, appendBeginIndex, matcher.start());
             if (!remainingTokens.isEmpty())
@@ -2775,12 +2775,12 @@ public class ConfigurationParser {
             appendBeginIndex = matcher.end();
         }
         remainingCombo.append(comboString, appendBeginIndex, comboString.length());
-        return new SplitComboScreenFilter(screenFilters,
+        return new ScreenFiltersAndRemainingCombo(screenFilters,
                 remainingCombo.toString().strip());
     }
 
-    private static IllegalArgumentException cannotBeSatisfied(String label,
-                                                              String comboString) {
+    private static IllegalArgumentException screenFiltersCannotBeSatisfied(String label,
+                                                                           String comboString) {
         return new IllegalArgumentException("[" + label + "] " + comboString +
                                            " can never be satisfied: a screen matches a single screen filter, so separate filters with | or give each of them its own branch");
     }
@@ -2908,11 +2908,13 @@ public class ConfigurationParser {
             // A hint mesh spans screens, so a filter picks the entries the value applies to.
             // Elsewhere, it stays in the combo string as the screen filter key it names.
             if (screenFilterProperty != null) {
-                SplitComboScreenFilter splitFilter = splitComboScreenFilter(comboString,
-                        label, screenFilterProperty.aliasByName());
-                Set<ScreenFilter> comboScreenFilters = splitFilter.screenFilters();
+                ScreenFiltersAndRemainingCombo screenFiltersAndRemainingCombo =
+                        extractScreenFilters(comboString, label,
+                                screenFilterProperty.aliasByName());
+                Set<ScreenFilter> comboScreenFilters =
+                        screenFiltersAndRemainingCombo.screenFilters();
                 if (!comboScreenFilters.isEmpty()) {
-                    comboString = splitFilter.comboString();
+                    comboString = screenFiltersAndRemainingCombo.remainingCombo();
                     if (comboString.isEmpty()) {
                         // The filters are the whole precondition: same as the property key suffix.
                         for (ScreenFilter comboScreenFilter : comboScreenFilters)
