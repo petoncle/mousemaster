@@ -135,15 +135,16 @@ The other configurations are documented too: [neru](docs/neru.md),
 
 1. **Combos and key remapping**: Define combos (key sequences, chords, timed holds, taps, tap-dances, and more) to trigger commands, switch modes, or remap keys. See the [combo reference](docs/combo-reference.md).
 2. **Modes**: Each mode has its own combos and its own hint, grid, indicator and zoom settings, and can inherit properties from other modes.
-3. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
-4. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.
-5. **UI hint navigation**: Label buttons, links, and text fields in the active window.
-6. **Recursive grid navigation**: Divide the screen into 2x2 sections, shrink with each key press or snap to the grid's edges to reach a precise position.
-7. **Zoom**.
-8. **App-specific behavior**: Restrict combos to specific apps, so the same keys behave differently depending on the focused app.
-9. **Cursor indicator**: Custom shape, color, outline, shadow, text label, changes per mouse state.
-10. **Position history**: Save cursor positions, jump back to them later.
-11. **Live configuration**: All configuration lives in a single file that is automatically reloaded when saved.
+3. **Conditional property values**: Any mode property can take a different value depending on the current state: which keys are held, which app is active, what the mouse is doing, which screen the cursor is on, and more.
+4. **Continuous mouse movement**: Move the cursor, click, scroll, and drag, all from the keyboard.
+5. **Hint navigation**: Cover the screen with a grid of labeled hints, type a label to jump the cursor there.
+6. **UI hint navigation**: Label buttons, links, and text fields in the active window.
+7. **Recursive grid navigation**: Divide the screen into 2x2 sections, shrink with each key press or snap to the grid's edges to reach a precise position.
+8. **Zoom**.
+9. **App-specific behavior**: Restrict combos to specific apps, so the same keys behave differently depending on the focused app.
+10. **Cursor indicator**: A polygon drawn next to the cursor, with its own size, edge count, position, color, opacity, outlines, shadow and text label.
+11. **Position history**: Save cursor positions, jump back to them later. Keep several named histories, each with its own keys, and have a history hold a separate list of positions for each app.
+12. **Live configuration**: All configuration lives in a single file that is automatically reloaded when saved.
 
 mousemaster provides low-level primitives (modes, combos, commands, macros, key aliases) that you compose to build the exact behavior you want. See the [configuration reference](docs/configuration-reference.md).
 
