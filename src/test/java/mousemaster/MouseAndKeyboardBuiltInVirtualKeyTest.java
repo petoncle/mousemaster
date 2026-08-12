@@ -50,13 +50,4 @@ class MouseAndKeyboardBuiltInVirtualKeyTest {
             assertTrue(e.getMessage().contains("built-in"), e.getMessage());
         }
     }
-
-    /** The mouse states used to be indicator property keys of their own. */
-    @Test
-    void anIndicatorStateIsNotAPropertyKey() {
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> parse("idle-mode.indicator.left-mouse-press.color=#00FF00"));
-        assertTrue(e.getMessage().contains("Invalid indicator property key"),
-                e.getMessage());
-    }
 }

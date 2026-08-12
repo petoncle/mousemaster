@@ -316,6 +316,7 @@ public class ConfigurationParser {
 
     public static Configuration parse(List<String> properties,
                                       KeyboardLayout platformActiveKeyboardLayout) {
+        properties = desugarIndicatorStates(properties);
         ForcedActiveAndConfigurationKeyboardLayouts
                 forcedActiveAndConfigurationKeyboardLayouts = parseForcedAndConfigurationLayouts(properties);
         KeyboardLayout activeKeyboardLayout =
@@ -634,6 +635,109 @@ public class ConfigurationParser {
                                                         KeyOrAlias.ofKey(key), false, true,
                                                         defaultComboMoveDuration, null)))))
                                 .toList();
+    }
+
+    private static final String IDLE_INDICATOR_STATE = "idle";
+
+    /**
+     * The deprecated indicator states and the built-in virtual key each became, in
+     * ascending mutation priority: the old states were picked in the reverse order.
+     */
+    private static final List<Map.Entry<String, String>> INDICATOR_STATE_KEYS = List.of(
+            Map.entry("move", "ismoving"),
+            Map.entry("wheel", "iswheeling"),
+            Map.entry("mouse-press", "ismousepressing"),
+            Map.entry("right-mouse-press", "isrightmousepressing"),
+            Map.entry("middle-mouse-press", "ismiddlemousepressing"),
+            Map.entry("left-mouse-press", "isleftmousepressing"),
+            Map.entry("unhandled-key-press", "isunhandledkeypressing"));
+
+    /**
+     * Rewrites the deprecated per-state indicator properties as mutation branches:
+     * indicator.idle.color=A and indicator.wheel.color=B become
+     * indicator.color=A | _{iswheeling} -> B.
+     */
+    private static List<String> desugarIndicatorStates(List<String> properties) {
+        Map<String, Map<String, String>> valueByStateByProperty = new LinkedHashMap<>();
+        Set<String> propertiesWithoutState = new HashSet<>();
+        String[] statePropertyKeys = new String[properties.size()];
+        for (int lineIndex = 0; lineIndex < properties.size(); lineIndex++) {
+            Matcher lineMatcher = propertyLinePattern.matcher(properties.get(lineIndex));
+            if (!lineMatcher.matches())
+                continue;
+            String propertyKey = lineMatcher.group(1).strip();
+            int indicatorEndIndex = propertyKey.indexOf(".indicator.");
+            if (indicatorEndIndex < 0)
+                continue;
+            indicatorEndIndex += ".indicator.".length();
+            String afterIndicator = propertyKey.substring(indicatorEndIndex);
+            int stateEndIndex = afterIndicator.indexOf('.');
+            if (stateEndIndex < 0) {
+                propertiesWithoutState.add(propertyKey);
+                continue;
+            }
+            String state = afterIndicator.substring(0, stateEndIndex);
+            if (!state.equals(IDLE_INDICATOR_STATE) && virtualKeyOfIndicatorState(state) == null)
+                continue;
+            statePropertyKeys[lineIndex] = propertyKey.substring(0, indicatorEndIndex) +
+                                           afterIndicator.substring(stateEndIndex + 1);
+            if (valueByStateByProperty.computeIfAbsent(statePropertyKeys[lineIndex],
+                                              key -> new LinkedHashMap<>())
+                                      .put(state, lineMatcher.group(2).strip()) != null)
+                throw new IllegalArgumentException(
+                        "Property " + propertyKey + " is defined twice");
+        }
+        if (valueByStateByProperty.isEmpty())
+            return properties;
+        for (String propertyKey : valueByStateByProperty.keySet())
+            if (propertiesWithoutState.contains(propertyKey))
+                throw new IllegalArgumentException("[" + propertyKey +
+                                                   "] An indicator property cannot be given both with and without a state");
+        List<String> desugared = new ArrayList<>(properties.size());
+        Set<String> emittedProperties = new HashSet<>();
+        for (int lineIndex = 0; lineIndex < properties.size(); lineIndex++) {
+            String statePropertyKey = statePropertyKeys[lineIndex];
+            if (statePropertyKey == null) {
+                desugared.add(properties.get(lineIndex));
+                continue;
+            }
+            if (!emittedProperties.add(statePropertyKey))
+                continue;
+            String property = statePropertyKey + "=" +
+                              desugaredIndicatorValue(statePropertyKey,
+                                      valueByStateByProperty.get(statePropertyKey));
+            logger.warn("Indicator states are deprecated, use " + property + " instead");
+            desugared.add(property);
+        }
+        return desugared;
+    }
+
+    private static String virtualKeyOfIndicatorState(String state) {
+        for (Map.Entry<String, String> stateKey : INDICATOR_STATE_KEYS)
+            if (stateKey.getKey().equals(state))
+                return stateKey.getValue();
+        return null;
+    }
+
+    private static String desugaredIndicatorValue(String propertyKey,
+                                                  Map<String, String> valueByState) {
+        String idleValue = valueByState.get(IDLE_INDICATOR_STATE);
+        if (idleValue != null && valueByState.size() == 1)
+            return idleValue;
+        for (String value : valueByState.values())
+            if (value.contains("->"))
+                throw new IllegalArgumentException("[" + propertyKey +
+                                                   "] An indicator state cannot carry branches of its own: " +
+                                                   value);
+        List<String> branches = new ArrayList<>();
+        if (idleValue != null)
+            branches.add(idleValue);
+        for (Map.Entry<String, String> stateKey : INDICATOR_STATE_KEYS) {
+            String value = valueByState.get(stateKey.getKey());
+            if (value != null)
+                branches.add("_{" + stateKey.getValue() + "} -> " + value);
+        }
+        return String.join(" | ", branches);
     }
 
     /** A name prefixed with + is pressed from the start; - or no prefix is not pressed. */

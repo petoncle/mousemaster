@@ -302,6 +302,20 @@ normal-mode.indicator.color=#FF0000 | _{iswheeling} -> #FFFF00 | _{ismousepressi
 normal-mode.indicator.opacity=0 | _{isleftmousepressing ismoving} -> 1
 ```
 
+#### Deprecated per-state properties
+
+The states the indicator used to be configured per (`idle`, `move`, `wheel`, `mouse-press`, `left-mouse-press`, `middle-mouse-press`, `right-mouse-press`, `unhandled-key-press`) are gone. `<mode>.indicator.<state>.<property>` is still accepted, with a warning: `idle` becomes the property's default value and every other state a branch on its key.
+
+```properties
+# These two lines
+normal-mode.indicator.idle.color=#FF0000
+normal-mode.indicator.wheel.color=#FFFF00
+# now mean
+normal-mode.indicator.color=#FF0000 | _{iswheeling} -> #FFFF00
+```
+
+A property cannot be given both with and without a state, and a state cannot carry branches of its own.
+
 #### Polygon shape and appearance
 
 The polygon shape, size, color, and opacity:
