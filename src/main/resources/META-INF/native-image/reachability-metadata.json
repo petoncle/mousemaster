@@ -5851,6 +5851,20 @@
       "type": "java.sql.Date"
     },
     {
+      "type": "java.time.Duration",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "clone",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "java.time.QtJambi_LibraryUtilities"
     },
     {
@@ -6076,6 +6090,24 @@
           ]
         },
         {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "java.util.List",
+            "java.util.List",
+            "java.lang.String",
+            "double",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "boolean",
+            "mousemaster.HintFontStyle"
+          ]
+        },
+        {
           "name": "boxBorderHexColor",
           "parameterTypes": []
         },
@@ -6093,6 +6125,10 @@
         },
         {
           "name": "boxBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxFramed",
           "parameterTypes": []
         },
         {
@@ -6185,6 +6221,20 @@
         },
         {
           "name": "weight",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.Grid",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "clone",
           "parameterTypes": []
         }
       ]
@@ -6285,7 +6335,34 @@
           ]
         },
         {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.GridArea",
+            "mousemaster.Synchronization",
+            "int",
+            "int",
+            "boolean",
+            "java.lang.String",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "boolean",
+            "java.time.Duration",
+            "boolean",
+            "java.time.Duration"
+          ]
+        },
+        {
           "name": "area",
+          "parameterTypes": []
+        },
+        {
+          "name": "backgroundHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "backgroundOpacity",
           "parameterTypes": []
         },
         {
@@ -6293,7 +6370,19 @@
           "parameterTypes": []
         },
         {
+          "name": "fadeAnimationDuration",
+          "parameterTypes": []
+        },
+        {
+          "name": "fadeAnimationEnabled",
+          "parameterTypes": []
+        },
+        {
           "name": "lineHexColor",
+          "parameterTypes": []
+        },
+        {
+          "name": "lineOpacity",
           "parameterTypes": []
         },
         {
@@ -6310,6 +6399,14 @@
         },
         {
           "name": "synchronization",
+          "parameterTypes": []
+        },
+        {
+          "name": "transitionAnimationDuration",
+          "parameterTypes": []
+        },
+        {
+          "name": "transitionAnimationEnabled",
           "parameterTypes": []
         }
       ]
@@ -6606,6 +6703,41 @@
           ]
         },
         {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.HintFontStyle",
+            "boolean",
+            "mousemaster.HintFontStyle",
+            "java.lang.String",
+            "double",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "boolean",
+            "mousemaster.Shadow",
+            "boolean",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "boolean",
+            "double",
+            "double",
+            "double",
+            "double",
+            "java.util.List",
+            "boolean",
+            "java.time.Duration",
+            "boolean",
+            "java.time.Duration",
+            "java.lang.String",
+            "double",
+            "java.util.List"
+          ]
+        },
+        {
           "name": "backgroundHexColor",
           "parameterTypes": []
         },
@@ -6631,6 +6763,10 @@
         },
         {
           "name": "boxBorderThickness",
+          "parameterTypes": []
+        },
+        {
+          "name": "boxFramed",
           "parameterTypes": []
         },
         {
@@ -6699,6 +6835,10 @@
         },
         {
           "name": "prefixBoxEnabled",
+          "parameterTypes": []
+        },
+        {
+          "name": "prefixBoxFramed",
           "parameterTypes": []
         },
         {
@@ -7148,7 +7288,32 @@
       "type": "mousemaster.QtJambi_LibraryUtilities"
     },
     {
-      "type": "mousemaster.Rectangle"
+      "type": "mousemaster.Rectangle",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "clone",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.Screen",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "clone",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "mousemaster.Shadow",
@@ -7338,54 +7503,6 @@
       "type": "mousemaster.platform.macos.CoreGraphics$CGPoint$ByValue"
     },
     {
-      "type": "mousemaster.platform.macos.ObjectiveC$CGSize",
-      "fields": [
-        {
-          "name": "height"
-        },
-        {
-          "name": "width"
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.platform.macos.ObjectiveC$CGSize$ByValue",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.platform.macos.ObjectiveC$BlockHandler",
-      "methods": [
-        {
-          "name": "callback",
-          "parameterTypes": [
-            "com.sun.jna.Pointer",
-            "com.sun.jna.Pointer",
-            "com.sun.jna.Pointer"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "mousemaster.platform.macos.ObjectiveC$FrameOutput",
-      "methods": [
-        {
-          "name": "callback",
-          "parameterTypes": [
-            "com.sun.jna.Pointer",
-            "com.sun.jna.Pointer",
-            "com.sun.jna.Pointer",
-            "com.sun.jna.Pointer",
-            "long"
-          ]
-        }
-      ]
-    },
-    {
       "type": "mousemaster.platform.macos.CoreGraphics$CGRect",
       "fields": [
         {
@@ -7419,6 +7536,54 @@
         },
         {
           "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.ObjectiveC$BlockHandler",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.ObjectiveC$CGSize",
+      "fields": [
+        {
+          "name": "height"
+        },
+        {
+          "name": "width"
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.ObjectiveC$CGSize$ByValue",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.platform.macos.ObjectiveC$FrameOutput",
+      "methods": [
+        {
+          "name": "callback",
+          "parameterTypes": [
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "com.sun.jna.Pointer",
+            "long"
+          ]
         }
       ]
     },
@@ -7749,8 +7914,28 @@
           "parameterTypes": []
         },
         {
+          "name": "coverInPixels",
+          "parameterTypes": [
+            "mousemaster.Screen"
+          ]
+        },
+        {
+          "name": "heightInPixels",
+          "parameterTypes": []
+        },
+        {
           "name": "hideChildren",
           "parameterTypes": []
+        },
+        {
+          "name": "moveAndResizeInPixels",
+          "parameterTypes": [
+            "mousemaster.Screen",
+            "int",
+            "int",
+            "int",
+            "int"
+          ]
         },
         {
           "name": "paintEvent",
@@ -7764,6 +7949,18 @@
             "io.qt.gui.QColor",
             "io.qt.core.QRect"
           ]
+        },
+        {
+          "name": "widthInPixels",
+          "parameterTypes": []
+        },
+        {
+          "name": "xInPixels",
+          "parameterTypes": []
+        },
+        {
+          "name": "yInPixels",
+          "parameterTypes": []
         }
       ]
     },
@@ -7778,6 +7975,10 @@
       "allDeclaredFields": true,
       "jniAccessible": true,
       "methods": [
+        {
+          "name": "advanceToFirstFrame",
+          "parameterTypes": []
+        },
         {
           "name": "animateDrawRect",
           "parameterTypes": [
@@ -8029,6 +8230,10 @@
           "parameterTypes": []
         },
         {
+          "name": "disposeBuffers",
+          "parameterTypes": []
+        },
+        {
           "name": "disposeShadowPixmap",
           "parameterTypes": []
         },
@@ -8078,6 +8283,12 @@
           "name": "setCrop",
           "parameterTypes": [
             "io.qt.core.QRect"
+          ]
+        },
+        {
+          "name": "setEnclosingInk",
+          "parameterTypes": [
+            "java.util.List"
           ]
         },
         {
@@ -8161,6 +8372,17 @@
             "java.lang.String",
             "io.qt.gui.QFont",
             "double",
+            "io.qt.gui.QColor",
+            "int",
+            "io.qt.gui.QColor",
+            "int"
+          ]
+        },
+        {
+          "name": "setLabel",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.qt.gui.QFont",
             "io.qt.gui.QColor",
             "int",
             "io.qt.gui.QColor",
@@ -8342,6 +8564,15 @@
       ]
     },
     {
+      "type": "sun.net.www.protocol.jrt.Handler",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "sun.security.provider.DRBG",
       "methods": [
         {
@@ -8387,6 +8618,34 @@
     {
       "type": {
         "proxy": [
+          "com.sun.jna.platform.win32.Advapi32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "com.sun.jna.platform.win32.GDI32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "com.sun.jna.platform.win32.Kernel32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "com.sun.jna.platform.win32.User32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
           "mousemaster.platform.macos.ApplicationServices"
         ]
       }
@@ -8415,20 +8674,6 @@
     {
       "type": {
         "proxy": [
-          "mousemaster.platform.macos.Driverkit"
-        ]
-      }
-    },
-    {
-      "type": {
-        "proxy": [
-          "mousemaster.platform.macos.IOKit"
-        ]
-      }
-    },
-    {
-      "type": {
-        "proxy": [
           "mousemaster.platform.macos.CoreMedia"
         ]
       }
@@ -8443,6 +8688,20 @@
     {
       "type": {
         "proxy": [
+          "mousemaster.platform.macos.Driverkit"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.IOKit"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
           "mousemaster.platform.macos.Libc"
         ]
       }
@@ -8450,14 +8709,14 @@
     {
       "type": {
         "proxy": [
-          "mousemaster.platform.macos.ObjectiveC$ReturningBoolean"
+          "mousemaster.platform.macos.ObjectiveC"
         ]
       }
     },
     {
       "type": {
         "proxy": [
-          "mousemaster.platform.macos.ObjectiveC"
+          "mousemaster.platform.macos.ObjectiveC$ReturningBoolean"
         ]
       }
     },
@@ -8478,6 +8737,62 @@
     {
       "type": {
         "proxy": [
+          "mousemaster.platform.windows.Dwmapi"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.ExtendedAdvapi32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.ExtendedGDI32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.ExtendedKernel32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.ExtendedPsapi"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.ExtendedUser32"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.Shcore"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.Winmm"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
           "sun.nio.ch.Interruptible"
         ]
       }
@@ -8488,6 +8803,52 @@
           "declaringClass": "io.qt.internal.NativeUtility$AssociativeReference",
           "interfaces": [
             "io.qt.core.QMetaObject$Slot0"
+          ]
+        }
+      },
+      "methods": [
+        {
+          "name": "writeReplace",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": {
+        "lambda": {
+          "declaringClass": "mousemaster.platform.windows.WindowsOverlay",
+          "interfaces": [
+            "com.sun.jna.platform.win32.WinUser$WindowProc"
+          ]
+        }
+      }
+    },
+    {
+      "type": {
+        "lambda": {
+          "declaringClass": "mousemaster.platform.windows.WindowsPlatform",
+          "interfaces": [
+            "com.sun.jna.platform.win32.WinUser$LowLevelKeyboardProc"
+          ]
+        }
+      }
+    },
+    {
+      "type": {
+        "lambda": {
+          "declaringClass": "mousemaster.platform.windows.WindowsPlatform",
+          "interfaces": [
+            "com.sun.jna.platform.win32.WinUser$LowLevelMouseProc"
+          ]
+        }
+      }
+    },
+    {
+      "type": {
+        "lambda": {
+          "declaringClass": "mousemaster.renderer.GridRenderer$GridWidget",
+          "interfaces": [
+            "io.qt.core.QMetaObject$Slot1"
           ]
         }
       },
