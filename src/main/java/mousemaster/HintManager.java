@@ -1335,10 +1335,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             return;
         }
         if (exactMatchHint != null) {
-            boolean hintIsInZoom = currentZoom.screenRectangle()
-                                          .contains(exactMatchHint.centerX(),
-                                                  exactMatchHint.centerY());
-            if (hintIsInZoom) {
+            if (isInZoom(exactMatchHint.centerX(), exactMatchHint.centerY())) {
                 lastSelectedHintPoint =
                         new Point(Math.round(currentZoom.unzoomedX(exactMatchHint.centerX())),
                                 Math.round(currentZoom.unzoomedY(exactMatchHint.centerY())));
@@ -1392,10 +1389,14 @@ public class HintManager implements ModeListener, MousePositionListener {
         }
     }
 
+    /** A point on no screen was laid out by the zoom, past the zoomed screen's edge. */
+    private boolean isInZoom(double x, double y) {
+        return currentZoom.screenRectangle().contains(x, y) ||
+               screenManager.screenContaining(x, y) == null;
+    }
+
     private void moveMouse(Point point) {
-        boolean newSelectedHintKeySequenceCenterIsInZoom =
-                currentZoom.screenRectangle().contains(point.x(), point.y());
-        if (newSelectedHintKeySequenceCenterIsInZoom) {
+        if (isInZoom(point.x(), point.y())) {
             mouseX = (int) Math.round(currentZoom.unzoomedX(point.x()));
             mouseY = (int) Math.round(currentZoom.unzoomedY(point.y()));
         }
