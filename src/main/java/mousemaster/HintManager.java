@@ -650,10 +650,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                         case SCREEN_CENTER ->
                                 activeScreen.rectangle().center();
                         case MOUSE -> zoomedPoint(new Point(mouseX, mouseY), zoom);
-                        case LAST_SELECTED_HINT ->
-                                zoomedPoint(lastSelectedHintPoint == null ?
-                                        new Point(mouseX, mouseY) : lastSelectedHintPoint,
-                                        zoom);
+                        case LAST_SELECTED_HINT -> lastSelectedHintPoint == null ?
+                                activeScreen.rectangle().center() :
+                                zoomedPoint(lastSelectedHintPoint, zoom);
                         case ACTIVE_WINDOW_CENTER -> zoomedRectangle(
                                 overlay.activeWindowRectangle(1, 1, 0, 0, 0, 0), zoom)
                                 .center();
