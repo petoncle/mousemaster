@@ -341,7 +341,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         Point zoomCenterPoint = newMode.zoom().center().centerPoint(
                 screenManager.activeScreen().rectangle(), mouseX, mouseY,
                 lastSelectedHintPoint);
-        Rectangle zoomScreen = screenManager.screenContaining(zoomCenterPoint.x(),
+        Rectangle zoomScreen = screenManager.nearestScreenContaining(zoomCenterPoint.x(),
                 zoomCenterPoint.y()).rectangle();
         Zoom newZoom = new Zoom(newMode.zoom().percent(lastSelectedHintCell, zoomScreen),
                 zoomCenterPoint, zoomScreen);
