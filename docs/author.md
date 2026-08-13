@@ -29,7 +29,7 @@ Ctrl+Alt+Space.
 
 ```properties
 virtual-keys=autodrilling islclick ismclick isrclick isnomove isnohintclick islongpresshintkey \
-             mouseanchored isunsethintvars isunsethintvarshold showrecursivehintkeys zooming never
+             mouseanchored showrecursivehintkeys zooming never
 ```
 
 ## Key aliases
@@ -45,6 +45,7 @@ virtual-keys=autodrilling islclick ismclick isrclick isnomove isnohintclick islo
 | `recursivehintwheel` | `7` `8` `9` `0` | scrolling inside the hint grid |
 | `fasttrackkey` | `7` `8` `9` | opens the hint grid pre-drilled, from normal mode |
 | `hintandrecursivehintkey` | `i j k l m o` + `u , .` | keys a hint commit can come from |
+| `anybutton` | `space` + `;` `'` `#` + `p` `[` `]` | with the above, "the commit key is released" |
 | `hintback` | `backspace` `h` | up one level / leave |
 | `hintnomove` | `/` `n` | toggles whether the cursor follows the drill |
 | `positionhistorykey` | `m` | holds the position-history hints open |
@@ -82,7 +83,7 @@ Only idle and normal mode are pushed onto the mode history stack, so every trans
 | `screen-snap` / `window-snap` / `screen-grid` / `window-grid` | jump to edges / bisect a region |
 | `center-mouse-mode` | invisible; recenters the pointer on an application switch |
 | `recursive-hint1..4-mode` | the 3×3 drill-down hint grid |
-| `click-after-hint-mode` / `hold-after-hint-mode` | the click a commit produces, and its held variant |
+| `click-after-hint-mode` | the click a hint commit produces, or the held button when the key was held |
 | `ui-hint-mode` (+ `click-after-` / `hold-after-`) | UI Automation hints |
 | `position-history-mode` | saved positions, shown while `m` is held |
 | `arrowbasekey-mode` | `i j k l` emit arrow keys |
@@ -205,7 +206,7 @@ release completes `+rightalt -rightalt`. It is written as press *and* release so
 with a menu open, letting `alt` through would close the very thing you opened the hints to click. The
 red outline earns its keep on a multi-monitor setup: it says which screen all of this applies to.
 
-### Buttons, latching, and the `leftalt`+`space` carve-out
+### Buttons, dragging, and the `leftalt`+`space` carve-out
 
 ```properties
 normal-mode.press.left=^{leftalt} _{none | leftshift*leftctrl | positionhistorykey} +leftbutton \
@@ -221,7 +222,7 @@ normal-mode.release.left=^{leftalt} _{none | leftshift*leftctrl | positionhistor
   does not eat, so the OS sees the Alt press either way.
 - **`m` may be held** (`positionhistorykey`), which is what lets you click while the position-history
   hints are up.
-- **Holding `space` latches the button down.** The release only matches a press shorter than 250 ms;
+- **Holding `space` leaves the button pressed.** The release only matches a press shorter than 250 ms;
   hold longer and the button stays pressed after you let go — grab a scrollbar, move with `i j k l`, tap
   `space` to drop. Right button behaves the same.
 
@@ -489,11 +490,11 @@ preview of where a click with no cell pick would land. From there:
    movement back to `mouse-follows-selected-hint`; because a virtual key pressed at the start of a
    macro's output takes effect before the combo's other commands, the pick already sees the new value.
    The pointer jumps to that cell and clicks. **`space` must still be down and the hint key must arrive
-   within 250 ms** — after that the long-press branch has fired and you have latched at the center
-   instead.
+   within 250 ms** — after that the long-press branch has fired and the button is left pressed at the
+   center instead.
 3. **Long-press `space`** (second branch) → at 250 ms the commit fires with no cell pick, at the region
-   center, and since `space` has been held past 150 ms the button *latches*. This is the pick-up gesture
-   that starts a drag.
+   center, and since `space` has been held past 150 ms the button stays pressed, which is how a drag
+   starts.
 
 Middle and right are the same shape without a tap-to-commit branch: a **tap** of `;` or `p` arms, a
 **250 ms hold** commits at the region center.
@@ -503,29 +504,42 @@ level, so the commit happens in the *deeper* grid, and `setislongpresshintkey` f
 grid-center so the pointer arrives at that region's center first. In effect: hold a hint key to mean
 "go in there and click the middle of it".
 
-### Click or drag: the 150 ms rule
+### Click or drag
 
 ```properties
 click-after-hint-mode.press.left=^{ismclick isrclick} _{none | modifierkey} +hintandrecursivehintkey \
   | ^{ismclick isrclick} +leftbutton \
-  | _{isnohintclick} ^{ismclick isrclick} -leftbutton
-click-after-hint-mode.macro.setisunsethintvarshold=+hintandrecursivehintkey-150 | +leftbutton-150 -> #isunsethintvarshold
-click-after-hint-mode.to.hold-after-hint-mode=_{isunsethintvarshold} wait-0
-hold-after-hint-mode.to.recursive-hint1-mode=^{hintandrecursivehintkey leftbutton} wait-0
+  | _{isnohintclick} ^{ismclick isrclick} +leftbutton-0-150 -leftbutton
+click-after-hint-mode.release.left=^{ismclick isrclick} +hintandrecursivehintkey-0-150 -hintandrecursivehintkey \
+  | ^{ismclick isrclick hintandrecursivehintkey} +leftbutton-0-150 -leftbutton
+click-after-hint-mode.to.recursive-hint1-mode=^{hintandrecursivehintkey anybutton} wait-150
 ```
 
 The three `press.left` branches cover the three shapes a commit can have: the hint key that picked the
-cell, the `space` still held, or the `space` already released. The button then follows the key you
-committed with:
+cell, the `space` still held, or the `space` already tapped and released. Both `release.left` branches
+then carry the same `-0-150` window, which is the whole click-or-drag rule:
 
-- **released within 150 ms** → a plain click, and `isunsethintvars` returns you to level 1.
-- **still held at 150 ms** → `hold-after-hint-mode`, where nothing releases the button. Let go and you
-  return to level 1 **with the button down**: drill to the destination, commit again, and that commit's
-  release drops it. Drag-and-drop across the screen in four keystrokes.
+- **released within 150 ms** — a quick cell pick, or a `space` tap — the window matches, the button comes
+  back up, and you get a **click**.
+- **held longer** — a cell key held past the 250 ms long-press commit, or `space` held past it — the
+  window has closed and nothing releases the button, so it **stays pressed**.
+
+A button left pressed is how you drag: let go of the key and you return to level 1 with it still
+pressed, bare cell-key taps drill to the destination without disturbing it, and a quick commit there
+(hold `space`, pick the cell, release) releases the button at that cell. Note that *tapping* `space`
+mid-drag releases the button straight away, because a `space` tap is itself a commit at the grid center.
+
+Returning to level 1 is one combo for every path: `^{hintandrecursivehintkey anybutton}` is "every key
+that could have committed is now up", and its leading `wait-150` restarts whenever one of those keys
+goes down — which is what gives you the window to tap the cell key again for a **double or triple
+click** without the grid coming back. The same combo drives the seven `unset*` macros,
+`break-combo-preparation` and `position-history.save-position`, so "the click is over" is stated once
+instead of enumerated per commit path.
 
 The cue for being mid-drag is the indicator, invisible in the hint grid unless a button is held
-(`indicator.opacity=0 | _{ismousepressing} -> 0.2`). And `_{none | modifierkey}` on `press.left` means
-**Shift-click and Ctrl-click work on a hint cell**.
+(`indicator.opacity=0 | _{ismousepressing} -> 0.2`). Note `anybutton` is the *keys* `space ; ' # p [ ]`,
+not the mouse-button state, so a held button never blocks the return. And `_{none | modifierkey}` on
+`press.left` means **Shift-click and Ctrl-click work on a hint cell**.
 
 ### `rightalt`, going back, scrolling, magnifying
 
@@ -625,7 +639,7 @@ middle, **cyan** right, **white** while `rightalt` is held (move only). Labels a
 `#204E8A` so they read over any background.
 
 The click fires on the hint key press and releases as soon as all hint keys are up — `release.left` is
-precondition-only, needing no event of its own. Hold the key 250 ms and the button latches instead. And
+precondition-only, needing no event of its own. Hold the key 250 ms and the button stays pressed. And
 250 ms after a click the UI is queried again and the hints return, so three menu items in a row is
 three keystrokes.
 
@@ -661,7 +675,7 @@ the pointer to that edge or corner. Screen snap keeps the pointer where it is
 makes `rightalt`+`;` the shortest way to say "put the pointer in this window".
 
 `window-snap-mode.grid.area-top-inset=15` keeps snapping up on the **title bar** rather than the
-invisible resize border above it. With the `space` latch that is the whole window-drag workflow:
+invisible resize border above it. With a held `space` that is the whole window-drag workflow:
 `rightalt`+`;` puts the pointer in the window, `i` on the title bar, releasing both keys returns to
 normal mode, then hold `space` to grab, `i j k l` to move, tap `space` to drop.
 
