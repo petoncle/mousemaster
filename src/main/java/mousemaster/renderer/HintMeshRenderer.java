@@ -1706,19 +1706,27 @@ public final class HintMeshRenderer {
         applyLabelShadow(hintLabelLayer, hintLabels,
                 labelFontStyle, hasSelectedKeys,
                 containerWidth, containerHeight, screenScale);
-        // Layer 5: whole-area decoration (index 0). Anchored to the container (the
-        // rendered grid bounds), not the mesh backgroundArea — the latter will be the
-        // whole screen (or window) even when the grid is a small drilled cell.
+        // Layer 5: whole-area decoration (index 0), anchored to the grid area it was laid out in, not
+        // to the container: a grid drilled past a screen edge has cells the container cannot show.
         HintBox areaBox = null;
         List<DecorationStyle> areaDecorationStyles = List.of();
         if (hintMesh.decoration() != null) {
+            Rectangle area = hintMesh.decoration().backgroundArea();
+            int areaLeft = (int) Math.round(area.x() / qtScaleFactor) - minHintLeft;
+            int areaTop = (int) Math.round(area.y() / qtScaleFactor) - minHintTop;
+            int areaWidth =
+                    (int) Math.round((area.x() + area.width()) / qtScaleFactor) -
+                    minHintLeft - areaLeft;
+            int areaHeight =
+                    (int) Math.round((area.y() + area.height()) / qtScaleFactor) -
+                    minHintTop - areaTop;
             areaBox = new HintBox(null, 0, 0,
                     QtColorUtil.qColor("#000000", 0), QtColorUtil.qColor("#000000", 0),
                     true, false, false, false, false, false, qtScaleFactor, 0);
-            areaBox.setGeometry(0, 0, containerWidth, containerHeight);
+            areaBox.setGeometry(areaLeft, areaTop, areaWidth, areaHeight);
             areaDecorationStyles =
                     List.of(decorationStyle(style.decorations().get(0), screenScale));
-            addDecorationBoxes(areaBox, containerWidth, containerHeight,
+            addDecorationBoxes(areaBox, areaWidth, areaHeight,
                     hintMesh.decoration(), areaDecorationStyles, 0, qtScaleFactor);
             List<Rectangle> areaInk = new ArrayList<>();
             areaBox.collectBorderInk(0, 0, areaInk);
@@ -1732,25 +1740,23 @@ public final class HintMeshRenderer {
         }
         dropOverlappingDecorationLabels(hintBoxes, areaBox,
                 style.fontStyle().defaultFontStyle().opacity() != 0,
-                subDecorationStyles, areaDecorationStyles, containerWidth, containerHeight);
+                subDecorationStyles, areaDecorationStyles);
         hintBoxGeometriesByHintMeshKey.put(hintMeshKey, hintBoxGeometries);
         return hintBoxes;
     }
 
     /** A decoration label is not drawn where a label already is. Labels are centered in their box, so
      *  only a concentric box's label can hide one: an ancestor's, or the whole-area decoration's at the
-     *  container center, which is settled only once the container is padded and sized. */
+     *  grid center, which is settled only once the area box is positioned. */
     private void dropOverlappingDecorationLabels(List<HintBox> hintBoxes, HintBox areaBox,
                                                  boolean hintLabelVisible,
                                                  List<DecorationStyle> subDecorationStyles,
-                                                 List<DecorationStyle> areaDecorationStyles,
-                                                 int containerWidth, int containerHeight) {
+                                                 List<DecorationStyle> areaDecorationStyles) {
         boolean areaLabelVisible = areaBox != null && !areaDecorationStyles.isEmpty()
                                    && areaDecorationStyles.getFirst().labelVisible();
         for (HintBox hintBox : hintBoxes)
             hintBox.dropDecorationLabelsOnOccupiedCenter(
-                    hintLabelVisible || (areaLabelVisible
-                                         && concentric(hintBox, containerWidth, containerHeight)),
+                    hintLabelVisible || (areaLabelVisible && concentric(hintBox, areaBox)),
                     subDecorationStyles, 0);
     }
 
@@ -1759,6 +1765,14 @@ public final class HintMeshRenderer {
     private static boolean concentric(HintBox box, int parentWidth, int parentHeight) {
         return Math.abs(2 * box.x() + box.width() - parentWidth) <= 1
                && Math.abs(2 * box.y() + box.height() - parentHeight) <= 1;
+    }
+
+    /** Whether two boxes of the same parent share their center, and so the position of their labels. */
+    private static boolean concentric(HintBox box, HintBox otherBox) {
+        return Math.abs(2 * box.x() + box.width()
+                        - (2 * otherBox.x() + otherBox.width())) <= 1
+               && Math.abs(2 * box.y() + box.height()
+                           - (2 * otherBox.y() + otherBox.height())) <= 1;
     }
 
     /** The Qt drawing resources for one decoration. */

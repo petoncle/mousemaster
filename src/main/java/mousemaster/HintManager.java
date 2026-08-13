@@ -718,9 +718,13 @@ public class HintManager implements ModeListener, MousePositionListener {
                 hintMesh.subDecoration(buildDecorationMesh(style,
                         hintCellRectangle(hints.getFirst()), scale, zoom,
                         decorations.get(1), decorations.get(2)));
-                // Whole-area (index 0): the grid drawn as one big cell.
-                hintMesh.decoration(buildDecorationMesh(style,
-                        hintMesh.backgroundArea(), scale, zoom,
+                // Whole-area (index 0): the grid drawn as one big cell. Not the background area,
+                // which is the whole screen even when the grid is a small drilled cell.
+                Rectangle gridRectangle = Rectangle.union(
+                        fixedSizeHintGrids.stream()
+                                          .map(FixedSizeHintGrid::rectangle)
+                                          .toList());
+                hintMesh.decoration(buildDecorationMesh(style, gridRectangle, scale, zoom,
                         decorations.get(0), null));
             }
         }
@@ -1239,6 +1243,15 @@ public class HintManager implements ModeListener, MousePositionListener {
     private record FixedSizeHintGrid(double hintMeshX, double hintMeshY, double hintMeshWidth,
                                      double hintMeshHeight, int rowCount, int columnCount,
                                      double cellWidth, double cellHeight) {
+
+        /** Rounded on its edges, like a hint cell's rectangle. */
+        public Rectangle rectangle() {
+            int left = (int) Math.round(hintMeshX);
+            int top = (int) Math.round(hintMeshY);
+            return new Rectangle(left, top,
+                    (int) Math.round(hintMeshX + hintMeshWidth) - left,
+                    (int) Math.round(hintMeshY + hintMeshHeight) - top);
+        }
 
         public int hintCount() {
             return rowCount * columnCount;
