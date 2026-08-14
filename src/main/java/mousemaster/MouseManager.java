@@ -216,6 +216,12 @@ public class MouseManager implements ModeListener, MousePositionListener {
                 jumpX = nextJumpX;
                 jumpY = nextJumpY;
             }
+            // An odd pixel never comes back and the jump would warp the mouse to it
+            // forever (Retina screen).
+            if (percent == 1) {
+                jumping = false;
+                jumpDuration = 0;
+            }
         }
         if (activelyWheeling()) {
             wheelDuration += delta;
