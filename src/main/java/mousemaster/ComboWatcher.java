@@ -35,7 +35,7 @@ public class ComboWatcher {
     private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
     private final Map<Mode, Set<Key>> sequenceKeysByMode;
     private Set<Key> currentModePressedPreconditionKeys;
-    private Set<Key> currentModeSequenceKeys;
+    private Set<Key> currentModeSequenceKeys = Set.of();
     private List<ModeListener> modeListeners;
     private Mode baseMode;
     private Mode mutatedMode;
@@ -290,6 +290,9 @@ public class ComboWatcher {
             preconditionOnlyMutationRefreshPending = true;
         if (builtInVirtualKeysReferencedByPreconditionOnlyNonMutationCombos.contains(key))
             preconditionOnlyNonMutationComboRefreshPending = true;
+        if (currentModeSequenceKeys.contains(key))
+            keyEvent(pressed ? new KeyEvent.PressKeyEvent(clock.now(), key) :
+                    new KeyEvent.ReleaseKeyEvent(clock.now(), key));
     }
 
     public record ComboWatcherUpdateResult(List<ComboAndMatch> completedCombos,
@@ -667,6 +670,10 @@ public class ComboWatcher {
         List<KeyEvent> preparationEvents = comboPreparation.events();
         Duration retainDuration = comboPreparationRetainDurationByMode.get(baseMode);
         int minRetainEventCount = comboPreparationMinRetainEventCountByMode.getOrDefault(baseMode, 0);
+        // A virtual key event must not push a combo's own events out of the preparation.
+        for (KeyEvent preparationEvent : preparationEvents)
+            if (virtualKeys.contains(preparationEvent.key()))
+                minRetainEventCount++;
         if (retainDuration != null &&
             preparationEvents.size() > minRetainEventCount) {
             Instant cutoff = event.time().minus(retainDuration);

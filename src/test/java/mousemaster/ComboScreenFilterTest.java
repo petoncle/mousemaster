@@ -225,6 +225,16 @@ class ComboScreenFilterTest {
         assertEquals(3, mutatedGridLineThickness());
     }
 
+    /** A screen filter key a combo names is pressed while building the watcher, before any
+     *  mode change. */
+    @Test
+    void aScreenFilterKeyIsPressedAtConstruction() {
+        load("idle-mode.to.other-mode=_{1920x1080} +a",
+                "other-mode.to.idle-mode=+b",
+                "idle-mode.indicator.render-as-cursor=false | _{1920x1080} -> true");
+        assertTrue(comboWatcher.getMutatedMode().indicator().renderAsCursor());
+    }
+
     /** The keys a screen alias names are built-in, so a macro cannot press them either. */
     @Test
     void aScreenAliasCannotBePressedByAMacro() {

@@ -93,6 +93,35 @@ class VirtualKeyVisibilityTest {
     }
 
     @Test
+    void comboNamingTheBuiltInVirtualKeySeesIt() {
+        load("idle-mode.indicator.render-as-cursor=false | +ismousepressing -> true");
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_MOUSE_PRESSING, true);
+        assertTrue(fired());
+    }
+
+    @Test
+    void builtInVirtualKeyBetweenTwoMovesDoesNotBreakTheCombo() {
+        // +ismousepressing +q names the key, so its event reaches the preparation.
+        load("idle-mode.indicator.render-as-cursor=false | +a +b -> true | +ismousepressing +q -> true");
+        press("a");
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_MOUSE_PRESSING, true);
+        press("b");
+        assertTrue(fired());
+    }
+
+    @Test
+    void builtInVirtualKeyDoesNotEvictAComboEventFromThePreparation() {
+        load("idle-mode.indicator.render-as-cursor=false | +a -a -> true",
+                "idle-mode.indicator.color=#FF0000 | +isleftmousepressing -> #00FF00");
+        press("a");
+        advance(50);
+        comboWatcher.setVirtualKeyPressed(BuiltInVirtualKey.IS_LEFT_MOUSE_PRESSING, true);
+        advance(50);
+        comboWatcher.keyEvent(new KeyEvent.ReleaseKeyEvent(now, Key.ofName("a")));
+        assertTrue(fired());
+    }
+
+    @Test
     void virtualKeyDoesNotMatchACompletedComboAgain() {
         // The completed +a stays buffered, so a later event must not re-run its commands.
         load("virtual-keys=flag",
