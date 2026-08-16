@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * The indicator eases to the indicator it is transitioned to, over that one's duration and
- * with that one's color change, so each direction is animated on its own terms. Here the
- * transition into idle-mode colors immediately, and the one into normal-mode at the end.
+ * with that one's switch-at, so each direction is animated on its own terms. Here the
+ * transition into idle-mode switches at the start, and the one into normal-mode at the end.
  */
 class IndicatorTransitionAnimationTest {
 
@@ -33,7 +33,7 @@ class IndicatorTransitionAnimationTest {
                 "idle-mode.indicator.color=#00FF00",
                 "idle-mode.indicator.edge-count=31",
                 "idle-mode.indicator.transition-animation-duration-millis=200",
-                "normal-mode.indicator.transition-animation-color-change=at-end"),
+                "normal-mode.indicator.transition-animation-switch-at=end"),
                 KeyboardLayout.keyboardLayout("00000409", null)).modeMap();
         Overlay overlay = (Overlay) Proxy.newProxyInstance(
                 Overlay.class.getClassLoader(), new Class<?>[] {Overlay.class},
@@ -60,7 +60,7 @@ class IndicatorTransitionAnimationTest {
         return shown.stream().map(i -> i.hexColor() + " " + i.size()).toList();
     }
 
-    /** An immediate color change takes the new color from the very first frame. */
+    /** Switching at the start takes the new color from the very first frame. */
     @Test
     void theSizeEasesToTheNewIndicatorsSize() {
         changeMode(Mode.IDLE_MODE_NAME);
@@ -107,7 +107,7 @@ class IndicatorTransitionAnimationTest {
     }
 
     /** Going back takes the 100ms of normal-mode, not the 200ms of idle-mode, and its
-     *  at-end color change keeps the previous color until the transition is over. */
+     *  switch at the end keeps the previous color until the transition is over. */
     @Test
     void eachDirectionHasItsOwnDuration() {
         changeMode(Mode.IDLE_MODE_NAME);

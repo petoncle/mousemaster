@@ -12,7 +12,7 @@ public record IndicatorConfiguration(boolean enabled,
                                      Duration transitionAnimationDuration,
                                      Easing transitionAnimationEasing,
                                      double transitionAnimationOvershoot,
-                                     IndicatorColorChange transitionAnimationColorChange,
+                                     IndicatorSwitchAt transitionAnimationSwitchAt,
                                      boolean renderAsCursor,
                                      int size, int edgeCount, String hexColor,
                                      double opacity,
@@ -27,46 +27,50 @@ public record IndicatorConfiguration(boolean enabled,
         return new IndicatorConfigurationBuilder(this);
     }
 
+    /** The indicator part way from one to the other: the sizes and opacities are eased, and
+     *  what cannot be eased is switched, at the start or at the end. */
     public static IndicatorConfiguration lerp(IndicatorConfiguration from,
                                               IndicatorConfiguration to, double t) {
-        IndicatorConfiguration colored =
-                to.transitionAnimationColorChange == IndicatorColorChange.IMMEDIATE ? to : from;
+        IndicatorConfiguration switched =
+                to.transitionAnimationSwitchAt == IndicatorSwitchAt.START ? to : from;
         return new IndicatorConfiguration(to.enabled, to.fadeAnimationEnabled,
                 to.fadeAnimationDuration, to.transitionAnimationDuration,
                 to.transitionAnimationEasing, to.transitionAnimationOvershoot,
-                to.transitionAnimationColorChange, to.renderAsCursor,
+                to.transitionAnimationSwitchAt, to.renderAsCursor,
                 (int) Math.round(lerp(from.size, to.size, t)),
                 lerpEdgeCount(from.edgeCount, to.edgeCount, t),
-                colored.hexColor, lerp(from.opacity, to.opacity, t),
-                lerp(from.outerOutline, to.outerOutline, colored.outerOutline, t),
-                lerp(from.innerOutline, to.innerOutline, colored.innerOutline, t),
-                lerp(from.shadow, to.shadow, colored.shadow, t), to.labelEnabled,
-                to.labelText,
-                lerp(from.labelFontStyle, to.labelFontStyle, colored.labelFontStyle, t),
-                to.position);
+                switched.hexColor, lerp(from.opacity, to.opacity, t),
+                lerp(from.outerOutline, to.outerOutline, switched.outerOutline, t),
+                lerp(from.innerOutline, to.innerOutline, switched.innerOutline, t),
+                lerp(from.shadow, to.shadow, switched.shadow, t), switched.labelEnabled,
+                switched.labelText,
+                lerp(from.labelFontStyle, to.labelFontStyle, switched.labelFontStyle, t),
+                switched.position);
     }
 
     private static IndicatorOutline lerp(IndicatorOutline from, IndicatorOutline to,
-                                         IndicatorOutline colored, double t) {
+                                         IndicatorOutline switched, double t) {
         return new IndicatorOutline(lerp(from.thickness(), to.thickness(), t),
-                colored.hexColor(), lerp(from.opacity(), to.opacity(), t),
-                lerp(from.fillPercent(), to.fillPercent(), t), to.fillStartAngle(),
-                to.fillDirection());
+                switched.hexColor(), lerp(from.opacity(), to.opacity(), t),
+                lerp(from.fillPercent(), to.fillPercent(), t), switched.fillStartAngle(),
+                switched.fillDirection());
     }
 
-    private static Shadow lerp(Shadow from, Shadow to, Shadow colored, double t) {
-        return new Shadow(lerp(from.blurRadius(), to.blurRadius(), t), colored.hexColor(),
+    private static Shadow lerp(Shadow from, Shadow to, Shadow switched, double t) {
+        return new Shadow(lerp(from.blurRadius(), to.blurRadius(), t), switched.hexColor(),
                 lerp(from.opacity(), to.opacity(), t),
                 lerp(from.horizontalOffset(), to.horizontalOffset(), t),
-                lerp(from.verticalOffset(), to.verticalOffset(), t), to.stackCount());
+                lerp(from.verticalOffset(), to.verticalOffset(), t), switched.stackCount());
     }
 
-    private static FontStyle lerp(FontStyle from, FontStyle to, FontStyle colored, double t) {
-        return new FontStyle(to.name(), to.weight(), lerp(from.size(), to.size(), t),
-                colored.hexColor(), lerp(from.opacity(), to.opacity(), t),
+    private static FontStyle lerp(FontStyle from, FontStyle to, FontStyle switched, double t) {
+        return new FontStyle(switched.name(), switched.weight(),
+                lerp(from.size(), to.size(), t), switched.hexColor(),
+                lerp(from.opacity(), to.opacity(), t),
                 lerp(from.outlineThickness(), to.outlineThickness(), t),
-                colored.outlineHexColor(), lerp(from.outlineOpacity(), to.outlineOpacity(), t),
-                lerp(from.shadow(), to.shadow(), colored.shadow(), t), to.verticalAlignment());
+                switched.outlineHexColor(), lerp(from.outlineOpacity(), to.outlineOpacity(), t),
+                lerp(from.shadow(), to.shadow(), switched.shadow(), t),
+                switched.verticalAlignment());
     }
 
     private static double lerp(double from, double to, double t) {
@@ -87,7 +91,7 @@ public record IndicatorConfiguration(boolean enabled,
         private Duration transitionAnimationDuration;
         private Easing transitionAnimationEasing;
         private Double transitionAnimationOvershoot;
-        private IndicatorColorChange transitionAnimationColorChange;
+        private IndicatorSwitchAt transitionAnimationSwitchAt;
         private Boolean renderAsCursor;
         private Integer size;
         private Integer edgeCount;
@@ -111,7 +115,7 @@ public record IndicatorConfiguration(boolean enabled,
             this.transitionAnimationDuration = indicator.transitionAnimationDuration;
             this.transitionAnimationEasing = indicator.transitionAnimationEasing;
             this.transitionAnimationOvershoot = indicator.transitionAnimationOvershoot;
-            this.transitionAnimationColorChange = indicator.transitionAnimationColorChange;
+            this.transitionAnimationSwitchAt = indicator.transitionAnimationSwitchAt;
             this.renderAsCursor = indicator.renderAsCursor;
             this.size = indicator.size;
             this.edgeCount = indicator.edgeCount;
@@ -180,13 +184,13 @@ public record IndicatorConfiguration(boolean enabled,
             return transitionAnimationOvershoot;
         }
 
-        public IndicatorConfigurationBuilder transitionAnimationColorChange(IndicatorColorChange transitionAnimationColorChange) {
-            this.transitionAnimationColorChange = transitionAnimationColorChange;
+        public IndicatorConfigurationBuilder transitionAnimationSwitchAt(IndicatorSwitchAt transitionAnimationSwitchAt) {
+            this.transitionAnimationSwitchAt = transitionAnimationSwitchAt;
             return this;
         }
 
-        public IndicatorColorChange transitionAnimationColorChange() {
-            return transitionAnimationColorChange;
+        public IndicatorSwitchAt transitionAnimationSwitchAt() {
+            return transitionAnimationSwitchAt;
         }
 
         public IndicatorConfigurationBuilder renderAsCursor(boolean renderAsCursor) {
@@ -284,7 +288,7 @@ public record IndicatorConfiguration(boolean enabled,
             if (transitionAnimationDuration == null) transitionAnimationDuration = parent.transitionAnimationDuration;
             if (transitionAnimationEasing == null) transitionAnimationEasing = parent.transitionAnimationEasing;
             if (transitionAnimationOvershoot == null) transitionAnimationOvershoot = parent.transitionAnimationOvershoot;
-            if (transitionAnimationColorChange == null) transitionAnimationColorChange = parent.transitionAnimationColorChange;
+            if (transitionAnimationSwitchAt == null) transitionAnimationSwitchAt = parent.transitionAnimationSwitchAt;
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
             if (size == null) size = parent.size;
             if (edgeCount == null) edgeCount = parent.edgeCount;
@@ -303,7 +307,7 @@ public record IndicatorConfiguration(boolean enabled,
             return new IndicatorConfiguration(enabled, fadeAnimationEnabled,
                     fadeAnimationDuration, transitionAnimationDuration,
                     transitionAnimationEasing, transitionAnimationOvershoot,
-                    transitionAnimationColorChange,
+                    transitionAnimationSwitchAt,
                     renderAsCursor, size, edgeCount, hexColor,
                     opacity, outerOutline.build(), innerOutline.build(), shadow.build(),
                     labelEnabled, labelText, labelFontStyle.build(), position);
