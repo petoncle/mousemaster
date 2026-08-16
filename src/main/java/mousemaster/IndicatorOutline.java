@@ -13,6 +13,18 @@ public record IndicatorOutline(double thickness, String hexColor, double opacity
         private Double fillStartAngle;
         private FillDirection fillDirection;
 
+        public IndicatorOutlineBuilder() {
+        }
+
+        public IndicatorOutlineBuilder(IndicatorOutline outline) {
+            this.thickness = outline.thickness;
+            this.hexColor = outline.hexColor;
+            this.opacity = outline.opacity;
+            this.fillPercent = outline.fillPercent;
+            this.fillStartAngle = outline.fillStartAngle;
+            this.fillDirection = outline.fillDirection;
+        }
+
         public Double thickness() {
             return thickness;
         }

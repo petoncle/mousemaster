@@ -11,6 +11,7 @@ public record IndicatorConfiguration(boolean enabled,
                                      Duration fadeAnimationDuration,
                                      Duration transitionAnimationDuration,
                                      Easing transitionAnimationEasing,
+                                     double transitionAnimationOvershoot,
                                      IndicatorColorChange transitionAnimationColorChange,
                                      boolean renderAsCursor,
                                      int size, int edgeCount, String hexColor,
@@ -22,14 +23,18 @@ public record IndicatorConfiguration(boolean enabled,
                                      FontStyle labelFontStyle,
                                      IndicatorPosition position) {
 
+    public IndicatorConfigurationBuilder builder() {
+        return new IndicatorConfigurationBuilder(this);
+    }
+
     public static IndicatorConfiguration lerp(IndicatorConfiguration from,
                                               IndicatorConfiguration to, double t) {
         IndicatorConfiguration colored =
                 to.transitionAnimationColorChange == IndicatorColorChange.IMMEDIATE ? to : from;
         return new IndicatorConfiguration(to.enabled, to.fadeAnimationEnabled,
                 to.fadeAnimationDuration, to.transitionAnimationDuration,
-                to.transitionAnimationEasing, to.transitionAnimationColorChange,
-                to.renderAsCursor,
+                to.transitionAnimationEasing, to.transitionAnimationOvershoot,
+                to.transitionAnimationColorChange, to.renderAsCursor,
                 (int) Math.round(lerp(from.size, to.size, t)),
                 lerpEdgeCount(from.edgeCount, to.edgeCount, t),
                 colored.hexColor, lerp(from.opacity, to.opacity, t),
@@ -81,6 +86,7 @@ public record IndicatorConfiguration(boolean enabled,
         private Duration fadeAnimationDuration;
         private Duration transitionAnimationDuration;
         private Easing transitionAnimationEasing;
+        private Double transitionAnimationOvershoot;
         private IndicatorColorChange transitionAnimationColorChange;
         private Boolean renderAsCursor;
         private Integer size;
@@ -94,6 +100,31 @@ public record IndicatorConfiguration(boolean enabled,
         private String labelText;
         private FontStyleBuilder labelFontStyle = new FontStyleBuilder();
         private IndicatorPosition position;
+
+        public IndicatorConfigurationBuilder() {
+        }
+
+        public IndicatorConfigurationBuilder(IndicatorConfiguration indicator) {
+            this.enabled = indicator.enabled;
+            this.fadeAnimationEnabled = indicator.fadeAnimationEnabled;
+            this.fadeAnimationDuration = indicator.fadeAnimationDuration;
+            this.transitionAnimationDuration = indicator.transitionAnimationDuration;
+            this.transitionAnimationEasing = indicator.transitionAnimationEasing;
+            this.transitionAnimationOvershoot = indicator.transitionAnimationOvershoot;
+            this.transitionAnimationColorChange = indicator.transitionAnimationColorChange;
+            this.renderAsCursor = indicator.renderAsCursor;
+            this.size = indicator.size;
+            this.edgeCount = indicator.edgeCount;
+            this.hexColor = indicator.hexColor;
+            this.opacity = indicator.opacity;
+            this.outerOutline = new IndicatorOutlineBuilder(indicator.outerOutline);
+            this.innerOutline = new IndicatorOutlineBuilder(indicator.innerOutline);
+            this.shadow = new ShadowBuilder(indicator.shadow);
+            this.labelEnabled = indicator.labelEnabled;
+            this.labelText = indicator.labelText;
+            this.labelFontStyle = new FontStyleBuilder(indicator.labelFontStyle);
+            this.position = indicator.position;
+        }
 
         public IndicatorConfigurationBuilder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -138,6 +169,15 @@ public record IndicatorConfiguration(boolean enabled,
 
         public Easing transitionAnimationEasing() {
             return transitionAnimationEasing;
+        }
+
+        public IndicatorConfigurationBuilder transitionAnimationOvershoot(double transitionAnimationOvershoot) {
+            this.transitionAnimationOvershoot = transitionAnimationOvershoot;
+            return this;
+        }
+
+        public Double transitionAnimationOvershoot() {
+            return transitionAnimationOvershoot;
         }
 
         public IndicatorConfigurationBuilder transitionAnimationColorChange(IndicatorColorChange transitionAnimationColorChange) {
@@ -243,6 +283,7 @@ public record IndicatorConfiguration(boolean enabled,
             if (fadeAnimationDuration == null) fadeAnimationDuration = parent.fadeAnimationDuration;
             if (transitionAnimationDuration == null) transitionAnimationDuration = parent.transitionAnimationDuration;
             if (transitionAnimationEasing == null) transitionAnimationEasing = parent.transitionAnimationEasing;
+            if (transitionAnimationOvershoot == null) transitionAnimationOvershoot = parent.transitionAnimationOvershoot;
             if (transitionAnimationColorChange == null) transitionAnimationColorChange = parent.transitionAnimationColorChange;
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
             if (size == null) size = parent.size;
@@ -261,7 +302,8 @@ public record IndicatorConfiguration(boolean enabled,
         public IndicatorConfiguration build() {
             return new IndicatorConfiguration(enabled, fadeAnimationEnabled,
                     fadeAnimationDuration, transitionAnimationDuration,
-                    transitionAnimationEasing, transitionAnimationColorChange,
+                    transitionAnimationEasing, transitionAnimationOvershoot,
+                    transitionAnimationColorChange,
                     renderAsCursor, size, edgeCount, hexColor,
                     opacity, outerOutline.build(), innerOutline.build(), shadow.build(),
                     labelEnabled, labelText, labelFontStyle.build(), position);

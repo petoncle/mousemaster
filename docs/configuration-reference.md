@@ -440,6 +440,7 @@ normal-mode.indicator.transition-animation-color-change=at-end | _{ismousepressi
 
 - **`transition-animation-duration-millis`**: How long the indicator takes to reach the new one, in milliseconds (default `100`). `0` makes the change immediate.
 - **`transition-animation-easing`**: `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or a polynomial exponent (default `smootherstep`).
+- **`transition-animation-overshoot`**: What the size swells to, relative to the size it is easing to (default `1`, which is no swell). The swell rises over the duration of the indicator being transitioned to and falls over the duration of the one it came from, so two indicators of the same size still pulse.
 - **`transition-animation-color-change`**: When the new indicator's colors replace the previous ones, `immediate` or `at-end` (default `immediate`). Above, pressing a mouse button colors the indicator at once, and releasing it keeps that color until the indicator has finished shrinking.
 
 The animation belongs to the indicator that is transitioned to, so each direction has its own duration: above, the indicator turns green and grows in 50ms when a mouse button is pressed, then takes 200ms to shrink back when it is released, turning red once it has. The indicator that appears first is not transitioned to. A change that interrupts a running animation eases from the indicator it had reached, so nothing snaps.

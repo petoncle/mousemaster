@@ -81,6 +81,31 @@ class IndicatorTransitionAnimationTest {
                 shown.stream().map(IndicatorConfiguration::edgeCount).toList());
     }
 
+    /** Two indicators of the same size still pulse: the swell rises over the 100ms of the
+     *  indicator it enters and falls over the 200ms of the one it left. */
+    @Test
+    void theSizeSwellsThenComesBack() {
+        ModeMap sameSize = ConfigurationParser.parse(List.of(
+                "idle-mode.to.normal-mode=+leftshift",
+                "normal-mode.indicator.size=20",
+                "normal-mode.indicator.transition-animation-duration-millis=200",
+                "normal-mode.indicator.transition-animation-easing=1",
+                "idle-mode.indicator.size=20",
+                "idle-mode.indicator.transition-animation-overshoot=2",
+                "idle-mode.indicator.transition-animation-duration-millis=100",
+                "idle-mode.indicator.transition-animation-easing=1"),
+                KeyboardLayout.keyboardLayout("00000409", null)).modeMap();
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        shown.clear();
+
+        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        tick(0.1);
+        tick(0.1);
+        tick(0.1);
+        assertEquals(List.of(20, 40, 30, 20),
+                shown.stream().map(IndicatorConfiguration::size).toList());
+    }
+
     /** Going back takes the 100ms of normal-mode, not the 200ms of idle-mode, and its
      *  at-end color change keeps the previous color until the transition is over. */
     @Test
