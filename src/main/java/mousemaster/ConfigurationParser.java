@@ -196,6 +196,9 @@ public class ConfigurationParser {
         indicator.enabled(false)
                  .fadeAnimationEnabled(true)
                  .fadeAnimationDuration(Duration.ofMillis(100))
+                 .transitionAnimationDuration(Duration.ofMillis(100))
+                 .transitionAnimationEasing(new Easing.Smootherstep())
+                 .transitionAnimationColorChange(IndicatorColorChange.IMMEDIATE)
                  .renderAsCursor(false);
         indicator.size(26)
                  .edgeCount(300)
@@ -2358,6 +2361,9 @@ public class ConfigurationParser {
             case "enabled" -> ModePropertyHandler.of(prefix.append("enabled"), v -> Boolean.parseBoolean(v), v -> indicator.enabled(v));
             case "fade-animation-enabled" -> ModePropertyHandler.of(prefix.append("fadeAnimationEnabled"), v -> Boolean.parseBoolean(v), v -> indicator.fadeAnimationEnabled(v));
             case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("fadeAnimationDuration"), v -> parseDuration(v), v -> indicator.fadeAnimationDuration(v));
+            case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("transitionAnimationDuration"), v -> parseDuration(v), v -> indicator.transitionAnimationDuration(v));
+            case "transition-animation-easing" -> ModePropertyHandler.of(prefix.append("transitionAnimationEasing"), v -> parseEasing(v), v -> indicator.transitionAnimationEasing(v));
+            case "transition-animation-color-change" -> ModePropertyHandler.of(prefix.append("transitionAnimationColorChange"), v -> IndicatorColorChange.fromString(v), v -> indicator.transitionAnimationColorChange(v));
             case "render-as-cursor" -> ModePropertyHandler.of(prefix.append("renderAsCursor"), v -> Boolean.parseBoolean(v), v -> indicator.renderAsCursor(v));
             case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.size(v));
             case "edge-count" -> ModePropertyHandler.of(prefix.append("edgeCount"), v -> parseUnsignedInteger(v, 3, 1000), v -> indicator.edgeCount(v));

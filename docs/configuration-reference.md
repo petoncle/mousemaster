@@ -425,6 +425,25 @@ normal-mode.indicator.fade-animation-duration-millis=100
 
 The fade animation is automatically suppressed when the surrounding mode change also changes zoom, to avoid the faded indicator clashing with the zoom screenshot.
 
+#### Transition animation
+
+When the indicator changes, it eases to the new one instead of jumping to it. Sizes, edge counts, thicknesses, opacities, blur radii, offsets and fill percents are interpolated; what has no meaningful in-between (fill start angle and direction, shadow stack count, label text, font name and weight, position) is taken from the new indicator right away. The edge count morphs two edges at a time, keeping the parity it starts from, because an odd count puts a vertex at the top of the polygon and an even one a flat edge.
+
+Colors are not interpolated, they switch: `transition-animation-color-change` decides whether that happens at the start of the transition or at its end. Like the duration and the easing, it is read from the indicator being transitioned to, so each direction chooses for itself. Giving the indicator a larger size while a mouse button is pressed makes a click stand out:
+
+```properties
+normal-mode.indicator.size=26 | _{ismousepressing} -> 39
+normal-mode.indicator.transition-animation-duration-millis=200 | _{ismousepressing} -> 50
+normal-mode.indicator.transition-animation-easing=smootherstep
+normal-mode.indicator.transition-animation-color-change=at-end | _{ismousepressing} -> immediate
+```
+
+- **`transition-animation-duration-millis`**: How long the indicator takes to reach the new one, in milliseconds (default `100`). `0` makes the change immediate.
+- **`transition-animation-easing`**: `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or a polynomial exponent (default `smootherstep`).
+- **`transition-animation-color-change`**: When the new indicator's colors replace the previous ones, `immediate` or `at-end` (default `immediate`). Above, pressing a mouse button colors the indicator at once, and releasing it keeps that color until the indicator has finished shrinking.
+
+The animation belongs to the indicator that is transitioned to, so each direction has its own duration: above, the indicator turns green and grows in 50ms when a mouse button is pressed, then takes 200ms to shrink back when it is released, turning red once it has. The indicator that appears first is not transitioned to. A change that interrupts a running animation eases from the indicator it had reached, so nothing snaps.
+
 ### Cursor properties
 
 The cursor can be hidden after a certain duration of inactivity:

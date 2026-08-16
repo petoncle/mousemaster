@@ -9,6 +9,9 @@ import java.time.Duration;
 public record IndicatorConfiguration(boolean enabled,
                                      boolean fadeAnimationEnabled,
                                      Duration fadeAnimationDuration,
+                                     Duration transitionAnimationDuration,
+                                     Easing transitionAnimationEasing,
+                                     IndicatorColorChange transitionAnimationColorChange,
                                      boolean renderAsCursor,
                                      int size, int edgeCount, String hexColor,
                                      double opacity,
@@ -19,11 +22,66 @@ public record IndicatorConfiguration(boolean enabled,
                                      FontStyle labelFontStyle,
                                      IndicatorPosition position) {
 
+    public static IndicatorConfiguration lerp(IndicatorConfiguration from,
+                                              IndicatorConfiguration to, double t) {
+        IndicatorConfiguration colored =
+                to.transitionAnimationColorChange == IndicatorColorChange.IMMEDIATE ? to : from;
+        return new IndicatorConfiguration(to.enabled, to.fadeAnimationEnabled,
+                to.fadeAnimationDuration, to.transitionAnimationDuration,
+                to.transitionAnimationEasing, to.transitionAnimationColorChange,
+                to.renderAsCursor,
+                (int) Math.round(lerp(from.size, to.size, t)),
+                lerpEdgeCount(from.edgeCount, to.edgeCount, t),
+                colored.hexColor, lerp(from.opacity, to.opacity, t),
+                lerp(from.outerOutline, to.outerOutline, colored.outerOutline, t),
+                lerp(from.innerOutline, to.innerOutline, colored.innerOutline, t),
+                lerp(from.shadow, to.shadow, colored.shadow, t), to.labelEnabled,
+                to.labelText,
+                lerp(from.labelFontStyle, to.labelFontStyle, colored.labelFontStyle, t),
+                to.position);
+    }
+
+    private static IndicatorOutline lerp(IndicatorOutline from, IndicatorOutline to,
+                                         IndicatorOutline colored, double t) {
+        return new IndicatorOutline(lerp(from.thickness(), to.thickness(), t),
+                colored.hexColor(), lerp(from.opacity(), to.opacity(), t),
+                lerp(from.fillPercent(), to.fillPercent(), t), to.fillStartAngle(),
+                to.fillDirection());
+    }
+
+    private static Shadow lerp(Shadow from, Shadow to, Shadow colored, double t) {
+        return new Shadow(lerp(from.blurRadius(), to.blurRadius(), t), colored.hexColor(),
+                lerp(from.opacity(), to.opacity(), t),
+                lerp(from.horizontalOffset(), to.horizontalOffset(), t),
+                lerp(from.verticalOffset(), to.verticalOffset(), t), to.stackCount());
+    }
+
+    private static FontStyle lerp(FontStyle from, FontStyle to, FontStyle colored, double t) {
+        return new FontStyle(to.name(), to.weight(), lerp(from.size(), to.size(), t),
+                colored.hexColor(), lerp(from.opacity(), to.opacity(), t),
+                lerp(from.outlineThickness(), to.outlineThickness(), t),
+                colored.outlineHexColor(), lerp(from.outlineOpacity(), to.outlineOpacity(), t),
+                lerp(from.shadow(), to.shadow(), colored.shadow(), t), to.verticalAlignment());
+    }
+
+    private static double lerp(double from, double to, double t) {
+        return from + (to - from) * t;
+    }
+
+    /** The polygon puts a vertex at the top for an odd edge count and a flat edge for an even
+     *  one, so the morph steps two edges at a time: changing parity would rock the shape. */
+    private static int lerpEdgeCount(int from, int to, double t) {
+        return from + 2 * (int) Math.round((lerp(from, to, t) - from) / 2);
+    }
+
     public static class IndicatorConfigurationBuilder {
 
         private Boolean enabled;
         private Boolean fadeAnimationEnabled;
         private Duration fadeAnimationDuration;
+        private Duration transitionAnimationDuration;
+        private Easing transitionAnimationEasing;
+        private IndicatorColorChange transitionAnimationColorChange;
         private Boolean renderAsCursor;
         private Integer size;
         private Integer edgeCount;
@@ -62,6 +120,33 @@ public record IndicatorConfiguration(boolean enabled,
 
         public Duration fadeAnimationDuration() {
             return fadeAnimationDuration;
+        }
+
+        public IndicatorConfigurationBuilder transitionAnimationDuration(Duration transitionAnimationDuration) {
+            this.transitionAnimationDuration = transitionAnimationDuration;
+            return this;
+        }
+
+        public Duration transitionAnimationDuration() {
+            return transitionAnimationDuration;
+        }
+
+        public IndicatorConfigurationBuilder transitionAnimationEasing(Easing transitionAnimationEasing) {
+            this.transitionAnimationEasing = transitionAnimationEasing;
+            return this;
+        }
+
+        public Easing transitionAnimationEasing() {
+            return transitionAnimationEasing;
+        }
+
+        public IndicatorConfigurationBuilder transitionAnimationColorChange(IndicatorColorChange transitionAnimationColorChange) {
+            this.transitionAnimationColorChange = transitionAnimationColorChange;
+            return this;
+        }
+
+        public IndicatorColorChange transitionAnimationColorChange() {
+            return transitionAnimationColorChange;
         }
 
         public IndicatorConfigurationBuilder renderAsCursor(boolean renderAsCursor) {
@@ -156,6 +241,9 @@ public record IndicatorConfiguration(boolean enabled,
             if (enabled == null) enabled = parent.enabled;
             if (fadeAnimationEnabled == null) fadeAnimationEnabled = parent.fadeAnimationEnabled;
             if (fadeAnimationDuration == null) fadeAnimationDuration = parent.fadeAnimationDuration;
+            if (transitionAnimationDuration == null) transitionAnimationDuration = parent.transitionAnimationDuration;
+            if (transitionAnimationEasing == null) transitionAnimationEasing = parent.transitionAnimationEasing;
+            if (transitionAnimationColorChange == null) transitionAnimationColorChange = parent.transitionAnimationColorChange;
             if (renderAsCursor == null) renderAsCursor = parent.renderAsCursor;
             if (size == null) size = parent.size;
             if (edgeCount == null) edgeCount = parent.edgeCount;
@@ -172,7 +260,9 @@ public record IndicatorConfiguration(boolean enabled,
 
         public IndicatorConfiguration build() {
             return new IndicatorConfiguration(enabled, fadeAnimationEnabled,
-                    fadeAnimationDuration, renderAsCursor, size, edgeCount, hexColor,
+                    fadeAnimationDuration, transitionAnimationDuration,
+                    transitionAnimationEasing, transitionAnimationColorChange,
+                    renderAsCursor, size, edgeCount, hexColor,
                     opacity, outerOutline.build(), innerOutline.build(), shadow.build(),
                     labelEnabled, labelText, labelFontStyle.build(), position);
         }
