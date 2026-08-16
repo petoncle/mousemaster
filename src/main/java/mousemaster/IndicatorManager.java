@@ -10,6 +10,10 @@ public class IndicatorManager implements ModeListener {
     private IndicatorConfiguration transitionFromIndicator;
     private double transitionElapsed;
     private double transitionDuration;
+    private IndicatorConfiguration swellFromIndicator;
+    private IndicatorConfiguration swellIndicator;
+    private double swellElapsed;
+    private double swellDuration;
 
     public IndicatorManager(Overlay overlay) {
         this.overlay = overlay;
@@ -18,6 +22,8 @@ public class IndicatorManager implements ModeListener {
     public void update(double delta) {
         if (transitionElapsed < transitionDuration)
             transitionElapsed += delta;
+        if (swellElapsed < swellDuration)
+            swellElapsed += delta;
         updateIndicator(true);
     }
 
@@ -38,48 +44,47 @@ public class IndicatorManager implements ModeListener {
             return;
         }
         if (currentIndicator != null && !currentIndicator.equals(newIndicator)) {
-            transitionFromIndicator = transitioned(currentIndicator);
+            transitionFromIndicator = eased(currentIndicator);
             transitionElapsed = 0;
             transitionDuration =
                     newIndicator.transitionAnimationDuration().toMillis() / 1000d;
-            // A swell rises over the duration of the indicator it enters, then falls over
-            // the duration of the one it left.
-            if (newIndicator.transitionAnimationOvershoot() != 1)
-                transitionDuration +=
-                        transitionFromIndicator.transitionAnimationDuration().toMillis() / 1000d;
+            if (newIndicator.transitionAnimationOvershoot() != 1) {
+                swellFromIndicator = transitionFromIndicator;
+                swellIndicator = newIndicator;
+                swellElapsed = 0;
+                swellDuration = transitionDuration + transitionFromIndicator
+                        .transitionAnimationDuration().toMillis() / 1000d;
+            }
         }
         currentIndicator = newIndicator;
-        overlay.setIndicator(transitioned(newIndicator), allowFade,
+        overlay.setIndicator(swollen(eased(newIndicator)), allowFade,
                 !currentMode.hideCursor().enabled());
     }
 
-    private IndicatorConfiguration transitioned(IndicatorConfiguration indicator) {
+    private IndicatorConfiguration eased(IndicatorConfiguration indicator) {
         if (transitionElapsed >= transitionDuration)
             return indicator;
-        return swollen(IndicatorConfiguration.lerp(transitionFromIndicator, indicator,
+        return IndicatorConfiguration.lerp(transitionFromIndicator, indicator,
                 indicator.transitionAnimationEasing()
-                         .apply(transitionElapsed / transitionDuration)), indicator);
+                         .apply(transitionElapsed / transitionDuration));
     }
 
     /** Sizes the indicator past the size it is easing to, up to the overshoot, so that two
-     *  indicators of the same size still pulse. Clamped, so that clicking repeatedly does
-     *  not pile one swell onto the previous one. */
-    private IndicatorConfiguration swollen(IndicatorConfiguration eased,
-                                           IndicatorConfiguration indicator) {
-        double overshoot = indicator.transitionAnimationOvershoot();
-        if (overshoot == 1)
+     *  indicators of the same size still pulse. The swell rises over the duration of the
+     *  indicator it enters and falls over the duration of the one it left, on its own clock:
+     *  a press shorter than the rise still pulses. */
+    private IndicatorConfiguration swollen(IndicatorConfiguration eased) {
+        if (swellElapsed >= swellDuration)
             return eased;
-        double t = transitionElapsed / transitionDuration;
-        double peak = indicator.transitionAnimationDuration().toMillis() / 1000d /
-                      transitionDuration;
-        boolean rising = t < peak;
-        Easing easing = rising ? indicator.transitionAnimationEasing()
-                               : transitionFromIndicator.transitionAnimationEasing();
-        double swell = 1 + (overshoot - 1) *
-                           easing.apply(rising ? t / peak : (1 - t) / (1 - peak));
+        double rise = swellIndicator.transitionAnimationDuration().toMillis() / 1000d;
+        boolean rising = swellElapsed < rise;
+        Easing easing = rising ? swellIndicator.transitionAnimationEasing()
+                               : swellFromIndicator.transitionAnimationEasing();
+        double swell = 1 + (swellIndicator.transitionAnimationOvershoot() - 1) *
+                           easing.apply(rising ? swellElapsed / rise :
+                                   (swellDuration - swellElapsed) / (swellDuration - rise));
         return eased.builder()
-                    .size((int) Math.min(Math.round(eased.size() * swell),
-                            Math.round(indicator.size() * overshoot)))
+                    .size((int) Math.round(eased.size() * swell))
                     .build();
     }
 
