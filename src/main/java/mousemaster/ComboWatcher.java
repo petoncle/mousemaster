@@ -64,6 +64,8 @@ public class ComboWatcher {
             new HashSet<>();
     private boolean preconditionOnlyMutationRefreshPending;
     private boolean preconditionOnlyNonMutationComboRefreshPending;
+    private boolean mutatedModeNotificationSuspended;
+    private boolean mutatedModeNotificationPending;
     private boolean modeJustTimedOut;
     private ComboPreparation comboPreparation;
     private PressKeyEventProcessingSet lastProcessingSet;
@@ -245,9 +247,12 @@ public class ComboWatcher {
         return mutatedMode;
     }
 
-    /** Presses the built-in keys that follow the mouse and keyboard state. */
+    /** Presses the built-in keys that follow the mouse and keyboard state. The listeners are
+     *  notified once all of them are set, so a click that grows the indicator and colors it
+     *  through two different keys is not rendered half applied. */
     public void updateMouseAndKeyboardKeys(MouseState mouseState,
                                            KeyboardState keyboardState) {
+        mutatedModeNotificationSuspended = true;
         setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, mouseState.idling());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_MOVING, mouseState.moving());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_WHEELING, mouseState.wheeling());
@@ -265,6 +270,11 @@ public class ComboWatcher {
         if (preconditionOnlyMutationRefreshPending) {
             preconditionOnlyMutationRefreshPending = false;
             refreshPreconditionOnlyMutations();
+        }
+        mutatedModeNotificationSuspended = false;
+        if (mutatedModeNotificationPending) {
+            mutatedModeNotificationPending = false;
+            notifyMutatedMode();
         }
     }
 
@@ -1866,6 +1876,10 @@ public class ComboWatcher {
     }
 
     private void notifyMutatedMode() {
+        if (mutatedModeNotificationSuspended) {
+            mutatedModeNotificationPending = true;
+            return;
+        }
         for (ModeListener listener : modeListeners)
             listener.modeChanged(mutatedMode);
     }

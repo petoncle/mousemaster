@@ -69,6 +69,41 @@ class PreconditionOnlyMutationTest {
         return comboWatcher.getMutatedMode().indicator().renderAsCursor();
     }
 
+    /** Sets the mouse and keyboard keys the way ModeController does, for a left click. */
+    private void leftClick() {
+        comboWatcher.updateMouseAndKeyboardKeys(new MouseState(null) {
+            @Override
+            public boolean moving() {
+                return false;
+            }
+
+            @Override
+            public boolean wheeling() {
+                return false;
+            }
+
+            @Override
+            public boolean leftPressing() {
+                return true;
+            }
+
+            @Override
+            public boolean middlePressing() {
+                return false;
+            }
+
+            @Override
+            public boolean rightPressing() {
+                return false;
+            }
+        }, new KeyboardState(null) {
+            @Override
+            public boolean pressingUnhandledKeyInCurrentMode() {
+                return false;
+            }
+        });
+    }
+
     private String hexColor() {
         return comboWatcher.getMutatedMode().indicator().hexColor();
     }
@@ -100,6 +135,20 @@ class PreconditionOnlyMutationTest {
         for (int i = 0; i < 5; i++)
             tick();
         assertFalse(renderAsCursor(), "a tick must not re-apply a reverted mutation");
+    }
+
+    /** ismousepressing and isleftmousepressing are set one after the other, so mutating on
+     *  both must reach the listeners once, with everything the click changed. */
+    @Test
+    void aClickNotifiesOnceWithEveryMutationApplied() {
+        load("idle-mode.indicator.size=26 | +ismousepressing -> 50",
+                "idle-mode.indicator.color=#FF0000 | +isleftmousepressing -> #00FF00");
+        notifiedModes.clear();
+
+        leftClick();
+        assertEquals(1, notifiedModes.size(), "notified " + notifiedModes.size() + " times");
+        assertEquals(50, notifiedModes.getFirst().indicator().size());
+        assertEquals("#00FF00", notifiedModes.getFirst().indicator().hexColor());
     }
 
     @Test
