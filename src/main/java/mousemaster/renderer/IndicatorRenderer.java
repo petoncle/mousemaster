@@ -23,7 +23,7 @@ public final class IndicatorRenderer {
     private IndicatorWidget widget;
     private IndicatorLabelWidget labelWidget;
     private IndicatorConfiguration currentIndicator;
-    private int maxIndicatorShadowPadding;
+    private int maxIndicatorWindowSize;
     private FadeAnimator fadeAnimator;
     private boolean showing;
 
@@ -61,7 +61,10 @@ public final class IndicatorRenderer {
     }
 
     private int indicatorSize(IndicatorConfiguration indicator, double screenScale) {
-        return (int) Math.floor(indicator.size() * screenScale);
+        // An odd size puts the center of a centered indicator half a pixel off, so it would
+        // shift as the size changes parity.
+        int size = (int) Math.floor(indicator.size() * screenScale);
+        return size - size % 2;
     }
 
     private int indicatorOutlinePadding(IndicatorConfiguration indicator, double screenScale) {
@@ -137,7 +140,7 @@ public final class IndicatorRenderer {
         int visualSize = size + 2 * outlinePadding;
         Point topLeft = indicatorTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
                 zoom, indicator, visualSize);
-        moveAndResize(activeScreen, (int) Math.round(topLeft.x()),
+        moveAndResize(indicator, activeScreen, (int) Math.round(topLeft.x()),
                 (int) Math.round(topLeft.y()), size, outlinePadding, shadowPadding,
                 screenScale);
     }
@@ -359,23 +362,28 @@ public final class IndicatorRenderer {
     }
 
     /** Moves and resizes the window + widgets to the computed visual top-left and sizes. */
-    private void moveAndResize(Screen activeScreen, int visualTopLeftX, int visualTopLeftY,
+    private void moveAndResize(IndicatorConfiguration indicator, Screen activeScreen,
+                              int visualTopLeftX, int visualTopLeftY,
                               int size, int outlinePadding, int shadowPadding,
                               double outlineScale) {
         widget.setOutlineScale(outlineScale);
-        // Never shrink the window: the DWM compositor would show the old, larger surface
-        // at the new smaller size for one frame, mispositioning the indicator. Extra area
-        // is transparent; the visible indicator stays at visualTopLeft regardless.
-        maxIndicatorShadowPadding = Math.max(maxIndicatorShadowPadding, shadowPadding);
-        shadowPadding = maxIndicatorShadowPadding;
+        // Never resize the window: the DWM compositor would show the old surface at the new
+        // size for one frame, mispositioning the indicator. It is sized for the swell to come
+        // and never shrinks; the extra area is transparent and the visible indicator stays at
+        // visualTopLeft regardless.
         int totalPadding = outlinePadding + shadowPadding;
         int widgetSize = size + 2 * outlinePadding;
         int windowSize = size + 2 * totalPadding;
-        window.moveAndResizeInPixels(activeScreen, visualTopLeftX - shadowPadding,
-                visualTopLeftY - shadowPadding, windowSize, windowSize);
+        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize, (int) Math.ceil(
+                windowSize * Math.max(1, indicator.transitionAnimationOvershoot())));
+        windowSize = maxIndicatorWindowSize;
+        window.moveAndResizeInPixels(activeScreen,
+                visualTopLeftX + widgetSize / 2 - windowSize / 2,
+                visualTopLeftY + widgetSize / 2 - windowSize / 2, windowSize, windowSize);
         // The window is in points, so what it holds is too.
         double pointsPerPixel = Os.macos ? activeScreen.scale() : 1;
-        int widgetPadding = (int) Math.round(shadowPadding / pointsPerPixel);
+        int widgetPadding =
+                (int) Math.round((windowSize - widgetSize) / 2d / pointsPerPixel);
         int widgetPoints = (int) Math.round(widgetSize / pointsPerPixel);
         widget.move(widgetPadding, widgetPadding);
         widget.resize(widgetPoints, widgetPoints);

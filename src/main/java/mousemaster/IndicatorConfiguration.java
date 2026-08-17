@@ -93,6 +93,7 @@ public record IndicatorConfiguration(boolean enabled,
                .horizontalOffset(shadow.horizontalOffset() * factor)
                .verticalOffset(shadow.verticalOffset() * factor);
         builder.labelFontStyle().size(labelFontStyle.size() * factor);
+        builder.transitionAnimationOvershoot(1);
         return builder.build();
     }
 

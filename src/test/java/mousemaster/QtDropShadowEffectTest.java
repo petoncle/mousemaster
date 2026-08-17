@@ -34,10 +34,13 @@ class QtDropShadowEffectTest {
 
     @BeforeAll
     static void initializeQt() {
+        MousemasterApplication.tempDirectory =
+                System.getProperty("java.io.tmpdir") + "/mousemaster-shadow-test";
         try {
-            MousemasterApplication.tempDirectory =
-                    System.getProperty("java.io.tmpdir") + "/mousemaster-shadow-test";
             QtManager.initialize();
+        } catch (Throwable alreadyInitializedByAnotherTest) {
+        }
+        try {
             new QImage(1, 1, QImage.Format.Format_ARGB32_Premultiplied).dispose();
             qtAvailable = true;
         } catch (Throwable e) {
