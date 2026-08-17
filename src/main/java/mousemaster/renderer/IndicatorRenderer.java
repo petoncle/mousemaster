@@ -439,7 +439,10 @@ public final class IndicatorRenderer {
         QColor baseColor = QtColorUtil.qColor(shadow.hexColor(), 1.0);
         boolean hasShadow = shadow.opacity() > 0 && shadow.blurRadius() > 0;
         if (hasShadow) {
-            IndicatorShadowEffect effect = new IndicatorShadowEffect(widget, this);
+            // Reused rather than replaced: installing a graphics effect sets up Qt machinery
+            // that costs milliseconds, which an animating indicator would pay every frame.
+            IndicatorShadowEffect effect = reusableShadowEffect();
+            effect.setTransparencyOnly(false);
             effect.setBlurRadius(shadow.blurRadius() * scale);
             effect.setOffset(shadow.horizontalOffset() * scale,
                     shadow.verticalOffset() * scale);
@@ -450,21 +453,31 @@ public final class IndicatorRenderer {
             shadowColor.dispose();
             effect.setStackCount(shadow.stackCount());
             setIndicatorEffectColors(effect);
-            widget.customGraphicsEffect = effect;
-            widget.setGraphicsEffect(effect);
+            install(effect);
         }
         else if (indicatorHasTransparency()) {
-            IndicatorShadowEffect effect = new IndicatorShadowEffect(widget, this);
+            IndicatorShadowEffect effect = reusableShadowEffect();
             effect.setTransparencyOnly(true);
             setIndicatorEffectColors(effect);
-            widget.customGraphicsEffect = effect;
-            widget.setGraphicsEffect(effect);
+            install(effect);
         }
         else {
             widget.customGraphicsEffect = null;
             widget.setGraphicsEffect(null);
         }
         baseColor.dispose();
+    }
+
+    private IndicatorShadowEffect reusableShadowEffect() {
+        return widget.customGraphicsEffect != null ? widget.customGraphicsEffect :
+                new IndicatorShadowEffect(widget, this);
+    }
+
+    private void install(IndicatorShadowEffect effect) {
+        if (widget.customGraphicsEffect == effect)
+            return;
+        widget.customGraphicsEffect = effect;
+        widget.setGraphicsEffect(effect);
     }
 
     private class IndicatorWidget extends QWidget {
