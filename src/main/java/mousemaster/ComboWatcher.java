@@ -77,9 +77,9 @@ public class ComboWatcher {
     private List<WaitComboMove> ignoredWaitMoves;
     private List<ComboWaitingForLastMoveToComplete> combosWaitingForLastMoveToComplete = new ArrayList<>();
     /**
-     * Combos that have fired from combosWaitingForLastMoveToComplete and should
-     * not re-fire until a non-absorbed key event arrives (for the combo's
-     * trailing wait). Prevents absorbing trailing waits from causing re-firing.
+     * Combos that have run their command for the preparation. Those ending with a wait stay
+     * blocked until a key event it does not absorb, the others only for the evaluations that
+     * re-read the preparation without a key event.
      */
     private Set<Combo> combosBlockedFromRerunningCommand = new HashSet<>();
     private List<Command> commandsWaitingForAtomicCommandToComplete = new ArrayList<>();
@@ -1021,7 +1021,10 @@ public class ComboWatcher {
             }
             if (!preparationComplete)
                 continue;
-            if (combosBlockedFromRerunningCommand.contains(combo))
+            // The second pass must still run the combo for the new mode, so only the matching
+            // done with no key event is stopped, plus the waits that absorb key events.
+            if (combosBlockedFromRerunningCommand.contains(combo) &&
+                (event == null || lastMoveSetIsWait || lastMoveIsWaitingMove))
                 continue;
             if (lastMoveSetIsWait &&
                 combo.sequence().moveSets().getLast() instanceof WaitMoveSet lastWaitMoveSet) {
@@ -1063,6 +1066,9 @@ public class ComboWatcher {
                 }
                 ComboAndCommands comboAndCommands = new ComboAndCommands(combo, commands, match);
                 comboAndCommandsToRun.add(comboAndCommands);
+                // A combo without a move matched no event of the preparation.
+                if (!combo.sequence().isEmpty())
+                    combosBlockedFromRerunningCommand.add(combo);
             }
             totalPostMatchNanos += System.nanoTime() - postMatchStartNanos;
         }
@@ -1628,10 +1634,12 @@ public class ComboWatcher {
         if (!refreshPreconditionOnlyMutations(activeApp))
             notifyMutatedMode();
         leadingWaitBeginTimeByCombo.clear();
+        // The preparation survives the mode change, so only the leading waits restart.
+        combosBlockedFromRerunningCommand.removeIf(
+                combo -> combo.sequence().allWaitMoveSets());
         lastEventTimeByKey.clear();
         lastPressEventTime = null;
         lastReleaseEventTime = null;
-        combosBlockedFromRerunningCommand.clear();
         if (modeJustTimedOut) {
             modeJustTimedOut = false;
             processKeyEventForCurrentMode(null, false, LogTrigger.MODE_TIMED_OUT, activeApp);
