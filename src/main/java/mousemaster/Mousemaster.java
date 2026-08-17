@@ -266,6 +266,7 @@ public class Mousemaster {
         platform.reset(mouseManager, keyboardManager,
                 configuration.modeMap(),
                 zoomManager,
+                indicatorManager,
                 List.of(mouseManager, gridManager, hintManager, screenManager,
                         zoomManager), activeKeyboardLayout);
         if (preWarmHints)

@@ -43,6 +43,7 @@ public class WindowsPlatform implements Platform {
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
     private ZoomManager zoomManager;
+    private IndicatorManager indicatorManager;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -146,10 +147,11 @@ public class WindowsPlatform implements Platform {
             overlay.mouseMoved(lastMousePosition);
         }
         pumpEvents();
-        // A hint transition's and a zoom animation's frames are painted once per iteration,
-        // so this sleep is what their first frame waits on.
+        // A hint transition's, a zoom animation's and an indicator animation's frames are
+        // painted once per iteration, so this sleep is what every one of them waits on.
         long sleepMillis =
-                overlay.hintTransitionAnimating() || zoomManager.animating() ? 1 : 10;
+                overlay.hintTransitionAnimating() || zoomManager.animating() ||
+                indicatorManager.animating() ? 1 : 10;
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();
@@ -164,6 +166,7 @@ public class WindowsPlatform implements Platform {
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
                       ModeMap newModeMap,
                       ZoomManager zoomManager,
+               IndicatorManager indicatorManager,
                       List<MousePositionListener> mousePositionListeners,
                       KeyboardLayout activeKeyboardLayout) {
         ModeMap oldModeMap = this.modeMap;
@@ -177,6 +180,7 @@ public class WindowsPlatform implements Platform {
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
         this.zoomManager = zoomManager;
+        this.indicatorManager = indicatorManager;
         this.mousePositionListeners = mousePositionListeners;
         if (keyboard.activeKeyboardLayout != null &&
             !keyboard.activeKeyboardLayout.equals(activeKeyboardLayout)) {

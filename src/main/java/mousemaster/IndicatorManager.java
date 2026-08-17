@@ -20,6 +20,10 @@ public class IndicatorManager implements ModeListener {
         this.overlay = overlay;
     }
 
+    public boolean animating() {
+        return transitionElapsed < transitionDuration || swellElapsed < swellDuration;
+    }
+
     public void update(double delta) {
         if (transitionElapsed < transitionDuration)
             transitionElapsed += delta;
