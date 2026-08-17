@@ -44,7 +44,9 @@ public class IndicatorManager implements ModeListener {
             return;
         }
         if (currentIndicator != null && !currentIndicator.equals(newIndicator)) {
-            transitionFromIndicator = eased(currentIndicator);
+            // Start from what is on screen, with the colors currentIndicator was switching to.
+            // Without them, a mode switching faster than a transition lasts keeps the first.
+            transitionFromIndicator = eased(currentIndicator).switching(currentIndicator);
             transitionElapsed = 0;
             transitionDuration =
                     newIndicator.transitionAnimationDuration().toMillis() / 1000d;
@@ -62,14 +64,17 @@ public class IndicatorManager implements ModeListener {
     }
 
     private IndicatorConfiguration eased(IndicatorConfiguration indicator) {
-        if (transitionElapsed >= transitionDuration)
+        if (transitionElapsed >= transitionDuration && swellElapsed >= swellDuration)
             return indicator;
-        return IndicatorConfiguration.lerp(transitionFromIndicator, indicator,
+        // What switches at the end waits for the swell too: the color must not come back
+        // while the indicator is still on its way down.
+        double t = transitionElapsed >= transitionDuration ? 1 :
                 indicator.transitionAnimationEasing()
-                         .apply(transitionElapsed / transitionDuration));
+                         .apply(transitionElapsed / transitionDuration);
+        return IndicatorConfiguration.lerp(transitionFromIndicator, indicator, t);
     }
 
-    /** Sizes the indicator past the size it is easing to, up to the overshoot, so that two
+    /** Scales the indicator past the size it is easing to, up to the overshoot, so that two
      *  indicators of the same size still pulse. The swell rises over the duration of the
      *  indicator it enters and falls over the duration of the one it left, on its own clock:
      *  a press shorter than the rise still pulses. */
@@ -83,9 +88,7 @@ public class IndicatorManager implements ModeListener {
         double swell = 1 + (swellIndicator.transitionAnimationOvershoot() - 1) *
                            easing.apply(rising ? swellElapsed / rise :
                                    (swellDuration - swellElapsed) / (swellDuration - rise));
-        return eased.builder()
-                    .size((int) Math.round(eased.size() * swell))
-                    .build();
+        return eased.scaled(swell);
     }
 
     @Override

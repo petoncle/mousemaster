@@ -31,8 +31,18 @@ public record IndicatorConfiguration(boolean enabled,
      *  what cannot be eased is switched, at the start or at the end. */
     public static IndicatorConfiguration lerp(IndicatorConfiguration from,
                                               IndicatorConfiguration to, double t) {
-        IndicatorConfiguration switched =
-                to.transitionAnimationSwitchAt == IndicatorSwitchAt.START ? to : from;
+        return lerp(from, to,
+                to.transitionAnimationSwitchAt == IndicatorSwitchAt.START ? to : from, t);
+    }
+
+    /** A copy of this indicator taking its colors, label and position from the given one. */
+    public IndicatorConfiguration switching(IndicatorConfiguration switched) {
+        return lerp(this, switched, switched, 0);
+    }
+
+    private static IndicatorConfiguration lerp(IndicatorConfiguration from,
+                                               IndicatorConfiguration to,
+                                               IndicatorConfiguration switched, double t) {
         return new IndicatorConfiguration(to.enabled, to.fadeAnimationEnabled,
                 to.fadeAnimationDuration, to.transitionAnimationDuration,
                 to.transitionAnimationEasing, to.transitionAnimationOvershoot,
@@ -71,6 +81,19 @@ public record IndicatorConfiguration(boolean enabled,
                 switched.outlineHexColor(), lerp(from.outlineOpacity(), to.outlineOpacity(), t),
                 lerp(from.shadow(), to.shadow(), switched.shadow(), t),
                 switched.verticalAlignment());
+    }
+
+    public IndicatorConfiguration scaled(double factor) {
+        IndicatorConfigurationBuilder builder = builder();
+        builder.size((int) Math.round(size * factor));
+        builder.outerOutline().thickness(outerOutline.thickness() * factor);
+        builder.innerOutline().thickness(innerOutline.thickness() * factor);
+        builder.shadow()
+               .blurRadius(shadow.blurRadius() * factor)
+               .horizontalOffset(shadow.horizontalOffset() * factor)
+               .verticalOffset(shadow.verticalOffset() * factor);
+        builder.labelFontStyle().size(labelFontStyle.size() * factor);
+        return builder.build();
     }
 
     private static double lerp(double from, double to, double t) {

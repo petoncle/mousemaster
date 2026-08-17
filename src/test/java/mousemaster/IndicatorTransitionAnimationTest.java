@@ -71,10 +71,15 @@ class IndicatorTransitionAnimationTest {
                 "normal-mode.indicator.size=20",
                 "normal-mode.indicator.transition-animation-duration-millis=200",
                 "normal-mode.indicator.transition-animation-easing=1",
+                "normal-mode.indicator.inner-outline-thickness=1",
+                "normal-mode.indicator.color=#FF0000",
+                "normal-mode.indicator.transition-animation-switch-at=end",
+                "idle-mode.indicator.color=#00FF00",
                 "idle-mode.indicator.size=20",
                 "idle-mode.indicator.transition-animation-overshoot=2",
                 "idle-mode.indicator.transition-animation-duration-millis=100",
-                "idle-mode.indicator.transition-animation-easing=1"),
+                "idle-mode.indicator.transition-animation-easing=1",
+                "idle-mode.indicator.inner-outline-thickness=1"),
                 KeyboardLayout.keyboardLayout("00000409", null)).modeMap();
     }
 
@@ -112,6 +117,64 @@ class IndicatorTransitionAnimationTest {
         tick(0.1);
         tick(0.1);
         assertEquals(List.of(20, 40, 30, 20), sizes());
+    }
+
+    /** The swell scales the indicator, so a thickness stays in proportion with the size
+     *  instead of looking thinner the bigger the indicator gets. */
+    @Test
+    void theOutlineThicknessSwellsWithTheSize() {
+        ModeMap sameSize = sameSizeWithOvershoot();
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        shown.clear();
+
+        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        shown.clear();
+
+        tick(0.1);
+        assertEquals(List.of(2d),
+                shown.stream().map(i -> i.innerOutline().thickness()).toList());
+    }
+
+    /** A transition that interrupts another takes over the color it was holding, so a mode
+     *  that switches more often than a transition lasts still gets there. */
+    @Test
+    void anInterruptedSwitchAtTheEndDoesNotHoldTheOldColorOn() {
+        ModeMap modes = ConfigurationParser.parse(List.of(
+                "idle-mode.to.normal-mode=+leftshift",
+                "normal-mode.indicator.size=20",
+                "normal-mode.indicator.color=#FF0000",
+                "normal-mode.indicator.transition-animation-duration-millis=200",
+                "normal-mode.indicator.transition-animation-switch-at=end",
+                "normal-mode.to.other-mode=+leftctrl",
+                "other-mode.indicator=normal-mode.indicator",
+                "other-mode.indicator.size=24",
+                "idle-mode.indicator.size=20",
+                "idle-mode.indicator.color=#00FF00"),
+                KeyboardLayout.keyboardLayout("00000409", null)).modeMap();
+        indicatorManager.modeChanged(modes.get(Mode.IDLE_MODE_NAME));
+        indicatorManager.modeChanged(modes.get("normal-mode"));
+        tick(0.1);
+        assertEquals("#00FF00", shown.getLast().hexColor(), "still holding the old color");
+        shown.clear();
+
+        indicatorManager.modeChanged(modes.get("other-mode"));
+        assertEquals(List.of("#FF0000 20"), colorsAndSizes());
+    }
+
+    /** The color comes back with the indicator: what switches at the end waits for the swell,
+     *  which outlasts the 200ms the sizes and opacities are eased over. */
+    @Test
+    void theSwitchAtTheEndWaitsForTheSwell() {
+        ModeMap sameSize = sameSizeWithOvershoot();
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        shown.clear();
+
+        tick(0.1);
+        tick(0.1);
+        tick(0.1);
+        assertEquals(List.of("#00FF00 40", "#00FF00 30", "#FF0000 20"), colorsAndSizes());
     }
 
     /** A click is over before the next tick, so the swell must run on beyond the transition
