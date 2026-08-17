@@ -15,6 +15,7 @@ public class IndicatorManager implements ModeListener {
     private double swellElapsed;
     private double swellDuration;
     private double swellFromScale;
+    private boolean allowFade = true;
 
     public IndicatorManager(Overlay overlay) {
         this.overlay = overlay;
@@ -29,16 +30,17 @@ public class IndicatorManager implements ModeListener {
             transitionElapsed += delta;
         if (swellElapsed < swellDuration)
             swellElapsed += delta;
-        updateIndicator(true);
+        updateIndicator(allowFade);
+        allowFade = true;
     }
 
+    /** Rendered by the tick, so the mode changes of an iteration and its animation frame
+     *  cost one render between them instead of one each. */
     @Override
     public void modeChanged(Mode newMode) {
         // Skip the fade animation when the zoom is about to change.
-        boolean allowFade = currentMode == null ||
-                            currentMode.zoom().equals(newMode.zoom());
+        allowFade &= currentMode == null || currentMode.zoom().equals(newMode.zoom());
         currentMode = newMode;
-        updateIndicator(allowFade);
     }
 
     private void updateIndicator(boolean allowFade) {

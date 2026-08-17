@@ -49,7 +49,13 @@ class IndicatorTransitionAnimationTest {
     }
 
     private void changeMode(String modeName) {
-        indicatorManager.modeChanged(modeMap.get(modeName));
+        changeMode(modeMap.get(modeName));
+    }
+
+    /** The loop renders once a tick, after the mode changes of that iteration. */
+    private void changeMode(Mode mode) {
+        indicatorManager.modeChanged(mode);
+        tick(0);
     }
 
     private void tick(double delta) {
@@ -113,10 +119,10 @@ class IndicatorTransitionAnimationTest {
     @Test
     void theSizeSwellsThenComesBack() {
         ModeMap sameSize = sameSizeWithOvershoot();
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        changeMode(sameSize.get("normal-mode"));
         shown.clear();
 
-        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        changeMode(sameSize.get(Mode.IDLE_MODE_NAME));
         tick(0.1);
         tick(0.1);
         tick(0.1);
@@ -127,10 +133,10 @@ class IndicatorTransitionAnimationTest {
     @Test
     void theSizeShrinksThenComesBackWhenTheOvershootIsBelowOne() {
         ModeMap sameSize = sameSizeWithOvershoot(0.5);
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        changeMode(sameSize.get("normal-mode"));
         shown.clear();
 
-        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        changeMode(sameSize.get(Mode.IDLE_MODE_NAME));
         tick(0.1);
         tick(0.1);
         tick(0.1);
@@ -142,14 +148,14 @@ class IndicatorTransitionAnimationTest {
     @Test
     void aSwellStartsFromTheSizeTheLastOneReached() {
         ModeMap sameSize = sameSizeWithOvershoot();
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
-        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        changeMode(sameSize.get("normal-mode"));
+        changeMode(sameSize.get(Mode.IDLE_MODE_NAME));
         tick(0.05);
         assertEquals(30, shown.getLast().size(), "half way up the swell");
         shown.clear();
 
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
-        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        changeMode(sameSize.get("normal-mode"));
+        changeMode(sameSize.get(Mode.IDLE_MODE_NAME));
         assertEquals(List.of(30, 30), sizes());
     }
 
@@ -158,10 +164,10 @@ class IndicatorTransitionAnimationTest {
     @Test
     void theOutlineThicknessSwellsWithTheSize() {
         ModeMap sameSize = sameSizeWithOvershoot();
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        changeMode(sameSize.get("normal-mode"));
         shown.clear();
 
-        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        changeMode(sameSize.get(Mode.IDLE_MODE_NAME));
         shown.clear();
 
         tick(0.1);
@@ -185,13 +191,13 @@ class IndicatorTransitionAnimationTest {
                 "idle-mode.indicator.size=20",
                 "idle-mode.indicator.color=#00FF00"),
                 KeyboardLayout.keyboardLayout("00000409", null)).modeMap();
-        indicatorManager.modeChanged(modes.get(Mode.IDLE_MODE_NAME));
-        indicatorManager.modeChanged(modes.get("normal-mode"));
+        changeMode(modes.get(Mode.IDLE_MODE_NAME));
+        changeMode(modes.get("normal-mode"));
         tick(0.1);
         assertEquals("#00FF00", shown.getLast().hexColor(), "still holding the old color");
         shown.clear();
 
-        indicatorManager.modeChanged(modes.get("other-mode"));
+        changeMode(modes.get("other-mode"));
         assertEquals(List.of("#FF0000 20"), colorsAndSizes());
     }
 
@@ -200,9 +206,9 @@ class IndicatorTransitionAnimationTest {
     @Test
     void theSwitchAtTheEndWaitsForTheSwell() {
         ModeMap sameSize = sameSizeWithOvershoot();
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
-        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        changeMode(sameSize.get("normal-mode"));
+        changeMode(sameSize.get(Mode.IDLE_MODE_NAME));
+        changeMode(sameSize.get("normal-mode"));
         shown.clear();
 
         tick(0.1);
@@ -216,9 +222,9 @@ class IndicatorTransitionAnimationTest {
     @Test
     void theSizeStillSwellsWhenTheTransitionIsUndoneAtOnce() {
         ModeMap sameSize = sameSizeWithOvershoot();
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
-        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
-        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        changeMode(sameSize.get("normal-mode"));
+        changeMode(sameSize.get(Mode.IDLE_MODE_NAME));
+        changeMode(sameSize.get("normal-mode"));
         shown.clear();
 
         tick(0.1);
