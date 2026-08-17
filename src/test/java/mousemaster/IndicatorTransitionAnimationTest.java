@@ -64,8 +64,12 @@ class IndicatorTransitionAnimationTest {
         return shown.stream().map(IndicatorConfiguration::size).toList();
     }
 
-    /** Both modes have the same size, so the swell is the whole size animation. */
     private ModeMap sameSizeWithOvershoot() {
+        return sameSizeWithOvershoot(2);
+    }
+
+    /** Both modes have the same size, so the swell is the whole size animation. */
+    private ModeMap sameSizeWithOvershoot(double overshoot) {
         return ConfigurationParser.parse(List.of(
                 "idle-mode.to.normal-mode=+leftshift",
                 "normal-mode.indicator.size=20",
@@ -76,7 +80,7 @@ class IndicatorTransitionAnimationTest {
                 "normal-mode.indicator.transition-animation-switch-at=end",
                 "idle-mode.indicator.color=#00FF00",
                 "idle-mode.indicator.size=20",
-                "idle-mode.indicator.transition-animation-overshoot=2",
+                "idle-mode.indicator.transition-animation-overshoot=" + overshoot,
                 "idle-mode.indicator.transition-animation-duration-millis=100",
                 "idle-mode.indicator.transition-animation-easing=1",
                 "idle-mode.indicator.inner-outline-thickness=1"),
@@ -117,6 +121,36 @@ class IndicatorTransitionAnimationTest {
         tick(0.1);
         tick(0.1);
         assertEquals(List.of(20, 40, 30, 20), sizes());
+    }
+
+    /** An overshoot below 1 implodes the indicator instead of swelling it. */
+    @Test
+    void theSizeShrinksThenComesBackWhenTheOvershootIsBelowOne() {
+        ModeMap sameSize = sameSizeWithOvershoot(0.5);
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        shown.clear();
+
+        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        tick(0.1);
+        tick(0.1);
+        tick(0.1);
+        assertEquals(List.of(20, 10, 15, 20), sizes());
+    }
+
+    /** A click while the indicator is still swollen swells on from the size it has: dropping
+     *  back to the resting size for a frame would jump the whole indicator. */
+    @Test
+    void aSwellStartsFromTheSizeTheLastOneReached() {
+        ModeMap sameSize = sameSizeWithOvershoot();
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        tick(0.05);
+        assertEquals(30, shown.getLast().size(), "half way up the swell");
+        shown.clear();
+
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        assertEquals(List.of(30, 30), sizes());
     }
 
     /** The swell scales the indicator, so a thickness stays in proportion with the size

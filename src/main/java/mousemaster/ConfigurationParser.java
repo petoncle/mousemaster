@@ -2364,7 +2364,7 @@ public class ConfigurationParser {
             case "fade-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("fadeAnimationDuration"), v -> parseDuration(v), v -> indicator.fadeAnimationDuration(v));
             case "transition-animation-duration-millis" -> ModePropertyHandler.of(prefix.append("transitionAnimationDuration"), v -> parseDuration(v), v -> indicator.transitionAnimationDuration(v));
             case "transition-animation-easing" -> ModePropertyHandler.of(prefix.append("transitionAnimationEasing"), v -> parseEasing(v), v -> indicator.transitionAnimationEasing(v));
-            case "transition-animation-overshoot" -> ModePropertyHandler.of(prefix.append("transitionAnimationOvershoot"), v -> parseDouble(v, true, 1, 10), v -> indicator.transitionAnimationOvershoot(v));
+            case "transition-animation-overshoot" -> ModePropertyHandler.of(prefix.append("transitionAnimationOvershoot"), v -> parseDouble(v, false, 0, 100), v -> indicator.transitionAnimationOvershoot(v));
             case "transition-animation-switch-at" -> ModePropertyHandler.of(prefix.append("transitionAnimationSwitchAt"), v -> IndicatorSwitchAt.fromString(v), v -> indicator.transitionAnimationSwitchAt(v));
             case "render-as-cursor" -> ModePropertyHandler.of(prefix.append("renderAsCursor"), v -> Boolean.parseBoolean(v), v -> indicator.renderAsCursor(v));
             case "size" -> ModePropertyHandler.of(prefix.append("size"), v -> parseUnsignedInteger(v, 1, 100), v -> indicator.size(v));
