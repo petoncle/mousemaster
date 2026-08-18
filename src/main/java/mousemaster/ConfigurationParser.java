@@ -372,8 +372,7 @@ public class ConfigurationParser {
         Map<String, Set<String>> referencedModesByReferencerMode = new HashMap<>();
         Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty =
                 new HashMap<>();
-        Set<String> nonRootModes = new HashSet<>();
-        Map<String, Set<String>> childModesByParentMode = new HashMap<>();
+        Map<String, List<String>> parentModesByChildMode = new HashMap<>();
         Set<String> visitedPropertyKeys = new HashSet<>();
         for (String property : properties) {
             checkPropertyLineCorrectness(property, visitedPropertyKeys);
@@ -468,7 +467,7 @@ public class ConfigurationParser {
             ComboMoveDuration finalDefaultComboMoveDuration = defaultComboMoveDuration;
             try {
                 parseLine(group2, mode, propertyKey, propertyValue,
-                        childModesByParentMode, nonRootModes,
+                        parentModesByChildMode,
                         childPropertiesByParentProperty, nonRootPropertyKeys,
                         referencedModesByReferencerMode, modeName, keyMatcher, keyAliases, keyResolver,
                         modeReferences, defaultComboMoveDuration, appAliases,
@@ -494,43 +493,64 @@ public class ConfigurationParser {
         // Default stop-commands-from-previous-mode for idle mode is true.
         if (idleMode.stopCommandsFromPreviousMode.builder.get() == null)
             idleMode.stopCommandsFromPreviousMode.builder.set(true);
-        Set<PropertyKey> rootPropertyKeys = propertyByKey.keySet()
-                                                         .stream()
-                                                         .filter(propertyKey -> !nonRootModes.contains(
-                                                                 propertyKey.modeName()))
-                                                         .filter(Predicate.not(
-                                                                 nonRootPropertyKeys::contains))
-                                                         .collect(Collectors.toSet());;
-        Set<PropertyKey> alreadyBuiltPropertyNodeKeys = new HashSet<>();
-        Set<PropertyNode> rootPropertyNodes = new HashSet<>();
-        for (PropertyKey rootPropertyKey : rootPropertyKeys)
-            rootPropertyNodes.add(recursivelyBuildPropertyNode(rootPropertyKey,
-                    childPropertiesByParentProperty,
-                    childModesByParentMode, nonRootPropertyKeys,
-                    alreadyBuiltPropertyNodeKeys));
         for (Map.Entry<PropertyKey, Set<PropertyKey>> entry :
                 childPropertiesByParentProperty.entrySet())
             if (!propertyByKey.containsKey(entry.getKey()))
                 throw new IllegalArgumentException(
                         entry.getValue() + " references " + entry.getKey() +
                         ", which is not defined");
-        for (Map.Entry<String, Set<String>> entry : childModesByParentMode.entrySet())
-            if (!modeByName.containsKey(entry.getKey()))
-                throw new IllegalArgumentException(
-                        entry.getValue() + " extends mode " + entry.getKey() +
-                        ", which is not defined");
-        // A cycle has no root, so it is not reached from one and the guard in
-        // recursivelyBuildPropertyNode never sees it.
+        for (Map.Entry<String, List<String>> entry : parentModesByChildMode.entrySet())
+            for (String parentMode : entry.getValue())
+                if (!modeByName.containsKey(parentMode))
+                    throw new IllegalArgumentException(
+                            entry.getKey() + " extends mode " + parentMode +
+                            ", which is not defined");
+        // Each parent in turn fills what is still unset, and a parent is extended before its
+        // children, so that what it inherits reaches them.
+        Map<PropertyKey, List<PropertyKey>> parentPropertiesByChildProperty = new HashMap<>();
+        for (Map.Entry<PropertyKey, Property<?>> entry : propertyByKey.entrySet()) {
+            PropertyKey propertyKey = entry.getKey();
+            List<PropertyKey> parentProperties =
+                    nonRootPropertyKeys.contains(propertyKey) ?
+                            List.of(entry.getValue().parentPropertyKey) :
+                            parentModesByChildMode.getOrDefault(propertyKey.modeName(), List.of())
+                                                  .stream()
+                                                  .map(parentMode -> new PropertyKey(parentMode,
+                                                          propertyKey.propertyName()))
+                                                  .toList();
+            if (!parentProperties.isEmpty())
+                parentPropertiesByChildProperty.put(propertyKey, parentProperties);
+        }
+        Deque<PropertyKey> extendablePropertyKeys = propertyByKey.keySet()
+                                                                 .stream()
+                                                                 .filter(Predicate.not(
+                                                                         parentPropertiesByChildProperty::containsKey))
+                                                                 .collect(Collectors.toCollection(
+                                                                         ArrayDeque::new));
+        Set<PropertyKey> extendedPropertyKeys = new HashSet<>();
+        while (!extendablePropertyKeys.isEmpty()) {
+            PropertyKey propertyKey = extendablePropertyKeys.poll();
+            extendedPropertyKeys.add(propertyKey);
+            List<PropertyKey> parentProperties =
+                    parentPropertiesByChildProperty.getOrDefault(propertyKey,
+                            List.of(new PropertyKey(null, propertyKey.propertyName())));
+            for (PropertyKey parentPropertyKey : parentProperties)
+                extendProperty(parentPropertyKey.modeName() == null ?
+                                defaultPropertyByName.get(parentPropertyKey.propertyName()) :
+                                propertyByKey.get(parentPropertyKey),
+                        propertyByKey.get(propertyKey));
+            for (Map.Entry<PropertyKey, List<PropertyKey>> entry :
+                    parentPropertiesByChildProperty.entrySet())
+                if (entry.getValue().contains(propertyKey) &&
+                    !extendedPropertyKeys.contains(entry.getKey()) &&
+                    extendedPropertyKeys.containsAll(entry.getValue()))
+                    extendablePropertyKeys.add(entry.getKey());
+        }
         for (PropertyKey propertyKey : propertyByKey.keySet())
-            if (!alreadyBuiltPropertyNodeKeys.contains(propertyKey))
+            if (!extendedPropertyKeys.contains(propertyKey))
                 throw new IllegalArgumentException(
                         "Found property dependency cycle involving property key " +
                         propertyKey);
-        for (PropertyNode rootPropertyNode : rootPropertyNodes) {
-            recursivelyExtendProperty(
-                    defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
-                    rootPropertyNode, propertyByKey, referencedModesByReferencerMode);
-        }
         // Cascades font-color mutations to the focused, selected and prefix variants,
         // except where the configuration sets them explicitly.
         for (ModeBuilder mode : modeByName.values())
@@ -927,8 +947,7 @@ public class ConfigurationParser {
 
     private static void parseLine(String group2, ModeBuilder mode, String propertyKey,
                                   String propertyValue,
-                                  Map<String, Set<String>> childModesByParentMode,
-                                  Set<String> nonRootModes,
+                                  Map<String, List<String>> parentModesByChildMode,
                                   Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty,
                                   Set<PropertyKey> nonRootPropertyKeys,
                                   Map<String, Set<String>> referencedModesByReferencerMode,
@@ -943,8 +962,7 @@ public class ConfigurationParser {
                                   Map<String, Set<ScreenFilter>> screenFilterAliases) {
         if (group2 == null) {
             // Mode reference.
-            parseModeReference(propertyKey, propertyValue, childModesByParentMode,
-                    nonRootModes);
+            parseModeReference(propertyKey, propertyValue, parentModesByChildMode);
             return;
         }
         final int group3 = 4;
@@ -1642,22 +1660,21 @@ public class ConfigurationParser {
     }
 
     private static void parseModeReference(String propertyKey, String propertyValue,
-                                           Map<String, Set<String>> childModesByParentMode,
-                                           Set<String> nonRootModes) {
+                                           Map<String, List<String>> parentModesByChildMode) {
         String propertyKeyMode = propertyKey;
-        // x-mode=normal-mode
-        String propertyValueMode = propertyValue;
-        if (propertyValueMode.equals(propertyKeyMode))
-            throw new IllegalArgumentException(
-                    "Invalid mode reference " + propertyKey + "=" +
-                    propertyValue + ": a mode cannot reference itself");
-        if (!propertyValueMode.endsWith("-mode"))
-            throw new IllegalArgumentException(
-                    "Invalid parent mode name " + propertyValueMode +
-                    ": mode names should end with -mode");
-        childModesByParentMode.computeIfAbsent(propertyValueMode,
-                mode -> new HashSet<>()).add(propertyKeyMode);
-        nonRootModes.add(propertyKeyMode);
+        // x-mode=normal-mode y-mode
+        for (String propertyValueMode : propertyValue.split("\\s+")) {
+            if (propertyValueMode.equals(propertyKeyMode))
+                throw new IllegalArgumentException(
+                        "Invalid mode reference " + propertyKey + "=" +
+                        propertyValue + ": a mode cannot reference itself");
+            if (!propertyValueMode.endsWith("-mode"))
+                throw new IllegalArgumentException(
+                        "Invalid parent mode name " + propertyValueMode +
+                        ": mode names should end with -mode");
+            parentModesByChildMode.computeIfAbsent(propertyKeyMode,
+                    mode -> new ArrayList<>()).add(propertyValueMode);
+        }
     }
 
 
@@ -2111,10 +2128,7 @@ public class ConfigurationParser {
         return modeNameReference;
     }
 
-    private static void recursivelyExtendProperty(Property<?> parentProperty, PropertyNode propertyNode,
-                                                  Map<PropertyKey, Property<?>> propertyByKey,
-                                                  Map<String, Set<String>> referencedModesByReferencerMode) {
-        Property<?> property = propertyByKey.get(propertyNode.propertyKey);
+    private static void extendProperty(Property<?> parentProperty, Property<?> property) {
         // I believe there are some valid use cases for inheritance chains:
         // hint2-2-then-click-mode.hint -> hint2-2-mode.hint -> hint1.mode.hint
 /*
@@ -2162,39 +2176,6 @@ public class ConfigurationParser {
                 }
             }
         }
-        for (PropertyNode childPropertyNode : propertyNode.childProperties)
-            recursivelyExtendProperty(property, childPropertyNode, propertyByKey,
-                    referencedModesByReferencerMode);
-    }
-
-    private static PropertyNode recursivelyBuildPropertyNode(PropertyKey propertyKey,
-                                                             Map<PropertyKey, Set<PropertyKey>> childPropertiesByParentProperty,
-                                                             Map<String, Set<String>> childModesByParentMode,
-                                                             Set<PropertyKey> nonRootPropertyKeys,
-                                                             Set<PropertyKey> alreadyBuiltPropertyNodeKeys) {
-        if (!alreadyBuiltPropertyNodeKeys.add(propertyKey))
-            throw new IllegalArgumentException(
-                    "Found property dependency cycle involving property key " +
-                    propertyKey);
-        List<PropertyNode> childrenProperties = new ArrayList<>();
-        Set<PropertyKey> childPropertyKeys = new HashSet<>();
-        Set<String> childModes = childModesByParentMode.getOrDefault(propertyKey.modeName, Set.of());
-        for (String childMode : childModes) {
-            // x2-mode=x1-mode
-            // x2-mode.to=y-mode.to
-            // x2-mode should not have any of the x1-mode.to. Instead, x2-mode.to should be exactly y-mode.to.
-            // Assuming that here, propertyKey.modeName == x1-mode,
-            // Only create childPropertyKey(x2-mode, to) if there is no x2-mode.to=y-mode.to
-            PropertyKey childPropertyKey = new PropertyKey(childMode, propertyKey.propertyName);
-            if (!nonRootPropertyKeys.contains(childPropertyKey))
-                childPropertyKeys.add(childPropertyKey);
-        }
-        childPropertyKeys.addAll(childPropertiesByParentProperty.getOrDefault(propertyKey, Set.of()));
-        for (PropertyKey childPropertyKey : childPropertyKeys)
-            childrenProperties.add(recursivelyBuildPropertyNode(childPropertyKey,
-                    childPropertiesByParentProperty, childModesByParentMode,
-                    nonRootPropertyKeys, alreadyBuiltPropertyNodeKeys));
-        return new PropertyNode(propertyKey, childrenProperties);
     }
 
     private static ModeNode recursivelyBuildReferenceNode(String modeName,
@@ -3238,9 +3219,6 @@ public class ConfigurationParser {
     private record ModeNode(String modeName, List<ModeNode> referencedModes) {
     }
 
-    private record PropertyNode(PropertyKey propertyKey,
-                                List<PropertyNode> childProperties) {
-    }
 
     @SuppressWarnings("unchecked")
     private static final class ModeBuilder {

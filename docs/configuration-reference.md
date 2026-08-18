@@ -126,6 +126,15 @@ slow-mode.indicator=normal-mode.indicator
 slow-mode.indicator.color=#0000FF  # Override just this property
 ```
 
+A mode can also inherit everything from one or more other modes:
+```properties
+slow-mode=_indicator-mode _clipboard-mode
+```
+
+The mode's own properties come first, then each parent in turn: the first one to define a
+property keeps it. A property that names its own source (`slow-mode.indicator=other-mode.indicator`)
+takes it from there instead of from any parent.
+
 ### Common mode types
 
 While you can create any modes you need, these are common in many configurations:
