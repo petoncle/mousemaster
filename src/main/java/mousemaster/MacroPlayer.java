@@ -21,6 +21,7 @@ public class MacroPlayer {
     private final KeyboardController keyboard;
     private final List<ResolvedMacro> macrosToExecute = new ArrayList<>();
     private MacroInProgress macroInProgress;
+    private final List<MacroInProgress> virtualKeyMacrosInProgress = new ArrayList<>();
     private final Set<Key> keysPressedByMacro = new HashSet<>();
     /**
      * Used to prevent keyReleasedNotEaten from removing a key that was just pressed
@@ -75,11 +76,30 @@ public class MacroPlayer {
     }
 
     public void submit(ResolvedMacro macro) {
+        // A macro that only presses and releases virtual keys sends nothing to the OS, so it
+        // waits on its own clock instead of taking a turn: the others are not held back by it,
+        // and pressing the same one again starts it over.
+        if (allVirtualKeyMoves(macro)) {
+            virtualKeyMacrosInProgress.removeIf(
+                    inProgress -> inProgress.macro.name().equals(macro.name()));
+            virtualKeyMacrosInProgress.add(new MacroInProgress(macro));
+            return;
+        }
         macrosToExecute.add(macro);
         // Execute the first parallel immediately (without waiting for the next update tick)
         // if it contains only OS-destination key moves. ComboWatcher-destination moves are
         // deferred because the combo watcher state may not be fully settled yet.
         tryExecuteFirstParallelImmediately();
+    }
+
+    private static boolean allVirtualKeyMoves(ResolvedMacro macro) {
+        return macro.output()
+                    .parallels()
+                    .stream()
+                    .flatMap(parallel -> parallel.moves().stream())
+                    .allMatch(move -> move instanceof ResolvedKeyMacroMove keyMove &&
+                                      keyMove.destination() ==
+                                      MacroMoveDestination.COMBO_WATCHER);
     }
 
     private void tryExecuteFirstParallelImmediately() {
@@ -122,6 +142,12 @@ public class MacroPlayer {
     }
 
     public void reset() {
+        // What is left of a virtual key macro is its releases: play them, or the keys it
+        // pressed stay pressed for good.
+        for (MacroInProgress inProgress : List.copyOf(virtualKeyMacrosInProgress))
+            while (advance(inProgress, inProgress.remainingWait))
+                ;
+        virtualKeyMacrosInProgress.clear();
         macrosToExecute.clear();
         macroInProgress = null;
         keysPressedByMacro.clear();
@@ -221,6 +247,10 @@ public class MacroPlayer {
     }
 
     public void update(double delta) {
+        // A played move can complete a combo, which can submit a macro.
+        for (MacroInProgress inProgress : List.copyOf(virtualKeyMacrosInProgress))
+            if (!advance(inProgress, delta))
+                virtualKeyMacrosInProgress.remove(inProgress);
         if (macroInProgress == null && !macrosToExecute.isEmpty()) {
             macroInProgress = new MacroInProgress(macrosToExecute.removeFirst());
             ResolvedMacroParallel firstParallel = macroInProgress.macro.output().parallels().getFirst();
@@ -229,22 +259,26 @@ public class MacroPlayer {
         }
         if (macroInProgress == null)
             return;
-        macroInProgress.remainingWait -= delta;
-        if (macroInProgress.remainingWait <= 0) {
-            if (macroInProgress.currentIndex ==
-                macroInProgress.macro.output().parallels().size() - 1) {
-                macroInProgress = null;
-                processDeferredReleases();
-                return;
-            }
-            macroInProgress.currentIndex++;
-            macroInProgress.remainingWait =
-                    macroInProgress.currentParallel().duration().toNanos() / 1e9;
-            ResolvedMacroParallel parallel = macroInProgress.currentParallel();
-            logger.debug("Executing macro parallel: " + parallel);
-            if (!parallel.moves().isEmpty())
-                executeParallel(parallel);
+        if (!advance(macroInProgress, delta)) {
+            macroInProgress = null;
+            processDeferredReleases();
         }
+    }
+
+    /** Plays the parallel the wait was for, and returns false once there is none left. */
+    private boolean advance(MacroInProgress inProgress, double delta) {
+        inProgress.remainingWait -= delta;
+        if (inProgress.remainingWait > 0)
+            return true;
+        if (inProgress.currentIndex == inProgress.macro.output().parallels().size() - 1)
+            return false;
+        inProgress.currentIndex++;
+        ResolvedMacroParallel parallel = inProgress.currentParallel();
+        inProgress.remainingWait = parallel.duration().toNanos() / 1e9;
+        logger.debug("Executing macro parallel: " + parallel);
+        if (!parallel.moves().isEmpty())
+            executeParallel(parallel);
+        return true;
     }
 
     private void executeParallel(ResolvedMacroParallel parallel) {
