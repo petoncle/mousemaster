@@ -34,23 +34,18 @@ public class IndicatorManager implements ModeListener {
         allowFade = true;
     }
 
-    /** Rendered by the tick, so the mode changes of an iteration and its animation frame
-     *  cost one render between them instead of one each. */
+    /** Only the transition starts here: the frames are painted by the tick, so the mode
+     *  changes of an iteration and its animation frame cost one render between them instead
+     *  of one each. */
     @Override
     public void modeChanged(Mode newMode) {
         // Skip the fade animation when the zoom is about to change.
         allowFade &= currentMode == null || currentMode.zoom().equals(newMode.zoom());
         currentMode = newMode;
-    }
-
-    private void updateIndicator(boolean allowFade) {
-        IndicatorConfiguration newIndicator = currentMode.indicator();
-        if (!newIndicator.enabled()) {
-            currentIndicator = null;
-            overlay.hideIndicator(allowFade);
+        IndicatorConfiguration newIndicator = newMode.indicator();
+        if (newIndicator.equals(currentIndicator))
             return;
-        }
-        if (currentIndicator != null && !currentIndicator.equals(newIndicator)) {
+        if (currentIndicator != null) {
             // Start from what is on screen, with the colors currentIndicator was switching to.
             // Without them, a mode switching faster than a transition lasts keeps the first.
             transitionFromIndicator = eased(currentIndicator).switching(currentIndicator);
@@ -69,7 +64,15 @@ public class IndicatorManager implements ModeListener {
             }
         }
         currentIndicator = newIndicator;
-        overlay.setIndicator(swollen(eased(newIndicator)), allowFade,
+    }
+
+    private void updateIndicator(boolean allowFade) {
+        if (!currentMode.indicator().enabled()) {
+            currentIndicator = null;
+            overlay.hideIndicator(allowFade);
+            return;
+        }
+        overlay.setIndicator(swollen(eased(currentIndicator)), allowFade,
                 !currentMode.hideCursor().enabled());
     }
 

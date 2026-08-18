@@ -217,6 +217,22 @@ class IndicatorTransitionAnimationTest {
         assertEquals(List.of("#00FF00 40", "#00FF00 30", "#FF0000 20"), colorsAndSizes());
     }
 
+    /** A click that presses and releases within one iteration changes the mode twice before
+     *  anything is rendered, and must still swell. */
+    @Test
+    void theSizeSwellsWhenBothModeChangesLandBetweenTwoFrames() {
+        ModeMap sameSize = sameSizeWithOvershoot();
+        changeMode(sameSize.get("normal-mode"));
+        shown.clear();
+
+        indicatorManager.modeChanged(sameSize.get(Mode.IDLE_MODE_NAME));
+        indicatorManager.modeChanged(sameSize.get("normal-mode"));
+        tick(0);
+        tick(0.05);
+        tick(0.05);
+        assertEquals(List.of(20, 30, 40), sizes());
+    }
+
     /** A click is over before the next tick, so the swell must run on beyond the transition
      *  that started it, all the way through its fall. */
     @Test
