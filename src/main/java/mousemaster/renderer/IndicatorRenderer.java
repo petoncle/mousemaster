@@ -82,10 +82,17 @@ public final class IndicatorRenderer {
                          Math.abs(indicator.shadow().verticalOffset()))) * scale);
     }
 
+    private int indicatorWindowSize(IndicatorConfiguration indicator, double screenScale) {
+        return indicatorSize(indicator, screenScale) +
+               2 * (indicatorOutlinePadding(indicator, screenScale) +
+                    indicatorShadowPadding(indicator, screenScale));
+    }
+
     /** Shows/updates the indicator: detects what changed, repositions when needed, and
      *  renders. The overlay supplies the cursor rectangle, its visual center, and the
      *  active screen and zoom. */
-    public void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
+    public void setIndicator(IndicatorConfiguration indicator,
+                             IndicatorConfiguration transitionTo, boolean allowFade,
                              Rectangle mouseRectangle, Point cursorVisualCenter,
                              Screen activeScreen, Zoom zoom) {
         IndicatorConfiguration oldIndicator = currentIndicator;
@@ -116,6 +123,10 @@ public final class IndicatorRenderer {
             applyShadow = sizeOrShadowChanged;
             sizeOrShadowOrPositionChanged = sizeOrShadowChanged || positionChanged;
         }
+        // The window fits the indicator the transition ends on before its frames get there, so
+        // that it is not resized frame after frame.
+        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize,
+                indicatorWindowSize(transitionTo, activeScreen.scale()));
         // Position the (hidden) window before showIndicator shows it.
         if (created || sizeOrShadowOrPositionChanged)
             reposition(indicator, mouseRectangle, cursorVisualCenter, activeScreen, zoom);
@@ -140,7 +151,7 @@ public final class IndicatorRenderer {
         int visualSize = size + 2 * outlinePadding;
         Point topLeft = indicatorTopLeft(mouseRectangle, cursorVisualCenter, activeScreen,
                 zoom, indicator, visualSize);
-        moveAndResize(indicator, activeScreen, (int) Math.round(topLeft.x()),
+        moveAndResize(activeScreen, (int) Math.round(topLeft.x()),
                 (int) Math.round(topLeft.y()), size, outlinePadding, shadowPadding,
                 screenScale);
     }
@@ -362,20 +373,19 @@ public final class IndicatorRenderer {
     }
 
     /** Moves and resizes the window + widgets to the computed visual top-left and sizes. */
-    private void moveAndResize(IndicatorConfiguration indicator, Screen activeScreen,
-                              int visualTopLeftX, int visualTopLeftY,
-                              int size, int outlinePadding, int shadowPadding,
-                              double outlineScale) {
+    private void moveAndResize(Screen activeScreen,
+                               int visualTopLeftX, int visualTopLeftY,
+                               int size, int outlinePadding, int shadowPadding,
+                               double outlineScale) {
         widget.setOutlineScale(outlineScale);
         // Never resize the window: the DWM compositor would show the old surface at the new
-        // size for one frame, mispositioning the indicator. It is sized for the swell to come
-        // and never shrinks; the extra area is transparent and the visible indicator stays at
+        // size for one frame, mispositioning the indicator. It fits the largest indicator drawn
+        // so far; the extra area is transparent and the visible indicator stays at
         // visualTopLeft regardless.
         int totalPadding = outlinePadding + shadowPadding;
         int widgetSize = size + 2 * outlinePadding;
         int windowSize = size + 2 * totalPadding;
-        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize, (int) Math.ceil(
-                windowSize * Math.max(1, indicator.transitionAnimationOvershoot())));
+        maxIndicatorWindowSize = Math.max(maxIndicatorWindowSize, windowSize);
         windowSize = maxIndicatorWindowSize;
         window.moveAndResizeInPixels(activeScreen,
                 visualTopLeftX + widgetSize / 2 - windowSize / 2,

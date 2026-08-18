@@ -125,13 +125,14 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
+    public void setIndicator(IndicatorConfiguration indicator,
+                             IndicatorConfiguration transitionTo, boolean allowFade,
                              boolean includeCursorGlyph) {
         if (indicatorRenderer == null)
             createIndicatorWindow();
         QPoint mousePosition = mouse.findMousePosition();
         Screen activeScreen = MacosScreens.findActiveScreen(mousePosition);
-        indicatorRenderer.setIndicator(indicator, allowFade,
+        indicatorRenderer.setIndicator(indicator, transitionTo, allowFade,
                 cursorRectangle(mousePosition, activeScreen),
                 cursorVisualCenter(activeScreen), activeScreen, null);
     }

@@ -343,8 +343,9 @@ public class WindowsOverlay implements Overlay {
     }
 
     @Override
-    public void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
-                                    boolean includeCursorGlyph) {
+    public void setIndicator(IndicatorConfiguration indicator,
+                             IndicatorConfiguration transitionTo, boolean allowFade,
+                             boolean includeCursorGlyph) {
         Objects.requireNonNull(indicator);
         boolean renderAsCursor = indicator.renderAsCursor();
         if (!renderAsCursor && !indicatorIsCursor && indicatorRenderer != null &&
@@ -386,7 +387,7 @@ public class WindowsOverlay implements Overlay {
         if (indicatorHwnd == null)
             createIndicatorWindow();
         boolean wasShowing = indicatorRenderer.showing();
-        indicatorRenderer.setIndicator(indicator, allowFade,
+        indicatorRenderer.setIndicator(indicator, transitionTo, allowFade,
                 mouseRectangle(mousePosition), mouse.cursorVisualCenter(),
                 WindowsScreen.findActiveScreen(mousePosition), currentZoom);
         if (!wasShowing)

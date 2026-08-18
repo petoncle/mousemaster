@@ -28,8 +28,10 @@ public interface Overlay {
                                     int topInset, int bottomInset,
                                     int leftInset, int rightInset);
 
-    void setIndicator(IndicatorConfiguration indicator, boolean allowFade,
-                      boolean includeCursorGlyph);
+    /** {@code indicator} is what to draw now, {@code transitionTo} what it is animating to:
+     *  the window is made big enough for both and never shrinks, so it is never resized. */
+    void setIndicator(IndicatorConfiguration indicator, IndicatorConfiguration transitionTo,
+                      boolean allowFade, boolean includeCursorGlyph);
 
     void hideIndicator(boolean allowFade);
 
