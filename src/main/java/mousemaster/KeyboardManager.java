@@ -35,7 +35,7 @@ public class KeyboardManager {
      * key releases so that briefly-pressed unhandled keys are not missed by the
      * poll-based check in ModeController.update().
      */
-    private boolean hadUnhandledKeyPressInCurrentMode;
+    private boolean unhandledKeyJustPressedInCurrentMode;
 
     private record Eat(boolean released, PressKeyEventProcessingSet processingSet) {
     }
@@ -93,7 +93,7 @@ public class KeyboardManager {
         regurgitatePressedKeys();
         currentlyPressedKeys.clear();
         eatenKeys.clear();
-        hadUnhandledKeyPressInCurrentMode = false;
+        unhandledKeyJustPressedInCurrentMode = false;
         comboWatcher.reset();
         macroPlayer.reset();
     }
@@ -150,7 +150,7 @@ public class KeyboardManager {
                 }
                 currentlyPressedKeys.put(key, processingSet);
                 if (pressingUnhandledKeyInCurrentMode())
-                    hadUnhandledKeyPressInCurrentMode = true;
+                    unhandledKeyJustPressedInCurrentMode = true;
                 macroPlayer.clearEarlyRelease(key);
                 macroPlayer.clearDeferredRelease(key);
                 if (processingSet.mustBeEaten()) {
@@ -425,12 +425,12 @@ public class KeyboardManager {
         return false;
     }
 
-    public boolean pollHadUnhandledKeyPressInCurrentMode() {
+    public boolean pollUnhandledKeyJustPressedInCurrentMode() {
         try {
-            return hadUnhandledKeyPressInCurrentMode;
+            return unhandledKeyJustPressedInCurrentMode;
         }
         finally {
-            hadUnhandledKeyPressInCurrentMode = false;
+            unhandledKeyJustPressedInCurrentMode = false;
         }
     }
 

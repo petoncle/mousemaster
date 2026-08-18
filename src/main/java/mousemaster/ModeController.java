@@ -49,10 +49,10 @@ public class ModeController {
         Mode mutatedMode = comboWatcher.getMutatedMode();
         // The flag catches briefly-pressed unhandled keys that are released before this poll.
         // The poll catches held keys that become unhandled due to a mode change (no key event to set the flag).
-        boolean hadUnhandledKeyPress =
-                keyboardState.pollHadUnhandledKeyPressInCurrentMode();
+        boolean unhandledKeyWasJustPressed =
+                keyboardState.pollUnhandledKeyJustPressedInCurrentMode();
         if (keyboardState.pressingUnhandledKeyInCurrentMode() ||
-            hadUnhandledKeyPress) {
+            unhandledKeyWasJustPressed) {
             if (mutatedMode.modeAfterUnhandledKeyPress() != null) {
                 logger.debug("Unhandled key press, switching to " +
                              mutatedMode.modeAfterUnhandledKeyPress());
@@ -109,7 +109,7 @@ public class ModeController {
     }
 
     public void switchMode(String newModeName) {
-        keyboardState.pollHadUnhandledKeyPressInCurrentMode();
+        keyboardState.pollUnhandledKeyJustPressedInCurrentMode();
         Mode newMode;
         Mode previousMode = modeHistoryStack.peek();
         if (newModeName.equals(Mode.PREVIOUS_MODE_FROM_HISTORY_STACK_IDENTIFIER)) {
