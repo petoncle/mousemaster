@@ -508,6 +508,24 @@ public class ConfigurationParser {
                     childPropertiesByParentProperty,
                     childModesByParentMode, nonRootPropertyKeys,
                     alreadyBuiltPropertyNodeKeys));
+        for (Map.Entry<PropertyKey, Set<PropertyKey>> entry :
+                childPropertiesByParentProperty.entrySet())
+            if (!propertyByKey.containsKey(entry.getKey()))
+                throw new IllegalArgumentException(
+                        entry.getValue() + " references " + entry.getKey() +
+                        ", which is not defined");
+        for (Map.Entry<String, Set<String>> entry : childModesByParentMode.entrySet())
+            if (!modeByName.containsKey(entry.getKey()))
+                throw new IllegalArgumentException(
+                        entry.getValue() + " extends mode " + entry.getKey() +
+                        ", which is not defined");
+        // A cycle has no root, so it is not reached from one and the guard in
+        // recursivelyBuildPropertyNode never sees it.
+        for (PropertyKey propertyKey : propertyByKey.keySet())
+            if (!alreadyBuiltPropertyNodeKeys.contains(propertyKey))
+                throw new IllegalArgumentException(
+                        "Found property dependency cycle involving property key " +
+                        propertyKey);
         for (PropertyNode rootPropertyNode : rootPropertyNodes) {
             recursivelyExtendProperty(
                     defaultPropertyByName.get(rootPropertyNode.propertyKey.propertyName),
