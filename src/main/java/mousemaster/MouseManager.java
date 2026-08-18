@@ -20,6 +20,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
     private final Deque<Boolean> xMoveForwardStack = new ArrayDeque<>();
     private final Deque<Boolean> yMoveForwardStack = new ArrayDeque<>();
     private boolean leftPressing, middlePressing, rightPressing;
+    private boolean leftJustPressed, middleJustPressed, rightJustPressed;
     private double wheelDuration;
     private final Deque<Boolean> xWheelForwardStack = new ArrayDeque<>();
     private final Deque<Boolean> yWheelForwardStack = new ArrayDeque<>();
@@ -60,6 +61,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
         xMoveForwardStack.clear();
         yMoveForwardStack.clear();
         leftPressing = middlePressing = rightPressing = false;
+        leftJustPressed = middleJustPressed = rightJustPressed = false;
         wheelDuration = 0;
         xWheelForwardStack.clear();
         yWheelForwardStack.clear();
@@ -85,15 +87,15 @@ public class MouseManager implements ModeListener, MousePositionListener {
     }
 
     public boolean leftPressing() {
-        return leftPressing;
+        return leftPressing || leftJustPressed;
     }
 
     public boolean middlePressing() {
-        return middlePressing;
+        return middlePressing || middleJustPressed;
     }
 
     public boolean rightPressing() {
-        return rightPressing;
+        return rightPressing || rightJustPressed;
     }
 
     boolean wheeling() {
@@ -110,6 +112,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
     }
 
     public void update(double delta) {
+        leftJustPressed = middleJustPressed = rightJustPressed = false;
         if (activelyMoving()) {
             mouseController.beginMove();
             moveDuration += delta;
@@ -497,7 +500,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
         if (leftPressing)
             return;
         releaseAll();
-        leftPressing = true;
+        leftPressing = leftJustPressed = true;
         mouseController.pressLeft();
     }
 
@@ -505,7 +508,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
         if (middlePressing)
             return;
         releaseAll();
-        middlePressing = true;
+        middlePressing = middleJustPressed = true;
         mouseController.pressMiddle();
     }
 
@@ -513,7 +516,7 @@ public class MouseManager implements ModeListener, MousePositionListener {
         if (rightPressing)
             return;
         releaseAll();
-        rightPressing = true;
+        rightPressing = rightJustPressed = true;
         mouseController.pressRight();
     }
 

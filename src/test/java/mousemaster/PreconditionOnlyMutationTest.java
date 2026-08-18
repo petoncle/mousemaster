@@ -1,8 +1,10 @@
 package mousemaster;
 
 import mousemaster.platform.ActiveAppFinder;
+import mousemaster.platform.MouseController;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -71,7 +73,7 @@ class PreconditionOnlyMutationTest {
 
     /** Sets the mouse and keyboard keys the way ModeController does, for a left click. */
     private void leftClick() {
-        comboWatcher.updateMouseAndKeyboardKeys(new MouseState(null) {
+        setMouseAndKeyboardKeys(new MouseState(null) {
             @Override
             public boolean moving() {
                 return false;
@@ -96,7 +98,11 @@ class PreconditionOnlyMutationTest {
             public boolean rightPressing() {
                 return false;
             }
-        }, new KeyboardState(null) {
+        });
+    }
+
+    private void setMouseAndKeyboardKeys(MouseState mouseState) {
+        comboWatcher.updateMouseAndKeyboardKeys(mouseState, new KeyboardState(null) {
             @Override
             public boolean pressingUnhandledKeyInCurrentMode() {
                 return false;
@@ -104,8 +110,25 @@ class PreconditionOnlyMutationTest {
         });
     }
 
+    private MouseManager mouseManager() {
+        Screen screen = new Screen(new Rectangle(0, 0, 1920, 1080), 96, 1);
+        return new MouseManager(new ScreenManager(() -> Set.of(screen)),
+                (MouseController) Proxy.newProxyInstance(
+                        MouseController.class.getClassLoader(),
+                        new Class<?>[] {MouseController.class},
+                        (proxy, method, args) -> null));
+    }
+
     private String hexColor() {
         return comboWatcher.getMutatedMode().indicator().hexColor();
+    }
+
+    private int size() {
+        return comboWatcher.getMutatedMode().indicator().size();
+    }
+
+    private double opacity() {
+        return comboWatcher.getMutatedMode().indicator().opacity();
     }
 
     @Test
@@ -149,6 +172,32 @@ class PreconditionOnlyMutationTest {
         assertEquals(1, notifiedModes.size(), "notified " + notifiedModes.size() + " times");
         assertEquals(50, notifiedModes.getFirst().indicator().size());
         assertEquals("#00FF00", notifiedModes.getFirst().indicator().hexColor());
+    }
+
+    /** A hint mode's click presses and releases within one iteration, and the mouse state is
+     *  read once an iteration, so the press has to outlive its release to be seen at all. */
+    @Test
+    void aClickReleasedWithinOneIterationIsStillPressing() {
+        load("idle-mode.indicator.size=26 | _{ismousepressing} -> 50",
+                "idle-mode.indicator.color=#FF0000 | _{isleftmousepressing} -> #00FF00",
+                "idle-mode.indicator.opacity=1 | _{isidling} -> 0.5");
+        MouseManager mouseManager = mouseManager();
+        MouseState mouseState = new MouseState(mouseManager);
+        setMouseAndKeyboardKeys(mouseState);
+        assertEquals(0.5, opacity());
+
+        mouseManager.pressLeft();
+        mouseManager.releaseLeft();
+        setMouseAndKeyboardKeys(mouseState);
+        assertEquals(50, size());
+        assertEquals("#00FF00", hexColor());
+        assertEquals(1, opacity(), "a click is not idling");
+
+        mouseManager.update(0.01);
+        setMouseAndKeyboardKeys(mouseState);
+        assertEquals(26, size());
+        assertEquals("#FF0000", hexColor());
+        assertEquals(0.5, opacity());
     }
 
     @Test
