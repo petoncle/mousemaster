@@ -439,6 +439,11 @@ public class ConfigurationParser {
                             propertyKey.substring("variable.".length()));
                 continue;
             }
+            else if (propertyKey.equals("virtual-keys") ||
+                     propertyKey.startsWith("virtual-key.")) {
+                // Read by parseDeclaredVirtualKeyNames, before the keys are resolved.
+                continue;
+            }
             // a-mode.hint.grid-cell-width
             // a-mode.hint.grid-cell-width.1920x1080-100%
             Pattern modeKeyPattern =
@@ -795,14 +800,33 @@ public class ConfigurationParser {
             Matcher lineMatcher = propertyLinePattern.matcher(property);
             if (!lineMatcher.matches())
                 continue;
-            if (!lineMatcher.group(1).strip().equals("virtual-keys"))
+            String propertyKey = lineMatcher.group(1).strip();
+            if (propertyKey.startsWith("virtual-key.")) {
+                String name = propertyKey.substring("virtual-key.".length());
+                String state = lineMatcher.group(2).strip();
+                if (!state.equals("pressed") && !state.equals("released"))
+                    throw new IllegalArgumentException(
+                            "Invalid virtual key state " + propertyKey + "=" + state +
+                            ": expected pressed or released");
+                if (!names.add(name))
+                    throw new IllegalArgumentException(
+                            "Virtual key " + name + " is declared twice");
+                if (state.equals("pressed"))
+                    initiallyPressed.add(name);
                 continue;
+            }
+            if (!propertyKey.equals("virtual-keys"))
+                continue;
+            logger.warn(
+                    "virtual-keys has been deprecated: use virtual-key.<name>=pressed or released instead");
             for (String token : lineMatcher.group(2).strip().split("\\s+")) {
                 if (token.isEmpty())
                     continue;
                 boolean pressed = token.startsWith("+");
                 String name = pressed || token.startsWith("-") ? token.substring(1) : token;
-                names.add(name);
+                if (!names.add(name))
+                    throw new IllegalArgumentException(
+                            "Virtual key " + name + " is declared twice");
                 if (pressed)
                     initiallyPressed.add(name);
             }

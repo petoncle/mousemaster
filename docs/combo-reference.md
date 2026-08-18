@@ -435,19 +435,14 @@ A virtual key is a key with no hardware behind it, declared in the configuration
 
 ### Declaring virtual keys
 
-`virtual-keys` is a global, space-separated list:
+Each virtual key is declared on its own line, stating whether it starts pressed or released:
 
 ```properties
-virtual-keys=iszoom isslow
+virtual-key.iszoom=released
+virtual-key.showkeys=pressed
 ```
 
-A virtual key can never be produced by hardware, is never sent to the OS, and can only be pressed by a macro. Declaring it keeps typo detection: an undeclared unknown key name is still rejected at load time.
-
-A virtual key starts released. Prefix its name with `+` to have it pressed from the start; `-` is the explicit form of the default:
-
-```properties
-virtual-keys=iszoom +showkeys -isslow
-```
+The line can sit anywhere, so put it next to the macros that press the key. A virtual key can never be produced by hardware, is never sent to the OS, and can only be pressed by a macro. Declaring it keeps typo detection: an undeclared unknown key name is still rejected at load time.
 
 ### Pressing and releasing
 
