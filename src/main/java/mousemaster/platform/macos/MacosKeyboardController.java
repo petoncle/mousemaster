@@ -4,6 +4,7 @@ import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import mousemaster.Key;
+import mousemaster.KeyRedaction;
 import mousemaster.KeyboardLayout;
 import mousemaster.MacroMoveDestination;
 import mousemaster.ResolvedKeyMacroMove;
@@ -24,7 +25,7 @@ public class MacosKeyboardController implements KeyboardController {
             LoggerFactory.getLogger(MacosKeyboardController.class);
 
     public KeyboardLayout activeKeyboardLayout;
-    public boolean logRedactKeys;
+    public KeyRedaction keyRedaction;
 
     private record SendInputMove(ResolvedMacroMove move, boolean startRepeat) {}
 
@@ -201,8 +202,8 @@ public class MacosKeyboardController implements KeyboardController {
         event.code = hidUsage.usage;
         int result = Driverkit.INSTANCE.send_key(event);
         if (result != 0)
-            logger.debug("Unable to send " +
-                         (logRedactKeys ? "<redacted>" : (press ? "+" : "-") + key) +
+            logger.debug("Unable to send " + (press ? "+" : "-") +
+                         keyRedaction.key(key) +
                          ", send_key returned " + result);
         return result == 0;
     }

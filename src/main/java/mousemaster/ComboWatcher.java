@@ -30,7 +30,7 @@ public class ComboWatcher {
     private final ScreenManager screenManager;
     private final Clock clock;
     private final Set<Key> pressedComboPreconditionKeys;
-    private final boolean logRedactKeys;
+    private final KeyRedaction keyRedaction;
     private final Set<Key> unpressedComboPreconditionKeys;
     private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
     private final Map<Mode, Set<Key>> sequenceKeysByMode;
@@ -177,7 +177,7 @@ public class ComboWatcher {
                         ScreenManager screenManager,
                         Clock clock,
                         Set<Key> unpressedComboPreconditionKeys,
-                        Set<Key> pressedComboPreconditionKeys, boolean logRedactKeys,
+                        Set<Key> pressedComboPreconditionKeys, KeyRedaction keyRedaction,
                         ModeMap modeMap, Set<String> initiallySetVariables,
                         Set<Key> virtualKeys, Set<Key> initiallyPressedVirtualKeys) {
         this.currentlyPressedComboKeys.addAll(initiallyPressedVirtualKeys);
@@ -204,7 +204,7 @@ public class ComboWatcher {
                 unpressedComboPreconditionKeys;
         this.pressedComboPreconditionKeys =
                 pressedComboPreconditionKeys;
-        this.logRedactKeys = logRedactKeys;
+        this.keyRedaction = keyRedaction;
         this.comboPreparationRetainDurationByMode = comboPreparationRetainDurationByMode(modeMap);
         this.comboPreparationMinRetainEventCountByMode = comboPreparationMinRetainEventCountByMode(modeMap);
         for (Mode mode : modeMap.modes()) {
@@ -1093,7 +1093,7 @@ public class ComboWatcher {
             if (event == null)
                 message.append(logTrigger.description);
             else {
-                message.append("Key ").append(logRedactKeys ? "<redacted>" : event);
+                message.append("Key ").append(keyRedaction.event(event));
                 if (logTrigger.description != null)
                     message.append(" (").append(logTrigger.description).append(')');
             }
@@ -1103,14 +1103,14 @@ public class ComboWatcher {
             List<Key> pressedKeys = currentlyPressedComboKeys.stream()
                                                              .filter(key -> !builtInVirtualKeys.contains(key))
                                                              .toList();
-            if (!logRedactKeys && !pressedKeys.isEmpty())
-                message.append(", pressed ").append(pressedKeys);
-            if (!logRedactKeys) {
-                if (logger.isTraceEnabled())
-                    message.append(", buffered ").append(comboPreparation);
-                else if (!comboPreparation.events().isEmpty())
-                    message.append(", buffered ").append(comboPreparation.events());
-            }
+            if (!pressedKeys.isEmpty())
+                message.append(", pressed ").append(keyRedaction.keys(pressedKeys));
+            if (logger.isTraceEnabled())
+                message.append(", buffered ")
+                       .append(keyRedaction.events(comboPreparation));
+            else if (!comboPreparation.events().isEmpty())
+                message.append(", buffered ")
+                       .append(keyRedaction.events(comboPreparation).events());
             appendCombos(message, "matching", processingByCombo.entrySet().stream()
                                                                .filter(e -> e.getValue()
                                                                              .isPartOfComboSequence())
@@ -1581,9 +1581,9 @@ public class ComboWatcher {
     public void breakComboPreparation() {
         if (logger.isDebugEnabled()) {
             StringBuilder message = new StringBuilder("Breaking combos, buffered ");
-            message.append(logRedactKeys ? "<redacted>" :
-                    logger.isTraceEnabled() ? comboPreparation.toString() :
-                    comboPreparation.events().toString());
+            message.append(logger.isTraceEnabled() ?
+                    keyRedaction.events(comboPreparation) :
+                    keyRedaction.events(comboPreparation).events());
             appendCombos(message, "waiting for last move",
                     combosWaitingForLastMoveToComplete.stream()
                                                       .map(waiting -> waiting.comboAndCommands()

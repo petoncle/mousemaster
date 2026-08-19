@@ -38,7 +38,7 @@ class ComboScreenFilterTest {
         ActiveAppFinder noApp = () -> new App("test.exe");
         comboWatcher = new ComboWatcher(null, null, noApp,
                 new ScreenManager(() -> Set.of(activeScreen)), (Clock) Instant::now,
-                Set.of(), Set.of(), false, configuration.modeMap(),
+                Set.of(), Set.of(), new KeyRedaction(false), configuration.modeMap(),
                 configuration.initiallySetVariables(), configuration.virtualKeys(),
                 configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {

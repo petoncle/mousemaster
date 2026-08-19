@@ -43,7 +43,7 @@ class PreconditionOnlyMutationTest {
         }
         comboWatcher = new ComboWatcher(null, null, noApp, null, clock,
                 unpressedPreconditionKeys, pressedPreconditionKeys,
-                false, modeMap, configuration.initiallySetVariables(),
+                new KeyRedaction(false), modeMap, configuration.initiallySetVariables(),
                 configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override

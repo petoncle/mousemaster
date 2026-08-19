@@ -159,6 +159,15 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
             // @formatter:on
     );
 
+    private static final Set<Key> characterTypingNamedKeys = Set.of(
+            // @formatter:off
+            space, tab, enter,
+            numpad0, numpad1, numpad2, numpad3, numpad4,
+            numpad5, numpad6, numpad7, numpad8, numpad9,
+            numpadmultiply, numpadadd, numpadsubtract, numpaddecimal, numpaddivide
+            // @formatter:on
+    );
+
     private static final Set<Key> keyboardLayoutDependentAliasedKeys = Set.of(
             // @formatter:off
             leftcurlybrace,
@@ -213,6 +222,10 @@ public record Key(String staticName, String staticSingleCharacterName, String ch
 
     public String name() {
         return staticName != null ? staticName : character;
+    }
+
+    public boolean typesCharacter() {
+        return character != null || characterTypingNamedKeys.contains(this);
     }
 
     public String hintLabel() {

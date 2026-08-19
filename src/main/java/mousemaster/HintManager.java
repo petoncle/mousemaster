@@ -23,7 +23,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Overlay overlay;
     private final UiAutomation uiAutomation;
     private final ActiveAppFinder activeAppFinder;
-    private final boolean logRedactKeys;
+    private final KeyRedaction keyRedaction;
     private ModeController modeController;
     private HintMesh hintMesh;
     private ScreenFilter screenFilter;
@@ -82,14 +82,14 @@ public class HintManager implements ModeListener, MousePositionListener {
             ScreenManager screenManager,
             MouseManager mouseManager, Overlay overlay,
             UiAutomation uiAutomation, ActiveAppFinder activeAppFinder,
-            boolean logRedactKeys) {
+            KeyRedaction keyRedaction) {
         this.positionHistoryConfigurationByName = positionHistoryConfigurationByName;
         this.screenManager = screenManager;
         this.mouseManager = mouseManager;
         this.overlay = overlay;
         this.uiAutomation = uiAutomation;
         this.activeAppFinder = activeAppFinder;
-        this.logRedactKeys = logRedactKeys;
+        this.keyRedaction = keyRedaction;
     }
 
     public void setModeController(ModeController modeController) {
@@ -1427,11 +1427,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void finalizeHintSelection(Hint hint, List<Key> newSelectedKeySequence) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         hintJustSelected = true;
-        logger.trace("Hint " + (logRedactKeys ? "<redacted>" : hint.keySequence()
-                                                                   .stream()
-                                                                   .map(Key::name)
-                                                                   .toList()) +
-                     " selected");
+        logger.trace("Hint " + keyRedaction.keys(hint.keySequence()) + " selected");
         if (hintMeshConfiguration.visible())
             overlay.animateHintMatch(hint);
         hintMesh =

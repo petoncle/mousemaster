@@ -91,7 +91,8 @@ public class UiHintAreaTest {
                 KeyboardLayout.keyboardLayout("00000409", null));
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> new App("test.exe"), null, Instant::now,
-                        Set.of(), Set.of(), false, configuration.modeMap(),
+                        Set.of(), Set.of(), new KeyRedaction(false),
+                        configuration.modeMap(),
                         configuration.initiallySetVariables(), configuration.virtualKeys(),
                         configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {

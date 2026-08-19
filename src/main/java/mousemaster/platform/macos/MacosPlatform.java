@@ -3,6 +3,7 @@ package mousemaster.platform.macos;
 import mousemaster.Clock;
 import mousemaster.Key;
 import mousemaster.KeyEvent;
+import mousemaster.KeyRedaction;
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
 import mousemaster.KeyRegurgitator;
@@ -68,7 +69,7 @@ public class MacosPlatform implements Platform {
             new LinkedBlockingDeque<>();
     private KeyboardManager keyboardManager;
     private KeyRegurgitator keyRegurgitator;
-    private boolean logRedactKeys;
+    private KeyRedaction keyRedaction;
     private boolean logLastKeyEventsOnExit;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
@@ -222,7 +223,7 @@ public class MacosPlatform implements Platform {
 
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
-                      KeyRegurgitator keyRegurgitator, boolean logRedactKeys,
+                      KeyRegurgitator keyRegurgitator, KeyRedaction keyRedaction,
                       boolean logLastKeyEventsOnExit,
                       ModeMap newModeMap, ZoomManager zoomManager,
                IndicatorManager indicatorManager,
@@ -232,7 +233,7 @@ public class MacosPlatform implements Platform {
         MacosWindow.makeAccessoryApplication();
         this.keyboardManager = keyboardManager;
         this.keyRegurgitator = keyRegurgitator;
-        this.logRedactKeys = logRedactKeys;
+        this.keyRedaction = keyRedaction;
         this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
@@ -243,7 +244,7 @@ public class MacosPlatform implements Platform {
             keyboard.reset();
         }
         keyboard.activeKeyboardLayout = activeKeyboardLayout;
-        keyboard.logRedactKeys = logRedactKeys;
+        keyboard.keyRedaction = keyRedaction;
         Set<HintMeshConfiguration> oldHintMeshConfigurations = modeMap == null ? Set.of() :
                 modeMap.modes().stream().map(Mode::hintMesh).collect(Collectors.toSet());
         Set<HintMeshConfiguration> newHintMeshConfigurations =
@@ -392,8 +393,8 @@ public class MacosPlatform implements Platform {
         }
         // Null when the configuration failed to load.
         if (logLastKeyEventsOnExit && keyboardManager != null)
-            logger.info("Last key events: " + (logRedactKeys ? "<redacted>" :
-                    keyboardManager.lastKeyEvents()));
+            logger.info("Last key events: " +
+                        keyRedaction.events(keyboardManager.lastKeyEvents()));
     }
 
     @Override

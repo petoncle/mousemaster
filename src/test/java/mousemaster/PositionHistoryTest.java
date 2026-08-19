@@ -86,7 +86,8 @@ public class PositionHistoryTest {
         App[] activeApp = {new App("notepad.exe")};
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> activeApp[0], null, Instant::now,
-                        Set.of(), Set.of(), false, configuration.modeMap(),
+                        Set.of(), Set.of(), new KeyRedaction(false),
+                        configuration.modeMap(),
                         configuration.initiallySetVariables(), configuration.virtualKeys(),
                         configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
@@ -127,7 +128,8 @@ public class PositionHistoryTest {
     private static HintManager hintManager(Configuration configuration,
                                            App[] activeApp) {
         return new HintManager(configuration.positionHistoryConfigurationByName(), null,
-                new MouseManager(null, null), null, null, () -> activeApp[0], false);
+                new MouseManager(null, null), null, null, () -> activeApp[0],
+                new KeyRedaction(false));
     }
 
     @Test

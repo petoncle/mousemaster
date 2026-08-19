@@ -1445,7 +1445,10 @@ log-last-key-events-on-exit=true
   - Valid values: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
   - Higher levels (DEBUG, TRACE) provide more detailed information but may impact performance
 
-- **`logging.redact-keys`**: When set to `true`, pressed keys will be redacted from logs
+- **`logging.redact-keys`**: When set to `true`, a key that types a character is logged as
+  `key#1`, a name that is stable for this run only
+  - A press and its release get the same name, so a log still shows a key that was never released
+  - Keys that type no character (modifiers, arrows, function keys) are logged as usual
   - Useful for privacy
   - Set to `false` for full key logging when troubleshooting keyboard issues
 

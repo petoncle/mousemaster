@@ -26,7 +26,7 @@ class VirtualKeyVisibilityTest {
         modeMap = configuration.modeMap();
         ActiveAppFinder noApp = () -> new App("test.exe");
         comboWatcher = new ComboWatcher(null, null, noApp, null, () -> now, Set.of(), Set.of(),
-                false, modeMap, configuration.initiallySetVariables(),
+                new KeyRedaction(false), modeMap, configuration.initiallySetVariables(),
                 configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
