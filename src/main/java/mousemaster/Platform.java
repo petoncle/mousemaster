@@ -19,6 +19,7 @@ public interface Platform extends ModeListener {
 
     void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
                KeyRegurgitator keyRegurgitator, boolean logRedactKeys,
+               boolean logLastKeyEventsOnExit,
                ModeMap modeMap,
                ZoomManager zoomManager,
                IndicatorManager indicatorManager,

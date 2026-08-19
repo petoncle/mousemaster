@@ -1436,6 +1436,7 @@ logging.level=INFO
 logging.redact-keys=true
 logging.to-file=true
 logging.file-path=mousemaster.log
+log-last-key-events-on-exit=true
 ```
 
 ### Logging options
@@ -1453,6 +1454,11 @@ logging.file-path=mousemaster.log
 
 - **`logging.file-path`**: Path to the log file when `logging.to-file=true`
   - Default is `mousemaster.log` in the application directory
+
+- **`log-last-key-events-on-exit`**: When set to `true`, the last key events are logged when mousemaster exits
+  - They are always logged when a stuck key is detected
+  - The format is combo syntax, with the milliseconds between events: `[+a-377 -a-32 +leftwin]`
+  - Useful for reporting a combo that stopped working, without leaving `logging.level=TRACE` on
 
 ## Keyboard layout
 

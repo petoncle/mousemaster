@@ -41,6 +41,7 @@ public class WindowsPlatform implements Platform {
     private KeyboardManager keyboardManager;
     private KeyRegurgitator keyRegurgitator;
     private boolean logRedactKeys;
+    private boolean logLastKeyEventsOnExit;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
     private ZoomManager zoomManager;
@@ -166,6 +167,7 @@ public class WindowsPlatform implements Platform {
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
                       KeyRegurgitator keyRegurgitator, boolean logRedactKeys,
+                      boolean logLastKeyEventsOnExit,
                       ModeMap newModeMap,
                       ZoomManager zoomManager,
                IndicatorManager indicatorManager,
@@ -183,6 +185,7 @@ public class WindowsPlatform implements Platform {
         this.keyboardManager = keyboardManager;
         this.keyRegurgitator = keyRegurgitator;
         this.logRedactKeys = logRedactKeys;
+        this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
         this.mousePositionListeners = mousePositionListeners;
@@ -344,6 +347,10 @@ public class WindowsPlatform implements Platform {
                 (keyboardHookUnhooked && mouseHookUnhooked ? "successfully" : "unsuccessfully"));
         releaseSingleInstanceMutex();
         logger.trace("Released single instance mutex");
+        // Null when the configuration failed to load.
+        if (logLastKeyEventsOnExit && keyboardManager != null)
+            logger.info("Last key events: " + (logRedactKeys ? "<redacted>" :
+                    keyboardManager.lastKeyEvents()));
     }
 
     @Override
@@ -437,7 +444,9 @@ public class WindowsPlatform implements Platform {
             logger.info(
                     "Resetting KeyboardManager and MouseController because the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     (logRedactKeys ? "<redacted>" :
-                            keysThatDoNotSeemToBePressedAnymore));
+                            keysThatDoNotSeemToBePressedAnymore) +
+                    ", last key events: " + (logRedactKeys ? "<redacted>" :
+                            keyboardManager.lastKeyEvents()));
             currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
             mouseManager.reset();
@@ -464,7 +473,10 @@ public class WindowsPlatform implements Platform {
                                 (logRedactKeys ? "<redacted>" : key) +
                                 " is pressed according to GetAsyncKeyState" +
                                 " but not in currentlyPressedNotEatenKeys" +
-                                ", injecting release");
+                                ", injecting release" +
+                                ", last key events: " +
+                                (logRedactKeys ? "<redacted>" :
+                                        keyboardManager.lastKeyEvents()));
                     keyboard.sendInputKeyRelease(
                             virtualKey.virtualKeyCode,
                             extendedKeys.contains(key));

@@ -68,6 +68,8 @@ public class MacosPlatform implements Platform {
             new LinkedBlockingDeque<>();
     private KeyboardManager keyboardManager;
     private KeyRegurgitator keyRegurgitator;
+    private boolean logRedactKeys;
+    private boolean logLastKeyEventsOnExit;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
     private ZoomManager zoomManager;
@@ -221,6 +223,7 @@ public class MacosPlatform implements Platform {
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
                       KeyRegurgitator keyRegurgitator, boolean logRedactKeys,
+                      boolean logLastKeyEventsOnExit,
                       ModeMap newModeMap, ZoomManager zoomManager,
                IndicatorManager indicatorManager,
                       List<MousePositionListener> mousePositionListeners,
@@ -229,6 +232,8 @@ public class MacosPlatform implements Platform {
         MacosWindow.makeAccessoryApplication();
         this.keyboardManager = keyboardManager;
         this.keyRegurgitator = keyRegurgitator;
+        this.logRedactKeys = logRedactKeys;
+        this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
         this.mousePositionListeners = mousePositionListeners;
@@ -385,6 +390,10 @@ public class MacosPlatform implements Platform {
                 throw new UncheckedIOException(e);
             }
         }
+        // Null when the configuration failed to load.
+        if (logLastKeyEventsOnExit && keyboardManager != null)
+            logger.info("Last key events: " + (logRedactKeys ? "<redacted>" :
+                    keyboardManager.lastKeyEvents()));
     }
 
     @Override

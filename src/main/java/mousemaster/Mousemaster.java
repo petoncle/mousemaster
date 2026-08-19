@@ -268,6 +268,7 @@ public class Mousemaster {
         modeController.switchMode(Mode.IDLE_MODE_NAME);
         platform.reset(mouseManager, keyboardManager, keyRegurgitator,
                 configuration.logRedactKeys(),
+                configuration.logLastKeyEventsOnExit(),
                 configuration.modeMap(),
                 zoomManager,
                 indicatorManager,

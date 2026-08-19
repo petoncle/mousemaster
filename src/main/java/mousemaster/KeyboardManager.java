@@ -18,6 +18,8 @@ public class KeyboardManager {
 
     private final ComboWatcher comboWatcher;
     private final KeyRegurgitator keyRegurgitator;
+    private static final int lastKeyEventCount = 32;
+    private final ComboPreparation lastKeyEvents = ComboPreparation.empty();
     /**
      * LinkedHashMap preserves insertion (press) order for correct regurgitation order
      * (e.g. shift before a, not a before shift).
@@ -121,10 +123,21 @@ public class KeyboardManager {
         return singleKeyEvent(keyEvent);
     }
 
+    public ComboPreparation lastKeyEvents() {
+        return lastKeyEvents;
+    }
+
     private EatAndRegurgitates singleKeyEvent(KeyEvent keyEvent) {
         macroPlayer.newKeyEvent();
         Key key = keyEvent.key();
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
+        // A press of an already pressed key is an OS auto repeat: we don't log it
+        // into lastKeyEvents.
+        if (!keyEvent.isPress() || processingSet == null) {
+            if (lastKeyEvents.events().size() == lastKeyEventCount)
+                lastKeyEvents.events().removeFirst();
+            lastKeyEvents.events().add(keyEvent);
+        }
         if (keyEvent.isPress()) {
             List<Regurgitate> regurgitates = List.of();
             if (processingSet == null) {

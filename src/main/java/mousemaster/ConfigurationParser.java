@@ -353,6 +353,7 @@ public class ConfigurationParser {
 
         String logLevel = null;
         boolean logRedactKeys = false;
+        boolean logLastKeyEventsOnExit = false;
         boolean logToFile = false;
         boolean hideConsole = false;
         ComboMoveDuration defaultComboMoveDuration =
@@ -422,6 +423,10 @@ public class ConfigurationParser {
                     default -> throw new IllegalArgumentException(
                             "Invalid position history property key " + propertyKey);
                 }
+                continue;
+            }
+            else if (propertyKey.equals("log-last-key-events-on-exit")) {
+                logLastKeyEventsOnExit = Boolean.parseBoolean(propertyValue);
                 continue;
             }
             else if (propertyKey.equals("hide-console")) {
@@ -646,7 +651,8 @@ public class ConfigurationParser {
                             .filter(key -> BuiltInVirtualKey.screenFilter(key) != null)
                             .forEach(virtualKeys::add);
         return new Configuration(positionHistoryConfigurationByName,
-                new ModeMap(modes), logLevel, logRedactKeys, logToFile, hideConsole,
+                new ModeMap(modes), logLevel, logRedactKeys, logLastKeyEventsOnExit,
+                logToFile, hideConsole,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
                 Set.copyOf(initiallySetVariables),
                 virtualKeys,
