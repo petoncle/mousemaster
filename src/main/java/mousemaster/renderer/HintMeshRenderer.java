@@ -1691,20 +1691,10 @@ public final class HintMeshRenderer {
         for (HintBox prefixBox : prefixBoxes)
             prefixBox.collectBorderInk(0, 0, enclosingInk);
         // Layer 3: Prefix labels.
-        HintPaintLayer prefixLabelLayer =
-                new HintPaintLayer(container, List.of(), prefixLabels);
-        prefixLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        if (prefixQtHintFontStyle != null) {
-            applyLabelShadow(prefixLabelLayer, prefixLabels,
-                    prefixQtHintFontStyle, hasSelectedKeys,
-                    containerWidth, containerHeight, screenScale);
-        }
+        addLabelLayers(container, prefixLabels, prefixQtHintFontStyle, hasSelectedKeys,
+                containerWidth, containerHeight, screenScale);
         // Layer 4: Hint labels.
-        HintPaintLayer hintLabelLayer =
-                new HintPaintLayer(container, List.of(), hintLabels);
-        hintLabelLayer.setGeometry(0, 0, containerWidth, containerHeight);
-        applyLabelShadow(hintLabelLayer, hintLabels,
-                labelFontStyle, hasSelectedKeys,
+        addLabelLayers(container, hintLabels, labelFontStyle, hasSelectedKeys,
                 containerWidth, containerHeight, screenScale);
         // Layer 5: whole-area decoration (index 0), anchored to the grid area it was laid out in, not
         // to the container: a grid drilled past a screen edge has cells the container cannot show.
@@ -2779,6 +2769,25 @@ public final class HintMeshRenderer {
             this.y = y;
         }
 
+        /** Where the glyphs land, unlike the box, which for a grid hint is the whole cell. */
+        Rectangle ink() {
+            double inkLeft = Double.MAX_VALUE, inkTop = Double.MAX_VALUE;
+            double inkRight = -Double.MAX_VALUE, inkBottom = -Double.MAX_VALUE;
+            for (HintKeyText keyText : keyTexts) {
+                QtFontStyle keyStyle = hintKeyTextQtFontStyle(keyText);
+                QtHintFont.Ink ink =
+                        QtHintFont.ink(keyStyle.metrics(), keyStyle.font(), keyText.text());
+                int outlineThickness = keyStyle.outlineThickness();
+                inkLeft = Math.min(inkLeft, keyText.x() + ink.left() - outlineThickness);
+                inkTop = Math.min(inkTop, keyText.y() + ink.top() - outlineThickness);
+                inkRight = Math.max(inkRight, keyText.x() + ink.right() + outlineThickness);
+                inkBottom = Math.max(inkBottom, keyText.y() + ink.bottom() + outlineThickness);
+            }
+            int inkX = (int) Math.floor(inkLeft), inkY = (int) Math.floor(inkTop);
+            return new Rectangle(x - left + inkX, y - top + inkY,
+                    (int) Math.ceil(inkRight) - inkX, (int) Math.ceil(inkBottom) - inkY);
+        }
+
         public void paint(QPainter painter) {
             paint(painter, false);
         }
@@ -3056,6 +3065,38 @@ public final class HintMeshRenderer {
         }
     }
 
+    /** A shadow blurs its layer whole, and one layer over every label is mostly gaps. */
+    private void addLabelLayers(QWidget container, List<HintLabel> labels,
+                                QtHintFontStyle style,
+                                boolean hasSelectedKeys,
+                                int containerWidth,
+                                int containerHeight,
+                                double screenScale) {
+        List<List<HintLabel>> labelLayers = layerPerLabel(labels, style) ?
+                labels.stream().map(List::of).toList() : List.of(labels);
+        for (List<HintLabel> layerLabels : labelLayers) {
+            HintPaintLayer layer = new HintPaintLayer(container, List.of(), layerLabels);
+            layer.setGeometry(0, 0, containerWidth, containerHeight);
+            if (style != null)
+                applyLabelShadow(layer, layerLabels, style, hasSelectedKeys,
+                        containerWidth, containerHeight, screenScale);
+        }
+    }
+
+    /** Whether a layer each blurs fewer pixels than one layer over them all. */
+    private static boolean layerPerLabel(List<HintLabel> labels, QtHintFontStyle style) {
+        if (style == null || labels.isEmpty())
+            return false;
+        int padding = shadowPadding(style.defaultStyle());
+        List<Rectangle> ink = labelInk(labels);
+        long paddedInkArea = 0;
+        for (Rectangle rectangle : ink)
+            paddedInkArea += (long) (rectangle.width() + 2 * padding) *
+                             (rectangle.height() + 2 * padding);
+        Rectangle union = Rectangle.union(ink);
+        return paddedInkArea < (long) union.width() * union.height();
+    }
+
     /**
      * Applies shadow to a label layer. When text is fully opaque, uses Qt's
      * QGraphicsDropShadowEffect directly on the widget (fast path). When text
@@ -3087,10 +3128,9 @@ public final class HintMeshRenderer {
             defaultStyle.shadowStackCount() == 1) {
             if (!preWarming)
                 logger.debug("Hint label shadow: opaque text, applying effect directly");
-            List<Rectangle> ink = new ArrayList<>();
-            for (HintLabel label : labels)
-                ink.add(new Rectangle(label.x, label.y, label.width, label.height));
-            layer.fitToInk(ink, shadowPadding(defaultStyle), containerWidth, containerHeight);
+            if (!layer.fitToInk(labelInk(labels), shadowPadding(defaultStyle),
+                    containerWidth, containerHeight))
+                return;
             StackedShadowEffect effect = new StackedShadowEffect();
             effect.setPreWarming(preWarming);
             effect.setBlurRadius(defaultStyle.shadowBlurRadius());
@@ -3116,10 +3156,23 @@ public final class HintMeshRenderer {
     }
 
     /** How far the shadow of a glyph reaches past it: the blur, plus how far it is offset. */
+    private static int shadowPadding(double blurRadius, double horizontalOffset,
+                                     double verticalOffset) {
+        return (int) Math.ceil(blurRadius) +
+               (int) Math.ceil(Math.max(Math.abs(horizontalOffset),
+                       Math.abs(verticalOffset))) + 2;
+    }
+
     private static int shadowPadding(QtFontStyle style) {
-        return (int) Math.ceil(style.shadowBlurRadius()) +
-               (int) Math.ceil(Math.max(Math.abs(style.shadowHorizontalOffset()),
-                       Math.abs(style.shadowVerticalOffset()))) + 2;
+        return shadowPadding(style.shadowBlurRadius(), style.shadowHorizontalOffset(),
+                style.shadowVerticalOffset());
+    }
+
+    private static List<Rectangle> labelInk(List<HintLabel> labels) {
+        List<Rectangle> ink = new ArrayList<>();
+        for (HintLabel label : labels)
+            ink.add(label.ink());
+        return ink;
     }
 
     private void preRenderLabelShadow(HintPaintLayer layer,
@@ -3133,10 +3186,8 @@ public final class HintMeshRenderer {
             return;
         }
         QtFontStyle shadowStyle = style.defaultStyle();
-        List<Rectangle> ink = new ArrayList<>();
-        for (HintLabel label : labels)
-            ink.add(new Rectangle(label.x, label.y, label.width, label.height));
-        if (!layer.fitToInk(ink, shadowPadding(shadowStyle), containerWidth, containerHeight))
+        if (!layer.fitToInk(labelInk(labels), shadowPadding(shadowStyle),
+                containerWidth, containerHeight))
             return;
         int left = layer.originX, top = layer.originY;
         int width = layer.width(), height = layer.height();
@@ -3183,6 +3234,14 @@ public final class HintMeshRenderer {
                 groups.add(label.shadowGroupKey(keyText));
             }
         }
+        int padding = 0;
+        for (ShadowGroupKey group : groups)
+            padding = Math.max(padding, shadowPadding(group.blurRadius(),
+                    group.horizontalOffset(), group.verticalOffset()));
+        if (!layer.fitToInk(labelInk(labels), padding, containerWidth, containerHeight))
+            return;
+        int left = layer.originX, top = layer.originY;
+        int width = layer.width(), height = layer.height();
         // 2. Render each group.
         QImage combinedShadow = null;
         int combinedX = 0, combinedY = 0;
@@ -3190,13 +3249,14 @@ public final class HintMeshRenderer {
             if (group.a() == 0)
                 continue;
             // Render source image with only keys matching this group.
-            QImage sourceImage = new QImage(containerWidth, containerHeight,
+            QImage sourceImage = new QImage(width, height,
                     QImage.Format.Format_ARGB32_Premultiplied);
             setQImageDpiForScreen(sourceImage, screenScale);
             QColor srcFillColor = new QColor(0, 0, 0, 0);
             sourceImage.fill(srcFillColor);
             srcFillColor.dispose();
             QPainter srcPainter = new QPainter(sourceImage);
+            srcPainter.translate(-left, -top);
             for (HintLabel label : labels) {
                 label.paintOpaqueFiltered(srcPainter,
                         keyText -> label.shadowGroupKey(keyText).equals(group));
@@ -3206,7 +3266,7 @@ public final class HintMeshRenderer {
             QColor shadowColor = new QColor(group.r(), group.g(), group.b(), group.a());
             StackedShadowEffect.ShadowImage shadow = StackedShadowEffect.renderShadowOnly(sourceImage, shadowColor,
                     group.blurRadius(), group.horizontalOffset(), group.verticalOffset(),
-                    containerWidth, containerHeight);
+                    width, height);
             shadowColor.dispose();
             QImage stackedShadow = StackedShadowEffect.bakeStacking(shadow.image(), group.stackCount());
             int boundsX = shadow.x();
@@ -3248,7 +3308,7 @@ public final class HintMeshRenderer {
         if (combinedShadow != null) {
             QPixmap combinedPixmap = QPixmap.fromImage(combinedShadow);
             layer.setShadowPixmap(combinedPixmap,
-                    combinedX, combinedY);
+                    left + combinedX, top + combinedY);
             combinedShadow.dispose();
         }
     }
