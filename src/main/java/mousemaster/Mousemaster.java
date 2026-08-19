@@ -216,7 +216,8 @@ public class Mousemaster {
         HintManager hintManager =
                 new HintManager(configuration.positionHistoryConfigurationByName(),
                         screenManager, mouseManager, platform.overlay(),
-                        platform.uiAutomation(), platform.activeAppFinder());
+                        platform.uiAutomation(), platform.activeAppFinder(),
+                        configuration.logRedactKeys());
         commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
@@ -240,9 +241,11 @@ public class Mousemaster {
                         pressedComboPreconditionKeys, configuration.logRedactKeys(),
                         configuration.modeMap(), configuration.initiallySetVariables(),
                         configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
-        keyboardManager = new KeyboardManager(comboWatcher, hintManager,
-                platform.keyRegurgitator());
-        macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager, platform.keyboard());
+        KeyRegurgitator keyRegurgitator = new KeyRegurgitator(platform.keyboard(),
+                configuration.logRedactKeys());
+        keyboardManager = new KeyboardManager(comboWatcher, hintManager, keyRegurgitator);
+        macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager,
+                platform.keyboard(), configuration.logRedactKeys());
         keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(platform.overlay());
@@ -263,7 +266,8 @@ public class Mousemaster {
         commandRunner.setMacroPlayer(macroPlayer);
         hintManager.setModeController(modeController);
         modeController.switchMode(Mode.IDLE_MODE_NAME);
-        platform.reset(mouseManager, keyboardManager,
+        platform.reset(mouseManager, keyboardManager, keyRegurgitator,
+                configuration.logRedactKeys(),
                 configuration.modeMap(),
                 zoomManager,
                 indicatorManager,

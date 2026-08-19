@@ -10,14 +10,19 @@ public class KeyRegurgitator {
 
     private static final Logger logger = LoggerFactory.getLogger(KeyRegurgitator.class);
     private final KeyboardController keyboard;
+    private final boolean logRedactKeys;
 
-    public KeyRegurgitator(KeyboardController keyboard) {
+    public KeyRegurgitator(KeyboardController keyboard, boolean logRedactKeys) {
         this.keyboard = keyboard;
+        this.logRedactKeys = logRedactKeys;
     }
 
     public void regurgitate(KeyboardManager.Regurgitate regurgitate, boolean startRepeat) {
-        logger.debug("Regurgitating +" + regurgitate.key() +
-                     (regurgitate.alsoRelease() ? " -" + regurgitate.key() : "") +
+        logger.debug("Regurgitating " +
+                     (logRedactKeys ? "<redacted>" : "+" + regurgitate.key() +
+                                                     (regurgitate.alsoRelease() ?
+                                                             " -" + regurgitate.key() :
+                                                             "")) +
                      (startRepeat ? ", starting repeat" : ""));
         Key key = regurgitate.key();
         keyboard.sendInputMoves(

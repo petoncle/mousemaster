@@ -35,11 +35,12 @@ public class WindowsPlatform implements Platform {
     private final UiAutomation uiAutomation = new WindowsUiAutomation();
     private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
     private final Console console = new WindowsConsole();
-    private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator(keyboard);
     private final WindowsClock clock = new WindowsClock();
 
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
+    private KeyRegurgitator keyRegurgitator;
+    private boolean logRedactKeys;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
     private ZoomManager zoomManager;
@@ -164,6 +165,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
+                      KeyRegurgitator keyRegurgitator, boolean logRedactKeys,
                       ModeMap newModeMap,
                       ZoomManager zoomManager,
                IndicatorManager indicatorManager,
@@ -179,6 +181,8 @@ public class WindowsPlatform implements Platform {
         }
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
+        this.keyRegurgitator = keyRegurgitator;
+        this.logRedactKeys = logRedactKeys;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
         this.mousePositionListeners = mousePositionListeners;
@@ -188,6 +192,7 @@ public class WindowsPlatform implements Platform {
             keyboard.reset();
         }
         keyboard.activeKeyboardLayout = activeKeyboardLayout;
+        keyboard.logRedactKeys = logRedactKeys;
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());
@@ -342,11 +347,6 @@ public class WindowsPlatform implements Platform {
     }
 
     @Override
-    public KeyRegurgitator keyRegurgitator() {
-        return keyRegurgitator;
-    }
-
-    @Override
     public Clock clock() {
         return clock;
     }
@@ -436,7 +436,8 @@ public class WindowsPlatform implements Platform {
         if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
             logger.info(
                     "Resetting KeyboardManager and MouseController because the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
-                    keysThatDoNotSeemToBePressedAnymore);
+                    (logRedactKeys ? "<redacted>" :
+                            keysThatDoNotSeemToBePressedAnymore));
             currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
             mouseManager.reset();
@@ -459,7 +460,8 @@ public class WindowsPlatform implements Platform {
                                      "while rightalt is held (AltGr active)");
                         continue;
                     }
-                    logger.warn("Stuck key detected: " + key +
+                    logger.warn("Stuck key detected: " +
+                                (logRedactKeys ? "<redacted>" : key) +
                                 " is pressed according to GetAsyncKeyState" +
                                 " but not in currentlyPressedNotEatenKeys" +
                                 ", injecting release");
@@ -605,7 +607,8 @@ public class WindowsPlatform implements Platform {
                         ReentrantKeyEvent reentrantKeyEvent = reentrantKeyEvents.remove(0);
                         if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl)
                             && !reentrantKeyEvent.eaten)
-                            logger.warn("Reentrant event would have been eaten but already passed through: " + reentrantKeyEvent.keyEvent);
+                            logger.warn("Reentrant event would have been eaten but already passed through: " +
+                                        (logRedactKeys ? "<redacted>" : reentrantKeyEvent.keyEvent));
                     }
                     if (eaten)
                         return new WinDef.LRESULT(1);
@@ -617,7 +620,8 @@ public class WindowsPlatform implements Platform {
                         ReentrantKeyEvent reentrantKeyEvent = reentrantKeyEvents.remove(0);
                         if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl)
                             && !reentrantKeyEvent.eaten)
-                            logger.warn("Reentrant event would have been eaten but already passed through: " + reentrantKeyEvent.keyEvent);
+                            logger.warn("Reentrant event would have been eaten but already passed through: " +
+                                        (logRedactKeys ? "<redacted>" : reentrantKeyEvent.keyEvent));
                     }
                     return result;
                 }
@@ -720,7 +724,8 @@ public class WindowsPlatform implements Platform {
                 keysPressedInHook.add(Key.leftctrl);
         }
         if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
-            logger.debug("Key event ignored because it is equal to the last event: " + keyEvent);
+            logger.debug("Key event ignored because it is equal to the last event: " +
+                         (logRedactKeys ? "<redacted>" : keyEvent));
             lastKeyEvent = keyEvent;
             return false;
         }
@@ -760,25 +765,27 @@ public class WindowsPlatform implements Platform {
         return eventMustBeEaten;
     }
 
-    private static String keyEventString(WinUser.KBDLLHOOKSTRUCT info,
-                                         String wParamString, KeyEvent keyEvent,
-                                         boolean injected, boolean altgrLeftctrl) {
-        return keyEvent +
+    private String keyEventString(WinUser.KBDLLHOOKSTRUCT info,
+                                  String wParamString, KeyEvent keyEvent,
+                                  boolean injected, boolean altgrLeftctrl) {
+        return (logRedactKeys ? "<redacted>" : keyEvent) +
                ", altgrLeftctrl = " + altgrLeftctrl +
                ", injected = " + injected +
                ", dwExtraInfo = 0x" +
                (info.dwExtraInfo == null ? "0" :
                        Long.toHexString(info.dwExtraInfo.longValue())) +
-               ", vkCode = 0x" + Integer.toHexString(info.vkCode) +
-               " (" + WindowsVirtualKey.values.get(info.vkCode) +
-               "), scanCode = 0x" + Integer.toHexString(info.scanCode) +
+               ", vkCode = " + (logRedactKeys ? "<redacted>" :
+                       "0x" + Integer.toHexString(info.vkCode) +
+                       " (" + WindowsVirtualKey.values.get(info.vkCode) + ")") +
+               ", scanCode = " + (logRedactKeys ? "<redacted>" :
+                       "0x" + Integer.toHexString(info.scanCode)) +
                ", flags = 0x" + Integer.toHexString(info.flags) + ", wParam = " +
                wParamString;
     }
 
-    private static void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,
-                                    String wParamString, KeyEvent keyEvent,
-                                    boolean injected, boolean altgrLeftctrl) {
+    private void logKeyEvent(WinUser.KBDLLHOOKSTRUCT info,
+                             String wParamString, KeyEvent keyEvent,
+                             boolean injected, boolean altgrLeftctrl) {
         if (logger.isTraceEnabled())
             logger.trace(
                     "Received key event: " +

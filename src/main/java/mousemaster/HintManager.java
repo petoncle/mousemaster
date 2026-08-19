@@ -23,6 +23,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Overlay overlay;
     private final UiAutomation uiAutomation;
     private final ActiveAppFinder activeAppFinder;
+    private final boolean logRedactKeys;
     private ModeController modeController;
     private HintMesh hintMesh;
     private ScreenFilter screenFilter;
@@ -80,13 +81,15 @@ public class HintManager implements ModeListener, MousePositionListener {
             Map<String, PositionHistoryConfiguration> positionHistoryConfigurationByName,
             ScreenManager screenManager,
             MouseManager mouseManager, Overlay overlay,
-            UiAutomation uiAutomation, ActiveAppFinder activeAppFinder) {
+            UiAutomation uiAutomation, ActiveAppFinder activeAppFinder,
+            boolean logRedactKeys) {
         this.positionHistoryConfigurationByName = positionHistoryConfigurationByName;
         this.screenManager = screenManager;
         this.mouseManager = mouseManager;
         this.overlay = overlay;
         this.uiAutomation = uiAutomation;
         this.activeAppFinder = activeAppFinder;
+        this.logRedactKeys = logRedactKeys;
     }
 
     public void setModeController(ModeController modeController) {
@@ -1424,10 +1427,10 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void finalizeHintSelection(Hint hint, List<Key> newSelectedKeySequence) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         hintJustSelected = true;
-        logger.trace("Hint " + hint.keySequence()
-                                   .stream()
-                                   .map(Key::name)
-                                   .toList() +
+        logger.trace("Hint " + (logRedactKeys ? "<redacted>" : hint.keySequence()
+                                                                   .stream()
+                                                                   .map(Key::name)
+                                                                   .toList()) +
                      " selected");
         if (hintMeshConfiguration.visible())
             overlay.animateHintMatch(hint);

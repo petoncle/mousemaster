@@ -38,7 +38,7 @@ class VirtualKeyMacroTest {
                 configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of());
         comboWatcher.modeChanged(modeMap.get(Mode.IDLE_MODE_NAME));
-        macroPlayer = new MacroPlayer(Instant::now, comboWatcher, null, null);
+        macroPlayer = new MacroPlayer(Instant::now, comboWatcher, null, null, false);
         macroByName = modeMap.get(Mode.IDLE_MODE_NAME)
                              .comboMap()
                              .commandsByCombo()

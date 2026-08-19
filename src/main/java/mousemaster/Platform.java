@@ -18,6 +18,7 @@ public interface Platform extends ModeListener {
     void sleep() throws InterruptedException;
 
     void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
+               KeyRegurgitator keyRegurgitator, boolean logRedactKeys,
                ModeMap modeMap,
                ZoomManager zoomManager,
                IndicatorManager indicatorManager,
@@ -31,8 +32,6 @@ public interface Platform extends ModeListener {
      * warns and can hang for seconds when it runs off the main thread.
      */
     void killProcess(int exitCode);
-
-    KeyRegurgitator keyRegurgitator();
 
     Clock clock();
 

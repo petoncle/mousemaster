@@ -127,7 +127,7 @@ public class PositionHistoryTest {
     private static HintManager hintManager(Configuration configuration,
                                            App[] activeApp) {
         return new HintManager(configuration.positionHistoryConfigurationByName(), null,
-                new MouseManager(null, null), null, null, () -> activeApp[0]);
+                new MouseManager(null, null), null, null, () -> activeApp[0], false);
     }
 
     @Test

@@ -52,7 +52,6 @@ public class MacosPlatform implements Platform {
     private final MacosUiAutomation uiAutomation = new MacosUiAutomation();
     private final MacosActiveAppFinder activeAppFinder = new MacosActiveAppFinder();
     private final MacosConsole console = new MacosConsole();
-    private final KeyRegurgitator keyRegurgitator = new KeyRegurgitator(keyboard);
     private static final Instant clockBase = Instant.now();
     private static final long clockBaseNanos = System.nanoTime();
     /** Monotonic: a wall clock correction must not change how long a key looks held. */
@@ -68,6 +67,7 @@ public class MacosPlatform implements Platform {
     private final LinkedBlockingDeque<Driverkit.DKEvent> unmappedEventQueue =
             new LinkedBlockingDeque<>();
     private KeyboardManager keyboardManager;
+    private KeyRegurgitator keyRegurgitator;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
     private ZoomManager zoomManager;
@@ -220,6 +220,7 @@ public class MacosPlatform implements Platform {
 
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
+                      KeyRegurgitator keyRegurgitator, boolean logRedactKeys,
                       ModeMap newModeMap, ZoomManager zoomManager,
                IndicatorManager indicatorManager,
                       List<MousePositionListener> mousePositionListeners,
@@ -227,6 +228,7 @@ public class MacosPlatform implements Platform {
         // The first call after Qt exists and before any overlay window is shown.
         MacosWindow.makeAccessoryApplication();
         this.keyboardManager = keyboardManager;
+        this.keyRegurgitator = keyRegurgitator;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
         this.mousePositionListeners = mousePositionListeners;
@@ -236,6 +238,7 @@ public class MacosPlatform implements Platform {
             keyboard.reset();
         }
         keyboard.activeKeyboardLayout = activeKeyboardLayout;
+        keyboard.logRedactKeys = logRedactKeys;
         Set<HintMeshConfiguration> oldHintMeshConfigurations = modeMap == null ? Set.of() :
                 modeMap.modes().stream().map(Mode::hintMesh).collect(Collectors.toSet());
         Set<HintMeshConfiguration> newHintMeshConfigurations =
@@ -388,11 +391,6 @@ public class MacosPlatform implements Platform {
     public void killProcess(int exitCode) {
         shutdown();
         Libc.INSTANCE._exit(exitCode);
-    }
-
-    @Override
-    public KeyRegurgitator keyRegurgitator() {
-        return keyRegurgitator;
     }
 
     @Override

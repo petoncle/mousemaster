@@ -24,6 +24,7 @@ public class MacosKeyboardController implements KeyboardController {
             LoggerFactory.getLogger(MacosKeyboardController.class);
 
     public KeyboardLayout activeKeyboardLayout;
+    public boolean logRedactKeys;
 
     private record SendInputMove(ResolvedMacroMove move, boolean startRepeat) {}
 
@@ -200,7 +201,8 @@ public class MacosKeyboardController implements KeyboardController {
         event.code = hidUsage.usage;
         int result = Driverkit.INSTANCE.send_key(event);
         if (result != 0)
-            logger.debug("Unable to send " + (press ? "+" : "-") + key +
+            logger.debug("Unable to send " +
+                         (logRedactKeys ? "<redacted>" : (press ? "+" : "-") + key) +
                          ", send_key returned " + result);
         return result == 0;
     }
