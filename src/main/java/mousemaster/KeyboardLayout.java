@@ -142,6 +142,14 @@ public final class KeyboardLayout {
         return null;
     }
 
+    public WindowsVirtualKey virtualKeyFromScanCode(int scanCode) {
+        for (KeyboardLayoutKey keyboardLayoutKey : keys) {
+            if (keyboardLayoutKey.scanCode == scanCode)
+                return keyboardLayoutKey.virtualKey();
+        }
+        return null;
+    }
+
     public Key keyFromVirtualKey(WindowsVirtualKey virtualKey) {
         for (KeyboardLayoutKey keyboardLayoutKey : keys) {
             if (keyboardLayoutKey.virtualKey == virtualKey)

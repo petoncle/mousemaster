@@ -481,23 +481,24 @@ public enum WindowsVirtualKey {
 
     public static Key keyFromWindowsEvent(WindowsVirtualKey windowsVirtualKey, int scanCode,
                                           int flags, KeyboardLayout activeKeyboardLayout) {
-        if (scanCode == 0) {
-            // Injected key event have scanCode 0.
-            return WindowsVirtualKey.activeKeyboardLayout().keyFromVirtualKey(windowsVirtualKey);
-        }
-        // When pressing rightctrl the scanCode should be E01D but is 1D (which is leftctrl's scanCode).
-        // rightctrl:
-        // Received key event: vkCode = 0xa3 (VK_RCONTROL), scanCode = 0x1d, flags = 0x1, wParam = WM_KEYDOWN
-        // leftctrl:
-        // Received key event: vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x0, wParam = WM_KEYDOWN
-        // For rightshift, flag is 1 but it is not an extended key (scanCode is not E036 and really is 36):
-        // Received key event: vkCode = 0xa1 (VK_RSHIFT), scanCode = 0x36, flags = 0x1, wParam = WM_KEYDOWN
+        if (windowsVirtualKey == VK_PACKET)
+            // A KEYEVENTF_UNICODE event carries the character instead of the scan code.
+            return null;
+        if (scanCode == 0)
+            return activeKeyboardLayout.keyFromVirtualKey(windowsVirtualKey);
+        // The scan code is 8-bit: the E0 prefix is given by the extended flag.
+        // rightctrl: vkCode = 0xa3 (VK_RCONTROL), scanCode = 0x1d, flags = 0x1
+        // leftctrl: vkCode = 0xa2 (VK_LCONTROL), scanCode = 0x1d, flags = 0x0
         boolean isExtended = (flags & 0x1) != 0;
         if (isExtended) {
             int extendedKeyScanCode = 0xE000 | scanCode;
             Key extendedKey = activeKeyboardLayout.keyFromScanCode(extendedKeyScanCode);
             if (extendedKey != null)
                 return extendedKey;
+            // The layouts list rightshift (36) and numlock (45) without the E0 prefix
+            // although they are flagged extended. Volume up (E030) is not listed, 30 is b.
+            if (activeKeyboardLayout.virtualKeyFromScanCode(scanCode) != windowsVirtualKey)
+                return null;
         }
         return activeKeyboardLayout.keyFromScanCode(scanCode);
     }
