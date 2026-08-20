@@ -19,7 +19,7 @@ public class MacroPlayer {
     private final ComboWatcher comboWatcher;
     private final KeyboardManager keyboardManager;
     private final KeyboardController keyboard;
-    private final KeyRedaction keyRedaction;
+    private final KeyRedactor keyRedactor;
     private final List<ResolvedMacro> macrosToExecute = new ArrayList<>();
     private MacroInProgress macroInProgress;
     private final List<MacroInProgress> virtualKeyMacrosInProgress = new ArrayList<>();
@@ -56,12 +56,12 @@ public class MacroPlayer {
 
     public MacroPlayer(Clock clock, ComboWatcher comboWatcher,
                        KeyboardManager keyboardManager, KeyboardController keyboard,
-                       KeyRedaction keyRedaction) {
+                       KeyRedactor keyRedactor) {
         this.clock = clock;
         this.comboWatcher = comboWatcher;
         this.keyboardManager = keyboardManager;
         this.keyboard = keyboard;
-        this.keyRedaction = keyRedaction;
+        this.keyRedactor = keyRedactor;
     }
 
     private static class MacroInProgress {
@@ -216,7 +216,7 @@ public class MacroPlayer {
         deferredUserReleases.clear();
         if (!releases.isEmpty()) {
             logger.debug("Processing deferred user releases: " +
-                         keyRedaction.moves(releases));
+                         keyRedactor.moves(releases));
             keyboard.sendInputMoves(releases, false);
         }
     }

@@ -25,7 +25,7 @@ class DeprecatedIndicatorStateTest {
         Configuration configuration = parse(lines);
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> new App("test.exe"), null,
-                        Instant::now, Set.of(), Set.of(), new KeyRedaction(false),
+                        Instant::now, Set.of(), Set.of(), new KeyRedactor(KeyRedaction.NONE),
                         configuration.modeMap(), configuration.initiallySetVariables(),
                         configuration.virtualKeys(),
                         configuration.initiallyPressedVirtualKeys());

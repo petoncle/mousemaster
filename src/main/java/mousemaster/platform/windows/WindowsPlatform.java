@@ -40,7 +40,7 @@ public class WindowsPlatform implements Platform {
     private MouseManager mouseManager;
     private KeyboardManager keyboardManager;
     private KeyRegurgitator keyRegurgitator;
-    private KeyRedaction keyRedaction;
+    private KeyRedactor keyRedactor;
     private boolean logLastKeyEventsOnExit;
     private List<MousePositionListener> mousePositionListeners;
     private ModeMap modeMap;
@@ -166,7 +166,7 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void reset(MouseManager mouseManager, KeyboardManager keyboardManager,
-                      KeyRegurgitator keyRegurgitator, KeyRedaction keyRedaction,
+                      KeyRegurgitator keyRegurgitator, KeyRedactor keyRedactor,
                       boolean logLastKeyEventsOnExit,
                       ModeMap newModeMap,
                       ZoomManager zoomManager,
@@ -184,7 +184,7 @@ public class WindowsPlatform implements Platform {
         this.mouseManager = mouseManager;
         this.keyboardManager = keyboardManager;
         this.keyRegurgitator = keyRegurgitator;
-        this.keyRedaction = keyRedaction;
+        this.keyRedactor = keyRedactor;
         this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
@@ -195,7 +195,7 @@ public class WindowsPlatform implements Platform {
             keyboard.reset();
         }
         keyboard.activeKeyboardLayout = activeKeyboardLayout;
-        keyboard.keyRedaction = keyRedaction;
+        keyboard.keyRedactor = keyRedactor;
         Set<HintMeshConfiguration> newHintMeshConfigurations = new HashSet<>();
         for (Mode mode : newModeMap.modes()) {
             newHintMeshConfigurations.add(mode.hintMesh());
@@ -350,7 +350,7 @@ public class WindowsPlatform implements Platform {
         // Null when the configuration failed to load.
         if (logLastKeyEventsOnExit && keyboardManager != null)
             logger.info("Last key events: " +
-                        keyRedaction.events(keyboardManager.lastKeyEvents()));
+                        keyRedactor.events(keyboardManager.lastKeyEvents()));
     }
 
     @Override
@@ -443,9 +443,9 @@ public class WindowsPlatform implements Platform {
         if (!keysThatDoNotSeemToBePressedAnymore.isEmpty()) {
             logger.info(
                     "Resetting KeyboardManager and MouseController because the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
-                    keyRedaction.keys(keysThatDoNotSeemToBePressedAnymore) +
+                    keyRedactor.keys(keysThatDoNotSeemToBePressedAnymore) +
                     ", last key events: " +
-                    keyRedaction.events(keyboardManager.lastKeyEvents()));
+                    keyRedactor.events(keyboardManager.lastKeyEvents()));
             currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
             mouseManager.reset();
@@ -468,12 +468,12 @@ public class WindowsPlatform implements Platform {
                                      "while rightalt is held (AltGr active)");
                         continue;
                     }
-                    logger.warn("Stuck key detected: " + keyRedaction.key(key) +
+                    logger.warn("Stuck key detected: " + keyRedactor.key(key) +
                                 " is pressed according to GetAsyncKeyState" +
                                 " but not in currentlyPressedNotEatenKeys" +
                                 ", injecting release" +
                                 ", last key events: " +
-                                keyRedaction.events(
+                                keyRedactor.events(
                                         keyboardManager.lastKeyEvents()));
                     keyboard.sendInputKeyRelease(
                             virtualKey.virtualKeyCode,
@@ -621,7 +621,7 @@ public class WindowsPlatform implements Platform {
                         if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl)
                             && !reentrantKeyEvent.eaten)
                             logger.warn("Reentrant event would have been eaten but already passed through: " +
-                                        keyRedaction.event(reentrantKeyEvent.keyEvent));
+                                        keyRedactor.event(reentrantKeyEvent.keyEvent));
                     }
                     if (eaten)
                         return new WinDef.LRESULT(1);
@@ -634,7 +634,7 @@ public class WindowsPlatform implements Platform {
                         if (processKeyEvent(reentrantKeyEvent.keyEvent, reentrantKeyEvent.infoFlags, reentrantKeyEvent.altgrLeftctrl)
                             && !reentrantKeyEvent.eaten)
                             logger.warn("Reentrant event would have been eaten but already passed through: " +
-                                        keyRedaction.event(reentrantKeyEvent.keyEvent));
+                                        keyRedactor.event(reentrantKeyEvent.keyEvent));
                     }
                     return result;
                 }
@@ -738,7 +738,7 @@ public class WindowsPlatform implements Platform {
         }
         if (lastNotEatenKeyEvent != null && lastNotEatenKeyEvent.equals(keyEvent)) {
             logger.debug("Key event ignored because it is equal to the last not eaten event: " +
-                         keyRedaction.event(keyEvent));
+                         keyRedactor.event(keyEvent));
             lastNotEatenKeyEvent = keyEvent;
             return false;
         }
@@ -781,16 +781,16 @@ public class WindowsPlatform implements Platform {
     private String keyEventString(WinUser.KBDLLHOOKSTRUCT info,
                                   String wParamString, KeyEvent keyEvent,
                                   boolean injected, boolean altgrLeftctrl) {
-        return keyRedaction.event(keyEvent) +
+        return keyRedactor.event(keyEvent) +
                ", altgrLeftctrl = " + altgrLeftctrl +
                ", injected = " + injected +
                ", dwExtraInfo = 0x" +
                (info.dwExtraInfo == null ? "0" :
                        Long.toHexString(info.dwExtraInfo.longValue())) +
-               ", vkCode = " + (keyRedaction.redactKeys() ? "<redacted>" :
+               ", vkCode = " + (keyRedactor.redactKeys() ? "<redacted>" :
                        "0x" + Integer.toHexString(info.vkCode) +
                        " (" + WindowsVirtualKey.values.get(info.vkCode) + ")") +
-               ", scanCode = " + (keyRedaction.redactKeys() ? "<redacted>" :
+               ", scanCode = " + (keyRedactor.redactKeys() ? "<redacted>" :
                        "0x" + Integer.toHexString(info.scanCode)) +
                ", flags = 0x" + Integer.toHexString(info.flags) + ", wParam = " +
                wParamString;

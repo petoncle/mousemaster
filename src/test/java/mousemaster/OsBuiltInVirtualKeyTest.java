@@ -21,7 +21,7 @@ class OsBuiltInVirtualKeyTest {
                 "idle-mode.mouse.initial-velocity=200 | _{iswindows} -> 1 | _{ismacos} -> 2");
         ComboWatcher comboWatcher =
                 new ComboWatcher(null, null, () -> new App("test.exe"), null,
-                        (Clock) Instant::now, Set.of(), Set.of(), new KeyRedaction(false),
+                        (Clock) Instant::now, Set.of(), Set.of(), new KeyRedactor(KeyRedaction.NONE),
                         configuration.modeMap(), configuration.initiallySetVariables(),
                         configuration.virtualKeys(),
                         configuration.initiallyPressedVirtualKeys());

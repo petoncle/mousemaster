@@ -23,7 +23,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final Overlay overlay;
     private final UiAutomation uiAutomation;
     private final ActiveAppFinder activeAppFinder;
-    private final KeyRedaction keyRedaction;
+    private final KeyRedactor keyRedactor;
     private ModeController modeController;
     private HintMesh hintMesh;
     private ScreenFilter screenFilter;
@@ -82,14 +82,14 @@ public class HintManager implements ModeListener, MousePositionListener {
             ScreenManager screenManager,
             MouseManager mouseManager, Overlay overlay,
             UiAutomation uiAutomation, ActiveAppFinder activeAppFinder,
-            KeyRedaction keyRedaction) {
+            KeyRedactor keyRedactor) {
         this.positionHistoryConfigurationByName = positionHistoryConfigurationByName;
         this.screenManager = screenManager;
         this.mouseManager = mouseManager;
         this.overlay = overlay;
         this.uiAutomation = uiAutomation;
         this.activeAppFinder = activeAppFinder;
-        this.keyRedaction = keyRedaction;
+        this.keyRedactor = keyRedactor;
     }
 
     public void setModeController(ModeController modeController) {
@@ -1427,7 +1427,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private void finalizeHintSelection(Hint hint, List<Key> newSelectedKeySequence) {
         HintMeshConfiguration hintMeshConfiguration = currentMode.hintMesh();
         hintJustSelected = true;
-        logger.trace("Hint " + keyRedaction.keys(hint.keySequence()) + " selected");
+        logger.trace("Hint " + keyRedactor.keys(hint.keySequence()) + " selected");
         if (hintMeshConfiguration.visible())
             overlay.animateHintMatch(hint);
         hintMesh =

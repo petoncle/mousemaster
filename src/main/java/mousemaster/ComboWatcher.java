@@ -30,7 +30,7 @@ public class ComboWatcher {
     private final ScreenManager screenManager;
     private final Clock clock;
     private final Set<Key> pressedComboPreconditionKeys;
-    private final KeyRedaction keyRedaction;
+    private final KeyRedactor keyRedactor;
     private final Set<Key> unpressedComboPreconditionKeys;
     private final Map<Mode, Set<Key>> pressedPreconditionKeysByMode;
     private final Map<Mode, Set<Key>> sequenceKeysByMode;
@@ -177,7 +177,7 @@ public class ComboWatcher {
                         ScreenManager screenManager,
                         Clock clock,
                         Set<Key> unpressedComboPreconditionKeys,
-                        Set<Key> pressedComboPreconditionKeys, KeyRedaction keyRedaction,
+                        Set<Key> pressedComboPreconditionKeys, KeyRedactor keyRedactor,
                         ModeMap modeMap, Set<String> initiallySetVariables,
                         Set<Key> virtualKeys, Set<Key> initiallyPressedVirtualKeys) {
         this.currentlyPressedComboKeys.addAll(initiallyPressedVirtualKeys);
@@ -204,7 +204,7 @@ public class ComboWatcher {
                 unpressedComboPreconditionKeys;
         this.pressedComboPreconditionKeys =
                 pressedComboPreconditionKeys;
-        this.keyRedaction = keyRedaction;
+        this.keyRedactor = keyRedactor;
         this.comboPreparationRetainDurationByMode = comboPreparationRetainDurationByMode(modeMap);
         this.comboPreparationMinRetainEventCountByMode = comboPreparationMinRetainEventCountByMode(modeMap);
         for (Mode mode : modeMap.modes()) {
@@ -1093,7 +1093,7 @@ public class ComboWatcher {
             if (event == null)
                 message.append(logTrigger.description);
             else {
-                message.append("Key ").append(keyRedaction.event(event));
+                message.append("Key ").append(keyRedactor.event(event));
                 if (logTrigger.description != null)
                     message.append(" (").append(logTrigger.description).append(')');
             }
@@ -1104,13 +1104,13 @@ public class ComboWatcher {
                                                              .filter(key -> !builtInVirtualKeys.contains(key))
                                                              .toList();
             if (!pressedKeys.isEmpty())
-                message.append(", pressed ").append(keyRedaction.keys(pressedKeys));
+                message.append(", pressed ").append(keyRedactor.keys(pressedKeys));
             if (logger.isTraceEnabled())
                 message.append(", buffered ")
-                       .append(keyRedaction.events(comboPreparation));
+                       .append(keyRedactor.events(comboPreparation));
             else if (!comboPreparation.events().isEmpty())
                 message.append(", buffered ")
-                       .append(keyRedaction.events(comboPreparation).events());
+                       .append(keyRedactor.events(comboPreparation).events());
             appendCombos(message, "matching", processingByCombo.entrySet().stream()
                                                                .filter(e -> e.getValue()
                                                                              .isPartOfComboSequence())
@@ -1582,8 +1582,8 @@ public class ComboWatcher {
         if (logger.isDebugEnabled()) {
             StringBuilder message = new StringBuilder("Breaking combos, buffered ");
             message.append(logger.isTraceEnabled() ?
-                    keyRedaction.events(comboPreparation) :
-                    keyRedaction.events(comboPreparation).events());
+                    keyRedactor.events(comboPreparation) :
+                    keyRedactor.events(comboPreparation).events());
             appendCombos(message, "waiting for last move",
                     combosWaitingForLastMoveToComplete.stream()
                                                       .map(waiting -> waiting.comboAndCommands()

@@ -352,7 +352,7 @@ public class ConfigurationParser {
         Set<String> positionHistoryNames = parsePositionHistoryNames(properties);
 
         String logLevel = null;
-        boolean logRedactKeys = false;
+        KeyRedaction keyRedaction = KeyRedaction.NONE;
         boolean logLastKeyEventsOnExit = false;
         boolean logToFile = false;
         boolean hideConsole = false;
@@ -386,7 +386,14 @@ public class ConfigurationParser {
                 continue;
             }
             else if (propertyKey.equals("logging.redact-keys")) {
-                logRedactKeys = Boolean.parseBoolean(propertyValue);
+                logger.warn(
+                        "logging.redact-keys is deprecated: use logging.key-redaction=none, pseudonymize or anonymize instead");
+                keyRedaction = Boolean.parseBoolean(propertyValue) ?
+                        KeyRedaction.ANONYMIZE : KeyRedaction.NONE;
+                continue;
+            }
+            else if (propertyKey.equals("logging.key-redaction")) {
+                keyRedaction = parseKeyRedaction(propertyKey, propertyValue);
                 continue;
             }
             else if (propertyKey.equals("logging.to-file")) {
@@ -651,7 +658,7 @@ public class ConfigurationParser {
                             .filter(key -> BuiltInVirtualKey.screenFilter(key) != null)
                             .forEach(virtualKeys::add);
         return new Configuration(positionHistoryConfigurationByName,
-                new ModeMap(modes), logLevel, logRedactKeys, logLastKeyEventsOnExit,
+                new ModeMap(modes), logLevel, keyRedaction, logLastKeyEventsOnExit,
                 logToFile, hideConsole,
                 forcedActiveAndConfigurationKeyboardLayouts.forcedActiveKeyboardLayout,
                 Set.copyOf(initiallySetVariables),
@@ -3148,6 +3155,19 @@ public class ConfigurationParser {
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": expected one of " + List.of("none", "active-app"));
+        };
+    }
+
+    private static KeyRedaction parseKeyRedaction(String propertyKey,
+                                                  String propertyValue) {
+        return switch (propertyValue) {
+            case "none" -> KeyRedaction.NONE;
+            case "pseudonymize" -> KeyRedaction.PSEUDONYMIZE;
+            case "anonymize" -> KeyRedaction.ANONYMIZE;
+            default -> throw new IllegalArgumentException(
+                    "Invalid property value in " + propertyKey + "=" + propertyValue +
+                    ": expected one of " +
+                    List.of("none", "pseudonymize", "anonymize"));
         };
     }
 

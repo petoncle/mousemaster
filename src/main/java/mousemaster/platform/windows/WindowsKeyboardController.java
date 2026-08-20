@@ -51,7 +51,7 @@ public class WindowsKeyboardController implements KeyboardController {
     );
 
     public KeyboardLayout activeKeyboardLayout;
-    public KeyRedaction keyRedaction;
+    public KeyRedactor keyRedactor;
 
     @Override
     public void reset() {
@@ -212,10 +212,10 @@ public class WindowsKeyboardController implements KeyboardController {
             }
             if (logger.isTraceEnabled())
                 logger.trace("Received ackowledgment of " +
-                             keyRedaction.move(
+                             keyRedactor.move(
                                      moveWaitingForKeyboardHookCallbackAcknowledgment) +
                              ", scanCode = " +
-                             (keyRedaction.redactKeys() ? "<redacted>" :
+                             (keyRedactor.redactKeys() ? "<redacted>" :
                                      "0x" + Integer.toHexString(info.scanCode)));
             moveWaitingForKeyboardHookCallbackAcknowledgment = null;
             // Continue processing next move (this is done synchronously before WindowsPlatform#keyboardHookCallback returns)
@@ -244,7 +244,7 @@ public class WindowsKeyboardController implements KeyboardController {
             ticksWaitingForAcknowledgment++;
             if (ticksWaitingForAcknowledgment >= 5) {
                 logger.debug("Gave up waiting for keyboard hook acknowledgment of " +
-                             keyRedaction.move(
+                             keyRedactor.move(
                                      moveWaitingForKeyboardHookCallbackAcknowledgment));
                 moveWaitingForKeyboardHookCallbackAcknowledgment = null;
             }
@@ -357,10 +357,10 @@ public class WindowsKeyboardController implements KeyboardController {
                     new BaseTSD.ULONG_PTR(MOUSEMASTER_INJECTED_EVENT_SIGNATURE);
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("Sending " + keyRedaction.moves(moves) +
+            logger.trace("Sending " + keyRedactor.moves(moves) +
                          ", triggerKeyRepeating = " + triggerKeyRepeating);
             logger.trace("Waiting for ackowledgment of " +
-                         keyRedaction.move(moves.getLast()));
+                         keyRedactor.move(moves.getLast()));
         }
         // Update external suppression flag before SendInput so reentrant external
         // events during SendInput are caught. +leftalt clears the flag (re-pressing

@@ -213,12 +213,12 @@ public class Mousemaster {
         mouseManager = new MouseManager(screenManager, platform.mouse());
         MouseState mouseState = new MouseState(mouseManager);
         GridManager gridManager = new GridManager(screenManager, mouseManager, platform.overlay());
-        KeyRedaction keyRedaction = new KeyRedaction(configuration.logRedactKeys());
+        KeyRedactor keyRedactor = new KeyRedactor(configuration.keyRedaction());
         HintManager hintManager =
                 new HintManager(configuration.positionHistoryConfigurationByName(),
                         screenManager, mouseManager, platform.overlay(),
                         platform.uiAutomation(), platform.activeAppFinder(),
-                        keyRedaction);
+                        keyRedactor);
         commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
@@ -239,14 +239,14 @@ public class Mousemaster {
                 new ComboWatcher(commandRunner, hintManager, platform.activeAppFinder(),
                         screenManager, platform.clock(),
                         unpressedComboPreconditionKeys,
-                        pressedComboPreconditionKeys, keyRedaction,
+                        pressedComboPreconditionKeys, keyRedactor,
                         configuration.modeMap(), configuration.initiallySetVariables(),
                         configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         KeyRegurgitator keyRegurgitator =
-                new KeyRegurgitator(platform.keyboard(), keyRedaction);
+                new KeyRegurgitator(platform.keyboard(), keyRedactor);
         keyboardManager = new KeyboardManager(comboWatcher, hintManager, keyRegurgitator);
         macroPlayer = new MacroPlayer(platform.clock(), comboWatcher, keyboardManager,
-                platform.keyboard(), keyRedaction);
+                platform.keyboard(), keyRedactor);
         keyboardManager.setMacroPlayer(macroPlayer);
         KeyboardState keyboardState = new KeyboardState(keyboardManager);
         indicatorManager = new IndicatorManager(platform.overlay());
@@ -267,7 +267,7 @@ public class Mousemaster {
         commandRunner.setMacroPlayer(macroPlayer);
         hintManager.setModeController(modeController);
         modeController.switchMode(Mode.IDLE_MODE_NAME);
-        platform.reset(mouseManager, keyboardManager, keyRegurgitator, keyRedaction,
+        platform.reset(mouseManager, keyboardManager, keyRegurgitator, keyRedactor,
                 configuration.logLastKeyEventsOnExit(),
                 configuration.modeMap(),
                 zoomManager,

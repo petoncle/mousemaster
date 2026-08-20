@@ -1433,7 +1433,7 @@ mousemaster provides configurable logging to help with troubleshooting and debug
 ```properties
 # Logging configuration
 logging.level=INFO
-logging.redact-keys=true
+logging.key-redaction=pseudonymize
 logging.to-file=true
 logging.file-path=mousemaster.log
 log-last-key-events-on-exit=true
@@ -1445,12 +1445,12 @@ log-last-key-events-on-exit=true
   - Valid values: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
   - Higher levels (DEBUG, TRACE) provide more detailed information but may impact performance
 
-- **`logging.redact-keys`**: When set to `true`, a key that types a character is logged as
-  `key#1`, a name that is stable for this run only
-  - A press and its release get the same name, so a log still shows a key that was never released
-  - Keys that type no character (modifiers, arrows, function keys) are logged as usual
-  - Useful for privacy
-  - Set to `false` for full key logging when troubleshooting keyboard issues
+- **`logging.key-redaction`**: How a key that types a character is logged
+  - `none` (default): as itself, for troubleshooting keyboard issues
+  - `pseudonymize`: as `key#1`, a name that is stable for this run only, so a press and its
+    release get the same name and a log still shows a key that was never released
+  - `anonymize`: as `<redacted>`, the same name for every key, so keys cannot be told apart
+  - Keys that type no character (modifiers, arrows, function keys) are always logged as themselves
 
 - **`logging.to-file`**: When set to `true`, logs are written to a file in addition to the console
   - Useful when `hide-console=true` or for persistent logging

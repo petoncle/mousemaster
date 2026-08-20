@@ -29,7 +29,7 @@ class HeldLastMoveEvictionTest {
         ModeMap modeMap = configuration.modeMap();
         ActiveAppFinder noApp = () -> new App("test.exe");
         comboWatcher = new ComboWatcher(null, null, noApp, null, () -> now, Set.of(), Set.of(),
-                new KeyRedaction(false), modeMap, configuration.initiallySetVariables(),
+                new KeyRedactor(KeyRedaction.NONE), modeMap, configuration.initiallySetVariables(),
                 configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
         comboWatcher.setModeListeners(List.of(new ModeListener() {
             @Override
