@@ -350,7 +350,7 @@ public class WindowsPlatform implements Platform {
         // Null when the configuration failed to load.
         if (logLastKeyEventsOnExit && keyboardManager != null)
             logger.info("Last key events: " +
-                        keyRedactor.events(keyboardManager.lastKeyEvents()));
+                        keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
     }
 
     @Override
@@ -445,7 +445,7 @@ public class WindowsPlatform implements Platform {
                     "Resetting KeyboardManager and MouseController because the following currentlyPressedKeys are not pressed anymore according to GetAsyncKeyState: " +
                     keyRedactor.keys(keysThatDoNotSeemToBePressedAnymore) +
                     ", last key events: " +
-                    keyRedactor.events(keyboardManager.lastKeyEvents()));
+                    keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
             currentlyPressedNotEatenKeys.clear();
             keyboardManager.reset();
             mouseManager.reset();
@@ -473,8 +473,7 @@ public class WindowsPlatform implements Platform {
                                 " but not in currentlyPressedNotEatenKeys" +
                                 ", injecting release" +
                                 ", last key events: " +
-                                keyRedactor.events(
-                                        keyboardManager.lastKeyEvents()));
+                                keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
                     keyboard.sendInputKeyRelease(
                             virtualKey.virtualKeyCode,
                             extendedKeys.contains(key));

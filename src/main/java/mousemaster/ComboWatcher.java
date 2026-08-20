@@ -1107,10 +1107,10 @@ public class ComboWatcher {
                 message.append(", pressed ").append(keyRedactor.keys(pressedKeys));
             if (logger.isTraceEnabled())
                 message.append(", buffered ")
-                       .append(keyRedactor.events(comboPreparation));
+                       .append(keyRedactor.comboPreparation(comboPreparation));
             else if (!comboPreparation.events().isEmpty())
                 message.append(", buffered ")
-                       .append(keyRedactor.events(comboPreparation).events());
+                       .append(keyRedactor.comboPreparation(comboPreparation).events());
             appendCombos(message, "matching", processingByCombo.entrySet().stream()
                                                                .filter(e -> e.getValue()
                                                                              .isPartOfComboSequence())
@@ -1582,8 +1582,8 @@ public class ComboWatcher {
         if (logger.isDebugEnabled()) {
             StringBuilder message = new StringBuilder("Breaking combos, buffered ");
             message.append(logger.isTraceEnabled() ?
-                    keyRedactor.events(comboPreparation) :
-                    keyRedactor.events(comboPreparation).events());
+                    keyRedactor.comboPreparation(comboPreparation) :
+                    keyRedactor.comboPreparation(comboPreparation).events());
             appendCombos(message, "waiting for last move",
                     combosWaitingForLastMoveToComplete.stream()
                                                       .map(waiting -> waiting.comboAndCommands()

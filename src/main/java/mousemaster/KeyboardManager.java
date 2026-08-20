@@ -19,7 +19,7 @@ public class KeyboardManager {
     private final ComboWatcher comboWatcher;
     private final KeyRegurgitator keyRegurgitator;
     private static final int lastKeyEventCount = 32;
-    private final ComboPreparation lastKeyEvents = ComboPreparation.empty();
+    private final List<KeyEventAndEaten> lastKeyEvents = new ArrayList<>();
     /**
      * LinkedHashMap preserves insertion (press) order for correct regurgitation order
      * (e.g. shift before a, not a before shift).
@@ -120,10 +120,32 @@ public class KeyboardManager {
             mustBeEatenOnly = new EatAndRegurgitates(true, List.of());
 
     public EatAndRegurgitates keyEvent(KeyEvent keyEvent) {
-        return singleKeyEvent(keyEvent);
+        boolean osAutoRepeat = keyEvent.isPress() &&
+                               currentlyPressedKeys.containsKey(keyEvent.key());
+        EatAndRegurgitates eatAndRegurgitates = singleKeyEvent(keyEvent);
+        if (!osAutoRepeat) {
+            if (lastKeyEvents.size() == lastKeyEventCount)
+                lastKeyEvents.removeFirst();
+            lastKeyEvents.add(
+                    new KeyEventAndEaten(keyEvent, eatAndRegurgitates.mustBeEaten()));
+        }
+        return eatAndRegurgitates;
     }
 
-    public ComboPreparation lastKeyEvents() {
+    public record KeyEventAndEaten(KeyEvent event, boolean eaten) {
+        @Override
+        public String toString() {
+            return prefix() + event.key();
+        }
+
+        private String prefix() {
+            if (event.isRelease())
+                return "-";
+            return eaten ? "+" : "#";
+        }
+    }
+
+    public List<KeyEventAndEaten> lastKeyEvents() {
         return lastKeyEvents;
     }
 
@@ -131,13 +153,6 @@ public class KeyboardManager {
         macroPlayer.newKeyEvent();
         Key key = keyEvent.key();
         PressKeyEventProcessingSet processingSet = currentlyPressedKeys.get(key);
-        // A press of an already pressed key is an OS auto repeat: we don't log it
-        // into lastKeyEvents.
-        if (!keyEvent.isPress() || processingSet == null) {
-            if (lastKeyEvents.events().size() == lastKeyEventCount)
-                lastKeyEvents.events().removeFirst();
-            lastKeyEvents.events().add(keyEvent);
-        }
         if (keyEvent.isPress()) {
             List<Regurgitate> regurgitates = List.of();
             if (processingSet == null) {

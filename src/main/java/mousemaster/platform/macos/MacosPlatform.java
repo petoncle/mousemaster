@@ -394,7 +394,7 @@ public class MacosPlatform implements Platform {
         // Null when the configuration failed to load.
         if (logLastKeyEventsOnExit && keyboardManager != null)
             logger.info("Last key events: " +
-                        keyRedactor.events(keyboardManager.lastKeyEvents()));
+                        keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
     }
 
     @Override

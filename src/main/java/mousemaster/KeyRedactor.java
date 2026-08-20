@@ -1,5 +1,6 @@
 package mousemaster;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -46,9 +47,27 @@ public class KeyRedactor {
                 new KeyEvent.ReleaseKeyEvent(event.time(), key);
     }
 
-    public ComboPreparation events(ComboPreparation comboPreparation) {
+    public ComboPreparation comboPreparation(ComboPreparation comboPreparation) {
         return new ComboPreparation(
                 comboPreparation.events().stream().map(this::event).toList());
+    }
+
+    public String keyEventAndEatens(
+            List<KeyboardManager.KeyEventAndEaten> keyEventAndEatens) {
+        StringBuilder message = new StringBuilder("[");
+        for (int eventIndex = 0; eventIndex < keyEventAndEatens.size(); eventIndex++) {
+            KeyboardManager.KeyEventAndEaten keyEventAndEaten =
+                    keyEventAndEatens.get(eventIndex);
+            if (eventIndex > 0)
+                message.append('-')
+                       .append(Duration.between(
+                               keyEventAndEatens.get(eventIndex - 1).event().time(),
+                               keyEventAndEaten.event().time()).toMillis())
+                       .append(' ');
+            message.append(new KeyboardManager.KeyEventAndEaten(
+                    event(keyEventAndEaten.event()), keyEventAndEaten.eaten()));
+        }
+        return message.append(']').toString();
     }
 
     public ResolvedMacroMove move(ResolvedMacroMove move) {
