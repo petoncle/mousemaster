@@ -51,7 +51,7 @@ public class WindowsPlatform implements Platform {
     private WinUser.HHOOK mouseHook;
     private final BlockingQueue<WinDef.POINT> mousePositionQueue = new LinkedBlockingDeque<>();
     private WinDef.POINT lastMousePosition;
-    private KeyEvent lastKeyEvent;
+    private KeyEvent lastNotEatenKeyEvent;
     /**
      * Keep a reference of the Windows callback.
      * Without these references, they seem to be garbage collected and are not called
@@ -736,10 +736,10 @@ public class WindowsPlatform implements Platform {
             if (altgrLeftctrl)
                 keysPressedInHook.add(Key.leftctrl);
         }
-        if (lastKeyEvent != null && lastKeyEvent.equals(keyEvent)) {
-            logger.debug("Key event ignored because it is equal to the last event: " +
+        if (lastNotEatenKeyEvent != null && lastNotEatenKeyEvent.equals(keyEvent)) {
+            logger.debug("Key event ignored because it is equal to the last not eaten event: " +
                          keyRedaction.event(keyEvent));
-            lastKeyEvent = keyEvent;
+            lastNotEatenKeyEvent = keyEvent;
             return false;
         }
         boolean eventMustBeEaten = keyEvent(keyEvent, infoFlags);
@@ -774,7 +774,7 @@ public class WindowsPlatform implements Platform {
             altgrRightaltPressEaten = false;
         }
         if (!eventMustBeEaten)
-            lastKeyEvent = keyEvent;
+            lastNotEatenKeyEvent = keyEvent;
         return eventMustBeEaten;
     }
 
