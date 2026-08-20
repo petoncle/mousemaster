@@ -24,6 +24,7 @@ public final class IndicatorRenderer {
     private IndicatorLabelWidget labelWidget;
     private IndicatorConfiguration currentIndicator;
     private int maxIndicatorWindowSize;
+    private int maxCursorImageSize;
     private FadeAnimator fadeAnimator;
     private boolean showing;
 
@@ -223,10 +224,15 @@ public final class IndicatorRenderer {
             return null;
         int outlinePadding = indicatorOutlinePadding(indicator, scale);
         int shadowPadding = indicatorShadowPadding(indicator, scale);
-        int imageSize = size + 2 * (outlinePadding + shadowPadding);
+        // Never shrink the cursor: the OS blanks it for a frame when the bitmap changes size,
+        // the artifact moveAndResize avoids by never resizing the window. The bitmap fits the
+        // largest indicator rendered so far and the extra area is transparent.
+        maxCursorImageSize = Math.max(maxCursorImageSize,
+                size + 2 * (outlinePadding + shadowPadding));
+        int imageSize = maxCursorImageSize;
         window();
         applyIndicator(indicator, true, scale);
-        sizeWidgetsForRender(size, outlinePadding, shadowPadding, scale);
+        sizeWidgetsForRender(size, outlinePadding, imageSize, scale);
         QImage image = new QImage(imageSize, imageSize,
                 QImage.Format.Format_ARGB32_Premultiplied);
         image.fill(0);
@@ -249,17 +255,17 @@ public final class IndicatorRenderer {
         return new CursorImage(argb, imageSize, imageSize);
     }
 
-    /** Sizes the window and widgets for an offscreen render: widget/label sit inside the
-     *  shadow padding, matching moveAndResize's layout but without on-screen positioning. */
-    private void sizeWidgetsForRender(int size, int outlinePadding, int shadowPadding,
+    /** Sizes the window and widgets for an offscreen render: widget/label are centered in the
+     *  image, matching moveAndResize's layout but without on-screen positioning. */
+    private void sizeWidgetsForRender(int size, int outlinePadding, int imageSize,
                                       double scale) {
         widget.setOutlineScale(scale);
         int widgetSize = size + 2 * outlinePadding;
-        int windowSize = size + 2 * (outlinePadding + shadowPadding);
-        window.resize(windowSize, windowSize);
-        widget.move(shadowPadding, shadowPadding);
+        int padding = (imageSize - widgetSize) / 2;
+        window.resize(imageSize, imageSize);
+        widget.move(padding, padding);
         widget.resize(widgetSize, widgetSize);
-        labelWidget.move(shadowPadding, shadowPadding);
+        labelWidget.move(padding, padding);
         labelWidget.resize(widgetSize, widgetSize);
         labelWidget.setIndicatorOutlinePadding(outlinePadding);
     }
