@@ -129,6 +129,10 @@ public interface ExtendedUser32 extends User32 {
 
     boolean EnumThreadWindows(int dwThreadId, WinUser.WNDENUMPROC lpfn, Pointer lParam);
 
+    HANDLE OpenInputDesktop(int dwFlags, boolean fInherit, int dwDesiredAccess);
+    boolean CloseDesktop(HANDLE hDesktop);
+    int DESKTOP_SWITCHDESKTOP = 0x0100;
+
     boolean SetWindowDisplayAffinity(WinDef.HWND hWnd, int dwAffinity);
     int WDA_NONE = 0x00000000;
     int WDA_EXCLUDEFROMCAPTURE = 0x00000011;

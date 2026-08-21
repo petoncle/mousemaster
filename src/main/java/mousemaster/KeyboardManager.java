@@ -92,7 +92,12 @@ public class KeyboardManager {
     }
 
     public void reset() {
-        regurgitatePressedKeys();
+        reset(true);
+    }
+
+    public void reset(boolean regurgitate) {
+        if (regurgitate)
+            regurgitatePressedKeys();
         currentlyPressedKeys.clear();
         eatenKeys.clear();
         unhandledKeyJustPressedInCurrentMode = false;

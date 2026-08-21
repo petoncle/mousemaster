@@ -75,6 +75,8 @@ public class WindowsPlatform implements Platform {
     private final Set<Key> keysPressedInHook = new HashSet<>();
     private Mode currentMode;
     private double stuckKeyCheckTimer;
+    private double lockedCheckTimer;
+    private boolean locked;
     private ExtendedKernel32.PhandlerRoutine consoleCtrlHandler;
     private volatile boolean killProcessRequested;
     private final boolean startedWithAConsole =
@@ -105,6 +107,7 @@ public class WindowsPlatform implements Platform {
         overlay.setWaitForZoomBeforeRepainting(false);
         keyboard.update(delta);
         sanityCheckCurrentlyPressedKeys(delta);
+        resetIfLockedChanged(delta);
         enforceWindowsTopmostTimer -= delta;
         // Every 200ms, but not during an animation: SetWindowPos would cost it a frame.
         if (enforceWindowsTopmostTimer < 0 && !overlay.hintTransitionAnimating() &&
@@ -480,6 +483,33 @@ public class WindowsPlatform implements Platform {
                 }
             }
         }
+    }
+
+    private void resetIfLockedChanged(double delta) {
+        lockedCheckTimer -= delta;
+        if (lockedCheckTimer > 0)
+            return;
+        lockedCheckTimer = 0.2;
+        boolean locked = !inputDesktopIsOurs();
+        if (locked == this.locked)
+            return;
+        this.locked = locked;
+        logger.info("Resetting KeyboardManager and MouseController because the screen was " +
+                    (locked ? "locked" : "unlocked") + ", last key events: " +
+                    keyRedactor.keyEventAndEatens(keyboardManager.lastKeyEvents()));
+        currentlyPressedNotEatenKeys.clear();
+        keyboardManager.reset(false);
+        mouseManager.reset();
+    }
+
+    /** False when the lock screen or another desktop has the input: hooks receive nothing. */
+    private boolean inputDesktopIsOurs() {
+        WinNT.HANDLE inputDesktop = ExtendedUser32.INSTANCE.OpenInputDesktop(0, false,
+                ExtendedUser32.DESKTOP_SWITCHDESKTOP);
+        if (inputDesktop == null)
+            return false;
+        ExtendedUser32.INSTANCE.CloseDesktop(inputDesktop);
+        return true;
     }
 
     private boolean acquireSingleInstanceMutex() {
