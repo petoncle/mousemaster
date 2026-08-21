@@ -173,10 +173,14 @@ public class Mousemaster {
     private void loadConfiguration(boolean readFile) throws IOException {
         boolean reload = configuration != null;
         if (readFile) {
+            List<String> properties;
             try (BufferedReader reader = Files.newBufferedReader(configurationPath,
                     StandardCharsets.UTF_8)) {
-                configurationProperties = PropertiesReader.readPropertiesFile(reader);
+                properties = PropertiesReader.readPropertiesFile(reader);
             }
+            if (properties.equals(configurationProperties))
+                return;
+            configurationProperties = properties;
         }
         configuration =
                 ConfigurationParser.parse(configurationProperties, activeKeyboardLayout);

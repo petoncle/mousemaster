@@ -249,12 +249,14 @@ public class MacosPlatform implements Platform {
                 modeMap.modes().stream().map(Mode::hintMesh).collect(Collectors.toSet());
         Set<HintMeshConfiguration> newHintMeshConfigurations =
                 newModeMap.modes().stream().map(Mode::hintMesh).collect(Collectors.toSet());
-        if (modeMap != null) {
-            logger.debug("Flushing overlay cache because the configuration was reloaded");
-            overlay.flushCache();
-        }
-        if (!newHintMeshConfigurations.equals(oldHintMeshConfigurations))
+        if (!newHintMeshConfigurations.equals(oldHintMeshConfigurations)) {
+            if (modeMap != null) {
+                logger.debug(
+                        "Flushing overlay cache because the hint mesh configurations have changed");
+                overlay.flushCache();
+            }
             overlay.preWarmFontsAndWindows(newHintMeshConfigurations);
+        }
         this.modeMap = newModeMap;
         QPoint mousePosition = mouse.findMousePosition();
         mousePositionListeners.forEach(

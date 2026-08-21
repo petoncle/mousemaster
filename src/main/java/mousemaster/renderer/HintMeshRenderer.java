@@ -246,6 +246,8 @@ public final class HintMeshRenderer {
     public void preWarmHintMesh(HintMesh hintMesh, Zoom zoom, Set<Screen> screens) {
         if (!hintMesh.visible() || hintMesh.hints().isEmpty())
             return;
+        if (hintMeshPixmaps.containsKey(hintMeshKey(hintMesh, hintMesh.hints())))
+            return;
         preWarming = true;
         try {
             createOrUpdateHintMeshWindows(hintMesh, zoom, screens);
@@ -701,10 +703,7 @@ public final class HintMeshRenderer {
             return;
         }
         HintMesh hintMeshKey = matchBoxPixmap != null ? null :
-                new HintMesh.HintMeshBuilder(hintMesh)
-                        .hints(trimmedHints(hintMeshWindow.hints(),
-                                hintMesh.selectedKeySequence()))
-                        .build();
+                hintMeshKey(hintMesh, hintMeshWindow.hints());
         hintMeshWindow.lastHintMeshKeyReference.set(hintMeshKey); // Will be used by animateHintMatch.
         PixmapAndPosition pixmapAndPosition =
                 matchBoxPixmap != null ? matchBoxPixmap :
@@ -1887,6 +1886,12 @@ public final class HintMeshRenderer {
                 layer.setParent(null);
                 disposeWidget(layer);
             }
+    }
+
+    private HintMesh hintMeshKey(HintMesh hintMesh, List<Hint> hints) {
+        return new HintMesh.HintMeshBuilder(hintMesh)
+                .hints(trimmedHints(hints, hintMesh.selectedKeySequence()))
+                .build();
     }
 
     private List<Hint> trimmedHints(List<Hint> hints,
