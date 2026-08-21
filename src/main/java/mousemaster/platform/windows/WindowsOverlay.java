@@ -372,7 +372,7 @@ public class WindowsOverlay implements Overlay {
             if (image == null)
                 return;
             mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                    includeCursorGlyph);
+                    includeCursorGlyph, indicator.equals(transitionTo));
             indicatorIsCursor = true;
             currentCursorIndicator = indicator;
             currentCursorScale = scale;
@@ -558,7 +558,7 @@ public class WindowsOverlay implements Overlay {
                         indicatorRenderer.renderCursorImage(currentCursorIndicator, scale);
                 if (image != null) {
                     mouse.setIndicatorCursor(image.argb(), image.width(), image.height(),
-                            currentCursorIncludeGlyph);
+                            currentCursorIncludeGlyph, true);
                     currentCursorScale = scale;
                 }
             }

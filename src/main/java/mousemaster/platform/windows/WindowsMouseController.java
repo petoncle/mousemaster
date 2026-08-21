@@ -318,18 +318,19 @@ public class WindowsMouseController implements MouseController {
     private final Map<Long, GlyphImage> glyphByCursorId = new HashMap<>();
 
     /**
-     * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor.
-     * When includeGlyph is set, each cursor's original glyph is composited on top so shape
-     * semantics are preserved; hide-cursor omits the glyph. Either way the indicator is
-     * anchored to the glyph's visual center and the glyph's real hotspot is kept, so toggling
-     * the glyph does not shift the indicator. The OS keeps switching cursors by context; we
-     * just replace each slot's image.
+     * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor, or
+     * as the displayed one alone. When includeGlyph is set, each cursor's original glyph is
+     * composited on top so shape semantics are preserved; hide-cursor omits the glyph. Either
+     * way the indicator is anchored to the glyph's visual center and the glyph's real hotspot
+     * is kept, so toggling the glyph does not shift the indicator. The OS keeps switching
+     * cursors by context; we just replace each slot's image.
      */
     public void setIndicatorCursor(int[] indicatorArgb, int indicatorWidth, int indicatorHeight,
-                                   boolean includeGlyph) {
+                                   boolean includeGlyph, boolean allCursors) {
         if (glyphByCursorId.isEmpty())
             snapshotSystemGlyphs();
-        for (long cursorId : SYSTEM_CURSOR_IDS) {
+        long[] cursorIds = allCursors ? SYSTEM_CURSOR_IDS : new long[]{displayedCursorId()};
+        for (long cursorId : cursorIds) {
             GlyphImage glyph = glyphByCursorId.get(cursorId);
             if (glyph == null)
                 continue;
@@ -338,6 +339,20 @@ public class WindowsMouseController implements MouseController {
         }
         cursorHidden = false;
         indicatorCursorInstalled = true;
+    }
+
+    private long displayedCursorId() {
+        ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
+        if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) || cursorInfo.hCursor == null)
+            return 0;
+        for (long cursorId : SYSTEM_CURSOR_IDS) {
+            WinNT.HANDLE cursor = ExtendedUser32.INSTANCE.LoadImageW(null,
+                    new Pointer(cursorId), ExtendedUser32.IMAGE_CURSOR, 0, 0,
+                    ExtendedUser32.LR_SHARED);
+            if (cursorInfo.hCursor.equals(cursor))
+                return cursorId;
+        }
+        return 0;
     }
 
     /**
