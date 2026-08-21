@@ -537,6 +537,11 @@ public class ConfigurationParser {
             if (!parentProperties.isEmpty())
                 parentPropertiesByChildProperty.put(propertyKey, parentProperties);
         }
+        for (Map.Entry<PropertyKey, List<PropertyKey>> entry :
+                parentPropertiesByChildProperty.entrySet())
+            for (PropertyKey parentPropertyKey : entry.getValue())
+                childPropertiesByParentProperty.computeIfAbsent(parentPropertyKey,
+                        parentProperty -> new HashSet<>()).add(entry.getKey());
         Deque<PropertyKey> extendablePropertyKeys = propertyByKey.keySet()
                                                                  .stream()
                                                                  .filter(Predicate.not(
@@ -555,12 +560,12 @@ public class ConfigurationParser {
                                 defaultPropertyByName.get(parentPropertyKey.propertyName()) :
                                 propertyByKey.get(parentPropertyKey),
                         propertyByKey.get(propertyKey));
-            for (Map.Entry<PropertyKey, List<PropertyKey>> entry :
-                    parentPropertiesByChildProperty.entrySet())
-                if (entry.getValue().contains(propertyKey) &&
-                    !extendedPropertyKeys.contains(entry.getKey()) &&
-                    extendedPropertyKeys.containsAll(entry.getValue()))
-                    extendablePropertyKeys.add(entry.getKey());
+            for (PropertyKey childPropertyKey :
+                    childPropertiesByParentProperty.getOrDefault(propertyKey, Set.of()))
+                if (!extendedPropertyKeys.contains(childPropertyKey) &&
+                    extendedPropertyKeys.containsAll(
+                            parentPropertiesByChildProperty.get(childPropertyKey)))
+                    extendablePropertyKeys.add(childPropertyKey);
         }
         for (PropertyKey propertyKey : propertyByKey.keySet())
             if (!extendedPropertyKeys.contains(propertyKey))
