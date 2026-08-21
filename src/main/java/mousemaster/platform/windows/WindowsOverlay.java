@@ -27,6 +27,7 @@ public class WindowsOverlay implements Overlay {
     private IndicatorConfiguration currentCursorIndicator;
     private double currentCursorScale;
     private boolean currentCursorIncludeGlyph;
+    private boolean mousePositionMissing;
     private GridRenderer gridRenderer;
     private WinDef.HWND gridHwnd;
     /** Owns no QWidget, so it can be created eagerly (no QtJambi native-load ordering). */
@@ -353,9 +354,12 @@ public class WindowsOverlay implements Overlay {
             indicator.equals(indicatorRenderer.currentIndicator()))
             return;
         if (mouse.tryFindMousePosition() == null) {
-            logger.warn("Unable to find mouse position for indicator");
+            if (!mousePositionMissing)
+                logger.warn("Unable to find mouse position for indicator");
+            mousePositionMissing = true;
             return;
         }
+        mousePositionMissing = false;
         WinDef.POINT mousePosition = mouse.findMousePosition();
         if (renderAsCursor) {
             double scale = WindowsScreen.findActiveScreen(mousePosition).scale();
