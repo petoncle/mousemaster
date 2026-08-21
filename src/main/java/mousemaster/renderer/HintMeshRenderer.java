@@ -60,6 +60,7 @@ public final class HintMeshRenderer {
     private QWidget croppedContainer;
     private final TransitionMetrics transitionMetrics = new TransitionMetrics();
     private boolean showingHintMesh;
+    private int hideCount;
     /** Set when a crop that was zooming into a selected hint's box is abandoned because the incoming
      *  grid does not continue that drill; the incoming grid then fades in instead of popping. */
     private boolean fadeIn;
@@ -335,6 +336,7 @@ public final class HintMeshRenderer {
 
     private void doHideHintMesh() {
         showingHintMesh = false;
+        hideCount++;
         if (hintMeshFadeAnimator != null)
             hintMeshFadeAnimator.cancel();
         // Cancel any pending build/cache runnables that reference containers
@@ -754,6 +756,7 @@ public final class HintMeshRenderer {
                 container.setClearColor(backgroundColor);
             container.setStyleSheet("background: transparent;");
             newContainer = container;
+            int hideCountBeforeBuild = hideCount;
             Runnable setUncachedHintMeshWindowRunnable =
                     () -> {
                         long before = System.nanoTime();
@@ -767,6 +770,13 @@ public final class HintMeshRenderer {
                         if (preWarming) {
                             cacheQtHintWindowIntoPixmap(window, container, hintMeshKey, hintMesh,
                                     boxes, enclosingInk);
+                            container.setParent(null);
+                            disposeWidget(container);
+                            return;
+                        }
+                        // A deferred build pumps messages, so the mesh may have been hidden
+                        // while it ran.
+                        if (hideCount != hideCountBeforeBuild) {
                             container.setParent(null);
                             disposeWidget(container);
                             return;
