@@ -201,7 +201,7 @@ public class ConfigurationParser {
                  .transitionAnimationSwitchAt(IndicatorSwitchAt.START)
                  .renderAsCursor(false);
         indicator.size(26)
-                 .edgeCount(300)
+                 .edgeCount(100)
                  .hexColor("#FF0000")
                  .opacity(0.2)
                  .position(IndicatorPosition.CENTER);

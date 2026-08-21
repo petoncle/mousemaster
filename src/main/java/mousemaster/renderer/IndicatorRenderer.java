@@ -596,9 +596,16 @@ public final class IndicatorRenderer {
             return startAngle;
         }
 
+        /** Past this many edges the polygon is a circle, which Qt draws in one call. */
+        private static final int circleEdgeCount = 100;
+
         static QPainterPath polygonPath(double centerX, double centerY,
                                        double radius, int edgeCount) {
             QPainterPath path = new QPainterPath();
+            if (edgeCount >= circleEdgeCount) {
+                path.addEllipse(centerX - radius, centerY - radius, 2 * radius, 2 * radius);
+                return path;
+            }
             double startAngle = polygonStartAngle(edgeCount);
             for (int i = 0; i < edgeCount; i++) {
                 double angle = startAngle + 2.0 * Math.PI * i / edgeCount;
