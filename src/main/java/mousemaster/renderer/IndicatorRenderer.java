@@ -8,6 +8,7 @@ import io.qt.widgets.*;
 import mousemaster.*;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -234,18 +235,11 @@ public final class IndicatorRenderer {
         // screen so it renders at the right size on any screen.
         HintMeshRenderer.setQImageDpiForScreen(image, scale);
         window.render(image);
-        int total = imageSize * imageSize * 4;
-        byte[] bytes = new byte[total];
+        int[] argb = new int[imageSize * imageSize];
         ByteBuffer buffer = image.bits();
         buffer.position(0);
-        buffer.get(bytes);
+        buffer.order(ByteOrder.nativeOrder()).asIntBuffer().get(argb);
         image.dispose();
-        int[] argb = new int[imageSize * imageSize];
-        for (int i = 0; i < argb.length; i++) {
-            int o = i * 4;
-            argb[i] = ((bytes[o + 3] & 0xFF) << 24) | ((bytes[o + 2] & 0xFF) << 16) |
-                      ((bytes[o + 1] & 0xFF) << 8) | (bytes[o] & 0xFF);
-        }
         return new CursorImage(argb, imageSize, imageSize);
     }
 
