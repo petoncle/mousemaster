@@ -333,12 +333,23 @@ public class WindowsUiAutomation implements UiAutomation {
         }, null);
         List<UiElement> uiElements = new ArrayList<>();
         long before = System.nanoTime();
-        for (int windowIndex = 0; windowIndex < windows.size(); windowIndex++)
-            queryUiElementsOfWindow(windows.get(windowIndex),
-                    windowRectanglesInArea.get(windowIndex),
-                    windowRectanglesInArea.subList(0, windowIndex), uiElements);
-        logger.debug("Found {} UI elements in {} windows of area {} in {}ms",
-                uiElements.size(), windows.size(), area,
+        int walkedWindows = 0;
+        for (int windowIndex = 0; windowIndex < windows.size(); windowIndex++) {
+            Rectangle windowRectangleInArea = windowRectanglesInArea.get(windowIndex);
+            List<Rectangle> occludingRectangles =
+                    windowRectanglesInArea.subList(0, windowIndex);
+            // A window drawn over entirely holds nothing a hint could reach, and walking
+            // it is where the query spends its time.
+            if (occludingRectangles.stream()
+                                   .anyMatch(rectangle -> rectangle.contains(
+                                           windowRectangleInArea)))
+                continue;
+            walkedWindows++;
+            queryUiElementsOfWindow(windows.get(windowIndex), windowRectangleInArea,
+                    occludingRectangles, uiElements);
+        }
+        logger.debug("Found {} UI elements in {} of {} windows of area {} in {}ms",
+                uiElements.size(), walkedWindows, windows.size(), area,
                 (long) ((System.nanoTime() - before) / 1e6));
         return uiElements;
     }
