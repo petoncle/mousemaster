@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,7 +42,10 @@ class PreconditionOnlyMutationTest {
                                                     .allKeys());
             }
         }
-        comboWatcher = new ComboWatcher(null, null, noApp, null, clock,
+        HintManager hintManager =
+                new HintManager(Map.of(), null, null, null, null, noApp,
+                        new KeyRedactor(KeyRedaction.NONE));
+        comboWatcher = new ComboWatcher(null, hintManager, noApp, null, clock,
                 unpressedPreconditionKeys, pressedPreconditionKeys,
                 new KeyRedactor(KeyRedaction.NONE), modeMap, configuration.initiallySetVariables(),
                 configuration.virtualKeys(), configuration.initiallyPressedVirtualKeys());
@@ -102,7 +106,7 @@ class PreconditionOnlyMutationTest {
     }
 
     private void setMouseAndKeyboardKeys(MouseState mouseState) {
-        comboWatcher.updateMouseAndKeyboardKeys(mouseState, new KeyboardState(null) {
+        comboWatcher.updateBuiltInVirtualKeys(mouseState, new KeyboardState(null) {
             @Override
             public boolean pressingUnhandledKeyInCurrentMode() {
                 return false;

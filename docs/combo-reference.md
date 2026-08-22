@@ -494,6 +494,7 @@ Some virtual keys are maintained by mousemaster. They can be read like any other
 | `isrightmousepressing`     | mousemaster is holding the right mouse button.                                                                   |
 | `isidling`                 | The mouse is neither moving, wheeling, nor pressing a button.                                                     |
 | `isunhandledkeypressing`   | A key that is not part of any combo of the current mode is held.                                                  |
+| `ishintmeshempty`          | The current mode's hint mesh has been computed and holds no hint. Only [UI hints](configuration-reference.md#ui-hints) can come up empty. |
 | `iswindows`, `ismacos`     | mousemaster runs on that operating system.                                                                       |
 | `3840x2160-300%`           | The active screen matches that [screen filter](configuration-reference.md#screen-specific-hint-configurations): a resolution, a scale (`300%`), or both. A `screen-alias` names a set of them. |
 

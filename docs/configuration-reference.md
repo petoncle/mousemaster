@@ -581,6 +581,13 @@ hints appear once the scan is over, mousemaster stays responsive in the meantime
 `ui-area` and the `grid-area*` properties are exclusive: `ui-area` only applies to
 `hint.type=ui`, and setting `grid-area` on a UI hint mode is rejected.
 
+A scan that finds no element leaves the mode showing nothing. The built-in virtual key
+`ishintmeshempty` is pressed then, so a combo can leave the mode:
+
+```properties
+ui-hint-mode.to.normal-mode=_{ishintmeshempty}
+```
+
 UI hints use the same appearance properties as other hint types (`box-*`, `font-*`, etc.).
 The `cell-horizontal-padding` and `cell-vertical-padding` properties are particularly useful
 for UI hints since the hint boxes are sized to fit the label text rather than a fixed grid

@@ -247,11 +247,11 @@ public class ComboWatcher {
         return mutatedMode;
     }
 
-    /** Presses the built-in keys that follow the mouse and keyboard state. The listeners are
-     *  notified once all of them are set, so a click that grows the indicator and colors it
+    /** Presses the built-in keys that follow the mouse, keyboard and hint state. The listeners
+     *  are notified once all of them are set, so a click that grows the indicator and colors it
      *  through two different keys is not rendered half applied. */
-    public void updateMouseAndKeyboardKeys(MouseState mouseState,
-                                           KeyboardState keyboardState) {
+    public void updateBuiltInVirtualKeys(MouseState mouseState,
+                                         KeyboardState keyboardState) {
         mutatedModeNotificationSuspended = true;
         setVirtualKeyPressed(BuiltInVirtualKey.IS_IDLING, mouseState.idling());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_MOVING, mouseState.moving());
@@ -265,6 +265,8 @@ public class ComboWatcher {
                 mouseState.rightPressing());
         setVirtualKeyPressed(BuiltInVirtualKey.IS_UNHANDLED_KEY_PRESSING,
                 keyboardState.pressingUnhandledKeyInCurrentMode());
+        setVirtualKeyPressed(BuiltInVirtualKey.IS_HINT_MESH_EMPTY,
+                hintManager.hintMeshEmpty());
         // Refreshed once all the keys are set, and before the tick moves the mouse, which
         // reads properties these keys can mutate.
         if (preconditionOnlyMutationRefreshPending) {

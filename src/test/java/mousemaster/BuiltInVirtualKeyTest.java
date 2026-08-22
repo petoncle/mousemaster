@@ -6,8 +6,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** The mouse and keyboard keys mousemaster presses itself: readable, but not writable. */
-class MouseAndKeyboardBuiltInVirtualKeyTest {
+/** The keys mousemaster presses itself: readable, but not writable. */
+class BuiltInVirtualKeyTest {
 
     private static final List<Key> KEYS =
             List.of(BuiltInVirtualKey.IS_IDLING, BuiltInVirtualKey.IS_MOVING,
@@ -15,7 +15,8 @@ class MouseAndKeyboardBuiltInVirtualKeyTest {
                     BuiltInVirtualKey.IS_LEFT_MOUSE_PRESSING,
                     BuiltInVirtualKey.IS_MIDDLE_MOUSE_PRESSING,
                     BuiltInVirtualKey.IS_RIGHT_MOUSE_PRESSING,
-                    BuiltInVirtualKey.IS_UNHANDLED_KEY_PRESSING);
+                    BuiltInVirtualKey.IS_UNHANDLED_KEY_PRESSING,
+                    BuiltInVirtualKey.IS_HINT_MESH_EMPTY);
 
     private static Configuration parse(String... lines) {
         return ConfigurationParser.parse(List.of(lines),

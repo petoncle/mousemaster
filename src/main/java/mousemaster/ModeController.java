@@ -40,8 +40,8 @@ public class ModeController {
 
     /** Called again once the tick's key events have run their commands, so that what they
      *  pressed is seen before anything is rendered. */
-    public void updateMouseAndKeyboardKeys() {
-        comboWatcher.updateMouseAndKeyboardKeys(mouseState, keyboardState);
+    public void updateBuiltInVirtualKeys() {
+        comboWatcher.updateBuiltInVirtualKeys(mouseState, keyboardState);
     }
 
     public void update(double delta) {
@@ -60,7 +60,7 @@ public class ModeController {
                 return;
             }
         }
-        updateMouseAndKeyboardKeys();
+        updateBuiltInVirtualKeys();
         boolean idling = mouseState.idling();
         boolean mustResetHideCursorTimeout = !idling || hintManager.showingHintMesh();
         // render-as-cursor also owns the system cursor; when both are on it takes
