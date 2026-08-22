@@ -399,7 +399,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                         newMode.zoom()),
                 new HintMeshState(newHintMesh, lastSelectedHintPoint));
         hintMesh = newHintMesh;
-        overlay.setHintMesh(hintMesh, newZoom);
+        if (hintMesh.hints().isEmpty())
+            overlay.hideHintMesh();
+        else
+            overlay.setHintMesh(hintMesh, newZoom);
         if (hintMeshConfiguration.mouseMovement() ==
             HintMouseMovement.MOUSE_FOLLOWS_HINT_GRID_CENTER) {
             moveMouse(hintMeshCenter(hintMesh.hints(), hintMesh.selectedKeySequence()));

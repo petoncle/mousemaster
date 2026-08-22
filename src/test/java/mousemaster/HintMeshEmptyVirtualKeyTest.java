@@ -37,6 +37,7 @@ class HintMeshEmptyVirtualKeyTest {
             """;
 
     private final List<Command> ranCommands = new ArrayList<>();
+    private final List<String> overlayCalls = new ArrayList<>();
     private final Deque<Future<List<UiElement>>> queries = new ArrayDeque<>();
     private ModeMap modeMap;
     private ComboWatcher comboWatcher;
@@ -55,7 +56,7 @@ class HintMeshEmptyVirtualKeyTest {
         hintManager = new HintManager(
                 configuration.positionHistoryConfigurationByName(), screenManager,
                 new MouseManager(screenManager, proxy(MouseController.class)),
-                proxy(Overlay.class), uiAutomation(), noApp,
+                overlay(), uiAutomation(), noApp,
                 new KeyRedactor(KeyRedaction.NONE));
         CommandRunner commandRunner = new CommandRunner(null, null, hintManager) {
             @Override
@@ -124,6 +125,14 @@ class HintMeshEmptyVirtualKeyTest {
         };
     }
 
+    private Overlay overlay() {
+        return (Overlay) Proxy.newProxyInstance(Overlay.class.getClassLoader(),
+                new Class<?>[] {Overlay.class}, (proxy, method, args) -> {
+                    overlayCalls.add(method.getName());
+                    return null;
+                });
+    }
+
     @SuppressWarnings("unchecked")
     private static <T> T proxy(Class<T> type) {
         return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
@@ -142,12 +151,21 @@ class HintMeshEmptyVirtualKeyTest {
         assertEquals(List.of(new Command.SwitchMode("normal-mode")), ranCommands);
     }
 
+    /** Showing it would flash the background of a mesh the combo is about to leave. */
+    @Test
+    void anEmptyMeshIsNotShown() {
+        load(found());
+        tick();
+        assertFalse(overlayCalls.contains("setHintMesh"), overlayCalls.toString());
+    }
+
     @Test
     void aMeshWithAHintDoesNot() {
         load(found(new UiElement(10, 10)));
         tick();
         assertFalse(hintManager.hintMeshEmpty());
         assertEquals(List.of(), ranCommands);
+        assertTrue(overlayCalls.contains("setHintMesh"), overlayCalls.toString());
     }
 
     @Test
