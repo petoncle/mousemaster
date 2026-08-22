@@ -14,7 +14,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileTime;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class QtManager {
 
@@ -45,16 +49,7 @@ public class QtManager {
         if (!Os.macos) {
             File extractDirectory = createExtractDirectory(
                     MousemasterApplication.tempDirectory);
-            for (String resourcesPath : windowsResourcesPaths) {
-                Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath);
-                Files.createDirectories(extractPath.getParent());
-                extractResourceFile(resourcesPath, extractPath);
-            }
-            for (String qtJambiPath : qtJambiPaths) {
-                Path extractPath = Paths.get(extractDirectory.getAbsolutePath() + "/qt/" + qtJambiPath);
-                extractResourceFile(qtJambiPath, extractPath);
-            }
-            logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
+            extractQtFiles(extractDirectory);
             System.setProperty("io.qt.library-path-override",
                     extractDirectory.getAbsolutePath() + "/qt/bin");
         }
@@ -89,6 +84,49 @@ public class QtManager {
         // Default font engine on Windows is directwrite. Antialiasing seems better with gdi.
         QApplication.initialize(Os.macos ? new String[] {} :
                 new String[] { "-platform", "windows:fontengine=gdi" });
+    }
+
+    /**
+     * Writing the DLLs is most of the startup time, so they are left in the temp
+     * directory and written again only once mousemaster.exe is newer than them.
+     */
+    private static void extractQtFiles(File extractDirectory) throws IOException {
+        Map<String, Path> extractPathByResourcesPath =
+                extractPathByResourcesPath(extractDirectory);
+        if (qtFilesAreNewerThanExecutable(extractPathByResourcesPath.values())) {
+            logger.trace("Reusing the Qt files in " + extractDirectory.getAbsolutePath());
+            return;
+        }
+        for (Map.Entry<String, Path> entry : extractPathByResourcesPath.entrySet()) {
+            Files.createDirectories(entry.getValue().getParent());
+            extractResourceFile(entry.getKey(), entry.getValue());
+        }
+        logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
+    }
+
+    private static Map<String, Path> extractPathByResourcesPath(File extractDirectory) {
+        Map<String, Path> extractPathByResourcesPath = new LinkedHashMap<>();
+        for (String resourcesPath : windowsResourcesPaths)
+            extractPathByResourcesPath.put(resourcesPath,
+                    Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath));
+        for (String qtJambiPath : qtJambiPaths)
+            extractPathByResourcesPath.put(qtJambiPath,
+                    Paths.get(extractDirectory.getAbsolutePath() + "/qt/" + qtJambiPath));
+        return extractPathByResourcesPath;
+    }
+
+    private static boolean qtFilesAreNewerThanExecutable(Collection<Path> extractPaths)
+            throws IOException {
+        String executable = ProcessHandle.current().info().command().orElse(null);
+        if (executable == null)
+            return false;
+        FileTime executableTime = Files.getLastModifiedTime(Paths.get(executable));
+        for (Path extractPath : extractPaths) {
+            if (!Files.exists(extractPath) ||
+                Files.getLastModifiedTime(extractPath).compareTo(executableTime) < 0)
+                return false;
+        }
+        return true;
     }
 
     private static void extractResourceFile(String resourcesPath, Path extractPath)
