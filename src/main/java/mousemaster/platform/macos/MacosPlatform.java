@@ -25,6 +25,7 @@ import mousemaster.platform.KeyboardController;
 import mousemaster.platform.MouseController;
 import mousemaster.platform.Overlay;
 import mousemaster.platform.UiAutomation;
+import com.sun.jna.Pointer;
 import io.qt.core.QPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,8 @@ import java.util.stream.Collectors;
 public class MacosPlatform implements Platform {
 
     private static final Logger logger = LoggerFactory.getLogger(MacosPlatform.class);
+
+    private static final ObjectiveC objectiveC = ObjectiveC.INSTANCE;
 
     private final MacosKeyboardController keyboard = new MacosKeyboardController();
     private final MacosMouseController mouse = new MacosMouseController();
@@ -77,6 +80,7 @@ public class MacosPlatform implements Platform {
     private IndicatorManager indicatorManager;
     private QPoint lastMousePosition;
     private boolean wasPressingPhysicalButton;
+    private Pointer autoreleasePool = objectiveC.objc_autoreleasePoolPush();
     private boolean grabPaused;
     private double grabPausedCheckTimer;
     private volatile boolean regrabbed;
@@ -219,6 +223,8 @@ public class MacosPlatform implements Platform {
         KeyEvent keyEvent = keyEventQueue.poll(sleepMillis, TimeUnit.MILLISECONDS);
         if (keyEvent != null)
             keyEventQueue.addFirst(keyEvent);
+        objectiveC.objc_autoreleasePoolPop(autoreleasePool);
+        autoreleasePool = objectiveC.objc_autoreleasePoolPush();
     }
 
     @Override

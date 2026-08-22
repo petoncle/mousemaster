@@ -22,6 +22,10 @@ public interface ObjectiveC extends Library {
 
     Pointer sel_registerName(String name);
 
+    Pointer objc_autoreleasePoolPush();
+
+    void objc_autoreleasePoolPop(Pointer pool);
+
     Pointer objc_allocateClassPair(Pointer superclass, String name, long extraBytes);
 
     void objc_registerClassPair(Pointer cls);
