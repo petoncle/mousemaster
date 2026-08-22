@@ -1101,10 +1101,12 @@ public class ComboWatcher {
             }
             if (processingSet.mustBeEaten())
                 message.append(", eaten");
-            // Built-in keys crowd out the ones actually typed.
-            List<Key> pressedKeys = currentlyPressedComboKeys.stream()
-                                                             .filter(key -> !builtInVirtualKeys.contains(key))
-                                                             .toList();
+            // Built-in keys crowd out the ones actually typed, so only trace shows them.
+            Set<Key> pressedKeys = logger.isTraceEnabled() ?
+                    currentlyPressedComboKeys :
+                    currentlyPressedComboKeys.stream()
+                                             .filter(key -> !builtInVirtualKeys.contains(key))
+                                             .collect(Collectors.toSet());
             if (!pressedKeys.isEmpty())
                 message.append(", pressed ").append(keyRedactor.keys(pressedKeys));
             if (logger.isTraceEnabled())
