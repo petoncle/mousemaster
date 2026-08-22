@@ -15,27 +15,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
-import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class QtManager {
 
     private static final Logger logger = LoggerFactory.getLogger(QtManager.class.getName());
 
-    private static final List<String> windowsResourcesPaths = List.of(
+    private static final List<String> qtResourcesPaths = List.of(
             "qt/bin/Qt6Core.dll",
             "qt/bin/Qt6Gui.dll",
             "qt/bin/Qt6Widgets.dll",
+            "qt/bin/QtJambi6.dll",
+            "qt/bin/QtJambiCore6.dll",
+            "qt/bin/QtJambiGui6.dll",
+            "qt/bin/QtJambiWidgets6.dll",
             "qt/plugins/platforms/qwindows.dll"
-    );
-
-    private static final List<String> qtJambiPaths = List.of(
-            "bin/QtJambi6.dll",
-            "bin/QtJambiCore6.dll",
-            "bin/QtJambiGui6.dll",
-            "bin/QtJambiWidgets6.dll"
     );
 
     private static final List<String> msvcpDllPaths = List.of(
@@ -91,42 +85,35 @@ public class QtManager {
      * directory and written again only once mousemaster.exe is newer than them.
      */
     private static void extractQtFiles(File extractDirectory) throws IOException {
-        Map<String, Path> extractPathByResourcesPath =
-                extractPathByResourcesPath(extractDirectory);
-        if (qtFilesAreNewerThanExecutable(extractPathByResourcesPath.values())) {
+        if (qtFilesAreNewerThanExecutable(extractDirectory)) {
             logger.trace("Reusing the Qt files in " + extractDirectory.getAbsolutePath());
             return;
         }
-        for (Map.Entry<String, Path> entry : extractPathByResourcesPath.entrySet()) {
-            Files.createDirectories(entry.getValue().getParent());
-            extractResourceFile(entry.getKey(), entry.getValue());
+        for (String resourcesPath : qtResourcesPaths) {
+            Path extractPath = extractPath(extractDirectory, resourcesPath);
+            Files.createDirectories(extractPath.getParent());
+            extractResourceFile(resourcesPath, extractPath);
         }
         logger.trace("Extracted Qt files to " + extractDirectory.getAbsolutePath());
     }
 
-    private static Map<String, Path> extractPathByResourcesPath(File extractDirectory) {
-        Map<String, Path> extractPathByResourcesPath = new LinkedHashMap<>();
-        for (String resourcesPath : windowsResourcesPaths)
-            extractPathByResourcesPath.put(resourcesPath,
-                    Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath));
-        for (String qtJambiPath : qtJambiPaths)
-            extractPathByResourcesPath.put(qtJambiPath,
-                    Paths.get(extractDirectory.getAbsolutePath() + "/qt/" + qtJambiPath));
-        return extractPathByResourcesPath;
-    }
-
-    private static boolean qtFilesAreNewerThanExecutable(Collection<Path> extractPaths)
+    private static boolean qtFilesAreNewerThanExecutable(File extractDirectory)
             throws IOException {
         String executable = ProcessHandle.current().info().command().orElse(null);
         if (executable == null)
             return false;
         FileTime executableTime = Files.getLastModifiedTime(Paths.get(executable));
-        for (Path extractPath : extractPaths) {
+        for (String resourcesPath : qtResourcesPaths) {
+            Path extractPath = extractPath(extractDirectory, resourcesPath);
             if (!Files.exists(extractPath) ||
                 Files.getLastModifiedTime(extractPath).compareTo(executableTime) < 0)
                 return false;
         }
         return true;
+    }
+
+    private static Path extractPath(File extractDirectory, String resourcesPath) {
+        return Paths.get(extractDirectory.getAbsolutePath() + "/" + resourcesPath);
     }
 
     private static void extractResourceFile(String resourcesPath, Path extractPath)

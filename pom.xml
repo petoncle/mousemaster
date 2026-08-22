@@ -131,8 +131,9 @@
                                 <configuration>
                                     <target>
                                         <!-- The QtJambi libraries are not committed like the Qt
-                                        ones: they come out of the native jar. -->
-                                        <unzip dest="${project.build.outputDirectory}"
+                                        ones: they come out of the native jar, whose bin
+                                        directory lands next to the Qt one. -->
+                                        <unzip dest="${project.build.outputDirectory}/qt"
                                                src="${settings.localRepository}/io/qtjambi/qtjambi-native-windows-x64/${qtjambi.version}/qtjambi-native-windows-x64-${qtjambi.version}.jar">
                                             <patternset>
                                                 <include name="bin/QtJambi6.dll"/>
@@ -141,10 +142,10 @@
                                                 <include name="bin/QtJambiWidgets6.dll"/>
                                             </patternset>
                                         </unzip>
-                                        <gzip src="${project.build.outputDirectory}/bin/QtJambi6.dll" destfile="${project.build.outputDirectory}/bin/QtJambi6.dll.gz"/>
-                                        <gzip src="${project.build.outputDirectory}/bin/QtJambiCore6.dll" destfile="${project.build.outputDirectory}/bin/QtJambiCore6.dll.gz"/>
-                                        <gzip src="${project.build.outputDirectory}/bin/QtJambiGui6.dll" destfile="${project.build.outputDirectory}/bin/QtJambiGui6.dll.gz"/>
-                                        <gzip src="${project.build.outputDirectory}/bin/QtJambiWidgets6.dll" destfile="${project.build.outputDirectory}/bin/QtJambiWidgets6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/bin/QtJambi6.dll" destfile="${project.build.outputDirectory}/qt/bin/QtJambi6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/bin/QtJambiCore6.dll" destfile="${project.build.outputDirectory}/qt/bin/QtJambiCore6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/bin/QtJambiGui6.dll" destfile="${project.build.outputDirectory}/qt/bin/QtJambiGui6.dll.gz"/>
+                                        <gzip src="${project.build.outputDirectory}/qt/bin/QtJambiWidgets6.dll" destfile="${project.build.outputDirectory}/qt/bin/QtJambiWidgets6.dll.gz"/>
                                         <gzip src="${project.build.outputDirectory}/qt/bin/Qt6Core.dll" destfile="${project.build.outputDirectory}/qt/bin/Qt6Core.dll.gz"/>
                                         <gzip src="${project.build.outputDirectory}/qt/bin/Qt6Gui.dll" destfile="${project.build.outputDirectory}/qt/bin/Qt6Gui.dll.gz"/>
                                         <gzip src="${project.build.outputDirectory}/qt/bin/Qt6Widgets.dll" destfile="${project.build.outputDirectory}/qt/bin/Qt6Widgets.dll.gz"/>
