@@ -129,6 +129,8 @@ public interface ExtendedUser32 extends User32 {
 
     boolean EnumThreadWindows(int dwThreadId, WinUser.WNDENUMPROC lpfn, Pointer lParam);
 
+    HWND WindowFromPoint(WinDef.POINT.ByValue point);
+
     HANDLE OpenInputDesktop(int dwFlags, boolean fInherit, int dwDesiredAccess);
     boolean CloseDesktop(HANDLE hDesktop);
     int DESKTOP_SWITCHDESKTOP = 0x0100;

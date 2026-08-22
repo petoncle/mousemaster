@@ -336,17 +336,18 @@ public class WindowsUiAutomation implements UiAutomation {
         int walkedWindows = 0;
         for (int windowIndex = 0; windowIndex < windows.size(); windowIndex++) {
             Rectangle windowRectangleInArea = windowRectanglesInArea.get(windowIndex);
-            List<Rectangle> occludingRectangles =
-                    windowRectanglesInArea.subList(0, windowIndex);
-            // A window drawn over entirely holds nothing a hint could reach, and walking
-            // it is where the query spends its time.
-            if (occludingRectangles.stream()
-                                   .anyMatch(rectangle -> rectangle.contains(
-                                           windowRectangleInArea)))
+            HWND window = windows.get(windowIndex);
+            Point center = windowRectangleInArea.center();
+            // Walking a window that holds nothing a hint could reach is where the query
+            // spends its time. Its center says whether it is drawn over at all, each
+            // element being kept on the click it is there for anyway.
+            if (windowRectanglesInArea.subList(0, windowIndex).stream()
+                                      .anyMatch(rectangle -> rectangle.contains(
+                                              windowRectangleInArea)) &&
+                !clickReaches(window, center.x(), center.y()))
                 continue;
             walkedWindows++;
-            queryUiElementsOfWindow(windows.get(windowIndex), windowRectangleInArea,
-                    occludingRectangles, uiElements);
+            queryUiElementsOfWindow(window, windowRectangleInArea, uiElements);
         }
         logger.debug("Found {} UI elements in {} of {} windows of area {} in {}ms",
                 uiElements.size(), walkedWindows, windows.size(), area,
@@ -370,7 +371,7 @@ public class WindowsUiAutomation implements UiAutomation {
                 WinUser.MONITOR_DEFAULTTONULL) == null)
             // The window is not withi n a screen.
             return;
-        queryUiElementsOfWindow(hwnd, rectangle(windowRect), List.of(), uiElements);
+        queryUiElementsOfWindow(hwnd, rectangle(windowRect), uiElements);
     }
 
     /** A Chromium browser exposes the page trees of all its windows once the children of one
@@ -405,7 +406,6 @@ public class WindowsUiAutomation implements UiAutomation {
     }
 
     private static void queryUiElementsOfWindow(HWND hwnd, Rectangle elementBounds,
-                                                List<Rectangle> occludingRectangles,
                                                 List<UiElement> uiElements) {
         preWarmUiElements(hwnd);
         double scale = WindowsScreen.findActiveScreen(new WinDef.POINT(
@@ -423,8 +423,7 @@ public class WindowsUiAutomation implements UiAutomation {
             array = root.findAllBuildCache(TreeScope_Descendants,
                     cachedCondition, cachedCacheRequest);
             if (array != null)
-                collectElements(array, elementBounds, occludingRectangles, scale,
-                        uiElements);
+                collectElements(array, hwnd, elementBounds, scale, uiElements);
             logger.trace("Found {} UI elements in HWND {} in {}ms",
                     uiElements.size() - elementCountBeforeQuery,
                     Pointer.nativeValue(hwnd.getPointer()),
@@ -438,9 +437,31 @@ public class WindowsUiAutomation implements UiAutomation {
         }
     }
 
-    private static void collectElements(UIAutomationElementArray array,
+    /**
+     * Whether a click at that point lands on that window, rather than on one drawn over it.
+     * A rectangle cannot answer this: the window the Start menu opens spans the work area
+     * but shows the windows behind it everywhere but its own panel.
+     */
+    private static boolean clickReaches(HWND hwnd, double x, double y) {
+        WinDef.POINT.ByValue point = new WinDef.POINT.ByValue();
+        point.x = (int) Math.round(x);
+        point.y = (int) Math.round(y);
+        HWND clicked = ExtendedUser32.INSTANCE.WindowFromPoint(point);
+        if (clicked == null)
+            return false;
+        HWND root = User32.INSTANCE.GetAncestor(clicked, WinUser.GA_ROOT);
+        if (root == null)
+            root = clicked;
+        if (hwnd.equals(root))
+            return true;
+        // Our own overlays are drawn over everything and hidden before a hint is clicked.
+        IntByReference processId = new IntByReference();
+        User32.INSTANCE.GetWindowThreadProcessId(root, processId);
+        return processId.getValue() == Kernel32.INSTANCE.GetCurrentProcessId();
+    }
+
+    private static void collectElements(UIAutomationElementArray array, HWND hwnd,
                                         Rectangle elementBounds,
-                                        List<Rectangle> occludingRectangles,
                                         double scale,
                                         List<UiElement> uiElements) {
         double threshold = MIN_DISTANCE_BETWEEN_HINTS_UNZOOMED * scale;
@@ -462,9 +483,7 @@ public class WindowsUiAutomation implements UiAutomation {
                 double centerY = rect.top + height / 2.0;
                 if (!elementBounds.contains(centerX, centerY))
                     continue;
-                if (occludingRectangles.stream()
-                                       .anyMatch(rectangle -> rectangle.contains(centerX,
-                                               centerY)))
+                if (!clickReaches(hwnd, centerX, centerY))
                     continue;
                 if (isTooCloseToExistingUiElements(uiElements,
                         centerX, centerY, thresholdSquared))
