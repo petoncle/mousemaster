@@ -42,6 +42,7 @@ public class WindowsUiAutomation implements UiAutomation {
 
     private static final int UIA_ButtonControlTypeId = 50000;
 
+    private static final int TreeScope_Children = 2;
     private static final int TreeScope_Descendants = 4;
 
     // VARIANT constants
@@ -53,6 +54,7 @@ public class WindowsUiAutomation implements UiAutomation {
     private static Pointer automation;
     private static UIAutomationCondition cachedCondition;
     private static UIAutomationCacheRequest cachedCacheRequest;
+    private static final Set<Integer> preWarmedProcessIds = new HashSet<>();
 
     private static final ExecutorService queryExecutor =
             Executors.newSingleThreadExecutor(r -> {
@@ -360,9 +362,41 @@ public class WindowsUiAutomation implements UiAutomation {
         queryUiElementsOfWindow(hwnd, rectangle(windowRect), List.of(), uiElements);
     }
 
+    /** A Chromium browser exposes the page trees of all its windows once the children of one
+     *  content window are asked for, and building them takes a moment. */
+    private static void preWarmUiElements(HWND hwnd) {
+        IntByReference processId = new IntByReference();
+        User32.INSTANCE.GetWindowThreadProcessId(hwnd, processId);
+        if (!preWarmedProcessIds.add(processId.getValue()))
+            return;
+        UIAutomation uia = new UIAutomation(automation);
+        List<HWND> windows = new ArrayList<>();
+        windows.add(hwnd);
+        for (HWND child = User32.INSTANCE.GetWindow(hwnd,
+                new WinDef.DWORD(User32.GW_CHILD)); child != null;
+             child = User32.INSTANCE.GetWindow(child,
+                     new WinDef.DWORD(User32.GW_HWNDNEXT)))
+            windows.add(child);
+        long before = System.nanoTime();
+        for (HWND window : windows) {
+            UIAutomationElement element = uia.elementFromHandle(window);
+            if (element == null)
+                continue;
+            UIAutomationElementArray children = element.findAllBuildCache(
+                    TreeScope_Children, cachedCondition, cachedCacheRequest);
+            if (children != null)
+                children.Release();
+            element.Release();
+        }
+        logger.debug("Pre-warmed the UI elements of HWND {} with {} windows in {}ms",
+                Pointer.nativeValue(hwnd.getPointer()), windows.size(),
+                (long) ((System.nanoTime() - before) / 1e6));
+    }
+
     private static void queryUiElementsOfWindow(HWND hwnd, Rectangle elementBounds,
                                                 List<Rectangle> occludingRectangles,
                                                 List<UiElement> uiElements) {
+        preWarmUiElements(hwnd);
         double scale = WindowsScreen.findActiveScreen(new WinDef.POINT(
                 elementBounds.x() + elementBounds.width() / 2,
                 elementBounds.y() + elementBounds.height() / 2)).scale();
