@@ -240,6 +240,7 @@ public final class HintMeshRenderer {
         for (HintMeshWindow hintMeshWindow : hintMeshWindows.values())
             hintMeshWindow.lastHintMeshKeyReference().set(null);
         HintLabel.clearOutlineCache();
+        HintLabel.clearLabelCache();
         QtHintFont.clearCaches();
         QtColorUtil.clearCaches();
     }
@@ -1466,7 +1467,7 @@ public final class HintMeshRenderer {
             List<Key> suffix = labelOverridden ? labelKeys :
                     hint.keySequence().subList(prefix.size(), hint.keySequence().size());
             HintLabel hintLabel =
-                    new HintLabel(
+                    HintLabel.of(
                             labelOverridden ? labelKeys :
                                     (style.prefixInBackground() ? suffix : hint.keySequence()),
                             xAdvancesByString, fullBoxWidth,
@@ -1604,7 +1605,7 @@ public final class HintMeshRenderer {
                 int fullBoxWidth = hintGroup.right - hintGroup.left;
                 int fullBoxHeight = hintGroup.bottom - hintGroup.top;
                 HintLabel prefixHintLabel =
-                        new HintLabel(prefix, prefixXAdvancesByString, fullBoxWidth,
+                        HintLabel.of(prefix, prefixXAdvancesByString, fullBoxWidth,
                                 fullBoxHeight, totalXAdvance,
                                 hintMesh.prefixLength(),
                                 prefixQtHintFontStyle,
@@ -2618,6 +2619,44 @@ public final class HintMeshRenderer {
             outlineImages.clear();
         }
 
+        /** A label's glyph placement and tight bounds are identical every trigger once its
+         *  screen position is stripped, so it is built once and copied. */
+        private record LabelKey(String label, int boxWidth, int boxHeight, int totalXAdvance,
+                                int prefixLength, int hintKeyMaxXAdvance, int selectedKeyEndIndex,
+                                FontVerticalAlignment verticalAlignment, boolean grid,
+                                boolean tiledGrid, double qtScaleFactor,
+                                QtHintFontStyle labelFontStyle) {
+        }
+
+        private static final Map<LabelKey, HintLabel> labelCache = new HashMap<>();
+
+        static void clearLabelCache() {
+            labelCache.clear();
+        }
+
+        static HintLabel of(List<Key> keySequence, Map<String, Integer> xAdvancesByString,
+                            int boxWidth, int boxHeight, int totalXAdvance, int prefixLength,
+                            QtHintFontStyle labelFontStyle, int hintKeyMaxXAdvance,
+                            int selectedKeyEndIndex, FontVerticalAlignment verticalAlignment,
+                            boolean isHintPartOfGrid, boolean isHintPartOfTiledGrid,
+                            double qtScaleFactor) {
+            StringBuilder label = new StringBuilder();
+            for (Key key : keySequence)
+                label.append(key.hintLabel()).append('\n');
+            LabelKey key = new LabelKey(label.toString(), boxWidth, boxHeight, totalXAdvance,
+                    prefixLength, hintKeyMaxXAdvance, selectedKeyEndIndex, verticalAlignment,
+                    isHintPartOfGrid, isHintPartOfTiledGrid, qtScaleFactor, labelFontStyle);
+            HintLabel cached = labelCache.get(key);
+            if (cached != null)
+                return new HintLabel(cached);
+            HintLabel built = new HintLabel(keySequence, xAdvancesByString, boxWidth, boxHeight,
+                    totalXAdvance, prefixLength, labelFontStyle, hintKeyMaxXAdvance,
+                    selectedKeyEndIndex, verticalAlignment, isHintPartOfGrid,
+                    isHintPartOfTiledGrid, qtScaleFactor);
+            labelCache.put(key, built);
+            return built;
+        }
+
         /** A glyph and where it sits in the label it belongs to. */
         private record GlyphPlacement(String text, double x, double y) {
         }
@@ -2759,6 +2798,16 @@ public final class HintMeshRenderer {
                             inkBottom - inkTop, qtScaleFactor) - labelMetrics.ascent();
             this.tightHintBoxWidth = smallestHintBoxWidth;
             this.tightHintBoxHeight = labelMetrics.height();
+        }
+
+        /** Reuses a cached label's layout; only the screen position, set by the caller, differs. */
+        private HintLabel(HintLabel template) {
+            this.labelFontStyle = template.labelFontStyle;
+            this.keyTexts = template.keyTexts;
+            this.tightHintBoxLeft = template.tightHintBoxLeft;
+            this.tightHintBoxTop = template.tightHintBoxTop;
+            this.tightHintBoxWidth = template.tightHintBoxWidth;
+            this.tightHintBoxHeight = template.tightHintBoxHeight;
         }
 
         private QFontMetrics keyMetrics(int keyIndex, QFontMetrics labelMetrics, int prefixLength,
