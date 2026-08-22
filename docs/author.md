@@ -27,10 +27,10 @@ Ctrl+Alt+Space.
    hint box magenta *and* rewrites which combo commits the click — with no mode switch, so the hint mesh
    is not rebuilt.
 
-```properties
-virtual-keys=autodrilling islclick ismclick isrclick isnomove isnohintclick islongpresshintkey \
-             mouseanchored showrecursivehintkeys zooming never
-```
+The state keys are `islclick` `ismclick` `isrclick` `isnohintclick` `islongpresshintkey` `isnomove`
+`mouseanchored` `zooming` `autodrilling` `showrecursivehintkeys` and `never`, each declared on its own
+`virtual-key.<name>=released` line next to the macros that press it (`showrecursivehintkeys` starts
+`pressed`).
 
 ## Key aliases
 
@@ -131,7 +131,7 @@ modifier or a moddable key, so a stray release does not break the chain, and the
 after 2 s.
 
 Two escape hatches: **double-tap** a modifier within 200 ms (`macro.redo-doubletap`) and it is genuinely
-pressed and left down; and `oneshot-mode.to.typing-mode` has five branches that all mean "the user is
+pressed and left down; and `oneshot-mode.to.typing-mode` has six branches that all mean "the user is
 typing normally now" — a modifier re-pressed after release, a modifier held while another arrives, a
 non-moddable key, or two seconds of silence.
 
@@ -376,7 +376,7 @@ eaten); `7`, `8` or `9` for a pre-drilled grid ([below](#skipping-levels-7--8--9
 after any hint click, since `click-after-hint-mode.to.recursive-hint1-mode` drops you back at level 1
 rather than out — a run of clicks in different places is one uninterrupted flow.
 
-Entry resets what a previous session left behind, as six one-line macros on `+autodrilling` rather than
+Entry resets what a previous session left behind, as seven one-line macros on `+autodrilling` rather than
 one bulk reset — a bulk reset would also clear `showrecursivehintkeys`, and the look you chose is meant
 to survive.
 
@@ -386,6 +386,7 @@ to survive.
 _recursive-hint-mode.hint.grid-area=last-selected-hint-cell
 _recursive-hint-mode.hint.grid-area-center=last-selected-hint | _{mouseanchored} -> mouse
 _recursive-hint-mode.hint.grid-max-row-count=3
+_recursive-hint-mode.hint.grid-max-column-count=3
 _recursive-hint-mode.hint.grid-cell-sizing=fit
 recursive-hint1-mode.hint.grid-area=active-screen
 ```
@@ -812,7 +813,7 @@ and `;`+`k`/`i` become F13, F15 and the wheel.
 
 ## Conventions worth copying
 
-**`+never` deletes an inherited combo.** `never` is declared in `virtual-keys` and pressed by no macro,
+**`+never` deletes an inherited combo.** `never` is declared with `virtual-key.never=released` and pressed by no macro,
 so a combo requiring it can never complete. Used wherever a mode inherits nearly everything from another
 but must not inherit one line. A never-pressed virtual key is the honest form of this; `+f24` used to
 serve the same purpose, but F24 is a real key that merely happens to be absent from most keyboards.

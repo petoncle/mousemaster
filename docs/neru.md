@@ -46,7 +46,7 @@ f g h      (g = center)
 v b n
 ```
 
-- Each cell shows a 3×3 of dots where the next level's cells will fall, under a `+` spanning the whole region. Set `variable.showrecursivehintkeys=true` in [neru.properties](../configuration/neru.properties) to label those cells with the next level's keys instead.
+- Each cell previews the next level's keys where its cells will fall. Set `virtual-key.showrecursivehintkeys` to `released` in [neru.properties](../configuration/neru.properties) to replace them with a `+` spanning the whole region and a dot per cell.
 - Five levels deep; the fifth keypress lands on the target.
 - The cursor tracks the current region's center as you drill; `` ` `` (backtick) toggles that off/on.
 - `Space` resets to the full screen, `Backspace` steps back one level (and exits at the top), `Esc` exits.
@@ -80,7 +80,7 @@ https://github.com/user-attachments/assets/91eef554-bf68-44a7-8d16-5e4d5d353fe0
 
 Labels appear on the active window's clickable elements (buttons, links, …).
 
-- Type a label (`a s d f g h j k l`) to warp the cursor onto that element.
+- Type a label (`q a s d f g h j k l`) to warp the cursor onto that element.
 - `Backspace` undoes a keystroke; `Esc` or `Backspace` exits.
 
 ## Monitor — Ctrl+Shift+M

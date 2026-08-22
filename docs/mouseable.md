@@ -1,5 +1,7 @@
 # mouseable configuration for mousemaster ([mouseable.properties](../configuration/mouseable.properties))
 
+(Refer to [configuration-reference.md](configuration-reference.md) for documentation on the complete list of configuration properties.)
+
 ## Overview
 
 - Designed to mimic the features of the [mouseable](https://github.com/wirekang/mouseable/) project.
@@ -16,12 +18,12 @@ The layout above shows normal mode ([mouseable-keyboardlayouteditor.json](assets
 - Used for short-distance mouse manipulation.
 - Useful for manipulating menus and selecting text.
 - Vi-like behavior with directional keys (_h_, _j_, _k_, _l_) for continuous mouse movement.
-- Press mouse buttons with _a_ (left button), _s_ (middle button), _d_ (right button).
+- Press mouse buttons with _a_ (left button), _s_ (right button), _d_ (middle button).
 - Warp to screen edges with _leftalt + h_, _leftalt + j_, _leftalt + k_, _leftalt + l_.
 - Warp to screen center with _leftshift + m_.
 - Scroll vertically or horizontally (wheel) with _y_, _u_, _i_, _o_.
 - Slow down mouse movement by holding _space_ while moving the mouse (slow mode, called sniper mode in original mouseable).
-- Accelerated mouse movement by holding _space_ while moving the mouse.
+- Accelerate mouse movement by holding _f_ while moving the mouse.
 - Exit with _;_ or _esc_.
 
 ## Hint Mode (_leftalt, leftalt_)
@@ -31,7 +33,7 @@ The layout above shows normal mode ([mouseable-keyboardlayouteditor.json](assets
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a left button click by holding _leftshift_ while selecting a hint.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, by holding _leftctrl_ while selecting a hint.
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [mouseable.properties](../configuration/mouseable.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-row-count`, and `hint.grid-max-column-count` in [mouseable.properties](../configuration/mouseable.properties).
 - Exit with _leftalt_, _esc_, or _backspace_.
 
 ## Grid Mode (_leftshift, leftshift_)

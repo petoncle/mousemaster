@@ -6,7 +6,6 @@
 - [Modes](#modes)
 - [Mode switching](#switching-modes)
 - [Mode history](#mode-history)
-- [Mode timeout](#mode-timeout)
 - [Standalone mode properties](#standalone-mode-properties)
 - [Mode property mutation](#mode-property-mutation)
 - [Mouse properties](#mouse-properties)
@@ -44,6 +43,10 @@ normal-mode.to.idle-mode=+exit
 ```
 
 This combo can be completed by either pressing q or p.
+
+An alias can be declared per keyboard layout, `key-alias.<name>.<layout>=...`, and mousemaster picks
+the one matching the active layout (`key-alias.up.us-qwerty=w`). A declaration with no layout is the
+fallback. See [Keyboard layout](#keyboard-layout) for the layout names.
 
 The complete available key list can be found in [key-list.md](key-list.md). 
 
@@ -200,22 +203,6 @@ hint2-2-mode.to.previous-mode-from-history-stack=+rightalt -rightalt
   history as soon as the current mode is switched to that mode.
 - The last mode added to the history stack can be referred to in a mode switch (`to`) command with `previous-mode-from-history-stack`.
 
-### Mode timeout (deprecated)
-
-**Deprecated**: use wait moves instead. See [combo reference](combo-reference.md#wait-moves) for details.
-
-```properties
-# Old (deprecated):
-normal-mode.timeout.duration-millis=5000
-normal-mode.timeout.mode=idle-mode
-normal-mode.timeout.only-if-idle=true
-
-# New (equivalent):
-normal-mode.to.idle-mode=wait-5000
-```
-- The current mode can be automatically changed to another mode after a certain duration.
-- If `only-if-idle` is true, then the timeout will be triggered only if the mouse is not being used.
-
 ### Standalone mode properties
 
 ```properties
@@ -260,13 +247,13 @@ persists across mode switches and survives key releases:
 
 ```properties
 # Toggle iszoom on/off with z, change zoom percent based on the virtual key
-virtual-keys=iszoom
+virtual-key.iszoom=released
 hint-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
 hint-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
 hint-mode.zoom.percent=1 | _{iszoom} -> 30
 ```
 
-A virtual key starts released, and reloading the configuration returns every one to released.
+A virtual key starts in its declared state, and reloading the configuration returns every one to it.
 
 When mutating a hint font property, related properties are automatically updated. For example, mutating `font-color` also mutates `selected-font-color`, `focused-font-color`, and the corresponding prefix variants (unless they were explicitly set in the configuration).
 
@@ -281,7 +268,7 @@ normal-mode.mouse.deceleration=0
 normal-mode.mouse.smooth-jump-enabled=true
 normal-mode.mouse.smooth-jump-velocity=30000
 ```
-- `acceleration-easing` controls the shape of the acceleration curve. Numeric values set the exponent: 1 = linear (default), 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp). Named curves: `smoothstep` (S-curve), `smootherstep` (S-curve with longer precision zone), `logarithmic` (fast start, aggressive flatten), `exponential` (very slow start, explosive ramp).
+- `acceleration-easing` controls the shape of the acceleration curve. A number sets the polynomial exponent: 1 = linear, 2 = quadratic (slow start, fast ramp), 0.5 = square root (fast start, slow ramp). Named curves: `smoothstep` (S-curve), `smootherstep` (S-curve with longer precision zone, the default), `logarithmic` (fast start, aggressive flatten), `exponential` (very slow start, explosive ramp).
 - When movement keys are released, the cursor coasts to a stop. Higher deceleration = shorter coast. Set to 0 for instant stop (no coast).
 - The velocity and acceleration are defined in pixel per second and pixel per square second.
 - Whenever mousemaster sets the position of the mouse, the mouse will be teleported to the
@@ -294,7 +281,12 @@ normal-mode.mouse.smooth-jump-velocity=30000
 normal-mode.wheel.initial-velocity=1500
 normal-mode.wheel.max-velocity=2000
 normal-mode.wheel.acceleration=500
+normal-mode.wheel.acceleration-easing=1
+normal-mode.wheel.deceleration=0
 ```
+
+The properties mean what the mouse ones do, except that `acceleration-easing` defaults to `1`
+(linear) rather than `smootherstep`, and `deceleration` to `0` (no coast).
 
 ### Indicator properties
 
@@ -311,35 +303,22 @@ normal-mode.indicator.color=#FF0000 | _{iswheeling} -> #FFFF00 | _{ismousepressi
 normal-mode.indicator.opacity=0 | _{isleftmousepressing ismoving} -> 1
 ```
 
-#### Deprecated per-state properties
-
-The states the indicator used to be configured per (`idle`, `move`, `wheel`, `mouse-press`, `left-mouse-press`, `middle-mouse-press`, `right-mouse-press`, `unhandled-key-press`) are gone. `<mode>.indicator.<state>.<property>` is still accepted, with a warning: `idle` becomes the property's default value and every other state a branch on its key.
-
-```properties
-# These two lines
-normal-mode.indicator.idle.color=#FF0000
-normal-mode.indicator.wheel.color=#FFFF00
-# now mean
-normal-mode.indicator.color=#FF0000 | _{iswheeling} -> #FFFF00
-```
-
-A property cannot be given both with and without a state, and a state cannot carry branches of its own.
-
 #### Polygon shape and appearance
 
 The polygon shape, size, color, and opacity:
 
 ```properties
-normal-mode.indicator.size=12
-normal-mode.indicator.edge-count=4
-normal-mode.indicator.position=bottom-right
+normal-mode.indicator.size=26
+normal-mode.indicator.edge-count=100
+normal-mode.indicator.position=center
 normal-mode.indicator.color=#FF0000
-normal-mode.indicator.opacity=1.0
+normal-mode.indicator.opacity=0.2
 ```
 
-- **`size`**: Size of the indicator in pixels (1-100, default 12)
-- **`edge-count`**: Number of polygon edges (3-100, default 4). 3 = triangle, 4 = square, 6 = hexagon, 30+ = circle
-- **`position`**: Position relative to the mouse cursor: `center`, `top-left`, `top-right`, `bottom-left`, `bottom-right` (default `bottom-right`). `center` places the indicator behind the cursor, centered on it (best used with a low opacity so the cursor remains visible).
+- **`size`**: Size of the indicator in pixels (1-100, default 26)
+- **`edge-count`**: Number of polygon edges (3-1000, default 100). 3 = triangle, 4 = square, 6 = hexagon, 30+ = circle
+- **`position`**: Position relative to the mouse cursor: `center` (default), `top-left`, `top-right`, `bottom-left`, `bottom-right`. `center` places the indicator behind the cursor, centered on it (best used with a low opacity so the cursor remains visible).
+- **`color`** / **`opacity`**: Fill color (hex, default #FF0000) and opacity (0-1, default 0.2)
 
 #### Outlines
 
@@ -363,6 +342,7 @@ normal-mode.indicator.inner-outline-fill-start-angle=180
 normal-mode.indicator.inner-outline-fill-direction=counterclockwise
 ```
 
+- **`outer-outline-thickness`** / **`inner-outline-thickness`**: Outline width in pixels (0-100, default 0 for the outer one, 0.5 for the inner one — 0 draws nothing)
 - **`outer-outline-fill-percent`** / **`inner-outline-fill-percent`**: How much of the outline is filled (0.0-1.0, default 1.0)
 - **`outer-outline-fill-start-angle`** / **`inner-outline-fill-start-angle`**: Angle where the fill starts, in degrees (0-360, default 180). 0 = top (12 o'clock), 90 = 3 o'clock, 180 = bottom (6 o'clock), 270 = 9 o'clock. Increases clockwise.
 - **`outer-outline-fill-direction`** / **`inner-outline-fill-direction`**: Direction the fill grows from the start angle (`clockwise`, `counterclockwise`, or `both`, default `counterclockwise`). `both` = expands symmetrically.
@@ -381,10 +361,11 @@ normal-mode.indicator.shadow-horizontal-offset=2
 normal-mode.indicator.shadow-vertical-offset=2
 ```
 
-- **`shadow-blur-radius`**: Blur radius in pixels (0-1000, default 0). Set to > 0 to enable.
-- **`shadow-color`**: Hex color of the shadow
-- **`shadow-opacity`**: Opacity (0.0-1.0)
-- **`shadow-horizontal-offset`** / **`shadow-vertical-offset`**: Shadow offset in pixels (-100 to 100)
+- **`shadow-blur-radius`**: Blur radius in pixels (0-1000, default 10)
+- **`shadow-color`**: Hex color of the shadow (default #000000)
+- **`shadow-opacity`**: Opacity (0.0-1.0, default 0 = no shadow). Set to > 0 to enable.
+- **`shadow-stack-count`**: Number of times the shadow is composited on itself for a stronger effect (1-100, default 1)
+- **`shadow-horizontal-offset`** / **`shadow-vertical-offset`**: Shadow offset in pixels (-100 to 100, default 0)
 
 #### Label
 
@@ -419,6 +400,20 @@ normal-mode.indicator.label-font-shadow-vertical-offset=0
 - **`label-font-weight`**: Font weight (e.g. normal, bold)
 - **`label-font-color`**: Hex color of the label text
 - **`label-font-opacity`**: Opacity of the label text (0.0-1.0)
+
+The label font takes the same outline and shadow properties as a hint font, prefixed with
+`label-font-`, including `label-font-shadow-stack-count`.
+
+#### Rendering as the system cursor
+
+```properties
+normal-mode.indicator.render-as-cursor=true
+```
+
+`render-as-cursor` draws the indicator into the system cursor image, with the real cursor glyph
+composited on top, instead of into an overlay window that follows the pointer. Nothing can lag
+behind, since there is nothing to follow. Windows only (default false); it is ignored on macOS,
+where the indicator is always an overlay window.
 
 #### Fade animation
 
@@ -469,9 +464,11 @@ hint2-2-mode.zoom.percent=5.0
 hint2-2-mode.zoom.center=last-selected-hint
 ```
 
-- `zoom.percent` must be greater than or equal to 1.0 (100%).
-- `zoom.center` can either be `screen-center`, `mouse`
+- `zoom.percent` is between 1.0 (100%, no magnification) and 100.
+- `zoom.center` can either be `screen-center` (default), `mouse`
   or `last-selected-hint`.
+- `zoom.area-size-source` is what the magnified area is sized from: `percent` (default), scaled by
+  `zoom.area-width-percent` / `zoom.area-height-percent` (default `1.0`), or `last-selected-hint-cell`.
 - On macOS, zooming needs the Screen Recording permission to capture what it magnifies.
 
 Optional animation can be enabled to smoothly transition in and out of zoom:
@@ -482,7 +479,7 @@ zoom-mode.zoom.animation-duration-millis=300
 ```
 
 - `zoom.animation-enabled` defaults to `false`.
-- `zoom.animation-easing` can be `linear`, `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or `polynomial-N` (where N is the exponent). Defaults to `smootherstep`.
+- `zoom.animation-easing` can be `smoothstep`, `smootherstep`, `logarithmic`, `exponential`, or a number (the polynomial exponent, `1` = linear). Defaults to `smootherstep`.
 - `zoom.animation-duration-millis` is the duration of a full zoom transition (from 1x to the configured percent). Partial transitions (e.g. interrupted animations) are proportionally shorter. Defaults to `200`.
 
 ### Mouse move commands
@@ -639,8 +636,6 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   freely — e.g. an `active-window`-sized grid with `grid-area-center=mouse` is a
   window-sized grid centered on the cursor.
 
-  `active-screen-grid-area-center` is a deprecated alias for `grid-area-center`.
-
 - **Grid dimensions**: Control the size of each hint cell:
   - `grid-cell-width`: Width of each hint cell in pixels
   - `grid-cell-height`: Height of each hint cell in pixels
@@ -650,17 +645,19 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   content. A grid therefore keeps its shape, and its hint keys, whatever the zoom.
 
 - **`grid-cell-sizing`**: How cell size is determined:
-  - `fixed` (default): cells are `grid-cell-width` x `grid-cell-height` pixels, and `grid-max-row-count`/`grid-max-column-count` cap how many fit.
+  - `fixed` (default): the cell count is the area divided by `grid-cell-width` x `grid-cell-height`, capped by `grid-max-row-count`/`grid-max-column-count`. The cells are then stretched to fill the area, so the pixel sizes pick the count rather than the size drawn.
   - `fit`: cells are sized to fill the area with exactly `grid-max-row-count` x `grid-max-column-count` cells (the pixel sizes are ignored). Useful for a fixed grid shape (e.g. 3x3) that adapts to any screen, and for a recursive grid via `grid-area=last-selected-hint-cell`.
 
-- **Grid arrangement**: Control the number of rows and columns:
-  - `layout-row-count`: Number of rows in the hint grid
-  - `layout-column-count`: Number of columns in the hint grid
+- **Subgrid layout**: `layout-row-count` x `layout-column-count` is the subgrid, the block of cells
+  that shares a hint prefix. The grid is tiled with subgrids; a hint's subgrid prefix says which
+  subgrid it is in and its cell keys where it sits inside that subgrid. They do not change the grid's
+  own row and column counts, which come from `grid-cell-sizing`.
+  - `layout-row-count=6` and `layout-column-count=5`: 6x5 subgrids, as the shipped configurations use
+  - `layout-row-count=1` and a column count wider than the grid: one prefix per row
+  - `layout-column-count=1` and a row count taller than the grid: one prefix per column, the default
+  - `layout-row-oriented=false` (default `true`) numbers the subgrids down columns instead of across rows
 
-You can create different layouts by adjusting the row and column counts:
-  - For column layout: `layout-row-count=1` and `layout-column-count=1000`
-  - For row layout: `layout-row-count=1000` and `layout-column-count=1`
-  - For grid layout (10x3 subgrid): `layout-row-count=10` and `layout-column-count=3`
+  A grid with no more cells than there are selection keys gives every hint a single key and no prefix.
 
 ### Screen-specific hint configurations
 
@@ -775,7 +772,7 @@ hint-mode.hint.box-border-radius=0
 # false draws the lines between the boxes only, no frame around the grid
 hint-mode.hint.box-framed=true
 
-# Box shadow for UI hints and position history hints only
+# Box shadow, mostly useful for UI hints and position history hints
 hint-mode.hint.box-shadow-blur-radius=10
 hint-mode.hint.box-shadow-color=#000000
 hint-mode.hint.box-shadow-opacity=0
@@ -787,9 +784,9 @@ hint-mode.hint.box-shadow-vertical-offset=2
 hint-mode.hint.box-width-percent=1.0
 hint-mode.hint.box-height-percent=1.0
 
-# Decorations: purely visual grids drawn over the hints. subdecoration is drawn inside
-# each hint cell (a preview of the next level; was subgrid), subsubdecoration inside each
-# of those (was subsubgrid), and decoration spans the whole hint grid as one big cell.
+# Decorations: purely visual grids drawn over the hints. subdecoration is drawn inside each
+# hint cell (a preview of the next level), subsubdecoration inside each of those, and
+# decoration spans the whole hint grid as one big cell.
 # Set subdecoration-label-keys to label the cells.
 hint-mode.hint.subdecoration-max-row-count=1
 hint-mode.hint.subdecoration-max-column-count=1
@@ -803,7 +800,7 @@ hint-mode.hint.subdecoration-font-size=10
 hint-mode.hint.subdecoration-font-color=#FFFFFF
 hint-mode.hint.subdecoration-font-opacity=1.0
 
-# Cell padding for UI hints and position history hints only
+# Cell padding, mostly useful for UI hints and position history hints
 hint-mode.hint.cell-horizontal-padding=0
 hint-mode.hint.cell-vertical-padding=0
 
@@ -846,7 +843,7 @@ hint-mode.hint.transition-animation-duration-millis=100
 hint-mode.hint.fade-animation-enabled=true
 hint-mode.hint.fade-animation-duration-millis=100
 
-# Background (for UI hints and position history hints only)
+# Background, mostly useful for UI hints and position history hints
 hint-mode.hint.background-color=#000000
 hint-mode.hint.background-opacity=0
 ```
@@ -858,8 +855,8 @@ hint-mode.hint.background-opacity=0
   - `box-shadow-color`: Shadow color (hex, default #000000).
   - `box-shadow-opacity`: Shadow opacity (0-1, default 0 = disabled).
   - `box-shadow-stack-count`: Number of times the shadow is composited on itself for stronger effect (1-100, default 1).
-  - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 0).
-  - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 0).
+  - `box-shadow-horizontal-offset`: Horizontal shadow offset (-100 to 100, default 2).
+  - `box-shadow-vertical-offset`: Vertical shadow offset (-100 to 100, default 2).
   - `background-color`: Background color behind all hint boxes, mostly useful for UI hints (hex, default #000000).
   - `background-opacity`: Background opacity, mostly useful for UI hints (0-1, default 0 = no background).
 
@@ -889,9 +886,9 @@ A hint is made of several keys (letters). For example, hint JKK is made of 3 key
 - The hint prefix is JK.
 - The prefix (JK) can be displayed "in the background" with `prefix-in-background=true`.
 
-- In a column layout, hints in the same column have the same prefix.
-- In a row layout, hints in the same column have the same prefix.
-- In a grid layout (e.g. 5x6 subgrid), hints in the same subgrid have the same prefix.
+- Hints in the same subgrid have the same prefix (see
+  [Subgrid layout](#hint-layout-and-positioning)), so a subgrid one row tall gives one prefix per row
+  and one column wide one prefix per column.
 
 Initially:
 - None of the hint keys are selected.
@@ -927,7 +924,8 @@ Each state supports the following font properties:
 - `font-shadow-horizontal-offset`
 - `font-shadow-vertical-offset`
 
-There is only one `font-spacing-percent` (and one `prefix-font-spacing-percent`), shared across all 3 states.
+`font-spacing-percent` and `font-vertical-alignment` are the exceptions: there is one of each per
+category (`font-` and `prefix-font-`), shared across all 3 states.
 
 The property naming pattern is:
 - Default: `hint.font-*`
@@ -1001,7 +999,7 @@ grid-mode.grid.fade-animation-enabled=true
 grid-mode.grid.fade-animation-duration-millis=100
 ```
 
-- **`grid-area`**: Determines where the grid is displayed:
+- **`area`**: Determines where the grid is displayed:
   - `active-screen`: Covers the screen with the mouse cursor
   - `active-window`: Covers only the currently active window
 
@@ -1033,10 +1031,10 @@ grid-mode.grid.fade-animation-duration-millis=100
 
 ```properties
 # Grid insets (margins)
-grid-mode.area-top-inset=15
-grid-mode.area-bottom-inset=0
-grid-mode.area-left-inset=0
-grid-mode.area-right-inset=0
+grid-mode.grid.area-top-inset=15
+grid-mode.grid.area-bottom-inset=0
+grid-mode.grid.area-left-inset=0
+grid-mode.grid.area-right-inset=0
 
 # Grid synchronization with mouse
 grid-mode.grid.synchronization=mouse-follows-grid-center
@@ -1227,9 +1225,11 @@ normal-mode.position-history.save-position=+f1
 normal-mode.position-history.clear=+f2
 ```
 
-- **`max-size`**: Maximum number of positions that can be stored (older positions are removed when this limit is reached). Default 16.
+- **`max-size`**: Maximum number of positions that can be stored, 1-100 (older positions are removed when this limit is reached). Default 16.
 - **`save-position`**: Command to save the current mouse position to history
+- **`unsave-position`**: Command to remove the saved position the mouse is on
 - **`clear`**: Command to clear all saved positions
+- **`cycle-next`** / **`cycle-previous`**: Commands to move the mouse to the next or previous saved position, continuing from the one it is on
 
 ### Several position histories
 
@@ -1329,8 +1329,6 @@ A macro is defined with:
 mode-name.macro.macro-name=combo -> output
 ```
 
-`macro` and `remapping` mean the same thing and can be used interchangeably (e.g. `mode-name.remapping.macro-name=...`).
-
 Where:
 - `combo` is the trigger combo (same syntax as other combos)
 - `output` is the sequence of key moves to execute
@@ -1363,24 +1361,24 @@ The output uses the following syntax:
 
 Sometimes a macro needs a key purely as an internal signal — e.g. to bracket a region
 of the macro and gate a mode property on it — without any risk of colliding with a real
-key on the keyboard. Declare such keys with `virtual-keys` (a global, space-separated
-list):
+key on the keyboard. Declare such keys on their own line, stating whether the key starts
+pressed or released:
 
 ```properties
-virtual-keys=drilling
+virtual-key.drilling=released
 ```
 
 A virtual key can never be produced by hardware, is never sent to the
 OS, and is only ever pressed/released by a macro via `#`/`~`. It can be used anywhere a
 real key can in the combo system — in a macro's `#`/`~` moves, and in `_{}`/`^{}`
-preconditions — but using it as an OS move (`+`/`-`) is a configuration error.
+preconditions. It has no OS side, so `+`/`-` on it mean the same thing as `#`/`~`.
 
 Declaring it (rather than relying on a name that happens not to exist) keeps typo
 detection: an undeclared unknown key name is still rejected at load time.
 
 ```properties
 # "drilling" is held only for the span of the macro; gate a property on it.
-virtual-keys=drilling
+virtual-key.drilling=released
 some-mode.macro.example=+g -> #drilling k k ~drilling
 some-mode.hint.visible=true | _{drilling} -> false
 ```
@@ -1442,7 +1440,6 @@ mousemaster provides configurable logging to help with troubleshooting and debug
 logging.level=INFO
 logging.key-redaction=pseudonymize
 logging.to-file=true
-logging.file-path=mousemaster.log
 log-last-key-events-on-exit=true
 ```
 
@@ -1459,11 +1456,9 @@ log-last-key-events-on-exit=true
   - `anonymize`: as `<redacted>`, the same name for every key, so keys cannot be told apart
   - Keys that type no character (modifiers, arrows, function keys) are always logged as themselves
 
-- **`logging.to-file`**: When set to `true`, logs are written to a file in addition to the console
+- **`logging.to-file`**: When set to `true`, logs are written to `mousemaster.log` in the working
+  directory, in addition to the console
   - Useful when `hide-console=true` or for persistent logging
-
-- **`logging.file-path`**: Path to the log file when `logging.to-file=true`
-  - Default is `mousemaster.log` in the application directory
 
 - **`log-last-key-events-on-exit`**: When set to `true`, the last key events are logged when mousemaster exits
   - They are always logged when a stuck key is detected
@@ -1472,8 +1467,8 @@ log-last-key-events-on-exit=true
 
 ## Keyboard layout
 
-There is currently a limitation with keyboard layouts (#37): I have not found a reliable way to get the active keyboard layout using the Windows API.
-The workaround is to explicitly tell mousemaster which keyboard layout to use:
+mousemaster reads the active keyboard layout from the foreground window and follows it as it changes.
+`forced-active-keyboard-layout` overrides that detection, for a layout mousemaster gets wrong:
 ```properties
 forced-active-keyboard-layout=us-dvorak
 ```

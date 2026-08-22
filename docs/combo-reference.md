@@ -238,7 +238,7 @@ A wait with no ignored keys. Just enforces a time gap.
 #{*}-0               ignore all, minimum 0ms (trivially satisfied)
 #{*}-100             ignore all, at least 100ms must pass
 #{*}-100-500         ignore all, between 100-500ms
-#!{myalias}-0-2000  ignore non-myalias keys for up to 2000ms
+#!{myalias}-0-2000   ignore non-myalias keys for up to 2000ms
 ```
 
 ### Wait inside any-order move sets
@@ -306,7 +306,7 @@ With `*`, the alias expands into individual moves for **each key** in the alias.
 Aliases can be used in wait moves:
 
 ```
-#{modifierkey}             ignore events for leftshift, leftctrl, leftalt
+#{modifierkey}            ignore events for leftshift, leftctrl, leftalt
 #!{oneshotkey}            ignore all events except oneshotkey
 #!{letterkey oneshotkey}  ignore all except letterkey and oneshotkey
 ```
@@ -471,7 +471,7 @@ _{isslow | iszoom}     either is pressed
 _{rightalt iszoom}     a real key and a virtual key in one block
 ```
 
-A branch carries at most one `_{}` block and one `^{}` block; two blocks of the same kind is a configuration error. Combine them:
+A branch carries at most one key `_{}` block and one key `^{}` block; two of the same kind is a configuration error (an app block is separate and can sit alongside). Combine them:
 
 ```
 _{isslow iszoom} +a       correct
@@ -534,7 +534,8 @@ _hint-mode.hint.box-border-color=#FFFF00 | _{iszoom} -> #00FF00 | _{rightalt} ->
 Toggle slow and zoom with keys, changing the hint box color accordingly:
 
 ```properties
-virtual-keys=isslow iszoom
+virtual-key.isslow=released
+virtual-key.iszoom=released
 
 _hint-mode.macro.setisslow=^{isslow} +s -> #isslow
 _hint-mode.macro.unsetisslow=_{isslow} +s -> ~isslow
@@ -550,7 +551,7 @@ Toggle zoom with a key. The cell sizes are unzoomed pixels, so they follow the z
 their own and the grid keeps its shape:
 
 ```properties
-virtual-keys=iszoom
+virtual-key.iszoom=released
 
 hint3-mode.macro.setiszoom=^{iszoom} +z -> #iszoom
 hint3-mode.macro.unsetiszoom=_{iszoom} +z -> ~iszoom
@@ -914,7 +915,7 @@ Breakdown:
 | `_{keys}` | Precondition: keys must be pressed |
 | `_{none}` | Precondition: no keys pressed |
 | `_{a \| b}` | Precondition: a or b pressed |
-| `virtual-keys=a b +c` | Declare virtual keys; `+` = pressed from the start |
+| `virtual-key.a=released` | Declare a virtual key (`pressed` to start it pressed) |
 | `combo -> #name` | Press a virtual key |
 | `combo -> ~name` | Release a virtual key |
 | `val \| _{name} -> val2` | Conditional property value |

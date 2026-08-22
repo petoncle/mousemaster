@@ -20,8 +20,8 @@
 - Jump forward (teleport) by holding _j_ while moving.
 - Slow down mouse and scroll movement by holding _leftshift_ while moving.
 - Super slow down mouse and scroll movement by holding _capslock_ while moving.
-- Accelerate mouse movement by holding _u_ while moving.
-- Accelerate scroll movement by holding _v_ or _b_ while scrolling.
+- Accelerate mouse movement by holding _u_, _v_ or _b_ while moving.
+- Accelerate scroll movement by holding _u_, _v_ or _b_ while scrolling.
 
 ## Key remappings
 - Press _leftalt + ijkl_ to simulate the arrow keys.
@@ -47,7 +47,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, by holding _leftshift_ while selecting a hint.
 - Undo an accidental key press with _backspace_.
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [neo-mousekeys-wasd.properties](../configuration/neo-mousekeys-wasd.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-row-count`, and `hint.grid-max-column-count` in [neo-mousekeys-wasd.properties](../configuration/neo-mousekeys-wasd.properties).
 - Go back to normal mode with _esc_ or _backspace_.
 
 ## Recursive Hint Mode (_r_ in normal mode)
@@ -58,7 +58,7 @@ _leftalt + leftarrow_ (for back) and _leftalt + rightarrow_ (for forward) to the
 - Press mouse buttons without leaving the drill, with the same keys as in normal mode.
 - Go back one level with _backspace_, back to the whole screen with _space_.
 - Go back to normal mode with _esc_.
-- Remove the `+` from `virtual-keys=+showrecursivehintkeys` in [neo-mousekeys-wasd.properties](../configuration/neo-mousekeys-wasd.properties) to replace the keys drawn in each cell with a plus over the current area and a dot per cell.
+- Set `virtual-key.showrecursivehintkeys` to `released` in [neo-mousekeys-wasd.properties](../configuration/neo-mousekeys-wasd.properties) to replace the keys drawn in each cell with a plus over the current area and a dot per cell.
 
 ## UI Hint Mode (hold _leftalt_ then press _f_ in normal mode)
 

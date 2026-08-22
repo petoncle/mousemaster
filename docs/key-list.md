@@ -33,6 +33,7 @@
 - numpadsubtract
 - numpaddecimal
 - numpaddivide
+- numlock
 - f1 to f24
 - leftcurlybrace (`{`)
 - rightcurlybrace (`}`)

@@ -20,7 +20,7 @@ The layout above shows normal mode ([warpd-keyboardlayouteditor.json](assets/war
 - Vi-like behavior with directional keys (_h_, _j_, _k_, _l_) for continuous mouse movement.
 - Press mouse buttons with _m_ (left button), _,_ (middle button), _._ (right button).
 - Press mouse buttons then exit ("oneshot" clicks) with _n_ (left button), _-_ (middle button), _/_ (right button).
-- Warp to screen edges with _leftshift + h_, _leftshift + j_, _leftshift + k_, _leftshift + l_.
+- Warp to screen edges with _leftshift + h_ (top), _leftshift + l_ (bottom), _0_ (left) and _leftshift + 4_ (right), following vi's `H`/`L`/`0`/`$`.
 - Scroll vertically or horizontally (wheel) with _w_, _e_, _r_, _t_.
 - Slow down mouse movement (decelerate) by holding _d_ while moving the mouse.
 - Accelerate mouse movement by holding _a_ while moving the mouse.
@@ -33,7 +33,7 @@ The layout above shows normal mode ([warpd-keyboardlayouteditor.json](assets/war
 - Similar to Vimium-like browser extensions, but applicable to the entire screen.
 - Automatically switch back to the previous mode (idle mode or normal mode) after hint selection.
 - Trigger a second hint pass, subdividing the cell you selected into a finer grid, with _leftalt + leftshift + x_ (or _leftshift + x_ in normal mode).
-- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-column-count`, and `hint.grid-cell-width` in [warpd.properties](../configuration/warpd.properties).
+- A balance between hint size, number and screen space is crucial and can be configured: see `hint.font-size`, `hint.grid-max-row-count`, and `hint.grid-max-column-count` in [warpd.properties](../configuration/warpd.properties).
 - Exit with _esc_.
 
 ## History Mode (_leftalt + h_ or _;_ in normal mode)
@@ -42,7 +42,8 @@ The layout above shows normal mode ([warpd-keyboardlayouteditor.json](assets/war
 - Exit with _esc_ or _;_.
 - Save the current position with one of the hint selection keys _h_, _j_, _k_, _l_, _a_, _s_, _d_, _f_.
 - Unsave the current position by holding one of the hint selection keys for 500ms.
-- Clear the saved positions by holding _;_ for 500ms
+- Clear the saved positions by holding _;_ for 500ms.
+- Cycle through the saved positions from normal mode with _leftctrl + i_ and _leftctrl + o_.
 
 ## Grid Mode (_leftalt + g_ or _g_ in normal mode)
 
