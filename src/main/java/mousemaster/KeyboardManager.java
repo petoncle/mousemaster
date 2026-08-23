@@ -4,6 +4,8 @@ import mousemaster.ComboWatcher.ComboWatcherUpdateResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,7 +20,8 @@ public class KeyboardManager {
 
     private final ComboWatcher comboWatcher;
     private final KeyRegurgitator keyRegurgitator;
-    private static final int lastKeyEventCount = 32;
+    private static final Duration lastKeyEventsRetainDuration = Duration.ofSeconds(15);
+    private static final int lastKeyEventsMinRetainCount = 128;
     private final List<KeyEventAndEaten> lastKeyEvents = new ArrayList<>();
     /**
      * LinkedHashMap preserves insertion (press) order for correct regurgitation order
@@ -129,10 +132,12 @@ public class KeyboardManager {
                                currentlyPressedKeys.containsKey(keyEvent.key());
         EatAndRegurgitates eatAndRegurgitates = singleKeyEvent(keyEvent);
         if (!osAutoRepeat) {
-            if (lastKeyEvents.size() == lastKeyEventCount)
-                lastKeyEvents.removeFirst();
             lastKeyEvents.add(
                     new KeyEventAndEaten(keyEvent, eatAndRegurgitates.mustBeEaten()));
+            Instant cutoff = keyEvent.time().minus(lastKeyEventsRetainDuration);
+            while (lastKeyEvents.size() > lastKeyEventsMinRetainCount &&
+                   lastKeyEvents.getFirst().event().time().isBefore(cutoff))
+                lastKeyEvents.removeFirst();
         }
         return eatAndRegurgitates;
     }
