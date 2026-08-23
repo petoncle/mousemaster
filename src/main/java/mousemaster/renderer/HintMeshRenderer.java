@@ -668,37 +668,10 @@ public final class HintMeshRenderer {
         Rectangle backgroundArea = hintMesh.backgroundArea();
         QColor backgroundColor = backgroundArea != null && style.backgroundOpacity() > 0 ?
                 QtColorUtil.qColor(style.backgroundHexColor(), style.backgroundOpacity()) : null;
-        if (backgroundColor != null) {
-            // Set background on the window itself (painted before child containers,
-            // covers the area outside the container).
-            // The area is in pixels and the window in points.
-            int backgroundX = (int) Math.round(
-                    (backgroundArea.x() - window.xInPixels()) / qtScaleFactor);
-            int backgroundY = (int) Math.round(
-                    (backgroundArea.y() - window.yInPixels()) / qtScaleFactor);
-            int left = Math.max(0, backgroundX);
-            int top = Math.max(0, backgroundY);
-            int right = Math.min(window.width(),
-                    backgroundX + (int) Math.round(backgroundArea.width() / qtScaleFactor));
-            int bottom = Math.min(window.height(),
-                    backgroundY + (int) Math.round(backgroundArea.height() / qtScaleFactor));
-            if (right > left && bottom > top) {
-                QRect backgroundRect = new QRect(left, top, right - left, bottom - top);
-                window.setBackground(backgroundColor, backgroundRect);
-                // Without this, Qt only repaints the container's area,
-                // missing the background outside of it.
-                QRect updateRect = new QRect(left, top, right - left, bottom - top);
-                window.update(updateRect);
-                updateRect.dispose();
-            }
-            else {
-                window.setBackground(null, null);
-            }
-        }
-        else {
-            window.setBackground(null, null);
-        }
+        Rectangle backgroundRect = backgroundColor == null ? null :
+                backgroundRect(window, backgroundArea, qtScaleFactor);
         if (hintMeshWindow.hints().isEmpty()) {
+            showBackground(window, backgroundColor, backgroundRect);
             QWidget container = new QWidget(window);
             container.setGeometry(0, 0, 0, 0);
             container.show();
@@ -738,6 +711,7 @@ public final class HintMeshRenderer {
             pixmapLabel.setScaledContents(true);
             newContainer = pixmapLabel;
             boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+            showBackground(window, backgroundColor, backgroundRect);
             transitionHintContainers(animateTransition, oldContainer, newContainer,
                     window, hintMeshWindow, transitionAnimationDuration);
             if (pixmapAndPosition.boxes() != null)
@@ -783,6 +757,7 @@ public final class HintMeshRenderer {
                             return;
                         }
                         boolean animateTransition = style.transitionAnimationEnabled() && isHintGrid && !oldContainerHidden && !zoomChanged;
+                        showBackground(window, backgroundColor, backgroundRect);
                         transitionHintContainers(animateTransition,
                                 oldContainer, newContainer,
                                 window, hintMeshWindow, transitionAnimationDuration);
@@ -812,6 +787,34 @@ public final class HintMeshRenderer {
                         setUncachedHintMeshWindowRunnable);
             }
         }
+    }
+
+    private static Rectangle backgroundRect(TransparentWindow window, Rectangle backgroundArea,
+                                            double qtScaleFactor) {
+        int backgroundX = (int) Math.round(
+                (backgroundArea.x() - window.xInPixels()) / qtScaleFactor);
+        int backgroundY = (int) Math.round(
+                (backgroundArea.y() - window.yInPixels()) / qtScaleFactor);
+        int left = Math.max(0, backgroundX);
+        int top = Math.max(0, backgroundY);
+        int right = Math.min(window.width(),
+                backgroundX + (int) Math.round(backgroundArea.width() / qtScaleFactor));
+        int bottom = Math.min(window.height(),
+                backgroundY + (int) Math.round(backgroundArea.height() / qtScaleFactor));
+        return right > left && bottom > top ?
+                new Rectangle(left, top, right - left, bottom - top) : null;
+    }
+
+    private static void showBackground(TransparentWindow window, QColor backgroundColor,
+                                       Rectangle backgroundRect) {
+        if (backgroundRect == null) {
+            window.setBackground(null, null);
+            return;
+        }
+        QRect rect = new QRect(backgroundRect.x(), backgroundRect.y(),
+                backgroundRect.width(), backgroundRect.height());
+        window.setBackground(backgroundColor, rect);
+        window.update(rect);
     }
 
     private void transitionHintContainers(boolean animateTransition, QWidget oldContainer,
