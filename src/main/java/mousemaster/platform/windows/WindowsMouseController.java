@@ -274,6 +274,8 @@ public class WindowsMouseController implements MouseController {
     }
 
     public void reloadSystemCursors() {
+        installedCursorByCursorId.clear();
+        systemCursorByCursorId.clear();
         ExtendedUser32.INSTANCE.SystemParametersInfoA(
                 new WinDef.UINT(ExtendedUser32.SPI_SETCURSORS), new WinDef.UINT(0), null,
                 new WinDef.UINT(0));
@@ -306,6 +308,8 @@ public class WindowsMouseController implements MouseController {
             ExtendedUser32.INSTANCE.SetSystemCursor(imageHandle,
                     new WinDef.UINT(cursorId));
         }
+        installedCursorByCursorId.clear();
+        systemCursorByCursorId.clear();
         ExtendedUser32.INSTANCE.DestroyCursor(transparentCursor);
     }
 
@@ -316,6 +320,8 @@ public class WindowsMouseController implements MouseController {
                               int[] argbPremultiplied) {}
 
     private final Map<Long, GlyphImage> glyphByCursorId = new HashMap<>();
+    private final Map<Long, byte[]> installedCursorByCursorId = new HashMap<>();
+    private final Map<Long, WinNT.HANDLE> systemCursorByCursorId = new HashMap<>();
 
     /**
      * Installs the indicator (given as a premultiplied-ARGB image) as every system cursor, or
@@ -345,14 +351,16 @@ public class WindowsMouseController implements MouseController {
         ExtendedUser32.CURSORINFO cursorInfo = new ExtendedUser32.CURSORINFO();
         if (!ExtendedUser32.INSTANCE.GetCursorInfo(cursorInfo) || cursorInfo.hCursor == null)
             return 0;
-        for (long cursorId : SYSTEM_CURSOR_IDS) {
-            WinNT.HANDLE cursor = ExtendedUser32.INSTANCE.LoadImageW(null,
-                    new Pointer(cursorId), ExtendedUser32.IMAGE_CURSOR, 0, 0,
-                    ExtendedUser32.LR_SHARED);
-            if (cursorInfo.hCursor.equals(cursor))
+        for (long cursorId : SYSTEM_CURSOR_IDS)
+            if (cursorInfo.hCursor.equals(systemCursor(cursorId)))
                 return cursorId;
-        }
         return 0;
+    }
+
+    private WinNT.HANDLE systemCursor(long cursorId) {
+        return systemCursorByCursorId.computeIfAbsent(cursorId,
+                id -> ExtendedUser32.INSTANCE.LoadImageW(null, new Pointer(id),
+                        ExtendedUser32.IMAGE_CURSOR, 0, 0, ExtendedUser32.LR_SHARED));
     }
 
     /**
@@ -579,6 +587,9 @@ public class WindowsMouseController implements MouseController {
                 }
             }
         }
+        if (Arrays.equals(bgra, installedCursorByCursorId.get(cursorId)))
+            return;
+        installedCursorByCursorId.put(cursorId, bgra);
         WinDef.HBITMAP colorBitmap = create32bppDib(canvasWidth, canvasHeight, bgra);
         if (colorBitmap == null)
             return;
@@ -594,8 +605,10 @@ public class WindowsMouseController implements MouseController {
         GDI32.INSTANCE.DeleteObject(colorBitmap);
         GDI32.INSTANCE.DeleteObject(mask);
         // SetSystemCursor takes ownership of and destroys the icon we pass.
-        if (composite != null)
+        if (composite != null) {
             ExtendedUser32.INSTANCE.SetSystemCursor(composite, new WinDef.UINT(cursorId));
+            systemCursorByCursorId.remove(cursorId);
+        }
     }
 
     /** Creates a top-down 32bpp BGRA DIB section and fills it with the given pixels. */
