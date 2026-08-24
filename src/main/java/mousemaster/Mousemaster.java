@@ -112,8 +112,8 @@ public class Mousemaster {
             long iterationEndTime = System.nanoTime();
             long iterationDuration =
                     (long) ((iterationEndTime - iterationBeginTime) / 1e6);
-            if (iterationDuration > 10L && logger.isTraceEnabled()) {
-                logger.trace("Long iteration duration: " + iterationDuration + "ms, " +
+            if (iterationDuration > 20L) {
+                logger.debug("Long iteration duration: " + iterationDuration + "ms, " +
                              "updateConfigurationDuration = " + updateConfigurationDuration + "ms, " +
                              "updateActiveKeyboardLayoutDuration = " + updateActiveKeyboardLayoutDuration + "ms, " +
                              "pumpEventsDuration = " + pumpEventsNanos / 1_000_000 + "ms, " +
