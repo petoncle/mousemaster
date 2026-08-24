@@ -198,6 +198,10 @@ public final class HintMeshRenderer {
         return windows;
     }
 
+    public boolean buildPending() {
+        return !setUncachedHintMeshWindowRunnables.isEmpty();
+    }
+
     /** Runs one unit of deferred work per frame: the build this frame, the pixmap cache the
      *  next. The platform overlay drives this once per frame. */
     public void runPendingWork() {

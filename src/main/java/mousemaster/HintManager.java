@@ -455,6 +455,10 @@ public class HintManager implements ModeListener, MousePositionListener {
                (!hintMeshStates.isEmpty() && !hintJustSelected);
     }
 
+    public boolean waitingForUiElements() {
+        return pendingUiHintQuery != null;
+    }
+
     public boolean hintMeshEmpty() {
         return pendingUiHintQuery == null && hintMesh != null &&
                hintMesh.hints().isEmpty();

@@ -46,6 +46,7 @@ public class WindowsPlatform implements Platform {
     private ModeMap modeMap;
     private ZoomManager zoomManager;
     private IndicatorManager indicatorManager;
+    private HintManager hintManager;
     private final Map<Key, AtomicReference<Double>> currentlyPressedNotEatenKeys = new HashMap<>();
     private WinUser.HHOOK keyboardHook;
     private WinUser.HHOOK mouseHook;
@@ -156,11 +157,13 @@ public class WindowsPlatform implements Platform {
         // painted once per iteration, so this sleep is what every one of them waits on.
         long sleepMillis =
                 overlay.hintTransitionAnimating() || zoomManager.animating() ||
-                indicatorManager.animating() ? 1 : 10;
+                indicatorManager.animating() || hintManager.waitingForUiElements() ||
+                overlay.hintMeshBuildPending() ? 1 : 10;
         long beforeTime = System.nanoTime();
         while (true) {
             long currentTime = System.nanoTime();
-            if ((currentTime - beforeTime) / 1e6 >= sleepMillis)
+            if ((currentTime - beforeTime) / 1e6 >= sleepMillis ||
+                overlay.hintMeshBuildPending())
                 break;
             Thread.sleep(1);
             pumpEvents();
@@ -174,6 +177,7 @@ public class WindowsPlatform implements Platform {
                       ModeMap newModeMap,
                       ZoomManager zoomManager,
                IndicatorManager indicatorManager,
+                      HintManager hintManager,
                       List<MousePositionListener> mousePositionListeners,
                       KeyboardLayout activeKeyboardLayout) {
         ModeMap oldModeMap = this.modeMap;
@@ -191,6 +195,7 @@ public class WindowsPlatform implements Platform {
         this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
+        this.hintManager = hintManager;
         this.mousePositionListeners = mousePositionListeners;
         if (keyboard.activeKeyboardLayout != null &&
             !keyboard.activeKeyboardLayout.equals(activeKeyboardLayout)) {

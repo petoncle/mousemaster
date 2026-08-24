@@ -552,6 +552,11 @@ public class WindowsOverlay implements Overlay {
         return hintMeshRenderer.transitionAnimating();
     }
 
+    @Override
+    public boolean hintMeshBuildPending() {
+        return hintMeshRenderer.buildPending();
+    }
+
     void mouseMoved(WinDef.POINT mousePosition) {
         if (indicatorIsCursor) {
             // The OS moves the cursor; only re-install when the screen scale changes

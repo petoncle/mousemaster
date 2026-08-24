@@ -226,6 +226,11 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
+    public boolean hintMeshBuildPending() {
+        return hintMeshRenderer.buildPending();
+    }
+
+    @Override
     public void animateHintMatch(Hint hint) {
         hintMeshRenderer.animateHintMatch(hint, MacosScreens.screens());
     }

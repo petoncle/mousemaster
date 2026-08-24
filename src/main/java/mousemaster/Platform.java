@@ -23,6 +23,7 @@ public interface Platform extends ModeListener {
                ModeMap modeMap,
                ZoomManager zoomManager,
                IndicatorManager indicatorManager,
+               HintManager hintManager,
                List<MousePositionListener> mousePositionListeners,
                KeyboardLayout activeKeyboardLayout);
 

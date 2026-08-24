@@ -17,6 +17,7 @@ import mousemaster.MouseManager;
 import mousemaster.MousePositionListener;
 import mousemaster.Platform;
 import mousemaster.QtManager;
+import mousemaster.HintManager;
 import mousemaster.IndicatorManager;
 import mousemaster.ZoomManager;
 import mousemaster.platform.ActiveAppFinder;
@@ -78,6 +79,7 @@ public class MacosPlatform implements Platform {
     private ModeMap modeMap;
     private ZoomManager zoomManager;
     private IndicatorManager indicatorManager;
+    private HintManager hintManager;
     private QPoint lastMousePosition;
     private boolean wasPressingPhysicalButton;
     private Pointer autoreleasePool = objectiveC.objc_autoreleasePoolPush();
@@ -219,7 +221,8 @@ public class MacosPlatform implements Platform {
         wasPressingPhysicalButton = pressingPhysicalButton;
         long sleepMillis =
                 overlay.hintTransitionAnimating() || zoomManager.animating() ||
-                indicatorManager.animating() ? 1 : 10;
+                indicatorManager.animating() || hintManager.waitingForUiElements() ||
+                overlay.hintMeshBuildPending() ? 1 : 10;
         KeyEvent keyEvent = keyEventQueue.poll(sleepMillis, TimeUnit.MILLISECONDS);
         if (keyEvent != null)
             keyEventQueue.addFirst(keyEvent);
@@ -233,6 +236,7 @@ public class MacosPlatform implements Platform {
                       boolean logLastKeyEventsOnExit,
                       ModeMap newModeMap, ZoomManager zoomManager,
                IndicatorManager indicatorManager,
+                      HintManager hintManager,
                       List<MousePositionListener> mousePositionListeners,
                       KeyboardLayout activeKeyboardLayout) {
         // The first call after Qt exists and before any overlay window is shown.
@@ -243,6 +247,7 @@ public class MacosPlatform implements Platform {
         this.logLastKeyEventsOnExit = logLastKeyEventsOnExit;
         this.zoomManager = zoomManager;
         this.indicatorManager = indicatorManager;
+        this.hintManager = hintManager;
         this.mousePositionListeners = mousePositionListeners;
         if (keyboard.activeKeyboardLayout != null &&
             !keyboard.activeKeyboardLayout.equals(activeKeyboardLayout)) {

@@ -276,6 +276,7 @@ public class Mousemaster {
                 configuration.modeMap(),
                 zoomManager,
                 indicatorManager,
+                hintManager,
                 List.of(mouseManager, gridManager, hintManager, screenManager,
                         zoomManager), activeKeyboardLayout);
         if (preWarmHints)
