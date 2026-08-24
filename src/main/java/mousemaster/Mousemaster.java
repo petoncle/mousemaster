@@ -22,6 +22,7 @@ public class Mousemaster {
     private MacroPlayer macroPlayer;
     private KeyboardManager keyboardManager;
     private IndicatorManager indicatorManager;
+    private HintManager hintManager;
     private ZoomManager zoomManager;
     private ModeController modeController;
     private List<String> configurationProperties;
@@ -94,7 +95,8 @@ public class Mousemaster {
             timeBeforeOp = System.nanoTime();
             pumpEventsNanos += timeBeforeOp - timeAfterOp;
             modeController.updateBuiltInVirtualKeys();
-            indicatorManager.update(delta);
+            if (!hintManager.waitingForUiElements())
+                indicatorManager.update(delta);
             timeAfterOp = System.nanoTime();
             long indicatorManagerDuration = (long) ((timeAfterOp - timeBeforeOp) / 1e6);
             platform.pumpEvents();
@@ -218,7 +220,7 @@ public class Mousemaster {
         MouseState mouseState = new MouseState(mouseManager);
         GridManager gridManager = new GridManager(screenManager, mouseManager, platform.overlay());
         KeyRedactor keyRedactor = new KeyRedactor(configuration.keyRedaction());
-        HintManager hintManager =
+        hintManager =
                 new HintManager(configuration.positionHistoryConfigurationByName(),
                         screenManager, mouseManager, platform.overlay(),
                         platform.uiAutomation(), platform.activeAppFinder(),
