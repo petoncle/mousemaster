@@ -1,5 +1,6 @@
 package mousemaster.platform.macos;
 
+import io.qt.core.QPoint;
 import mousemaster.Rectangle;
 import mousemaster.platform.UiAutomation;
 
@@ -45,7 +46,10 @@ public class MacosUiAutomation implements UiAutomation {
                     if (cropped.width() <= 0 || cropped.height() <= 0 ||
                         covered(covering, cropped))
                         continue;
-                    elements.add(center(cropped));
+                    UiElement element = center(cropped);
+                    if (tooClose(elements, element))
+                        continue;
+                    elements.add(element);
                 }
             }
             covering.add(window.bounds());
@@ -63,11 +67,24 @@ public class MacosUiAutomation implements UiAutomation {
 
     /** An element is cropped to the area, so its center stays inside it. */
     private static List<UiElement> elements(List<Rectangle> frames, Rectangle area) {
-        return frames.stream()
-                     .map(frame -> area == null ? frame : frame.intersection(area))
-                     .filter(frame -> frame.width() > 0 && frame.height() > 0)
-                     .map(MacosUiAutomation::center)
-                     .toList();
+        List<UiElement> elements = new ArrayList<>();
+        for (Rectangle frame : frames) {
+            Rectangle cropped = area == null ? frame : frame.intersection(area);
+            if (cropped.width() <= 0 || cropped.height() <= 0)
+                continue;
+            UiElement element = center(cropped);
+            if (tooClose(elements, element))
+                continue;
+            elements.add(element);
+        }
+        return elements;
+    }
+
+    private static boolean tooClose(List<UiElement> elements, UiElement element) {
+        return UiAutomation.isTooCloseToExistingUiElements(elements, element.centerX(),
+                element.centerY(), MacosScreens.scaleAt(
+                        new QPoint((int) element.centerX(),
+                                (int) element.centerY())));
     }
 
     private static UiElement center(Rectangle frame) {
