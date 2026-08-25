@@ -1,0 +1,50 @@
+1305	6	1719	72	a	Read the Documentation
+1755	6	2058	72	a	Privacy & Cookies
+2094	6	2316	72	a	Terms of Use
+2352	6	2677	72	a	Download VS Code
+3744	6	3810	72	a	Close Banner
+1091	98	1157	164	a	Go Back (Alt+LeftArrow)
+1169	98	1235	164	a	Go Forward (Alt+RightArrow)
+1268	98	2727	164	li	Workspace
+3528	98	3594	164	a	Customize Layout...
+3606	98	3672	164	a	Toggle Primary Side Bar (Ctrl+B)
+3684	98	3750	164	a	Toggle Panel (Ctrl+J)
+3762	98	3828	164	a	Toggle Secondary Side Bar (Ctrl+Alt+B)
+18	183	126	288	div	Application Menu
+18	297	126	405	li	
+18	417	126	525	li	
+18	537	126	645	li	
+18	657	126	765	li	
+18	777	126	885	li	
+18	897	126	1005	li	
+18	1815	126	1923	li	Accounts
+18	1935	126	2043	li	Manage
+951	201	1017	267	a	Views and More Actions...
+159	282	1014	366	div	No Folder Opened
+207	499	966	577	a	Open Folder
+207	616	966	694	a	Open Recent
+207	881	966	959	a	Open Remote Repository
+207	1201	966	1279	a	Connect to Tunnel...
+159	1866	1014	1950	div	Outline
+159	1950	1014	2034	div	Timeline
+1053	186	1379	282	div	Welcome
+1307	204	1367	264	a	Close (Ctrl+F4)
+3657	201	3723	267	a	Split Editor Right (Ctrl+\) [Alt] Split 
+3735	201	3801	267	a	More Actions...
+1300	816	1556	897	button	New File...
+1300	909	1573	990	button	Open File...
+1300	1002	1623	1083	button	Open Folder...
+1300	1095	1698	1176	button	Open Repository...
+1300	1188	1631	1269	button	Open Tunnel...
+1766	1419	1997	1470	button	open a folder
+2517	834	3518	1059	button	Get Started with VS Code for the Web Cus
+2517	1107	3518	1212	button	Browse & Edit Remote Repositories withou
+2517	1260	3518	1359	button	Learn the Fundamentals
+2117	1911	2171	1965	div	When checked, this page will be shown on
+2359	1962	2664	2013	a	privacy statement
+2977	1962	3105	2013	a	opt out
+30	2076	102	2148	a	remote
+111	2076	305	2148	a	0 0
+3732	2076	3816	2148	a	Notifications
+3525	2076	3723	2148	a	Layout: US
+3429	2076	3507	2148	a	Copilot status

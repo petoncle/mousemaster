@@ -1,0 +1,70 @@
+252	42	672	156	a	
+798	51	2011	147	input	Search Wikipedia
+2008	51	2220	147	button	Search
+3113	75	3248	123	a	Donate
+3273	75	3558	123	a	Create account
+3582	75	3696	123	a	Log in
+398	411	514	477	button	hide
+180	517	672	601	a	(Top)
+180	601	672	685	a	Definition
+180	685	672	769	a	History
+180	769	672	853	a	Related fields
+111	772	177	838	button	Toggle Related fields subsection
+180	853	672	937	a	Applications
+111	856	177	922	button	Toggle Applications subsection
+180	937	672	1021	a	Typical tasks
+111	940	177	1006	button	Toggle Typical tasks subsection
+180	1021	672	1105	a	System methods
+111	1024	177	1090	button	Toggle System methods subsection
+180	1105	672	1189	a	Hardware
+180	1189	672	1273	a	See also
+111	1192	177	1258	button	Toggle See also subsection
+180	1273	672	1357	a	References
+180	1357	672	1441	a	Further reading
+180	1441	672	1525	a	External links
+792	389	909	485	a	Article
+957	389	1032	485	a	Talk
+2458	389	2558	485	a	Read
+2606	389	2678	485	a	Edit
+2726	389	2952	485	a	View history
+3444	411	3560	477	button	hide
+2548	669	2696	717	a	a series
+2224	729	2942	795	a	Artificial intelligence (AI)
+2904	806	3024	865	button	hide
+2409	815	2655	863	a	Major goals
+2322	879	2846	927	a	Artificial general intelligence
+2244	939	2561	987	a	superintelligence
+2613	939	2911	987	a	Intelligent agent
+2208	998	2732	1046	a	Recursive self-improvement
+2769	998	2933	1046	a	Planning
+2178	1057	2511	1105	a	Computer vision
+2549	1057	2962	1105	a	General game playing
+2325	1116	2816	1164	a	Knowledge representation
+2201	1175	2739	1223	a	Natural language processing
+2776	1175	2940	1223	a	Robotics
+2501	1234	2665	1282	a	AI safety
+2885	1307	3024	1366	button	show
+2885	1395	3024	1454	button	show
+2390	1404	2656	1452	a	Applications
+2885	1483	3024	1542	button	show
+2403	1492	2642	1540	a	Philosophy
+2885	1571	3024	1630	button	show
+2446	1580	2599	1628	a	History
+2885	1659	3024	1718	button	show
+2374	1668	2672	1716	a	Controversies
+2493	1765	2674	1813	a	Glossary
+1742	640	1937	691	a	acquiring
+792	718	1024	769	a	processing
+1051	718	1254	769	a	analyzing
+1691	718	1984	769	a	digital images
+1160	796	1523	847	a	high-dimensional
+1299	939	1342	984	a	[1]
+1342	939	1385	984	a	[2]
+1384	939	1427	984	a	[3]
+1427	939	1470	984	a	[4]
+1003	1420	1200	1471	a	geometry
+1226	1420	1386	1471	a	physics
+1413	1420	1597	1471	a	statistics
+888	1546	1283	1597	a	scientific discipline
+1318	1858	1561	1909	a	3D scanner
+792	1936	925	1987	a	LiDaR

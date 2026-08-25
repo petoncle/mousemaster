@@ -1,0 +1,63 @@
+96	60	192	156	a	Homepage
+240	48	542	168	button	Platform
+542	48	859	168	button	Solutions
+859	48	1191	168	button	Resources
+1191	48	1587	168	button	Open Source
+1588	48	1922	168	button	Enterprise
+1921	48	2124	168	a	Pricing
+3009	60	3135	156	button	Search or jump to, type / to search
+3159	60	3372	156	a	Sign in
+3397	60	3624	156	a	Sign up
+3648	60	3744	156	button	
+168	267	418	348	a	microsoft
+465	267	653	348	a	vscode
+2619	264	2979	348	a	Notifications
+3002	264	3365	348	a	Fork 41.8k
+3389	264	3744	348	a	Star 190k
+96	429	315	519	a	Code
+339	429	702	519	a	Issues 5k+
+726	429	1224	519	a	Pull requests 2.4k
+1248	429	1510	519	a	Actions
+1534	429	1805	519	a	Projects
+1829	429	2034	519	a	Wiki
+2057	429	2661	519	a	Security and quality 43
+2686	429	2955	519	a	Insights
+48	594	672	690	a	Issues
+48	690	672	786	a	Assigned to me
+48	786	672	882	a	Created by me
+48	882	672	978	a	Mentioned
+48	978	672	1074	a	Recent activity
+48	1197	672	1293	a	Views
+48	1293	672	1389	a	Projects
+48	1389	672	1485	a	Milestones
+48	1485	672	1581	a	Labels
+48	1908	717	2004	a	Feedback Preview
+48	2016	717	2112	button	Collapse sidebar
+3416	691	3768	787	button	New issue
+879	839	2259	923	a	Native dialogs on Windows are auto-closi
+1044	938	1362	986	a	benjiecalvez025-cell
+2361	839	3741	923	a	1.135.0 Endgame
+2526	938	2672	986	a	lszomoru
+879	1079	3669	1169	input	is:issue state:open
+3672	1076	3768	1172	button	
+867	1248	1187	1338	a	Open 17,746 (17,746)
+1187	1248	1555	1338	a	Closed 233,882 (233,882)
+1867	1245	2145	1341	button	Author
+2145	1245	2411	1341	button	Labels
+2411	1245	2707	1341	button	Projects
+2707	1245	3057	1341	button	Milestones
+3057	1245	3390	1341	button	Assignees
+3390	1245	3645	1341	button	Types
+3645	1245	3741	1341	button	
+963	1394	2989	1529	a	Synchronous terminal tool returns incomp
+1128	1550	1253	1598	a	erikatsg
+3645	1467	3705	1530	a	meganrogge is assigned
+963	1661	3010	1796	a	Please add test cases to remote ssh exte
+1808	1736	2063	1793	a	info-needed Issue requires more informat
+1128	1817	1631	1865	a	Naveen Pechetti (npechett-wtg)
+3645	1734	3705	1797	a	joshspicer is assigned
+963	1928	2171	1991	a	Validate Medium and Small shadow tiers f
+1128	2012	1261	2060	a	oliviatyu
+3645	1965	3705	2028	a	mrleemurray is assigned
+963	2123	1394	2186	a	ssh remote插件问题
+1406	2126	1666	2183	a	ai-translated issues translated by the c

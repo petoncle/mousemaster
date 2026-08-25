@@ -1,0 +1,28 @@
+1470	1069	2370	1195	button	Open Ctrl+O
+1470	1201	2370	1327	button	Help ?
+1470	1333	2370	1459	button	Live collaboration...
+1470	1465	2370	1597	a	Sign up
+48	48	156	156	button	
+1119	60	1227	168	button	Keep selected tool active after drawing
+1266	60	1374	168	button	Hand (panning tool)
+1386	60	1494	168	button	1
+1506	60	1614	168	button	2
+1626	60	1734	168	button	3
+1746	60	1854	168	button	4
+1866	60	1974	168	button	5
+1986	60	2094	168	button	6
+2106	60	2214	168	button	7
+2226	60	2334	168	button	8
+2346	60	2454	168	button	9
+2466	60	2574	168	button	0
+2613	60	2721	168	button	
+3232	48	3516	156	a	Excalidraw+
+3540	48	3648	156	button	
+3684	48	3792	156	button	Library
+48	2004	156	2112	button	Zoom out
+156	2004	336	2112	button	100%
+336	2004	444	2112	button	Zoom in
+473	2004	581	2112	button	Undo
+581	2004	689	2112	button	Redo
+3569	2029	3627	2087	a	Blog post on end-to-end encryption in Ex
+3684	2004	3792	2112	button	Help
