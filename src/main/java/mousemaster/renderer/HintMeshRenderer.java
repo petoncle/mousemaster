@@ -1355,6 +1355,7 @@ public final class HintMeshRenderer {
                                                               double qtScaleFactor,
                                                               QWidget container,
                                                               List<Rectangle> enclosingInk) {
+        long beforeMetrics = System.nanoTime();
         boolean isHintPartOfGrid = hintMeshWindow.hints().getFirst().cellWidth() != -1;
         double minHintCenterX = Double.MAX_VALUE;
         double minHintCenterY = Double.MAX_VALUE;
@@ -1426,6 +1427,7 @@ public final class HintMeshRenderer {
 //            hintKeyMaxXAdvance = metrics.maxWidth();
         List<HintBox> hintBoxes = new ArrayList<>();
         List<HintLabel> hintLabels = new ArrayList<>();
+        long beforeBoxes = System.nanoTime();
         long lastPumpTime = System.nanoTime();
         for (int hintIndex = 0; hintIndex < hints.size(); hintIndex++) {
             Hint hint = hints.get(hintIndex);
@@ -1553,6 +1555,7 @@ public final class HintMeshRenderer {
                 lastPumpTime = System.nanoTime();
             }
         }
+        long beforeGroups = System.nanoTime();
         if (pumpDuringHintBuild && messagePump != null)
             messagePump.run();
         for (HintGroup hintGroup : hintGroupByPrefix.values()) {
@@ -1687,6 +1690,7 @@ public final class HintMeshRenderer {
                 continue;
             prefixLabels.add(prefixHintLabel);
         }
+        long beforeLayers = System.nanoTime();
         int containerWidth = maxHintRight - minHintLeft;
         int containerHeight = maxHintBottom - minHintTop;
         container.setGeometry(offsetX, offsetY, containerWidth, containerHeight);
@@ -1749,6 +1753,12 @@ public final class HintMeshRenderer {
                 style.fontStyle().defaultFontStyle().opacity() != 0,
                 subDecorationStyles, areaDecorationStyles);
         hintBoxGeometriesByHintMeshKey.put(hintMeshKey, hintBoxGeometries);
+        logger.debug(
+                "Built {} hint boxes: metrics {}ms, boxes {}ms, groups {}ms, layers {}ms",
+                hintBoxes.size(), (beforeBoxes - beforeMetrics) / 1_000_000,
+                (beforeGroups - beforeBoxes) / 1_000_000,
+                (beforeLayers - beforeGroups) / 1_000_000,
+                (System.nanoTime() - beforeLayers) / 1_000_000);
         return hintBoxes;
     }
 
