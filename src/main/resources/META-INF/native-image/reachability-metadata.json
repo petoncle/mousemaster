@@ -7485,7 +7485,13 @@
       ]
     },
     {
-      "type": "mousemaster.platform.macos.CoreGraphics$CGRect$ByValue"
+      "type": "mousemaster.platform.macos.CoreGraphics$CGRect$ByValue",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "mousemaster.platform.macos.Driverkit$DKEvent",
@@ -8703,7 +8709,13 @@
         ]
       }
     },
-
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.macos.ObjectiveC$ReturningRect"
+        ]
+      }
+    },
     {
       "type": {
         "proxy": [

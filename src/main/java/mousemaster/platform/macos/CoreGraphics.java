@@ -52,6 +52,9 @@ public interface CoreGraphics extends Library {
         public double height;
 
         public static class ByValue extends CGRect implements Structure.ByValue {
+            public ByValue() {
+            }
+
             public ByValue(double x, double y, double width, double height) {
                 this.x = x;
                 this.y = y;
@@ -78,6 +81,24 @@ public interface CoreGraphics extends Library {
 
     /** Counts the cursor changes. Undocumented, but the cursor itself is a round trip to read. */
     int CGSCurrentCursorSeed();
+
+    int alphaNoneSkipLast = 5;
+
+    Pointer CGColorSpaceCreateDeviceRGB();
+
+    void CGColorSpaceRelease(Pointer colorSpace);
+
+    Pointer CGBitmapContextCreate(Pointer data, long width, long height,
+                                  long bitsPerComponent, long bytesPerRow,
+                                  Pointer colorSpace, int bitmapInfo);
+
+    void CGContextDrawImage(Pointer context, CGRect.ByValue rectangle, Pointer image);
+
+    void CGContextRelease(Pointer context);
+
+    long CGImageGetWidth(Pointer image);
+
+    long CGImageGetHeight(Pointer image);
 
     int windowListOnScreenOnly = 1;
     int windowListOnScreenBelowWindow = 4;

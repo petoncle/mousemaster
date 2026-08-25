@@ -76,6 +76,14 @@ public interface ObjectiveC extends Library {
 
     }
 
+    interface ReturningRect extends Library {
+
+        ReturningRect INSTANCE = Native.load("objc", ReturningRect.class);
+
+        CoreGraphics.CGRect.ByValue objc_msgSend(Pointer receiver, Pointer selector);
+
+    }
+
     /** What a completion handler block is called with, an object and an error either way round. */
     interface BlockHandler extends Callback {
         void callback(Pointer block, Pointer first, Pointer second);

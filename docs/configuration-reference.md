@@ -609,8 +609,8 @@ appearance property with them. Detection runs off the keyboard hook, so mousemas
 responsive while a scan is in progress, and `ishintmeshempty` is pressed when a scan finds
 nothing, exactly as for UI hints.
 
-Only Windows detects elements today. On macOS the desktop capture is not implemented, so a
-vision hint mode finds nothing.
+On macOS the capture asks for the Screen Recording permission the first time a scan runs;
+hints appear once it is granted.
 
 ### Hint layout and positioning
 

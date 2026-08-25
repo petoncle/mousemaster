@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class MacosOverlay implements Overlay {
@@ -31,6 +33,7 @@ public class MacosOverlay implements Overlay {
 
     private final MacosMouseController mouse;
     private final HintMeshRenderer hintMeshRenderer;
+    private final List<MacosDesktopCapture> desktopCaptures = new ArrayList<>();
 
     private IndicatorRenderer indicatorRenderer;
     private GridRenderer gridRenderer;
@@ -77,8 +80,18 @@ public class MacosOverlay implements Overlay {
     @Override
     public DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth,
                                          int scaledHeight) {
-        throw new UnsupportedOperationException(
-                "Vision hints and desktop capture are not supported on macOS");
+        return new DesktopCapture(bounds,
+                captureCovering(bounds).capture(bounds, scaledWidth, scaledHeight),
+                scaledWidth, scaledHeight);
+    }
+
+    private MacosDesktopCapture captureCovering(Rectangle bounds) {
+        for (MacosDesktopCapture capture : desktopCaptures)
+            if (capture.covers(bounds))
+                return capture;
+        MacosDesktopCapture capture = new MacosDesktopCapture(bounds);
+        desktopCaptures.add(capture);
+        return capture;
     }
 
     @Override
