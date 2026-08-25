@@ -774,6 +774,9 @@ public final class HintMeshRenderer {
                         // (which never animate or cache) still need it created.
                         morphBorders(window, hintMeshWindow, container, boxes, enclosingInk,
                                 animateTransition, transitionAnimationDuration);
+                        // The mesh is on screen a frame sooner than waiting for the next pump.
+                        if (!isHintGrid && messagePump != null)
+                            messagePump.run();
                         if (isHintGrid) {
                             // Defer the pixmap cache grab to the next frame so the hint mesh is shown
                             // immediately; the grab is expensive (~90ms at 4K when cold).
