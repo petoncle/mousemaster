@@ -120,7 +120,7 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
         catch (Throwable e) {
             logger.debug("Desktop Duplication capture failed, falling back: " +
                          e.getMessage());
-            releaseDuplication();
+            close();
             return null;
         }
     }
@@ -321,18 +321,16 @@ final class WindowsDesktopFrameCapture implements AutoCloseable {
 
     @Override
     public void close() {
-        releaseDuplication();
+        release(duplication);
+        duplication = null;
         release(staging);
         staging = null;
+        // The device goes with it: it can only duplicate an output of the adapter it was
+        // created on, and the next output may be on another one.
         release(context);
         context = null;
         release(device);
         device = null;
-    }
-
-    private void releaseDuplication() {
-        release(duplication);
-        duplication = null;
     }
 
     public static class MappedSubresource extends Structure {
