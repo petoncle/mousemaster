@@ -209,23 +209,6 @@ public class WindowsUiAutomation implements UiAutomation {
         }
     }
 
-    // UIA returns bounding rectangles in zoomed (physical) pixels, so the
-    // threshold is multiplied by the window's scale at filter time.
-    // 13 unzoomed px = 13 physical px at 100% scale, 40 physical px at 300%.
-    private static final double MIN_DISTANCE_BETWEEN_HINTS_UNZOOMED = 13;
-
-    private static boolean isTooCloseToExistingUiElements(List<UiElement> elements,
-                                                          double x, double y,
-                                                          double thresholdSquared) {
-        for (UiElement e : elements) {
-            double dx = e.centerX() - x;
-            double dy = e.centerY() - y;
-            if (dx * dx + dy * dy < thresholdSquared)
-                return true;
-        }
-        return false;
-    }
-
     private static Rectangle rectangle(WinDef.RECT rect) {
         return new Rectangle(rect.left, rect.top, rect.right - rect.left,
                 rect.bottom - rect.top);
@@ -464,8 +447,6 @@ public class WindowsUiAutomation implements UiAutomation {
                                         Rectangle elementBounds,
                                         double scale,
                                         List<UiElement> uiElements) {
-        double threshold = MIN_DISTANCE_BETWEEN_HINTS_UNZOOMED * scale;
-        double thresholdSquared = threshold * threshold;
         int length = array.getLength();
         for (int i = 0; i < length; i++) {
             UIAutomationElement element = array.getElement(i);
@@ -485,8 +466,8 @@ public class WindowsUiAutomation implements UiAutomation {
                     continue;
                 if (!clickReaches(hwnd, centerX, centerY))
                     continue;
-                if (isTooCloseToExistingUiElements(uiElements,
-                        centerX, centerY, thresholdSquared))
+                if (UiAutomation.isTooCloseToExistingUiElements(uiElements,
+                        centerX, centerY, scale))
                     continue;
                 uiElements.add(new UiElement(centerX, centerY));
             }
