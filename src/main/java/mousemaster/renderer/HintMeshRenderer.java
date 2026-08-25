@@ -476,6 +476,11 @@ public final class HintMeshRenderer {
     }
 
     private class ClearBackgroundQLabel extends QLabel {
+        /** Built in its final parent: adopting a populated container costs as much as showing it. */
+        ClearBackgroundQLabel(QWidget parent) {
+            super(parent);
+        }
+
         private QColor clearColor = new QColor(0, 0, 0, 0);
         /** Crop region, clipped in paintEvent instead of via setMask (which recomposites the whole
          *  window). Null paints the full pixmap. */
@@ -692,7 +697,7 @@ public final class HintMeshRenderer {
         QWidget newContainer;
         if (pixmapAndPosition != null) {
             logger.trace("Using cached hint mesh pixmap " + pixmapAndPosition);
-            ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel();
+            ClearBackgroundQLabel pixmapLabel = new ClearBackgroundQLabel(window);
             pixmapLabel.setPixmap(pixmapAndPosition.pixmap);
             Hint originalFirstHint = pixmapAndPosition.originalHintMesh.hints().getFirst();
             int originalWindowX = pixmapAndPosition.windowX;
@@ -730,7 +735,7 @@ public final class HintMeshRenderer {
         else {
             // Uses ClearBackgroundQLabel because when in the mergedContainer,
             // the top-level container must override the container below.
-            ClearBackgroundQLabel container = new ClearBackgroundQLabel();
+            ClearBackgroundQLabel container = new ClearBackgroundQLabel(window);
             if (backgroundColor != null)
                 container.setClearColor(backgroundColor);
             container.setStyleSheet("background: transparent;");
@@ -940,13 +945,11 @@ public final class HintMeshRenderer {
             else {
                 oldContainer.setParent(null);
                 disposeWidget(oldContainer);
-                newContainer.setParent(window);
                 newContainer.show();
                 hintContainerAnimationEnded();
             }
         }
         else {
-            newContainer.setParent(window);
             newContainer.show();
         }
         window.show();
