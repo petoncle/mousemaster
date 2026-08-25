@@ -2548,7 +2548,7 @@ public class ConfigurationParser {
                         if (currentType instanceof HintMeshType.HintGrid)
                             return currentType;
                         throw new IllegalArgumentException(
-                                "Cannot combo-trigger hint type to GRID: current type is " +
+                                "Cannot combo-trigger hint type to grid: current type is " +
                                 currentType.getClass().getSimpleName());
                     };
                     case POSITION_HISTORY -> new HintMeshType.HintPositionHistory(v);
