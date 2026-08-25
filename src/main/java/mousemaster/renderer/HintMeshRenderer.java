@@ -3174,6 +3174,8 @@ public final class HintMeshRenderer {
     private static boolean layerPerLabel(List<HintLabel> labels, QtHintFontStyle style) {
         if (style == null || labels.isEmpty())
             return false;
+        if (!style.perKeyShadow() && style.defaultStyle().shadowColor().alpha() == 0)
+            return false;
         int padding = shadowPadding(style.defaultStyle());
         List<Rectangle> ink = labelInk(labels);
         long paddedInkArea = 0;
