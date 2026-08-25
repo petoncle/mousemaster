@@ -98,13 +98,14 @@ public class HintManager implements ModeListener, MousePositionListener {
 
     private static final int maxHintMeshVariantBranchCount = 12;
     private static final int minPreWarmedHintCount = 100;
+    private static final int preWarmedUiElementCount = 500;
 
     /** Builds and caches the meshes that are slow to build. */
     public void preWarmHintMeshes(ModeMap modeMap) {
         long before = System.nanoTime();
         Set<HintMesh> warmed = new HashSet<>();
         for (Mode mode : modeMap.modes()) {
-            if (!isVisibleScreenHintMesh(mode.hintMesh()))
+            if (!isPreWarmedHintMesh(mode.hintMesh()))
                 continue;
             for (Screen screen : screenManager.screens()) {
                 Rectangle screenRectangle = screen.rectangle();
@@ -114,7 +115,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     if (configuration.type() instanceof HintMeshType.HintPositionHistory)
                         continue;
                     HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
-                            ScreenFilter.of(screen), null, screen);
+                            ScreenFilter.of(screen), preWarmedUiElements(screen), screen);
                     if (!hintMesh.visible() ||
                         hintMesh.hints().size() < minPreWarmedHintCount)
                         continue;
@@ -196,9 +197,23 @@ public class HintManager implements ModeListener, MousePositionListener {
         return List.copyOf(variants);
     }
 
-    private static boolean isVisibleScreenHintMesh(HintMeshConfiguration configuration) {
+    private static List<UiElement> preWarmedUiElements(Screen screen) {
+        Rectangle rectangle = screen.rectangle();
+        int columns = (int) Math.ceil(Math.sqrt(preWarmedUiElementCount));
+        int rows = (preWarmedUiElementCount + columns - 1) / columns;
+        List<UiElement> uiElements = new ArrayList<>(preWarmedUiElementCount);
+        for (int i = 0; i < preWarmedUiElementCount; i++)
+            uiElements.add(new UiElement(
+                    rectangle.x() + rectangle.width() * (i % columns + 0.5) / columns,
+                    rectangle.y() + rectangle.height() * (i / columns + 0.5) / rows));
+        return uiElements;
+    }
+
+    private static boolean isPreWarmedHintMesh(HintMeshConfiguration configuration) {
         if (!configuration.enabled() || !configuration.visible())
             return false;
+        if (configuration.type() instanceof HintMeshType.UiHintMesh)
+            return true;
         if (!(configuration.type() instanceof HintMeshType.HintGrid hintGrid))
             return false;
         HintGridAreaSizeSource source = hintGrid.area().size().source();
