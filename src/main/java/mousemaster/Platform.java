@@ -49,6 +49,8 @@ public interface Platform extends ModeListener {
 
     UiAutomation uiAutomation();
 
+    Vision vision();
+
     ActiveAppFinder activeAppFinder();
 
     Console console();

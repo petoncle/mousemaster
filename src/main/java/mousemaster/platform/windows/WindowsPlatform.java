@@ -11,6 +11,7 @@ import mousemaster.KeyRegurgitator;
 
 import mousemaster.platform.KeyboardController;
 import mousemaster.platform.Overlay;
+import mousemaster.Vision;
 import mousemaster.platform.UiAutomation;
 import mousemaster.KeyEvent.PressKeyEvent;
 import mousemaster.KeyEvent.ReleaseKeyEvent;
@@ -33,6 +34,7 @@ public class WindowsPlatform implements Platform {
     private final WindowsMouseController mouse = new WindowsMouseController(this::mousePositionSet);
     private final WindowsOverlay overlay = new WindowsOverlay(mouse);
     private final UiAutomation uiAutomation = new WindowsUiAutomation();
+    private final Vision vision = new Vision(overlay);
     private final ActiveAppFinder activeAppFinder = new WindowsActiveAppFinder();
     private final Console console = new WindowsConsole();
     private final WindowsClock clock = new WindowsClock();
@@ -396,6 +398,11 @@ public class WindowsPlatform implements Platform {
     @Override
     public UiAutomation uiAutomation() {
         return uiAutomation;
+    }
+
+    @Override
+    public Vision vision() {
+        return vision;
     }
 
     @Override

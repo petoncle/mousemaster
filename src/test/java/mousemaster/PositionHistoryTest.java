@@ -39,7 +39,7 @@ public class PositionHistoryTest {
     }
 
     private static String positionHistoryName(Mode mode) {
-        return ((HintMeshType.HintPositionHistory) mode.hintMesh()
+        return ((HintMeshType.PositionHistoryHintMesh) mode.hintMesh()
                                                        .type()).positionHistoryName();
     }
 
@@ -129,7 +129,7 @@ public class PositionHistoryTest {
                                            App[] activeApp) {
         return new HintManager(configuration.positionHistoryConfigurationByName(), null,
                 new MouseManager(null, null), null, null, () -> activeApp[0],
-                new KeyRedactor(KeyRedaction.NONE));
+                new KeyRedactor(KeyRedaction.NONE), null);
     }
 
     @Test

@@ -224,7 +224,7 @@ public class Mousemaster {
                 new HintManager(configuration.positionHistoryConfigurationByName(),
                         screenManager, mouseManager, platform.overlay(),
                         platform.uiAutomation(), platform.activeAppFinder(),
-                        keyRedactor);
+                        keyRedactor, platform.vision());
         commandRunner = new CommandRunner(mouseManager, gridManager, hintManager);
         Set<Key> unpressedComboPreconditionKeys = new HashSet<>();
         Set<Key> pressedComboPreconditionKeys = new HashSet<>();
@@ -283,6 +283,17 @@ public class Mousemaster {
                         zoomManager), activeKeyboardLayout);
         if (preWarmHints)
             hintManager.preWarmHintMeshes(configuration.modeMap());
+        // Last, so the detector does not compete with the mesh pre-warm for cores.
+        if (hasUiVisionHintMesh(configuration.modeMap()))
+            platform.vision().preWarm(screenManager.activeScreen());
+    }
+
+    private static boolean hasUiVisionHintMesh(ModeMap modeMap) {
+        return modeMap.modes()
+                      .stream()
+                      .filter(mode -> mode.hintMesh().enabled())
+                      .map(mode -> mode.hintMesh().type())
+                      .anyMatch(HintMeshType.UiVisionHintMesh.class::isInstance);
     }
 
 }

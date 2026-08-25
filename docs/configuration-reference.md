@@ -536,7 +536,8 @@ hint-mode.hint.type=grid
 The **`type`** property determines what hints are displayed:
 - `grid`: Displays a grid of hints laid out across the screen
 - `position-history`, or any `<name>-position-history`: Displays discrete absolutely positioned hints at the positions saved in that history (see [Position history](#position-history))
-- `ui`: Displays hints at interactive UI elements (see [UI hints](#ui-hints))
+- `ui-accessibility` (formerly `ui`): Displays hints at interactive UI elements (see [UI hints](#ui-hints))
+- `ui-vision`: Displays hints at elements detected on screen (see [Vision hints](#vision-hints))
 
 ### UI hints
 
@@ -546,7 +547,7 @@ On macOS this needs the Accessibility permission, without which no element is fo
 Unlike grid hints, UI hints are positioned based on the UI elements' locations.
 
 ```properties
-ui-hint-mode.hint.type=ui
+ui-hint-mode.hint.type=ui-accessibility
 ui-hint-mode.hint.ui-area=active-screen
 ui-hint-mode.hint.selection-keys=selectionkey
 ui-hint-mode.hint.select=+selectionkey
@@ -576,7 +577,7 @@ suspended apps are left out. Scanning several windows takes longer than scanning
 hints appear once the scan is over, mousemaster stays responsive in the meantime.
 
 `ui-area` and the `grid-area*` properties are exclusive: `ui-area` only applies to
-`hint.type=ui`, and setting `grid-area` on a UI hint mode is rejected.
+`hint.type=ui-accessibility` and `hint.type=ui-vision`, and setting `grid-area` on either is rejected.
 
 A scan that finds no element leaves the mode showing nothing. The built-in virtual key
 `ishintmeshempty` is pressed then, so a combo can leave the mode:
@@ -589,6 +590,27 @@ UI hints use the same appearance properties as other hint types (`box-*`, `font-
 The `cell-horizontal-padding` and `cell-vertical-padding` properties are particularly useful
 for UI hints since the hint boxes are sized to fit the label text rather than a fixed grid
 cell.
+
+### Vision hints
+
+Vision hints detect elements by their appearance rather than through the accessibility tree:
+the screen is captured, the content that stands out from its background is found, and each
+group of neighbouring content gets a hint. They therefore also cover games, canvas, remote
+desktops and anything else that exposes no accessibility information, at the cost of not
+knowing what an element is.
+
+```properties
+ui-hint-mode.hint.type=ui-vision
+ui-hint-mode.hint.ui-area=active-screen
+```
+
+Vision hints read the same **`ui-area`** as UI hints, and share every selection, click and
+appearance property with them. Detection runs off the keyboard hook, so mousemaster stays
+responsive while a scan is in progress, and `ishintmeshempty` is pressed when a scan finds
+nothing, exactly as for UI hints.
+
+Only Windows detects elements today. On macOS the desktop capture is not implemented, so a
+vision hint mode finds nothing.
 
 ### Hint layout and positioning
 
@@ -616,8 +638,8 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   - `all-screens`: Every connected screen (one grid per screen — `grid-area-center` does not apply)
   - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
 
-  `grid-area` only applies to `hint.type=grid`. What `hint.type=ui` scans is selected by
-  `ui-area` (see [UI hints](#ui-hints)).
+  `grid-area` only applies to `hint.type=grid`. What `hint.type=ui-accessibility` and
+  `hint.type=ui-vision` scan is selected by `ui-area` (see [UI hints](#ui-hints)).
 
 - **`grid-area-width-percent`** / **`grid-area-height-percent`**: Scale the area to a
   fraction of that region, keeping it centered on `grid-area-center` (default `1.0`).

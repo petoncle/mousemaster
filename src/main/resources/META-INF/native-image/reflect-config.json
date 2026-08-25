@@ -812,17 +812,22 @@
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintFontStyle","boolean","mousemaster.HintFontStyle","java.lang.String","double","double","double","java.lang.String","double","double","boolean","mousemaster.Shadow","boolean","double","double","java.lang.String","double","boolean","double","double","double","double","java.util.List","boolean","java.time.Duration","boolean","java.time.Duration","java.lang.String","double","java.util.List"] }, {"name":"backgroundHexColor","parameterTypes":[] }, {"name":"backgroundOpacity","parameterTypes":[] }, {"name":"boxBorderHexColor","parameterTypes":[] }, {"name":"boxBorderLength","parameterTypes":[] }, {"name":"boxBorderOpacity","parameterTypes":[] }, {"name":"boxBorderRadius","parameterTypes":[] }, {"name":"boxBorderThickness","parameterTypes":[] }, {"name":"boxFramed","parameterTypes":[] }, {"name":"boxHeightPercent","parameterTypes":[] }, {"name":"boxHexColor","parameterTypes":[] }, {"name":"boxOpacity","parameterTypes":[] }, {"name":"boxShadow","parameterTypes":[] }, {"name":"boxWidthPercent","parameterTypes":[] }, {"name":"cellHorizontalPadding","parameterTypes":[] }, {"name":"cellVerticalPadding","parameterTypes":[] }, {"name":"decorations","parameterTypes":[] }, {"name":"fadeAnimationDuration","parameterTypes":[] }, {"name":"fadeAnimationEnabled","parameterTypes":[] }, {"name":"fontStyle","parameterTypes":[] }, {"name":"labelOverride","parameterTypes":[] }, {"name":"prefixBoxBorderHexColor","parameterTypes":[] }, {"name":"prefixBoxBorderLength","parameterTypes":[] }, {"name":"prefixBoxBorderOpacity","parameterTypes":[] }, {"name":"prefixBoxBorderThickness","parameterTypes":[] }, {"name":"prefixBoxEnabled","parameterTypes":[] }, {"name":"prefixBoxFramed","parameterTypes":[] }, {"name":"prefixFontStyle","parameterTypes":[] }, {"name":"prefixInBackground","parameterTypes":[] }, {"name":"transitionAnimationDuration","parameterTypes":[] }, {"name":"transitionAnimationEnabled","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.HintMeshType$HintGrid",
+  "name":"mousemaster.HintMeshType$GridHintMesh",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.HintGridArea","mousemaster.ScreenFilterMap"] }, {"name":"area","parameterTypes":[] }, {"name":"gridLayoutByFilter","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.HintMeshType$HintPositionHistory",
+  "name":"mousemaster.HintMeshType$PositionHistoryHintMesh",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }, {"name":"positionHistoryName","parameterTypes":[] }]
 },
 {
-  "name":"mousemaster.HintMeshType$UiHintMesh",
+  "name":"mousemaster.HintMeshType$UiAccessibilityHintMesh",
+  "allRecordComponents":true,
+  "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea"] }, {"name":"area","parameterTypes":[] }]
+},
+{
+  "name":"mousemaster.HintMeshType$UiVisionHintMesh",
   "allRecordComponents":true,
   "methods":[{"name":"<init>","parameterTypes":["mousemaster.UiHintArea"] }, {"name":"area","parameterTypes":[] }]
 },
@@ -964,6 +969,10 @@
 },
 {
   "name":"mousemaster.platform.windows.WindowsDesktopDuplication$Texture2DDesc",
+  "allDeclaredFields":true
+},
+{
+  "name":"mousemaster.platform.windows.WindowsDesktopFrameCapture$MappedSubresource",
   "allDeclaredFields":true
 },
 {

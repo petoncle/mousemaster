@@ -6860,7 +6860,7 @@
       ]
     },
     {
-      "type": "mousemaster.HintMeshType$HintGrid",
+      "type": "mousemaster.HintMeshType$GridHintMesh",
       "methods": [
         {
           "name": "<init>",
@@ -6880,7 +6880,7 @@
       ]
     },
     {
-      "type": "mousemaster.HintMeshType$HintPositionHistory",
+      "type": "mousemaster.HintMeshType$PositionHistoryHintMesh",
       "methods": [
         {
           "name": "<init>",
@@ -6895,7 +6895,22 @@
       ]
     },
     {
-      "type": "mousemaster.HintMeshType$UiHintMesh",
+      "type": "mousemaster.HintMeshType$UiAccessibilityHintMesh",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.UiHintArea"
+          ]
+        },
+        {
+          "name": "area",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "mousemaster.HintMeshType$UiVisionHintMesh",
       "methods": [
         {
           "name": "<init>",
@@ -7645,6 +7660,10 @@
     },
     {
       "type": "mousemaster.platform.windows.WindowsDesktopDuplication$Texture2DDesc",
+      "allDeclaredFields": true
+    },
+    {
+      "type": "mousemaster.platform.windows.WindowsDesktopFrameCapture$MappedSubresource",
       "allDeclaredFields": true
     },
     {
@@ -8684,6 +8703,7 @@
         ]
       }
     },
+
     {
       "type": {
         "proxy": [

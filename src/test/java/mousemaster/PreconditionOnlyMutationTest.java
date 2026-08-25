@@ -44,7 +44,7 @@ class PreconditionOnlyMutationTest {
         }
         HintManager hintManager =
                 new HintManager(Map.of(), null, null, null, null, noApp,
-                        new KeyRedactor(KeyRedaction.NONE));
+                        new KeyRedactor(KeyRedaction.NONE), null);
         comboWatcher = new ComboWatcher(null, hintManager, noApp, null, clock,
                 unpressedPreconditionKeys, pressedPreconditionKeys,
                 new KeyRedactor(KeyRedaction.NONE), modeMap, configuration.initiallySetVariables(),

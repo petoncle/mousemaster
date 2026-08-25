@@ -2064,16 +2064,20 @@ public class ConfigurationParser {
         HintMeshType.HintMeshTypeBuilder hintMeshType =
                 mode.hintMesh.builder.type();
         if (hintMeshType.type() != null) {
-            boolean uiType = hintMeshType.type() == HintMeshType.HintMeshTypeType.UI;
+            boolean uiType =
+                    hintMeshType.type() == HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY ||
+                    hintMeshType.type() == HintMeshType.HintMeshTypeType.UI_VISION;
             if (uiType &&
                 mode.hintMesh.setPropertyPaths.contains(HINT_GRID_AREA_SOURCE_PATH))
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
-                        ": hint.grid-area does not apply to hint.type=ui, use hint.ui-area");
+                        ": hint.grid-area does not apply to hint.type=ui-accessibility or " +
+                        "hint.type=ui-vision, use hint.ui-area");
             if (!uiType && mode.hintMesh.setPropertyPaths.contains(HINT_UI_AREA_PATH))
                 throw new IllegalArgumentException(
                         "Invalid definition of hint for " + mode.modeName +
-                        ": hint.ui-area only applies to hint.type=ui");
+                        ": hint.ui-area only applies to hint.type=ui-accessibility or " +
+                        "hint.type=ui-vision");
             switch (hintMeshType.type()) {
                 case GRID -> {
                     HintGridLayoutBuilder defaultLayout =
@@ -2097,7 +2101,7 @@ public class ConfigurationParser {
                 case POSITION_HISTORY -> {
                     // No op.
                 }
-                case UI -> {
+                case UI_ACCESSIBILITY -> {
                     // No op.
                 }
             }
@@ -2545,17 +2549,24 @@ public class ConfigurationParser {
                         parseHintMeshTypeType("hint.type", v, positionHistoryNames);
                 return switch (typeType) {
                     case GRID -> (Object) (Function<Object, Object>) currentType -> {
-                        if (currentType instanceof HintMeshType.HintGrid)
+                        if (currentType instanceof HintMeshType.GridHintMesh)
                             return currentType;
                         throw new IllegalArgumentException(
                                 "Cannot combo-trigger hint type to grid: current type is " +
                                 currentType.getClass().getSimpleName());
                     };
-                    case POSITION_HISTORY -> new HintMeshType.HintPositionHistory(v);
-                    case UI -> (Object) (Function<Object, Object>) currentType ->
-                            currentType instanceof HintMeshType.UiHintMesh uiHintMesh ?
-                                    uiHintMesh : new HintMeshType.UiHintMesh(
+                    case POSITION_HISTORY -> new HintMeshType.PositionHistoryHintMesh(v);
+                    case UI_ACCESSIBILITY -> (Object) (Function<Object, Object>) currentType ->
+                            currentType instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh ?
+                                    uiAccessibilityHintMesh : new HintMeshType.UiAccessibilityHintMesh(
                                     UiHintArea.ACTIVE_SCREEN);
+                    case UI_VISION -> (Object) (Function<Object, Object>) currentType -> {
+                        if (currentType instanceof HintMeshType.UiVisionHintMesh)
+                            return currentType;
+                        throw new IllegalArgumentException(
+                                "Cannot combo-trigger hint type to ui-vision: current type is " +
+                                currentType.getClass().getSimpleName());
+                    };
                 };
             }, v -> {
                 HintMeshType.HintMeshTypeBuilder type = hintMeshBuilder.type();
@@ -2563,8 +2574,8 @@ public class ConfigurationParser {
                 if (type.type() == HintMeshType.HintMeshTypeType.POSITION_HISTORY)
                     type.positionHistoryName(v);
             });
-            // The area UI elements are looked for in. Only hint.type=ui reads it, and it is
-            // rejected on the other types, so its path lands on UiHintMesh.area.
+            // The area elements are looked for in. Only the ui types read it and it is
+            // rejected on the others.
             case "ui-area" -> ModePropertyHandler.of(prefix.append("type", "area"), v -> parseUiHintArea("hint.ui-area", v), v -> hintMeshBuilder.type().uiArea(v));
             // Grid area = size + center. Mutations set the record component directly
             // (the mutator keeps the sibling component), so no Function is needed.
@@ -3068,11 +3079,18 @@ public class ConfigurationParser {
         }
         return switch (propertyValue) {
             case "grid" -> HintMeshType.HintMeshTypeType.GRID;
-            case "ui" -> HintMeshType.HintMeshTypeType.UI;
+            case "ui-accessibility" -> HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY;
+            case "ui" -> {
+                logger.warn(
+                        "hint.type=ui has been deprecated: use hint.type=ui-accessibility instead");
+                yield HintMeshType.HintMeshTypeType.UI_ACCESSIBILITY;
+            }
+            case "ui-vision" -> HintMeshType.HintMeshTypeType.UI_VISION;
             default -> throw new IllegalArgumentException(
                     "Invalid property value in " + propertyKey + "=" + propertyValue +
                     ": type should be one of " +
-                    List.of("grid", "position-history", "ui"));
+                    List.of("grid", "position-history", "ui-accessibility",
+                            "ui-vision"));
         };
     }
 

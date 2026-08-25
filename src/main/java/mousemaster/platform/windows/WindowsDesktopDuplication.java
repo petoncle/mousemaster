@@ -29,39 +29,39 @@ final class WindowsDesktopDuplication {
 
     private static final Guid.IID IID_IDXGIFactory1 =
             new Guid.IID("770aae78-f26f-4dba-a829-253c83d1b387");
-    private static final Guid.IID IID_IDXGIOutput1 =
+    static final Guid.IID IID_IDXGIOutput1 =
             new Guid.IID("00cddea8-939b-4b83-a340-a685226666cc");
-    private static final Guid.IID IID_ID3D11Texture2D =
+    static final Guid.IID IID_ID3D11Texture2D =
             new Guid.IID("6f15aaf2-d208-4e89-9ab4-489535d34f9c");
 
     // Vtable indices (stable COM ABI). IUnknown: 0 QueryInterface, 1 AddRef, 2 Release.
-    private static final int RELEASE = 2;
+    static final int RELEASE = 2;
     private static final int IDXGIFACTORY1_ENUMADAPTERS1 = 12;
-    private static final int IDXGIADAPTER_ENUMOUTPUTS = 7;
+    static final int IDXGIADAPTER_ENUMOUTPUTS = 7;
     private static final int IDXGIOUTPUT_GETDESC = 7;
-    private static final int IDXGIOUTPUT1_DUPLICATEOUTPUT = 22;
+    static final int IDXGIOUTPUT1_DUPLICATEOUTPUT = 22;
     private static final int IDXGIOUTPUTDUPLICATION_GETDESC = 7;
-    private static final int IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME = 8;
-    private static final int IDXGIOUTPUTDUPLICATION_RELEASEFRAME = 14;
-    private static final int ID3D11DEVICECONTEXT_COPYRESOURCE = 47;
+    static final int IDXGIOUTPUTDUPLICATION_ACQUIRENEXTFRAME = 8;
+    static final int IDXGIOUTPUTDUPLICATION_RELEASEFRAME = 14;
+    static final int ID3D11DEVICECONTEXT_COPYRESOURCE = 47;
 
     private static final int D3D_DRIVER_TYPE_UNKNOWN = 0;
-    private static final int D3D11_SDK_VERSION = 7;
-    private static final int D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20;
+    static final int D3D11_SDK_VERSION = 7;
+    static final int D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20;
 
-    private static final int DXGI_FORMAT_B8G8R8A8_UNORM = 87;
+    static final int DXGI_FORMAT_B8G8R8A8_UNORM = 87;
     private static final int DXGI_MODE_ROTATION_UNSPECIFIED = 0;
     private static final int DXGI_MODE_ROTATION_IDENTITY = 1;
 
-    private static final int S_OK = 0;
+    static final int S_OK = 0;
     private static final int DXGI_ERROR_NOT_FOUND = 0x887A0002;
-    private static final int DXGI_ERROR_WAIT_TIMEOUT = 0x887A0027;
+    static final int DXGI_ERROR_WAIT_TIMEOUT = 0x887A0027;
 
     private static final int FRAME_INFO_SIZE = 48; // DXGI_OUTDUPL_FRAME_INFO, unread
     private static final int ACQUIRE_TIMEOUT_MILLIS = 60;
     private static final Duration RETRY_DELAY = Duration.ofSeconds(1);
 
-    private interface D3D11 extends Library {
+    interface D3D11 extends Library {
         D3D11 INSTANCE = Native.load("d3d11", D3D11.class);
 
         HRESULT D3D11CreateDevice(Pointer adapter, int driverType, Pointer software,
@@ -158,28 +158,41 @@ final class WindowsDesktopDuplication {
         }
     }
 
-    private void initialize(Rectangle bounds) {
+    /** The adapter and output whose desktop coordinates cover bounds. */
+    record Output(Pointer adapter, Pointer output, Rectangle bounds) {
+    }
+
+    static Output findOutputCovering(Rectangle bounds) {
         PointerByReference factoryOut = new PointerByReference();
         check(Dxgi.INSTANCE.CreateDXGIFactory1(IID_IDXGIFactory1, factoryOut),
                 "CreateDXGIFactory1");
         Pointer factory = factoryOut.getValue();
-        Pointer adapter = null;
-        Pointer output = null;
         try {
-            for (int adapterIndex = 0; output == null; adapterIndex++) {
+            for (int adapterIndex = 0; ; adapterIndex++) {
                 PointerByReference adapterOut = new PointerByReference();
                 HRESULT hr = call(factory, IDXGIFACTORY1_ENUMADAPTERS1, adapterIndex,
                         adapterOut);
                 if (hr.intValue() == DXGI_ERROR_NOT_FOUND)
                     throw new IllegalStateException("no output covers " + bounds);
                 check(hr, "EnumAdapters1");
-                adapter = adapterOut.getValue();
-                output = findOutput(adapter, bounds);
-                if (output == null) {
-                    release(adapter);
-                    adapter = null;
-                }
+                Pointer adapter = adapterOut.getValue();
+                Output found = findOutput(adapter, bounds);
+                if (found != null)
+                    return found;
+                release(adapter);
             }
+        }
+        finally {
+            release(factory);
+        }
+    }
+
+    private void initialize(Rectangle bounds) {
+        Output found = findOutputCovering(bounds);
+        Pointer adapter = found.adapter();
+        Pointer output = found.output();
+        outputBounds = found.bounds();
+        try {
             createDevice(adapter);
             Pointer output1 = queryInterface(output, IID_IDXGIOutput1);
             PointerByReference duplicationOut = new PointerByReference();
@@ -200,12 +213,11 @@ final class WindowsDesktopDuplication {
         finally {
             release(output);
             release(adapter);
-            release(factory);
         }
     }
 
-    /** The adapter's output covering bounds, or null. Also sets outputBounds. */
-    private Pointer findOutput(Pointer adapter, Rectangle bounds) {
+    /** The adapter's output covering bounds, or null. */
+    private static Output findOutput(Pointer adapter, Rectangle bounds) {
         for (int outputIndex = 0; ; outputIndex++) {
             PointerByReference outputOut = new PointerByReference();
             HRESULT hr = call(adapter, IDXGIADAPTER_ENUMOUTPUTS, outputIndex, outputOut);
@@ -223,8 +235,7 @@ final class WindowsDesktopDuplication {
                 (desc.rotation == DXGI_MODE_ROTATION_IDENTITY ||
                  desc.rotation == DXGI_MODE_ROTATION_UNSPECIFIED) &&
                 rectangle.contains(bounds)) {
-                outputBounds = rectangle;
-                return output;
+                return new Output(adapter, output, rectangle);
             }
             release(output);
         }

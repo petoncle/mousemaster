@@ -24,6 +24,7 @@ public class HintManager implements ModeListener, MousePositionListener {
     private final UiAutomation uiAutomation;
     private final ActiveAppFinder activeAppFinder;
     private final KeyRedactor keyRedactor;
+    private final Vision vision;
     private ModeController modeController;
     private HintMesh hintMesh;
     private ScreenFilter screenFilter;
@@ -82,7 +83,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             ScreenManager screenManager,
             MouseManager mouseManager, Overlay overlay,
             UiAutomation uiAutomation, ActiveAppFinder activeAppFinder,
-            KeyRedactor keyRedactor) {
+            KeyRedactor keyRedactor, Vision vision) {
         this.positionHistoryConfigurationByName = positionHistoryConfigurationByName;
         this.screenManager = screenManager;
         this.mouseManager = mouseManager;
@@ -90,6 +91,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         this.uiAutomation = uiAutomation;
         this.activeAppFinder = activeAppFinder;
         this.keyRedactor = keyRedactor;
+        this.vision = vision;
     }
 
     public void setModeController(ModeController modeController) {
@@ -112,7 +114,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 Zoom zoom = new Zoom(mode.zoom().percent(null, screenRectangle),
                         screenRectangle.center(), screenRectangle);
                 for (HintMeshConfiguration configuration : hintMeshVariants(mode)) {
-                    if (configuration.type() instanceof HintMeshType.HintPositionHistory)
+                    if (configuration.type() instanceof HintMeshType.PositionHistoryHintMesh)
                         continue;
                     HintMesh hintMesh = buildHintMesh(configuration, mode.zoom(), zoom,
                             ScreenFilter.of(screen), preWarmedUiElements(screen), screen);
@@ -212,14 +214,15 @@ public class HintManager implements ModeListener, MousePositionListener {
     private static boolean isPreWarmedHintMesh(HintMeshConfiguration configuration) {
         if (!configuration.enabled() || !configuration.visible())
             return false;
-        if (configuration.type() instanceof HintMeshType.UiHintMesh)
+        if (configuration.type() instanceof HintMeshType.UiAccessibilityHintMesh
+            || configuration.type() instanceof HintMeshType.UiVisionHintMesh)
             return true;
-        if (!(configuration.type() instanceof HintMeshType.HintGrid hintGrid))
+        if (!(configuration.type() instanceof HintMeshType.GridHintMesh gridHintMesh))
             return false;
-        HintGridAreaSizeSource source = hintGrid.area().size().source();
+        HintGridAreaSizeSource source = gridHintMesh.area().size().source();
         return (source == HintGridAreaSizeSource.ACTIVE_SCREEN ||
                 source == HintGridAreaSizeSource.ALL_SCREENS) &&
-               hintGrid.area().center() == HintGridAreaCenter.SCREEN_CENTER;
+               gridHintMesh.area().center() == HintGridAreaCenter.SCREEN_CENTER;
     }
 
     public HintMesh hintMesh() {
@@ -257,20 +260,17 @@ public class HintManager implements ModeListener, MousePositionListener {
                 currentMode != null && newMode.name().equals(currentMode.name());
         HintMeshConfiguration hintMeshConfiguration = newMode.hintMesh();
         boolean sameUiHintArea = hintMeshConfiguration.enabled() &&
-                                 hintMeshConfiguration.type() instanceof
-                                         HintMeshType.UiHintMesh newUiHintMesh &&
                                  currentMode != null &&
-                                 currentMode.hintMesh().type() instanceof
-                                         HintMeshType.UiHintMesh currentUiHintMesh &&
-                                 currentUiHintMesh.area() == newUiHintMesh.area();
+                                 sameUiHintArea(hintMeshConfiguration.type(),
+                                         currentMode.hintMesh().type());
         if (pendingUiHintQuery != null && !sameUiHintArea) {
             pendingUiHintQuery.future().cancel(false);
             pendingUiHintQuery = null;
         }
         if (hintMeshConfiguration.type() instanceof
-                HintMeshType.HintPositionHistory hintPositionHistory) {
+                HintMeshType.PositionHistoryHintMesh positionHistoryHintMesh) {
             currentPositionHistory =
-                    positionHistory(hintPositionHistory.positionHistoryName());
+                    positionHistory(positionHistoryHintMesh.positionHistoryName());
             if (currentPositionHistory.positions().isEmpty())
                 currentPositionHistory.save(new Point(mouseX, mouseY));
         }
@@ -281,7 +281,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                                      .selectionKeys();
         if (hintJustSelected) {
             if (sameMode &&
-                !(hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory)) {
+                !(hintMeshConfiguration.type() instanceof HintMeshType.PositionHistoryHintMesh)) {
                 // Same-mode mutation (e.g., variable change triggering
                 // refreshPreconditionOnlyMutations before SwitchMode runs).
                 // Skip rebuilding: the grid would get a new center (because
@@ -298,9 +298,9 @@ public class HintManager implements ModeListener, MousePositionListener {
                     new HintMeshKey(hintMeshConfiguration.type(),
                             selectionKeys, newMode.zoom()));
         }
-        else if (hintMeshConfiguration.type() instanceof HintMeshType.HintGrid hintGrid &&
-                         hintGrid.area().size().source() == HintGridAreaSizeSource.ACTIVE_SCREEN &&
-                         hintGrid.area().center() == HintGridAreaCenter.LAST_SELECTED_HINT) {
+        else if (hintMeshConfiguration.type() instanceof HintMeshType.GridHintMesh gridHintMesh &&
+                         gridHintMesh.area().size().source() == HintGridAreaSizeSource.ACTIVE_SCREEN &&
+                         gridHintMesh.area().center() == HintGridAreaCenter.LAST_SELECTED_HINT) {
             // When going back from hint3-3 to hint3-2, we find the selected hint of hint1 that led to hint3-2.
             // (Because currently, last selected hint is the hint selected by hint3-2.)
             // Skip for same-mode mutations (e.g. zoom toggle): lastSelectedHintPoint
@@ -318,7 +318,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         // Selecting drills one step deeper, going back drops the steps above, staying on a
         // step recomputes its area, leaving the recursion clears the stack.
         if (hintMeshConfiguration.enabled() &&
-            hintMeshConfiguration.type() instanceof HintMeshType.HintGrid cellAreaGrid &&
+            hintMeshConfiguration.type() instanceof HintMeshType.GridHintMesh cellAreaGrid &&
             cellAreaGrid.area().size().source() == HintGridAreaSizeSource.LAST_SELECTED_HINT_CELL) {
             HintGridAreaSize size = cellAreaGrid.area().size();
             HintGridAreaCenter center = cellAreaGrid.area().center();
@@ -364,13 +364,13 @@ public class HintManager implements ModeListener, MousePositionListener {
         Zoom newZoom = new Zoom(newMode.zoom().percent(lastSelectedHintCell, zoomScreen),
                 zoomCenterPoint, zoomScreen);
         HintMesh newHintMesh;
-        if (hintMeshConfiguration.type() instanceof HintMeshType.UiHintMesh uiHintMesh) {
-            UiHintArea uiArea = uiHintMesh.area();
-            // Do not recompute UI elements when switching between two UI hint modes that
+        if (hintMeshConfiguration.type() instanceof HintMeshType.UiAccessibilityHintMesh ||
+            hintMeshConfiguration.type() instanceof HintMeshType.UiVisionHintMesh) {
+            // Do not recompute the elements when switching between two hint modes that
             // look for them in the same area.
             if (!sameUiHintArea) {
                 pendingUiHintQuery = new PendingUiHintQuery(
-                        startUiElementQuery(uiArea),
+                        startUiElementQuery(hintMeshConfiguration.type()),
                         hintMeshConfiguration, newZoom, newScreenFilter);
                 currentMode = newMode;
                 currentZoom = newZoom;
@@ -505,13 +505,19 @@ public class HintManager implements ModeListener, MousePositionListener {
                 uiElements, screenManager.activeScreen());
         activateHintMesh(currentMode, newHintMesh, hintMeshConfiguration, screenFilter,
                 currentZoom);
+        overlay.runPendingHintMeshWork();
     }
 
     private ScreenFilter screenFilter(HintMeshConfiguration hintMeshConfiguration) {
         return switch (hintMeshConfiguration.type()) {
-            case HintMeshType.HintGrid hintGrid -> screenFilter(hintGrid.area());
-            case HintMeshType.UiHintMesh uiHintMesh -> screenFilter(uiHintMesh.area());
-            case HintMeshType.HintPositionHistory hintPositionHistory -> {
+            case HintMeshType.GridHintMesh gridHintMesh -> screenFilter(gridHintMesh.area());
+            case HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh -> screenFilter(uiAccessibilityHintMesh.area());
+            case HintMeshType.UiVisionHintMesh uiVisionHintMesh -> {
+                Point center = uiHintArea(uiVisionHintMesh.area()).center();
+                yield ScreenFilter.of(
+                        screenManager.nearestScreenContaining(center.x(), center.y()));
+            }
+            case HintMeshType.PositionHistoryHintMesh positionHistoryHintMesh -> {
                 Point position = currentPositionHistory.positions().getFirst();
                 yield ScreenFilter.of(
                         screenManager.screenContaining(position.x(), position.y()));
@@ -543,7 +549,20 @@ public class HintManager implements ModeListener, MousePositionListener {
                 areaCenter.x(), areaCenter.y()));
     }
 
-    private Future<List<UiElement>> startUiElementQuery(UiHintArea uiArea) {
+    private static boolean sameUiHintArea(HintMeshType type, HintMeshType currentType) {
+        if (type instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh)
+            return currentType instanceof HintMeshType.UiAccessibilityHintMesh currentUiAccessibilityHintMesh &&
+                   uiAccessibilityHintMesh.area() == currentUiAccessibilityHintMesh.area();
+        return type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh &&
+               currentType instanceof HintMeshType.UiVisionHintMesh currentUiVisionHintMesh &&
+               uiVisionHintMesh.area() == currentUiVisionHintMesh.area();
+    }
+
+    private Future<List<UiElement>> startUiElementQuery(HintMeshType type) {
+        if (type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh)
+            return vision.startFindElements(screenManager.screens(),
+                    uiHintArea(uiVisionHintMesh.area()));
+        UiHintArea uiArea = ((HintMeshType.UiAccessibilityHintMesh) type).area();
         return uiArea == UiHintArea.ACTIVE_WINDOW ?
                 uiAutomation.startFindActiveWindowUiElements() :
                 uiAutomation.startFindUiElementsInArea(uiHintArea(uiArea));
@@ -637,9 +656,9 @@ public class HintManager implements ModeListener, MousePositionListener {
         hintMesh.visible(hintMeshConfiguration.visible())
                 .styleByFilter(hintMeshConfiguration.styleByFilter());
         HintMeshType type = hintMeshConfiguration.type();
-        if (type instanceof HintMeshType.HintGrid hintGrid) {
+        if (type instanceof HintMeshType.GridHintMesh gridHintMesh) {
             List<FixedSizeHintGrid> fixedSizeHintGrids = new ArrayList<>();
-            HintGridArea area = hintGrid.area();
+            HintGridArea area = gridHintMesh.area();
             if (area.size().source() == HintGridAreaSizeSource.ALL_SCREENS) {
                 // The one multi-grid source: a screen-centered grid per screen (scaled
                 // by the size percents). The center does not apply.
@@ -647,7 +666,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 for (Screen screen : sortedScreens) {
                     Rectangle areaRectangle = scaledArea(screen.rectangle(), area.size(),
                             screen.rectangle().center());
-                    HintGridLayout gridLayout = hintGrid.layout(
+                    HintGridLayout gridLayout = gridHintMesh.layout(
                             ScreenFilter.of(activeScreen));
                     fixedSizeHintGrids.add(hintGridForArea(areaRectangle,
                             areaRectangle.center(), gridLayout, screen.scale(), zoom));
@@ -692,7 +711,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                 logger.trace("Grid center " + gridCenter);
                 Screen scaleScreen = screenManager.nearestScreenContaining(
                         gridCenter.x(), gridCenter.y());
-                HintGridLayout gridLayout = hintGrid.layout(screenFilter);
+                HintGridLayout gridLayout = gridHintMesh.layout(screenFilter);
                 fixedSizeHintGrids.add(hintGridForArea(areaRectangle, gridCenter,
                         gridLayout, scaleScreen.scale(), zoom));
                 hintMesh.backgroundArea(
@@ -702,7 +721,7 @@ public class HintManager implements ModeListener, MousePositionListener {
             int hintCountSum = fixedSizeHintGrids.stream()
                                                  .mapToInt(FixedSizeHintGrid::hintCount)
                                                  .sum();
-            HintGridLayout firstScreenGridLayout = hintGrid.layout(screenFilter);
+            HintGridLayout firstScreenGridLayout = gridHintMesh.layout(screenFilter);
             FixedSizeHintGrid firstScreen = fixedSizeHintGrids.getFirst();
             int layoutRowCount = Math.min(firstScreen.rowCount(),
                     firstScreenGridLayout.layoutRowCount());
@@ -758,7 +777,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                         decorations.get(0), null));
             }
         }
-        else if (type instanceof HintMeshType.UiHintMesh uiHintMesh) {
+        else if (type instanceof HintMeshType.UiAccessibilityHintMesh uiAccessibilityHintMesh) {
             int hintCount = uiElements.size();
             List<Hint> hints = new ArrayList<>(hintCount);
             Set<Integer> prefixLengths = new HashSet<>();
@@ -767,7 +786,18 @@ public class HintManager implements ModeListener, MousePositionListener {
             hintMesh.hints(hints)
                     .prefixLength(prefixLengths.size() == 1 ?
                             prefixLengths.iterator().next() : -1)
-                    .backgroundArea(uiHintArea(uiHintMesh.area()));
+                    .backgroundArea(uiHintArea(uiAccessibilityHintMesh.area()));
+        }
+        else if (type instanceof HintMeshType.UiVisionHintMesh uiVisionHintMesh) {
+            int hintCount = uiElements.size();
+            List<Hint> hints = new ArrayList<>(hintCount);
+            Set<Integer> prefixLengths = new HashSet<>();
+            buildUiHints(hintMeshConfiguration, screenFilter, uiElements,
+                    prefixLengths, hints);
+            hintMesh.hints(hints)
+                    .prefixLength(prefixLengths.size() == 1 ?
+                            prefixLengths.iterator().next() : -1)
+                    .backgroundArea(uiHintArea(uiVisionHintMesh.area()));
         }
         else {
             List<Point> positions = currentPositionHistory.positions();
@@ -808,7 +838,7 @@ public class HintManager implements ModeListener, MousePositionListener {
         boolean selectionResolved = false;
         if (this.hintMesh != null && !this.hintMesh.hints().isEmpty() &&
             !hintMesh.hints().isEmpty() &&
-            !(hintMeshConfiguration.type() instanceof HintMeshType.HintPositionHistory)) {
+            !(hintMeshConfiguration.type() instanceof HintMeshType.PositionHistoryHintMesh)) {
             Rectangle oldBounds = hintCenterBounds(this.hintMesh.hints(), currentZoom);
             Rectangle newBounds = hintCenterBounds(hintMesh.hints(), zoom);
             List<Key> selectedKeySequence = this.hintMesh.selectedKeySequence();

@@ -621,15 +621,15 @@ button keys are left out so they can still arm a click.
 ## UI hints
 
 ```properties
-ui-hint-mode.hint.type=ui
+ui-hint-mode.hint.type=ui-vision
 ui-hint-mode.hint.box-border-color=#FFFF00 | _{isrclick} -> #00FFFF | _{ismclick} -> #FF00FF | _{rightalt} -> #FFFFFF
 click-after-ui-hint-mode.release.left=^{ismclick isrclick uihintkey} | +hintback | +rightctrl
 click-after-ui-hint-mode.to.ui-hint-mode=wait-250
 ```
 
-Instead of a geometric grid, mousemaster asks UI Automation for the clickable elements of the active
-window and its popups (`hint.ui-area=active-window`) and labels each with `i j k l m o n`. Where the
-recursive grid is for arbitrary pixels, this is for buttons, links and menu items.
+Instead of a geometric grid, mousemaster detects the elements on the active screen by their edges
+and labels each with the `uihintkey` alphabet. Where the recursive grid is for arbitrary pixels, this
+is for buttons, links and menu items, including in windows that expose no accessibility tree.
 
 Entry: `;` + `m`/`n` from idle or surgical mode, `m`/`n` alone from arrow mode, or a **`rightshift` tap**
 from normal mode (matched with `#`, so `rightshift` still reaches the application). `esc`,

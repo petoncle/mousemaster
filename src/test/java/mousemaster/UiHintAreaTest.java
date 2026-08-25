@@ -32,7 +32,7 @@ public class UiHintAreaTest {
                                          .get("ui-hint-mode")
                                          .hintMesh()
                                          .type();
-        return ((HintMeshType.UiHintMesh) type).area();
+        return ((HintMeshType.UiAccessibilityHintMesh) type).area();
     }
 
     /** Same default as a grid hint mesh: the area does not depend on the hint type. */
@@ -113,7 +113,7 @@ public class UiHintAreaTest {
     }
 
     private static UiHintArea mutatedUiHintArea(ComboWatcher comboWatcher) {
-        return ((HintMeshType.UiHintMesh) comboWatcher.getMutatedMode()
+        return ((HintMeshType.UiAccessibilityHintMesh) comboWatcher.getMutatedMode()
                                                       .hintMesh()
                                                       .type()).area();
     }
@@ -129,7 +129,7 @@ public class UiHintAreaTest {
                 new ModePropertyPath(List.of("hintMesh", "type", "area", "size", "source")),
                 HintGridAreaSizeSource.ALL_SCREENS);
         assertEquals(UiHintArea.ACTIVE_SCREEN,
-                ((HintMeshType.UiHintMesh) mutatedUiMode.hintMesh().type()).area());
+                ((HintMeshType.UiAccessibilityHintMesh) mutatedUiMode.hintMesh().type()).area());
         Mode gridMode = parse("""
                 idle-mode.to.hint-mode=+h
                 hint-mode.to.idle-mode=+esc
@@ -153,7 +153,7 @@ public class UiHintAreaTest {
         HintMeshType type =
                 configuration.modeMap().get("hint-mode").hintMesh().type();
         assertEquals(HintGridAreaSizeSource.ACTIVE_SCREEN,
-                ((HintMeshType.HintGrid) type).area().size().source());
+                ((HintMeshType.GridHintMesh) type).area().size().source());
     }
 
 }

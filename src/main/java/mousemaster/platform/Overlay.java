@@ -6,6 +6,7 @@ import mousemaster.HintMesh;
 import mousemaster.HintMeshConfiguration;
 import mousemaster.IndicatorConfiguration;
 import mousemaster.Rectangle;
+
 import mousemaster.Zoom;
 
 import java.util.Set;
@@ -32,6 +33,12 @@ public interface Overlay {
      *  the window is made big enough for both and never shrinks, so it is never resized. */
     void setIndicator(IndicatorConfiguration indicator, IndicatorConfiguration transitionTo,
                       boolean allowFade, boolean includeCursorGlyph);
+
+    /** Captures the desktop inside bounds, excluding mousemaster's own windows. */
+    DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth, int scaledHeight);
+
+    /** Builds a hint mesh that update() would otherwise only build on the next frame. */
+    void runPendingHintMeshWork();
 
     void hideIndicator(boolean allowFade);
 

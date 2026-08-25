@@ -11,6 +11,7 @@ import mousemaster.Rectangle;
 import mousemaster.Screen;
 import mousemaster.Zoom;
 import mousemaster.platform.Overlay;
+import mousemaster.platform.DesktopCapture;
 import mousemaster.qt.QtHintFont;
 import mousemaster.qt.TransparentWindow;
 import mousemaster.renderer.GridRenderer;
@@ -44,6 +45,11 @@ public class MacosOverlay implements Overlay {
     }
 
     @Override
+    public void runPendingHintMeshWork() {
+        hintMeshRenderer.runPendingWork();
+    }
+
+    @Override
     public void update(double delta) {
         hintMeshRenderer.runPendingWork();
         if (gridRenderer != null)
@@ -66,6 +72,13 @@ public class MacosOverlay implements Overlay {
     @Override
     public void setMessagePump(Runnable pump) {
         hintMeshRenderer.setMessagePump(pump);
+    }
+
+    @Override
+    public DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth,
+                                         int scaledHeight) {
+        throw new UnsupportedOperationException(
+                "Vision hints and desktop capture are not supported on macOS");
     }
 
     @Override

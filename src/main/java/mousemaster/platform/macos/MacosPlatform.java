@@ -27,6 +27,7 @@ import mousemaster.platform.MouseController;
 import mousemaster.platform.Overlay;
 import mousemaster.platform.UiAutomation;
 import com.sun.jna.Pointer;
+import mousemaster.Vision;
 import io.qt.core.QPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,7 @@ public class MacosPlatform implements Platform {
     private final MacosKeyboardController keyboard = new MacosKeyboardController();
     private final MacosMouseController mouse = new MacosMouseController();
     private final MacosOverlay overlay = new MacosOverlay(mouse);
+    private final Vision vision = new Vision(overlay);
     private final MacosUiAutomation uiAutomation = new MacosUiAutomation();
     private final MacosActiveAppFinder activeAppFinder = new MacosActiveAppFinder();
     private final MacosConsole console = new MacosConsole();
@@ -449,6 +451,11 @@ public class MacosPlatform implements Platform {
     @Override
     public UiAutomation uiAutomation() {
         return uiAutomation;
+    }
+
+    @Override
+    public Vision vision() {
+        return vision;
     }
 
     @Override

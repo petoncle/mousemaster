@@ -2,8 +2,13 @@ package mousemaster.platform.windows;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
+import io.qt.core.Qt;
+import io.qt.gui.QImage;
+import io.qt.gui.QPixmap;
+import io.qt.widgets.QApplication;
 import mousemaster.*;
 import mousemaster.platform.Overlay;
+import mousemaster.platform.DesktopCapture;
 import mousemaster.qt.*;
 import mousemaster.renderer.*;
 import org.slf4j.Logger;
@@ -11,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.IntStream;
+import java.nio.ByteBuffer;
 
 public class WindowsOverlay implements Overlay {
 
@@ -35,6 +42,9 @@ public class WindowsOverlay implements Overlay {
     private WinDef.HWND zoomHwnd;
     private WinUser.WindowProc zoomWindowProc;
     private WindowsZoomRenderer zoomRenderer;
+    /** Reused across vision captures; created on first use. */
+    private final List<WindowsDesktopFrameCapture> desktopCaptures = new ArrayList<>();
+    private WindowsDesktopDuplication zoomDuplication;
     private Zoom currentZoom;
     private boolean zoomWindowShowing;
     private double zoomIdleTimer;
@@ -70,6 +80,11 @@ public class WindowsOverlay implements Overlay {
 
     private void hintMeshEndAnimationEndedCallback() {
         hideHintMesh();
+    }
+
+    @Override
+    public void runPendingHintMeshWork() {
+        hintMeshRenderer.runPendingWork();
     }
 
     @Override
@@ -262,6 +277,8 @@ public class WindowsOverlay implements Overlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
+        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd,
+                ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         // enforceTopmost skips windows that are not showing.
         setWindowTopmost(hwnd);
     }
@@ -277,6 +294,10 @@ public class WindowsOverlay implements Overlay {
     private TransparentWindow createStyledHintMeshWindow() {
         TransparentWindow window = new TransparentWindow();
         applyOverlayExStyles(hwnd(window));
+        // Permanently excluded from capture: the vision detector grabs the screen in the
+        // background, and hints in the frame would be read back as elements.
+        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window),
+                ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         return window;
     }
 
@@ -340,7 +361,8 @@ public class WindowsOverlay implements Overlay {
         // Without this the duplicated frame contains the zoom window: infinite mirror.
         ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(zoomHwnd,
                 ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
-        zoomRenderer = new WindowsZoomRenderer(new WindowsDesktopDuplication());
+        zoomDuplication = new WindowsDesktopDuplication();
+        zoomRenderer = new WindowsZoomRenderer(zoomDuplication);
     }
 
     @Override
@@ -407,6 +429,12 @@ public class WindowsOverlay implements Overlay {
                 return;
             createZoomWindow();
         }
+        // An output duplicates once per application, so the zoom takes it over from the
+        // vision capture, which falls back to the Qt grab until the zoom gives it back.
+        if (zoom != null && !desktopCaptures.isEmpty()) {
+            desktopCaptures.forEach(WindowsDesktopFrameCapture::close);
+            desktopCaptures.clear();
+        }
         // Magnifying where the hints and the indicator go, over a screen that Direct3D
         // cannot magnify, would send clicks to the wrong place.
         if (zoom != null && !zoomRenderer.prepare(zoomHwnd, zoom.screenRectangle()))
@@ -428,8 +456,10 @@ public class WindowsOverlay implements Overlay {
             Dwmapi.INSTANCE.DwmFlush();
             zoomRenderer.discardFrame();
         }
-        else if (previousZoom != null && currentZoom == null)
+        else if (previousZoom != null && currentZoom == null) {
             updateCaptureExclusions();
+            zoomDuplication.releaseDuplication();
+        }
         if (indicatorHwnd != null)
             moveAndResizeIndicatorWindow();
         if (hintMeshRenderer.showing()) {
@@ -449,8 +479,6 @@ public class WindowsOverlay implements Overlay {
                                            : ExtendedUser32.WDA_NONE;
         if (gridHwnd != null)
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(gridHwnd, affinity);
-        for (TransparentWindow window : hintMeshRenderer.windows())
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window), affinity);
         if (indicatorHwnd != null)
             ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(indicatorHwnd, affinity);
     }
@@ -584,4 +612,83 @@ public class WindowsOverlay implements Overlay {
         moveAndResizeIndicatorWindow(mousePosition);
     }
 
+
+    /**
+     * Captures the desktop inside bounds and downscales it for detection, excluding
+     * mousemaster's own windows from the frame. Runs on the Qt main thread.
+     */
+    @Override
+    public DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth,
+                                         int scaledHeight) {
+        WindowsDesktopFrameCapture capture = captureCovering(bounds);
+        WindowsDesktopFrameCapture.Frame frame = duplicatedFrame(capture);
+        byte[] scaledBytes = frame != null
+                ? DesktopCapture.boxDownscaledRgb(frame.bgra(), frame.rowPitch(),
+                        withinOutput(bounds, capture.outputBounds()),
+                        scaledWidth, scaledHeight)
+                : qtGrabbedRgb(bounds, scaledWidth, scaledHeight);
+        logger.debug("Captured desktop " + bounds.width() + "x" + bounds.height() +
+                     " via " + (frame != null ? "DXGI" : "Qt"));
+        return new DesktopCapture(bounds, scaledBytes, scaledWidth, scaledHeight);
+    }
+
+    private WindowsDesktopFrameCapture captureCovering(Rectangle bounds) {
+        for (WindowsDesktopFrameCapture capture : desktopCaptures)
+            if (capture.covers(bounds))
+                return capture;
+        WindowsDesktopFrameCapture capture = new WindowsDesktopFrameCapture(bounds);
+        desktopCaptures.add(capture);
+        return capture;
+    }
+
+    /** Bounds in the coordinates of the output's own frame. */
+    private static Rectangle withinOutput(Rectangle bounds, Rectangle outputBounds) {
+        return new Rectangle(bounds.x() - outputBounds.x(), bounds.y() - outputBounds.y(),
+                bounds.width(), bounds.height());
+    }
+
+    /** DXGI Desktop Duplication frame, or null to fall back to the Qt grab. */
+    private WindowsDesktopFrameCapture.Frame duplicatedFrame(
+            WindowsDesktopFrameCapture capture) {
+        try {
+            return capture.capture();
+        }
+        catch (Throwable e) {
+            // Never let a capture failure break a hint: fall back to the Qt grab.
+            logger.debug("DXGI capture path failed, using Qt: " + e.getMessage());
+            return null;
+        }
+    }
+
+
+    /** Qt grab of the desktop under bounds, with our windows WDA-excluded. */
+    private byte[] qtGrabbedRgb(Rectangle bounds, int scaledWidth, int scaledHeight) {
+        QPixmap capture = QApplication.primaryScreen().grabWindow(
+                0, bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        QImage image = capture.toImage();
+        capture.dispose();
+        QImage smallImage = image.scaled(scaledWidth, scaledHeight,
+                Qt.AspectRatioMode.IgnoreAspectRatio,
+                Qt.TransformationMode.SmoothTransformation);
+        image.dispose();
+        QImage scaled = smallImage.convertToFormat(QImage.Format.Format_RGB888);
+        smallImage.dispose();
+        byte[] scaledBytes = readRows(scaled, scaledWidth, scaledHeight, 3);
+        scaled.dispose();
+        return scaledBytes;
+    }
+
+    /** Copies row by row: Qt pads each scanline to a 4-byte boundary. */
+    private static byte[] readRows(QImage image, int width, int height,
+                                   int bytesPerPixel) {
+        ByteBuffer bits = image.bits();
+        int stride = (int) image.bytesPerLine();
+        int rowLength = width * bytesPerPixel;
+        byte[] bytes = new byte[rowLength * height];
+        for (int y = 0; y < height; y++) {
+            bits.position(y * stride);
+            bits.get(bytes, y * rowLength, rowLength);
+        }
+        return bytes;
+    }
 }
