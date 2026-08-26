@@ -264,7 +264,6 @@ public class WindowsOverlay implements Overlay {
             indicatorRenderer = new IndicatorRenderer();
         indicatorHwnd = new WinDef.HWND(new Pointer(indicatorRenderer.window().winId()));
         applyOverlayExStyles(indicatorHwnd);
-        updateCaptureExclusions();
     }
 
     private void applyOverlayExStyles(WinDef.HWND hwnd) {
@@ -277,8 +276,7 @@ public class WindowsOverlay implements Overlay {
                         ExtendedUser32.WS_EX_LAYERED | ExtendedUser32.WS_EX_TRANSPARENT;
         User32.INSTANCE.SetWindowLongPtr(hwnd, WinUser.GWL_EXSTYLE,
                 new Pointer(newStyle));
-        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd,
-                ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+        applyCaptureExclusion(hwnd);
         // enforceTopmost skips windows that are not showing.
         setWindowTopmost(hwnd);
     }
@@ -294,10 +292,6 @@ public class WindowsOverlay implements Overlay {
     private TransparentWindow createStyledHintMeshWindow() {
         TransparentWindow window = new TransparentWindow();
         applyOverlayExStyles(hwnd(window));
-        // Permanently excluded from capture: the vision detector grabs the screen in the
-        // background, and hints in the frame would be read back as elements.
-        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window),
-                ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         return window;
     }
 
@@ -305,7 +299,6 @@ public class WindowsOverlay implements Overlay {
     public void preWarmFontsAndWindows(Set<HintMeshConfiguration> hintMeshConfigurations) {
         QtHintFont.preWarm(hintMeshConfigurations);
         hintMeshRenderer.preWarmHintMeshWindows(WindowsScreen.findScreens());
-        updateCaptureExclusions();
         preWarmZoomWindow();
         if (indicatorHwnd != null)
             return;
@@ -474,13 +467,19 @@ public class WindowsOverlay implements Overlay {
      * This hides them from every capture, not just ours, so it is cleared with the zoom.
      * Each call makes the windows it touches flicker: never call it per frame.
      */
+    private void applyCaptureExclusion(WinDef.HWND hwnd) {
+        ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd,
+                currentZoom != null ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
+                                    : ExtendedUser32.WDA_NONE);
+    }
+
     private void updateCaptureExclusions() {
-        int affinity = currentZoom != null ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
-                                           : ExtendedUser32.WDA_NONE;
         if (gridHwnd != null)
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(gridHwnd, affinity);
+            applyCaptureExclusion(gridHwnd);
         if (indicatorHwnd != null)
-            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(indicatorHwnd, affinity);
+            applyCaptureExclusion(indicatorHwnd);
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            applyCaptureExclusion(hwnd(window));
     }
 
     private WinDef.LRESULT zoomWindowCallback(WinDef.HWND hwnd, int uMsg,
@@ -518,8 +517,6 @@ public class WindowsOverlay implements Overlay {
                 Math.max(1, (int) Math.round(grid.lineThickness())));
         if (!wasShowing)
             setTopmost();
-        if (firstCreation)
-            updateCaptureExclusions();
     }
 
     /**
@@ -554,14 +551,11 @@ public class WindowsOverlay implements Overlay {
 
     private void showHintMesh(HintMesh hintMesh, Zoom zoom, boolean hintMatch,
                               boolean allowFade) {
-        int windowsBefore = hintMeshRenderer.windows().size();
         boolean wasShowing = hintMeshRenderer.showing();
         hintMeshRenderer.setHintMesh(hintMesh, zoom, hintMatch, allowFade,
                 WindowsScreen.findScreens());
         if (!wasShowing)
             setTopmost();
-        if (hintMeshRenderer.windows().size() > windowsBefore)
-            updateCaptureExclusions();
     }
 
     @Override
@@ -614,22 +608,40 @@ public class WindowsOverlay implements Overlay {
 
 
     /**
-     * Captures the desktop inside bounds and downscales it for detection, excluding
-     * mousemaster's own windows from the frame. Runs on the Qt main thread.
+     * Captures the desktop inside bounds and downscales it for detection, leaving the hints
+     * that are on screen out of the frame. Runs on the Qt main thread.
      */
     @Override
     public DesktopCapture captureDesktop(Rectangle bounds, int scaledWidth,
                                          int scaledHeight) {
-        WindowsDesktopFrameCapture capture = captureCovering(bounds);
-        WindowsDesktopFrameCapture.Frame frame = duplicatedFrame(capture);
-        byte[] scaledBytes = frame != null
-                ? DesktopCapture.boxDownscaledRgb(frame.bgra(), frame.rowPitch(),
-                        withinOutput(bounds, capture.outputBounds()),
-                        scaledWidth, scaledHeight)
-                : qtGrabbedRgb(bounds, scaledWidth, scaledHeight);
-        logger.debug("Captured desktop " + bounds.width() + "x" + bounds.height() +
-                     " via " + (frame != null ? "DXGI" : "Qt"));
-        return new DesktopCapture(bounds, scaledBytes, scaledWidth, scaledHeight);
+        boolean concealHintMesh = currentZoom == null && hintMeshRenderer.showing();
+        if (concealHintMesh)
+            setHintMeshExcludedFromCapture(true);
+        try {
+            WindowsDesktopFrameCapture capture = captureCovering(bounds);
+            WindowsDesktopFrameCapture.Frame frame = duplicatedFrame(capture);
+            byte[] scaledBytes = frame != null
+                    ? DesktopCapture.boxDownscaledRgb(frame.bgra(), frame.rowPitch(),
+                            withinOutput(bounds, capture.outputBounds()),
+                            scaledWidth, scaledHeight)
+                    : qtGrabbedRgb(bounds, scaledWidth, scaledHeight);
+            logger.debug("Captured desktop " + bounds.width() + "x" + bounds.height() +
+                         " via " + (frame != null ? "DXGI" : "Qt"));
+            return new DesktopCapture(bounds, scaledBytes, scaledWidth, scaledHeight);
+        }
+        finally {
+            if (concealHintMesh)
+                setHintMeshExcludedFromCapture(false);
+        }
+    }
+
+    private void setHintMeshExcludedFromCapture(boolean excluded) {
+        for (TransparentWindow window : hintMeshRenderer.windows())
+            ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd(window),
+                    excluded ? ExtendedUser32.WDA_EXCLUDEFROMCAPTURE
+                             : ExtendedUser32.WDA_NONE);
+        if (excluded)
+            Dwmapi.INSTANCE.DwmFlush();
     }
 
     private WindowsDesktopFrameCapture captureCovering(Rectangle bounds) {
