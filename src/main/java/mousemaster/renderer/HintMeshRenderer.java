@@ -2910,7 +2910,8 @@ public final class HintMeshRenderer {
             }
             // No columns to align to: center the label's tight bounds instead of per-key slots.
             if (!isHintPartOfTiledGrid && tightRight > tightLeft) {
-                double shiftX = (boxWidth - (tightRight - tightLeft)) / 2 - tightLeft;
+                double shiftX = Math.round(((boxWidth - (tightRight - tightLeft)) / 2 - tightLeft)
+                                           * qtScaleFactor) / qtScaleFactor;
                 if (shiftX != 0) {
                     keyTexts.replaceAll(k -> new HintKeyText(k.text(), k.x() + shiftX, k.y(),
                             k.width(), k.isSelected(), k.isFocused(), k.isPrefix()));
