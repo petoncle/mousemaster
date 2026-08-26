@@ -536,15 +536,16 @@ hint-mode.hint.type=grid
 The **`type`** property determines what hints are displayed:
 - `grid`: Displays a grid of hints laid out across the screen
 - `position-history`, or any `<name>-position-history`: Displays discrete absolutely positioned hints at the positions saved in that history (see [Position history](#position-history))
-- `ui-accessibility` (formerly `ui`): Displays hints at interactive UI elements (see [UI hints](#ui-hints))
-- `ui-vision`: Displays hints at elements detected on screen (see [Vision hints](#vision-hints))
+- `ui-accessibility` (formerly `ui`): Displays hints at interactive UI elements (see [Accessibility UI hints](#accessibility-ui-hints))
+- `ui-vision`: Displays hints at elements detected on screen (see [Vision UI hints](#vision-ui-hints))
 
-### UI hints
+### Accessibility UI hints
 
-UI hints detect interactive elements (buttons, links, text fields, checkboxes, etc.) and display
-a hint label on each one, with the UI Automation API on Windows and the Accessibility API on macOS.
-On macOS this needs the Accessibility permission, without which no element is found.
-Unlike grid hints, UI hints are positioned based on the UI elements' locations.
+Accessibility UI hints detect interactive elements (buttons, links, text fields, checkboxes,
+etc.) and display a hint label on each one, with the UI Automation API on Windows and the
+Accessibility API on macOS. On macOS this needs the Accessibility permission, without which no
+element is found. Unlike grid hints, accessibility UI hints are positioned based on the UI
+elements' locations.
 
 ```properties
 ui-hint-mode.hint.type=ui-accessibility
@@ -586,14 +587,14 @@ A scan that finds no element leaves the mode showing nothing. The built-in virtu
 ui-hint-mode.to.normal-mode=_{ishintmeshempty}
 ```
 
-UI hints use the same appearance properties as other hint types (`box-*`, `font-*`, etc.).
-The `cell-horizontal-padding` and `cell-vertical-padding` properties are particularly useful
-for UI hints since the hint boxes are sized to fit the label text rather than a fixed grid
-cell.
+Accessibility UI hints use the same appearance properties as other hint types (`box-*`,
+`font-*`, etc.). The `cell-horizontal-padding` and `cell-vertical-padding` properties are
+particularly useful for UI hints since the hint boxes are sized to fit the label text rather
+than a fixed grid cell.
 
-### Vision hints
+### Vision UI hints
 
-Vision hints detect elements by their appearance rather than through the accessibility tree:
+Vision UI hints detect elements by their appearance rather than through the accessibility tree:
 the screen is captured, the content that stands out from its background is found, and each
 group of neighbouring content gets a hint. They therefore also cover games, canvas, remote
 desktops and anything else that exposes no accessibility information, at the cost of not
@@ -604,10 +605,10 @@ ui-hint-mode.hint.type=ui-vision
 ui-hint-mode.hint.ui-area=active-screen
 ```
 
-Vision hints read the same **`ui-area`** as UI hints, and share every selection, click and
-appearance property with them. Detection runs off the keyboard hook, so mousemaster stays
-responsive while a scan is in progress, and `ishintmeshempty` is pressed when a scan finds
-nothing, exactly as for UI hints.
+Vision UI hints read the same **`ui-area`** as accessibility UI hints, and share every
+selection, click and appearance property with them. Detection runs off the keyboard hook, so
+mousemaster stays responsive while a scan is in progress, and `ishintmeshempty` is pressed when
+a scan finds nothing, exactly as for accessibility UI hints.
 
 On macOS the capture asks for the Screen Recording permission the first time a scan runs;
 hints appear once it is granted.
@@ -639,7 +640,8 @@ The grid area is two independent settings: **`grid-area`** sets the area's *size
   - `last-selected-hint-cell`: The cell of the last selected hint (for a recursive grid)
 
   `grid-area` only applies to `hint.type=grid`. What `hint.type=ui-accessibility` and
-  `hint.type=ui-vision` scan is selected by `ui-area` (see [UI hints](#ui-hints)).
+  `hint.type=ui-vision` scan is selected by `ui-area` (see
+  [Accessibility UI hints](#accessibility-ui-hints) and [Vision UI hints](#vision-ui-hints)).
 
 - **`grid-area-width-percent`** / **`grid-area-height-percent`**: Scale the area to a
   fraction of that region, keeping it centered on `grid-area-center` (default `1.0`).
