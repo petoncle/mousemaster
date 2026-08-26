@@ -7,7 +7,7 @@ import java.util.List;
 public record HintMeshStyle(HintFontStyle fontStyle,
                             boolean prefixInBackground,
                             HintFontStyle prefixFontStyle,
-                            String boxHexColor,
+                            HintGradientColor boxColor,
                             double boxOpacity,
                             double boxBorderThickness,
                             double boxBorderLength,
@@ -43,7 +43,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
         private HintFontStyle.HintFontStyleBuilder fontStyle = new HintFontStyle.HintFontStyleBuilder();
         private Boolean prefixInBackground;
         private HintFontStyle.HintFontStyleBuilder prefixFontStyle = new HintFontStyle.HintFontStyleBuilder();
-        private String boxHexColor;
+        private HintGradientColor boxColor;
         private Double boxOpacity;
         private Double boxBorderThickness;
         private Double boxBorderLength;
@@ -83,7 +83,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             this.fontStyle = style.fontStyle.builder();
             this.prefixInBackground = style.prefixInBackground;
             this.prefixFontStyle = style.prefixFontStyle.builder();
-            this.boxHexColor = style.boxHexColor;
+            this.boxColor = style.boxColor;
             this.boxOpacity = style.boxOpacity;
             this.boxBorderThickness = style.boxBorderThickness;
             this.boxBorderLength = style.boxBorderLength;
@@ -120,8 +120,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return this;
         }
 
-        public HintMeshStyleBuilder boxHexColor(String boxHexColor) {
-            this.boxHexColor = boxHexColor;
+        public HintMeshStyleBuilder boxColor(HintGradientColor boxColor) {
+            this.boxColor = boxColor;
             return this;
         }
 
@@ -270,8 +270,8 @@ public record HintMeshStyle(HintFontStyle fontStyle,
             return prefixFontStyle;
         }
 
-        public String boxHexColor() {
-            return boxHexColor;
+        public HintGradientColor boxColor() {
+            return boxColor;
         }
 
         public Double boxOpacity() {
@@ -386,7 +386,7 @@ public record HintMeshStyle(HintFontStyle fontStyle,
                     fontStyle.build(),
                     prefixInBackground == null ? defaultStyle.prefixInBackground : prefixInBackground,
                     prefixFontStyle.build(),
-                    boxHexColor == null ? defaultStyle.boxHexColor : boxHexColor,
+                    boxColor == null ? defaultStyle.boxColor : boxColor,
                     boxOpacity == null ? defaultStyle.boxOpacity : boxOpacity,
                     boxBorderThickness == null ? defaultStyle.boxBorderThickness : boxBorderThickness,
                     boxBorderLength == null ? defaultStyle.boxBorderLength : boxBorderLength,

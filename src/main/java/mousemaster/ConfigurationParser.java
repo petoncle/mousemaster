@@ -116,7 +116,7 @@ public class ConfigurationParser {
                             .stackCount(1);
         hintMeshStyleBuilder
                 .prefixInBackground(false)
-                .boxHexColor("#000000")
+                .boxColor(HintGradientColor.parse("#000000"))
                 .boxOpacity(0.3d)
                 .boxBorderThickness(1d)
                 .boxBorderLength(10_000d)
@@ -2693,7 +2693,7 @@ public class ConfigurationParser {
             case "prefix-focused-font-shadow-horizontal-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "horizontalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).prefixFontStyle().focusedFontStyle().shadow().horizontalOffset(v));
             case "prefix-focused-font-shadow-vertical-offset" -> ModePropertyHandler.of(prefix.append("styleByFilter", "prefixFontStyle", "focusedFontStyle", "shadow", "verticalOffset"), v -> parseDouble(v, true, -100, 100), v -> hintMeshBuilder.style(screenFilter).prefixFontStyle().focusedFontStyle().shadow().verticalOffset(v));
             // Style: box
-            case "box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxHexColor"), v -> checkColorFormat(v), v -> hintMeshBuilder.style(screenFilter).boxHexColor(v));
+            case "box-color" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxColor"), v -> HintGradientColor.parse(v), v -> hintMeshBuilder.style(screenFilter).boxColor(v));
             case "box-opacity" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxOpacity"), v -> parseDouble(v, true, 0, 1), v -> hintMeshBuilder.style(screenFilter).boxOpacity(v));
             case "box-border-thickness" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderThickness"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).boxBorderThickness(v));
             case "box-border-length" -> ModePropertyHandler.of(prefix.append("styleByFilter", "boxBorderLength"), v -> parseDouble(v, true, 0, 10_000), v -> hintMeshBuilder.style(screenFilter).boxBorderLength(v));
@@ -3592,9 +3592,9 @@ public class ConfigurationParser {
                         childStyle.prefixInBackground(
                                 parentStyle.prefixInBackground());
                     if (!childDoesNotNeedParentProperty(
-                            HintMeshStyleBuilder::boxHexColor, childStyleByFilter,
+                            HintMeshStyleBuilder::boxColor, childStyleByFilter,
                             filter))
-                        childStyle.boxHexColor(parentStyle.boxHexColor());
+                        childStyle.boxColor(parentStyle.boxColor());
                     if (!childDoesNotNeedParentProperty(
                             HintMeshStyleBuilder::boxOpacity, childStyleByFilter,
                             filter))

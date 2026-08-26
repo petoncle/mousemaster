@@ -6,6 +6,8 @@ import io.qt.core.*;
 import io.qt.gui.*;
 import io.qt.widgets.*;
 import mousemaster.*;
+import mousemaster.HintGradientColor.HintGradientArea;
+import mousemaster.HintGradientColor.HintGradientStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1353,6 +1355,13 @@ public final class HintMeshRenderer {
         HintLabel prefixHintLabel;
         int x, y;
 
+        Rectangle centerArea() {
+            return new Rectangle((int) Math.round(minHintCenterX),
+                    (int) Math.round(minHintCenterY),
+                    (int) Math.round(maxHintCenterX - minHintCenterX),
+                    (int) Math.round(maxHintCenterY - minHintCenterY));
+        }
+
     }
 
     private List<HintBox> setUncachedHintMeshWindow(HintMeshWindow hintMeshWindow, HintMesh hintMeshKey,
@@ -1400,7 +1409,12 @@ public final class HintMeshRenderer {
         boolean hasForegroundPrefixKeys = !style.prefixInBackground() && hintMesh.prefixLength() != -1;
         HintFontStyle prefixFontStyle = hasForegroundPrefixKeys ? style.prefixFontStyle() : null;
         QtHintFontStyle labelFontStyle = QtHintFont.qtHintFontStyle(style.fontStyle(), prefixFontStyle, screenScale);
-        QColor boxColor = QtColorUtil.qColor(style.boxHexColor(), style.boxOpacity());
+        HintGradientColor boxColor = style.boxColor();
+        boolean boxSweptPerHint = style.boxOpacity() != 0 && boxColor.gradient() &&
+                                  boxColor.area() != HintGradientArea.ELEMENT;
+        Rectangle boxGradientArea =
+                boxSweptPerHint ? gradientArea(boxColor.area(), hintMeshWindow) : null;
+        QBrush boxBrush = boxSweptPerHint ? null : fillBrush(boxColor, style.boxOpacity());
         QColor boxBorderColor = QtColorUtil.qColor(style.boxBorderHexColor(), style.boxBorderOpacity());
         QColor prefixBoxBorderColor = QtColorUtil.qColor(style.prefixBoxBorderHexColor(), style.prefixBoxBorderOpacity());
         int cellHorizontalPadding = scaledLength(style.cellHorizontalPadding(), screenScale);
@@ -1501,10 +1515,14 @@ public final class HintMeshRenderer {
             boolean gridTopEdge = isHintPartOfGrid && hint.centerY() == minHintCenterY || style.boxHeightPercent() != 1;
             boolean gridRightEdge = isHintPartOfGrid && hint.centerX() == maxHintCenterX || style.boxWidthPercent() != 1;
             boolean gridBottomEdge = isHintPartOfGrid && hint.centerY() == maxHintCenterY || style.boxHeightPercent() != 1;
+            HintGroup hintGroup = hintGroupByPrefix.get(prefix);
             HintBox hintBox =
                     new HintBox(hint, boxBorderLength,
                             boxBorderThickness,
-                            boxColor,
+                            boxSweptPerHint &&
+                            boxColor.step() != HintGradientStep.PIXEL ?
+                                    sampledBrush(boxColor, style.boxOpacity(), boxGradientArea,
+                                            hintGroup, hint) : boxBrush,
                             boxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
@@ -1547,7 +1565,6 @@ public final class HintMeshRenderer {
                     boxWidth,
                     boxHeight);
             hintLabel.setFixedSize(boxWidth, boxHeight);
-            HintGroup hintGroup = hintGroupByPrefix.get(prefix);
             if (hintGroup != null) {
                 hintGroup.left = Math.min(hintGroup.left, hintBox.x());
                 hintGroup.top = Math.min(hintGroup.top, hintBox.y());
@@ -1584,7 +1601,7 @@ public final class HintMeshRenderer {
             HintBox prefixHintBox =
                     new HintBox(null, prefixBoxBorderLength,
                             prefixBoxBorderThickness,
-                            QtColorUtil.qColor("#000000", 0),
+                            null,
                             prefixBoxBorderColor,
                             isHintPartOfGrid,
                             gridLeftEdge, gridTopEdge, gridRightEdge, gridBottomEdge,
@@ -1668,12 +1685,20 @@ public final class HintMeshRenderer {
         }
         int offsetX = minHintLeft - hintMeshWindow.window.x();
         int offsetY = minHintTop - hintMeshWindow.window.y();
+        // The boxes are moved into the container at (offsetX, offsetY), so the sweep is too.
+        Point sweepOrigin = new Point((hintMeshWindow.window.x() + offsetX) * qtScaleFactor,
+                (hintMeshWindow.window.y() + offsetY) * qtScaleFactor);
         Map<List<Key>, QRect> hintBoxGeometries = new HashMap<>();
         for (int hintIndex = 0; hintIndex < hintBoxes.size(); hintIndex++) {
             HintBox hintBox = hintBoxes.get(hintIndex);
             hintBox.move(hintBox.x() - offsetX, hintBox.y() - offsetY);
             HintLabel hintLabel = hintLabels.get(hintIndex);
             hintLabel.move(hintBox.x(), hintBox.y());
+            if (boxSweptPerHint && boxColor.step() == HintGradientStep.PIXEL)
+                hintBox.setColor(sweptBrush(boxColor, style.boxOpacity(),
+                        areaNarrowedToGroup(boxColor, boxGradientArea,
+                                hintGroupOf(hintMesh, hintGroupByPrefix, hintBox.hint)),
+                        sweepOrigin));
             if (hintMesh.selectedKeySequence().size() == hints.getFirst().keySequence().size() - 1) {
                 hintBoxGeometries.put(hintBox.hint.keySequence(), hintBox.geometry());
             }
@@ -1737,8 +1762,7 @@ public final class HintMeshRenderer {
             int areaHeight =
                     (int) Math.round((area.y() + area.height()) / qtScaleFactor) -
                     minHintTop - areaTop;
-            areaBox = new HintBox(null, 0, 0,
-                    QtColorUtil.qColor("#000000", 0), QtColorUtil.qColor("#000000", 0),
+            areaBox = new HintBox(null, 0, 0, null, QtColorUtil.qColor("#000000", 0),
                     true, false, false, false, false, false, qtScaleFactor, 0);
             areaBox.setGeometry(areaLeft, areaTop, areaWidth, areaHeight);
             areaDecorationStyles =
@@ -1798,8 +1822,78 @@ public final class HintMeshRenderer {
                            - (2 * otherBox.y() + otherBox.height())) <= 1;
     }
 
+    private static QBrush fillBrush(String hexColor, double opacity) {
+        return opacity == 0 ? null : QtColorUtil.qBrush(QtColorUtil.rgba(hexColor, opacity));
+    }
+
+    private static QBrush fillBrush(HintGradientColor color, double opacity) {
+        return opacity == 0 || !color.gradient() ? fillBrush(color.hexColor(), opacity) :
+                QtColorUtil.qBrush(color, opacity);
+    }
+
+    private Rectangle gradientArea(HintGradientArea area, HintMeshWindow hintMeshWindow) {
+        return switch (area) {
+            case SCREEN -> screenArea(hintMeshWindow.window());
+            case ALL_SCREENS -> Rectangle.union(hintMeshWindows.values().stream()
+                    .map(window -> screenArea(window.window())).toList());
+            // A group narrows this to its own bounds per box.
+            case CONTENT, GROUP -> centerArea(hintMeshWindow.hints());
+            case ELEMENT -> null;
+        };
+    }
+
+    private static Rectangle screenArea(TransparentWindow window) {
+        return new Rectangle(window.xInPixels(), window.yInPixels(), window.widthInPixels(),
+                window.heightInPixels());
+    }
+
+    /** The extreme centers, so the first and last color land on the first and last hint. */
+    private static Rectangle centerArea(List<Hint> hints) {
+        double left = Double.MAX_VALUE, top = Double.MAX_VALUE;
+        double right = -Double.MAX_VALUE, bottom = -Double.MAX_VALUE;
+        for (Hint hint : hints) {
+            left = Math.min(left, hint.centerX());
+            top = Math.min(top, hint.centerY());
+            right = Math.max(right, hint.centerX());
+            bottom = Math.max(bottom, hint.centerY());
+        }
+        return new Rectangle((int) Math.round(left), (int) Math.round(top),
+                (int) Math.round(right - left), (int) Math.round(bottom - top));
+    }
+
+    private static QBrush sweptBrush(HintGradientColor color, double opacity, Rectangle area,
+                                     Point origin) {
+        Point start = color.direction().start(area);
+        Point end = color.direction().end(area);
+        return QtColorUtil.qBrush(color, opacity,
+                new Point(start.x() - origin.x(), start.y() - origin.y()),
+                new Point(end.x() - origin.x(), end.y() - origin.y()));
+    }
+
+    private static HintGroup hintGroupOf(HintMesh hintMesh,
+                                         Map<List<Key>, HintGroup> hintGroupByPrefix, Hint hint) {
+        return hintMesh.prefixLength() == -1 ? null : hintGroupByPrefix.get(
+                hint.keySequence().subList(0, hintMesh.prefixLength()));
+    }
+
+    private static Rectangle areaNarrowedToGroup(HintGradientColor color, Rectangle area,
+                                                 HintGroup hintGroup) {
+        return color.area() == HintGradientArea.GROUP && hintGroup != null ?
+                hintGroup.centerArea() : area;
+    }
+
+    private static QBrush sampledBrush(HintGradientColor color, double opacity, Rectangle area,
+                                       HintGroup hintGroup, Hint hint) {
+        Rectangle sampledArea = areaNarrowedToGroup(color, area, hintGroup);
+        Point sampled = color.step() == HintGradientStep.GROUP && hintGroup != null ?
+                hintGroup.centerArea().center() :
+                new Point(hint.centerX(), hint.centerY());
+        return QtColorUtil.qBrush(color, opacity,
+                color.sweepPosition(sampledArea, sampled.x(), sampled.y()));
+    }
+
     /** The Qt drawing resources for one decoration. */
-    private record DecorationStyle(QColor boxColor, QColor boxBorderColor,
+    private record DecorationStyle(QBrush boxColor, QColor boxBorderColor,
                                    int borderThicknessPx, int borderLengthPx,
                                    int borderRadiusPx, boolean boxFramed,
                                    boolean labelVisible,
@@ -1811,7 +1905,7 @@ public final class HintMeshRenderer {
     private DecorationStyle decorationStyle(Decoration decoration, double screenScale) {
         FontStyle font = decoration.fontStyle().defaultFontStyle();
         return new DecorationStyle(
-                QtColorUtil.qColor(decoration.boxHexColor(), decoration.boxOpacity()),
+                fillBrush(decoration.boxHexColor(), decoration.boxOpacity()),
                 QtColorUtil.qColor(decoration.boxBorderHexColor(), decoration.boxBorderOpacity()),
                 scaledLength(decoration.boxBorderThickness(), screenScale),
                 scaledLength(decoration.boxBorderLength(), screenScale),
@@ -2013,7 +2107,7 @@ public final class HintMeshRenderer {
         private final double qtScaleFactor;
         private final int borderLength;
         private final int borderThickness;
-        private final QColor color;
+        private QBrush color;
         private final QColor borderColor;
         private final int borderRadius;
         private int x, y, width, height;
@@ -2027,7 +2121,7 @@ public final class HintMeshRenderer {
         private double decorationLabelY;
         private int decorationLabelWidth, decorationLabelAscent, decorationLabelDescent;
 
-        public HintBox(Hint hint, int borderLength, int borderThickness, QColor color, QColor borderColor,
+        public HintBox(Hint hint, int borderLength, int borderThickness, QBrush color, QColor borderColor,
                        boolean isHintPartOfGrid,
                        boolean gridLeftEdge, boolean gridTopEdge, boolean gridRightEdge, boolean gridBottomEdge,
                        boolean drawGridEdgeBorders,
@@ -2054,6 +2148,10 @@ public final class HintMeshRenderer {
                     other.isHintPartOfGrid, other.gridLeftEdge, other.gridTopEdge, other.gridRightEdge,
                     other.gridBottomEdge, other.drawGridEdgeBorders, other.qtScaleFactor, other.borderRadius);
             setGeometry(other.x, other.y, other.width, other.height);
+        }
+
+        void setColor(QBrush color) {
+            this.color = color;
         }
 
         public void setGeometry(int x, int y, int width, int height) {
@@ -2143,10 +2241,12 @@ public final class HintMeshRenderer {
             painter.restore();
         }
 
+        /** The fill is drawn where it lands, so one gradient brush can span every box. */
         private void paintInPixels(QPainter painter) {
             painter.save();
-            painter.translate(pixels(x), pixels(y));
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
+            int left = pixels(x);
+            int top = pixels(y);
             int pixelWidth = pixels(width);
             int pixelHeight = pixels(height);
             if (borderRadius > 0) {
@@ -2154,33 +2254,33 @@ public final class HintMeshRenderer {
                 // the background does not bleed outside the border at corners.
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, true);
                 if (borderThickness != 0) {
-                    painter.setBrush(color.alpha() != 0 ? QtColorUtil.qBrush(color) :
-                            QtColorUtil.noBrush());
+                    painter.setBrush(color != null ? color : QtColorUtil.noBrush());
                     painter.setPen(createPen(borderColor, borderThickness));
                     double offset = borderThickness / 2d;
-                    painter.drawRoundedRect(new QRectF(offset, offset,
+                    painter.drawRoundedRect(new QRectF(left + offset, top + offset,
                                     pixelWidth - borderThickness,
                                     pixelHeight - borderThickness),
                             borderRadius, borderRadius);
                 }
-                else if (color.alpha() != 0) {
-                    painter.setBrush(QtColorUtil.qBrush(color));
+                else if (color != null) {
+                    painter.setBrush(color);
                     painter.setPen(Qt.PenStyle.NoPen);
-                    painter.drawRoundedRect(0, 0, pixelWidth, pixelHeight, borderRadius,
+                    painter.drawRoundedRect(left, top, pixelWidth, pixelHeight, borderRadius,
                             borderRadius);
                 }
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
             else {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
-                if (color.alpha() != 0) {
-                    painter.setBrush(QtColorUtil.qBrush(color));
+                if (color != null) {
+                    painter.setBrush(color);
                     painter.setPen(Qt.PenStyle.NoPen);
-                    painter.drawRoundedRect(0, 0, pixelWidth, pixelHeight, 0, 0);
+                    painter.drawRoundedRect(left, top, pixelWidth, pixelHeight, 0, 0);
                 }
-                if (borderThickness != 0)
-                    drawBorders(painter);
             }
+            painter.translate(left, top);
+            if (borderRadius == 0 && borderThickness != 0)
+                drawBorders(painter);
             for (HintBox decorationBox : decorationBoxes) {
                 decorationBox.paintInPixels(painter);
             }
@@ -2236,27 +2336,29 @@ public final class HintMeshRenderer {
 
         private void paintWithoutBorderInPixels(QPainter painter) {
             painter.save();
-            painter.translate(pixels(x), pixels(y));
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver);
-            if (color.alpha() != 0) {
+            int left = pixels(x);
+            int top = pixels(y);
+            if (color != null) {
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, borderRadius > 0);
-                painter.setBrush(QtColorUtil.qBrush(color));
+                painter.setBrush(color);
                 painter.setPen(Qt.PenStyle.NoPen);
                 if (borderRadius > 0 && borderThickness != 0) {
                     // The border strokes this same inset rect on its own layer; filling it (not the
                     // full box) keeps the background from bleeding past the rounded border, the way
                     // paint() does by drawing both in one call.
                     double offset = borderThickness / 2d;
-                    painter.drawRoundedRect(new QRectF(offset, offset,
+                    painter.drawRoundedRect(new QRectF(left + offset, top + offset,
                                     pixels(width) - borderThickness,
                                     pixels(height) - borderThickness),
                             borderRadius, borderRadius);
                 }
                 else
-                    painter.drawRoundedRect(0, 0, pixels(width), pixels(height), borderRadius,
-                            borderRadius);
+                    painter.drawRoundedRect(left, top, pixels(width), pixels(height),
+                            borderRadius, borderRadius);
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, false);
             }
+            painter.translate(left, top);
             for (HintBox decorationBox : decorationBoxes)
                 decorationBox.paintInPixels(painter);
             painter.restore();

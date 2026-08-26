@@ -784,6 +784,7 @@ hint-mode.hint.label-override=plus
 
 ```properties
 # Box appearance
+# One color, or several for a gradient through them.
 hint-mode.hint.box-color=#000000
 hint-mode.hint.box-opacity=0.4
 hint-mode.hint.box-border-thickness=1
@@ -871,6 +872,24 @@ hint-mode.hint.background-opacity=0
 ```
 
 - Box appearance: controls the background and border of hint boxes
+  - `box-color`: One color, or several for a gradient through them, evenly spaced and interpolated
+    through OkLab. Each box takes the color at its own position, so with `top-to-bottom` a grid row
+    is one color. `box-opacity` applies to the whole gradient.
+    ```properties
+    hint-mode.hint.box-color=#FF0000 #FFA500 #FFFF00 #00FF00 #800080
+    hint-mode.hint.box-color=across-screen left-to-right #FF6B00 #FF006E
+    ```
+    Keywords go anywhere among the colors, in any order:
+    - Direction: `top-to-bottom` (default), `bottom-to-top`, `left-to-right`, `right-to-left`, the
+      four diagonals (`topleft-to-bottomright` and so on), and four round ones: `center-to-corner`
+      and `corner-to-center` reach the last color at the corners, `center-to-edge` and
+      `edge-to-center` at every edge.
+    - What one sweep covers: `across-content` (default, the hints on that screen), `across-screen`,
+      `across-all-screens` (one sweep over the whole arrangement), `across-group` (each
+      [subgrid](#hint-layout-and-positioning), so the gradient repeats), `across-element` (each box).
+    - What shares one color: `per-element` (default), `per-group` (one color per subgrid),
+      `per-pixel` (none: the gradient ramps inside a box and continues into the next). `per-group`
+      needs an area wider than a group, so not with `across-group` or `across-element`.
   - `box-border-length`: Higher values create continuous lines between hint boxes, lower values create dotted separators
   - `box-border-radius`: Radius for rounded corners (0-1000, default 0).
   - `box-shadow-blur-radius`: Shadow blur radius (0-1000, default 10).

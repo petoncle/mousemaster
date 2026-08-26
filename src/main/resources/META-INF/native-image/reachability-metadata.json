@@ -2578,7 +2578,15 @@
     },
     {
       "type": "io.qt.gui.QGradient",
-      "jniAccessible": true
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.qt.QtObject$QPrivateConstructor"
+          ]
+        }
+      ]
     },
     {
       "type": "io.qt.gui.QGuiApplication",
@@ -6738,6 +6746,41 @@
           ]
         },
         {
+          "name": "<init>",
+          "parameterTypes": [
+            "mousemaster.HintFontStyle",
+            "boolean",
+            "mousemaster.HintFontStyle",
+            "mousemaster.HintGradientColor",
+            "double",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "double",
+            "boolean",
+            "mousemaster.Shadow",
+            "boolean",
+            "double",
+            "double",
+            "java.lang.String",
+            "double",
+            "boolean",
+            "double",
+            "double",
+            "double",
+            "double",
+            "java.util.List",
+            "boolean",
+            "java.time.Duration",
+            "boolean",
+            "java.time.Duration",
+            "java.lang.String",
+            "double",
+            "java.util.List"
+          ]
+        },
+        {
           "name": "backgroundHexColor",
           "parameterTypes": []
         },
@@ -6766,15 +6809,15 @@
           "parameterTypes": []
         },
         {
+          "name": "boxColor",
+          "parameterTypes": []
+        },
+        {
           "name": "boxFramed",
           "parameterTypes": []
         },
         {
           "name": "boxHeightPercent",
-          "parameterTypes": []
-        },
-        {
-          "name": "boxHexColor",
           "parameterTypes": []
         },
         {
@@ -6933,6 +6976,29 @@
             "boolean",
             "boolean",
             "java.time.Duration",
+            "java.time.Duration",
+            "mousemaster.Easing",
+            "mousemaster.IndicatorSwitchAt",
+            "boolean",
+            "int",
+            "int",
+            "java.lang.String",
+            "double",
+            "mousemaster.IndicatorOutline",
+            "mousemaster.IndicatorOutline",
+            "mousemaster.Shadow",
+            "boolean",
+            "java.lang.String",
+            "mousemaster.FontStyle",
+            "mousemaster.IndicatorPosition"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "boolean",
+            "java.time.Duration",
             "boolean",
             "int",
             "int",
@@ -7005,6 +7071,18 @@
         },
         {
           "name": "size",
+          "parameterTypes": []
+        },
+        {
+          "name": "transitionAnimationDuration",
+          "parameterTypes": []
+        },
+        {
+          "name": "transitionAnimationEasing",
+          "parameterTypes": []
+        },
+        {
+          "name": "transitionAnimationSwitchAt",
           "parameterTypes": []
         }
       ]
@@ -8705,14 +8783,14 @@
     {
       "type": {
         "proxy": [
-          "mousemaster.platform.macos.ObjectiveC$ReturningSize"
+          "mousemaster.platform.macos.ObjectiveC$ReturningRect"
         ]
       }
     },
     {
       "type": {
         "proxy": [
-          "mousemaster.platform.macos.ObjectiveC$ReturningRect"
+          "mousemaster.platform.macos.ObjectiveC$ReturningSize"
         ]
       }
     },
@@ -8762,6 +8840,20 @@
       "type": {
         "proxy": [
           "mousemaster.platform.windows.Shcore"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.WindowsDesktopDuplication$D3D11"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "mousemaster.platform.windows.WindowsDesktopDuplication$Dxgi"
         ]
       }
     },

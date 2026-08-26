@@ -1214,7 +1214,7 @@ public class HintManager implements ModeListener, MousePositionListener {
                     prefixLengths.iterator().next() : -1;
         }
         HintMeshStyle decorationStyle = style.builder()
-                .boxHexColor(decoration.boxHexColor())
+                .boxColor(HintGradientColor.parse(decoration.boxHexColor()))
                 .boxOpacity(decoration.boxOpacity())
                 .boxBorderThickness(decoration.boxBorderThickness())
                 .boxBorderLength(decoration.boxBorderLength())
