@@ -1103,7 +1103,7 @@ public final class HintMeshRenderer {
     private void stopBorderMorph(BorderMorph morph) {
         if (morph.animation != null) {
             morph.animation.stop();
-            morph.animation.disposeLater();
+            QtDisposal.disposeLater(morph.animation);
             morph.animation = null;
         }
         morph.callback = null;
@@ -1122,7 +1122,7 @@ public final class HintMeshRenderer {
             layer.disposeBuffers();
         for (HintPaintLayer layer : widget.findChildren(HintPaintLayer.class))
             layer.disposeBuffers();
-        widget.disposeLater();
+        QtDisposal.disposeLater(widget);
     }
 
     private List<QWidget> containers(TransparentWindow window) {

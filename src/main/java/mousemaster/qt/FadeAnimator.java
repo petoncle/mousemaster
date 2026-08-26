@@ -110,7 +110,7 @@ public class FadeAnimator {
     private void disposeAnimation() {
         if (animation != null) {
             animation.stop();
-            animation.disposeLater();
+            QtDisposal.disposeLater(animation);
             animation = null;
         }
     }
