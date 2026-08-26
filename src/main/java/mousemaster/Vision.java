@@ -41,11 +41,11 @@ public class Vision {
     private static final int maximumCornerColors = 3;
     private static final int widestEdgeMargin = 3;
     private static final int tallestEdgeMargin = 2;
-    private static final int shallowestCut = 2;
-    private static final int deepestCut = 4;
+    private static final int widestInkGap = 5;
+    private static final int narrowestInkGap = 3;
     /** One for each margin pair and each depth the ink is cut to. */
     static final int densities =
-            widestEdgeMargin * tallestEdgeMargin + deepestCut - shallowestCut + 1;
+            widestEdgeMargin * tallestEdgeMargin + widestInkGap - narrowestInkGap + 1;
     private static final String dumpPath = System.getProperty("vision.dump");
 
     private final Overlay overlay;
@@ -103,7 +103,8 @@ public class Vision {
     List<UiElement> findElements(DesktopCapture capture, double scale, int density) {
         int width = capture.scaledWidth();
         int height = capture.scaledHeight();
-        // The edge margins narrow one pair at a time, then the ink is cut ever deeper.
+        // The edge margins narrow one pair at a time, then the ink parts at ever
+        // narrower gaps.
         int edgeSteps = widestEdgeMargin * tallestEdgeMargin;
         int step = density - 1;
         List<Rectangle> boxes = step < edgeSteps
@@ -111,7 +112,7 @@ public class Vision {
                         widestEdgeMargin - step / tallestEdgeMargin,
                         tallestEdgeMargin - step % tallestEdgeMargin)
                 : inkBoxes(capture.scaledRgb(), width, height,
-                        shallowestCut + step - edgeSteps);
+                        widestInkGap - step + edgeSteps);
         if (dumpPath != null)
             dump(capture.scaledRgb(),
                     InkDetector.ink(capture.scaledRgb(), width, height), boxes, width,
@@ -140,7 +141,7 @@ public class Vision {
 
     /** What the ink splits into once cut apart: one hint each. */
     private static List<Rectangle> inkBoxes(byte[] rgb, int width, int height,
-                                           int maximumCutDepth) {
+                                           int minimumGapColumns) {
         int downsampledWidth = (width + downsampleFactor - 1) / downsampleFactor;
         int downsampledHeight = (height + downsampleFactor - 1) / downsampleFactor;
         boolean[] ink = InkDetector.ink(rgb, width, height);
@@ -157,7 +158,7 @@ public class Vision {
                     List<Rectangle> parts = new ArrayList<>();
                     XyCut.cut(ink, inkTable, width,
                             detectionBox(box, width, height), maximumElementArea,
-                            maximumCutDepth, parts);
+                            minimumGapColumns, parts);
                     return parts.stream();
                 })
                 .collect(Collectors.toCollection(ArrayList::new));

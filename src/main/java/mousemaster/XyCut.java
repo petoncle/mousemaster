@@ -12,33 +12,33 @@ public class XyCut {
     private static final int minimumInkPixels = 1;
     /** Of what the box's own lines average, so a sparse outline stays whole. */
     private static final double gapInkRatio = 0.15;
-    /** Letters stand a column or two apart; stacked lines part at the first blank row. */
-    private static final int minimumGapColumns = 3;
+    /** Deeper than this parts nothing further. */
+    private static final int maximumCutDepth = 4;
     /** Below this an element is an ink sliver rather than a target. */
     private static final int minimumElementColumns = 2;
     /** A drawn border is a pixel or two wide at this resolution. */
     private static final int borderInset = 2;
 
     static void cut(boolean[] ink, SummedAreaTable inkTable, int width, Rectangle box,
-                    double maximumElementArea, int maximumCutDepth, List<Rectangle> out) {
-        cut(ink, inkTable, width, box, maximumElementArea, maximumCutDepth, 0, out);
+                    double maximumElementArea, int minimumGapColumns, List<Rectangle> out) {
+        cut(ink, inkTable, width, box, maximumElementArea, minimumGapColumns, 0, out);
     }
 
     private static void cut(boolean[] ink, SummedAreaTable inkTable, int width,
                             Rectangle box, double maximumElementArea,
-                            int maximumCutDepth, int depth, List<Rectangle> out) {
-        List<Rectangle> rows = cutAtProfileValleys(inkTable, box, false);
+                            int minimumGapColumns, int depth, List<Rectangle> out) {
+        List<Rectangle> rows = cutAtProfileValleys(inkTable, box, false, minimumGapColumns);
         if (rows.size() > 1 && depth < maximumCutDepth) {
             for (Rectangle row : rows)
-                cut(ink, inkTable, width, row, maximumElementArea, maximumCutDepth,
+                cut(ink, inkTable, width, row, maximumElementArea, minimumGapColumns,
                         depth + 1, out);
             return;
         }
         Rectangle tightened = rows.size() == 1 ? rows.getFirst() : box;
-        List<Rectangle> columns = cutAtProfileValleys(inkTable, tightened, true);
+        List<Rectangle> columns = cutAtProfileValleys(inkTable, tightened, true, minimumGapColumns);
         if (columns.size() > 1 && depth < maximumCutDepth) {
             for (Rectangle column : columns)
-                cut(ink, inkTable, width, column, maximumElementArea, maximumCutDepth,
+                cut(ink, inkTable, width, column, maximumElementArea, minimumGapColumns,
                         depth + 1, out);
             return;
         }
@@ -46,14 +46,14 @@ public class XyCut {
         // A border inks every line of the box, leaving no gap to cut at.
         if (depth < maximumCutDepth && element.width() > 2 * borderInset
             && element.height() > 2 * borderInset
-            && enclosesMoreThanOneBlock(inkTable, element)) {
+            && enclosesMoreThanOneBlock(inkTable, element, minimumGapColumns)) {
             List<Rectangle> inside = new ArrayList<>();
             boolean[] enclosed = borderCleared(ink, width, element);
             cut(enclosed,
                     new SummedAreaTable(enclosed, element.width(), element.height()),
                     element.width(),
                     new Rectangle(0, 0, element.width(), element.height()),
-                    maximumElementArea, maximumCutDepth, depth + 1, inside);
+                    maximumElementArea, minimumGapColumns, depth + 1, inside);
             if (!inside.isEmpty()) {
                 for (Rectangle part : inside)
                     out.add(new Rectangle(part.x() + element.x(), part.y() + element.y(),
@@ -68,7 +68,8 @@ public class XyCut {
 
     /** The box trimmed to its ink and parted at the valleys of its projection profile. */
     private static List<Rectangle> cutAtProfileValleys(SummedAreaTable inkTable,
-                                                       Rectangle box, boolean columns) {
+                                                       Rectangle box, boolean columns,
+                                                       int minimumGapColumns) {
         int along = columns ? box.width() : box.height();
         int gapInk = Math.max(minimumInkPixels,
                 (int) (gapInkRatio * inkTable.count(box) / along));
@@ -104,11 +105,12 @@ public class XyCut {
     }
 
     private static boolean enclosesMoreThanOneBlock(SummedAreaTable inkTable,
-                                                   Rectangle box) {
+                                                   Rectangle box,
+                                                   int minimumGapColumns) {
         Rectangle within = new Rectangle(box.x() + borderInset, box.y() + borderInset,
                 box.width() - 2 * borderInset, box.height() - 2 * borderInset);
-        return cutAtProfileValleys(inkTable, within, false).size() > 1
-               || cutAtProfileValleys(inkTable, within, true).size() > 1;
+        return cutAtProfileValleys(inkTable, within, false, minimumGapColumns).size() > 1
+               || cutAtProfileValleys(inkTable, within, true, minimumGapColumns).size() > 1;
     }
 
     /** As imclearborder, except that only ink reaching two opposite edges is a border:
